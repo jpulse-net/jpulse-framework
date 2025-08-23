@@ -5,7 +5,7 @@
  * @tagline         Version bump script for Bubble Framework
  * @description     Updates version numbers and release dates across all source files
  * @file            bump-version.js
- * @version         0.1.0
+ * @version         0.1.1
  * @release         2025-08-23
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,7 +20,9 @@ const conf = {
         // Root level files
         'package.json',
         'README.md',
+        'developers.md',
         'bump-version.js',
+        'babel.config.cjs',
 
         // WebApp directory
         'webapp/*.conf',
@@ -30,6 +32,10 @@ const conf = {
         'webapp/translations/*.js',
         'webapp/translations/*.conf',
         'webapp/view/*/*.shtml',
+
+        // Test files
+        'webapp/tests/**/*.js',
+        'webapp/tests/**/*.conf',
     ],
 
     // Specific file update patterns for version/content replacement
@@ -44,7 +50,14 @@ const conf = {
         {
             pattern: 'README.md',
             replacements: [
-                { from: /# Bubble Framework v[\d.]+/, to: (version) => `# Bubble Framework v${version}` },
+                { from: /^(# Bubble Framework v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` },
+                { from: /(version-)[\d.]+(-blue)/g, to: (version, match, p1, p2) => `${p1}${version}${p2}` }
+            ]
+        },
+        {
+            pattern: 'developers.md',
+            replacements: [
+                { from: /^(# Bubble Framework.* v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` },
                 { from: /version-[\d.]+-blue/, to: (version) => `version-${version}-blue` }
             ]
         },
@@ -101,9 +114,10 @@ let errors = 0;
 function matchesPattern(filePath, pattern) {
     // Convert glob pattern to regex
     const regex = pattern
-        .replace(/\*\*/g, '.*')      // ** matches any characters including /
-        .replace(/\*/g, '[^/]*')     // * matches any characters except /
-        .replace(/\./g, '\\.');      // Escape dots
+        .replace(/\./g, '\\.')           // Escape dots first
+        .replace(/\*\*/g, '__DOUBLESTAR__')  // Temporary placeholder for **
+        .replace(/\*/g, '[^/]*')         // * matches any characters except /
+        .replace(/__DOUBLESTAR__/g, '.*'); // ** matches any characters including /
 
     return new RegExp(`^${regex}$`).test(filePath);
 }
@@ -148,7 +162,11 @@ function updateFileContent(filePath, content) {
     );
     for (const rule of matchingRules) {
         for (const replacement of rule.replacements) {
-            const newContent = updatedContent.replace(replacement.from, replacement.to(newVersion));
+            const newContent = updatedContent.replace(replacement.from, (...args) => {
+                // args = [fullMatch, captureGroup1, captureGroup2, ..., offset, string]
+                // For capture group support, pass version as first arg, then all match args
+                return replacement.to(newVersion, ...args);
+            });
             if (newContent !== updatedContent) {
                 updatedContent = newContent;
                 hasChanges = true;

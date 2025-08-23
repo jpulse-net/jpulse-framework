@@ -3,7 +3,7 @@
  * @tagline         Static Controller for Bubble Framework WebApp
  * @description     This is the static file controller for the Bubble Framework WebApp
  * @file            webapp/controller/static.js 
- * @version         0.1.0
+ * @version         0.1.1
  * @release         2025-08-23
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

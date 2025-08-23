@@ -1,6 +1,6 @@
 {
     "name": "bubble-framework",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Generic web application framework using MongoDB, Node.js, Express",
     "type": "module",
     "main": "webapp/app.js",
@@ -8,7 +8,11 @@
         "start": "node webapp/app.js",
         "dev": "node webapp/app.js",
         "prod": "NODE_ENV=production node webapp/app.js",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "jest",
+        "test:unit": "jest webapp/tests/unit",
+        "test:integration": "jest webapp/tests/integration",
+        "test:watch": "jest --watch",
+        "test:coverage": "jest --coverage"
     },
     "repository": {
         "type": "git",
@@ -30,7 +34,30 @@
         "body-parser": "^1.20.2",
         "express-session": "^1.17.3"
     },
+    "devDependencies": {
+        "jest": "^29.7.0",
+        "@jest/globals": "^29.7.0",
+        "@babel/core": "^7.23.0",
+        "@babel/preset-env": "^7.23.0",
+        "babel-jest": "^29.7.0"
+    },
     "engines": {
         "node": ">=16.0.0"
+    },
+    "jest": {
+        "transform": {
+            "^.+\\.js$": "babel-jest"
+        },
+        "testMatch": [
+            "**/tests/**/*.test.js"
+        ],
+        "collectCoverageFrom": [
+            "webapp/**/*.js",
+            "!webapp/tests/**",
+            "!**/node_modules/**"
+        ],
+        "coverageDirectory": "coverage",
+        "coverageReporters": ["text", "lcov", "html"],
+        "testEnvironment": "node"
     }
 }

@@ -17,6 +17,9 @@ pids
 coverage/
 *.lcov
 
+# Test temporary files
+webapp/tests/fixtures/temp-*.conf
+
 # nyc test coverage
 .nyc_output
 

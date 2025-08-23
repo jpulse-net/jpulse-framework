@@ -3,13 +3,13 @@
  * @tagline         Internationalization for the Bubble Framework WebApp
  * @description     This is the i18n file for the Bubble Framework WebApp
  * @file            webapp/translations/i18n.js
- * @version         0.1.0
+ * @version         0.1.1
  * @release         2025-08-23
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           50%, Cursor 1.2, Claude Sonnet 4
  */
 
 // Load the English translation file, it defines the i18n.en object

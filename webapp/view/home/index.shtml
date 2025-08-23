@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<!--
+ * @name            Bubble Framework / WebApp / View / Home
+ * @tagline         Home page of Bubble Framework
+ * @description     This is the home page of Bubble Framework
+ * @file            webapp/view/home/index.shtml
+ * @version         0.1.0
+ * @release         2025-08-23
+ * @repository      https://github.com/peterthoeny/web-ide-bridge
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         GPL v3, see LICENSE file
+ * @genai           99%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Framework - Hello World</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 600px;
+            text-align: center;
+        }
+        .bubble-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        .info-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .info-value {
+            color: #333;
+            font-size: 1.1em;
+            margin-top: 5px;
+        }
+        .status {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 30px;
+            font-weight: bold;
+        }
+        .description {
+            color: #666;
+            line-height: 1.6;
+            margin: 20px 0;
+        }
+        .api-link {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        .api-link:hover {
+            background: #5a6fd8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="bubble-icon">🫧</div>
+        <h1>Hello World!</h1>
+        <p class="description">
+            Welcome to the <strong>Bubble Framework</strong> - a generic web application framework 
+            using MongoDB, Node.js, and Express following the MVC paradigm.
+        </p>
+        
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Version</div>
+                <div class="info-value"><!--# version --></div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Release</div>
+                <div class="info-value"><!--# release --></div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Mode</div>
+                <div class="info-value"><!--# config field="deployment.mode" --></div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Database</div>
+                <div class="info-value"><!--# config field="deployment.db" --></div>
+            </div>
+        </div>
+
+        <div class="status">
+            ✅ W-001 Hello World App - Successfully Implemented!
+        </div>
+
+        <p class="description">
+            This template demonstrates the framework's capability to serve dynamic content 
+            with server-side variable expansion using the MVC architecture.
+        </p>
+
+        <a href="/api/1/status" class="api-link">Check API Status</a>
+    </div>
+</body>
+</html>

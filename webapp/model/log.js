@@ -3,7 +3,7 @@
  * @tagline         Log Model for Bubble Framework WebApp
  * @description     This is the log model for the Bubble Framework WebApp using native MongoDB driver
  * @file            webapp/model/log.js
- * @version         0.1.3
+ * @version         0.1.4
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

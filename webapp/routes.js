@@ -3,7 +3,7 @@
  * @tagline         WebApp for Bubble Framework
  * @description     This is the routing file for the Bubble Framework WebApp
  * @file            webapp/route.js
- * @version         0.1.3
+ * @version         0.1.4
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,10 +16,10 @@ import express from 'express';
 const router = express.Router();
 
 // Load controllers
-import staticController from './controller/static.js';
 import userController from './controller/user.js';
 import configController from './controller/config.js';
 import logController from './controller/log.js';
+import viewController from './controller/view.js';
 
 // API routes (must come before catch-all route)
 router.get('/api/1/status', (req, res) => {
@@ -44,43 +44,10 @@ router.delete('/api/1/config/:id', configController.deleteConfig);
 // Log API routes
 router.get('/api/1/log/search', logController.search);
 
-// Hello World route (catch-all, must be last)
-router.get('/*', (req, res) => {
-    res.send(`
-        <html>
-        <head>
-            <title>${i18n.t('app.title')}</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
-                .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-                h1 { color: #333; border-bottom: 2px solid #007acc; padding-bottom: 10px; }
-                .info { background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 20px 0; }
-                .version { color: #666; font-size: 0.9em; }
-                .status { color: #007acc; font-weight: bold; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>🫧 Hello World from ${i18n.t('app.title')}</h1>
-                <div class="info">
-                    <p><strong>Framework:</strong> Bubble Framework</p>
-                    <p><strong>Version:</strong> <span class="version">${appConfig.app.version} (${appConfig.app.release})</span></p>
-                    <p><strong>Mode:</strong> <span class="status">${appConfig.deployment[appConfig.deployment.mode].name}</span></p>
-                    <p><strong>Port:</strong> ${appConfig.deployment[appConfig.deployment.mode].port}</p>
-                    <p><strong>Database:</strong> ${appConfig.deployment[appConfig.deployment.mode].db}</p>
-                </div>
-                <p>This is a generic web application framework using MongoDB, Node.js, and Express following the MVC paradigm.</p>
-                <p><strong>Status:</strong> <span class="status">✅ W-001 Hello World App - IMPLEMENTED</span></p>
-            </div>
-        </body>
-        </html>
-    `);
-});
+// View routes - handle .shtml template files (must be last, catch-all)
+router.get('/*', viewController.load);
 
-// Static controller routes (will be implemented later)
-// router.use('/static', staticController);
-
-// User controller routes (will be implemented later)  
+// User controller routes (will be implemented later)
 // router.use('/api/1/user', userController);
 
 export default router;

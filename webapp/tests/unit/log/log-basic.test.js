@@ -3,7 +3,7 @@
  * @tagline         Unit tests for log model and controller basic functionality
  * @description     This file contains unit tests for the log model and controller
  * @file            webapp/tests/unit/log/log-basic.test.js
- * @version         0.1.3
+ * @version         0.1.4
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,6 +16,13 @@ import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globa
 import LogModel from '../../../model/log.js';
 import LogController from '../../../controller/log.js';
 import TestUtils from '../../helpers/test-utils.js';
+
+// Set up global appConfig for tests
+global.appConfig = {
+    log: {
+        maxMsgLength: 256
+    }
+};
 
 describe('Log Model Basic Functionality', () => {
     let mockCollection;

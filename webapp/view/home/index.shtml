@@ -4,7 +4,7 @@
  * @tagline         Home page of Bubble Framework
  * @description     This is the home page of Bubble Framework
  * @file            webapp/view/home/index.shtml
- * @version         0.1.3
+ * @version         0.1.4
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,126 +16,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bubble Framework - Hello World</title>
+    <title>{{app.version}} - Home</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f5f5;
         }
         .container {
+            max-width: 800px;
+            margin: 0 auto;
             background: white;
             padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            max-width: 600px;
-            text-align: center;
-        }
-        .bubble-icon {
-            font-size: 4em;
-            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         h1 {
             color: #333;
-            margin-bottom: 20px;
-            font-size: 2.5em;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 10px;
         }
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 30px 0;
-            text-align: left;
-        }
-        .info-item {
-            background: #f8f9fa;
+        .info {
+            background: #e7f3ff;
             padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-        }
-        .info-label {
-            font-weight: bold;
-            color: #666;
-            font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .info-value {
-            color: #333;
-            font-size: 1.1em;
-            margin-top: 5px;
-        }
-        .status {
-            background: #d4edda;
-            color: #155724;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 30px;
-            font-weight: bold;
-        }
-        .description {
-            color: #666;
-            line-height: 1.6;
+            border-radius: 5px;
             margin: 20px 0;
         }
-        .api-link {
-            display: inline-block;
-            background: #667eea;
-            color: white;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-top: 20px;
-            transition: background 0.3s;
+        .version {
+            color: #666;
+            font-size: 0.9em;
         }
-        .api-link:hover {
-            background: #5a6fd8;
+        .status {
+            color: #007acc;
+            font-weight: bold;
+        }
+        .handlebars-demo {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #007acc;
+        }
+        .user-info {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="bubble-icon">🫧</div>
-        <h1>Hello World!</h1>
-        <p class="description">
-            Welcome to the <strong>Bubble Framework</strong> - a generic web application framework 
-            using MongoDB, Node.js, and Express following the MVC paradigm.
-        </p>
-        
-        <div class="info-grid">
-            <div class="info-item">
-                <div class="info-label">Version</div>
-                <div class="info-value"><!--# version --></div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Release</div>
-                <div class="info-value"><!--# release --></div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Mode</div>
-                <div class="info-value"><!--# config field="deployment.mode" --></div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Database</div>
-                <div class="info-value"><!--# config field="deployment.db" --></div>
-            </div>
+        <h1>🫧 {{i18n "app.title"}} - Home Page</h1>
+
+        <div class="info">
+            <p><strong>Framework:</strong> Bubble Framework</p>
+            <p><strong>Version:</strong> <span class="version">{{app.version}} ({{app.release}})</span></p>
+            <p><strong>Current URL:</strong> {{url.domain}}{{url.pathname}}{{url.search}}</p>
+            <p><strong>Protocol:</strong> {{url.protocol}}</p>
+            <p><strong>Hostname:</strong> {{url.hostname}}</p>
+            {{if url.port "Port: " ""}}{{url.port}}
         </div>
 
-        <div class="status">
-            ✅ W-001 Hello World App - Successfully Implemented!
+                <div class="user-info">
+            <h3>User Information</h3>
+            <p>{{if user.authenticated "Welcome back!" "You are not logged in"}}</p>
+            {{if user.authenticated
+                "<p><strong>User ID:</strong> "
+                "<p>Please log in to see your user information.</p>"
+            }}
+            {{if user.authenticated
+                "<p><strong>Name:</strong> "
+                ""
+            }}{{user.firstName}} {{user.lastName}}{{if user.authenticated "</p>" ""}}
+            {{if user.authenticated
+                "<p><strong>Email:</strong> "
+                ""
+            }}{{user.email}}{{if user.authenticated "</p>" ""}}
         </div>
 
-        <p class="description">
-            This template demonstrates the framework's capability to serve dynamic content 
-            with server-side variable expansion using the MVC architecture.
-        </p>
+        <div class="handlebars-demo">
+            <h3>Handlebars Demo</h3>
+            <p>This page demonstrates various handlebars features:</p>
+            <ul>
+                <li><strong>App info:</strong> {{app.version}} / {{app.release}}</li>
+                <li><strong>URL parsing:</strong> {{url.domain}} + {{url.pathname}}</li>
+                <li><strong>URL params:</strong> Try ?name=test → {{url.param.name}}</li>
+                <li><strong>Conditionals:</strong> {{if user.authenticated "User is logged in" "User is guest"}}</li>
+                <li><strong>i18n:</strong> {{i18n "app.title"}}</li>
+                <li><strong>Config:</strong> Admin email: {{config.email.adminEmail}}</li>
+            </ul>
+        </div>
 
-        <a href="/api/1/status" class="api-link">Check API Status</a>
+        <p>This is a server-side rendered template using the viewController with handlebars processing.</p>
+        <p><strong>Status:</strong> <span class="status">✅ W-006 viewController - IMPLEMENTED</span></p>
+
+        <p><em>File timestamp: {{file.timestamp "./index.shtml"}}</em></p>
     </div>
 </body>
 </html>

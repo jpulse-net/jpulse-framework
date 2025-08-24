@@ -1,4 +1,4 @@
-# Bubble Framework v0.1.3
+# Bubble Framework v0.1.4
 
 FIXME: User/admin facing documentation
 

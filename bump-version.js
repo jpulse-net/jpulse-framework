@@ -5,7 +5,7 @@
  * @tagline         Version bump script for Bubble Framework
  * @description     Updates version numbers and release dates across all source files
  * @file            bump-version.js
- * @version         0.1.3
+ * @version         0.1.4
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

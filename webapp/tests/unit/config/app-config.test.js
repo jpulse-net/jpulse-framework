@@ -3,7 +3,7 @@
  * @tagline         Unit tests for application configuration loading
  * @description     Tests for app.conf configuration loading functionality
  * @file            webapp/tests/unit/config/app-config.test.js
- * @version         0.1.3
+ * @version         0.1.4
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

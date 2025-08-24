@@ -3,7 +3,7 @@
  * @tagline         WebApp for Bubble Framework
  * @description     This is the database interface for the Bubble Framework WebApp
  * @file            webapp/database.js
- * @version         0.1.3
+ * @version         0.1.4
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

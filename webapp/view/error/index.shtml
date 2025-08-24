@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!--
+ * @name            Bubble Framework / WebApp / View / Error
+ * @tagline         Error page of Bubble Framework
+ * @description     This is the error page of Bubble Framework
+ * @file            webapp/view/error/index.shtml
+ * @version         0.1.4
+ * @release         2025-08-24
+ * @repository      https://github.com/peterthoeny/web-ide-bridge
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         GPL v3, see LICENSE file
+ * @genai           99%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{app.version}} - Error</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .error {
+            background: #ffebee;
+            border: 1px solid #f44336;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .error h2 {
+            color: #c62828;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {{file.include "../header.tmpl"}}
+        <div class="error">
+            <h2>Error {{url.param "code"}}</h2>
+            <p><strong>Message:</strong> {{url.param "msg"}}</p>
+            <p><strong>Path:</strong> {{url.pathname}}</p>
+            <p><strong>User:</strong> {{if user.authenticated user.firstName "(guest)"}}</p>
+        </div>
+        <p>{{if user.authenticated
+            "We apologize for the inconvenience. Please try again or contact support."
+            "Please try logging in or contact support if the problem persists."
+        }}</p>
+        <p><a href="/">← Back to Home</a></p>
+    </div>
+</body>
+</html>

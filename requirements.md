@@ -52,7 +52,7 @@ Requirements Doc of Bubble Framework
     - config.js             # schema for configs collection
     - user.js               # schema for users collection
   - controller/           # controller -- app API
-    - bubble.js             # loads view files
+    - view.js               # loads view files, expands {{handlebars}}
     - config.js             # handles /api/1/config/...
     - user.js               # handles /api/1/user/...
     - login.js              # handles /api/1/login/...
@@ -132,7 +132,7 @@ Requirements Doc of Bubble Framework
         '- YYYY-MM-DD HH:MM:SS, ERR, loginId, ip:1.2.3.4, vm:123, id:8, actual error message'
     - loginId is the user's login ID (such as "jsmith"), or "(guest)" if not logged in
     - vm:123 is the numerical part of the server, such as 123 for app-server-123.ca.example.com, or vm:0 if no number exists
-    - id:8 is the pm2 instance ID, or id:0 when not using pm2 
+    - id:8 is the pm2 instance ID, or id:0 when not using pm2
   - schema:
     ```{
         data: {
@@ -147,13 +147,8 @@ Requirements Doc of Bubble Framework
     }```
   - create tests, and test
 
-
-- **W-006**: create site admin view
-  - create webapp/view/admin/index.shtml -- admin home
-  - create webapp/view/admin/config.shtml -- edit config
-
-- **W-007**: create server sice include function
-  - create webapp/controller/bubble.js
+- **W-006**: create server sice include function
+  - create webapp/controller/view.js
     - function load(req, res) loads a view file and expands {{handlebars}}:
       - {{app.version}}
       - {{app.release}}
@@ -175,8 +170,11 @@ Requirements Doc of Bubble Framework
       - {{url.pathname}}    // '/home/index.shtml'
       - {{url.search}}      // '?foo=bar'
       - {{url.param "foo"}} // 'bar'
-      - {{i18n "" }}
+      - {{i18n.login.notAuthenticated}}
 
+- **W-007**: create site admin view
+  - create webapp/view/admin/index.shtml -- admin home
+  - create webapp/view/admin/config.shtml -- edit config
 
 # Roadmap (Future Enhancements)
 

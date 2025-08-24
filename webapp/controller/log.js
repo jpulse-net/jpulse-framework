@@ -3,7 +3,7 @@
  * @tagline         Log Controller for Bubble Framework WebApp
  * @description     This is the log controller for the Bubble Framework WebApp
  * @file            webapp/controller/log.js
- * @version         0.1.3
+ * @version         0.1.4
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -69,8 +69,8 @@ class LogController {
 
         // Extract IP address from request
         if (req) {
-            context.ip = req.ip || 
-                       req.connection?.remoteAddress || 
+            context.ip = req.ip ||
+                       req.connection?.remoteAddress ||
                        req.socket?.remoteAddress ||
                        (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
                        '0.0.0.0';
@@ -118,6 +118,41 @@ class LogController {
     }
 
     /**
+     * Sanitize and truncate log messages
+     * - Replace non-printable chars (newlines, tabs, etc.) with spaces
+     * - Replace multiple spaces with single space
+     * - Truncate long messages with "..." showing start and end portions
+     * @param {string} message - Message to sanitize
+     * @returns {string} Sanitized message
+     */
+    static sanitizeMessage(message) {
+        if (!message || typeof message !== 'string') {
+            return String(message || '');
+        }
+
+        // Replace non-printable characters with spaces
+        let sanitized = message.replace(/[\r\n\t\f\v]/g, ' ');
+
+        // Replace multiple spaces with single space
+        sanitized = sanitized.replace(/\s+/g, ' ').trim();
+
+        // Truncate if too long
+        const maxLength = appConfig?.log?.maxMsgLength || 256;
+        if (sanitized.length <= maxLength) {
+            return sanitized;
+        }
+
+        // Take 3/4 for start, 1/4 for end
+        const startLength = Math.floor(maxLength * 0.75) - 3; // -3 for " ..."
+        const endLength = Math.floor(maxLength * 0.25);
+
+        const startPortion = sanitized.substring(0, startLength);
+        const endPortion = sanitized.substring(sanitized.length - endLength);
+
+        return `${startPortion} ... ${endPortion}`;
+    }
+
+    /**
      * Console logging with unified format
      * Format: "- YYYY-MM-DD HH:MM:SS, msg, loginId, ip:1.2.3.4, vm:123, id:8, actual message text"
      * @param {object} req - Express request object
@@ -126,7 +161,8 @@ class LogController {
     static console(req, message) {
         const timestamp = LogController.formatTimestamp();
         const context = LogController.getContext(req);
-        const logLine = `- ${timestamp}, msg, ${context.loginId}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${message}`;
+        const sanitizedMessage = LogController.sanitizeMessage(message);
+        const logLine = `- ${timestamp}, msg, ${context.loginId}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${sanitizedMessage}`;
         console.log(logLine);
     }
 
@@ -139,8 +175,9 @@ class LogController {
     static consoleApi(req, message) {
         const timestamp = LogController.formatTimestamp();
         const context = LogController.getContext(req);
+        const sanitizedMessage = LogController.sanitizeMessage(message);
 
-        const logLine = `==${timestamp}, ===, ${context.loginId}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, === ${message}`;
+        const logLine = `==${timestamp}, ===, ${context.loginId}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, === ${sanitizedMessage}`;
         console.log(logLine);
     }
 
@@ -153,8 +190,9 @@ class LogController {
     static error(req, error) {
         const timestamp = LogController.formatTimestamp();
         const context = LogController.getContext(req);
+        const sanitizedMessage = LogController.sanitizeMessage(error);
 
-        const logLine = `- ${timestamp}, ERR, ${context.loginId}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${error}`;
+        const logLine = `- ${timestamp}, ERR, ${context.loginId}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${sanitizedMessage}`;
         console.error(logLine);
     }
 

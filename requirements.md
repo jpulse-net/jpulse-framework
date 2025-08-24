@@ -1,4 +1,4 @@
-Requirements Doc of Bubble Framework
+Requirements Doc of jPulse Framework
 ====================================
 
 # Objectives
@@ -29,7 +29,7 @@ Requirements Doc of Bubble Framework
   - about
   - login/logout (depending on active auth method)
 - sysadmin can add their own models, controllers, views
-  - a way to allow bubble-framwork updates without affecting customization
+  - a way to allow jpulse-framework updates without affecting customization
 - i18n as user preference: en (default), de, ...
 - theme as user preference: dark, light (default)
 - support multiple node instances on same server, managed by pm2
@@ -57,9 +57,9 @@ Requirements Doc of Bubble Framework
     - user.js               # handles /api/1/user/...
     - login.js              # handles /api/1/login/...
   - view/                 # view -- browser files served by app
-    - bubble-header.tmpl    # common header
-    - bubble-footer.tmpl    # common footer
-    - bubble.js             # common functions
+    - jpulse-header.tmpl    # common header
+    - jpulse-footer.tmpl    # common footer
+    - jpulse.js             # common functions
     - home/
       - index.shtml
     - login/
@@ -172,7 +172,11 @@ Requirements Doc of Bubble Framework
       - {{url.param "foo"}} // 'bar'
       - {{i18n.login.notAuthenticated}}
 
-- **W-007**: create site admin view
+- **W-007**: rename project from Bubble Framework to jPulse Framework
+  - rename git repo to /peterthoeny/jpulse-framework
+  - rename any text references to project name
+
+- **W-008**: create site admin view
   - create webapp/view/admin/index.shtml -- admin home
   - create webapp/view/admin/config.shtml -- edit config
 

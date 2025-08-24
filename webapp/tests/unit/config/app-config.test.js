@@ -1,11 +1,11 @@
 /**
- * @name            Bubble Framework / WebApp / Tests / Unit / Config / App Config
+ * @name            jPulse Framework / WebApp / Tests / Unit / Config / App Config
  * @tagline         Unit tests for application configuration loading
  * @description     Tests for app.conf configuration loading functionality
  * @file            webapp/tests/unit/config/app-config.test.js
- * @version         0.1.4
+ * @version         0.1.5
  * @release         2025-08-24
- * @repository      https://github.com/peterthoeny/bubble-framework
+ * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file

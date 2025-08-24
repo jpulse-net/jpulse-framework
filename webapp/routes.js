@@ -1,11 +1,11 @@
 /**
- * @name            Bubble Framework / WebApp / Route
- * @tagline         WebApp for Bubble Framework
- * @description     This is the routing file for the Bubble Framework WebApp
+ * @name            jPulse Framework / WebApp / Route
+ * @tagline         WebApp for jPulse Framework
+ * @description     This is the routing file for the jPulse Framework WebApp
  * @file            webapp/route.js
- * @version         0.1.4
+ * @version         0.1.5
  * @release         2025-08-24
- * @repository      https://github.com/peterthoeny/bubble-framework
+ * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file

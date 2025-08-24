@@ -1,6 +1,6 @@
 {
-    "name": "bubble-framework",
-    "version": "0.1.4",
+    "name": "jpulse-framework",
+    "version": "0.1.5",
     "description": "Generic web application framework using MongoDB, Node.js, Express",
     "type": "module",
     "main": "webapp/app.js",
@@ -16,7 +16,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/peterthoeny/bubble-framework.git"
+        "url": "https://github.com/peterthoeny/jpulse-framework.git"
     },
     "keywords": [
         "web-framework",

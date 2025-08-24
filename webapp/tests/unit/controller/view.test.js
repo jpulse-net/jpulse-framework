@@ -1,11 +1,11 @@
 /**
- * @name            Bubble Framework / WebApp / Tests / Unit / Controller / View
+ * @name            jPulse Framework / WebApp / Tests / Unit / Controller / View
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         0.1.4
+ * @version         0.1.5
  * @release         2025-08-24
- * @repository      https://github.com/peterthoeny/bubble-framework
+ * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file
@@ -471,7 +471,12 @@ describe('View Controller Handlebars Processing', () => {
 
 
 // Simplified handlebars processor for testing
-async function processHandlebarsForTest(content, context) {
+async function processHandlebarsForTest(content, context, depth = 0) {
+    // Prevent infinite recursion
+    if (depth > 10) {
+        throw new Error('Maximum include depth exceeded');
+    }
+    
     const handlebarsRegex = /\{\{([^}]*)\}\}/g;
     let result = content;
     let match;
@@ -481,7 +486,7 @@ async function processHandlebarsForTest(content, context) {
         const expression = match[1].trim();
 
         try {
-            const replacement = await evaluateHandlebarForTest(expression, context);
+            const replacement = await evaluateHandlebarForTest(expression, context, depth);
             result = result.replace(fullMatch, replacement);
         } catch (error) {
             result = result.replace(fullMatch, `<!-- Error: ${error.message} -->`);
@@ -492,7 +497,7 @@ async function processHandlebarsForTest(content, context) {
 }
 
 // Simplified handlebars evaluator for testing
-async function evaluateHandlebarForTest(expression, context) {
+async function evaluateHandlebarForTest(expression, context, depth = 0) {
     const parts = parseArgumentsForTest(expression);
     const helper = parts[0];
     const args = parts.slice(1);
@@ -505,7 +510,7 @@ async function evaluateHandlebarForTest(expression, context) {
     // Handle helper functions first (before property access)
     switch (helper) {
         case 'file.include':
-            return await handleFileIncludeForTest(args[0], context);
+            return await handleFileIncludeForTest(args[0], context, depth);
         case 'file.timestamp':
             return await handleFileTimestampForTest(args[0]);
         case 'if':
@@ -587,7 +592,7 @@ function handleIfForTest(args, context) {
     return conditionValue ? trueValue : falseValue;
 }
 
-async function handleFileIncludeForTest(filePath, context) {
+async function handleFileIncludeForTest(filePath, context, depth = 0) {
     const cleanPath = filePath.replace(/^["']|["']$/g, '');
     
     if (!fs.existsSync(cleanPath)) {
@@ -595,8 +600,8 @@ async function handleFileIncludeForTest(filePath, context) {
     }
     
     const content = fs.readFileSync(cleanPath, 'utf8');
-    // Recursively process handlebars in included content
-    return await processHandlebarsForTest(content, context);
+    // Recursively process handlebars in included content with depth tracking
+    return await processHandlebarsForTest(content, context, depth + 1);
 }
 
 async function handleFileTimestampForTest(filePath) {

@@ -1,9 +1,9 @@
 /**
- * @name            Bubble Framework / Babel Configuration
- * @tagline         Babel configuration for Bubble Framework
- * @description     Babel configuration for Bubble Framework
+ * @name            jPulse Framework / Babel Configuration
+ * @tagline         Babel configuration for jPulse Framework
+ * @description     Babel configuration for jPulse Framework
  * @file            babel.config.cjs
- * @version         0.1.4
+ * @version         0.1.5
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

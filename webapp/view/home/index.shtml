@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <!--
- * @name            Bubble Framework / WebApp / View / Home
- * @tagline         Home page of Bubble Framework
- * @description     This is the home page of Bubble Framework
+ * @name            jPulse Framework / WebApp / View / Home
+ * @tagline         Home page of jPulse Framework
+ * @description     This is the home page of jPulse Framework
  * @file            webapp/view/home/index.shtml
- * @version         0.1.4
+ * @version         0.1.5
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -70,7 +70,7 @@
         <h1>🫧 {{i18n "app.title"}} - Home Page</h1>
 
         <div class="info">
-            <p><strong>Framework:</strong> Bubble Framework</p>
+            <p><strong>Framework:</strong> jPulse Framework</p>
             <p><strong>Version:</strong> <span class="version">{{app.version}} ({{app.release}})</span></p>
             <p><strong>Current URL:</strong> {{url.domain}}{{url.pathname}}{{url.search}}</p>
             <p><strong>Protocol:</strong> {{url.protocol}}</p>

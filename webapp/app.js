@@ -1,11 +1,11 @@
 /**
- * @name            Bubble Framework / WebApp
- * @tagline         WebApp for Bubble Framework
- * @description     This is the main application file of the Bubble Framework WebApp
+ * @name            jPulse Framework / WebApp
+ * @tagline         WebApp for jPulse Framework
+ * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         0.1.4
+ * @version         0.1.5
  * @release         2025-08-24
- * @repository      https://github.com/peterthoeny/bubble-framework
+ * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file
@@ -83,7 +83,7 @@ async function startApp() {
     // Start the server
     app.listen(port, () => {
         // Use LogController for structured logging (no req object for server startup)
-        LogController.console(null, `Bubble Framework WebApp v${appConfig.app.version} (${appConfig.app.release})`);
+        LogController.console(null, `jPulse Framework WebApp v${appConfig.app.version} (${appConfig.app.release})`);
         LogController.console(null, `Server running in ${appConfig.deployment[mode].name} mode on port ${port}`);
         LogController.console(null, `Database: ${appConfig.deployment[mode].db}`);
     });

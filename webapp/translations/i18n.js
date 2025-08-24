@@ -1,11 +1,11 @@
 /**
- * @name            Bubble Framework / WebApp / Translations / I18N
- * @tagline         Internationalization for the Bubble Framework WebApp
- * @description     This is the i18n file for the Bubble Framework WebApp
+ * @name            jPulse Framework / WebApp / Translations / I18N
+ * @tagline         Internationalization for the jPulse Framework WebApp
+ * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/translations/i18n.js
- * @version         0.1.4
+ * @version         0.1.5
  * @release         2025-08-24
- * @repository      https://github.com/peterthoeny/bubble-framework
+ * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file

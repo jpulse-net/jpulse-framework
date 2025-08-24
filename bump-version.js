@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * @name            Bubble Framework / Build
- * @tagline         Version bump script for Bubble Framework
+ * @name            jPulse Framework / Build
+ * @tagline         Version bump script for jPulse Framework
  * @description     Updates version numbers and release dates across all source files
  * @file            bump-version.js
- * @version         0.1.4
+ * @version         0.1.5
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -57,14 +57,14 @@ const conf = {
         {
             pattern: 'README.md',
             replacements: [
-                { from: /^(# Bubble Framework v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` },
+                { from: /^(# jPulse Framework v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` },
                 { from: /(version-)[\d.]+(-blue)/g, to: (version, match, p1, p2) => `${p1}${version}${p2}` }
             ]
         },
         {
             pattern: 'developers.md',
             replacements: [
-                { from: /^(# Bubble Framework.* v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` },
+                { from: /^(# jPulse Framework.* v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` },
                 { from: /version-[\d.]+-blue/, to: (version) => `version-${version}-blue` }
             ]
         },

@@ -1,11 +1,11 @@
 /**
- * @name            Bubble Framework / WebApp / Tests / Integration / App Startup
+ * @name            jPulse Framework / WebApp / Tests / Integration / App Startup
  * @tagline         Integration tests for application startup flow
  * @description     Tests for the complete application initialization process
  * @file            webapp/tests/integration/app-startup.test.js
- * @version         0.1.4
+ * @version         0.1.5
  * @release         2025-08-24
- * @repository      https://github.com/peterthoeny/bubble-framework
+ * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file
@@ -182,11 +182,11 @@ describe('Application Startup Integration', () => {
         });
 
         test('should handle missing default language', async () => {
-            const appConfig = `{
+            const appConfig = `module.exports = {
                 i18n: {
                     default: 'fr'
                 }
-            }`;
+            };`;
             
             const translations = {
                 en: { lang: 'English' },

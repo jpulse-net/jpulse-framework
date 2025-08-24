@@ -1,11 +1,11 @@
 /**
- * @name            Bubble Framework / WebApp / Tests / Helpers / Test Utils
- * @tagline         Test utilities for the Bubble Framework WebApp
+ * @name            jPulse Framework / WebApp / Tests / Helpers / Test Utils
+ * @tagline         Test utilities for the jPulse Framework WebApp
  * @description     Common utilities and helpers for testing
  * @file            webapp/tests/helpers/test-utils.js
- * @version         0.1.4
+ * @version         0.1.5
  * @release         2025-08-24
- * @repository      https://github.com/peterthoeny/bubble-framework
+ * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file
@@ -17,7 +17,7 @@ import path from 'path';
 import { jest } from '@jest/globals';
 
 /**
- * Test utilities for Bubble Framework testing
+ * Test utilities for jPulse Framework testing
  */
 export class TestUtils {
     

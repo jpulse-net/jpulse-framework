@@ -1,11 +1,11 @@
 /**
- * @name            Bubble Framework / WebApp / Controller / Log
- * @tagline         Log Controller for Bubble Framework WebApp
- * @description     This is the log controller for the Bubble Framework WebApp
+ * @name            jPulse Framework / WebApp / Controller / Log
+ * @tagline         Log Controller for jPulse Framework WebApp
+ * @description     This is the log controller for the jPulse Framework WebApp
  * @file            webapp/controller/log.js
- * @version         0.1.4
+ * @version         0.1.5
  * @release         2025-08-24
- * @repository      https://github.com/peterthoeny/bubble-framework
+ * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file
@@ -137,7 +137,7 @@ class LogController {
         sanitized = sanitized.replace(/\s+/g, ' ').trim();
 
         // Truncate if too long
-        const maxLength = appConfig?.log?.maxMsgLength || 256;
+        const maxLength = (typeof appConfig !== 'undefined' ? appConfig?.log?.maxMsgLength : null) || 256;
         if (sanitized.length <= maxLength) {
             return sanitized;
         }

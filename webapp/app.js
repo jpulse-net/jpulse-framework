@@ -3,7 +3,7 @@
  * @tagline         WebApp for Bubble Framework
  * @description     This is the main application file of the Bubble Framework WebApp
  * @file            webapp/app.js
- * @version         0.1.2
+ * @version         0.1.3
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -47,6 +47,12 @@ const i18n = await import('./translations/i18n.js').then(m => m.default);
 // Make i18n globally available for other modules
 global.i18n = i18n;
 
+// Load log controller first for proper logging
+const LogController = await import('./controller/log.js').then(m => m.default);
+
+// Make LogController globally available for other modules
+global.LogController = LogController;
+
 // Load database connection
 const database = await import('./database.js').then(m => m.default);
 
@@ -76,15 +82,17 @@ async function startApp() {
 
     // Start the server
     app.listen(port, () => {
-        console.log(`Bubble Framework WebApp v${appConfig.app.version} (${appConfig.app.release})`);
-        console.log(`Server running in ${appConfig.deployment[mode].name} mode on port ${port}`);
-        console.log(`Database: ${appConfig.deployment[mode].db}`);
+        // Use LogController for structured logging (no req object for server startup)
+        LogController.console(null, `Bubble Framework WebApp v${appConfig.app.version} (${appConfig.app.release})`);
+        LogController.console(null, `Server running in ${appConfig.deployment[mode].name} mode on port ${port}`);
+        LogController.console(null, `Database: ${appConfig.deployment[mode].db}`);
     });
 }
 
 // Start the application
 startApp().catch(error => {
-    console.error('Failed to start application:', error);
+    // Use LogController for error logging (no req object for startup errors)
+    LogController.error(null, `Failed to start application: ${error.message}`);
     process.exit(1);
 });
 

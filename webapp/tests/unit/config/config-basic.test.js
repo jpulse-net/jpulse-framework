@@ -3,7 +3,7 @@
  * @tagline         Basic tests for Config Model and Controller
  * @description     Simple unit tests for Config Model validation and basic functionality
  * @file            webapp/tests/unit/config/config-basic.test.js
- * @version         0.1.2
+ * @version         0.1.3
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

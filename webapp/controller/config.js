@@ -3,7 +3,7 @@
  * @tagline         Config Controller for Bubble Framework WebApp
  * @description     This is the config controller for the Bubble Framework WebApp
  * @file            webapp/controller/config.js
- * @version         0.1.2
+ * @version         0.1.3
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -13,6 +13,7 @@
  */
 
 import ConfigModel from '../model/config.js';
+import LogController from './log.js';
 
 /**
  * Config Controller - handles /api/1/config/* REST API endpoints
@@ -142,6 +143,8 @@ class ConfigController {
      */
     static async createConfig(req, res) {
         try {
+            LogController.consoleApi(req, `config.create( ${JSON.stringify(req.body)} )`);
+
             const configData = req.body;
             if (!configData || Object.keys(configData).length === 0) {
                 return res.status(400).json({
@@ -155,6 +158,10 @@ class ConfigController {
                 configData.updatedBy = req.session.user.id || req.session.user.loginId || '';
             }
             const config = await ConfigModel.create(configData);
+
+            // Log the creation
+            await LogController.logChange(req, 'config', 'create', config._id, null, config);
+
             res.status(201).json({
                 success: true,
                 data: config,
@@ -162,7 +169,7 @@ class ConfigController {
             });
 
         } catch (error) {
-            console.error('Error creating config:', error);
+            LogController.error(req, `Config creation failed: ${error.message}`);
             if (error.message.includes('Validation failed')) {
                 return res.status(400).json({
                     success: false,
@@ -195,6 +202,8 @@ class ConfigController {
      */
     static async updateConfig(req, res) {
         try {
+            LogController.consoleApi(req, `config.update( ${req.params.id}, ${JSON.stringify(req.body)} )`);
+
             const { id } = req.params;
             const updateData = req.body;
             if (!id) {
@@ -211,18 +220,26 @@ class ConfigController {
                     code: 'MISSING_DATA'
                 });
             }
-            // Add updatedBy from session (when authentication is implemented)
-            if (req.session && req.session.user) {
-                updateData.updatedBy = req.session.user.id || req.session.user.loginId || '';
-            }
-            const config = await ConfigModel.updateById(id, updateData);
-            if (!config) {
+
+            // Get old document for logging
+            const oldConfig = await ConfigModel.findById(id);
+            if (!oldConfig) {
                 return res.status(404).json({
                     success: false,
                     error: `Config with ID '${id}' not found`,
                     code: 'CONFIG_NOT_FOUND'
                 });
             }
+
+            // Add updatedBy from session (when authentication is implemented)
+            if (req.session && req.session.user) {
+                updateData.updatedBy = req.session.user.id || req.session.user.loginId || '';
+            }
+            const config = await ConfigModel.updateById(id, updateData);
+
+            // Log the update
+            await LogController.logChange(req, 'config', 'update', id, oldConfig, config);
+
             res.json({
                 success: true,
                 data: config,
@@ -230,7 +247,7 @@ class ConfigController {
             });
 
         } catch (error) {
-            console.error('Error updating config:', error);
+            LogController.error(req, `Config update failed: ${error.message}`);
             if (error.message.includes('Validation failed')) {
                 return res.status(400).json({
                     success: false,
@@ -310,6 +327,8 @@ class ConfigController {
      */
     static async deleteConfig(req, res) {
         try {
+            LogController.consoleApi(req, `config.delete( ${req.params.id} )`);
+
             const { id } = req.params;
             if (!id) {
                 return res.status(400).json({
@@ -318,21 +337,29 @@ class ConfigController {
                     code: 'MISSING_ID'
                 });
             }
-            const deleted = await ConfigModel.deleteById(id);
-            if (!deleted) {
+
+            // Get document before deletion for logging
+            const oldConfig = await ConfigModel.findById(id);
+            if (!oldConfig) {
                 return res.status(404).json({
                     success: false,
                     error: `Config with ID '${id}' not found`,
                     code: 'CONFIG_NOT_FOUND'
                 });
             }
+
+            const deleted = await ConfigModel.deleteById(id);
+
+            // Log the deletion
+            await LogController.logChange(req, 'config', 'delete', id, oldConfig, null);
+
             res.json({
                 success: true,
                 message: `Config '${id}' deleted successfully`
             });
 
         } catch (error) {
-            console.error('Error deleting config:', error);
+            LogController.error(req, `Config deletion failed: ${error.message}`);
             res.status(500).json({
                 success: false,
                 error: 'Internal server error while deleting config',

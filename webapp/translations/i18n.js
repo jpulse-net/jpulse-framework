@@ -3,7 +3,7 @@
  * @tagline         Internationalization for the Bubble Framework WebApp
  * @description     This is the i18n file for the Bubble Framework WebApp
  * @file            webapp/translations/i18n.js
- * @version         0.1.2
+ * @version         0.1.3
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -67,7 +67,7 @@ i18n.t = (key, ...args) => {
     }
     return text;
 }
-console.log(i18n.t('login.notAuthenticated'));
+//console.log('test i18n.t(\'login.notAuthenticated\'):', i18n.t('login.notAuthenticated'));
 export default i18n;
 
 // EOF i18n.js

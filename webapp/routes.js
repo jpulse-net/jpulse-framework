@@ -3,7 +3,7 @@
  * @tagline         WebApp for Bubble Framework
  * @description     This is the routing file for the Bubble Framework WebApp
  * @file            webapp/route.js
- * @version         0.1.2
+ * @version         0.1.3
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -19,6 +19,7 @@ const router = express.Router();
 import staticController from './controller/static.js';
 import userController from './controller/user.js';
 import configController from './controller/config.js';
+import logController from './controller/log.js';
 
 // API routes (must come before catch-all route)
 router.get('/api/1/status', (req, res) => {
@@ -40,10 +41,11 @@ router.put('/api/1/config/:id', configController.updateConfig);
 router.put('/api/1/config/:id/upsert', configController.upsertConfig);
 router.delete('/api/1/config/:id', configController.deleteConfig);
 
+// Log API routes
+router.get('/api/1/log/search', logController.search);
+
 // Hello World route (catch-all, must be last)
 router.get('/*', (req, res) => {
-    console.log('req.url', req.url);
-    console.log('i18n:', JSON.stringify(i18n, null, 2));
     res.send(`
         <html>
         <head>

@@ -3,7 +3,7 @@
  * @tagline         Babel configuration for Bubble Framework
  * @description     Babel configuration for Bubble Framework
  * @file            babel.config.cjs
- * @version         0.1.2
+ * @version         0.1.3
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

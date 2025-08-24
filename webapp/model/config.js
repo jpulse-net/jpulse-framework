@@ -3,7 +3,7 @@
  * @tagline         Config Model for Bubble Framework WebApp
  * @description     This is the config model for the Bubble Framework WebApp using native MongoDB driver
  * @file            webapp/model/config.js
- * @version         0.1.2
+ * @version         0.1.3
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

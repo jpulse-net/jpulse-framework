@@ -3,7 +3,7 @@
  * @tagline         Test utilities for the Bubble Framework WebApp
  * @description     Common utilities and helpers for testing
  * @file            webapp/tests/helpers/test-utils.js
- * @version         0.1.2
+ * @version         0.1.3
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

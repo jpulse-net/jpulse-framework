@@ -15,7 +15,6 @@ Requirements Doc of Bubble Framework
 # Requirements
 
 - modular app configuration
-- model uses mongoose library
 - controller handles all /api/1/* REST APIs
 - comprehensive unit and integration tests
 - bootstrap on initial startup:
@@ -92,12 +91,11 @@ Requirements Doc of Bubble Framework
 
 - **W-004**: create site admin config model & controller
   - create webapp/model/config.js -- model
-    - use mongoose to enforce schema
   - create webapp/controller/config.js -- controller
     - read & save functions for routes: /api/1/config/*
   - prepare for hierarchy of config docs, for now just one doc with _id == 'global'
   - schema: at this time just two data groups
-    {
+    ```{
         _id:            String, // 'global'
         data: {
             email: {                // default:
@@ -117,12 +115,11 @@ Requirements Doc of Bubble Framework
         updatedAt:      Date,   // auto-updated
         updatedBy:      String, // login user ID
         docVersion:     Number  // default: 1
-    }
+    }```
   - create tests, and test
 
 - **W-005**: create log infrastructure
   - create webapp/model/log.js -- model
-    - use mongoose to enforce schema
     - called by other controllers (config, user, ...) on doc create, update, delete
   - create webapp/controller/log.js -- controller
     - log.search function for route: /api/1/log/search
@@ -133,18 +130,21 @@ Requirements Doc of Bubble Framework
         '==YYYY-MM-DD HH:MM:SS, ===, loginId, ip:1.2.3.4, vm:123, id:8, === log.search( createdAt: 2025-08 )'
     - log.error function used by all other controllers to log errors in unified format:
         '- YYYY-MM-DD HH:MM:SS, ERR, loginId, ip:1.2.3.4, vm:123, id:8, actual error message'
+    - loginId is the user's login ID (such as "jsmith"), or "(guest)" if not logged in
+    - vm:123 is the numerical part of the server, such as 123 for app-server-123.ca.example.com, or vm:0 if no number exists
+    - id:8 is the pm2 instance ID, or id:0 when not using pm2 
   - schema:
-    {
+    ```{
         data: {
             docId:      Object, // _id (ObjectId or String)
             docType:    String, // 'config', 'user', ...
             action:     String, // 'create', 'update', 'delete'
-            changes:    String, // diff-type changes
+            changes:    String, // diff-type changes of doc
         },
         createdAt:      Date,   // default: new Date()
         createdBy:      String, // login user ID
         docVersion:     Number  // default: 1
-    }
+    }```
   - create tests, and test
 
 

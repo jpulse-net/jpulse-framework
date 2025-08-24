@@ -5,7 +5,7 @@
  * @tagline         Version bump script for Bubble Framework
  * @description     Updates version numbers and release dates across all source files
  * @file            bump-version.js
- * @version         0.1.2
+ * @version         0.1.3
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -45,6 +45,13 @@ const conf = {
             pattern: 'package.json',
             replacements: [
                 { from: /"version": "[\d.]+"/, to: (version) => `"version": "${version}"` }
+            ]
+        },
+        {
+            pattern: 'webapp/app.conf',
+            replacements: [
+                { from: /(version: +['"])[\d.]+/, to: (version, match, p1) => `${p1}${version}`, scope: 'version' },
+                { from: /(release: +['"])[\d-]+/, to: (release, match, p1) => `${p1}${release}`, scope: 'release' }
             ]
         },
         {
@@ -162,10 +169,14 @@ function updateFileContent(filePath, content) {
     );
     for (const rule of matchingRules) {
         for (const replacement of rule.replacements) {
+            // Check scope - default to 'version' if not specified
+            const scope = replacement.scope || 'version';
+            const valueToUse = scope === 'version' ? newVersion : newDate;
+
             const newContent = updatedContent.replace(replacement.from, (...args) => {
                 // args = [fullMatch, captureGroup1, captureGroup2, ..., offset, string]
-                // For capture group support, pass version as first arg, then all match args
-                return replacement.to(newVersion, ...args);
+                // For capture group support, pass the appropriate value as first arg, then all match args
+                return replacement.to(valueToUse, ...args);
             });
             if (newContent !== updatedContent) {
                 updatedContent = newContent;

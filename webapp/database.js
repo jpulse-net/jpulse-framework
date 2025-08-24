@@ -3,7 +3,7 @@
  * @tagline         WebApp for Bubble Framework
  * @description     This is the database interface for the Bubble Framework WebApp
  * @file            webapp/database.js
- * @version         0.1.2
+ * @version         0.1.3
  * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -28,35 +28,45 @@ async function connect() {
         const dbName = appConfig.deployment[mode].db;
         const dbMode = appConfig.database.mode;
         const config = appConfig.database[dbMode];
-        
+
         // Build connection URL
         let url = config.url.replace('%DB%', dbName);
         if (dbMode === 'replicaSet') {
             url = url.replace('%SERVERS%', config.servers.join(','));
         }
-        
+
         // For local development, use a simple connection without authentication
         if (url.includes('localhost')) {
             url = `mongodb://localhost:27017/${dbName}`;
         }
-        
+
         // Create client with simplified options for local development
         const clientOptions = url.includes('localhost') ? {
             serverSelectionTimeoutMS: 5000,
             connectTimeoutMS: 10000,
             socketTimeoutMS: 45000
         } : config.options;
-        
+
         client = new MongoClient(url, clientOptions);
-        
+
         // Connect to MongoDB
         await client.connect();
         db = client.db(dbName);
-        
-        console.log(`Connected to MongoDB: ${dbName} (${dbMode} mode)`);
+
+        // Use LogController if available, otherwise fallback to console
+        if (global.LogController) {
+            LogController.console(null, `Connected to MongoDB: ${dbName} (${dbMode} mode)`);
+        } else {
+            console.log(`Connected to MongoDB: ${dbName} (${dbMode} mode)`);
+        }
         return true;
     } catch (error) {
-        console.warn('Database connection failed (continuing without database):', error.message);
+        // Use LogController if available, otherwise fallback to console
+        if (global.LogController) {
+            LogController.error(null, `Database connection failed (continuing without database): ${error.message}`);
+        } else {
+            console.warn('Database connection failed (continuing without database):', error.message);
+        }
         return false;
     }
 }
@@ -78,13 +88,23 @@ async function close() {
         await client.close();
         db = null;
         client = null;
-        console.log('Database connection closed');
+        // Use LogController if available, otherwise fallback to console
+        if (global.LogController) {
+            LogController.console(null, 'Database connection closed');
+        } else {
+            console.log('Database connection closed');
+        }
     }
 }
 
 // Initialize connection when module is loaded
 connect().catch(error => {
-    console.warn('Failed to initialize database connection:', error.message);
+    // Use LogController if available, otherwise fallback to console
+    if (global.LogController) {
+        LogController.error(null, `Failed to initialize database connection: ${error.message}`);
+    } else {
+        console.warn('Failed to initialize database connection:', error.message);
+    }
 });
 
 export default {

@@ -3,8 +3,8 @@
  * @tagline         WebApp for Bubble Framework
  * @description     This is the routing file for the Bubble Framework WebApp
  * @file            webapp/route.js
- * @version         0.1.1
- * @release         2025-08-23
+ * @version         0.1.2
+ * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,6 +18,7 @@ const router = express.Router();
 // Load controllers
 import staticController from './controller/static.js';
 import userController from './controller/user.js';
+import configController from './controller/config.js';
 
 // API routes (must come before catch-all route)
 router.get('/api/1/status', (req, res) => {
@@ -29,6 +30,15 @@ router.get('/api/1/status', (req, res) => {
         database: appConfig.deployment[appConfig.deployment.mode].db
     });
 });
+
+// Config API routes
+router.get('/api/1/config', configController.listConfigs);
+router.get('/api/1/config/:id', configController.getConfig);
+router.get('/api/1/config/:id/effective', configController.getEffectiveConfig);
+router.post('/api/1/config', configController.createConfig);
+router.put('/api/1/config/:id', configController.updateConfig);
+router.put('/api/1/config/:id/upsert', configController.upsertConfig);
+router.delete('/api/1/config/:id', configController.deleteConfig);
 
 // Hello World route (catch-all, must be last)
 router.get('/*', (req, res) => {

@@ -3,8 +3,8 @@
  * @tagline         Internationalization for the Bubble Framework WebApp
  * @description     This is the i18n file for the Bubble Framework WebApp
  * @file            webapp/translations/i18n.js
- * @version         0.1.1
- * @release         2025-08-23
+ * @version         0.1.2
+ * @release         2025-08-24
  * @repository      https://github.com/peterthoeny/bubble-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

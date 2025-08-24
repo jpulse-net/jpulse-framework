@@ -33,6 +33,14 @@ Requirements Doc of Bubble Framework
   - a way to allow bubble-framwork updates without affecting customization
 - i18n as user preference: en (default), de, ...
 - theme as user preference: dark, light (default)
+- support multiple node instances on same server, managed by pm2
+- support multiple app servers
+- site admin config:
+  - stored in mongo
+  - cached in each app instance using redis
+- session management:
+  - stored persistently in mongo
+  - maybe: cached in each app instance using redis
 
 # Directories
 
@@ -82,29 +90,69 @@ Requirements Doc of Bubble Framework
   - create test hierarchy using subdirectories
   - implement first tests for translations/i18n.js
 
-- **W-004**: create site admin model & controller
+- **W-004**: create site admin config model & controller
   - create webapp/model/config.js -- model
     - use mongoose to enforce schema
   - create webapp/controller/config.js -- controller
+    - read & save functions for routes: /api/1/config/*
   - prepare for hierarchy of config docs, for now just one doc with _id == 'global'
-  - schema:
+  - schema: at this time just two data groups
     {
-        email: {
-            adminEmail: String, // ''
-            adminName:  String, // ''
-            smtpServer: String, // 'localhost'
-            smtpUser:   String, // ''
-            smtpPass:   String, // ''
-            useTls:     Boolean // false
-        }
+        _id:            String, // 'global'
+        data: {
+            email: {                // default:
+                adminEmail: String, // ''
+                adminName:  String, // ''
+                smtpServer: String, // 'localhost'
+                smtpUser:   String, // ''
+                smtpPass:   String, // ''
+                useTls:     Boolean // false
+                // anything else?
+            },
+            messages: {
+                broadcast:  String  // ''
+            }
+        },
+        createdAt:      Date,   // default: new Date()
+        updatedAt:      Date,   // auto-updated
+        updatedBy:      String, // login user ID
+        docVersion:     Number  // default: 1
     }
   - create tests, and test
 
-- **W-005**: create site admin view
-  - create webapp/view/admin/index.shtml -- admin home
-  - create webapp/view/admin/config.shtml -- admin home
+- **W-005**: create log infrastructure
+  - create webapp/model/log.js -- model
+    - use mongoose to enforce schema
+    - called by other controllers (config, user, ...) on doc create, update, delete
+  - create webapp/controller/log.js -- controller
+    - log.search function for route: /api/1/log/search
+    - log.console function used by all other controllers to log in unified format:
+      - regular log message:
+        '- YYYY-MM-DD HH:MM:SS, msg, loginId, ip:1.2.3.4, vm:123, id:8, actual message text'
+      - initial API or .shtml page log message:
+        '==YYYY-MM-DD HH:MM:SS, ===, loginId, ip:1.2.3.4, vm:123, id:8, === log.search( createdAt: 2025-08 )'
+    - log.error function used by all other controllers to log errors in unified format:
+        '- YYYY-MM-DD HH:MM:SS, ERR, loginId, ip:1.2.3.4, vm:123, id:8, actual error message'
+  - schema:
+    {
+        data: {
+            docId:      Object, // _id (ObjectId or String)
+            docType:    String, // 'config', 'user', ...
+            action:     String, // 'create', 'update', 'delete'
+            changes:    String, // diff-type changes
+        },
+        createdAt:      Date,   // default: new Date()
+        createdBy:      String, // login user ID
+        docVersion:     Number  // default: 1
+    }
+  - create tests, and test
 
-- **W-006**: create server sice include function
+
+- **W-006**: create site admin view
+  - create webapp/view/admin/index.shtml -- admin home
+  - create webapp/view/admin/config.shtml -- edit config
+
+- **W-007**: create server sice include function
   - create webapp/controller/bubble.js
     - function load(req, res) loads a view file and expands {{handlebars}}:
       - {{app.version}}

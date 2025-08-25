@@ -4,8 +4,8 @@
  * @tagline         Error page of jPulse Framework
  * @description     This is the error page of jPulse Framework
  * @file            webapp/view/error/index.shtml
- * @version         0.1.5
- * @release         2025-08-24
+ * @version         0.2.0
+ * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -17,11 +17,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{app.version}} - Error</title>
+
+    {{file.include "jpulse-header.tmpl"}}
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        /* Page-specific styles */
+        .main-content {
             margin: 40px;
-            background-color: #f5f5f5;
         }
         .container {
             max-width: 800px;
@@ -45,8 +46,7 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        {{file.include "../header.tmpl"}}
+    <div class="jpulse-main">
         <div class="error">
             <h2>Error {{url.param "code"}}</h2>
             <p><strong>Message:</strong> {{url.param "msg"}}</p>
@@ -58,6 +58,9 @@
             "Please try logging in or contact support if the problem persists."
         }}</p>
         <p><a href="/">← Back to Home</a></p>
+        </div>
     </div>
+
+    {{file.include "jpulse-footer.tmpl"}}
 </body>
 </html>

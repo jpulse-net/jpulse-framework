@@ -3,8 +3,8 @@
  * @tagline         Unit tests for i18n functionality using mock objects
  * @description     Tests for i18n translation functions and logic
  * @file            webapp/tests/unit/translations/i18n-functions.test.js
- * @version         0.1.5
- * @release         2025-08-24
+ * @version         0.2.0
+ * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,7 +18,7 @@ import TestUtils from '../../helpers/test-utils.js';
 describe('I18N Functions and Logic', () => {
     let i18n;
     let translations;
-    
+
     beforeEach(() => {
         // Set up comprehensive test translations
         translations = {
@@ -53,7 +53,7 @@ describe('I18N Functions and Logic', () => {
                 }
             }
         };
-        
+
         // Create mock i18n object
         i18n = TestUtils.createMockI18n(translations, 'en');
     });
@@ -113,7 +113,7 @@ describe('I18N Functions and Logic', () => {
     describe('Language Switching', () => {
         test('should work with different default languages', () => {
             const germanI18n = TestUtils.createMockI18n(translations, 'de');
-            
+
             expect(germanI18n.default).toBe('de');
             expect(germanI18n.t('simple')).toBe('Einfache Nachricht');
             expect(germanI18n.t('withParam', 'Welt')).toBe('Hallo Welt!');
@@ -123,11 +123,11 @@ describe('I18N Functions and Logic', () => {
             // Start with English
             expect(i18n.default).toBe('en');
             expect(i18n.t('simple')).toBe('Simple message');
-            
+
             // Switch to German
             i18n.default = 'de';
             expect(i18n.t('simple')).toBe('Einfache Nachricht');
-            
+
             // Switch back to English
             i18n.default = 'en';
             expect(i18n.t('simple')).toBe('Simple message');
@@ -135,7 +135,7 @@ describe('I18N Functions and Logic', () => {
 
         test('should handle invalid language gracefully', () => {
             const invalidI18n = TestUtils.createMockI18n(translations, 'fr');
-            
+
             expect(invalidI18n.default).toBe('fr');
             expect(invalidI18n.t('simple')).toBe('[MISSING: simple]');
         });
@@ -165,7 +165,7 @@ describe('I18N Functions and Logic', () => {
                 en: {},
                 de: {}
             });
-            
+
             expect(emptyI18n.t('anything')).toBe('[MISSING: anything]');
         });
 
@@ -183,7 +183,7 @@ describe('I18N Functions and Logic', () => {
                     }
                 }
             };
-            
+
             const deepI18n = TestUtils.createMockI18n(deepTranslations);
             expect(deepI18n.t('level1.level2.level3.level4.level5')).toBe('Deep value');
         });
@@ -196,9 +196,9 @@ describe('I18N Functions and Logic', () => {
                     html: '<div>HTML &amp; entities &lt;script&gt;</div>'
                 }
             };
-            
+
             const specialI18n = TestUtils.createMockI18n(specialTranslations);
-            
+
             expect(specialI18n.t('special')).toBe('Special chars: äöü ñ € $#@!%^&*()[]{}|\\:";\'<>?,./')
             expect(specialI18n.t('unicode')).toBe('🌟 Unicode emoji and symbols ∞ ≈ ≠ ±');
             expect(specialI18n.t('html')).toBe('<div>HTML &amp; entities &lt;script&gt;</div>');
@@ -210,7 +210,7 @@ describe('I18N Functions and Logic', () => {
                     message: 'User {0} has {1} special chars: {2}'
                 }
             });
-            
+
             expect(paramI18n.t('message', 'John<script>', '5', '€$#')).toBe('User John<script> has 5 special chars: €$#');
         });
     });
@@ -222,7 +222,7 @@ describe('I18N Functions and Logic', () => {
             for (let i = 0; i < 100; i++) {
                 results.push(i18n.t('withParam', i));
             }
-            
+
             expect(results).toHaveLength(100);
             expect(results[0]).toBe('Hello 0!');
             expect(results[99]).toBe('Hello 99!');
@@ -232,7 +232,7 @@ describe('I18N Functions and Logic', () => {
             const result1 = i18n.t('simple');
             const result2 = i18n.t('simple');
             const result3 = i18n.t('simple');
-            
+
             expect(result1).toBe(result2);
             expect(result2).toBe(result3);
             expect(result1).toBe('Simple message');
@@ -244,12 +244,93 @@ describe('I18N Functions and Logic', () => {
             for (let i = 0; i < 10; i++) {
                 promises.push(Promise.resolve(i18n.t('withParam', `user${i}`)));
             }
-            
+
             return Promise.all(promises).then(results => {
                 expect(results).toHaveLength(10);
                 expect(results[0]).toBe('Hello user0!');
                 expect(results[9]).toBe('Hello user9!');
             });
+        });
+    });
+
+    describe('Dot Notation Context Access (New Feature)', () => {
+        test('should support direct property access via context object', () => {
+            // Test the new dot notation feature: {{i18n.app.name}} instead of {{i18n "app.name"}}
+            const contextI18n = i18n.langs[i18n.default];
+
+            expect(contextI18n.simple).toBe('Simple message');
+            expect(contextI18n.nested.deep).toBe('Deep nested message');
+            expect(contextI18n.nested.deeper.value).toBe('Very deep nested value');
+            expect(contextI18n.login.notAuthenticated).toBe('Error: You are not authenticated, please login');
+        });
+
+        test('should work with app-specific translations', () => {
+            const appTranslations = {
+                en: {
+                    app: {
+                        name: 'jPulse Framework',
+                        title: 'jPulse Framework WebApp'
+                    },
+                    header: {
+                        profile: 'Profile',
+                        signout: 'Sign Out',
+                        signin: 'Sign In',
+                        signup: 'Sign Up'
+                    },
+                    footer: {
+                        about: 'About',
+                        github: 'GitHub',
+                        poweredBy: 'Powered by'
+                    }
+                }
+            };
+
+            const appI18n = TestUtils.createMockI18n(appTranslations);
+            const context = appI18n.langs[appI18n.default];
+
+            // Test dot notation access as used in templates
+            expect(context.app.name).toBe('jPulse Framework');
+            expect(context.app.title).toBe('jPulse Framework WebApp');
+            expect(context.header.profile).toBe('Profile');
+            expect(context.header.signout).toBe('Sign Out');
+            expect(context.footer.about).toBe('About');
+            expect(context.footer.poweredBy).toBe('Powered by');
+        });
+
+        test('should handle missing properties gracefully in dot notation', () => {
+            const context = i18n.langs[i18n.default];
+
+            // Missing properties should return undefined (not throw errors)
+            expect(context.nonexistent).toBeUndefined();
+            expect(context.nested.nonexistent).toBeUndefined();
+
+            // But existing nested properties should work
+            expect(context.nested.deep).toBe('Deep nested message');
+        });
+
+        test('should support both function and dot notation simultaneously', () => {
+            // Both approaches should work for the same data
+            const context = i18n.langs[i18n.default];
+
+            expect(i18n.t('simple')).toBe('Simple message');
+            expect(context.simple).toBe('Simple message');
+
+            expect(i18n.t('nested.deep')).toBe('Deep nested message');
+            expect(context.nested.deep).toBe('Deep nested message');
+
+            expect(i18n.t('nested.deeper.value')).toBe('Very deep nested value');
+            expect(context.nested.deeper.value).toBe('Very deep nested value');
+        });
+
+        test('should work with language switching in dot notation', () => {
+            const enContext = i18n.langs.en;
+            const deContext = i18n.langs.de;
+
+            expect(enContext.simple).toBe('Simple message');
+            expect(deContext.simple).toBe('Einfache Nachricht');
+
+            expect(enContext.nested.deep).toBe('Deep nested message');
+            expect(deContext.nested.deep).toBe('Tief verschachtelte Nachricht');
         });
     });
 
@@ -260,13 +341,13 @@ describe('I18N Functions and Logic', () => {
                 TestUtils.getFixturePath('lang-test-en.conf'),
                 TestUtils.getFixturePath('lang-test-de.conf')
             ]);
-            
+
             const fixtureI18n = TestUtils.createMockI18n(fixtureTranslations.langs, 'en');
-            
+
             expect(fixtureI18n.t('test.simple')).toBe('Simple test message');
             expect(fixtureI18n.t('test.withParam', 'World')).toBe('Hello World!');
             expect(fixtureI18n.t('test.nested.deep')).toBe('Deep nested message');
-            
+
             // Switch to German
             fixtureI18n.default = 'de';
             expect(fixtureI18n.t('test.simple')).toBe('Einfache Testnachricht');
@@ -280,7 +361,7 @@ describe('I18N Functions and Logic', () => {
             expect(translations.en).toHaveProperty('nested');
             expect(translations.en.nested).toHaveProperty('deep');
             expect(translations.en.nested.deeper).toHaveProperty('value');
-            
+
             expect(translations.de).toHaveProperty('lang');
             expect(translations.de).toHaveProperty('simple');
             expect(translations.de).toHaveProperty('nested');

@@ -1,0 +1,4 @@
+# jPulse Framework - Development Environment
+# Deny all web crawlers
+User-agent: *
+Disallow: /

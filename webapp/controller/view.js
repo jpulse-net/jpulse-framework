@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.1.5
- * @release         2025-08-24
+ * @version         0.2.0
+ * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -73,6 +73,7 @@ async function load(req, res) {
                 authenticated: !!req.session?.user
             },
             config: globalConfig?.data || {},
+            appConfig: appConfig, // Add app.conf configuration
             url: {
                 domain: `${req.protocol}://${req.get('host')}`,
                 protocol: req.protocol,
@@ -82,6 +83,8 @@ async function load(req, res) {
                 search: req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '',
                 param: req.query || {}
             },
+            // Add i18n object to context for dot notation access
+            i18n: i18n.langs[i18n.default] || {},
             req: req
         };
 
@@ -114,14 +117,11 @@ async function load(req, res) {
 async function processHandlebars(content, context, baseDir, req, depth = 0) {
     // Regular expression to match handlebars: {{helper args}}
     const handlebarsRegex = /\{\{([^}]+)\}\}/g;
-
     let result = content;
     let match;
-
     while ((match = handlebarsRegex.exec(content)) !== null) {
         const fullMatch = match[0];
         const expression = match[1].trim();
-
         try {
             const replacement = await evaluateHandlebar(expression, context, baseDir, depth);
             result = result.replace(fullMatch, replacement);
@@ -130,7 +130,6 @@ async function processHandlebars(content, context, baseDir, req, depth = 0) {
             result = result.replace(fullMatch, `<!-- Error: ${error.message} -->`);
         }
     }
-
     return result;
 }
 
@@ -147,28 +146,23 @@ async function evaluateHandlebar(expression, context, baseDir, depth = 0) {
     const helper = parts[0];
     const args = parts.slice(1);
 
-    // Handle property access (no spaces, contains dots)
-    if (!helper.includes(' ') && helper.includes('.')) {
-        return getNestedProperty(context, helper) || '';
-    }
-
-    // Handle helper functions
+    // Handle helper functions first (before property access)
     switch (helper) {
         case 'file.include':
             return await handleFileInclude(args[0], context, baseDir, depth);
-
         case 'file.timestamp':
             return await handleFileTimestamp(args[0]);
-
         case 'if':
             return handleIf(args, context);
-
         case 'i18n':
             return handleI18n(args[0], context);
-
         default:
-            // Try as property access
-            return getNestedProperty(context, helper) || '';
+            // Handle property access (no spaces, contains dots)
+            if (!helper.includes(' ') && helper.includes('.')) {
+                return getNestedProperty(context, helper) || '';
+            }
+            // Unknown helper, return empty
+            return '';
     }
 }
 
@@ -182,10 +176,8 @@ function parseArguments(expression) {
     let current = '';
     let inQuotes = false;
     let quoteChar = '';
-
     for (let i = 0; i < expression.length; i++) {
         const char = expression[i];
-
         if (!inQuotes && (char === '"' || char === "'")) {
             inQuotes = true;
             quoteChar = char;
@@ -201,11 +193,9 @@ function parseArguments(expression) {
             current += char;
         }
     }
-
     if (current.trim()) {
         args.push(current.trim());
     }
-
     return args;
 }
 
@@ -222,10 +212,11 @@ function getNestedProperty(obj, path) {
 }
 
 /**
- * Handle file.include helper
+ * Handle file.include helper - SECURE VERSION
+ * Always resolves relative to view root, prohibits path traversal
  * @param {string} filePath - Path to include (with quotes)
  * @param {Object} context - Context for nested processing
- * @param {string} baseDir - Base directory
+ * @param {string} baseDir - Base directory (ignored for security)
  * @param {number} depth - Current include depth
  * @returns {string} Included content
  */
@@ -238,15 +229,28 @@ async function handleFileInclude(filePath, context, baseDir, depth = 0) {
 
     // Remove quotes
     const cleanPath = filePath.replace(/^["']|["']$/g, '');
-    const fullPath = path.resolve(baseDir, cleanPath);
+
+    // Security: Prohibit path traversal and absolute paths
+    if (cleanPath.includes('../') || cleanPath.includes('..\\') || path.isAbsolute(cleanPath)) {
+        throw new Error(`Prohibited path in include: ${cleanPath}. Use relative paths from view root only.`);
+    }
+
+    // Always resolve relative to view root for security and consistency
+    const viewRoot = path.join(process.cwd(), 'webapp', 'view');
+    const fullPath = path.join(viewRoot, cleanPath);
+
+    // Double-check that resolved path is still within view root
+    if (!fullPath.startsWith(viewRoot)) {
+        throw new Error(`Path traversal attempt blocked: ${cleanPath}`);
+    }
 
     if (!fs.existsSync(fullPath)) {
-        throw new Error(`Include file not found: ${cleanPath}`);
+        throw new Error(`Include file not found: ${cleanPath} (resolved to: ${fullPath})`);
     }
 
     const content = fs.readFileSync(fullPath, 'utf8');
     // Recursively process handlebars in included content
-    return await processHandlebars(content, context, path.dirname(fullPath), null, depth + 1);
+    return await processHandlebars(content, context, viewRoot, null, depth + 1);
 }
 
 /**
@@ -257,11 +261,9 @@ async function handleFileInclude(filePath, context, baseDir, depth = 0) {
 async function handleFileTimestamp(filePath) {
     const cleanPath = filePath.replace(/^["']|["']$/g, '');
     const fullPath = path.resolve(process.cwd(), 'webapp', 'view', cleanPath);
-
     if (!fs.existsSync(fullPath)) {
         return '';
     }
-
     const stats = fs.statSync(fullPath);
     return stats.mtime.toISOString();
 }
@@ -276,14 +278,10 @@ function handleIf(args, context) {
     if (args.length < 2) {
         throw new Error('if helper requires at least 2 arguments: condition, trueValue, [falseValue]');
     }
-
     const condition = args[0];
     const trueValue = args[1].replace(/^["']|["']$/g, '');
     const falseValue = args[2] ? args[2].replace(/^["']|["']$/g, '') : '';
-
-    // Evaluate condition
     const conditionValue = getNestedProperty(context, condition);
-
     return conditionValue ? trueValue : falseValue;
 }
 
@@ -295,7 +293,7 @@ function handleIf(args, context) {
  */
 function handleI18n(key, context) {
     const cleanKey = key.replace(/^["']|["']$/g, '');
-    // For now, use default language - later can use user preference
+    // FIXME: For now, use default language - later can use user preference
     return i18n.t(cleanKey) || cleanKey;
 }
 

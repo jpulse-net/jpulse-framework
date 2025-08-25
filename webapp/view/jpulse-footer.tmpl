@@ -1,0 +1,35 @@
+<!-- Visual Header Banner (positioned at top via CSS) -->
+<header class="jpulse-header">
+    <div class="jpulse-header-content">
+        <a href="/" class="jpulse-logo">
+            <div class="jpulse-logo-icon">jP</div>
+            <span>{{i18n.app.name}}</span>
+        </a>
+        <div class="jpulse-user-menu">
+            <div class="jpulse-user-icon" onclick="toggleUserMenu()">
+                <span>👤</span>
+            </div>
+            <div class="jpulse-dropdown" id="userDropdown">
+                {{if user.authenticated
+                    "<a href=\"/profile\">Profile</a><a href=\"/signout\">Sign Out</a>"
+                    "<a href=\"/signin\">Sign In</a><a href=\"/signup\">Sign Up</a>"
+                }}
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Footer -->
+<footer class="jpulse-footer">
+    <div class="jpulse-footer-content">
+        <div class="jpulse-footer-left">
+            <span>© 2025 {{i18n.app.name}}</span>
+            <span class="jpulse-version">v{{app.version}}</span>
+        </div>
+        <div class="jpulse-footer-right">
+            <a href="/about">{{i18n.footer.about}}</a>
+            <a href="https://github.com/peterthoeny/jpulse-framework" target="_blank">{{i18n.footer.github}}</a>
+            <span>{{i18n.footer.poweredBy}} jPulse</span>
+        </div>
+    </div>
+</footer>

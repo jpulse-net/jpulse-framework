@@ -3,8 +3,8 @@
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/translations/i18n.js
- * @version         0.1.5
- * @release         2025-08-24
+ * @version         0.2.0
+ * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -12,11 +12,13 @@
  * @genai           50%, Cursor 1.2, Claude Sonnet 4
  */
 
-// Load the English translation file, it defines the i18n.en object
-// FIXME: Hack to get the i18n object into the global scope
-// FIXME: Read all *.conf files in the translations directory
-// FIXME: Merge the i18n objects into the i18n object
-// FIXME: Return the i18n object
+// Load required modules for path resolution
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get current directory for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Function to load translations from .conf file
 async function loadTranslations() {
@@ -25,8 +27,8 @@ async function loadTranslations() {
         default: 'en'
     };
     const files = [
-        './webapp/translations/lang-en.conf',
-        './webapp/translations/lang-de.conf'
+        path.join(__dirname, 'lang-en.conf'),
+        path.join(__dirname, 'lang-de.conf')
     ];
     try {
         const fs = await import('fs');
@@ -41,7 +43,7 @@ async function loadTranslations() {
         }
         return i18n;
     } catch (error) {
-        console.error(`Error: Failed to load translations from ${file}:`, error);
+        console.error(`Error: Failed to load translations:`, error);
         process.exit(1);
     }
 }
@@ -60,12 +62,17 @@ i18n.t = (key, ...args) => {
     const keyParts = key.split('.');
     let text = i18n.langs[i18n.default];
     for(const keyPart of keyParts) {
-        text = text[keyPart];
+        if (text && text[keyPart] !== undefined) {
+            text = text[keyPart];
+        } else {
+            // Translation key not found, return the key itself
+            return key;
+        }
     }
-    if(args.length > 0) {
+    if(args.length > 0 && text) {
         text = text.replace(/{(\d+)}/g, (match, p1) => args[p1]);
     }
-    return text;
+    return text || key;
 }
 //console.log('test i18n.t(\'login.notAuthenticated\'):', i18n.t('login.notAuthenticated'));
 export default i18n;

@@ -3,8 +3,8 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         0.1.5
- * @release         2025-08-24
+ * @version         0.2.0
+ * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -309,22 +309,22 @@ describe('View Controller Handlebars Processing', () => {
         test('should handle file.include with valid file', async () => {
             jest.spyOn(fs, 'existsSync').mockReturnValue(true);
             jest.spyOn(fs, 'readFileSync').mockReturnValue('Included content: {{app.version}}');
-            
+
             const content = '{{file.include "./test.tmpl"}}';
             const result = await processHandlebarsForTest(content, mockContext);
             expect(result).toBe('Included content: 0.1.4');
-            
+
             fs.existsSync.mockRestore();
             fs.readFileSync.mockRestore();
         });
 
         test('should handle file.include with missing file', async () => {
             jest.spyOn(fs, 'existsSync').mockReturnValue(false);
-            
+
             const content = '{{file.include "./missing.tmpl"}}';
             const result = await processHandlebarsForTest(content, mockContext);
             expect(result).toContain('<!-- Error: Include file not found');
-            
+
             fs.existsSync.mockRestore();
         });
 
@@ -332,15 +332,15 @@ describe('View Controller Handlebars Processing', () => {
             // This would test the recursion protection, but requires complex setup
             // For now, we'll test the error condition directly in the helper
             const content = '{{file.include "./recursive.tmpl"}}';
-            
+
             // Mock a deep recursion scenario
             jest.spyOn(fs, 'existsSync').mockReturnValue(true);
             jest.spyOn(fs, 'readFileSync').mockReturnValue('{{file.include "./recursive.tmpl"}}');
-            
+
             const result = await processHandlebarsForTest(content, mockContext);
             // This should eventually hit the depth limit and show an error
             expect(result).toContain('<!-- Error:');
-            
+
             fs.existsSync.mockRestore();
             fs.readFileSync.mockRestore();
         });
@@ -351,25 +351,25 @@ describe('View Controller Handlebars Processing', () => {
             const mockStats = {
                 mtime: new Date('2025-08-24T00:00:00.000Z')
             };
-            
+
             jest.spyOn(fs, 'existsSync').mockReturnValue(true);
             jest.spyOn(fs, 'statSync').mockReturnValue(mockStats);
-            
+
             const content = '{{file.timestamp "./test.shtml"}}';
             const result = await processHandlebarsForTest(content, mockContext);
             expect(result).toBe('2025-08-24T00:00:00.000Z');
-            
+
             fs.existsSync.mockRestore();
             fs.statSync.mockRestore();
         });
 
         test('should handle file.timestamp with missing file', async () => {
             jest.spyOn(fs, 'existsSync').mockReturnValue(false);
-            
+
             const content = '{{file.timestamp "./missing.shtml"}}';
             const result = await processHandlebarsForTest(content, mockContext);
             expect(result).toBe('');
-            
+
             fs.existsSync.mockRestore();
         });
     });
@@ -386,11 +386,11 @@ describe('View Controller Handlebars Processing', () => {
                     maxIncludeDepth: 5
                 }
             };
-            
+
             // Test that we can access the config values
             expect(global.appConfig.view.defaultTemplate).toBe('custom.shtml');
             expect(global.appConfig.view.maxIncludeDepth).toBe(5);
-            
+
             global.appConfig = originalAppConfig;
         });
     });
@@ -440,9 +440,9 @@ describe('View Controller Handlebars Processing', () => {
         });
 
         test('should handle null and undefined values gracefully', async () => {
-            const nullContext = { 
-                ...mockContext, 
-                user: { ...mockContext.user, firstName: null, lastName: undefined } 
+            const nullContext = {
+                ...mockContext,
+                user: { ...mockContext.user, firstName: null, lastName: undefined }
             };
             const content = '{{user.firstName}} {{user.lastName}}';
             const result = await processHandlebarsForTest(content, nullContext);
@@ -476,7 +476,7 @@ async function processHandlebarsForTest(content, context, depth = 0) {
     if (depth > 10) {
         throw new Error('Maximum include depth exceeded');
     }
-    
+
     const handlebarsRegex = /\{\{([^}]*)\}\}/g;
     let result = content;
     let match;
@@ -564,18 +564,18 @@ function getNestedPropertyForTest(obj, path) {
     const result = path.split('.').reduce((current, key) => {
         return current && current[key] !== undefined ? current[key] : undefined;
     }, obj);
-    
+
     return result;
 }
 
 function getNestedPropertyAsStringForTest(obj, path) {
     const result = getNestedPropertyForTest(obj, path);
-    
+
     // Convert boolean values to strings for handlebars display
     if (typeof result === 'boolean') {
         return result.toString();
     }
-    
+
     return result;
 }
 
@@ -594,11 +594,11 @@ function handleIfForTest(args, context) {
 
 async function handleFileIncludeForTest(filePath, context, depth = 0) {
     const cleanPath = filePath.replace(/^["']|["']$/g, '');
-    
+
     if (!fs.existsSync(cleanPath)) {
         throw new Error(`Include file not found: ${cleanPath}`);
     }
-    
+
     const content = fs.readFileSync(cleanPath, 'utf8');
     // Recursively process handlebars in included content with depth tracking
     return await processHandlebarsForTest(content, context, depth + 1);
@@ -606,11 +606,11 @@ async function handleFileIncludeForTest(filePath, context, depth = 0) {
 
 async function handleFileTimestampForTest(filePath) {
     const cleanPath = filePath.replace(/^["']|["']$/g, '');
-    
+
     if (!fs.existsSync(cleanPath)) {
         return '';
     }
-    
+
     const stats = fs.statSync(cleanPath);
     return stats.mtime.toISOString();
 }

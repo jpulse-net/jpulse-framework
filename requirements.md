@@ -50,12 +50,14 @@ Requirements Doc of jPulse Framework
   - database.js           # database interface
   - model/                # model -- database interface
     - config.js             # schema for configs collection
+    - log.js                # schema for logs collection
     - user.js               # schema for users collection
   - controller/           # controller -- app API
-    - view.js               # loads view files, expands {{handlebars}}
     - config.js             # handles /api/1/config/...
-    - user.js               # handles /api/1/user/...
+    - log.js                # handles /api/1/log/...
     - login.js              # handles /api/1/login/...
+    - user.js               # handles /api/1/user/...
+    - view.js               # loads view files, expands {{handlebars}}
   - view/                 # view -- browser files served by app
     - jpulse-header.tmpl    # common header
     - jpulse-footer.tmpl    # common footer
@@ -67,6 +69,10 @@ Requirements Doc of jPulse Framework
       - logout.shtml
     - error/
       - index.shtml         # handles error messages with msg URL parameter
+  - translations/           # translations - multiple languages
+    - i18n.js               # handles internationalization
+    - lang-en.conf          # English translation
+    - lang-de.conf          # Genram translation
   - static/               # static content served by nginx
     - robots.txt            # robots file
     - favicon.ico           # app favicon
@@ -152,9 +158,9 @@ Requirements Doc of jPulse Framework
     - function load(req, res) loads a view file and expands {{handlebars}}:
       - {{app.version}}
       - {{app.release}}
-      - {{file.include "./some.tmpl"}}
-        - object: { file: { include: function("./some.tmpl") {} } }
-      - {{file.timestamp "./some.tmpl"}}
+      - {{file.include "jpulse-header.tmpl"}}
+        - object: { file: { include: function("jpulse-header.tmpl") {} } }
+      - {{file.timestamp "jpulse-header.tmpl"}}
       - {{user.id}}
       - {{user.firstName}}
       - {{user.nickName}}
@@ -169,18 +175,50 @@ Requirements Doc of jPulse Framework
       - {{url.port}}        // '8080'
       - {{url.pathname}}    // '/home/index.shtml'
       - {{url.search}}      // '?foo=bar'
-      - {{url.param "foo"}} // 'bar'
+      - {{url.param.foo}} // 'bar'
       - {{i18n.login.notAuthenticated}}
 
 - **W-007**: rename project from Bubble Framework to jPulse Framework
   - rename git repo to /peterthoeny/jpulse-framework
   - rename any text references to project name
 
-- **W-008**: create site admin view
+- **W-008**: strategy for view content and static content; HTML header & footer strategy
+  - goal: clean separation using routing precedence
+  - File Mapping:
+    - `webapp/static/*` → URI `/` (e.g., `webapp/static/robots.txt` → `/robots.txt`)
+    - `webapp/view/*` → URI `/` (e.g., `webapp/view/home/index.shtml` → `/home/index.shtml`)
+  - Express Routing Order (priority sequence):
+    1. API routes: `/api/1/*`
+    2. Static `/common` directory (protects 3rd party packages from dynamic processing)
+    3. Dynamic content: `*.shtml`, `*.tmpl`, `/jpulse-*.js`, `/jpulse-*.css`
+    4. Root static fallback: `/` (serves remaining static files including `/images`)
+  - nginx Configuration** (production):
+    - API routes → proxy to app
+    - Static `/common/` directory → direct serve
+    - Dynamic templates (`*.shtml`, `*.tmpl`, `/jpulse-*`) → proxy to app
+    - Root fallback → static serve (includes `/images`, `/robots.txt`, etc.)
+  - Benefits: Protects 3rd party packages in `/common` that might contain `.shtml`/`.tmpl` files
+  - main app windows:
+    - responsive design with maxWith defined in appConfig, and min margin on left and right
+  - add sticky header:
+    - 30 pixels high
+    - logo and app name on left
+    - user icon on right with pulldown:
+      - if not logged in:
+        - sign in
+        - sign up
+      - if logged in:
+        - profile
+        - sign out
+    - responsive design matching main app window
+  - add footer:
+    - responsive design matching main app window
+
+- **W-009**: create site admin view
   - create webapp/view/admin/index.shtml -- admin home
   - create webapp/view/admin/config.shtml -- edit config
 
 # Roadmap (Future Enhancements)
 
-- I18N
 - nested config
+- nested handlebars

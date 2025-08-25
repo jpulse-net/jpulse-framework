@@ -1,3 +1,391 @@
-# jPulse Framework / Developer Documentation v0.1.5
+# jPulse Framework / Developer Documentation v0.2.0
 
-FIXME: Developer facing documentation
+Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
+
+## 🏗️ Architecture Overview
+
+### Core Design Principles
+1. **Separation of Concerns**: Clear boundaries between static and dynamic content
+2. **Security First**: Path traversal protection, input validation, secure defaults
+3. **Performance**: nginx-friendly routing, efficient template processing
+4. **Developer Experience**: Natural syntax, comprehensive testing, clear error messages
+5. **Maintainability**: Modular structure, comprehensive documentation, consistent patterns
+
+### Technology Stack
+- **Backend**: Node.js 18+, Express.js 4.x
+- **Database**: MongoDB (optional)
+- **Templating**: Custom Handlebars implementation
+- **Testing**: Jest with comprehensive coverage
+- **Build Tools**: npm scripts, native ES modules
+- **Production**: nginx reverse proxy + PM2
+
+## 🎯 W-008: Hybrid Content Strategy (Major Implementation)
+
+### Problem Statement
+The framework needed a clean way to separate static content (served efficiently by nginx) from dynamic content (processed by the Node.js application) while maintaining a unified URI structure.
+
+### Solution Architecture
+
+#### Routing Precedence (Critical Order)
+```javascript
+// Express routing order - MUST be maintained
+1. API routes: /api/1/*
+2. Static /common/ directory (protects 3rd party packages)
+3. Dynamic content: *.shtml, *.tmpl, /jpulse-*.js, /jpulse-*.css
+4. Root static fallback: / (serves remaining static files)
+```
+
+#### File Mapping Strategy
+```
+webapp/static/*  → URI /         (e.g., robots.txt → /robots.txt)
+webapp/view/*    → URI /         (e.g., home/index.shtml → /home/index.shtml)
+```
+
+#### nginx Configuration Pattern
+```nginx
+# API routes → proxy to app
+location /api/1/ { proxy_pass http://localhost:8080; }
+
+# Protected static → direct serve
+location /common/ { try_files $uri =404; }
+
+# Dynamic templates → proxy to app
+location ~* \.(shtml|tmpl)$ { proxy_pass http://localhost:8080; }
+location ~ ^/jpulse-.*\.(js|css)$ { proxy_pass http://localhost:8080; }
+
+# Static fallback → direct serve
+location / { try_files $uri @app; }
+location @app { proxy_pass http://localhost:8080; }
+```
+
+### Implementation Benefits Achieved
+- ✅ **Performance**: Static files served directly by nginx
+- ✅ **Security**: Path traversal protection, controlled file access
+- ✅ **Flexibility**: Easy to add new content types
+- ✅ **Maintainability**: Clear separation of concerns
+- ✅ **SEO Friendly**: Clean URLs without prefixes
+
+## 🎨 Template System Architecture
+
+### Custom Handlebars Implementation
+
+#### Core Processing Flow
+```javascript
+// webapp/controller/view.js
+async function processHandlebars(content, context, baseDir, filePath, depth = 0) {
+    const regex = /\{\{([^}]+)\}\}/g;
+    let result = content;
+    let match;
+
+    while ((match = regex.exec(content)) !== null) {
+        const expression = match[1].trim();
+        const replacement = await evaluateHandlebar(expression, context, baseDir, depth);
+        result = result.replace(match[0], replacement);
+    }
+
+    return result;
+}
+```
+
+#### Helper Function Priority (Critical)
+```javascript
+// evaluateHandlebar() - Order matters!
+switch (helper) {
+    case 'file.include':    // FIRST - Security-critical
+        return await handleFileInclude(args[0], context, baseDir, depth);
+    case 'file.timestamp':  // File operations
+        return handleFileTimestamp(args[0], baseDir);
+    case 'if':             // Conditional logic
+        return handleConditional(args, context);
+    case 'i18n':           // Translation function (legacy)
+        return handleI18nFunction(args[0], args.slice(1));
+    default:
+        // Property access LAST (after helper functions)
+        if (!helper.includes(' ') && helper.includes('.')) {
+            return getNestedProperty(context, helper) || '';
+        }
+        return '';
+}
+```
+
+#### Security Implementation
+```javascript
+// Path traversal protection in handleFileInclude()
+const cleanPath = filePath.replace(/^["']|["']$/g, '');
+
+// Security: Prohibit path traversal and absolute paths
+if (cleanPath.includes('../') || cleanPath.includes('..\\') || path.isAbsolute(cleanPath)) {
+    throw new Error(`Prohibited path in include: ${cleanPath}`);
+}
+
+// Always resolve relative to view root
+const viewRoot = path.join(process.cwd(), 'webapp', 'view');
+const fullPath = path.join(viewRoot, cleanPath);
+
+// Double-check resolved path is still within view root
+if (!fullPath.startsWith(viewRoot)) {
+    throw new Error(`Path traversal attempt blocked: ${cleanPath}`);
+}
+```
+
+## 🌐 Internationalization System
+
+### Architecture Evolution
+
+#### Legacy Function Syntax (Still Supported)
+```html
+{{i18n "app.name"}}
+{{i18n "header.signin"}}
+```
+
+#### New Dot Notation Syntax (Preferred)
+```html
+{{i18n.app.name}}
+{{i18n.header.signin}}
+```
+
+### Implementation Details
+
+#### Context Integration
+```javascript
+// webapp/controller/view.js - Context creation
+const context = {
+    app: { version: appConfig.app.version, release: appConfig.app.release },
+    user: { /* user data */ },
+    appConfig: appConfig,  // NEW: Full app.conf access
+    config: globalConfig?.data || {},
+    url: { /* URL data */ },
+    i18n: i18n.langs[i18n.default] || {}, // NEW: Direct object access
+    req: req
+};
+```
+
+#### Translation Lookup Function
+```javascript
+// webapp/translations/i18n.js
+i18n.t = (key, ...args) => {
+    const keyParts = key.split('.');
+    let text = i18n.langs[i18n.default];
+
+    for(const keyPart of keyParts) {
+        if (text && text[keyPart] !== undefined) {
+            text = text[keyPart];
+        } else {
+            return key; // Return key if not found (graceful degradation)
+        }
+    }
+
+    // Parameter substitution: {0}, {1}, etc.
+    if(args.length > 0 && text) {
+        text = text.replace(/{(\d+)}/g, (match, p1) => args[p1]);
+    }
+
+    return text || key;
+}
+```
+
+## 📱 Responsive Layout System
+
+### Configuration-Driven Approach
+
+#### App Configuration (`webapp/app.conf`)
+```conf
+window: {
+    maxWidth:           1200,    # Content area maximum width
+    minMarginLeftRight: 20       # Minimum side margins
+}
+```
+
+#### CSS Generation Pattern
+```css
+/* Generated in jpulse-header.tmpl */
+.jpulse-container {
+    max-width: {{appConfig.window.maxWidth}}px;
+    margin: 0 auto;
+    padding: 0 {{appConfig.window.minMarginLeftRight}}px;
+}
+
+.jpulse-main {
+    max-width: {{appConfig.window.maxWidth}}px;
+    margin: 20px {{appConfig.window.minMarginLeftRight}}px;
+    padding: 30px;
+}
+
+.jpulse-header-content {
+    max-width: calc({{appConfig.window.maxWidth}}px - {{appConfig.window.minMarginLeftRight}}px * 2);
+    padding: 0 30px; /* Match .jpulse-main content padding */
+}
+```
+
+### Alignment Strategy (Pixel-Perfect)
+The header/footer elements must align exactly with the main content's text area:
+
+1. **Content Area Width**: `maxWidth - (minMarginLeftRight * 2)`
+2. **Header/Footer Width**: Same as content area width
+3. **Padding Matching**: Header/footer padding = main content padding
+4. **Responsive Adaptation**: All breakpoints maintain alignment
+
+## 🧪 Testing Architecture
+
+### Test Structure
+```
+webapp/tests/
+├── fixtures/           # Test data and configuration files
+├── helpers/           # Test utilities and mock objects
+├── integration/       # End-to-end application tests
+└── unit/             # Isolated component tests
+    ├── config/       # Configuration system tests
+    ├── controller/   # Business logic tests
+    ├── log/          # Logging functionality tests
+    ├── model/        # Data model tests
+    └── translations/ # i18n system tests
+```
+
+### New Test Coverage (W-008 Implementation)
+
+#### i18n Dot Notation Tests (`i18n-functions.test.js`)
+```javascript
+describe('Dot Notation Context Access (New Feature)', () => {
+    test('should support direct property access via context object', () => {
+        const contextI18n = i18n.langs[i18n.default];
+        expect(contextI18n.app.name).toBe('jPulse Framework');
+        expect(contextI18n.header.signin).toBe('Sign In');
+    });
+});
+```
+
+#### Responsive Layout Tests (`responsive-layout.test.js`)
+```javascript
+describe('Responsive Layout Calculations', () => {
+    test('should calculate correct CSS values for wide screens', () => {
+        const { maxWidth, minMarginLeftRight } = mockAppConfig.window;
+        const headerContentMaxWidth = maxWidth - (minMarginLeftRight * 2);
+        expect(headerContentMaxWidth).toBe(1160); // 1200 - (20 * 2)
+    });
+});
+```
+
+#### Template Includes Tests (`template-includes.test.js`)
+```javascript
+describe('Security and Error Handling', () => {
+    test('should prevent path traversal attacks', () => {
+        const dangerousPaths = ['../../../etc/passwd', 'C:\\Windows\\System32'];
+        dangerousPaths.forEach(dangerousPath => {
+            const isUnsafe = dangerousPath.includes('../') ||
+                           path.isAbsolute(dangerousPath);
+            expect(isUnsafe).toBe(true);
+        });
+    });
+});
+```
+
+### Test Execution Strategy
+```bash
+# Run all tests (178+ tests)
+npm test
+
+# Run specific test categories
+npm test -- --testPathPattern="i18n"          # Translation tests
+npm test -- --testPathPattern="responsive"    # Layout tests
+npm test -- --testPathPattern="template"      # Template tests
+npm test -- --testPathPattern="integration"   # End-to-end tests
+
+# Run with coverage
+npm test -- --coverage
+```
+
+## 🔧 Development Workflow
+
+### Code Organization Patterns
+
+#### Controller Structure
+```javascript
+// webapp/controller/view.js
+export default {
+    async load(req, res) {
+        // 1. Determine file path and validate
+        // 2. Read template content
+        // 3. Build handlebars context
+        // 4. Process handlebars expressions
+        // 5. Return processed content
+    }
+};
+```
+
+#### Path Resolution Best Practices
+```javascript
+// Always use path.join() for cross-platform compatibility
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Correct path resolution
+const configPath = path.join(__dirname, 'app.conf');
+const staticPath = path.join(__dirname, 'static');
+```
+
+### Security Implementation
+
+#### Input Validation
+```javascript
+// Path sanitization
+function sanitizePath(inputPath) {
+    const cleaned = inputPath.replace(/^["']|["']$/g, '');
+    if (cleaned.includes('../') || cleaned.includes('..\\')) {
+        throw new Error('Path traversal attempt detected');
+    }
+    if (path.isAbsolute(cleaned)) {
+        throw new Error('Absolute paths not allowed');
+    }
+    return cleaned;
+}
+```
+
+#### Template Security
+- **Include Depth**: Maximum 10 levels prevents DoS
+- **File Extension**: Whitelist approach for includes
+- **View Root Jail**: All includes resolved within `webapp/view/`
+- **Error Sanitization**: Stack traces filtered in production
+
+## 🚀 Performance Considerations
+
+### Template Processing Optimization
+- **Regex Compilation**: Handlebars regex compiled once, reused
+- **Context Reuse**: User context cached per request
+- **Include Caching**: Consider implementing file content caching
+- **Depth Limiting**: Prevents infinite recursion performance issues
+
+### Static Content Strategy
+- **nginx Direct Serving**: Static files bypass Node.js entirely
+- **Gzip Compression**: Enable in nginx for text assets
+- **Cache Headers**: Set appropriate cache policies
+- **CDN Integration**: Static assets can be CDN-served
+
+## 📚 Key Implementation Insights (W-008 Lessons)
+
+### What Worked Well
+1. **Incremental Development**: Building features step-by-step with testing
+2. **Security First**: Path traversal protection from day one
+3. **User Feedback**: Iterative UI refinement based on screenshots
+4. **Comprehensive Testing**: 178+ tests caught issues early
+5. **Documentation**: Clear requirements tracking in `requirements.md`
+
+### Challenges Overcome
+1. **Path Resolution**: Cross-platform compatibility with `__dirname`
+2. **Template Logic**: Proper helper function vs property access precedence
+3. **Responsive Alignment**: Pixel-perfect header/footer alignment
+4. **i18n Evolution**: Smooth transition from function to dot notation
+5. **nginx Integration**: Complex routing rules for hybrid content
+
+### Best Practices Established
+1. **Security by Design**: All file operations validated and constrained
+2. **Configuration Driven**: Layout and behavior controlled by `app.conf`
+3. **Test Coverage**: Every new feature gets comprehensive tests
+4. **Error Handling**: Graceful degradation for missing translations/files
+5. **Performance Awareness**: Static/dynamic separation for optimal serving
+
+---
+
+**jPulse Framework** - Architecture built for scale, security, and developer happiness. 🚀

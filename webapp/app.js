@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         0.1.5
- * @release         2025-08-24
+ * @version         0.2.0
+ * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -17,12 +17,19 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import session from 'express-session';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get current directory for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configuration loader for .conf files
 async function loadAppConfig() {
     try {
         const fs = await import('fs');
-        const content = fs.readFileSync('./webapp/app.conf', 'utf8');
+        const configPath = path.join(__dirname, 'app.conf');
+        const content = fs.readFileSync(configPath, 'utf8');
         const fn = new Function(`return (
             ${content}
         )`); // extra newlines in case content ends in a // comment
@@ -56,7 +63,7 @@ global.LogController = LogController;
 // Load database connection
 const database = await import('./database.js').then(m => m.default);
 
-// Load routing  
+// Load routing
 const routes = await import('./routes.js').then(m => m.default);
 
 // Main application function
@@ -71,7 +78,7 @@ async function startApp() {
     app.use(session(appConfig.session));
 
     // Serve static files (this is preempted by nginx if the app is running behind a reverse proxy)
-    app.use('/static', express.static('static'));
+    app.use('/static', express.static(path.join(__dirname, 'static')));
 
     // Use routes
     app.use('/', routes);

@@ -3,7 +3,7 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the routing file for the jPulse Framework WebApp
  * @file            webapp/route.js
- * @version         0.2.2
+ * @version         0.2.3
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,7 +16,7 @@ import express from 'express';
 const router = express.Router();
 
 // Load controllers
-import userController from './controller/user.js';
+import UserController from './controller/user.js';
 import configController from './controller/config.js';
 import logController from './controller/log.js';
 import viewController from './controller/view.js';
@@ -41,14 +41,25 @@ router.put('/api/1/config/:id', configController.updateConfig);
 router.put('/api/1/config/:id/upsert', configController.upsertConfig);
 router.delete('/api/1/config/:id', configController.deleteConfig);
 
+// User API routes
+router.post('/api/1/user/login', UserController.login);
+router.post('/api/1/user/logout', UserController.logout);
+router.get('/api/1/user/profile', UserController.getProfile);
+router.put('/api/1/user/profile', UserController.updateProfile);
+router.put('/api/1/user/password', UserController.changePassword);
+router.get('/api/1/user/search', UserController.search);
+
 // Log API routes
 router.get('/api/1/log/search', logController.search);
 
-// View routes - handle .shtml template files (must be last, catch-all)
-router.get('/*', viewController.load);
+// Dynamic content routes - handle .shtml, .tmpl, and jpulse-* files only
+// Static files (.txt, .ico, .png, .json, etc.) will fall through to Express static middleware
+router.get(/\.(shtml|tmpl)$/, viewController.load);
+router.get(/\/jpulse-.*\.(js|css)$/, viewController.load);
 
-// User controller routes (will be implemented later)
-// router.use('/api/1/user', userController);
+// View routes - handle paths that look like view routes (no file extension or directory-like paths)
+router.get(/^\/[^.]*$/, viewController.load);
+router.get(/^\/[^.]*\/[^.]*$/, viewController.load);
 
 export default router;
 

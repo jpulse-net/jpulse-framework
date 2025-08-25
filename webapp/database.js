@@ -3,7 +3,7 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the database interface for the jPulse Framework WebApp
  * @file            webapp/database.js
- * @version         0.2.2
+ * @version         0.2.3
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -80,6 +80,14 @@ function getDb() {
 }
 
 /**
+ * Get MongoDB client instance
+ * @returns {object} MongoDB client instance
+ */
+function getClient() {
+    return client;
+}
+
+/**
  * Close database connection
  * @returns {Promise<void>}
  */
@@ -110,6 +118,7 @@ connect().catch(error => {
 export default {
     connect,
     getDb,
+    getClient,
     close
 };
 

@@ -237,18 +237,27 @@ Requirements Doc of jPulse Framework
 - remove legacy {{i18n "app.name"}} notation, replaced by {{i18n.app.name}} dot notation
 
 ## **W-011**: create user model, controller
-- status: PENDING
+- status: IN_PROGRESS
 - create webapp/model/user.js
 - create webapp/controller/user.js
+- plan for authentication based on appConfig.login.mode:
+  - internal
+  - ldap (implement later)
+  - oath2 (implement later)
+  - user choice, such as internal/oauth2 (implement later)
+- implement internal auth with user ID and password
+- persistent session handling in database
+- create tests
+- document in README, API, changes, developers
 
-## **W-012**: create user model, view, controller
+## **W-012**: create user views
 - status: PENDING
 - create webapp/view/user/profile.shtml
   - two modes: view and edit
 - create webapp/view/user/index.shtml
   - search users, result depends on logged in user role (admin, ...)
 
-## **W-013**: create site admin view
+## **W-013**: create site admin views
 - status: PENDING
 - create webapp/view/admin/index.shtml -- admin home
 - create webapp/view/admin/config.shtml -- edit config
@@ -308,6 +317,14 @@ Requirements Doc of jPulse Framework
 
 ## **W-0**: nested handlebars
 - status: PENDING
+
+## **W-0**: i18n with variable content
+- status: PENDING
+- at idea stage, not sure if there is a better approach
+- option 1: param list based, example:
+  - signOut: 'Sign out {{1}}' // ==> 'Sign out jsmith'
+- option 2: handlebar based, example:
+  - signOut: 'Sign out {{user.id}}' // ==> 'Sign out jsmith'
 
 ----------------------
 

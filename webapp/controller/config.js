@@ -3,7 +3,7 @@
  * @tagline         Config Controller for jPulse Framework WebApp
  * @description     This is the config controller for the jPulse Framework WebApp
  * @file            webapp/controller/config.js
- * @version         0.2.2
+ * @version         0.2.3
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -169,7 +169,7 @@ class ConfigController {
             });
 
         } catch (error) {
-            LogController.error(req, `Config creation failed: ${error.message}`);
+            LogController.error(req, `config.create failed: ${error.message}`);
             if (error.message.includes('Validation failed')) {
                 return res.status(400).json({
                     success: false,
@@ -247,7 +247,7 @@ class ConfigController {
             });
 
         } catch (error) {
-            LogController.error(req, `Config update failed: ${error.message}`);
+            LogController.error(req, `config.update failed: ${error.message}`);
             if (error.message.includes('Validation failed')) {
                 return res.status(400).json({
                     success: false,
@@ -359,7 +359,7 @@ class ConfigController {
             });
 
         } catch (error) {
-            LogController.error(req, `Config deletion failed: ${error.message}`);
+            LogController.error(req, `config.delete failed: ${error.message}`);
             res.status(500).json({
                 success: false,
                 error: 'Internal server error while deleting config',

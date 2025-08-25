@@ -3,7 +3,7 @@
  * @tagline         Log Controller for jPulse Framework WebApp
  * @description     This is the log controller for the jPulse Framework WebApp
  * @file            webapp/controller/log.js
- * @version         0.2.2
+ * @version         0.2.3
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -28,19 +28,24 @@ class LogController {
      * @param {object} res - Express response object
      */
     static async search(req, res) {
+        const startTime = Date.now();
         try {
             LogController.consoleApi(req, `log.search( ${JSON.stringify(req.query)} )`);
 
             const results = await LogModel.search(req.query);
+            const elapsed = Date.now() - startTime;
+
+            LogController.console(req, `log.search completed in ${elapsed}ms`);
 
             res.json({
                 success: true,
                 message: `Found ${results.data.length} log entries`,
-                ...results
+                ...results,
+                elapsed
             });
 
         } catch (error) {
-            LogController.error(req, `Log search failed: ${error.message}`);
+            LogController.error(req, `log.search failed: ${error.message}`);
             res.status(500).json({
                 success: false,
                 error: 'Internal server error while searching logs',

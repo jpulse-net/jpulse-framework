@@ -1,4 +1,4 @@
-# jPulse Framework / Developer Documentation v0.2.2
+# jPulse Framework / Developer Documentation v0.2.3
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
@@ -25,9 +25,10 @@ Technical documentation for developers working on the jPulse Framework. This doc
 - **Testing**: Jest with automated cleanup, global setup/teardown, and 229+ tests
 - **Build Tools**: npm scripts, native ES modules, version management
 - **Production**: nginx reverse proxy + PM2 process management
+- **User Management**: Complete authentication system with bcrypt and role-based access control
 - **Internationalization**: Multi-language support with dot notation access
-- **Logging**: Structured logging with MongoDB persistence and search API
-- **Security**: Path traversal protection, input validation, session management
+- **Logging**: Structured logging with MongoDB persistence, search API, and elapsed time tracking
+- **Security**: Password hashing, session management, path traversal protection, input validation
 
 ## 🏗️ Application Architecture Details
 
@@ -171,6 +172,154 @@ export default async function globalSetup() {
 - **Mock Utilities**: Comprehensive test helpers and fixtures
 - **ES Module Support**: Native ES module testing with Jest
 
+### User Authentication & Management (W-011)
+
+#### User Model with Schema Validation (`webapp/model/user.js`)
+```javascript
+class UserModel {
+    // Complete user schema with validation
+    static schema = {
+        _id: { type: 'objectId', auto: true },
+        loginId: { type: 'string', required: true, unique: true },
+        email: { type: 'string', required: true, unique: true, validate: 'email' },
+        passwordHash: { type: 'string', required: true },
+        profile: {
+            firstName: { type: 'string', required: true },
+            lastName: { type: 'string', required: true },
+            nickName: { type: 'string', default: '' },
+            avatar: { type: 'string', default: '' }
+        },
+        roles: { type: 'array', default: ['user'], enum: ['guest', 'user', 'admin', 'root'] },
+        preferences: {
+            language: { type: 'string', default: 'en' },
+            theme: { type: 'string', default: 'light', enum: ['light', 'dark'] }
+        },
+        status: { type: 'string', default: 'active', enum: ['active', 'inactive', 'pending', 'suspended'] },
+        lastLogin: { type: 'date', default: null },
+        loginCount: { type: 'number', default: 0 },
+        createdAt: { type: 'date', auto: true },
+        updatedAt: { type: 'date', auto: true },
+        updatedBy: { type: 'string', default: '' },
+        docVersion: { type: 'number', default: 1 },
+        saveCount: { type: 'number', default: 1, autoIncrement: true }
+    };
+
+    // Password security with bcrypt
+    static async hashPassword(password) {
+        return await bcrypt.hash(password, 12); // 12 salt rounds
+    }
+
+    static async verifyPassword(password, hash) {
+        return await bcrypt.compare(password, hash);
+    }
+
+    // Authentication with security checks
+    static async authenticate(identifier, password) {
+        let user = await this.findByLoginId(identifier) || await this.findByEmail(identifier);
+        if (!user || user.status !== 'active') return null;
+
+        const isValid = await this.verifyPassword(password, user.passwordHash);
+        if (!isValid) return null;
+
+        // Return user without password hash for security
+        const { passwordHash, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+    }
+
+    // Role-based access control
+    static hasRole(user, role) {
+        return user && user.roles && user.roles.includes(role);
+    }
+
+    static hasAnyRole(user, roles) {
+        return user && user.roles && user.roles.some(role => roles.includes(role));
+    }
+}
+```
+
+#### User Controller with Authentication (`webapp/controller/user.js`)
+```javascript
+class UserController {
+    // Login with session creation
+    static async login(req, res) {
+        const { identifier, password } = req.body;
+        const user = await UserModel.authenticate(identifier, password);
+
+        if (user) {
+            req.session.user = {
+                id: user._id.toString(),
+                loginId: user.loginId,
+                firstName: user.profile.firstName,
+                lastName: user.profile.lastName,
+                email: user.email,
+                roles: user.roles,
+                authenticated: true
+            };
+            // Update login tracking
+            await UserModel.getCollection().updateOne(
+                { _id: user._id },
+                { $set: { lastLogin: new Date() }, $inc: { loginCount: 1 } }
+            );
+        }
+    }
+
+    // Admin-only user search with elapsed time tracking
+    static async search(req, res) {
+        const startTime = Date.now();
+        LogController.consoleApi(req, `user.search( ${JSON.stringify(req.query)} )`);
+
+        // Authentication and authorization checks
+        if (!req.session.user?.authenticated) {
+            LogController.error(req, 'user.search failed: Authentication required');
+            return res.status(401).json({ success: false, error: 'Authentication required' });
+        }
+
+        if (!UserModel.hasAnyRole(req.session.user, ['admin', 'root'])) {
+            LogController.error(req, 'user.search failed: Admin role required');
+            return res.status(403).json({ success: false, error: 'Admin role required' });
+        }
+
+        const results = await UserModel.search(req.query);
+        const elapsed = Date.now() - startTime;
+
+        LogController.console(req, `user.search completed in ${elapsed}ms`);
+        res.json({
+            success: true,
+            message: `Found ${results.data.length} users`,
+            ...results,
+            elapsed  // Performance tracking
+        });
+    }
+}
+```
+
+#### Session Management with MongoDB Storage (`webapp/app.js`)
+```javascript
+import MongoStore from 'connect-mongo';
+
+// Persistent session storage
+const sessionConfig = {
+    ...appConfig.session,
+    store: MongoStore.create({
+        clientPromise: Promise.resolve(database.getClient()),
+        dbName: appConfig.deployment[appConfig.deployment.mode].db,
+        collectionName: 'sessions',
+        ttl: Math.floor(appConfig.session.cookie.maxAge / 1000) // TTL in seconds
+    })
+};
+app.use(session(sessionConfig));
+```
+
+#### User Authentication Features
+- **Secure Password Hashing**: bcrypt with 12 salt rounds for maximum security
+- **Session Persistence**: MongoDB-backed sessions with automatic TTL expiration
+- **Role-Based Access Control**: Simple role system with method-level authorization
+- **Password Policy**: Configurable minimum length validation
+- **User Search**: Admin-only search with schema-based queries and pagination
+- **Profile Management**: Complete profile and password change functionality
+- **Login Tracking**: Automatic last login and login count tracking
+- **Security**: Password hashes never returned in API responses
+
 ### Logging Infrastructure (W-005)
 
 #### Structured Logging System (`webapp/controller/log.js`)
@@ -214,22 +363,35 @@ class LogController {
 }
 ```
 
-#### Log Search API with Schema-Based Queries
+#### Log Search API with Schema-Based Queries and Performance Tracking
 ```javascript
-// MongoDB log search with CommonUtils integration
+// MongoDB log search with CommonUtils integration and elapsed time
 static async search(req, res) {
+    const startTime = Date.now();
+    LogController.consoleApi(req, `log.search( ${JSON.stringify(req.query)} )`);
+
     const results = await LogModel.search(req.query);
+    const elapsed = Date.now() - startTime;
+
+    LogController.console(req, `log.search completed in ${elapsed}ms`);
+    res.json({
+        success: true,
+        message: `Found ${results.data.length} log entries`,
+        ...results,
+        elapsed  // Performance monitoring
+    });
     // Supports: level, message, createdAt, docType, action, limit, skip
     // Example: /api/1/log/search?level=error&message=database*&createdAt=2025-01
 }
 ```
 
 #### Logging Features
-- **Unified Format**: Consistent logging across all controllers
+- **Unified Format**: Consistent `<type>.<function> failed:` logging across all controllers
 - **Context Awareness**: User, IP, VM, and PM2 instance tracking
 - **MongoDB Persistence**: Structured log storage with search capabilities
 - **Change Tracking**: Automatic logging of document modifications
-- **Performance Monitoring**: Request timing and error tracking
+- **Performance Monitoring**: Request timing and elapsed time tracking for all search operations
+- **Error Consistency**: Standardized error logging format for debugging and monitoring
 
 ### Server-Side Template System (W-006)
 

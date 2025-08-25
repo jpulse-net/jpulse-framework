@@ -3,7 +3,7 @@
  * @tagline         Config Model for jPulse Framework WebApp
  * @description     This is the config model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/config.js
- * @version         0.2.2
+ * @version         0.2.3
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -13,6 +13,8 @@
  */
 
 import database from '../database.js';
+import { ObjectId } from 'mongodb';
+import CommonUtils from '../utils/common.js';
 
 /**
  * Config Model - handles site admin configuration with native MongoDB driver

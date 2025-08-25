@@ -3,7 +3,7 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         0.2.2
+ * @version         0.2.3
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -17,6 +17,7 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import session from 'express-session';
+import MongoStore from 'connect-mongo';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -75,13 +76,29 @@ async function startApp() {
     app.use(cors(appConfig.middleware.cors));
     app.use(bodyParser.urlencoded(appConfig.middleware.bodyParser.urlencoded));
     app.use(bodyParser.json(appConfig.middleware.bodyParser.json));
-    app.use(session(appConfig.session));
 
-    // Serve static files (this is preempted by nginx if the app is running behind a reverse proxy)
-    app.use('/static', express.static(path.join(__dirname, 'static')));
+    // Configure session with MongoDB store
+    const sessionConfig = {
+        ...appConfig.session,
+        store: MongoStore.create({
+            clientPromise: Promise.resolve(database.getClient()),
+            dbName: appConfig.deployment[appConfig.deployment.mode].db,
+            collectionName: 'sessions',
+            ttl: Math.floor(appConfig.session.cookie.maxAge / 1000) // TTL in seconds
+        })
+    };
+    app.use(session(sessionConfig));
 
-    // Use routes
+    // Following W-008 Express Routing Order:
+    // 1. API routes: /api/1/*
+    // 2. Static /common directory (protected from template processing)
+    app.use('/common', express.static(path.join(__dirname, 'static', 'common')));
+
+    // 3. Use routes for API and dynamic content (.shtml, .tmpl, jpulse-*)
     app.use('/', routes);
+
+    // 4. Root static fallback: serves remaining static files (robots.txt, favicon, images, etc.)
+    app.use('/', express.static(path.join(__dirname, 'static')));
 
     // Get port from configuration
     const mode = appConfig.deployment.mode;

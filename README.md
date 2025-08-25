@@ -1,4 +1,4 @@
-# jPulse Framework v0.2.2
+# jPulse Framework v0.2.3
 
 A modern, lightweight web application framework built with Node.js, Express, and MongoDB. jPulse combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content.
 
@@ -113,12 +113,25 @@ jPulse implements a sophisticated routing strategy that cleanly separates static
 - Mobile-first design approach
 - Consistent spacing and typography
 
-### 🔒 **Security Features**
-- Path traversal protection for template includes
-- Secure file serving with proper MIME types
-- Input validation and sanitization with CommonUtils
-- CSRF protection ready
-- Automated test cleanup prevents security vulnerabilities
+### 🔒 **User Authentication & Management**
+Complete user system with secure authentication and role-based access control:
+
+- **Internal Authentication**: Secure login with bcrypt password hashing
+- **Session Management**: Persistent MongoDB sessions with connect-mongo
+- **Role-Based Access Control**: Simple role system (guest, user, admin, root)
+- **User Profile Management**: Complete profile and password management
+- **User Search API**: Admin-only user search with schema-based queries
+- **Password Policy**: Configurable minimum length requirements
+- **Security Features**: Automatic password hash exclusion, secure session handling
+
+### 🔐 **Security Features**
+- **Password Security**: bcrypt hashing with 12 salt rounds
+- **Session Security**: Persistent MongoDB sessions with TTL expiration
+- **Path Traversal Protection**: Template includes secured against directory traversal
+- **Input Validation**: Comprehensive validation with CommonUtils
+- **Role-Based Authorization**: Method-level access control
+- **Error Logging**: Consistent `<type>.<function> failed:` format across all controllers
+- **Performance Monitoring**: Elapsed time tracking for all search operations
 
 ### 🎨 **Modern UI Components**
 - Sticky header with user authentication menu
@@ -260,19 +273,28 @@ jPulse provides a comprehensive RESTful API under the `/api/1/` prefix with the 
 
 ### Core API Features
 - **🔧 Configuration Management**: Complete CRUD operations for site configuration
-- **📊 Advanced Logging**: Powerful log search with flexible query parameters
+- **📊 Advanced Logging**: Powerful log search with flexible query parameters and elapsed time tracking
+- **👤 User Management**: Complete authentication, profile management, and user search
 - **🎨 Template Rendering**: Server-side handlebars processing with security features
 - **🏥 Health Monitoring**: System status and health check endpoints
-- **🔐 Session Authentication**: Secure user authentication and authorization
-- **📝 Structured Responses**: Consistent JSON response format with error handling
+- **🔐 Session Authentication**: Secure user authentication with role-based authorization
+- **📝 Structured Responses**: Consistent JSON response format with error handling and performance metrics
 
 ### Quick API Examples
 ```bash
+# User Authentication & Management
+POST /api/1/user/login
+POST /api/1/user/logout
+GET /api/1/user/profile
+PUT /api/1/user/profile
+PUT /api/1/user/password
+GET /api/1/user/search?status=active&roles=admin
+
 # Configuration Management
 GET /api/1/config/global
 PUT /api/1/config/global
 
-# Log Search with Filters
+# Log Search with Filters (includes elapsed time)
 GET /api/1/log/search?level=error&message=database*
 
 # Template Rendering

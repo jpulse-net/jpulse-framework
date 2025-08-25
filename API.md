@@ -25,9 +25,282 @@ https://your-domain.com/api/1/
     "message": "Human-readable message",
     "data": { ... },           // On success
     "error": "Error message",  // On failure
-    "code": "ERROR_CODE"       // Error code for programmatic handling
+    "code": "ERROR_CODE",      // Error code for programmatic handling
+    "elapsed": 15              // Response time in milliseconds (search endpoints)
 }
 ```
+
+## 👤 User Management API
+
+Complete user authentication, profile management, and administrative user search.
+
+### User Authentication
+
+#### Login
+Authenticate user with loginId/email and password, creating a persistent session.
+
+**Endpoint:** `POST /api/1/user/login`
+
+**Request Body:**
+```json
+{
+    "identifier": "jsmith",        // loginId or email
+    "password": "securepassword123"
+}
+```
+
+**Example Response (Success):**
+```json
+{
+    "success": true,
+    "message": "Login successful",
+    "data": {
+        "id": "66cb1234567890abcdef1234",
+        "loginId": "jsmith",
+        "firstName": "John",
+        "lastName": "Smith",
+        "email": "john@example.com",
+        "roles": ["user"],
+        "authenticated": true
+    }
+}
+```
+
+**Example Response (Failure):**
+```json
+{
+    "success": false,
+    "error": "Invalid credentials"
+}
+```
+
+#### Logout
+End user session and clear authentication.
+
+**Endpoint:** `POST /api/1/user/logout`
+
+**Example Response:**
+```json
+{
+    "success": true,
+    "message": "Logout successful"
+}
+```
+
+### User Profile Management
+
+#### Get Profile
+Retrieve current user's profile information.
+
+**Endpoint:** `GET /api/1/user/profile`
+**Authentication:** Required
+
+**Example Response:**
+```json
+{
+    "success": true,
+    "message": "Profile retrieved successfully",
+    "data": {
+        "id": "66cb1234567890abcdef1234",
+        "loginId": "jsmith",
+        "email": "john@example.com",
+        "profile": {
+            "firstName": "John",
+            "lastName": "Smith",
+            "nickName": "Johnny",
+            "avatar": ""
+        },
+        "roles": ["user"],
+        "preferences": {
+            "language": "en",
+            "theme": "light"
+        },
+        "status": "active",
+        "lastLogin": "2025-08-25T10:30:00.000Z",
+        "loginCount": 42,
+        "createdAt": "2025-08-01T08:00:00.000Z"
+    }
+}
+```
+
+#### Update Profile
+Update user's profile information and preferences.
+
+**Endpoint:** `PUT /api/1/user/profile`
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+    "profile": {
+        "firstName": "John",
+        "lastName": "Smith",
+        "nickName": "Johnny"
+    },
+    "preferences": {
+        "language": "de",
+        "theme": "dark"
+    }
+}
+```
+
+**Example Response:**
+```json
+{
+    "success": true,
+    "message": "Profile updated successfully",
+    "data": {
+        "id": "66cb1234567890abcdef1234",
+        "profile": { ... },
+        "preferences": { ... },
+        "updatedAt": "2025-08-25T10:35:00.000Z"
+    }
+}
+```
+
+#### Change Password
+Change user's password with current password verification.
+
+**Endpoint:** `PUT /api/1/user/password`
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+    "currentPassword": "oldpassword123",
+    "newPassword": "newsecurepassword456"
+}
+```
+
+**Example Response:**
+```json
+{
+    "success": true,
+    "message": "Password changed successfully"
+}
+```
+
+### Administrative User Search
+
+#### Search Users
+Search and filter users with advanced query capabilities. Requires admin or root role.
+
+**Endpoint:** `GET /api/1/user/search`
+**Authentication:** Required (Admin/Root roles only)
+
+**Query Parameters:**
+- `loginId` (string): Login ID filter with wildcard support (`*`)
+- `email` (string): Email filter with wildcard support (`*`)
+- `profile.firstName` (string): First name filter with wildcard support
+- `profile.lastName` (string): Last name filter with wildcard support
+- `roles` (string): Role filter (`guest`, `user`, `admin`, `root`)
+- `status` (string): Status filter (`active`, `inactive`, `pending`, `suspended`)
+- `createdAt` (string): Date range filter (YYYY, YYYY-MM, YYYY-MM-DD)
+- `lastLogin` (string): Last login date filter
+- `limit` (number): Maximum results to return (default: 50, max: 1000)
+- `skip` (number): Number of results to skip for pagination
+- `page` (number): Page number (alternative to skip)
+- `sort` (string): Sort field with optional `-` prefix for descending (e.g., `-updatedAt`)
+
+**Example Requests:**
+```bash
+# Find active admin users
+GET /api/1/user/search?status=active&roles=admin
+
+# Search users by name with wildcard
+GET /api/1/user/search?profile.firstName=John*
+
+# Find users created in August 2025
+GET /api/1/user/search?createdAt=2025-08
+
+# Paginated results sorted by last login
+GET /api/1/user/search?limit=25&page=2&sort=-lastLogin
+
+# Complex query: active users with recent login
+GET /api/1/user/search?status=active&lastLogin=2025-08-25&limit=10
+```
+
+**Example Response:**
+```json
+{
+    "success": true,
+    "message": "Found 15 users",
+    "data": [
+        {
+            "id": "66cb1234567890abcdef1234",
+            "loginId": "jsmith",
+            "email": "john@example.com",
+            "profile": {
+                "firstName": "John",
+                "lastName": "Smith",
+                "nickName": "Johnny",
+                "avatar": ""
+            },
+            "roles": ["user", "admin"],
+            "preferences": {
+                "language": "en",
+                "theme": "light"
+            },
+            "status": "active",
+            "lastLogin": "2025-08-25T10:30:00.000Z",
+            "loginCount": 42,
+            "createdAt": "2025-08-01T08:00:00.000Z",
+            "updatedAt": "2025-08-25T09:15:00.000Z"
+        }
+    ],
+    "pagination": {
+        "total": 15,
+        "limit": 50,
+        "skip": 0,
+        "page": 1,
+        "pages": 1
+    },
+    "query": {
+        "status": "active",
+        "roles": "admin"
+    },
+    "elapsed": 12
+}
+```
+
+### User Schema
+User documents follow this comprehensive schema:
+
+```javascript
+{
+    _id: ObjectId,              // MongoDB ObjectId
+    loginId: String,            // Unique login identifier
+    email: String,              // Unique email address (validated)
+    passwordHash: String,       // bcrypt hashed password (never returned in API)
+    profile: {
+        firstName: String,      // Required
+        lastName: String,       // Required
+        nickName: String,       // Optional display name
+        avatar: String          // Avatar URL or path
+    },
+    roles: [String],           // ['guest', 'user', 'admin', 'root']
+    preferences: {
+        language: String,       // Default: 'en'
+        theme: String          // 'light' or 'dark', default: 'light'
+    },
+    status: String,            // 'active', 'inactive', 'pending', 'suspended'
+    lastLogin: Date,           // Last successful login timestamp
+    loginCount: Number,        // Total number of successful logins
+    createdAt: Date,           // Auto-generated creation timestamp
+    updatedAt: Date,           // Auto-updated modification timestamp
+    updatedBy: String,         // User ID who made the last change
+    docVersion: Number,        // Document version for schema migrations
+    saveCount: Number          // Auto-incrementing save counter
+}
+```
+
+### Security Features
+- **Password Security**: bcrypt hashing with 12 salt rounds
+- **Session Management**: Persistent MongoDB sessions with TTL expiration
+- **Role-Based Access**: Method-level authorization for admin functions
+- **Data Protection**: Password hashes never included in API responses
+- **Input Validation**: Comprehensive validation for all user data
+- **Login Tracking**: Automatic tracking of login attempts and success
 
 ## 🔧 Configuration Management API
 
@@ -234,6 +507,7 @@ GET /api/1/log/search?level=error&docType=config&createdAt=2025-08-25&message=fa
 {
     "success": true,
     "message": "Found 15 log entries",
+    "elapsed": 8,
     "data": [
         {
             "_id": "66cb1234567890abcdef1234",
@@ -256,6 +530,13 @@ GET /api/1/log/search?level=error&docType=config&createdAt=2025-08-25&message=fa
         "skip": 0,
         "page": 1,
         "pages": 1
+    },
+    "query": {
+        "level": "error",
+        "createdAt": {
+            "$gte": "2025-08-25T00:00:00.000Z",
+            "$lt": "2025-08-26T00:00:00.000Z"
+        }
     }
 }
 ```

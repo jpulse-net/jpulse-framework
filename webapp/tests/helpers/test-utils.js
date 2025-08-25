@@ -3,7 +3,7 @@
  * @tagline         Test utilities for the jPulse Framework WebApp
  * @description     Common utilities and helpers for testing
  * @file            webapp/tests/helpers/test-utils.js
- * @version         0.2.1
+ * @version         0.2.2
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,7 +20,7 @@ import { jest } from '@jest/globals';
  * Test utilities for jPulse Framework testing
  */
 export class TestUtils {
-    
+
     /**
      * Load configuration from a .conf file (similar to app.js loadAppConfig)
      * @param {string} configPath - Path to the .conf file
@@ -48,7 +48,7 @@ export class TestUtils {
             langs: {},
             default: 'en'
         };
-        
+
         try {
             for(const file of files) {
                 const content = fs.readFileSync(file, 'utf8');
@@ -162,7 +162,7 @@ export class TestUtils {
             // Fall back to real file system for unmocked files
             return originalReadFileSync(filePath, encoding);
         });
-        
+
         fs.readFileSync = mockReadFileSync;
         return mockReadFileSync;
     }

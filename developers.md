@@ -1,9 +1,9 @@
-# jPulse Framework / Developer Documentation v0.2.1
+# jPulse Framework / Developer Documentation v0.2.2
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
 **Latest Updates (v0.2.1):**
-- 🛠️ **W-009 CommonUtils Framework**: Centralized utility functions with comprehensive testing
+- 🛠️ **CommonUtils Framework**: Centralized utility functions with comprehensive testing
 - 🧪 **Automated Test Cleanup**: Jest global setup/teardown system
 - 📊 **Enhanced Test Coverage**: 229+ tests with 100% reliability
 
@@ -17,17 +17,311 @@ Technical documentation for developers working on the jPulse Framework. This doc
 5. **Maintainability**: Modular structure, comprehensive documentation, consistent patterns
 
 ### Technology Stack
-- **Backend**: Node.js 18+, Express.js 4.x
-- **Database**: MongoDB (optional)
-- **Templating**: Custom Handlebars implementation
-- **Utilities**: CommonUtils framework for data processing (NEW)
-- **Testing**: Jest with automated cleanup and 229+ tests
-- **Build Tools**: npm scripts, native ES modules
-- **Production**: nginx reverse proxy + PM2
+- **Backend**: Node.js 18+, Express.js 4.x with ES modules
+- **Database**: MongoDB with configurable standalone/replica set support
+- **Configuration**: JavaScript-based `.conf` files with dynamic evaluation
+- **Templating**: Custom Handlebars implementation with security features
+- **Utilities**: CommonUtils framework for data processing and schema-based queries
+- **Testing**: Jest with automated cleanup, global setup/teardown, and 229+ tests
+- **Build Tools**: npm scripts, native ES modules, version management
+- **Production**: nginx reverse proxy + PM2 process management
+- **Internationalization**: Multi-language support with dot notation access
+- **Logging**: Structured logging with MongoDB persistence and search API
+- **Security**: Path traversal protection, input validation, session management
+
+## 🏗️ Application Architecture Details
+
+### Express Application Bootstrap (W-001)
+
+#### Main Application Structure (`webapp/app.js`)
+```javascript
+// Configuration loading with dynamic evaluation
+async function loadAppConfig() {
+    const configPath = path.join(__dirname, 'app.conf');
+    const content = fs.readFileSync(configPath, 'utf8');
+    const fn = new Function(`return (${content})`);
+    return fn(); // Execute JavaScript configuration
+}
+
+// Global module availability
+global.appConfig = appConfig;
+global.i18n = i18n;
+global.LogController = LogController;
+
+// Multi-environment startup
+const mode = appConfig.deployment.mode; // 'dev' or 'prod'
+const port = appConfig.deployment[mode].port;
+app.listen(port, () => {
+    LogController.console(null, `jPulse Framework WebApp v${appConfig.app.version}`);
+    LogController.console(null, `Server running in ${mode} mode on port ${port}`);
+});
+```
+
+#### Key Architecture Decisions
+1. **ES Module First**: Native ES modules with `import/export` syntax
+2. **Global Context**: Critical modules available globally for convenience
+3. **Dynamic Configuration**: JavaScript evaluation allows complex config logic
+4. **Structured Startup**: Ordered module loading with proper error handling
+5. **Environment Awareness**: Configuration-driven deployment modes
+
+### Configuration System (W-004)
+
+#### JavaScript-Based Configuration (`webapp/app.conf`)
+```javascript
+{
+    deployment: {
+        mode: 'dev',
+        dev: { name: 'development', db: 'dev', port: 8080 },
+        prod: { name: 'production', db: 'prod', port: 8081 }
+    },
+    database: {
+        mode: 'standalone',
+        standalone: {
+            url: 'mongodb://localhost:27017/%DB%', // %DB% replaced dynamically
+            options: {
+                serverSelectionTimeoutMS: 5000,
+                maxPoolSize: 10,
+                minPoolSize: 1
+            }
+        }
+    },
+    login: {
+        mode: 'internal', // 'internal', 'ldap', 'oauth2'
+        internal: { user: 'fixme', pass: 'fixme' }
+    }
+}
+```
+
+#### Configuration Features
+- **Multi-Environment**: Separate dev/prod settings with mode switching
+- **Authentication Modes**: Internal, LDAP, OAuth2 authentication support
+- **Database Flexibility**: MongoDB standalone or replica set configurations
+- **Template Variables**: Dynamic replacement (e.g., `%DB%`, `%SERVERS%`)
+- **Security Settings**: Session management, CORS, and middleware configuration
+
+### Internationalization System (W-002)
+
+#### Translation Engine (`webapp/translations/i18n.js`)
+```javascript
+// Dynamic translation file loading
+const files = [
+    path.join(__dirname, 'lang-en.conf'),
+    path.join(__dirname, 'lang-de.conf')
+];
+
+// Translation lookup with dot notation support
+i18n.t = (key, ...args) => {
+    const keyParts = key.split('.');
+    let text = i18n.langs[i18n.default];
+
+    for(const keyPart of keyParts) {
+        if (text && text[keyPart] !== undefined) {
+            text = text[keyPart];
+        } else {
+            return key; // Graceful degradation
+        }
+    }
+
+    // Parameter substitution: {0}, {1}, etc.
+    if(args.length > 0 && text) {
+        text = text.replace(/{(\d+)}/g, (match, p1) => args[p1]);
+    }
+
+    return text || key;
+};
+```
+
+#### Translation Features
+- **Dot Notation Access**: Natural `i18n.app.name` syntax in templates
+- **Parameter Substitution**: Support for `{0}`, `{1}` parameter replacement in translation files
+- **Fallback Handling**: Returns key when translation missing
+- **Dynamic Loading**: Automatic `.conf` file discovery and parsing
+
+### Testing Framework (W-003)
+
+#### Jest Configuration with Global Setup
+```javascript
+// package.json
+{
+  "jest": {
+    "globalSetup": "./webapp/tests/setup/global-setup.js",
+    "globalTeardown": "./webapp/tests/setup/global-teardown.js",
+    "testEnvironment": "node",
+    "transform": {},
+    "extensionsToTreatAsEsm": [".js"],
+    "globals": {
+      "__DEV__": true
+    }
+  }
+}
+
+// Global setup implementation
+export default async function globalSetup() {
+    console.log('🚀 Jest Global Setup: Starting test environment preparation...');
+    await cleanupTempFiles();
+    await cleanupTestDatabases();
+    console.log('✅ Jest Global Setup: Test environment ready!');
+}
+```
+
+#### Testing Architecture
+- **229+ Tests**: Comprehensive unit and integration test coverage
+- **Automated Cleanup**: Global setup/teardown prevents test conflicts
+- **Hierarchical Organization**: Tests organized by component type
+- **Mock Utilities**: Comprehensive test helpers and fixtures
+- **ES Module Support**: Native ES module testing with Jest
+
+### Logging Infrastructure (W-005)
+
+#### Structured Logging System (`webapp/controller/log.js`)
+```javascript
+class LogController {
+    // Unified console logging format
+    static console(req, message) {
+        const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
+        const loginId = req?.session?.user?.loginId || '(guest)';
+        const clientIp = req?.ip || req?.connection?.remoteAddress || 'unknown';
+        const vmId = process.env.VM_ID || '0';
+        const pmId = process.env.pm_id || '0';
+
+        const logEntry = `- ${timestamp}, msg, ${loginId}, ip:${clientIp}, vm:${vmId}, id:${pmId}, ${message}`;
+        console.log(logEntry);
+    }
+
+    // API-specific logging with enhanced format
+    static consoleApi(req, message) {
+        const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
+        const loginId = req?.session?.user?.loginId || '(guest)';
+        const clientIp = req?.ip || req?.connection?.remoteAddress || 'unknown';
+        const vmId = process.env.VM_ID || '0';
+        const pmId = process.env.pm_id || '0';
+
+        const logEntry = `==${timestamp}, ===, ${loginId}, ip:${clientIp}, vm:${vmId}, id:${pmId}, === ${message}`;
+        console.log(logEntry);
+    }
+
+    // Error logging with stack traces
+    static error(req, message) {
+        const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
+        const loginId = req?.session?.user?.loginId || '(guest)';
+        const clientIp = req?.ip || req?.connection?.remoteAddress || 'unknown';
+        const vmId = process.env.VM_ID || '0';
+        const pmId = process.env.pm_id || '0';
+
+        const logEntry = `- ${timestamp}, ERR, ${loginId}, ip:${clientIp}, vm:${vmId}, id:${pmId}, ${message}`;
+        console.error(logEntry);
+    }
+}
+```
+
+#### Log Search API with Schema-Based Queries
+```javascript
+// MongoDB log search with CommonUtils integration
+static async search(req, res) {
+    const results = await LogModel.search(req.query);
+    // Supports: level, message, createdAt, docType, action, limit, skip
+    // Example: /api/1/log/search?level=error&message=database*&createdAt=2025-01
+}
+```
+
+#### Logging Features
+- **Unified Format**: Consistent logging across all controllers
+- **Context Awareness**: User, IP, VM, and PM2 instance tracking
+- **MongoDB Persistence**: Structured log storage with search capabilities
+- **Change Tracking**: Automatic logging of document modifications
+- **Performance Monitoring**: Request timing and error tracking
+
+### Server-Side Template System (W-006)
+
+#### Custom Handlebars Implementation (`webapp/controller/view.js`)
+```javascript
+// Template processing with security and context
+async function processHandlebars(content, context, baseDir, filePath, depth = 0) {
+    if (depth > (appConfig?.view?.maxIncludeDepth || 10)) {
+        throw new Error(`Maximum include depth exceeded: ${depth}`);
+    }
+
+    const regex = /\{\{([^}]+)\}\}/g;
+    let result = content;
+    let match;
+
+    while ((match = regex.exec(content)) !== null) {
+        const expression = match[1].trim();
+        const replacement = await evaluateHandlebar(expression, context, baseDir, depth);
+        result = result.replace(match[0], replacement);
+    }
+
+    return result;
+}
+
+// Security-first file inclusion
+async function handleFileInclude(filePath, context, baseDir, depth) {
+    const cleanPath = filePath.replace(/^["']|["']$/g, '');
+
+    // Security: Prohibit path traversal and absolute paths
+    if (cleanPath.includes('../') || cleanPath.includes('..\\') || path.isAbsolute(cleanPath)) {
+        throw new Error(`Prohibited path in include: ${cleanPath}`);
+    }
+
+    const viewRoot = path.join(process.cwd(), 'webapp', 'view');
+    const fullPath = path.join(viewRoot, cleanPath);
+
+    // Double-check resolved path is still within view root
+    if (!fullPath.startsWith(viewRoot)) {
+        throw new Error(`Path traversal attempt blocked: ${cleanPath}`);
+    }
+
+    const includeContent = fs.readFileSync(fullPath, 'utf8');
+    return await processHandlebars(includeContent, context, baseDir, fullPath, depth + 1);
+}
+```
+
+#### Template Context Integration
+```javascript
+// Rich context object with all framework features
+const context = {
+    app: {
+        version: appConfig.app.version,
+        release: appConfig.app.release
+    },
+    user: {
+        id: req.session?.user?.id || '',
+        firstName: req.session?.user?.firstName || '',
+        lastName: req.session?.user?.lastName || '',
+        email: req.session?.user?.email || '',
+        authenticated: !!req.session?.user
+    },
+    appConfig: appConfig,  // Full configuration access
+    config: globalConfig?.data || {}, // Site admin configuration
+    url: {
+        domain: `${req.protocol}://${req.get('host')}`,
+        protocol: req.protocol,
+        hostname: req.hostname,
+        port: req.get('host')?.split(':')[1] || '',
+        pathname: req.path,
+        search: req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '',
+        param: req.query
+    },
+    i18n: i18n.langs[i18n.default] || {}, // Direct dot notation access
+    req: req, // Full request object access
+    file: {
+        include: (filePath) => handleFileInclude(filePath, context, baseDir, depth),
+        timestamp: (filePath) => handleFileTimestamp(filePath, baseDir)
+    },
+    if: (condition, trueValue, falseValue) => condition ? trueValue : falseValue
+};
+```
+
+#### Template System Features
+- **Security First**: Path traversal protection, include depth limits
+- **Rich Context**: Access to app config, user data, translations, URL info
+- **Helper Functions**: File operations, conditionals, timestamps
+- **Performance**: Efficient regex processing with context reuse
+- **Error Handling**: Graceful degradation with clear error messages
 
 ## 🎯 Major Implementation Milestones
 
-### W-008: Hybrid Content Strategy
+### Hybrid Content Strategy
 
 ### Problem Statement
 The framework needed a clean way to separate static content (served efficiently by nginx) from dynamic content (processed by the Node.js application) while maintaining a unified URI structure.
@@ -73,7 +367,7 @@ location @app { proxy_pass http://localhost:8080; }
 - ✅ **Maintainability**: Clear separation of concerns
 - ✅ **SEO Friendly**: Clean URLs without prefixes
 
-### W-009: CommonUtils Framework (NEW)
+### CommonUtils Framework
 
 #### Problem Statement
 The framework needed centralized utility functions to avoid code duplication across models and controllers. The `schemaBasedQuery` function in LogModel was identified as the first candidate for extraction, along with other common operations like validation, formatting, and data processing.
@@ -85,17 +379,17 @@ The framework needed centralized utility functions to avoid code duplication acr
 class CommonUtils {
     // Schema-based MongoDB query generation
     static schemaBasedQuery(schema, queryParams, ignoreFields = [])
-    
+
     // Field schema introspection
     static getFieldSchema(schema, fieldPath)
-    
+
     // Date query building for MongoDB
     static buildDateQuery(value)
-    
+
     // Object manipulation
     static deepMerge(...objects)
     static formatValue(value)
-    
+
     // ID generation and validation
     static generateId(prefix = '')
     static isValidEmail(email)
@@ -208,13 +502,7 @@ if (!fullPath.startsWith(viewRoot)) {
 
 ### Architecture Evolution
 
-#### Legacy Function Syntax (Still Supported)
-```html
-{{i18n "app.name"}}
-{{i18n "header.signin"}}
-```
-
-#### New Dot Notation Syntax (Preferred)
+#### Dot Notation Syntax
 ```html
 {{i18n.app.name}}
 {{i18n.header.signin}}
@@ -360,7 +648,7 @@ export default async function globalTeardown() {
 
 ### Enhanced Test Coverage
 
-#### CommonUtils Tests (W-009 Implementation) - NEW
+#### CommonUtils Tests
 ```javascript
 // webapp/tests/unit/utils/common-utils.test.js (35 tests)
 describe('CommonUtils - Schema-Based Query', () => {
@@ -521,7 +809,7 @@ function sanitizePath(inputPath) {
 
 ## 📚 Key Implementation Insights
 
-### W-009 CommonUtils Lessons Learned
+### CommonUtils Lessons Learned
 
 #### What Worked Well
 1. **Incremental Extraction**: Moving functions one at a time with comprehensive testing
@@ -544,7 +832,7 @@ function sanitizePath(inputPath) {
 4. **Clean Migration Paths**: Deprecation → Testing → Removal workflow
 5. **Documentation Excellence**: JSDoc comments with examples for all functions
 
-### W-008 Lessons (Previous Implementation)
+### Hybrid Content Strategy Lessons Learned
 
 ### What Worked Well
 1. **Incremental Development**: Building features step-by-step with testing

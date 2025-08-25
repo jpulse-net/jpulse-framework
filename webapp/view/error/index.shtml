@@ -4,7 +4,7 @@
  * @tagline         Error page of jPulse Framework
  * @description     This is the error page of jPulse Framework
  * @file            webapp/view/error/index.shtml
- * @version         0.2.1
+ * @version         0.2.2
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

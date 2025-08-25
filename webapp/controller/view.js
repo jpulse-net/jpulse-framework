@@ -3,7 +3,7 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.2.1
+ * @version         0.2.2
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -154,8 +154,6 @@ async function evaluateHandlebar(expression, context, baseDir, depth = 0) {
             return await handleFileTimestamp(args[0]);
         case 'if':
             return handleIf(args, context);
-        case 'i18n':
-            return handleI18n(args[0], context);
         default:
             // Handle property access (no spaces, contains dots)
             if (!helper.includes(' ') && helper.includes('.')) {
@@ -283,18 +281,6 @@ function handleIf(args, context) {
     const falseValue = args[2] ? args[2].replace(/^["']|["']$/g, '') : '';
     const conditionValue = getNestedProperty(context, condition);
     return conditionValue ? trueValue : falseValue;
-}
-
-/**
- * Handle i18n translation helper
- * @param {string} key - Translation key (with quotes)
- * @param {Object} context - Context (for future user language preference)
- * @returns {string} Translated text
- */
-function handleI18n(key, context) {
-    const cleanKey = key.replace(/^["']|["']$/g, '');
-    // FIXME: For now, use default language - later can use user preference
-    return i18n.t(cleanKey) || cleanKey;
 }
 
 export default {

@@ -1,0 +1,573 @@
+# jPulse Framework / API Documentation
+
+Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
+
+## 🔌 API Overview
+
+jPulse provides a comprehensive RESTful API under the `/api/1/` prefix with the following features:
+
+- **RESTful Design**: Standard HTTP methods (GET, POST, PUT, DELETE)
+- **JSON Responses**: Consistent response format with success/error handling
+- **Query Parameters**: Flexible filtering and pagination support
+- **Authentication**: Session-based authentication with user context
+- **Error Handling**: Structured error responses with detailed messages
+- **Logging**: All API calls automatically logged with user context
+
+### Base URL Structure
+```
+https://your-domain.com/api/1/
+```
+
+### Standard Response Format
+```json
+{
+    "success": true|false,
+    "message": "Human-readable message",
+    "data": { ... },           // On success
+    "error": "Error message",  // On failure
+    "code": "ERROR_CODE"       // Error code for programmatic handling
+}
+```
+
+## 🔧 Configuration Management API
+
+Complete CRUD operations for site configuration management.
+
+### Get Configuration
+Retrieve configuration by ID.
+
+**Endpoint:** `GET /api/1/config/:id`
+
+**Parameters:**
+- `id` (path): Configuration ID (e.g., "global")
+
+**Example Request:**
+```bash
+GET /api/1/config/global
+```
+
+**Example Response:**
+```json
+{
+    "success": true,
+    "message": "Config retrieved successfully",
+    "data": {
+        "_id": "global",
+        "data": {
+            "email": {
+                "adminEmail": "admin@example.com",
+                "adminName": "Site Administrator",
+                "smtpServer": "localhost",
+                "smtpUser": "",
+                "smtpPass": "",
+                "useTls": false
+            },
+            "messages": {
+                "broadcast": "Welcome to jPulse Framework!"
+            }
+        },
+        "createdAt": "2025-08-25T08:00:00.000Z",
+        "updatedAt": "2025-08-25T08:15:00.000Z",
+        "updatedBy": "admin",
+        "docVersion": 1
+    }
+}
+```
+
+### Create Configuration
+Create a new configuration document.
+
+**Endpoint:** `POST /api/1/config`
+
+**Request Body:**
+```json
+{
+    "_id": "custom-config",
+    "data": {
+        "feature": {
+            "enabled": true,
+            "settings": {
+                "maxItems": 100,
+                "timeout": 30000
+            }
+        }
+    }
+}
+```
+
+**Example Response:**
+```json
+{
+    "success": true,
+    "message": "Config created successfully",
+    "data": {
+        "_id": "custom-config",
+        "data": { ... },
+        "createdAt": "2025-08-25T08:17:00.000Z",
+        "updatedAt": "2025-08-25T08:17:00.000Z",
+        "updatedBy": "admin",
+        "docVersion": 1
+    }
+}
+```
+
+### Update Configuration
+Update an existing configuration document.
+
+**Endpoint:** `PUT /api/1/config/:id`
+
+**Parameters:**
+- `id` (path): Configuration ID to update
+
+**Request Body:**
+```json
+{
+    "data": {
+        "email": {
+            "adminEmail": "newadmin@example.com",
+            "smtpServer": "smtp.example.com",
+            "useTls": true
+        }
+    }
+}
+```
+
+**Example Response:**
+```json
+{
+    "success": true,
+    "message": "Config updated successfully",
+    "data": {
+        "_id": "global",
+        "data": { ... },
+        "updatedAt": "2025-08-25T08:17:00.000Z",
+        "updatedBy": "admin",
+        "docVersion": 2
+    }
+}
+```
+
+### Delete Configuration
+Delete a configuration document.
+
+**Endpoint:** `DELETE /api/1/config/:id`
+
+**Parameters:**
+- `id` (path): Configuration ID to delete
+
+**Example Response:**
+```json
+{
+    "success": true,
+    "message": "Config deleted successfully"
+}
+```
+
+### Configuration Schema
+Configuration documents follow this schema:
+
+```javascript
+{
+    _id: String,        // Unique identifier
+    data: {             // Configuration data object
+        email: {
+            adminEmail: String,
+            adminName: String,
+            smtpServer: String,
+            smtpUser: String,
+            smtpPass: String,
+            useTls: Boolean
+        },
+        messages: {
+            broadcast: String
+        }
+        // ... additional configuration groups
+    },
+    createdAt: Date,    // Auto-generated
+    updatedAt: Date,    // Auto-updated
+    updatedBy: String,  // User ID who made the change
+    docVersion: Number  // Version counter
+}
+```
+
+## 📊 Logging API
+
+Advanced log search and retrieval with flexible query parameters.
+
+### Search Logs
+Search and filter log entries with powerful query capabilities.
+
+**Endpoint:** `GET /api/1/log/search`
+
+**Query Parameters:**
+- `level` (string): Log level filter (`error`, `warn`, `info`, `debug`)
+- `message` (string): Text search with wildcard support (`*`)
+- `createdAt` (string): Date range filter (YYYY, YYYY-MM, YYYY-MM-DD)
+- `docType` (string): Document type filter (`config`, `user`, `log`)
+- `action` (string): Action filter (`create`, `update`, `delete`)
+- `createdBy` (string): User ID filter
+- `limit` (number): Maximum results to return (default: 100, max: 1000)
+- `skip` (number): Number of results to skip for pagination
+- `sort` (string): Sort field (default: `createdAt`)
+- `order` (string): Sort order (`asc`, `desc`, default: `desc`)
+
+**Example Requests:**
+```bash
+# Get error logs from the last month
+GET /api/1/log/search?level=error&createdAt=2025-01&limit=50
+
+# Search for database-related messages
+GET /api/1/log/search?message=database*
+
+# Get configuration update logs
+GET /api/1/log/search?docType=config&action=update
+
+# Paginated results
+GET /api/1/log/search?limit=25&skip=50
+
+# Complex query
+GET /api/1/log/search?level=error&docType=config&createdAt=2025-08-25&message=failed*
+```
+
+**Example Response:**
+```json
+{
+    "success": true,
+    "message": "Found 15 log entries",
+    "data": [
+        {
+            "_id": "66cb1234567890abcdef1234",
+            "level": "error",
+            "message": "Database connection failed",
+            "data": {
+                "docId": "global",
+                "docType": "config",
+                "action": "update",
+                "changes": "email.adminEmail: admin@example.com → newadmin@example.com"
+            },
+            "createdAt": "2025-08-25T08:15:30.123Z",
+            "createdBy": "admin",
+            "docVersion": 1
+        }
+    ],
+    "pagination": {
+        "total": 15,
+        "limit": 100,
+        "skip": 0,
+        "page": 1,
+        "pages": 1
+    }
+}
+```
+
+### Log Entry Schema
+Log entries follow this schema:
+
+```javascript
+{
+    _id: ObjectId,      // MongoDB ObjectId
+    level: String,      // 'error', 'warn', 'info', 'debug'
+    message: String,    // Log message
+    data: {             // Additional log data
+        docId: String|ObjectId,  // Related document ID
+        docType: String,         // 'config', 'user', 'log'
+        action: String,          // 'create', 'update', 'delete'
+        changes: String          // Description of changes made
+    },
+    createdAt: Date,    // Auto-generated timestamp
+    createdBy: String,  // User ID who triggered the log
+    docVersion: Number  // Version number
+}
+```
+
+### Wildcard Search
+The `message` parameter supports wildcard searching:
+
+- `database*` - Messages starting with "database"
+- `*connection*` - Messages containing "connection"
+- `*failed` - Messages ending with "failed"
+- Case-insensitive matching
+
+### Date Range Filtering
+The `createdAt` parameter supports flexible date formats:
+
+- `2025` - All logs from 2025
+- `2025-08` - All logs from August 2025
+- `2025-08-25` - All logs from August 25, 2025
+
+## 🎨 Template Rendering API
+
+Server-side template processing with handlebars variables and secure file inclusion.
+
+### Render Templates
+Load and render `.shtml` templates with handlebars processing.
+
+**Endpoint:** `GET /{path}/index.shtml` or `GET /{path}.shtml`
+
+**Examples:**
+```bash
+# Home page template
+GET /home/index.shtml
+
+# About page template
+GET /about/index.shtml
+
+# Admin configuration page
+GET /admin/config.shtml
+
+# Custom template
+GET /dashboard/analytics.shtml
+```
+
+### Template Variables
+Templates have access to a rich context object with these variables:
+
+#### Application Information
+```html
+<span>{{app.version}}</span>        <!-- 0.2.1 -->
+<span>{{app.release}}</span>        <!-- 2025-08-25 -->
+```
+
+#### Internationalization
+```html
+<h1>{{i18n.app.name}}</h1>          <!-- jPulse Framework -->
+<p>{{i18n.header.signin}}</p>       <!-- Sign In -->
+<p>{{i18n.welcome.message}}</p>     <!-- Welcome to jPulse -->
+```
+
+#### Configuration Access
+```html
+<div style="max-width: {{appConfig.window.maxWidth}}px;">
+<input maxlength="{{appConfig.log.maxMsgLength}}">
+<span>{{appConfig.app.version}}</span>
+```
+
+#### User Context
+```html
+<span>{{user.id}}</span>            <!-- user123 -->
+<span>{{user.firstName}}</span>     <!-- John -->
+<span>{{user.lastName}}</span>      <!-- Doe -->
+<span>{{user.email}}</span>         <!-- john@example.com -->
+<div class="{{if user.authenticated 'logged-in' 'guest'}}">
+```
+
+#### Site Configuration
+```html
+<a href="mailto:{{config.email.adminEmail}}">Contact Admin</a>
+<div class="broadcast">{{config.messages.broadcast}}</div>
+```
+
+#### URL Information
+```html
+<span>{{url.domain}}</span>         <!-- https://example.com:8080 -->
+<span>{{url.hostname}}</span>       <!-- example.com -->
+<span>{{url.port}}</span>           <!-- 8080 -->
+<span>{{url.pathname}}</span>       <!-- /home/index.shtml -->
+<span>{{url.param.foo}}</span>      <!-- bar (from ?foo=bar) -->
+```
+
+### Template Helpers
+
+#### File Operations
+```html
+<!-- Secure file includes -->
+{{file.include "jpulse-header.tmpl"}}
+{{file.include "components/navigation.tmpl"}}
+{{file.include "jpulse-footer.tmpl"}}
+
+<!-- File timestamps -->
+<span>Last modified: {{file.timestamp "jpulse-header.tmpl"}}</span>
+```
+
+#### Conditional Rendering
+```html
+<!-- Simple conditionals -->
+{{if user.authenticated "Welcome back!" "Please sign in"}}
+{{if config.messages.broadcast config.messages.broadcast ""}}
+
+<!-- Complex conditionals -->
+<div class="{{if user.authenticated 'user-panel' 'guest-panel'}}">
+  <h2>{{if user.authenticated user.firstName "Guest"}}</h2>
+</div>
+```
+
+### Template Security Features
+
+- **Path Traversal Protection**: Prevents `../../../etc/passwd` attacks
+- **Include Depth Limiting**: Maximum 10 levels prevents infinite recursion
+- **View Root Jail**: All includes resolved within `webapp/view/` directory
+- **Input Sanitization**: All template variables properly escaped
+- **File Extension Validation**: Only approved file types can be included
+
+### Template Response Format
+Templates return rendered HTML with appropriate headers:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Length: 2048
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>jPulse Framework</title>
+</head>
+<body>
+    <!-- Rendered template content -->
+</body>
+</html>
+```
+
+## 🏥 Health Check API
+
+System health and status monitoring.
+
+### Health Check
+Get application health status and basic information.
+
+**Endpoint:** `GET /api/1/health`
+
+**Example Response:**
+```json
+{
+    "success": true,
+    "status": "ok",
+    "data": {
+        "version": "0.2.1",
+        "release": "2025-08-25",
+        "uptime": 3600,
+        "environment": "development",
+        "database": "connected",
+        "timestamp": "2025-08-25T08:17:00.000Z"
+    }
+}
+```
+
+**Health Status Values:**
+- `ok` - All systems operational
+- `degraded` - Some non-critical issues
+- `error` - Critical system issues
+
+## 🔐 Authentication & Authorization
+
+### Session-Based Authentication
+jPulse uses Express sessions for authentication:
+
+```javascript
+// Session configuration
+session: {
+    secret: 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: false,      // Set to true for HTTPS
+        maxAge: 3600000     // 1 hour
+    }
+}
+```
+
+### User Context
+Authenticated users have access to:
+
+```javascript
+req.session.user = {
+    id: "user123",
+    loginId: "jsmith",
+    firstName: "John",
+    lastName: "Smith",
+    email: "john@example.com",
+    roles: ["user", "admin"],
+    authenticated: true
+}
+```
+
+### Protected Endpoints
+Some endpoints require authentication:
+
+- `POST /api/1/config` - Requires admin role
+- `PUT /api/1/config/:id` - Requires admin role
+- `DELETE /api/1/config/:id` - Requires admin role
+- `GET /api/1/log/search` - Requires authenticated user
+
+## 📝 Error Handling
+
+### Standard Error Response
+```json
+{
+    "success": false,
+    "error": "Detailed error message",
+    "code": "ERROR_CODE",
+    "details": {
+        "field": "validation error details"
+    }
+}
+```
+
+### Common Error Codes
+- `MISSING_ID` - Required ID parameter not provided
+- `NOT_FOUND` - Requested resource not found
+- `VALIDATION_ERROR` - Request data validation failed
+- `UNAUTHORIZED` - Authentication required
+- `FORBIDDEN` - Insufficient permissions
+- `INTERNAL_ERROR` - Server-side error occurred
+
+### HTTP Status Codes
+- `200` - Success
+- `201` - Created
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `422` - Validation Error
+- `500` - Internal Server Error
+
+## 🚀 Usage Examples
+
+### Configuration Management Workflow
+```bash
+# 1. Get current configuration
+curl -X GET http://localhost:8080/api/1/config/global
+
+# 2. Update email settings
+curl -X PUT http://localhost:8080/api/1/config/global \
+  -H "Content-Type: application/json" \
+  -d '{"data": {"email": {"adminEmail": "admin@newdomain.com"}}}'
+
+# 3. Verify the update
+curl -X GET http://localhost:8080/api/1/config/global
+```
+
+### Log Analysis Workflow
+```bash
+# 1. Check for recent errors
+curl "http://localhost:8080/api/1/log/search?level=error&limit=10"
+
+# 2. Search for specific issues
+curl "http://localhost:8080/api/1/log/search?message=database*&createdAt=2025-08"
+
+# 3. Get configuration change history
+curl "http://localhost:8080/api/1/log/search?docType=config&action=update"
+```
+
+### Template Development Workflow
+```bash
+# 1. Create template file
+echo '<h1>{{i18n.app.name}}</h1><p>Version: {{app.version}}</p>' > webapp/view/test/index.shtml
+
+# 2. Test template rendering
+curl http://localhost:8080/test/index.shtml
+
+# 3. Check template with user context (requires authentication)
+curl -b cookies.txt http://localhost:8080/admin/dashboard.shtml
+```
+
+## 📚 Additional Resources
+
+- **[README.md](README.md)** - Framework overview and quick start
+- **[developers.md](developers.md)** - Technical implementation details
+- **[changes.md](changes.md)** - Version history and changelog
+- **[requirements.md](requirements.md)** - Development requirements and work items
+
+---
+
+**jPulse Framework API** - Comprehensive, secure, and developer-friendly. 🚀

@@ -82,20 +82,24 @@ Requirements Doc of jPulse Framework
 # To-Do Work Items
 
 ## **W-001**: create hello world app
+- status: ✅ DONE
 - create logic in webapp/app.js
 - use appConfig.deployment[mode].port in webapp/app.conf
 - create package.json, package-lock.json
 
 ## **W-002**: create internationalization framework
+- status: ✅ DONE
 - all user facing text can be translated
 - translations: one file per language
 
 ## **W-003**: create test framework
+- status: ✅ DONE
 - create webapp/tests/
 - create test hierarchy using subdirectories
 - implement first tests for translations/i18n.js
 
 ## **W-004**: create site admin config model & controller
+- status: ✅ DONE
 - create webapp/model/config.js -- model
 - create webapp/controller/config.js -- controller
   - read & save functions for routes: /api/1/config/*
@@ -125,6 +129,7 @@ Requirements Doc of jPulse Framework
 - create tests, and test
 
 ## **W-005**: create log infrastructure
+- status: ✅ DONE
 - create webapp/model/log.js -- model
   - called by other controllers (config, user, ...) on doc create, update, delete
 - create webapp/controller/log.js -- controller
@@ -154,6 +159,7 @@ Requirements Doc of jPulse Framework
 - create tests, and test
 
 ## **W-006**: create server sice include function
+- status: ✅ DONE
 - create webapp/controller/view.js
   - function load(req, res) loads a view file and expands {{handlebars}}:
     - {{app.version}}
@@ -179,10 +185,12 @@ Requirements Doc of jPulse Framework
     - {{i18n.login.notAuthenticated}}
 
 ## **W-007**: rename project from Bubble Framework to jPulse Framework
+- status: ✅ DONE
 - rename git repo to /peterthoeny/jpulse-framework
 - rename any text references to project name
 
 ## **W-008**: strategy for view content and static content; HTML header & footer strategy
+- status: ✅ DONE
 - goal: clean separation using routing precedence
 - File Mapping:
   - `webapp/static/*` → URI `/` (e.g., `webapp/static/robots.txt` → `/robots.txt`)
@@ -215,30 +223,45 @@ Requirements Doc of jPulse Framework
   - responsive design matching main app window
 
 ## **W-009**: common utilities infrastructure; flexible shema-based query
+- status: ✅ DONE
 - create a common utilities infrastructure
 - add schemaBasedQuery() from logs so that it can be used by all controllers (see log.schemaBasedQuery)
 
-## **W-010**: create user model, controller
+## **W-010**: doc improvements
+- status: ✅ DONE
+- update README.md, developers.md based on requirements.md doc
+- focus on DONE to-do items W-001 to W-009
+- in README.md, remove mention of W-nnn, just state the features
+- create changes.md that lists W-nnn and version numbers based on git commit history and requirements.md
+- create a API.md doc
+- remove legacy {{i18n "app.name"}} notation, replaced by {{i18n.app.name}} dot notation
+
+## **W-011**: create user model, controller
+- status: PENDING
 - create webapp/model/user.js
 - create webapp/controller/user.js
 
-## **W-011**: create user model, view, controller
+## **W-012**: create user model, view, controller
+- status: PENDING
 - create webapp/view/user/profile.shtml
   - two modes: view and edit
 - create webapp/view/user/index.shtml
   - search users, result depends on logged in user role (admin, ...)
 
-## **W-012**: create site admin view
+## **W-013**: create site admin view
+- status: PENDING
 - create webapp/view/admin/index.shtml -- admin home
 - create webapp/view/admin/config.shtml -- edit config
 
-## **W-013**: strategy for seamless update of custom jPulse deployments
+## **W-014**: strategy for seamless update of custom jPulse deployments
+- status: PENDING
 - jPulse will be the base framework for multiple web apps
 - define a clean structure of two sets:
   - jPulse framework directories and files
   - site specific directories and files
 
-## **W-014**: clean onboarding strategy
+## **W-015**: clean onboarding strategy
+- status: PENDING
 - define an clean out of box experience when deploying a jPulse based webserver for the first time
 - sensible defaults
 - handholding for:
@@ -249,36 +272,46 @@ Requirements Doc of jPulse Framework
   - mongddb deployment with standalone, or replicaset config
   - mongodb setup with sysdba admin, dev data user, prod data user
 
-## **W-015**: docker strategy
+## **W-016**: docker strategy
+- status: PENDING
 - new jpulse-docker project?
 
-## **W-016**: create plugin infrastructure
+## **W-017**: create plugin infrastructure
+- status: PENDING
 - strategy: drop in specific directory, with auto discovery
 - plugins for:
   - themes
   - additional models, controllers, views
 
-## **W-017**: create themes
+## **W-018**: create themes
+- status: PENDING
 - initially a dark and light theme, light is default
 - user can set preferred theme
 - way to define new themes
   - drop in a directory, with auto discovery
 
 ## **W-0**: create caching infrastrucure
+- status: PENDING
 - redis to cache config, what else?
 - should work in multi node instances, and multi app server instances
 
 ## **W-0**: i18n with auto-discovery and app update
+- status: PENDING
 - when a new language file is added to webapp/translations, the app sould pick it up dynamically, or by an admin requesting a web-based resources reload
 - when a language file has been updated, the app should pick up the changes dynamically, or by an admin requesting a web-based resources reload
 
-## **W-0**: nested config
+## **W-0**: change paging API with limit & skip to cursor based paging
+- status: PENDING
 
+## **W-0**: nested config
+- status: PENDING
 
 ## **W-0**: nested handlebars
+- status: PENDING
 
+----------------------
 
-# **W-013**: Strategy for Seamless Update of Custom jPulse Deployments
+# Detail on **W-014**: Strategy for Seamless Update of Custom jPulse Deployments
 
 ## Architectural Decision: Override Directory Pattern
 

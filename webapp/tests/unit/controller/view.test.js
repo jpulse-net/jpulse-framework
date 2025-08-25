@@ -3,7 +3,7 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         0.2.0
+ * @version         0.2.1
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -615,4 +615,4 @@ async function handleFileTimestampForTest(filePath) {
     return stats.mtime.toISOString();
 }
 
-// EOF view.test.js
+// EOF webapp/tests/unit/controller/view.test.js

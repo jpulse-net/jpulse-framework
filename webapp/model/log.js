@@ -3,7 +3,7 @@
  * @tagline         Log Model for jPulse Framework WebApp
  * @description     This is the log model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/log.js
- * @version         0.2.0
+ * @version         0.2.1
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -13,6 +13,7 @@
  */
 
 import database from '../database.js';
+import CommonUtils from '../utils/common.js';
 
 /**
  * Log Model - handles logging infrastructure with native MongoDB driver
@@ -114,7 +115,7 @@ class LogModel {
                 continue;
             }
             // Handle nested objects
-            if (typeof oldValue === 'object' && oldValue !== null && 
+            if (typeof oldValue === 'object' && oldValue !== null &&
                 typeof newValue === 'object' && newValue !== null &&
                 !Array.isArray(oldValue) && !Array.isArray(newValue) &&
                 !(oldValue instanceof Date) && !(newValue instanceof Date)) {
@@ -155,115 +156,6 @@ class LogModel {
         if (value instanceof Date) return value.toISOString();
         if (typeof value === 'object') return JSON.stringify(value);
         return String(value);
-    }
-
-    /**
-     * Create schema-based MongoDB query from URI parameters
-     * @param {object} schema - Schema definition for field types
-     * @param {object} queryParams - URI query parameters
-     * @param {array} ignoreFields - Fields to ignore in query building
-     * @returns {object} MongoDB query object
-     */
-    static schemaBasedQuery(schema, queryParams, ignoreFields = []) {
-        const query = {};
-        for (const [key, value] of Object.entries(queryParams)) {
-            if (ignoreFields.includes(key) || !value) continue;
-
-            // Get field schema info
-            const fieldSchema = LogModel.getFieldSchema(schema, key);
-            if (!fieldSchema) continue;
-
-            // Build query based on field type
-            if (fieldSchema.type === 'date') {
-                query[key] = LogModel.buildDateQuery(value);
-            } else if (fieldSchema.enum) {
-                // Handle enum fields first (before string type check)
-                if (fieldSchema.enum.includes(value)) {
-                    query[key] = value;
-                } else {
-                    // Skip invalid enum values
-                    continue;
-                }
-            } else if (fieldSchema.type === 'string') {
-                // Support partial string matching
-                if (value.includes('*') || value.includes('%')) {
-                    const regex = value.replace(/[*%]/g, '.*');
-                    query[key] = { $regex: new RegExp(regex, 'i') };
-                } else {
-                    query[key] = { $regex: new RegExp(value, 'i') };
-                }
-            } else if (fieldSchema.type === 'number') {
-                const num = parseFloat(value);
-                if (!isNaN(num)) {
-                    query[key] = num;
-                }
-            } else if (fieldSchema.type === 'boolean') {
-                query[key] = value.toLowerCase() === 'true';
-            } else {
-                // Default to exact match
-                query[key] = value;
-            }
-        }
-        return query;
-    }
-
-    /**
-     * Get field schema from nested schema definition
-     * @param {object} schema - Schema definition
-     * @param {string} fieldPath - Dot-notation field path
-     * @returns {object|null} Field schema or null if not found
-     */
-    static getFieldSchema(schema, fieldPath) {
-        const parts = fieldPath.split('.');
-        let current = schema;
-        for (const part of parts) {
-            if (current && typeof current === 'object' && current[part]) {
-                current = current[part];
-            } else {
-                return null;
-            }
-        }
-        return current && current.type ? current : null;
-    }
-
-    /**
-     * Build date query from string value
-     * @param {string} value - Date string (supports YYYY, YYYY-MM, YYYY-MM-DD formats)
-     * @returns {object} MongoDB date query
-     */
-    static buildDateQuery(value) {
-        // Handle different date formats
-        if (/^\d{4}$/.test(value)) {
-            // Year only: 2025
-            const year = parseInt(value);
-            return {
-                $gte: new Date(year, 0, 1),
-                $lt: new Date(year + 1, 0, 1)
-            };
-        } else if (/^\d{4}-\d{2}$/.test(value)) {
-            // Year-Month: 2025-08
-            const [year, month] = value.split('-').map(Number);
-            return {
-                $gte: new Date(year, month - 1, 1),
-                $lt: new Date(year, month, 1)
-            };
-        } else if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-            // Full date: 2025-08-24
-            const date = new Date(value);
-            const nextDay = new Date(date);
-            nextDay.setDate(nextDay.getDate() + 1);
-            return {
-                $gte: date,
-                $lt: nextDay
-            };
-        } else {
-            // Try to parse as full date
-            const date = new Date(value);
-            if (!isNaN(date.getTime())) {
-                return date;
-            }
-        }
-        return null;
     }
 
     /**
@@ -323,7 +215,7 @@ class LogModel {
         try {
             // Build MongoDB query from URI parameters
             const ignoreFields = ['limit', 'skip', 'sort', 'page'];
-            const query = LogModel.schemaBasedQuery(LogModel.schema, queryParams, ignoreFields);
+            const query = CommonUtils.schemaBasedQuery(LogModel.schema, queryParams, ignoreFields);
             // Handle pagination
             const limit = Math.min(parseInt(queryParams.limit) || 50, 1000);
             const skip = parseInt(queryParams.skip) || 0;
@@ -336,7 +228,7 @@ class LogModel {
             options.limit = limit;
             // Handle sorting
             if (queryParams.sort) {
-                const sortField = queryParams.sort.startsWith('-') ? 
+                const sortField = queryParams.sort.startsWith('-') ?
                     queryParams.sort.substring(1) : queryParams.sort;
                 const sortOrder = queryParams.sort.startsWith('-') ? -1 : 1;
                 options.sort = { [sortField]: sortOrder };
@@ -397,4 +289,4 @@ class LogModel {
 
 export default LogModel;
 
-// EOF log.js
+// EOF webapp/model/log.js

@@ -3,7 +3,7 @@
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/translations/i18n.js
- * @version         0.2.0
+ * @version         0.2.1
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -77,4 +77,4 @@ i18n.t = (key, ...args) => {
 //console.log('test i18n.t(\'login.notAuthenticated\'):', i18n.t('login.notAuthenticated'));
 export default i18n;
 
-// EOF i18n.js
+// EOF webapp/translations/i18n.js

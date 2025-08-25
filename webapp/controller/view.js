@@ -3,7 +3,7 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.2.0
+ * @version         0.2.1
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -301,4 +301,4 @@ export default {
     load
 };
 
-// EOF view.js
+// EOF webapp/controller/view.js

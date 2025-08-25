@@ -1,6 +1,6 @@
 {
     "name": "jpulse-framework",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "Generic web application framework using MongoDB, Node.js, Express",
     "type": "module",
     "main": "webapp/app.js",
@@ -58,6 +58,8 @@
         ],
         "coverageDirectory": "coverage",
         "coverageReporters": ["text", "lcov", "html"],
-        "testEnvironment": "node"
+        "testEnvironment": "node",
+        "globalSetup": "./webapp/tests/setup/global-setup.js",
+        "globalTeardown": "./webapp/tests/setup/global-teardown.js"
     }
 }

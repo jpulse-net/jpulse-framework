@@ -1,6 +1,11 @@
-# jPulse Framework v0.2.0
+# jPulse Framework v0.2.1
 
 A modern, lightweight web application framework built with Node.js, Express, and MongoDB. jPulse combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content.
+
+**Latest Release Highlights (v0.2.1):**
+- ✅ **CommonUtils Framework (W-009)**: Centralized utility functions with schema-based query system
+- ✅ **Automated Test Cleanup**: Comprehensive test environment management
+- ✅ **Enhanced Development Tools**: Improved version management and build processes
 
 ## 🚀 Quick Start
 
@@ -52,14 +57,21 @@ jPulse implements a sophisticated routing strategy that cleanly separates static
 ### 🔒 **Security Features**
 - Path traversal protection for template includes
 - Secure file serving with proper MIME types
-- Input validation and sanitization
+- Input validation and sanitization with CommonUtils
 - CSRF protection ready
+- Automated test cleanup prevents security vulnerabilities
 
 ### 🎨 **Modern UI Components**
 - Sticky header with user authentication menu
 - Responsive navigation system
 - Clean, professional styling
 - Favicon and branding integration
+
+### 🛠️ **Developer Experience (NEW)**
+- **CommonUtils Library**: 8 utility functions for data processing, validation, and formatting
+- **Schema-Based Queries**: Dynamic MongoDB query generation from URI parameters
+- **Automated Test Cleanup**: Jest global setup/teardown prevents test conflicts
+- **Comprehensive Testing**: 229+ tests with 100% pass rate
 
 ## 📁 Project Structure
 
@@ -74,6 +86,8 @@ jpulse-framework/
 │   │   ├── user.js        # User management
 │   │   └── view.js        # Template rendering engine
 │   ├── model/             # Data models
+│   ├── utils/             # Common utilities (NEW)
+│   │   └── common.js      # Schema-based queries, validation, formatting
 │   ├── static/            # Static assets (CSS, JS, images)
 │   │   ├── robots.txt     # Search engine directives
 │   │   └── favicon.ico    # Site icon
@@ -87,6 +101,12 @@ jpulse-framework/
 │   │   ├── home/          # Home page templates
 │   │   └── error/         # Error page templates
 │   └── tests/             # Comprehensive test suite
+│       ├── setup/         # Test environment setup (NEW)
+│       │   ├── global-setup.js    # Pre-test cleanup
+│       │   └── global-teardown.js # Post-test cleanup
+│       ├── unit/          # Unit tests
+│       │   └── utils/     # CommonUtils tests (NEW)
+│       └── integration/   # Integration tests
 └── package.json           # Node.js dependencies and scripts
 ```
 
@@ -229,7 +249,7 @@ jPulse uses a custom Handlebars implementation with powerful helpers:
 
 ## 🧪 Testing
 
-The framework includes a comprehensive test suite with 178+ tests:
+The framework includes a comprehensive test suite with **229+ tests** and **automated cleanup**:
 
 ```bash
 # Run all tests
@@ -244,10 +264,12 @@ npm test -- --testPathPattern="template"
 ### Test Coverage
 - ✅ **Integration Tests**: Application startup, routing
 - ✅ **Unit Tests**: Controllers, models, utilities
+- ✅ **CommonUtils Tests**: 51 tests for schema queries, validation, formatting (NEW)
 - ✅ **Security Tests**: Path traversal, input validation
 - ✅ **i18n Tests**: Translation lookup, dot notation
 - ✅ **Responsive Tests**: Layout calculations, breakpoints
 - ✅ **Template Tests**: Include system, Handlebars processing
+- ✅ **Automated Cleanup**: Jest global setup/teardown prevents test conflicts (NEW)
 
 ## 📊 Performance
 
@@ -256,6 +278,7 @@ npm test -- --testPathPattern="template"
 - **Static File Serving**: Direct nginx (production)
 - **Memory Usage**: ~50MB baseline
 - **Concurrent Users**: 1000+ (with proper nginx setup)
+- **Test Suite**: 229 tests in ~2.5s with automated cleanup
 
 ### Optimization Features
 - Static/dynamic content separation
@@ -299,14 +322,25 @@ This project is licensed under the GPL v3 License - see the [LICENSE](LICENSE) f
 - **Issues**: [GitHub Issues](https://github.com/peterthoeny/jpulse-framework/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/peterthoeny/jpulse-framework/discussions)
 
-## 🎯 Key Achievements (W-008 Implementation)
+## 🎯 Key Achievements
 
-This release represents a major milestone in the jPulse Framework development:
-
-### ✅ **Hybrid Content Strategy**
+### ✅ **W-008: Hybrid Content Strategy**
 - Implemented sophisticated routing that cleanly separates static and dynamic content
 - nginx-friendly configuration for optimal production performance
 - Automatic content type detection with intelligent fallbacks
+
+### ✅ **W-009: CommonUtils Framework (NEW)**
+- **Schema-Based Query System**: Dynamic MongoDB query generation from URI parameters
+- **8 Utility Functions**: Data processing, validation, email checking, string sanitization
+- **Centralized Architecture**: Reusable functions across models and controllers
+- **51 Comprehensive Tests**: Edge cases, error handling, real-world scenarios
+- **Named Exports**: Convenient import syntax for individual functions
+
+### ✅ **Enhanced Testing Infrastructure**
+- **229+ Tests** with 100% pass rate
+- **Automated Test Cleanup**: Jest global setup/teardown prevents conflicts
+- **Comprehensive Coverage**: CommonUtils, security, i18n, responsive design
+- **Performance Optimized**: ~2.5s test execution time
 
 ### ✅ **Modern Template System**
 - Secure file inclusion with path traversal protection
@@ -322,12 +356,6 @@ This release represents a major milestone in the jPulse Framework development:
 - Sticky header with authentication menu
 - Responsive design with mobile-first approach
 - Clean, modern styling with proper branding
-
-### ✅ **Comprehensive Testing**
-- 178+ tests covering all features
-- Security testing for path traversal and input validation
-- Performance and integration testing
-- 100% test coverage for new features
 
 ---
 

@@ -3,7 +3,7 @@
  * @tagline         Integration tests for application startup flow
  * @description     Tests for the complete application initialization process
  * @file            webapp/tests/integration/app-startup.test.js
- * @version         0.2.0
+ * @version         0.2.1
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -14,7 +14,7 @@
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import fs from 'fs';
-import TestUtils from '../helpers/test-utils.js';
+import { TestUtils } from '../helpers/test-utils.js';
 
 describe('Application Startup Integration', () => {
     let originalReadFileSync;
@@ -454,4 +454,4 @@ describe('Application Startup Integration', () => {
     });
 });
 
-// EOF app-startup.test.js
+// EOF webapp/tests/integration/app-startup.test.js

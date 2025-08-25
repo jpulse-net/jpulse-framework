@@ -1,6 +1,11 @@
-# jPulse Framework / Developer Documentation v0.2.0
+# jPulse Framework / Developer Documentation v0.2.1
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
+
+**Latest Updates (v0.2.1):**
+- 🛠️ **W-009 CommonUtils Framework**: Centralized utility functions with comprehensive testing
+- 🧪 **Automated Test Cleanup**: Jest global setup/teardown system
+- 📊 **Enhanced Test Coverage**: 229+ tests with 100% reliability
 
 ## 🏗️ Architecture Overview
 
@@ -15,11 +20,14 @@ Technical documentation for developers working on the jPulse Framework. This doc
 - **Backend**: Node.js 18+, Express.js 4.x
 - **Database**: MongoDB (optional)
 - **Templating**: Custom Handlebars implementation
-- **Testing**: Jest with comprehensive coverage
+- **Utilities**: CommonUtils framework for data processing (NEW)
+- **Testing**: Jest with automated cleanup and 229+ tests
 - **Build Tools**: npm scripts, native ES modules
 - **Production**: nginx reverse proxy + PM2
 
-## 🎯 W-008: Hybrid Content Strategy (Major Implementation)
+## 🎯 Major Implementation Milestones
+
+### W-008: Hybrid Content Strategy
 
 ### Problem Statement
 The framework needed a clean way to separate static content (served efficiently by nginx) from dynamic content (processed by the Node.js application) while maintaining a unified URI structure.
@@ -64,6 +72,74 @@ location @app { proxy_pass http://localhost:8080; }
 - ✅ **Flexibility**: Easy to add new content types
 - ✅ **Maintainability**: Clear separation of concerns
 - ✅ **SEO Friendly**: Clean URLs without prefixes
+
+### W-009: CommonUtils Framework (NEW)
+
+#### Problem Statement
+The framework needed centralized utility functions to avoid code duplication across models and controllers. The `schemaBasedQuery` function in LogModel was identified as the first candidate for extraction, along with other common operations like validation, formatting, and data processing.
+
+#### Solution Architecture
+
+```javascript
+// webapp/utils/common.js - Centralized utility functions
+class CommonUtils {
+    // Schema-based MongoDB query generation
+    static schemaBasedQuery(schema, queryParams, ignoreFields = [])
+    
+    // Field schema introspection
+    static getFieldSchema(schema, fieldPath)
+    
+    // Date query building for MongoDB
+    static buildDateQuery(value)
+    
+    // Object manipulation
+    static deepMerge(...objects)
+    static formatValue(value)
+    
+    // ID generation and validation
+    static generateId(prefix = '')
+    static isValidEmail(email)
+    static sanitizeString(input)
+}
+```
+
+#### Key Features Implemented
+1. **Schema-Based Queries**: Dynamic MongoDB query building from URI parameters
+2. **Data Type Conversion**: Automatic string-to-type conversion based on schema
+3. **Wildcard Support**: Pattern matching with `*` for partial string matches
+4. **Date Range Queries**: Flexible date parsing (YYYY, YYYY-MM, YYYY-MM-DD)
+5. **Security**: Input sanitization and validation functions
+6. **Performance**: Efficient object merging with circular reference protection
+
+#### Usage Examples
+```javascript
+// Schema-based query
+const query = CommonUtils.schemaBasedQuery(LogModel.schema, {
+    level: 'error',
+    message: 'database*',
+    timestamp: '2025-01'
+});
+// Returns: { level: 'error', message: /database.*/i, timestamp: { $gte: ... } }
+
+// Email validation
+if (CommonUtils.isValidEmail(userEmail)) { /* ... */ }
+
+// String sanitization
+const safe = CommonUtils.sanitizeString(userInput);
+```
+
+#### Migration Strategy
+1. **Phase 1**: Extract functions from LogModel to CommonUtils
+2. **Phase 2**: Update LogModel/LogController to use CommonUtils
+3. **Phase 3**: Mark original functions as @deprecated
+4. **Phase 4**: Remove deprecated functions after verification
+5. **Phase 5**: Extend to other models (UserModel, ConfigModel)
+
+#### Testing Implementation
+- **51 Unit Tests**: Comprehensive coverage of all utility functions
+- **Edge Case Testing**: Invalid inputs, circular references, type conversion
+- **Real-World Scenarios**: Integration with actual schema definitions
+- **Performance Testing**: Large object merging, complex queries
 
 ## 🎨 Template System Architecture
 
@@ -230,7 +306,10 @@ The header/footer elements must align exactly with the main content's text area:
 ### Test Structure
 ```
 webapp/tests/
-├── fixtures/           # Test data and configuration files
+├── setup/             # Test environment management (NEW)
+│   ├── global-setup.js    # Pre-test cleanup
+│   └── global-teardown.js # Post-test cleanup
+├── fixtures/          # Test data and configuration files
 ├── helpers/           # Test utilities and mock objects
 ├── integration/       # End-to-end application tests
 └── unit/             # Isolated component tests
@@ -238,10 +317,77 @@ webapp/tests/
     ├── controller/   # Business logic tests
     ├── log/          # Logging functionality tests
     ├── model/        # Data model tests
+    ├── utils/        # CommonUtils tests (NEW)
     └── translations/ # i18n system tests
 ```
 
-### New Test Coverage (W-008 Implementation)
+### Automated Test Cleanup System (NEW)
+
+#### Global Setup/Teardown Implementation
+```javascript
+// webapp/tests/setup/global-setup.js
+export default async function globalSetup() {
+    // Clean up temporary files before tests
+    await cleanupTempFiles();
+    await cleanupTestDatabases();
+}
+
+// webapp/tests/setup/global-teardown.js
+export default async function globalTeardown() {
+    // Clean up temporary files after tests
+    await cleanupTempFiles();
+    generateCleanupReport();
+}
+```
+
+#### Jest Configuration Integration
+```json
+// package.json
+{
+  "jest": {
+    "globalSetup": "./webapp/tests/setup/global-setup.js",
+    "globalTeardown": "./webapp/tests/setup/global-teardown.js"
+  }
+}
+```
+
+#### Benefits Achieved
+- ✅ **Prevents Test Conflicts**: Automatic cleanup of temporary files
+- ✅ **Consistent Environment**: Clean state for every test run
+- ✅ **Debugging Support**: Detailed logging of cleanup operations
+- ✅ **Error Resilience**: Cleanup continues even if individual operations fail
+- ✅ **Cross-Platform**: Works on all operating systems
+
+### Enhanced Test Coverage
+
+#### CommonUtils Tests (W-009 Implementation) - NEW
+```javascript
+// webapp/tests/unit/utils/common-utils.test.js (35 tests)
+describe('CommonUtils - Schema-Based Query', () => {
+    test('should create MongoDB query from schema and params', () => {
+        const query = CommonUtils.schemaBasedQuery(schema, {
+            name: 'john*',
+            age: '25',
+            active: 'true'
+        });
+        expect(query.name).toEqual({ $regex: /john.*/i });
+        expect(query.age).toBe(25);
+        expect(query.active).toBe(true);
+    });
+});
+
+// webapp/tests/unit/utils/common-utils-advanced.test.js (16 tests)
+describe('CommonUtils - Real-World Integration', () => {
+    test('should work with actual Log model schema', () => {
+        const query = CommonUtils.schemaBasedQuery(LogModel.schema, {
+            level: 'error',
+            message: 'database*'
+        });
+        expect(query.level).toBe('error');
+        expect(query.message.$regex.test('database connection failed')).toBe(true);
+    });
+});
+```
 
 #### i18n Dot Notation Tests (`i18n-functions.test.js`)
 ```javascript
@@ -281,10 +427,11 @@ describe('Security and Error Handling', () => {
 
 ### Test Execution Strategy
 ```bash
-# Run all tests (178+ tests)
+# Run all tests (229+ tests with automated cleanup)
 npm test
 
 # Run specific test categories
+npm test -- --testPathPattern="utils"         # CommonUtils tests (NEW)
 npm test -- --testPathPattern="i18n"          # Translation tests
 npm test -- --testPathPattern="responsive"    # Layout tests
 npm test -- --testPathPattern="template"      # Template tests
@@ -292,6 +439,15 @@ npm test -- --testPathPattern="integration"   # End-to-end tests
 
 # Run with coverage
 npm test -- --coverage
+
+# Test execution shows automated cleanup:
+# 🚀 Jest Global Setup: Starting test environment preparation...
+# 🧹 Cleaning up 15 temporary test files...
+# ✅ Jest Global Setup: Test environment ready!
+# [tests run...]
+# 🧽 Jest Global Teardown: Starting post-test cleanup...
+# ✨ Post-test cleanup: No temporary files to clean
+# ✅ Jest Global Teardown: Cleanup completed successfully!
 ```
 
 ## 🔧 Development Workflow
@@ -363,7 +519,32 @@ function sanitizePath(inputPath) {
 - **Cache Headers**: Set appropriate cache policies
 - **CDN Integration**: Static assets can be CDN-served
 
-## 📚 Key Implementation Insights (W-008 Lessons)
+## 📚 Key Implementation Insights
+
+### W-009 CommonUtils Lessons Learned
+
+#### What Worked Well
+1. **Incremental Extraction**: Moving functions one at a time with comprehensive testing
+2. **Deprecation Strategy**: Marking old functions as @deprecated before removal
+3. **Named Exports**: Providing both default and named export patterns
+4. **Comprehensive Testing**: 51 tests caught edge cases early
+5. **Real-World Integration**: Testing with actual model schemas
+
+#### Challenges Overcome
+1. **Circular Reference Handling**: Implemented WeakSet-based protection in deepMerge
+2. **Date Parsing Edge Cases**: Robust handling of invalid date formats
+3. **Type Conversion Logic**: Proper string-to-type conversion based on schema
+4. **Test Isolation**: Ensuring CommonUtils tests don't interfere with existing tests
+5. **Migration Coordination**: Updating multiple files while maintaining functionality
+
+#### Best Practices Established
+1. **Utility-First Architecture**: Centralized functions prevent code duplication
+2. **Schema-Driven Development**: Using data schemas to drive query generation
+3. **Comprehensive Edge Case Testing**: Invalid inputs, boundary conditions, error states
+4. **Clean Migration Paths**: Deprecation → Testing → Removal workflow
+5. **Documentation Excellence**: JSDoc comments with examples for all functions
+
+### W-008 Lessons (Previous Implementation)
 
 ### What Worked Well
 1. **Incremental Development**: Building features step-by-step with testing
@@ -382,9 +563,11 @@ function sanitizePath(inputPath) {
 ### Best Practices Established
 1. **Security by Design**: All file operations validated and constrained
 2. **Configuration Driven**: Layout and behavior controlled by `app.conf`
-3. **Test Coverage**: Every new feature gets comprehensive tests
+3. **Test Coverage**: Every new feature gets comprehensive tests (229+ total)
 4. **Error Handling**: Graceful degradation for missing translations/files
 5. **Performance Awareness**: Static/dynamic separation for optimal serving
+6. **Automated Test Management**: Global setup/teardown prevents conflicts
+7. **Utility-First Development**: CommonUtils pattern for reusable functions
 
 ---
 

@@ -3,7 +3,7 @@
  * @tagline         Log Controller for jPulse Framework WebApp
  * @description     This is the log controller for the jPulse Framework WebApp
  * @file            webapp/controller/log.js
- * @version         0.2.0
+ * @version         0.2.1
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -13,6 +13,7 @@
  */
 
 import LogModel from '../model/log.js';
+import CommonUtils from '../utils/common.js';
 import os from 'os';
 
 /**
@@ -249,22 +250,12 @@ class LogController {
         return String(value);
     }
 
-    /**
-     * Utility function to create schema-based query (exposed for other controllers)
-     * @param {object} schema - Schema definition
-     * @param {object} queryParams - URI query parameters
-     * @param {array} ignoreFields - Fields to ignore
-     * @returns {object} MongoDB query object
-     */
-    static schemaBasedQuery(schema, queryParams, ignoreFields = []) {
-        return LogModel.schemaBasedQuery(schema, queryParams, ignoreFields);
-    }
 }
 
 // Export both the class and individual functions for convenience
 export default LogController;
 
 // Named exports for direct function access
-export const { search, console: logConsole, consoleApi, error: logError, logChange, schemaBasedQuery } = LogController;
+export const { search, console: logConsole, consoleApi, error: logError, logChange } = LogController;
 
-// EOF log.js
+// EOF webapp/controller/log.js

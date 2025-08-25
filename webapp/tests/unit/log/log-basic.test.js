@@ -3,7 +3,7 @@
  * @tagline         Unit tests for log model and controller basic functionality
  * @description     This file contains unit tests for the log model and controller
  * @file            webapp/tests/unit/log/log-basic.test.js
- * @version         0.2.0
+ * @version         0.2.1
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -14,6 +14,7 @@
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import LogModel from '../../../model/log.js';
+import CommonUtils from '../../../utils/common.js';
 import LogController from '../../../controller/log.js';
 import TestUtils from '../../helpers/test-utils.js';
 
@@ -31,7 +32,7 @@ describe('Log Model Basic Functionality', () => {
     beforeEach(() => {
         // Clean up any existing global mocks
         TestUtils.cleanupGlobalMocks();
-        
+
         // Mock database collection
         mockCollection = {
             insertOne: jest.fn(),
@@ -39,7 +40,7 @@ describe('Log Model Basic Functionality', () => {
             countDocuments: jest.fn(),
             toArray: jest.fn()
         };
-        
+
         // Mock database connection
         originalGetDb = LogModel.getCollection;
         LogModel.getCollection = jest.fn(() => mockCollection);
@@ -63,7 +64,7 @@ describe('Log Model Basic Functionality', () => {
                     action: 'create'
                 }
             };
-            
+
             const result = LogModel.validate(validDoc);
             expect(result.success).toBe(true);
             expect(result.errors).toHaveLength(0);
@@ -71,7 +72,7 @@ describe('Log Model Basic Functionality', () => {
 
         test('should reject missing data field', () => {
             const invalidDoc = {};
-            
+
             const result = LogModel.validate(invalidDoc);
             expect(result.success).toBe(false);
             expect(result.errors).toContain('data field is required');
@@ -84,7 +85,7 @@ describe('Log Model Basic Functionality', () => {
                     action: 'create'
                 }
             };
-            
+
             const result = LogModel.validate(invalidDoc);
             expect(result.success).toBe(false);
             expect(result.errors).toContain('data.docId is required');
@@ -98,7 +99,7 @@ describe('Log Model Basic Functionality', () => {
                     action: 'invalid'
                 }
             };
-            
+
             const result = LogModel.validate(invalidDoc);
             expect(result.success).toBe(false);
             expect(result.errors).toContain('data.action must be one of: create, update, delete');
@@ -114,9 +115,9 @@ describe('Log Model Basic Functionality', () => {
                     action: 'create'
                 }
             };
-            
+
             const result = LogModel.applyDefaults(doc);
-            
+
             expect(result.data.changes).toEqual([]);
             expect(result.createdBy).toBe('');
             expect(result.docVersion).toBe(1);
@@ -136,9 +137,9 @@ describe('Log Model Basic Functionality', () => {
                 createdBy: 'testuser',
                 docVersion: 2
             };
-            
+
             const result = LogModel.applyDefaults(doc);
-            
+
             expect(result.data.changes).toEqual([['field', 'old', 'new']]);
             expect(result.createdBy).toBe('testuser');
             expect(result.docVersion).toBe(2);
@@ -150,7 +151,7 @@ describe('Log Model Basic Functionality', () => {
         test('should create diff for simple field changes', () => {
             const oldDoc = { name: 'John', age: 30 };
             const newDoc = { name: 'Jane', age: 30 };
-            
+
             const diff = LogModel.createFieldDiff(oldDoc, newDoc);
             expect(diff).toEqual([['name', 'John', 'Jane']]);
         });
@@ -166,7 +167,7 @@ describe('Log Model Basic Functionality', () => {
                     email: { adminEmail: 'new@example.com' }
                 }
             };
-            
+
             const diff = LogModel.createFieldDiff(oldDoc, newDoc);
             expect(diff).toEqual([['data.email.adminEmail', 'old@example.com', 'new@example.com']]);
         });
@@ -174,7 +175,7 @@ describe('Log Model Basic Functionality', () => {
         test('should handle multiple field changes', () => {
             const oldDoc = { name: 'John', age: 30, city: 'NYC' };
             const newDoc = { name: 'Jane', age: 31, city: 'NYC' };
-            
+
             const diff = LogModel.createFieldDiff(oldDoc, newDoc);
             expect(diff).toContainEqual(['name', 'John', 'Jane']);
             expect(diff).toContainEqual(['age', 30, 31]);
@@ -184,7 +185,7 @@ describe('Log Model Basic Functionality', () => {
         test('should skip metadata fields', () => {
             const oldDoc = { name: 'John', createdAt: new Date('2025-01-01'), updatedAt: new Date('2025-01-01') };
             const newDoc = { name: 'Jane', createdAt: new Date('2025-01-02'), updatedAt: new Date('2025-01-02') };
-            
+
             const diff = LogModel.createFieldDiff(oldDoc, newDoc);
             expect(diff).toEqual([['name', 'John', 'Jane']]);
         });
@@ -192,7 +193,7 @@ describe('Log Model Basic Functionality', () => {
         test('should handle empty values correctly', () => {
             const oldDoc = { message: '' };
             const newDoc = { message: 'Hello World' };
-            
+
             const diff = LogModel.createFieldDiff(oldDoc, newDoc);
             expect(diff).toEqual([['message', '', 'Hello World']]);
         });
@@ -200,7 +201,7 @@ describe('Log Model Basic Functionality', () => {
         test('should skip undefined values in partial updates', () => {
             const oldDoc = { name: 'John', email: 'john@example.com', age: 30 };
             const newDoc = { name: 'Jane' }; // partial update
-            
+
             const diff = LogModel.createFieldDiff(oldDoc, newDoc);
             expect(diff).toEqual([['name', 'John', 'Jane']]);
             // Should not include email and age becoming undefined
@@ -236,8 +237,8 @@ describe('Schema-Based Query Builder', () => {
 
     test('should build date range queries', () => {
         const queryParams = { createdAt: '2025-08' };
-        const query = LogModel.schemaBasedQuery(testSchema, queryParams);
-        
+        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams);
+
         expect(query.createdAt).toHaveProperty('$gte');
         expect(query.createdAt).toHaveProperty('$lt');
         expect(query.createdAt.$gte).toEqual(new Date(2025, 7, 1)); // August 1st
@@ -246,8 +247,8 @@ describe('Schema-Based Query Builder', () => {
 
     test('should build string regex queries', () => {
         const queryParams = { docType: 'config' };
-        const query = LogModel.schemaBasedQuery(testSchema, queryParams);
-        
+        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams);
+
         expect(query.docType).toHaveProperty('$regex');
         expect(query.docType.$regex.source).toBe('config');
         expect(query.docType.$regex.flags).toBe('i');
@@ -255,44 +256,44 @@ describe('Schema-Based Query Builder', () => {
 
     test('should handle enum validation', () => {
         const queryParams = { action: 'create' };
-        const query = LogModel.schemaBasedQuery(testSchema, queryParams);
-        
+        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams);
+
         expect(query.action).toBe('create');
     });
 
     test('should ignore invalid enum values', () => {
         const queryParams = { action: 'invalid' };
-        const query = LogModel.schemaBasedQuery(testSchema, queryParams);
-        
+        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams);
+
         expect(query.action).toBeUndefined();
     });
 
     test('should handle number queries', () => {
         const queryParams = { count: '42' };
-        const query = LogModel.schemaBasedQuery(testSchema, queryParams);
-        
+        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams);
+
         expect(query.count).toBe(42);
     });
 
     test('should handle boolean queries', () => {
         const queryParams = { active: 'true' };
-        const query = LogModel.schemaBasedQuery(testSchema, queryParams);
-        
+        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams);
+
         expect(query.active).toBe(true);
     });
 
     test('should ignore fields not in schema', () => {
         const queryParams = { unknownField: 'value' };
-        const query = LogModel.schemaBasedQuery(testSchema, queryParams);
-        
+        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams);
+
         expect(query.unknownField).toBeUndefined();
     });
 
     test('should ignore specified fields', () => {
         const queryParams = { docType: 'config', limit: '10' };
         const ignoreFields = ['limit'];
-        const query = LogModel.schemaBasedQuery(testSchema, queryParams, ignoreFields);
-        
+        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams, ignoreFields);
+
         expect(query.docType).toBeDefined();
         expect(query.limit).toBeUndefined();
     });
@@ -300,25 +301,25 @@ describe('Schema-Based Query Builder', () => {
 
 describe('Date Query Building', () => {
     test('should handle year-only queries', () => {
-        const query = LogModel.buildDateQuery('2025');
+        const query = CommonUtils.buildDateQuery('2025');
         expect(query.$gte).toEqual(new Date(2025, 0, 1));
         expect(query.$lt).toEqual(new Date(2026, 0, 1));
     });
 
     test('should handle year-month queries', () => {
-        const query = LogModel.buildDateQuery('2025-08');
+        const query = CommonUtils.buildDateQuery('2025-08');
         expect(query.$gte).toEqual(new Date(2025, 7, 1));
         expect(query.$lt).toEqual(new Date(2025, 8, 1));
     });
 
     test('should handle full date queries', () => {
-        const query = LogModel.buildDateQuery('2025-08-24');
+        const query = CommonUtils.buildDateQuery('2025-08-24');
         expect(query.$gte).toEqual(new Date('2025-08-24'));
         expect(query.$lt).toEqual(new Date('2025-08-25'));
     });
 
     test('should handle invalid date formats', () => {
-        const query = LogModel.buildDateQuery('invalid-date');
+        const query = CommonUtils.buildDateQuery('invalid-date');
         expect(query).toBeNull();
     });
 });
@@ -335,11 +336,11 @@ describe('Log Controller Context Extraction', () => {
         originalConsoleError = console.error;
         consoleLogs = [];
         consoleErrors = [];
-        
+
         console.log = (...args) => {
             consoleLogs.push(args.join(' '));
         };
-        
+
         console.error = (...args) => {
             consoleErrors.push(args.join(' '));
         };
@@ -356,9 +357,9 @@ describe('Log Controller Context Extraction', () => {
             session: { username: 'testuser' },
             ip: '192.168.1.100'
         };
-        
+
         const context = LogController.getContext(mockReq);
-        
+
         expect(context.loginId).toBe('testuser');
         expect(context.ip).toBe('192.168.1.100');
         expect(context.vm).toBe(0); // Default when no hostname match
@@ -367,16 +368,16 @@ describe('Log Controller Context Extraction', () => {
 
     test('should handle missing session', () => {
         const mockReq = { ip: '192.168.1.100' };
-        
+
         const context = LogController.getContext(mockReq);
-        
+
         expect(context.loginId).toBe('(guest)');
         expect(context.ip).toBe('192.168.1.100');
     });
 
     test('should handle missing request', () => {
         const context = LogController.getContext(null);
-        
+
         expect(context.loginId).toBe('(guest)');
         expect(context.ip).toBe('0.0.0.0');
         expect(context.vm).toBe(0);
@@ -388,9 +389,9 @@ describe('Log Controller Context Extraction', () => {
             session: { username: 'testuser' },
             ip: '192.168.1.100'
         };
-        
+
         LogController.console(mockReq, 'Test message');
-        
+
         expect(consoleLogs).toHaveLength(1);
         expect(consoleLogs[0]).toMatch(/^- \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}, msg, testuser, ip:192\.168\.1\.100, vm:0, id:0, Test message$/);
     });
@@ -400,9 +401,9 @@ describe('Log Controller Context Extraction', () => {
             session: { username: 'testuser' },
             ip: '192.168.1.100'
         };
-        
+
         LogController.consoleApi(mockReq, 'API call');
-        
+
         expect(consoleLogs).toHaveLength(1);
         expect(consoleLogs[0]).toMatch(/^==\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}, ===, testuser, ip:192\.168\.1\.100, vm:0, id:0, === API call$/);
     });
@@ -412,9 +413,9 @@ describe('Log Controller Context Extraction', () => {
             session: { username: 'testuser' },
             ip: '192.168.1.100'
         };
-        
+
         LogController.error(mockReq, 'Error message');
-        
+
         expect(consoleErrors).toHaveLength(1);
         expect(consoleErrors[0]).toMatch(/^- \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}, ERR, testuser, ip:192\.168\.1\.100, vm:0, id:0, Error message$/);
     });
@@ -424,3 +425,5 @@ describe('Log Controller Context Extraction', () => {
         expect(timestamp).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
     });
 });
+
+// EOF webapp/tests/unit/log/log-basic.test.js

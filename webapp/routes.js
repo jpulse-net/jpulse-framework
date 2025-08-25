@@ -3,7 +3,7 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the routing file for the jPulse Framework WebApp
  * @file            webapp/route.js
- * @version         0.2.0
+ * @version         0.2.1
  * @release         2025-08-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -52,4 +52,4 @@ router.get('/*', viewController.load);
 
 export default router;
 
-// EOF routes.js
+// EOF webapp/routes.js

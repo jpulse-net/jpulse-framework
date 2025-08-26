@@ -4,7 +4,7 @@
  * @tagline         User authentication login page
  * @description     Login form for internal authentication with support for LDAP/OAuth2 planning
  * @file            webapp/view/auth/login.shtml
- * @version         0.2.4
+ * @version         0.2.5
  * @release         2025-08-26
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -506,7 +506,7 @@
             loginButton.textContent = '{{i18n.auth.login.signingIn}}';
 
             try {
-                const response = await fetch('/api/1/user/login', {
+                const response = await fetch('/api/1/auth/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

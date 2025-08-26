@@ -3,7 +3,7 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         0.2.4
+ * @version         0.2.5
  * @release         2025-08-26
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,123 +16,10 @@ import UserModel from '../model/user.js';
 import LogController from './log.js';
 
 /**
- * User Controller - handles /api/1/user/* REST API endpoints and authentication
+ * User Controller - handles /api/1/user/* REST API endpoints (excluding login/logout which moved to AuthController)
  */
 class UserController {
-    /**
-     * User login/authentication
-     * POST /api/1/user/login
-     * @param {object} req - Express request object
-     * @param {object} res - Express response object
-     */
-    static async login(req, res) {
-        try {
-            LogController.consoleApi(req, `user.login( ${JSON.stringify({ identifier: req.body.identifier })} )`);
 
-            const { identifier, password } = req.body;
-
-            if (!identifier || !password) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Both identifier (loginId or email) and password are required',
-                    code: 'MISSING_CREDENTIALS'
-                });
-            }
-
-            // Authenticate user
-            const user = await UserModel.authenticate(identifier, password);
-
-            if (!user) {
-                LogController.error(req, `Login failed for identifier: ${identifier}`);
-                return res.status(401).json({
-                    success: false,
-                    error: 'Invalid credentials',
-                    code: 'INVALID_CREDENTIALS'
-                });
-            }
-
-            // Update login statistics
-            await UserModel.updateById(user._id, {
-                lastLogin: new Date(),
-                loginCount: (user.loginCount || 0) + 1
-            });
-
-            // Store user in session
-            req.session.user = {
-                id: user._id.toString(),
-                loginId: user.loginId,
-                email: user.email,
-                firstName: user.profile.firstName,
-                lastName: user.profile.lastName,
-                nickName: user.profile.nickName,
-                initials: (user.profile.firstName?.charAt(0) || '?') + (user.profile.lastName?.charAt(0) || ''),
-                roles: user.roles,
-                preferences: user.preferences,
-                authenticated: true
-            };
-
-            LogController.console(req, `User ${user.loginId} logged in successfully`);
-
-            res.json({
-                success: true,
-                data: {
-                    user: req.session.user
-                },
-                message: 'Login successful'
-            });
-
-        } catch (error) {
-            LogController.error(req, `user.login failed: ${error.message}`);
-            res.status(500).json({
-                success: false,
-                error: 'Internal server error during login',
-                code: 'INTERNAL_ERROR',
-                details: error.message
-            });
-        }
-    }
-
-    /**
-     * User logout
-     * POST /api/1/user/logout
-     * @param {object} req - Express request object
-     * @param {object} res - Express response object
-     */
-    static async logout(req, res) {
-        try {
-            const loginId = req.session.user ? req.session.user.loginId : '(unknown)';
-
-            LogController.consoleApi(req, `user.logout( ${loginId} )`);
-
-            // Destroy session
-            req.session.destroy((err) => {
-                if (err) {
-                    LogController.error(req, `user.logout failed: ${err.message}`);
-                    return res.status(500).json({
-                        success: false,
-                        error: 'Failed to logout',
-                        code: 'LOGOUT_ERROR'
-                    });
-                }
-
-                LogController.console(req, `User ${loginId} logged out successfully`);
-
-                res.json({
-                    success: true,
-                    message: 'Logout successful'
-                });
-            });
-
-        } catch (error) {
-            LogController.error(req, `user.logout failed: ${error.message}`);
-            res.status(500).json({
-                success: false,
-                error: 'Internal server error during logout',
-                code: 'INTERNAL_ERROR',
-                details: error.message
-            });
-        }
-    }
 
     /**
      * User signup/registration
@@ -258,14 +145,7 @@ class UserController {
         try {
             LogController.consoleApi(req, `user.getProfile()`);
 
-            if (!req.session.user || !req.session.user.authenticated) {
-                LogController.error(req, 'user.getProfile failed: Authentication required');
-                return res.status(401).json({
-                    success: false,
-                    error: 'Authentication required',
-                    code: 'UNAUTHORIZED'
-                });
-            }
+            // Authentication is handled by AuthController.requireAuthentication middleware
 
             // Get fresh user data from database
             const user = await UserModel.findById(req.session.user.id);
@@ -308,14 +188,7 @@ class UserController {
         try {
             LogController.consoleApi(req, `user.updateProfile( ${JSON.stringify(req.body)} )`);
 
-            if (!req.session.user || !req.session.user.authenticated) {
-                LogController.error(req, 'user.updateProfile failed: Authentication required');
-                return res.status(401).json({
-                    success: false,
-                    error: 'Authentication required',
-                    code: 'UNAUTHORIZED'
-                });
-            }
+            // Authentication is handled by AuthController.requireAuthentication middleware
 
             const updateData = { ...req.body };
             updateData.updatedBy = req.session.user.loginId;
@@ -400,14 +273,7 @@ class UserController {
         try {
             LogController.consoleApi(req, `user.changePassword()`);
 
-            if (!req.session.user || !req.session.user.authenticated) {
-                LogController.error(req, 'user.changePassword failed: Authentication required');
-                return res.status(401).json({
-                    success: false,
-                    error: 'Authentication required',
-                    code: 'UNAUTHORIZED'
-                });
-            }
+            // Authentication is handled by AuthController.requireAuthentication middleware
 
             const { currentPassword, newPassword } = req.body;
 
@@ -484,25 +350,7 @@ class UserController {
         try {
             LogController.consoleApi(req, `user.search( ${JSON.stringify(req.query)} )`);
 
-            // Check authentication
-            if (!req.session.user || !req.session.user.authenticated) {
-                LogController.error(req, 'user.search failed: Authentication required');
-                return res.status(401).json({
-                    success: false,
-                    error: 'Authentication required',
-                    code: 'UNAUTHORIZED'
-                });
-            }
-
-            // Check if user has admin role for user search
-            if (!UserModel.hasAnyRole(req.session.user, ['admin', 'root'])) {
-                LogController.error(req, 'user.search failed: Admin role required for user search');
-                return res.status(403).json({
-                    success: false,
-                    error: 'Admin role required for user search',
-                    code: 'INSUFFICIENT_PRIVILEGES'
-                });
-            }
+            // Authentication and authorization are handled by AuthController.requireRole(['admin', 'root']) middleware
 
             const results = await UserModel.search(req.query);
             const elapsed = Date.now() - startTime;

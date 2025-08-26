@@ -86,7 +86,7 @@ Create a new user account with validation and error handling.
 #### Login
 Authenticate user with loginId/email and password, creating a persistent session.
 
-**Endpoint:** `POST /api/1/user/login`
+**Endpoint:** `POST /api/1/auth/login`
 
 **Request Body:**
 ```json
@@ -124,7 +124,7 @@ Authenticate user with loginId/email and password, creating a persistent session
 #### Logout
 End user session and clear authentication.
 
-**Endpoint:** `POST /api/1/user/logout`
+**Endpoint:** `POST /api/1/auth/logout`
 
 **Example Response:**
 ```json
@@ -777,6 +777,47 @@ Get application health status and basic information.
 - `error` - Critical system issues
 
 ## 🔐 Authentication & Authorization
+
+### Auth Controller System
+jPulse uses a centralized Auth Controller with middleware and utility functions:
+
+#### Middleware Functions
+- **`AuthController.requireAuthentication`**: Middleware that requires user authentication
+- **`AuthController.requireRole(roles)`**: Middleware factory that requires specific roles
+
+#### Utility Functions
+- **`AuthController.isAuthenticated(req)`**: Returns boolean for authentication status
+- **`AuthController.isAuthorized(req, roles)`**: Returns boolean for role authorization
+
+#### Route Protection Examples
+```javascript
+// Require authentication only
+router.get('/api/1/user/profile', AuthController.requireAuthentication, UserController.getProfile);
+
+// Require specific roles
+router.get('/api/1/user/search', AuthController.requireRole(['admin', 'root']), UserController.search);
+
+// Use utilities in controller logic
+if (!AuthController.isAuthenticated(req)) {
+    return CommonUtils.sendError(req, res, 401, 'Authentication required');
+}
+```
+
+### Smart Error Handling
+The Auth Controller uses `CommonUtils.sendError()` for intelligent error responses:
+
+```javascript
+// API requests (/api/*) get JSON responses:
+{
+    "success": false,
+    "error": "Authentication required",
+    "code": "UNAUTHORIZED",
+    "path": "/api/1/user/profile"
+}
+
+// Web requests get redirected to error page:
+// Redirects to: /error/index.shtml?msg=Authentication%20required&code=401
+```
 
 ### Session-Based Authentication
 jPulse uses Express sessions for authentication:

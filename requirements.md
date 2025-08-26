@@ -289,30 +289,22 @@ Requirements Doc of jPulse Framework
   - mongddb deployment with standalone, or replicaset config
   - mongodb setup with sysdba admin, dev data user, prod data user
 
-
-
-
-## **W-0**: create auth controller
-- status: 🕑 PENDING
+## **W-016**: create auth controller
+- status: ✅ COMPLETED
 - handles login, logout
 - handles auth.isAuthenticated and auth.isAuthorized for middleware
+- use as needed in routing
 
-## **W-0**: i18n with variable content
+
+
+
+
+## **W-017**: i18n with variable content
 - status: 🕑 PENDING
 - handlebar based, example:
   - signOut: 'Sign out {{user.id}}' // ==> 'Sign out jsmith'
 
-## **W-0**: broadcast message
-- status: 🕑 PENDING
-- purpose: admin can broadcast message, such as "scheduled downtime this Saturday 10am-12pm"
-- show yellow broadcast message just below banner
-- brodcast message div has [-] button to minimize message
-  - reduced to [+] button, when clicked restored the message div
-  - minimize status is remembered across page loads
-  - minimize status is reset after 4 hours (appConfig setting)
-- broadcast message can be set in site config
-
-## **W-0**: sliding info/error message on top of page
+## **W-018**: sliding info/error message on top of page
 - status: 🕑 PENDING
 - pupose: non-blocking error or info message, such after signin
 - action:
@@ -326,6 +318,17 @@ Requirements Doc of jPulse Framework
 
 
 
+
+
+## **W-0**: broadcast message
+- status: 🕑 PENDING
+- purpose: admin can broadcast message, such as "scheduled downtime this Saturday 10am-12pm"
+- show yellow broadcast message just below banner
+- brodcast message div has [-] button to minimize message
+  - reduced to [+] button, when clicked restored the message div
+  - minimize status is remembered across page loads
+  - minimize status is reset after 4 hours (appConfig setting)
+- broadcast message can be set in site config
 
 ## **W-0**: docker strategy
 - status: 🕑 PENDING

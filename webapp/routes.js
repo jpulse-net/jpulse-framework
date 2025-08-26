@@ -3,7 +3,7 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the routing file for the jPulse Framework WebApp
  * @file            webapp/route.js
- * @version         0.2.4
+ * @version         0.2.5
  * @release         2025-08-26
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,6 +16,7 @@ import express from 'express';
 const router = express.Router();
 
 // Load controllers
+import AuthController from './controller/auth.js';
 import UserController from './controller/user.js';
 import configController from './controller/config.js';
 import logController from './controller/log.js';
@@ -42,17 +43,19 @@ router.put('/api/1/config/:id', configController.updateConfig);
 router.put('/api/1/config/:id/upsert', configController.upsertConfig);
 router.delete('/api/1/config/:id', configController.deleteConfig);
 
-// User API routes
-router.post('/api/1/user/login', UserController.login);
-router.post('/api/1/user/logout', UserController.logout);
-router.post('/api/1/user/signup', UserController.signup);
-router.get('/api/1/user/profile', UserController.getProfile);
-router.put('/api/1/user/profile', UserController.updateProfile);
-router.put('/api/1/user/password', UserController.changePassword);
-router.get('/api/1/user/search', UserController.search);
+// Auth API routes
+router.post('/api/1/auth/login', AuthController.login);
+router.post('/api/1/auth/logout', AuthController.logout);
 
-// Log API routes
-router.get('/api/1/log/search', logController.search);
+// User API routes (with authentication middleware where needed)
+router.post('/api/1/user/signup', UserController.signup);
+router.get('/api/1/user/profile', AuthController.requireAuthentication, UserController.getProfile);
+router.put('/api/1/user/profile', AuthController.requireAuthentication, UserController.updateProfile);
+router.put('/api/1/user/password', AuthController.requireAuthentication, UserController.changePassword);
+router.get('/api/1/user/search', AuthController.requireRole(['admin', 'root']), UserController.search);
+
+// Log API routes (require authentication)
+router.get('/api/1/log/search', AuthController.requireAuthentication, logController.search);
 
 // Dynamic content routes - handle .shtml, .tmpl, and jpulse-* files only
 // Static files (.txt, .ico, .png, .json, etc.) will fall through to Express static middleware

@@ -1,4 +1,4 @@
-# jPulse Framework / Developer Documentation v0.2.4
+# jPulse Framework / Developer Documentation v0.2.5
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
@@ -239,9 +239,48 @@ class UserModel {
 }
 ```
 
-#### User Controller with Authentication (`webapp/controller/user.js`)
+#### Auth Controller with Middleware & Utilities (`webapp/controller/auth.js`)
 ```javascript
-class UserController {
+class AuthController {
+    // === MIDDLEWARE FUNCTIONS ===
+
+    // Require authentication middleware
+    static requireAuthentication(req, res, next) {
+        if (!AuthController.isAuthenticated(req)) {
+            return CommonUtils.sendError(req, res, 401, 'Authentication required', 'UNAUTHORIZED');
+        }
+        next();
+    }
+
+    // Require role middleware factory
+    static requireRole(roles) {
+        return (req, res, next) => {
+            if (!AuthController.isAuthenticated(req)) {
+                return CommonUtils.sendError(req, res, 401, 'Authentication required', 'UNAUTHORIZED');
+            }
+            if (!AuthController.isAuthorized(req, roles)) {
+                return CommonUtils.sendError(req, res, 403, `Required role: ${roles.join(', ')}`, 'INSUFFICIENT_PRIVILEGES');
+            }
+            next();
+        };
+    }
+
+    // === UTILITY FUNCTIONS ===
+
+    // Check authentication status (utility)
+    static isAuthenticated(req) {
+        return !!(req.session && req.session.user && req.session.user.authenticated);
+    }
+
+    // Check authorization with roles (utility)
+    static isAuthorized(req, roles) {
+        if (!AuthController.isAuthenticated(req)) return false;
+        const requiredRoles = Array.isArray(roles) ? roles : [roles];
+        return req.session.user.roles.some(userRole => requiredRoles.includes(userRole));
+    }
+
+    // === AUTHENTICATION ENDPOINTS ===
+
     // Login with session creation
     static async login(req, res) {
         const { identifier, password } = req.body;
@@ -258,28 +297,34 @@ class UserController {
                 authenticated: true
             };
             // Update login tracking
-            await UserModel.getCollection().updateOne(
-                { _id: user._id },
-                { $set: { lastLogin: new Date() }, $inc: { loginCount: 1 } }
-            );
+            await UserModel.updateById(user._id, {
+                lastLogin: new Date(),
+                loginCount: (user.loginCount || 0) + 1
+            });
         }
     }
 
-    // Admin-only user search with elapsed time tracking
+    // Logout with session destruction
+    static async logout(req, res) {
+        req.session.destroy((err) => {
+            if (err) {
+                return res.status(500).json({ success: false, error: 'Failed to logout' });
+            }
+            res.json({ success: true, message: 'Logout successful' });
+        });
+    }
+}
+```
+
+#### User Controller (Profile Management) (`webapp/controller/user.js`)
+```javascript
+class UserController {
+    // User search with middleware protection
     static async search(req, res) {
         const startTime = Date.now();
         LogController.consoleApi(req, `user.search( ${JSON.stringify(req.query)} )`);
 
-        // Authentication and authorization checks
-        if (!req.session.user?.authenticated) {
-            LogController.error(req, 'user.search failed: Authentication required');
-            return res.status(401).json({ success: false, error: 'Authentication required' });
-        }
-
-        if (!UserModel.hasAnyRole(req.session.user, ['admin', 'root'])) {
-            LogController.error(req, 'user.search failed: Admin role required');
-            return res.status(403).json({ success: false, error: 'Admin role required' });
-        }
+        // Authentication and authorization handled by AuthController.requireRole(['admin', 'root']) middleware
 
         const results = await UserModel.search(req.query);
         const elapsed = Date.now() - startTime;
@@ -293,6 +338,26 @@ class UserController {
         });
     }
 }
+```
+
+#### Route Protection with Middleware (`webapp/routes.js`)
+```javascript
+import AuthController from './controller/auth.js';
+import UserController from './controller/user.js';
+
+// Auth API routes
+router.post('/api/1/auth/login', AuthController.login);
+router.post('/api/1/auth/logout', AuthController.logout);
+
+// User API routes with middleware protection
+router.post('/api/1/user/signup', UserController.signup);
+router.get('/api/1/user/profile', AuthController.requireAuthentication, UserController.getProfile);
+router.put('/api/1/user/profile', AuthController.requireAuthentication, UserController.updateProfile);
+router.put('/api/1/user/password', AuthController.requireAuthentication, UserController.changePassword);
+router.get('/api/1/user/search', AuthController.requireRole(['admin', 'root']), UserController.search);
+
+// Log API routes
+router.get('/api/1/log/search', AuthController.requireAuthentication, logController.search);
 ```
 
 #### Session Management with MongoDB Storage (`webapp/app.js`)
@@ -485,7 +550,7 @@ webapp/view/
 │   ├── login.shtml         # Login form with success messages
 │   ├── logout.shtml        # Logout confirmation with redirect
 │   └── signup.shtml        # Registration form with validation
-└── user/                   # User management views  
+└── user/                   # User management views
     ├── index.shtml         # User directory and search
     └── profile.shtml       # User profile view/edit
 ```

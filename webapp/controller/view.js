@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.2.3
- * @release         2025-08-25
+ * @version         0.2.4
+ * @release         2025-08-26
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,6 +18,7 @@ import url from 'url';
 import logController from './log.js';
 import configModel from '../model/config.js';
 import i18n from '../translations/i18n.js';
+import CommonUtils from '../utils/common.js';
 
 /**
  * Load and render .shtml template files with handlebars expansion
@@ -49,7 +50,7 @@ async function load(req, res) {
         // Check if file exists
         if (!fs.existsSync(fullPath)) {
             logController.error(req, `File not found: ${fullPath}`);
-            return res.status(404).send('Page not found');
+            return CommonUtils.sendError(req, res, 404, `Page not found: ${req.path}`, 'NOT_FOUND');
         }
 
         // Read the file
@@ -70,6 +71,7 @@ async function load(req, res) {
                 nickName: req.session?.user?.nickName || '',
                 lastName: req.session?.user?.lastName || '',
                 email: req.session?.user?.email || '',
+                initials: req.session?.user?.initials || '?',
                 authenticated: !!req.session?.user
             },
             config: globalConfig?.data || {},

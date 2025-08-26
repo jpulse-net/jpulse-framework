@@ -4,9 +4,9 @@
  * @tagline         Error page of jPulse Framework
  * @description     This is the error page of jPulse Framework
  * @file            webapp/view/error/index.shtml
- * @version         0.2.3
- * @release         2025-08-25
- * @repository      https://github.com/peterthoeny/web-ide-bridge
+ * @version         0.2.4
+ * @release         2025-08-26
+ * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file
@@ -16,48 +16,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{app.version}} - Error</title>
+    <title>{{app.version}} - {{i18n.errorPage.title}}</title>
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
-        /* Page-specific styles */
         .main-content {
-            margin: 40px;
+            padding: 2rem 1rem;
+            min-height: calc(100vh - 200px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+
         .container {
-            max-width: 800px;
-            margin: 0 auto;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .error-container {
             background: white;
-            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 3rem;
+            text-align: center;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .error-content h1 {
+            color: #e53e3e;
+            font-size: 1.875rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+        }
+
+        .error-details {
+            background: #f7fafc;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: left;
         }
-        .error {
-            background: #ffebee;
-            border: 1px solid #f44336;
-            padding: 20px;
-            border-radius: 5px;
-            margin: 20px 0;
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e2e8f0;
         }
-        .error h2 {
-            color: #c62828;
-            margin-top: 0;
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-row strong {
+            color: #4a5568;
+            font-weight: 600;
+            min-width: 80px;
+        }
+
+        .detail-row span {
+            color: #2d3748;
+            word-break: break-all;
+            text-align: right;
+            flex: 1;
+            margin-left: 1rem;
+        }
+
+        .error-message {
+            margin-bottom: 2rem;
+        }
+
+        .error-message p {
+            color: #718096;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .error-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border-color: #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        @media (max-width: 640px) {
+            .error-container {
+                padding: 2rem 1.5rem;
+                margin: 1rem;
+            }
+
+            .detail-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.25rem;
+            }
+
+            .detail-row span {
+                text-align: left;
+                margin-left: 0;
+            }
+
+            .error-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
     <div class="jpulse-main">
-        <div class="error">
-            <h2>Error {{url.param "code"}}</h2>
-            <p><strong>Message:</strong> {{url.param "msg"}}</p>
-            <p><strong>Path:</strong> {{url.pathname}}</p>
-            <p><strong>User:</strong> {{if user.authenticated user.firstName "(guest)"}}</p>
-        </div>
-        <p>{{if user.authenticated
-            "We apologize for the inconvenience. Please try again or contact support."
-            "Please try logging in or contact support if the problem persists."
-        }}</p>
-        <p><a href="/">← Back to Home</a></p>
+        <div class="main-content">
+            <div class="container">
+                <div class="error-container">
+                    <div class="error-icon">
+                        ⚠️
+                    </div>
+
+                    <div class="error-content">
+                        <h1>{{i18n.errorPage.title}} {{url.param.code}}</h1>
+
+                        <div class="error-details">
+                            <div class="detail-row">
+                                <strong>{{i18n.errorPage.message}}:</strong>
+                                <span>{{url.param.msg}}</span>
+                            </div>
+
+                            <div class="detail-row">
+                                <strong>{{i18n.errorPage.path}}:</strong>
+                                <span>{{url.pathname}}</span>
+                            </div>
+
+                            <div class="detail-row">
+                                <strong>{{i18n.errorPage.user}}:</strong>
+                                <span>{{if user.authenticated user.firstName i18n.errorPage.guest}}</span>
+                            </div>
+                        </div>
+
+                        <div class="error-message">
+                            <p>{{if user.authenticated i18n.errorPage.apologize i18n.errorPage.tryLogin}}</p>
+                        </div>
+
+                        <div class="error-actions">
+                            <a href="/" class="btn btn-primary">
+                                ← {{i18n.errorPage.backToHome}}
+                            </a>
+
+                            <div style="{{if user.authenticated "display: none" "display: block"}}">
+                                <a href="/auth/login.shtml" class="btn btn-secondary">
+                                    {{i18n.header.signin}}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         0.2.3
- * @release         2025-08-25
+ * @version         0.2.4
+ * @release         2025-08-26
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -340,6 +340,81 @@ class UserModel {
             };
         } catch (error) {
             throw new Error(`Failed to search users: ${error.message}`);
+        }
+    }
+
+    /**
+     * Create new user
+     * @param {object} data - User data
+     * @returns {Promise<object>} Created user document
+     */
+    static async create(data) {
+        try {
+            // Validate data
+            this.validate(data, false);
+
+            // Check if loginId already exists
+            const existingUser = await this.findByLoginId(data.loginId);
+            if (existingUser) {
+                throw new Error('Username already exists');
+            }
+
+            // Check if email already exists
+            const existingEmail = await this.findByEmail(data.email);
+            if (existingEmail) {
+                throw new Error('Email address already registered');
+            }
+
+            // Apply defaults and prepare for save
+            let userData = this.applyDefaults(data);
+            userData = await this.prepareSaveData(userData, false);
+
+            // Insert into database
+            const collection = this.getCollection();
+            const result = await collection.insertOne(userData);
+
+            if (!result.acknowledged) {
+                throw new Error('Failed to insert user document');
+            }
+
+            // Return the created document without password hash
+            const createdUser = await this.findById(userData._id);
+            const { passwordHash, ...userWithoutPassword } = createdUser;
+            return userWithoutPassword;
+        } catch (error) {
+            throw new Error(`Failed to create user: ${error.message}`);
+        }
+    }
+
+    /**
+     * Update user by ID
+     * @param {string} id - User ID
+     * @param {object} data - Update data
+     * @returns {Promise<object|null>} Updated user document or null if not found
+     */
+    static async updateById(id, data) {
+        try {
+            // Validate data for update
+            this.validate(data, true);
+
+            // Prepare data for save
+            const updateData = await this.prepareSaveData(data, true);
+
+            // Update in database
+            const collection = this.getCollection();
+            const result = await collection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: updateData }
+            );
+
+            if (result.matchedCount === 0) {
+                return null;
+            }
+
+            // Return updated document
+            return await this.findById(id);
+        } catch (error) {
+            throw new Error(`Failed to update user: ${error.message}`);
         }
     }
 

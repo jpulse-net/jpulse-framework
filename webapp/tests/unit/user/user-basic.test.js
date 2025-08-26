@@ -3,8 +3,8 @@
  * @tagline         Basic tests for User Model and Controller
  * @description     Unit tests for User Model validation and basic functionality
  * @file            webapp/tests/unit/user/user-basic.test.js
- * @version         0.2.3
- * @release         2025-08-25
+ * @version         0.2.4
+ * @release         2025-08-26
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -19,7 +19,7 @@ describe('User Model Basic Tests', () => {
     describe('Password Policy Validation', () => {
         test('should validate password length correctly', () => {
             const minLength = 8;
-            
+
             // Mock appConfig for password policy
             global.appConfig = {
                 login: {
@@ -32,11 +32,11 @@ describe('User Model Basic Tests', () => {
             // Test password validation logic (simulate UserModel.validatePassword)
             const validatePassword = (password) => {
                 const minLength = global.appConfig.login.passwordPolicy.minLength || 8;
-                
+
                 if (!password || typeof password !== 'string') {
                     throw new Error('Password is required and must be a string');
                 }
-                
+
                 if (password.length < minLength) {
                     throw new Error(`Password must be at least ${minLength} characters long`);
                 }

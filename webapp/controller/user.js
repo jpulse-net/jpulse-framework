@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         0.2.3
- * @release         2025-08-25
+ * @version         0.2.4
+ * @release         2025-08-26
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -65,6 +65,7 @@ class UserController {
                 firstName: user.profile.firstName,
                 lastName: user.profile.lastName,
                 nickName: user.profile.nickName,
+                initials: (user.profile.firstName?.charAt(0) || '?') + (user.profile.lastName?.charAt(0) || ''),
                 roles: user.roles,
                 preferences: user.preferences,
                 authenticated: true
@@ -127,6 +128,120 @@ class UserController {
             res.status(500).json({
                 success: false,
                 error: 'Internal server error during logout',
+                code: 'INTERNAL_ERROR',
+                details: error.message
+            });
+        }
+    }
+
+    /**
+     * User signup/registration
+     * POST /api/1/user/signup
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async signup(req, res) {
+        try {
+            LogController.consoleApi(req, `user.signup( ${JSON.stringify({ username: req.body.username, email: req.body.email })} )`);
+
+            const { firstName, lastName, username, email, password, confirmPassword, acceptTerms } = req.body;
+
+            // Validate required fields
+            if (!firstName || !lastName || !username || !email || !password) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'All fields are required: firstName, lastName, username, email, password',
+                    code: 'MISSING_FIELDS'
+                });
+            }
+
+            // Validate password confirmation
+            if (password !== confirmPassword) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Passwords do not match',
+                    code: 'PASSWORD_MISMATCH'
+                });
+            }
+
+            // Validate terms acceptance
+            if (!acceptTerms) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'You must accept the terms and conditions',
+                    code: 'TERMS_NOT_ACCEPTED'
+                });
+            }
+
+            // Prepare user data
+            const userData = {
+                loginId: username,
+                email: email,
+                password: password,
+                profile: {
+                    firstName: firstName,
+                    lastName: lastName,
+                    nickName: '',
+                    avatar: ''
+                },
+                roles: ['user'], // Default role for new users
+                preferences: {
+                    language: 'en',
+                    theme: 'light'
+                },
+                status: 'active'
+            };
+
+            // Create user
+            const newUser = await UserModel.create(userData);
+
+            LogController.console(req, `User ${newUser.loginId} created successfully`);
+
+            res.status(201).json({
+                success: true,
+                data: {
+                    user: {
+                        id: newUser._id.toString(),
+                        loginId: newUser.loginId,
+                        email: newUser.email,
+                        firstName: newUser.profile.firstName,
+                        lastName: newUser.profile.lastName
+                    }
+                },
+                message: 'User account created successfully'
+            });
+
+        } catch (error) {
+            LogController.error(req, `user.signup failed: ${error.message}`);
+
+            // Handle specific error types
+            if (error.message.includes('Username already exists')) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'Username already exists. Please choose another.',
+                    code: 'USERNAME_EXISTS'
+                });
+            }
+
+            if (error.message.includes('Email address already registered')) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'Email address already registered. Please sign in instead.',
+                    code: 'EMAIL_EXISTS'
+                });
+            }
+
+            if (error.message.includes('Validation failed')) {
+                return res.status(400).json({
+                    success: false,
+                    error: error.message,
+                    code: 'VALIDATION_ERROR'
+                });
+            }
+
+            res.status(500).json({
+                success: false,
+                error: 'Internal server error during signup',
                 code: 'INTERNAL_ERROR',
                 details: error.message
             });

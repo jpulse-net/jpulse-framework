@@ -3,8 +3,8 @@
  * @tagline         Search tests for User Model and Controller
  * @description     Unit tests for user search functionality, pagination, and schema-based queries
  * @file            webapp/tests/unit/user/user-search.test.js
- * @version         0.2.3
- * @release         2025-08-25
+ * @version         0.2.4
+ * @release         2025-08-26
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,11 +21,11 @@ describe('User Search Tests', () => {
             // Mock CommonUtils.schemaBasedQuery functionality
             const mockSchemaBasedQuery = (schema, queryParams, ignoreFields) => {
                 const query = {};
-                
+
                 Object.keys(queryParams).forEach(key => {
                     if (!ignoreFields.includes(key)) {
                         const value = queryParams[key];
-                        
+
                         // Handle wildcard searches
                         if (typeof value === 'string' && value.includes('*')) {
                             query[key] = { $regex: value.replace(/\*/g, '.*'), $options: 'i' };
@@ -34,7 +34,7 @@ describe('User Search Tests', () => {
                         }
                     }
                 });
-                
+
                 return query;
             };
 
@@ -60,13 +60,13 @@ describe('User Search Tests', () => {
         test('should ignore sensitive fields in search queries', () => {
             const mockSchemaBasedQuery = (schema, queryParams, ignoreFields) => {
                 const query = {};
-                
+
                 Object.keys(queryParams).forEach(key => {
                     if (!ignoreFields.includes(key)) {
                         query[key] = queryParams[key];
                     }
                 });
-                
+
                 return query;
             };
 
@@ -360,11 +360,11 @@ describe('User Search Tests', () => {
                     if (queryParams.error === 'database') {
                         throw new Error('Database connection failed');
                     }
-                    
+
                     if (queryParams.error === 'validation') {
                         throw new Error('Invalid query parameters');
                     }
-                    
+
                     return { success: true, data: [] };
                 } catch (error) {
                     throw new Error(`Failed to search users: ${error.message}`);

@@ -1,11 +1,13 @@
-# jPulse Framework v0.2.3
+# jPulse Framework v0.2.4
 
 A modern, lightweight web application framework built with Node.js, Express, and MongoDB. jPulse combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content.
 
-**Latest Release Highlights (v0.2.1):**
-- ✅ **CommonUtils Framework**: Centralized utility functions with schema-based query system
-- ✅ **Automated Test Cleanup**: Comprehensive test environment management
-- ✅ **Enhanced Development Tools**: Improved version management and build processes
+**Latest Release Highlights (v0.2.4):**
+- ✅ **User Registration System**: Complete signup workflow with validation and error handling
+- ✅ **User Interface Views**: Login, logout, signup, profile, and user directory views
+- ✅ **Enhanced User Experience**: Fixed avatar display, improved error handling, proper redirects
+- ✅ **Comprehensive i18n**: Multi-language support for all authentication flows
+- ✅ **Robust Testing**: 290 tests including 10 new signup validation tests
 
 ## 🚀 Quick Start
 
@@ -116,12 +118,16 @@ jPulse implements a sophisticated routing strategy that cleanly separates static
 ### 🔒 **User Authentication & Management**
 Complete user system with secure authentication and role-based access control:
 
+- **User Registration**: Complete signup system with validation and error handling
 - **Internal Authentication**: Secure login with bcrypt password hashing
 - **Session Management**: Persistent MongoDB sessions with connect-mongo
 - **Role-Based Access Control**: Simple role system (guest, user, admin, root)
-- **User Profile Management**: Complete profile and password management
+- **User Interface Views**: Login, logout, signup, profile, and user directory pages
+- **User Profile Management**: Complete profile and password management with avatar initials
 - **User Search API**: Admin-only user search with schema-based queries
 - **Password Policy**: Configurable minimum length requirements
+- **Multi-language Support**: Comprehensive i18n for all authentication flows
+- **Error Handling**: Proper API vs view error responses with user-friendly messages
 - **Security Features**: Automatic password hash exclusion, secure session handling
 
 ### 🔐 **Security Features**
@@ -283,6 +289,7 @@ jPulse provides a comprehensive RESTful API under the `/api/1/` prefix with the 
 ### Quick API Examples
 ```bash
 # User Authentication & Management
+POST /api/1/user/signup
 POST /api/1/user/login
 POST /api/1/user/logout
 GET /api/1/user/profile

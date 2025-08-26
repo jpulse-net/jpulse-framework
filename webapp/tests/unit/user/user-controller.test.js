@@ -3,8 +3,8 @@
  * @tagline         Controller tests for User authentication and management
  * @description     Unit tests for UserController endpoints, error handling, and HTTP responses
  * @file            webapp/tests/unit/user/user-controller.test.js
- * @version         0.2.3
- * @release         2025-08-25
+ * @version         0.2.4
+ * @release         2025-08-26
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -135,7 +135,7 @@ describe('User Controller Tests', () => {
 
             const processLogin = (req, res) => {
                 const { identifier, password } = req.body;
-                
+
                 if (!identifier || !password) {
                     return res.status(400).json({
                         success: false,
@@ -143,7 +143,7 @@ describe('User Controller Tests', () => {
                         code: 'MISSING_CREDENTIALS'
                     });
                 }
-                
+
                 // Continue with authentication...
             };
 
@@ -185,7 +185,7 @@ describe('User Controller Tests', () => {
                                 error: 'Failed to logout'
                             });
                         }
-                        
+
                         res.json({
                             success: true,
                             message: 'Logout successful'
@@ -342,7 +342,7 @@ describe('User Controller Tests', () => {
                         code: 'UNAUTHORIZED'
                     });
                 }
-                
+
                 // Continue with authorization check...
             };
 
@@ -388,7 +388,7 @@ describe('User Controller Tests', () => {
                         code: 'INSUFFICIENT_PRIVILEGES'
                     });
                 }
-                
+
                 // Continue with search...
             };
 
@@ -477,7 +477,7 @@ describe('User Controller Tests', () => {
             const processWithErrorLogging = (req, res) => {
                 try {
                     mockLogController.consoleApi(req, `user.search( ${JSON.stringify(req.query)} )`);
-                    
+
                     // Simulate error
                     throw new Error('Database connection failed');
                 } catch (error) {
@@ -519,15 +519,15 @@ describe('User Controller Tests', () => {
 
             const processWithTiming = (req, res) => {
                 const startTime = Date.now();
-                
+
                 mockLogController.consoleApi(req, 'user.search( {} )');
-                
+
                 // Simulate successful operation
                 const mockResults = { data: [], pagination: {} };
                 const elapsed = Date.now() - startTime;
-                
+
                 mockLogController.console(req, `user.search completed in ${elapsed}ms`);
-                
+
                 res.json({
                     success: true,
                     message: 'Found 0 users',

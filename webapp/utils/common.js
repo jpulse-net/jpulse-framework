@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         0.2.3
- * @release         2025-08-25
+ * @version         0.2.4
+ * @release         2025-08-26
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -330,6 +330,42 @@ class CommonUtils {
             .replace(/[;&|`]/g, '')         // Remove command injection chars
             .trim();
     }
+
+    /**
+     * Send error response with appropriate format based on request type
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     * @param {number} statusCode - HTTP status code (404, 500, etc.)
+     * @param {string} message - Error message for user
+     * @param {string} code - Application error code (NOT_FOUND, INVALID_CREDENTIALS, etc.)
+     * 
+     * @example
+     * // For API requests: returns JSON with success: false
+     * CommonUtils.sendError(req, res, 404, 'User not found', 'USER_NOT_FOUND');
+     * // Returns: {"success": false, "error": "User not found", "code": "USER_NOT_FOUND", "path": "/api/1/user/123"}
+     * 
+     * // For view requests: redirects to error page
+     * CommonUtils.sendError(req, res, 404, 'Page not found');
+     * // Redirects to: /error/index.shtml?msg=Page%20not%20found&code=404
+     */
+    static sendError(req, res, statusCode, message, code = null) {
+        if (req.originalUrl.startsWith('/api/')) {
+            // API requests get JSON error response
+            const response = {
+                success: false,
+                error: message,
+                path: req.originalUrl
+            };
+            if (code) {
+                response.code = code;
+            }
+            return res.status(statusCode).json(response);
+        } else {
+            // View requests get redirected to error page
+            const errorMessage = encodeURIComponent(message);
+            return res.redirect(`/error/index.shtml?msg=${errorMessage}&code=${statusCode}`);
+        }
+    }
 }
 
 export default CommonUtils;
@@ -343,7 +379,8 @@ export const {
     formatValue,
     generateId,
     isValidEmail,
-    sanitizeString
+    sanitizeString,
+    sendError
 } = CommonUtils;
 
 // EOF webapp/utils/common.js

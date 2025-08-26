@@ -1,11 +1,13 @@
-# jPulse Framework / Developer Documentation v0.2.3
+# jPulse Framework / Developer Documentation v0.2.4
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.2.1):**
-- 🛠️ **CommonUtils Framework**: Centralized utility functions with comprehensive testing
-- 🧪 **Automated Test Cleanup**: Jest global setup/teardown system
-- 📊 **Enhanced Test Coverage**: 229+ tests with 100% reliability
+**Latest Updates (v0.2.4):**
+- 🔐 **User Views Implementation**: Complete user interface with signup, login, logout views
+- 👥 **User Registration System**: Full signup workflow with validation and error handling
+- 🌐 **Enhanced i18n Support**: Multi-language authentication flows with comprehensive translations
+- 🎨 **User Experience Improvements**: Avatar initials system, proper redirects, error handling
+- 🧪 **Extended Test Coverage**: 290 tests including 10 new signup validation tests
 
 ## 🏗️ Architecture Overview
 
@@ -319,6 +321,243 @@ app.use(session(sessionConfig));
 - **Profile Management**: Complete profile and password change functionality
 - **Login Tracking**: Automatic last login and login count tracking
 - **Security**: Password hashes never returned in API responses
+
+### User Views & Registration System (W-012)
+
+#### User Signup Implementation (`webapp/controller/user.js`)
+```javascript
+// Complete user registration with validation
+static async signup(req, res) {
+    const { firstName, lastName, username, email, password, confirmPassword, acceptTerms } = req.body;
+
+    LogController.consoleApi(req, `user.signup( {"username":"${username}","email":"${email}"} )`);
+
+    try {
+        // Validation checks
+        if (!firstName || !lastName || !username || !email || !password) {
+            return res.status(400).json({
+                success: false,
+                error: 'All fields are required: firstName, lastName, username, email, password',
+                code: 'MISSING_FIELDS'
+            });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                error: 'Passwords do not match',
+                code: 'PASSWORD_MISMATCH'
+            });
+        }
+
+        if (!acceptTerms) {
+            return res.status(400).json({
+                success: false,
+                error: 'You must accept the terms and conditions',
+                code: 'TERMS_NOT_ACCEPTED'
+            });
+        }
+
+        // Create user with structured data
+        const userData = {
+            loginId: username,
+            email: email,
+            password: password,
+            profile: {
+                firstName: firstName,
+                lastName: lastName,
+                nickName: '',
+                avatar: ''
+            },
+            roles: ['user'],
+            preferences: {
+                language: 'en',
+                theme: 'light'
+            },
+            status: 'active'
+        };
+
+        const newUser = await UserModel.create(userData);
+        LogController.console(req, `User ${username} created successfully`);
+
+        res.status(201).json({
+            success: true,
+            data: {
+                user: {
+                    id: newUser._id,
+                    loginId: newUser.loginId,
+                    email: newUser.email,
+                    firstName: newUser.profile.firstName,
+                    lastName: newUser.profile.lastName
+                }
+            },
+            message: 'User account created successfully'
+        });
+
+    } catch (error) {
+        LogController.error(req, `user.signup failed: ${error.message}`);
+
+        // Handle specific error types
+        if (error.message.includes('Username already exists')) {
+            return res.status(409).json({
+                success: false,
+                error: 'Username already exists. Please choose another.',
+                code: 'USERNAME_EXISTS'
+            });
+        }
+
+        if (error.message.includes('Email address already registered')) {
+            return res.status(409).json({
+                success: false,
+                error: 'Email address already registered. Please sign in instead.',
+                code: 'EMAIL_EXISTS'
+            });
+        }
+
+        if (error.message.includes('Validation failed')) {
+            return res.status(400).json({
+                success: false,
+                error: error.message,
+                code: 'VALIDATION_ERROR'
+            });
+        }
+
+        // Generic server error
+        res.status(500).json({
+            success: false,
+            error: 'Internal server error during signup',
+            code: 'INTERNAL_ERROR',
+            details: error.message
+        });
+    }
+}
+```
+
+#### User Avatar Initials System
+```javascript
+// Enhanced login with initials calculation
+static async login(req, res) {
+    // ... existing login logic ...
+
+    // Create session user object with initials
+    req.session.user = {
+        id: user._id,
+        loginId: user.loginId,
+        email: user.email,
+        firstName: user.profile.firstName,
+        lastName: user.profile.lastName,
+        initials: (user.profile.firstName?.charAt(0) || '?') + (user.profile.lastName?.charAt(0) || ''), // New
+        roles: user.roles,
+        preferences: user.preferences,
+        authenticated: true
+    };
+
+    // ... rest of login logic ...
+}
+```
+
+#### Template Context with User Initials (`webapp/controller/view.js`)
+```javascript
+// Enhanced template context for all views
+const context = {
+    url: {
+        path: req.path,
+        param: req.query
+    },
+    user: {
+        loginId: req.session?.user?.loginId || '',
+        email: req.session?.user?.email || '',
+        firstName: req.session?.user?.firstName || '',
+        lastName: req.session?.user?.lastName || '',
+        initials: req.session?.user?.initials || '?', // Available in all templates
+        roles: req.session?.user?.roles || [],
+        authenticated: !!req.session?.user
+    },
+    i18n: i18n,
+    config: appConfig
+};
+```
+
+#### User Views Architecture
+```
+webapp/view/
+├── auth/                    # Authentication views
+│   ├── login.shtml         # Login form with success messages
+│   ├── logout.shtml        # Logout confirmation with redirect
+│   └── signup.shtml        # Registration form with validation
+└── user/                   # User management views  
+    ├── index.shtml         # User directory and search
+    └── profile.shtml       # User profile view/edit
+```
+
+#### Comprehensive i18n Support (`webapp/translations/lang-en.conf`)
+```javascript
+{
+    "auth": {
+        "login": {
+            "title": "Sign In",
+            "subtitle": "Welcome back",
+            "signupSuccessMessage": "Your {username} account has been created successfully! Please sign in below."
+        },
+        "signup": {
+            "title": "Sign Up",
+            "subtitle": "Create your account",
+            "firstName": "First Name",
+            "lastName": "Last Name",
+            "signUp": "Sign Up",
+            "signupSuccess": "Account created successfully! Please sign in.",
+            "usernameExists": "Username already exists. Please choose another.",
+            "emailExists": "Email address already registered. Please sign in instead.",
+            "passwordMismatch": "Passwords do not match."
+        },
+        "logout": {
+            "title": "Sign Out",
+            "logoutSuccess": "Successfully signed out",
+            "sessionEnded": "Your session has ended securely.",
+            "redirectingIn": "Redirecting in",
+            "seconds": "seconds",
+            "home": "Home"
+        }
+    },
+    "errorPage": {
+        "title": "Error",
+        "message": "Message",
+        "goHome": "Go Home",
+        "contactSupport": "Contact Support"
+    }
+}
+```
+
+#### Error Handling Strategy (`webapp/utils/common.js`)
+```javascript
+// Centralized error handling for API vs View requests
+static sendError(req, res, statusCode, message, code = null) {
+    if (req.path.startsWith('/api/')) {
+        // API request - return JSON
+        const errorResponse = {
+            success: false,
+            error: message,
+            code: code || 'ERROR'
+        };
+        return res.status(statusCode).json(errorResponse);
+    } else {
+        // View request - redirect to error page
+        const errorUrl = `/error/index.shtml?msg=${encodeURIComponent(message)}&code=${statusCode}`;
+        return res.redirect(errorUrl);
+    }
+}
+```
+
+#### W-012 Features Summary
+- **Complete Signup Flow**: Registration form with validation, error handling, and success redirect
+- **Enhanced User Views**: Login, logout, signup, profile, and user directory interfaces
+- **Avatar Initials System**: Clean user identification with first/last name initials (e.g., "JD" for John Doe)
+- **Comprehensive i18n**: Multi-language support for all authentication flows and error messages
+- **Proper Error Handling**: Distinguishes between API JSON responses and view redirects
+- **User Experience**: Success messages, proper redirects, consistent UI patterns
+- **Template Integration**: User context available in all templates with authentication state
+- **Responsive Design**: Mobile-friendly authentication interfaces
+- **Security**: Form validation, CSRF protection, secure redirects
 
 ### Logging Infrastructure (W-005)
 

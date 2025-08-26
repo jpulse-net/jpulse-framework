@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / User Directory
+ * @tagline         User directory with search and statistics
+ * @description     User management interface with role-based access control
+ * @file            webapp/view/user/index.shtml
+ * @version         0.2.4
+ * @release         2025-08-26
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         GPL v3, see LICENSE file
+ * @genai           99%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{app.version}} - {{i18n.user.directory.title}}</title>
+
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        /* User directory styles */
+        .users-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #007acc;
+        }
+
+        .page-header h1 {
+            margin: 0;
+            color: #333;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #007acc;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007acc;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .search-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .search-form {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .search-fields {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #007acc;
+            box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background: #007acc;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #005999;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .users-table-container {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .users-table th,
+        .users-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .users-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .users-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #007acc, #005999);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-name {
+            font-weight: 500;
+        }
+
+        .user-login {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-suspended {
+            background: #f5c6cb;
+            color: #721c24;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-right: 4px;
+        }
+
+        .role-root {
+            background: #dc3545;
+            color: white;
+        }
+
+        .role-admin {
+            background: #fd7e14;
+            color: white;
+        }
+
+        .role-user {
+            background: #007acc;
+            color: white;
+        }
+
+        .role-guest {
+            background: #6c757d;
+            color: white;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #f8f9fa;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination .current-page {
+            background: #007acc;
+            color: white;
+            border-color: #007acc;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .search-form {
+                grid-template-columns: 1fr;
+            }
+
+            .search-fields {
+                grid-template-columns: 1fr;
+            }
+
+            .users-table-container {
+                overflow-x: auto;
+            }
+
+            .users-table {
+                min-width: 600px;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="jpulse-main">
+        <div class="users-container">
+            <div style="{{if user.authenticated "display: none" "display: block"}}" class="alert alert-error">
+                {{i18n.login.notAuthenticated}}
+            </div>
+
+            <div style="{{if user.authenticated "display: block" "display: none"}}" class="page-header">
+                <h1>{{i18n.user.directory.title}}</h1>
+            </div>
+
+            <div style="{{if user.authenticated "display: block" "display: none"}}" class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalUsers">-</div>
+                    <div class="stat-label">{{i18n.user.directory.totalUsers}}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="activeUsers">-</div>
+                    <div class="stat-label">{{i18n.user.directory.activeUsers}}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="adminUsers">-</div>
+                    <div class="stat-label">{{i18n.user.directory.adminUsers}}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="recentLogins">-</div>
+                    <div class="stat-label">{{i18n.user.directory.recentLogins}}</div>
+                </div>
+            </div>
+
+            {{if user.authenticated
+                "<div class=\"search-section\">
+                    <form class=\"search-form\" id=\"searchForm\" onsubmit=\"searchUsers(event)\">
+                        <div class=\"search-fields\">
+                            <div class=\"form-group\">
+                                <label for=\"searchName\">{{i18n.user.directory.searchName}}</label>
+                                <input type=\"text\" id=\"searchName\" name=\"name\" placeholder=\"{{i18n.user.directory.searchNamePlaceholder}}\">
+                            </div>
+                            <div class=\"form-group\">
+                                <label for=\"searchEmail\">{{i18n.user.directory.searchEmail}}</label>
+                                <input type=\"email\" id=\"searchEmail\" name=\"email\" placeholder=\"{{i18n.user.directory.searchEmailPlaceholder}}\">
+                            </div>
+                            <div class=\"form-group\">
+                                <label for=\"searchRole\">{{i18n.user.directory.searchRole}}</label>
+                                <select id=\"searchRole\" name=\"role\">
+                                    <option value=\"\">{{i18n.user.directory.allRoles}}</option>
+                                    <option value=\"root\">Root</option>
+                                    <option value=\"admin\">Admin</option>
+                                    <option value=\"user\">User</option>
+                                    <option value=\"guest\">Guest</option>
+                                </select>
+                            </div>
+                            <div class=\"form-group\">
+                                <label for=\"searchStatus\">{{i18n.user.directory.searchStatus}}</label>
+                                <select id=\"searchStatus\" name=\"status\">
+                                    <option value=\"\">{{i18n.user.directory.allStatuses}}</option>
+                                    <option value=\"active\">{{i18n.user.directory.statusActive}}</option>
+                                    <option value=\"inactive\">{{i18n.user.directory.statusInactive}}</option>
+                                    <option value=\"pending\">{{i18n.user.directory.statusPending}}</option>
+                                    <option value=\"suspended\">{{i18n.user.directory.statusSuspended}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class=\"btn-group\">
+                            <button type=\"submit\" class=\"btn btn-primary\">{{i18n.user.directory.search}}</button>
+                            <button type=\"button\" class=\"btn btn-secondary\" onclick=\"clearSearch()\">{{i18n.user.directory.clear}}</button>
+                        </div>
+                    </form>
+                </div>"
+                ""
+            }}
+
+            {{if user.authenticated
+                "<div class=\"users-table-container\">
+                    <div id=\"loadingIndicator\" class=\"loading\">
+                        {{i18n.user.directory.loading}}
+                    </div>
+                    <table class=\"users-table\" id=\"usersTable\" style=\"display: none;\">
+                        <thead>
+                            <tr>
+                                <th>{{i18n.user.directory.user}}</th>
+                                <th>{{i18n.user.directory.email}}</th>
+                                <th>{{i18n.user.directory.roles}}</th>
+                                <th>{{i18n.user.directory.status}}</th>
+                                <th>{{i18n.user.directory.lastLogin}}</th>
+                                <th>{{i18n.user.directory.actions}}</th>
+                            </tr>
+                        </thead>
+                        <tbody id=\"usersTableBody\">
+                        </tbody>
+                    </table>
+                    <div id=\"noResults\" class=\"no-results\" style=\"display: none;\">
+                        {{i18n.user.directory.noResults}}
+                    </div>
+                </div>"
+                ""
+            }}
+
+            {{if user.authenticated
+                "<div class=\"pagination\" id=\"pagination\" style=\"display: none;\">
+                </div>"
+                ""
+            }}
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let currentSearch = {};
+        let totalPages = 1;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Only load if user is authenticated (checked server-side)
+            loadUserStats();
+            loadUsers();
+        });
+
+        async function loadUserStats() {
+            try {
+                const response = await fetch('/api/1/user/search?stats=true');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.stats) {
+                        document.getElementById('totalUsers').textContent = data.stats.total || 0;
+                        document.getElementById('activeUsers').textContent = data.stats.active || 0;
+                        document.getElementById('adminUsers').textContent = data.stats.admins || 0;
+                        document.getElementById('recentLogins').textContent = data.stats.recentLogins || 0;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load user stats:', error);
+            }
+        }
+
+        async function loadUsers(page = 1, searchParams = {}) {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const usersTable = document.getElementById('usersTable');
+            const noResults = document.getElementById('noResults');
+            const pagination = document.getElementById('pagination');
+
+            // Show loading
+            loadingIndicator.style.display = 'block';
+            usersTable.style.display = 'none';
+            noResults.style.display = 'none';
+            pagination.style.display = 'none';
+
+            try {
+                const params = new URLSearchParams({
+                    page: page,
+                    limit: 20,
+                    ...searchParams
+                });
+
+                const response = await fetch(`/api/1/user/search?${params}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        displayUsers(data.data);
+                        setupPagination(data.pagination);
+                        currentPage = page;
+                        currentSearch = searchParams;
+                    } else {
+                        showError(data.error || 'Failed to load users');
+                    }
+                } else {
+                    showError('Failed to load users');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        function displayUsers(users) {
+            const tbody = document.getElementById('usersTableBody');
+            const usersTable = document.getElementById('usersTable');
+            const noResults = document.getElementById('noResults');
+
+            if (!users || users.length === 0) {
+                noResults.style.display = 'block';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            users.forEach(user => {
+                const row = createUserRow(user);
+                tbody.appendChild(row);
+            });
+
+            usersTable.style.display = 'table';
+        }
+
+        function createUserRow(user) {
+            const tr = document.createElement('tr');
+
+            // User info with avatar
+            const userCell = document.createElement('td');
+            const initial = (user.profile?.firstName?.[0] || user.loginId?.[0] || '?').toUpperCase();
+            userCell.innerHTML = `
+                <div class="user-info">
+                    <div class="user-avatar">${initial}</div>
+                    <div>
+                        <div class="user-name">${escapeHtml(user.profile?.firstName || '')} ${escapeHtml(user.profile?.lastName || '')}</div>
+                        <div class="user-login">@${escapeHtml(user.loginId)}</div>
+                    </div>
+                </div>
+            `;
+            tr.appendChild(userCell);
+
+            // Email
+            const emailCell = document.createElement('td');
+            emailCell.textContent = user.email;
+            tr.appendChild(emailCell);
+
+            // Roles
+            const rolesCell = document.createElement('td');
+            rolesCell.innerHTML = (user.roles || []).map(role => 
+                `<span class="role-badge role-${role}">${role}</span>`
+            ).join('');
+            tr.appendChild(rolesCell);
+
+            // Status
+            const statusCell = document.createElement('td');
+            statusCell.innerHTML = `<span class="status-badge status-${user.status}">${user.status}</span>`;
+            tr.appendChild(statusCell);
+
+            // Last login
+            const lastLoginCell = document.createElement('td');
+            lastLoginCell.textContent = user.lastLogin 
+                ? new Date(user.lastLogin).toLocaleDateString() 
+                : 'Never';
+            tr.appendChild(lastLoginCell);
+
+            // Actions
+            const actionsCell = document.createElement('td');
+            const canEdit = false; // Will be determined server-side or via API
+            if (canEdit) {
+                actionsCell.innerHTML = `
+                    <button class="btn btn-sm" onclick="viewUser('${user._id}')">View</button>
+                `;
+            } else {
+                actionsCell.innerHTML = `
+                    <button class="btn btn-sm" onclick="viewUser('${user._id}')">View</button>
+                `;
+            }
+            tr.appendChild(actionsCell);
+
+            return tr;
+        }
+
+        function setupPagination(pagination) {
+            const paginationDiv = document.getElementById('pagination');
+
+            if (!pagination || pagination.totalPages <= 1) {
+                return;
+            }
+
+            totalPages = pagination.totalPages;
+            const currentPage = pagination.page;
+
+            let paginationHTML = '';
+
+            // Previous button
+            paginationHTML += `<button onclick="changePage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>Previous</button>`;
+
+            // Page numbers
+            for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+                paginationHTML += `<button onclick="changePage(${i})" ${i === currentPage ? 'class="current-page"' : ''}>${i}</button>`;
+            }
+
+            // Next button
+            paginationHTML += `<button onclick="changePage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>Next</button>`;
+
+            paginationDiv.innerHTML = paginationHTML;
+            paginationDiv.style.display = 'flex';
+        }
+
+        function changePage(page) {
+            if (page < 1 || page > totalPages) return;
+            loadUsers(page, currentSearch);
+        }
+
+        function searchUsers(event) {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+            const searchParams = {};
+
+            for (let [key, value] of formData.entries()) {
+                if (value.trim()) {
+                    searchParams[key] = value.trim();
+                }
+            }
+
+            loadUsers(1, searchParams);
+        }
+
+        function clearSearch() {
+            document.getElementById('searchForm').reset();
+            loadUsers(1, {});
+        }
+
+        function viewUser(userId) {
+            window.location.href = `/user/profile.shtml?user=${userId}`;
+        }
+
+        function showError(message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-error';
+            alertDiv.textContent = message;
+
+            const container = document.querySelector('.users-container');
+            container.insertBefore(alertDiv, container.firstChild);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

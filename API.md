@@ -36,6 +36,53 @@ Complete user authentication, profile management, and administrative user search
 
 ### User Authentication
 
+#### User Registration (Signup)
+Create a new user account with validation and error handling.
+
+**Endpoint:** `POST /api/1/user/signup`
+
+**Request Body:**
+```json
+{
+    "firstName": "John",
+    "lastName": "Doe",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "password": "securepassword123",
+    "confirmPassword": "securepassword123",
+    "acceptTerms": true
+}
+```
+
+**Success Response (201):**
+```json
+{
+    "success": true,
+    "data": {
+        "user": {
+            "id": "60f7b3b3b3b3b3b3b3b3b3b3",
+            "loginId": "johndoe",
+            "email": "john@example.com",
+            "firstName": "John",
+            "lastName": "Doe"
+        }
+    },
+    "message": "User account created successfully"
+}
+```
+
+**Error Responses:**
+- **400**: Missing required fields, password mismatch, or terms not accepted
+- **409**: Username or email already exists
+- **500**: Internal server error
+
+**Validation Rules:**
+- All fields (firstName, lastName, username, email, password) are required
+- Password must match confirmPassword
+- Terms must be accepted (acceptTerms: true)
+- Username must be unique
+- Email must be unique and valid format
+
 #### Login
 Authenticate user with loginId/email and password, creating a persistent session.
 

@@ -237,7 +237,7 @@ Requirements Doc of jPulse Framework
 - remove legacy {{i18n "app.name"}} notation, replaced by {{i18n.app.name}} dot notation
 
 ## **W-011**: create user model, controller
-- status: IN_PROGRESS
+- status: ✅ DONE
 - create webapp/model/user.js
 - create webapp/controller/user.js
 - plan for authentication based on appConfig.login.mode:
@@ -251,26 +251,34 @@ Requirements Doc of jPulse Framework
 - document in README, API, changes, developers
 
 ## **W-012**: create user views
-- status: PENDING
+- status: ✅ DONE
 - create webapp/view/user/profile.shtml
   - two modes: view and edit
+  - edit by owner and admin
 - create webapp/view/user/index.shtml
+  - show stats on users
   - search users, result depends on logged in user role (admin, ...)
+- create login, logout, signup views under webapp/view/auth/
+  - implement for internal user management
+  - plan for ldap and oauth2
+- proper 404 error handling:
+  - for /api/... return a JSON with "success": false
+  - else show formatted error page as in view/error/index.shtml
 
 ## **W-013**: create site admin views
-- status: PENDING
+- status: 🕑 PENDING
 - create webapp/view/admin/index.shtml -- admin home
 - create webapp/view/admin/config.shtml -- edit config
 
 ## **W-014**: strategy for seamless update of custom jPulse deployments
-- status: PENDING
+- status: 🕑 PENDING
 - jPulse will be the base framework for multiple web apps
 - define a clean structure of two sets:
   - jPulse framework directories and files
   - site specific directories and files
 
 ## **W-015**: clean onboarding strategy
-- status: PENDING
+- status: 🕑 PENDING
 - define an clean out of box experience when deploying a jPulse based webserver for the first time
 - sensible defaults
 - handholding for:
@@ -281,52 +289,96 @@ Requirements Doc of jPulse Framework
   - mongddb deployment with standalone, or replicaset config
   - mongodb setup with sysdba admin, dev data user, prod data user
 
-## **W-016**: docker strategy
-- status: PENDING
+
+
+
+## **W-0**: create auth controller
+- status: 🕑 PENDING
+- handles login, logout
+- handles auth.isAuthenticated and auth.isAuthorized for middleware
+
+## **W-0**: i18n with variable content
+- status: 🕑 PENDING
+- handlebar based, example:
+  - signOut: 'Sign out {{user.id}}' // ==> 'Sign out jsmith'
+
+## **W-0**: broadcast message
+- status: 🕑 PENDING
+- purpose: admin can broadcast message, such as "scheduled downtime this Saturday 10am-12pm"
+- show yellow broadcast message just below banner
+- brodcast message div has [-] button to minimize message
+  - reduced to [+] button, when clicked restored the message div
+  - minimize status is remembered across page loads
+  - minimize status is reset after 4 hours (appConfig setting)
+- broadcast message can be set in site config
+
+## **W-0**: sliding info/error message on top of page
+- status: 🕑 PENDING
+- pupose: non-blocking error or info message, such after signin
+- action:
+  - slide down, show, hide message from below page banner
+- triggered by msg= URL parameter on all pages
+- if message starts with "error" (case insensitive):
+  - show message for 7 sec with red background
+- else considered an info message:
+  - show message for 3 sec with yellow background
+- provide a common JavaScript function to show a sliding message without a msg= URL parameter
+
+
+
+
+## **W-0**: docker strategy
+- status: 🕑 PENDING
 - new jpulse-docker project?
 
-## **W-017**: create plugin infrastructure
-- status: PENDING
+## **W-0**: create plugin infrastructure
+- status: 🕑 PENDING
 - strategy: drop in specific directory, with auto discovery
 - plugins for:
   - themes
   - additional models, controllers, views
 
-## **W-018**: create themes
-- status: PENDING
+## **W-0**: create themes
+- status: 🕑 PENDING
 - initially a dark and light theme, light is default
 - user can set preferred theme
 - way to define new themes
   - drop in a directory, with auto discovery
 
 ## **W-0**: create caching infrastrucure
-- status: PENDING
+- status: 🕑 PENDING
 - redis to cache config, what else?
 - should work in multi node instances, and multi app server instances
 
 ## **W-0**: i18n with auto-discovery and app update
-- status: PENDING
+- status: 🕑 PENDING
 - when a new language file is added to webapp/translations, the app sould pick it up dynamically, or by an admin requesting a web-based resources reload
 - when a language file has been updated, the app should pick up the changes dynamically, or by an admin requesting a web-based resources reload
 
 ## **W-0**: change paging API with limit & skip to cursor based paging
-- status: PENDING
+- status: 🕑 PENDING
 
 ## **W-0**: nested config
-- status: PENDING
+- status: 🕑 PENDING
 
 ## **W-0**: nested handlebars
-- status: PENDING
+- status: 🕑 PENDING
 
-## **W-0**: i18n with variable content
-- status: PENDING
-- at idea stage, not sure if there is a better approach
-- option 1: param list based, example:
-  - signOut: 'Sign out {{1}}' // ==> 'Sign out jsmith'
-- option 2: handlebar based, example:
-  - signOut: 'Sign out {{user.id}}' // ==> 'Sign out jsmith'
 
-----------------------
+
+
+------------------------
+status codes:
+- status: 🕑 PENDING
+- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
+------------------------
+
+- for 404 and other errors I prefer not a redirect, but keep same URI with content of webapp/view/error/index.shtml - possible?
+- cleaner styles, no duplication, move all shared style to header or footer
+- signup with email confirmation (or not, configrable with a appConfig setting)
+
+------------------------
 
 # Detail on **W-014**: Strategy for Seamless Update of Custom jPulse Deployments
 
@@ -401,3 +453,4 @@ jpulse-framework/               # Main project
 - ✅ Scalable for multiple site deployments
 - ✅ Backward compatibility maintained
 
+-----------

@@ -3,7 +3,7 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.2.5
+ * @version         0.2.6
  * @release         2025-08-26
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -91,6 +91,9 @@ async function load(req, res) {
         };
 
         // Process handlebars
+        content = await processHandlebars(content, context, path.dirname(fullPath), req, 0);
+
+        // Second pass: Process any handlebars expressions that were returned from i18n translations
         content = await processHandlebars(content, context, path.dirname(fullPath), req, 0);
 
         // Log completion time

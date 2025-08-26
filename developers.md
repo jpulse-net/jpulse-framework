@@ -1,13 +1,14 @@
-# jPulse Framework / Developer Documentation v0.2.5
+# jPulse Framework / Developer Documentation v0.2.6
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.2.4):**
+**Latest Updates (v0.2.6):**
+- 🌐 **i18n Variable Content**: Handlebars-style variable substitution in translations with two-pass processing
+- 🔄 **Enhanced Template System**: Seamless integration of dynamic content in internationalization
+- 🎯 **Full Context Access**: All template context (user, config, url, app) available in translations
 - 🔐 **User Views Implementation**: Complete user interface with signup, login, logout views
 - 👥 **User Registration System**: Full signup workflow with validation and error handling
-- 🌐 **Enhanced i18n Support**: Multi-language authentication flows with comprehensive translations
-- 🎨 **User Experience Improvements**: Avatar initials system, proper redirects, error handling
-- 🧪 **Extended Test Coverage**: 290 tests including 10 new signup validation tests
+- 🧪 **Comprehensive Testing**: 336 tests including i18n variable content validation
 
 ## 🏗️ Architecture Overview
 
@@ -125,20 +126,57 @@ i18n.t = (key, ...args) => {
         }
     }
 
-    // Parameter substitution: {0}, {1}, etc.
-    if(args.length > 0 && text) {
-        text = text.replace(/{(\d+)}/g, (match, p1) => args[p1]);
-    }
-
+    // Note: Variable substitution now handled by two-pass handlebars processing
     return text || key;
 };
 ```
 
 #### Translation Features
-- **Dot Notation Access**: Natural `i18n.app.name` syntax in templates
-- **Parameter Substitution**: Support for `{0}`, `{1}` parameter replacement in translation files
+- **Dot Notation Access**: Natural `i18n.app.name` syntax in templates  
+- **Variable Content**: Handlebars-style `{{variable}}` substitution with full context access
+- **Two-Pass Processing**: First pass resolves i18n, second pass resolves variables
+- **Full Context**: Access to user, config, url, app objects in translations
 - **Fallback Handling**: Returns key when translation missing
 - **Dynamic Loading**: Automatic `.conf` file discovery and parsing
+
+#### i18n Variable Content System (W-017)
+
+**Implementation Overview:**
+The i18n system now supports handlebars-style variable substitution within translation strings, enabling dynamic content like personalized messages.
+
+**Two-Pass Template Processing:**
+```javascript
+// ViewController.load() - Two handlebars passes
+content = await processHandlebars(content, context, path.dirname(fullPath), req, 0);
+content = await processHandlebars(content, context, path.dirname(fullPath), req, 0);
+```
+
+**Example Usage:**
+```javascript
+// Translation files (lang-en.conf):
+{
+  en: {
+    login: {
+      welcome: 'Welcome back, {{user.firstName}}!',
+      greeting: 'Hello {{user.firstName}} {{user.lastName}} ({{user.email}})'
+    }
+  }
+}
+
+// Template usage:
+{{i18n.login.welcome}}  // → "Welcome back, John!"
+
+// Processing flow:
+// 1st pass: {{i18n.login.welcome}} → 'Welcome back, {{user.firstName}}!'
+// 2nd pass: {{user.firstName}} → 'John'
+// Result: "Welcome back, John!"
+```
+
+**Available Context Variables:**
+- `user.*`: firstName, lastName, email, id, authenticated, etc.
+- `config.*`: Global configuration values
+- `url.*`: domain, pathname, search, params
+- `app.*`: version, release information
 
 ### Testing Framework (W-003)
 
@@ -1005,11 +1043,7 @@ i18n.t = (key, ...args) => {
         }
     }
 
-    // Parameter substitution: {0}, {1}, etc.
-    if(args.length > 0 && text) {
-        text = text.replace(/{(\d+)}/g, (match, p1) => args[p1]);
-    }
-
+    // Note: Variable substitution now handled by two-pass handlebars processing
     return text || key;
 }
 ```

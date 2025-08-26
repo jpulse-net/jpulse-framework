@@ -1,14 +1,14 @@
-# jPulse Framework v0.2.5
+# jPulse Framework v0.2.6
 
 A modern, lightweight web application framework built with Node.js, Express, and MongoDB. jPulse combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content.
 
-**Latest Release Highlights (v0.2.4):**
+**Latest Release Highlights (v0.2.6):**
+- ✅ **i18n Variable Content**: Handlebars-style variable substitution in translations (e.g., 'Welcome {{user.firstName}}!')
+- ✅ **Two-Pass Template Processing**: Seamless integration of dynamic content in internationalization
+- ✅ **Enhanced i18n System**: Full context access (user, config, url, app) in translations
 - ✅ **Auth Controller System**: Centralized authentication with middleware and utility functions
 - ✅ **User Registration System**: Complete signup workflow with validation and error handling
-- ✅ **User Interface Views**: Login, logout, signup, profile, and user directory views
-- ✅ **Enhanced User Experience**: Fixed avatar display, improved error handling, proper redirects
-- ✅ **Comprehensive i18n**: Multi-language support for all authentication flows
-- ✅ **Robust Testing**: 290 tests including 10 new signup validation tests
+- ✅ **Comprehensive Testing**: 336 tests including new i18n variable content validation
 
 ## 🚀 Quick Start
 
@@ -52,7 +52,7 @@ Complete multi-language support with natural syntax:
 
 - **Dynamic Translation Loading**: Automatic `.conf` file parsing for translations
 - **Dot Notation Access**: Natural `{{i18n.app.name}}` syntax in templates
-- **Parameter Substitution**: Support for `{0}`, `{1}` parameter replacement in translation files
+- **Variable Content**: Support for handlebars-style `{{variable}}` substitution in translation files with full context access
 - **Fallback Handling**: Graceful degradation when translations are missing
 - **Multi-Language Ready**: English and German included, easy to extend
 

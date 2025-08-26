@@ -663,6 +663,25 @@ Templates have access to a rich context object with these variables:
 <p>{{i18n.welcome.message}}</p>     <!-- Welcome to jPulse -->
 ```
 
+#### i18n Variable Content (v0.2.6)
+Translations now support handlebars-style variable substitution:
+```html
+<!-- Translation file: -->
+<!-- welcome: 'Welcome back, {{user.firstName}}!' -->
+<p>{{i18n.login.welcome}}</p>       <!-- Welcome back, John! -->
+
+<!-- Two-pass processing: -->
+<!-- 1st pass: {{i18n.login.welcome}} → 'Welcome back, {{user.firstName}}!' -->
+<!-- 2nd pass: {{user.firstName}} → 'John' -->
+<!-- Result: "Welcome back, John!" -->
+```
+
+Available context in translations:
+- `{{user.firstName}}`, `{{user.lastName}}`, `{{user.email}}`
+- `{{config.siteName}}`, `{{config.adminEmail}}`
+- `{{url.domain}}`, `{{url.pathname}}`
+- `{{app.version}}`, `{{app.release}}`
+
 #### Configuration Access
 ```html
 <div style="max-width: {{appConfig.window.maxWidth}}px;">

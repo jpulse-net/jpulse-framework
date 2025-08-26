@@ -3,7 +3,7 @@
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/translations/i18n.js
- * @version         0.2.5
+ * @version         0.2.6
  * @release         2025-08-26
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -57,24 +57,7 @@ if(i18n.langs[lang]) {
     console.error(`Error: Language ${lang} not found in translations`);
     process.exit(1);
 }
-//console.log('i18n B:', JSON.stringify(i18n, null, 2));
-i18n.t = (key, ...args) => {
-    const keyParts = key.split('.');
-    let text = i18n.langs[i18n.default];
-    for(const keyPart of keyParts) {
-        if (text && text[keyPart] !== undefined) {
-            text = text[keyPart];
-        } else {
-            // Translation key not found, return the key itself
-            return key;
-        }
-    }
-    if(args.length > 0 && text) {
-        text = text.replace(/{(\d+)}/g, (match, p1) => args[p1]);
-    }
-    return text || key;
-}
-//console.log('test i18n.t(\'login.notAuthenticated\'):', i18n.t('login.notAuthenticated'));
+
 export default i18n;
 
 // EOF webapp/translations/i18n.js

@@ -4,7 +4,7 @@
  * @tagline         Home page of jPulse Framework
  * @description     This is the home page of jPulse Framework
  * @file            webapp/view/home/index.shtml
- * @version         0.2.5
+ * @version         0.2.6
  * @release         2025-08-26
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -76,10 +76,9 @@
             <p><strong>Current URL:</strong> {{url.domain}}{{url.pathname}}{{url.search}}</p>
             <p><strong>Protocol:</strong> {{url.protocol}}</p>
             <p><strong>Hostname:</strong> {{url.hostname}}</p>
-            {{if url.port "Port: " ""}}{{url.port}}
+            <p>{{if url.port "<strong>Port:</strong> " ""}}{{url.port}}</p>
         </div>
-
-                <div class="user-info">
+        <div class="user-info">
             <h3>User Information</h3>
             <p>{{if user.authenticated "Welcome back!" "You are not logged in"}}</p>
             {{if user.authenticated
@@ -104,7 +103,10 @@
                 <li><strong>URL parsing:</strong> {{url.domain}} + {{url.pathname}}</li>
                 <li><strong>URL params:</strong> Try ?name=test → {{url.param.name}}</li>
                 <li><strong>Conditionals:</strong> {{if user.authenticated "User is logged in" "User is guest"}}</li>
-                <li><strong>i18n:</strong> {{i18n.app.title}}</li>
+                <li><strong>i18n:</strong>
+                    <span style="display: {{if user.authenticated 'inline' 'none'}}"> {{i18n.login.welcome}}</span>
+                    <span style="display: {{if user.authenticated 'none' 'inline'}}"> {{i18n.login.notAuthenticated}}</span>
+                </li>
                 <li><strong>Config:</strong> Admin email: {{config.email.adminEmail}}</li>
             </ul>
         </div>

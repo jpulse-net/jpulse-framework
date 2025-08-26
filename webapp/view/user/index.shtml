@@ -4,7 +4,7 @@
  * @tagline         User directory with search and statistics
  * @description     User management interface with role-based access control
  * @file            webapp/view/user/index.shtml
- * @version         0.2.5
+ * @version         0.2.6
  * @release         2025-08-26
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

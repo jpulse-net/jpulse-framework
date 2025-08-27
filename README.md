@@ -1,14 +1,14 @@
-# jPulse Framework v0.2.6
+# jPulse Framework v0.2.7
 
 A modern, lightweight web application framework built with Node.js, Express, and MongoDB. jPulse combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content.
 
-**Latest Release Highlights (v0.2.6):**
-- ✅ **i18n Variable Content**: Handlebars-style variable substitution in translations (e.g., 'Welcome {{user.firstName}}!')
-- ✅ **Two-Pass Template Processing**: Seamless integration of dynamic content in internationalization
-- ✅ **Enhanced i18n System**: Full context access (user, config, url, app) in translations
-- ✅ **Auth Controller System**: Centralized authentication with middleware and utility functions
-- ✅ **User Registration System**: Complete signup workflow with validation and error handling
-- ✅ **Comprehensive Testing**: 336 tests including new i18n variable content validation
+**Latest Release Highlights (v0.2.7):**
+- ✅ **{{#if}} Block Handlebars**: New block-level conditional syntax with {{else}} support
+- ✅ **Single-Pass Processing**: Combined regex for both block and inline handlebars processing
+- ✅ **Recursive Content Processing**: Handlebars within {{#if}} blocks are processed recursively
+- ✅ **Legacy {{if}} Removal**: Clean migration from old syntax to new block syntax
+- ✅ **Enhanced Template System**: More powerful conditional rendering with nested content support
+- ✅ **Comprehensive Testing**: All tests updated for new {{#if}} syntax with full coverage
 
 ## 🚀 Quick Start
 
@@ -59,7 +59,7 @@ Complete multi-language support with natural syntax:
 ### 🧪 **Comprehensive Testing Framework**
 Enterprise-grade testing with Jest and automated cleanup:
 
-- **229+ Tests**: Unit and integration tests with 100% pass rate
+- **230+ Tests**: Unit and integration tests with 100% pass rate
 - **Automated Test Cleanup**: Global setup/teardown prevents conflicts
 - **Test Organization**: Hierarchical structure with fixtures and helpers
 - **Mock Utilities**: Comprehensive test utilities for all components
@@ -90,9 +90,10 @@ Unified logging system with search capabilities:
 Powerful template rendering with security-first design:
 
 - **Handlebars Integration**: Custom implementation with security features
+- **Block Conditionals**: `{{#if condition}}content{{else}}alternative{{/if}}` syntax
 - **Template Includes**: Secure file inclusion with path traversal protection
 - **Context Integration**: Access to app config, user data, and translations
-- **Conditional Rendering**: `{{if condition "true" "false"}}` syntax
+- **Recursive Processing**: Handlebars within conditional blocks are processed
 - **File Operations**: `{{file.include}}` and `{{file.timestamp}}` helpers
 - **Depth Limiting**: Prevents infinite recursion in includes
 
@@ -356,12 +357,22 @@ server {
         try_files $uri =404;
     }
 
-    # Dynamic templates → proxy to app
+    location = / {
+        return 301 /home/;
+    }
+
+    # Dynamic templates with {{handlebars}} → proxy to app
     location ~* \.(shtml|tmpl)$ {
         proxy_pass http://localhost:8080;
     }
 
-    location ~ ^/jpulse-.*\.(js|css)$ {
+    # Directory /home/ → will render as /home/index.shtml
+    location ~ ^/[\w\-]+/$ {
+        proxy_pass http://localhost:8080;
+    }
+
+    # Dynamic files with {{handlebars}}
+    location ~ ^/jpulse-.*\.(js|css|tmpl)$ {
         proxy_pass http://localhost:8080;
     }
 
@@ -434,14 +445,19 @@ jPulse features a custom Handlebars implementation with enterprise security and 
 <!-- File Timestamps -->
 <span>Last modified: {{file.timestamp "jpulse-header.tmpl"}}</span>
 
-<!-- Conditional Rendering -->
-{{if user.authenticated "Welcome back!" "Please sign in"}}
-{{if config.messages.broadcast config.messages.broadcast ""}}
+<!-- Block Conditional Rendering -->
+{{#if user.authenticated}}
+  <p>Welcome back, {{user.firstName}}!</p>
+  <div class="user-panel">{{user.email}}</div>
+{{else}}
+  <p>Please sign in to continue</p>
+  <div class="guest-panel">Guest user</div>
+{{/if}}
 
-<!-- Complex Conditionals -->
-<div class="{{if user.authenticated 'user-logged-in' 'user-guest'}}">
-  {{if user.authenticated user.firstName "Guest"}}
-</div>
+<!-- Simple Block Conditionals -->
+{{#if config.messages.broadcast}}
+  <div class="broadcast">{{config.messages.broadcast}}</div>
+{{/if}}
 ```
 
 #### Security Features
@@ -490,12 +506,12 @@ npm test -- --testPathPattern="template"
 ### Test Coverage
 - ✅ **Integration Tests**: Application startup, routing
 - ✅ **Unit Tests**: Controllers, models, utilities
-- ✅ **CommonUtils Tests**: 51 tests for schema queries, validation, formatting (NEW)
+- ✅ **CommonUtils Tests**: 51 tests for schema queries, validation, formatting
 - ✅ **Security Tests**: Path traversal, input validation
 - ✅ **i18n Tests**: Translation lookup, dot notation
 - ✅ **Responsive Tests**: Layout calculations, breakpoints
-- ✅ **Template Tests**: Include system, Handlebars processing
-- ✅ **Automated Cleanup**: Jest global setup/teardown prevents test conflicts (NEW)
+- ✅ **Template Tests**: Include system, {{#if}} block processing
+- ✅ **Automated Cleanup**: Jest global setup/teardown prevents test conflicts
 
 ## 📊 Performance
 
@@ -504,7 +520,7 @@ npm test -- --testPathPattern="template"
 - **Static File Serving**: Direct nginx (production)
 - **Memory Usage**: ~50MB baseline
 - **Concurrent Users**: 1000+ (with proper nginx setup)
-- **Test Suite**: 229 tests in ~2.5s with automated cleanup
+- **Test Suite**: 230+ tests in ~2.5s with automated cleanup
 
 ### Optimization Features
 - Static/dynamic content separation
@@ -565,14 +581,16 @@ This project is licensed under the GPL v3 License - see the [LICENSE](LICENSE) f
 - **Named Exports**: Convenient import syntax for individual functions
 
 ### ✅ **Enhanced Testing Infrastructure**
-- **229+ Tests** with 100% pass rate
+- **230+ Tests** with 100% pass rate
 - **Automated Test Cleanup**: Jest global setup/teardown prevents conflicts
-- **Comprehensive Coverage**: CommonUtils, security, i18n, responsive design
+- **Comprehensive Coverage**: CommonUtils, security, i18n, responsive design, {{#if}} blocks
 - **Performance Optimized**: ~2.5s test execution time
 
 ### ✅ **Modern Template System**
 - Secure file inclusion with path traversal protection
+- {{#if}} block conditionals with {{else}} support
 - Handlebars integration with custom helpers
+- Recursive content processing within conditional blocks
 - Responsive layout system with configuration-driven breakpoints
 
 ### ✅ **Enhanced i18n System**

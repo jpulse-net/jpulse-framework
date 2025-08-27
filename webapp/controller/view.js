@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.2.6
- * @release         2025-08-26
+ * @version         0.2.7
+ * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -120,22 +120,58 @@ async function load(req, res) {
  * @returns {string} Processed content
  */
 async function processHandlebars(content, context, baseDir, req, depth = 0) {
-    // Regular expression to match handlebars: {{helper args}}
-    const handlebarsRegex = /\{\{([^}]+)\}\}/g;
+    // Combined regex to match both block handlebars ({{#if}}...{{/if}}) and regular handlebars ({{expression}})
+    const handlebarsRegex = /\{\{#(\w+)\s+([^}]+)\}\}(.*?)\{\{\/\1\}\}|\{\{([^#][^}]*|)\}\}/gs;
     let result = content;
     let match;
     while ((match = handlebarsRegex.exec(content)) !== null) {
         const fullMatch = match[0];
-        const expression = match[1].trim();
         try {
-            const replacement = await evaluateHandlebar(expression, context, baseDir, depth);
+            let replacement;
+
+            // Check if this is a block handlebar ({{#expression}}...{{/expression}})
+            if (match[1] && match[2] && match[3] !== undefined) {
+                // Block handlebars: group 1=blockType, group 2=params, group 3=content
+                const blockType = match[1];
+                const params = match[2].trim();
+                const blockContent = match[3];
+                replacement = await evaluateBlockHandlebar(blockType, params, blockContent, context, baseDir, req, depth);
+            } else if (match[4]) {
+                // Regular handlebars: group 4=full expression
+                const expression = match[4].trim();
+                replacement = await evaluateHandlebar(expression, context, baseDir, depth);
+            } else {
+                replacement = '';
+            }
+
             result = result.replace(fullMatch, replacement);
         } catch (error) {
-            logController.error(req, `view.load: Handlebars error in "${expression}": ${error.message}`);
+            const errorExpression = match[1] ? `#${match[1]} ${match[2]}` : match[4] || 'unknown';
+            logController.error(req, `view.load: Handlebars error in "${errorExpression}": ${error.message}`);
             result = result.replace(fullMatch, `<!-- Error: ${error.message} -->`);
         }
     }
     return result;
+}
+
+/**
+ * Evaluate a block handlebars expression ({{#type}}...{{/type}})
+ * @param {string} blockType - The block type (e.g., 'if', 'each')
+ * @param {string} params - The parameters for the block
+ * @param {string} blockContent - The content within the block
+ * @param {Object} context - Context data
+ * @param {string} baseDir - Base directory for file operations
+ * @param {Object} req - Express request object for logging
+ * @param {number} depth - Current include depth
+ * @returns {string} Evaluated result
+ */
+async function evaluateBlockHandlebar(blockType, params, blockContent, context, baseDir, req, depth = 0) {
+    switch (blockType) {
+        case 'if':
+            return await handleBlockIf(params, blockContent, context, baseDir, req, depth);
+        default:
+            throw new Error(`Unknown block type: ${blockType}`);
+    }
 }
 
 /**
@@ -157,8 +193,6 @@ async function evaluateHandlebar(expression, context, baseDir, depth = 0) {
             return await handleFileInclude(args[0], context, baseDir, depth);
         case 'file.timestamp':
             return await handleFileTimestamp(args[0]);
-        case 'if':
-            return handleIf(args, context);
         default:
             // Handle property access (no spaces, contains dots)
             if (!helper.includes(' ') && helper.includes('.')) {
@@ -272,20 +306,37 @@ async function handleFileTimestamp(filePath) {
 }
 
 /**
- * Handle if conditional helper
- * @param {Array} args - [condition, trueValue, falseValue?]
+ * Handle block if conditional helper ({{#if}}...{{/if}})
+ * @param {string} params - The condition parameter
+ * @param {string} blockContent - Content within the if block
  * @param {Object} context - Context for evaluation
+ * @param {string} baseDir - Base directory for file operations
+ * @param {Object} req - Express request object for logging
+ * @param {number} depth - Current include depth
  * @returns {string} Result based on condition
  */
-function handleIf(args, context) {
-    if (args.length < 2) {
-        throw new Error('if helper requires at least 2 arguments: condition, trueValue, [falseValue]');
-    }
-    const condition = args[0];
-    const trueValue = args[1].replace(/^["']|["']$/g, '');
-    const falseValue = args[2] ? args[2].replace(/^["']|["']$/g, '') : '';
+async function handleBlockIf(params, blockContent, context, baseDir, req, depth = 0) {
+    const condition = params.trim();
     const conditionValue = getNestedProperty(context, condition);
-    return conditionValue ? trueValue : falseValue;
+
+    // Check if there's an {{else}} block
+    const elseMatch = blockContent.match(/^(.*?)\{\{else\}\}(.*?)$/s);
+
+    let contentToProcess;
+    if (elseMatch) {
+        // Has {{else}} - choose content based on condition
+        contentToProcess = conditionValue ? elseMatch[1] : elseMatch[2];
+    } else {
+        // No {{else}} - only show content if condition is true
+        contentToProcess = conditionValue ? blockContent : '';
+    }
+
+    // Recursively process any handlebars within the selected content
+    if (contentToProcess) {
+        return await processHandlebars(contentToProcess, context, baseDir, req, depth + 1);
+    }
+
+    return '';
 }
 
 export default {

@@ -4,8 +4,8 @@
  * @tagline         Home page of jPulse Framework
  * @description     This is the home page of jPulse Framework
  * @file            webapp/view/home/index.shtml
- * @version         0.2.6
- * @release         2025-08-26
+ * @version         0.2.7
+ * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -76,23 +76,14 @@
             <p><strong>Current URL:</strong> {{url.domain}}{{url.pathname}}{{url.search}}</p>
             <p><strong>Protocol:</strong> {{url.protocol}}</p>
             <p><strong>Hostname:</strong> {{url.hostname}}</p>
-            <p>{{if url.port "<strong>Port:</strong> " ""}}{{url.port}}</p>
+            <p>{{#if url.port}}<strong>Port:</strong> {{else}}{{/if}}{{url.port}}</p>
         </div>
         <div class="user-info">
             <h3>User Information</h3>
-            <p>{{if user.authenticated "Welcome back!" "You are not logged in"}}</p>
-            {{if user.authenticated
-                "<p><strong>User ID:</strong> "
-                "<p>Please log in to see your user information.</p>"
-            }}
-            {{if user.authenticated
-                "<p><strong>Name:</strong> "
-                ""
-            }}{{user.firstName}} {{user.lastName}}{{if user.authenticated "</p>" ""}}
-            {{if user.authenticated
-                "<p><strong>Email:</strong> "
-                ""
-            }}{{user.email}}{{if user.authenticated "</p>" ""}}
+            <p>{{#if user.authenticated}}Welcome back!{{else}}You are not logged in{{/if}}</p>
+            {{#if user.authenticated}}<p><strong>User ID:</strong> {{else}}<p>Please log in to see your user information.</p>{{/if}}
+            {{#if user.authenticated}}<p><strong>Name:</strong> {{else}}{{/if}}{{user.firstName}} {{user.lastName}}{{#if user.authenticated}}</p>{{else}}{{/if}}
+            {{#if user.authenticated}}<p><strong>Email:</strong> {{else}}{{/if}}{{user.email}}{{#if user.authenticated}}</p>{{else}}{{/if}}
         </div>
 
         <div class="handlebars-demo">
@@ -102,10 +93,13 @@
                 <li><strong>App info:</strong> {{app.version}} / {{app.release}}</li>
                 <li><strong>URL parsing:</strong> {{url.domain}} + {{url.pathname}}</li>
                 <li><strong>URL params:</strong> Try ?name=test → {{url.param.name}}</li>
-                <li><strong>Conditionals:</strong> {{if user.authenticated "User is logged in" "User is guest"}}</li>
+                <li><strong>Conditionals:</strong> {{#if user.authenticated}}User {{user.id}} is logged in{{else}}User is guest{{/if}}</li>
                 <li><strong>i18n:</strong>
-                    <span style="display: {{if user.authenticated 'inline' 'none'}}"> {{i18n.login.welcome}}</span>
-                    <span style="display: {{if user.authenticated 'none' 'inline'}}"> {{i18n.login.notAuthenticated}}</span>
+                    {{#if user.authenticated}}
+                      {{i18n.login.welcome}}
+                    {{else}}
+                      {{i18n.login.notAuthenticated}}
+                    {{/if}}
                 </li>
                 <li><strong>Config:</strong> Admin email: {{config.email.adminEmail}}</li>
             </ul>

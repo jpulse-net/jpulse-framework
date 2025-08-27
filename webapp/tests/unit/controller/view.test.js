@@ -3,8 +3,8 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         0.2.6
- * @release         2025-08-26
+ * @version         0.2.7
+ * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -221,37 +221,43 @@ describe('View Controller Handlebars Processing', () => {
         });
     });
 
-    describe('If Helper Processing', () => {
-        test('should process if helper with 3 arguments - true condition', async () => {
-            const content = '{{if user.authenticated "Welcome" "Please login"}}';
+    describe('Block If Helper Processing', () => {
+        test('should process {{#if}} block with true condition', async () => {
+            const content = '{{#if user.authenticated}}Welcome back, {{user.firstName}}!{{/if}}';
             const result = await processHandlebarsForTest(content, mockContext);
-            expect(result).toBe('Welcome');
+            expect(result).toBe('Welcome back, John!');
         });
 
-        test('should process if helper with 3 arguments - false condition', async () => {
+        test('should process {{#if}} block with false condition', async () => {
             const guestContext = { ...mockContext, user: { ...mockContext.user, authenticated: false } };
-            const content = '{{if user.authenticated "Welcome" "Please login"}}';
-            const result = await processHandlebarsForTest(content, guestContext);
-            expect(result).toBe('Please login');
-        });
-
-        test('should process if helper with 2 arguments - true condition', async () => {
-            const content = '{{if user.authenticated "Welcome"}}';
-            const result = await processHandlebarsForTest(content, mockContext);
-            expect(result).toBe('Welcome');
-        });
-
-        test('should process if helper with 2 arguments - false condition', async () => {
-            const guestContext = { ...mockContext, user: { ...mockContext.user, authenticated: false } };
-            const content = '{{if user.authenticated "Welcome"}}';
+            const content = '{{#if user.authenticated}}Welcome back, {{user.firstName}}!{{/if}}';
             const result = await processHandlebarsForTest(content, guestContext);
             expect(result).toBe('');
         });
 
-        test('should handle empty string values in if helper', async () => {
-            const content = '{{if url.port "Port: " ""}}{{url.port}}';
+        test('should process {{#if}} with {{else}} - true condition', async () => {
+            const content = '{{#if user.authenticated}}Welcome, {{user.firstName}}{{else}}Please sign in{{/if}}';
             const result = await processHandlebarsForTest(content, mockContext);
-            expect(result).toBe('Port: 8080');
+            expect(result).toBe('Welcome, John');
+        });
+
+        test('should process {{#if}} with {{else}} - false condition', async () => {
+            const guestContext = { ...mockContext, user: { ...mockContext.user, authenticated: false } };
+            const content = '{{#if user.authenticated}}Welcome, {{user.firstName}}{{else}}Please sign in{{/if}}';
+            const result = await processHandlebarsForTest(content, guestContext);
+            expect(result).toBe('Please sign in');
+        });
+
+        test('should handle nested handlebars within {{#if}} blocks', async () => {
+            const content = '{{#if url.port}}Server running on port {{url.port}}{{else}}Default port{{/if}}';
+            const result = await processHandlebarsForTest(content, mockContext);
+            expect(result).toBe('Server running on port 8080');
+        });
+
+        test('should handle complex content in {{#if}} blocks', async () => {
+            const content = '{{#if user.authenticated}}<div class="user-info">{{user.firstName}} {{user.lastName}} ({{user.email}})</div>{{else}}<div class="guest-info">Guest user</div>{{/if}}';
+            const result = await processHandlebarsForTest(content, mockContext);
+            expect(result).toBe('<div class="user-info">John Doe (john@test.com)</div>');
         });
     });
 
@@ -276,10 +282,10 @@ describe('View Controller Handlebars Processing', () => {
             expect(result).toBe('');
         });
 
-        test('should handle if helper with insufficient arguments', async () => {
-            const content = '{{if}}';
+        test('should handle unknown helper', async () => {
+            const content = '{{unknown.helper}}';
             const result = await processHandlebarsForTest(content, mockContext);
-            expect(result).toContain('<!-- Error:');
+            expect(result).toBe('');
         });
 
         test('should handle malformed handlebars syntax', async () => {
@@ -410,16 +416,16 @@ describe('View Controller Handlebars Processing', () => {
             expect(result).toBe('0.1.4 middle content 2025-08-24');
         });
 
-        test('should handle special characters in handlebars arguments', async () => {
-            const content = '{{if user.authenticated "Welcome! @#$%^&*()" "Please login..."}}';
+        test('should handle special characters in {{#if}} blocks', async () => {
+            const content = '{{#if user.authenticated}}Welcome! @#$%^&*(){{else}}Please login...{{/if}}';
             const result = await processHandlebarsForTest(content, mockContext);
             expect(result).toBe('Welcome! @#$%^&*()');
         });
 
-        test('should handle mixed quote types in arguments', async () => {
-            const content = '{{if user.authenticated \'Single quotes\' "Double quotes"}}';
+        test('should handle mixed content types in {{#if}} blocks', async () => {
+            const content = '{{#if user.authenticated}}User content{{else}}Guest content{{/if}}';
             const result = await processHandlebarsForTest(content, mockContext);
-            expect(result).toBe('Single quotes');
+            expect(result).toBe('User content');
         });
 
         test('should handle empty config object', async () => {
@@ -449,9 +455,9 @@ describe('View Controller Handlebars Processing', () => {
             expect(result).toBe(expected);
         });
 
-        test('should handle very long string arguments', async () => {
+        test('should handle very long content in {{#if}} blocks', async () => {
             const longString = 'A'.repeat(1000);
-            const content = `{{if user.authenticated "${longString}" "short"}}`;
+            const content = `{{#if user.authenticated}}${longString}{{else}}short{{/if}}`;
             const result = await processHandlebarsForTest(content, mockContext);
             expect(result).toBe(longString);
         });
@@ -467,23 +473,74 @@ async function processHandlebarsForTest(content, context, depth = 0) {
         throw new Error('Maximum include depth exceeded');
     }
 
-    const handlebarsRegex = /\{\{([^}]*)\}\}/g;
+    // Combined regex to match both block handlebars ({{#if}}...{{/if}}) and regular handlebars ({{expression}})
+    const handlebarsRegex = /\{\{#(\w+)\s+([^}]+)\}\}(.*?)\{\{\/\1\}\}|\{\{([^#][^}]*|)\}\}/gs;
     let result = content;
     let match;
 
     while ((match = handlebarsRegex.exec(content)) !== null) {
         const fullMatch = match[0];
-        const expression = match[1].trim();
-
         try {
-            const replacement = await evaluateHandlebarForTest(expression, context, depth);
+            let replacement;
+
+            // Check if this is a block handlebar ({{#expression}}...{{/expression}})
+            if (match[1] && match[2] && match[3] !== undefined) {
+                // Block handlebars: group 1=blockType, group 2=params, group 3=content
+                const blockType = match[1];
+                const params = match[2].trim();
+                const blockContent = match[3];
+                replacement = await evaluateBlockHandlebarForTest(blockType, params, blockContent, context, depth);
+            } else if (match[4]) {
+                // Regular handlebars: group 4=full expression
+                const expression = match[4].trim();
+                replacement = await evaluateHandlebarForTest(expression, context, depth);
+            } else {
+                replacement = '';
+            }
+
             result = result.replace(fullMatch, replacement);
         } catch (error) {
+            const errorExpression = match[1] ? `#${match[1]} ${match[2]}` : match[4] || 'unknown';
             result = result.replace(fullMatch, `<!-- Error: ${error.message} -->`);
         }
     }
 
     return result;
+}
+
+// Simplified block handlebars evaluator for testing
+async function evaluateBlockHandlebarForTest(blockType, params, blockContent, context, depth = 0) {
+    switch (blockType) {
+        case 'if':
+            return await handleBlockIfForTest(params, blockContent, context, depth);
+        default:
+            throw new Error(`Unknown block type: ${blockType}`);
+    }
+}
+
+// Handle block if conditional helper for testing
+async function handleBlockIfForTest(params, blockContent, context, depth = 0) {
+    const condition = params.trim();
+    const conditionValue = getNestedPropertyForTest(context, condition);
+
+    // Check if there's an {{else}} block
+    const elseMatch = blockContent.match(/^(.*?)\{\{else\}\}(.*?)$/s);
+
+    let contentToProcess;
+    if (elseMatch) {
+        // Has {{else}} - choose content based on condition
+        contentToProcess = conditionValue ? elseMatch[1] : elseMatch[2];
+    } else {
+        // No {{else}} - only show content if condition is true
+        contentToProcess = conditionValue ? blockContent : '';
+    }
+
+    // Recursively process any handlebars within the selected content
+    if (contentToProcess) {
+        return await processHandlebarsForTest(contentToProcess, context, depth + 1);
+    }
+
+    return '';
 }
 
 // Simplified handlebars evaluator for testing
@@ -503,8 +560,7 @@ async function evaluateHandlebarForTest(expression, context, depth = 0) {
             return await handleFileIncludeForTest(args[0], context, depth);
         case 'file.timestamp':
             return await handleFileTimestampForTest(args[0]);
-        case 'if':
-            return handleIfForTest(args, context);
+
         case 'i18n':
             const key = args[0].replace(/^["']|["']$/g, '');
             return context.i18n?.[key] || key;
@@ -569,18 +625,7 @@ function getNestedPropertyAsStringForTest(obj, path) {
     return result;
 }
 
-function handleIfForTest(args, context) {
-    if (args.length < 2) {
-        throw new Error('if helper requires at least 2 arguments: condition, trueValue, [falseValue]');
-    }
 
-    const condition = args[0];
-    const trueValue = args[1].replace(/^["']|["']$/g, '');
-    const falseValue = args[2] ? args[2].replace(/^["']|["']$/g, '') : '';
-
-    const conditionValue = getNestedPropertyForTest(context, condition);
-    return conditionValue ? trueValue : falseValue;
-}
 
 async function handleFileIncludeForTest(filePath, context, depth = 0) {
     const cleanPath = filePath.replace(/^["']|["']$/g, '');

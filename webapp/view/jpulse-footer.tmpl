@@ -10,15 +10,14 @@
                 <span>👤</span>
             </div>
             <div class="jpulse-dropdown" id="userDropdown">
-                <div style="{{if user.authenticated "display: block" "display: none"}}">
-                    <a href="/user/profile.shtml">{{i18n.header.profile}}</a>
-                    <a href="/user/index.shtml">{{i18n.user.directory.title}}</a>
-                    <a href="/auth/logout.shtml">{{i18n.header.signout}}</a>
-                </div>
-                <div style="{{if user.authenticated "display: none" "display: block"}}">
-                    <a href="/auth/login.shtml">{{i18n.header.signin}}</a>
-                    <a href="/auth/signup.shtml">{{i18n.header.signup}}</a>
-                </div>
+              {{#if user.authenticated}}
+                <a href="/user/profile.shtml">{{i18n.header.profile}}</a>
+                <a href="/user/index.shtml">{{i18n.user.directory.title}}</a>
+                <a href="/auth/logout.shtml">{{i18n.header.signout}}</a>
+              {{else}}
+                <a href="/auth/login.shtml">{{i18n.header.signin}}</a>
+                <a href="/auth/signup.shtml">{{i18n.header.signup}}</a>
+              {{/if}}
             </div>
         </div>
     </div>

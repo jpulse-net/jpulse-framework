@@ -4,8 +4,8 @@
  * @tagline         User logout confirmation and processing page
  * @description     Logout confirmation with automatic session termination
  * @file            webapp/view/auth/logout.shtml
- * @version         0.2.6
- * @release         2025-08-26
+ * @version         0.2.7
+ * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -274,7 +274,8 @@
 <body>
     <div class="jpulse-main">
         <div class="logout-container">
-            <div style="{{if user.authenticated "display: block" "display: none"}}" class="logout-card">
+          {{#if user.authenticated}}
+            <div class="logout-card">
                 <div class="logout-header">
                     <div class="logout-icon">
                         👋
@@ -313,8 +314,8 @@
                     <a href="/" class="btn btn-secondary">{{i18n.auth.logout.home}}</a>
                 </div>
             </div>
-
-            <div style="{{if user.authenticated "display: none" "display: block"}}" class="logout-card">
+          {{else}}
+            <div class="logout-card">
                 <div class="not-authenticated">
                     <div class="logout-icon">
                         ℹ️
@@ -329,7 +330,7 @@
                     </div>
                 </div>
             </div>
-
+          {{/if}}
             <!-- Success state (will be shown after logout) -->
             <div id="logoutSuccess" class="logout-card" style="display: none;">
                 <div class="success-icon">

@@ -715,6 +715,51 @@ Available context in translations:
 
 ### Template Helpers
 
+#### Block Conditionals (v0.2.7)
+The template system supports powerful block-level conditionals with {{#if}} syntax:
+
+**Basic Syntax:**
+```html
+{{#if condition}}
+  Content shown when condition is true
+{{/if}}
+```
+
+**If/Else Syntax:**
+```html
+{{#if condition}}
+  Content for true condition
+{{else}}
+  Content for false condition
+{{/if}}
+```
+
+**Features:**
+- **Recursive Processing**: Handlebars within {{#if}} blocks are fully processed
+- **Nested Content**: Complex HTML and multiple handlebars supported within blocks
+- **No Nesting Limit**: {{#if}} blocks can contain other {{#if}} blocks (unlike legacy {{if}})
+- **Context Access**: Full template context available within conditional blocks
+- **Error Handling**: Malformed blocks show clear error messages
+
+**Supported Conditions:**
+- `user.authenticated` - Boolean authentication status
+- `config.messages.broadcast` - String/object existence checks
+- `url.port` - Numeric value checks
+- Any context property with truthiness evaluation
+
+**Migration from Legacy {{if}}:**
+```html
+<!-- Old syntax (deprecated) -->
+{{if user.authenticated "Welcome!" "Please login"}}
+
+<!-- New syntax (v0.2.7+) -->
+{{#if user.authenticated}}
+  Welcome!
+{{else}}
+  Please login
+{{/if}}
+```
+
 #### File Operations
 ```html
 <!-- Secure file includes -->
@@ -726,16 +771,37 @@ Available context in translations:
 <span>Last modified: {{file.timestamp "jpulse-header.tmpl"}}</span>
 ```
 
-#### Conditional Rendering
+#### Block Conditional Rendering (v0.2.7)
 ```html
-<!-- Simple conditionals -->
-{{if user.authenticated "Welcome back!" "Please sign in"}}
-{{if config.messages.broadcast config.messages.broadcast ""}}
+<!-- Simple conditional blocks -->
+{{#if user.authenticated}}
+  <p>Welcome back, {{user.firstName}}!</p>
+  <div class="user-panel">{{user.email}}</div>
+{{/if}}
 
-<!-- Complex conditionals -->
-<div class="{{if user.authenticated 'user-panel' 'guest-panel'}}">
-  <h2>{{if user.authenticated user.firstName "Guest"}}</h2>
-</div>
+<!-- If/else conditional blocks -->
+{{#if user.authenticated}}
+  <div class="user-panel">
+    <h2>{{user.firstName}}</h2>
+    <p>Last login: {{user.lastLogin}}</p>
+  </div>
+{{else}}
+  <div class="guest-panel">
+    <h2>Guest</h2>
+    <p>Please <a href="/auth/login.shtml">sign in</a> to continue.</p>
+  </div>
+{{/if}}
+
+<!-- Complex nested conditionals -->
+{{#if config.messages.broadcast}}
+  <div class="alert alert-info">
+    <strong>{{i18n.messages.announcement}}</strong>
+    <p>{{config.messages.broadcast}}</p>
+    {{#if user.authenticated}}
+      <small>Shown to: {{user.firstName}} {{user.lastName}}</small>
+    {{/if}}
+  </div>
+{{/if}}
 ```
 
 ### Template Security Features
@@ -745,6 +811,7 @@ Available context in translations:
 - **View Root Jail**: All includes resolved within `webapp/view/` directory
 - **Input Sanitization**: All template variables properly escaped
 - **File Extension Validation**: Only approved file types can be included
+- **Block Processing Security**: {{#if}} blocks maintain all existing security constraints
 
 ### Template Response Format
 Templates return rendered HTML with appropriate headers:

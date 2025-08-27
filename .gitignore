@@ -1,5 +1,6 @@
 # Local work files
 cursor_log.txt
+commit-message*.txt
 
 # Dependencies
 node_modules/

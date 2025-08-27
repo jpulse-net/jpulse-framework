@@ -4,8 +4,8 @@
  * @tagline         User authentication login page
  * @description     Login form for internal authentication with support for LDAP/OAuth2 planning
  * @file            webapp/view/auth/login.shtml
- * @version         0.2.6
- * @release         2025-08-26
+ * @version         0.2.7
+ * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -274,6 +274,7 @@
 
         /* Redirect message */
         .redirect-info {
+            display: none;
             background: #fff3cd;
             color: #856404;
             border: 1px solid #ffeaa7;
@@ -285,6 +286,7 @@
 
         /* Signup success message */
         .signup-success-info {
+            display: none;
             background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
@@ -387,7 +389,8 @@
 <body>
     <div class="jpulse-main">
         <div class="login-container">
-                        <div style="{{if user.authenticated "display: block" "display: none"}}" class="already-logged-in">
+          {{#if user.authenticated}}
+            <div class="already-logged-in">
                 <div class="user-avatar-large">
                     {{user.initials}}
                 </div>
@@ -400,19 +403,19 @@
                     <a href="/" class="btn btn-secondary">{{i18n.auth.login.goHome}}</a>
                 </div>
             </div>
-
-            <div style="{{if user.authenticated "display: none" "display: block"}}" class="login-card">
+          {{else}}
+            <div class="login-card">
                 <div class="login-header">
                     <div class="login-logo">jP</div>
                     <h1>{{i18n.auth.login.title}}</h1>
                     <p>{{i18n.auth.login.subtitle}}</p>
                 </div>
 
-                <div style="{{if url.param.redirect "display: block" "display: none"}}" class="redirect-info">
+                <div class="redirect-info">
                     {{i18n.auth.login.redirectMessage}}
                 </div>
 
-                <div style="{{if url.param.signup "display: block" "display: none"}}" class="signup-success-info">
+                <div class="signup-success-info">
                     <div class="success-message">
                         <span class="success-icon">✅</span>
                         <span id="signupSuccessText">{{i18n.auth.login.signupSuccessMessage}}</span>
@@ -477,6 +480,7 @@
                     <a href="/auth/signup.shtml">{{i18n.auth.login.signUp}}</a>
                 </div>
             </div>
+          {{/if}}
         </div>
     </div>
 
@@ -611,6 +615,24 @@
                     this.classList.remove('error');
                 });
             });
+        });
+
+        // Show redirect-info and signup-success-info
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get values from SSI handlebars
+            const isAuthenticated = '{{user.authenticated}}';
+            const redirectParam = '{{url.param.redirect}}';
+            const signupParam = '{{url.param.signup}}';
+            if (!isAuthenticated) {
+                if (redirectParam) {
+                    const redirectInfo = document.querySelector('.redirect-info');
+                    redirectInfo.style.display = 'block';
+                }
+                if (signupParam) {
+                    const signupSuccessInfo = document.querySelector('.signup-success-info');
+                    signupSuccessInfo.style.display = 'block';
+                }
+            }
         });
     </script>
 

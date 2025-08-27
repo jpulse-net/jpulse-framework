@@ -4,8 +4,8 @@
  * @tagline         User registration and account creation page
  * @description     Signup form for internal user registration
  * @file            webapp/view/auth/signup.shtml
- * @version         0.2.6
- * @release         2025-08-26
+ * @version         0.2.7
+ * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -269,7 +269,8 @@
 <body>
     <div class="jpulse-main">
         <div class="auth-container">
-            <div style="{{if user.authenticated "display: block" "display: none"}}" class="already-logged-in">
+          {{#if user.authenticated}}
+            <div class="already-logged-in">
                 <div class="user-avatar-large">
                     {{user.initials}}
                 </div>
@@ -282,8 +283,8 @@
                     <a href="/" class="btn btn-secondary">{{i18n.auth.signup.goHome}}</a>
                 </div>
             </div>
-
-            <div style="{{if user.authenticated "display: none" "display: block"}}" class="signup-card">
+          {{else}}
+            <div class="signup-card">
                 <div class="signup-header">
                     <div class="signup-logo">jP</div>
                     <h1>{{i18n.auth.signup.title}}</h1>
@@ -373,6 +374,7 @@
                     <a href="/auth/login.shtml">{{i18n.auth.signup.signIn}}</a>
                 </div>
             </div>
+          {{/if}}
         </div>
     </div>
 

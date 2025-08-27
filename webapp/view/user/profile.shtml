@@ -4,13 +4,13 @@
  * @tagline         User profile view with edit capabilities
  * @description     User profile management with view and edit modes
  * @file            webapp/view/user/profile.shtml
- * @version         0.2.6
- * @release         2025-08-26
+ * @version         0.2.7
+ * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           80%, Cursor 1.2, Claude Sonnet 4
 -->
 <html lang="en">
 <head>
@@ -228,11 +228,8 @@
 <body>
     <div class="jpulse-main">
         <div class="profile-container">
-            <div style="{{if user.authenticated "display: none" "display: block"}}" class="alert alert-error">
-                {{i18n.login.notAuthenticated}}
-            </div>
-
-            <div style="{{if user.authenticated "display: block" "display: none"}}" class="profile-header">
+          {{#if user.authenticated}}
+            <div class="profile-header">
                 <div class="profile-avatar">
                     {{user.initials}}
                 </div>
@@ -245,95 +242,88 @@
                 </div>
             </div>
 
-            {{if user.authenticated
-                "<div class=\"profile-section\">
-                    <h3>{{i18n.user.profile.personalInfo}}</h3>
-                    <form id=\"profileForm\">
-                        <div class=\"form-row\">
-                            <div class=\"form-group\">
-                                <label for=\"firstName\">{{i18n.user.profile.firstName}}</label>
-                                <input type=\"text\" id=\"firstName\" name=\"firstName\" value=\"{{user.firstName}}\" readonly class=\"read-only-field\">
-                            </div>
-                            <div class=\"form-group\">
-                                <label for=\"lastName\">{{i18n.user.profile.lastName}}</label>
-                                <input type=\"text\" id=\"lastName\" name=\"lastName\" value=\"{{user.lastName}}\" readonly class=\"read-only-field\">
-                            </div>
+            <div class="profile-section">
+                <h3>{{i18n.user.profile.personalInfo}}</h3>
+                <form id="profileForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="firstName">{{i18n.user.profile.firstName}}</label>
+                            <input type="text" id="firstName" name="firstName" value="{{user.firstName}}" readonly class="read-only-field">
                         </div>
-                        <div class=\"form-row\">
-                            <div class=\"form-group\">
-                                <label for=\"nickName\">{{i18n.user.profile.nickName}}</label>
-                                <input type=\"text\" id=\"nickName\" name=\"nickName\" value=\"{{user.nickName}}\" readonly class=\"read-only-field\">
-                            </div>
-                            <div class=\"form-group\">
-                                <label for=\"email\">{{i18n.user.profile.email}}</label>
-                                <input type=\"email\" id=\"email\" name=\"email\" value=\"{{user.email}}\" readonly class=\"read-only-field\">
-                            </div>
+                        <div class="form-group">
+                            <label for="lastName">{{i18n.user.profile.lastName}}</label>
+                            <input type="text" id="lastName" name="lastName" value="{{user.lastName}}" readonly class="read-only-field">
                         </div>
-                    </form>
-                </div>"
-                ""
-            }}
-
-            {{if user.authenticated
-                "<div class=\"profile-section\">
-                    <h3>{{i18n.user.profile.preferences}}</h3>
-                    <form id=\"preferencesForm\">
-                        <div class=\"form-row\">
-                            <div class=\"form-group\">
-                                <label for=\"language\">{{i18n.user.profile.language}}</label>
-                                <select id=\"language\" name=\"language\" disabled class=\"read-only-field\">
-                                    <option value=\"en\">English</option>
-                                    <option value=\"de\">Deutsch</option>
-                                </select>
-                            </div>
-                            <div class=\"form-group\">
-                                <label for=\"theme\">{{i18n.user.profile.theme}}</label>
-                                <select id=\"theme\" name=\"theme\" disabled class=\"read-only-field\">
-                                    <option value=\"light\">{{i18n.user.profile.themeLight}}</option>
-                                    <option value=\"dark\">{{i18n.user.profile.themeDark}}</option>
-                                </select>
-                            </div>
-                        </div>
-                    </form>
-                </div>"
-                ""
-            }}
-
-            {{if user.authenticated
-                "<div class=\"profile-section\">
-                    <h3>{{i18n.user.profile.security}}</h3>
-                    <div class=\"alert alert-info\">
-                        {{i18n.user.profile.securityNote}}
                     </div>
-                    <form id=\"passwordForm\" class=\"hidden\">
-                        <div class=\"form-group\">
-                            <label for=\"currentPassword\">{{i18n.user.profile.currentPassword}}</label>
-                            <input type=\"password\" id=\"currentPassword\" name=\"currentPassword\" required>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nickName">{{i18n.user.profile.nickName}}</label>
+                            <input type="text" id="nickName" name="nickName" value="{{user.nickName}}" readonly class="read-only-field">
                         </div>
-                        <div class=\"form-row\">
-                            <div class=\"form-group\">
-                                <label for=\"newPassword\">{{i18n.user.profile.newPassword}}</label>
-                                <input type=\"password\" id=\"newPassword\" name=\"newPassword\" required>
-                            </div>
-                            <div class=\"form-group\">
-                                <label for=\"confirmPassword\">{{i18n.user.profile.confirmPassword}}</label>
-                                <input type=\"password\" id=\"confirmPassword\" name=\"confirmPassword\" required>
-                            </div>
+                        <div class="form-group">
+                            <label for="email">{{i18n.user.profile.email}}</label>
+                            <input type="email" id="email" name="email" value="{{user.email}}" readonly class="read-only-field">
                         </div>
-                    </form>
-                </div>"
-                ""
-            }}
+                    </div>
+                </form>
+            </div>
 
-            {{if user.authenticated
-                "<div class=\"btn-group\">
-                    <button id=\"editBtn\" class=\"btn btn-primary\" onclick=\"toggleEditMode()\">Edit Profile</button>
-                    <button id=\"saveBtn\" class=\"btn btn-success hidden\" onclick=\"saveProfile()\">Save Changes</button>
-                    <button id=\"cancelBtn\" class=\"btn btn-secondary hidden\" onclick=\"cancelEdit()\">Cancel</button>
-                    <button id=\"changePasswordBtn\" class=\"btn btn-secondary\" onclick=\"togglePasswordForm()\">Change Password</button>
-                </div>"
-                ""
-            }}
+            <div class="profile-section">
+                <h3>{{i18n.user.profile.preferences}}</h3>
+                <form id="preferencesForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="language">{{i18n.user.profile.language}}</label>
+                            <select id="language" name="language" disabled class="read-only-field">
+                                <option value="en">English</option>
+                                <option value="de">Deutsch</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="theme">{{i18n.user.profile.theme}}</label>
+                            <select id="theme" name="theme" disabled class="read-only-field">
+                                <option value="light">{{i18n.user.profile.themeLight}}</option>
+                                <option value="dark">{{i18n.user.profile.themeDark}}</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="profile-section">
+                <h3>{{i18n.user.profile.security}}</h3>
+                <div class="alert alert-info">
+                    {{i18n.user.profile.securityNote}}
+                </div>
+                <form id="passwordForm" class="hidden">
+                    <div class="form-group">
+                        <label for="currentPassword">{{i18n.user.profile.currentPassword}}</label>
+                        <input type="password" id="currentPassword" name="currentPassword" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="newPassword">{{i18n.user.profile.newPassword}}</label>
+                            <input type="password" id="newPassword" name="newPassword" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">{{i18n.user.profile.confirmPassword}}</label>
+                            <input type="password" id="confirmPassword" name="confirmPassword" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="btn-group">
+                <button id="editBtn" class="btn btn-primary" onclick="toggleEditMode()">Edit Profile</button>
+                <button id="saveBtn" class="btn btn-success hidden" onclick="saveProfile()">Save Changes</button>
+                <button id="cancelBtn" class="btn btn-secondary hidden" onclick="cancelEdit()">Cancel</button>
+                <button id="changePasswordBtn" class="btn btn-secondary" onclick="togglePasswordForm()">Change Password</button>
+            </div>
+          {{else}}
+            <div class="alert alert-error">
+                {{i18n.login.notAuthenticated}}
+            </div>
+          {{/if}}
         </div>
     </div>
 

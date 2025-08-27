@@ -4,8 +4,8 @@
  * @tagline         Error page of jPulse Framework
  * @description     This is the error page of jPulse Framework
  * @file            webapp/view/error/index.shtml
- * @version         0.2.6
- * @release         2025-08-26
+ * @version         0.2.7
+ * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -189,24 +189,33 @@
 
                             <div class="detail-row">
                                 <strong>{{i18n.errorPage.user}}:</strong>
-                                <span>{{if user.authenticated user.firstName i18n.errorPage.guest}}</span>
+                                {{#if user.authenticated}}
+                                    {{user.firstName}}
+                                {{else}}
+                                    {{i18n.errorPage.guest}}
+                                {{/if}}
                             </div>
                         </div>
 
                         <div class="error-message">
-                            <p>{{if user.authenticated i18n.errorPage.apologize i18n.errorPage.tryLogin}}</p>
+                          {{#if user.authenticated}}
+                            <p>{{i18n.errorPage.apologize}}</p>
+                          {{else}}
+                            <p>{{i18n.errorPage.tryLogin}}</p>
+                          {{/if}}
                         </div>
 
                         <div class="error-actions">
                             <a href="/" class="btn btn-primary">
                                 ← {{i18n.errorPage.backToHome}}
                             </a>
-
-                            <div style="{{if user.authenticated "display: none" "display: block"}}">
+                          {{#if user.authenticated}}
+                            <div class="error-actions-authenticated">
                                 <a href="/auth/login.shtml" class="btn btn-secondary">
                                     {{i18n.header.signin}}
                                 </a>
                             </div>
+                          {{/if}}
                         </div>
                     </div>
                 </div>

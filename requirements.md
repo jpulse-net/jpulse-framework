@@ -295,16 +295,20 @@ Requirements Doc of jPulse Framework
 - handles auth.isAuthenticated and auth.isAuthorized for middleware
 - use as needed in routing
 
-
-
-
-
 ## **W-017**: i18n with variable content
-- status: 🕑 PENDING
+- status: ✅ COMPLETED
 - handlebar based, example:
   - signOut: 'Sign out {{user.id}}' // ==> 'Sign out jsmith'
 
-## **W-018**: sliding info/error message on top of page
+## **W-018**: create {{#if}} handlebar for simple nesting
+- status: 🚧 IN_PROGRESS
+- syntax: {{#if some.condition}} show this with {{other.handlebars}} {{/if}}
+- syntax: {{#if some.condition}} show if true {{else}} show if false {{/if}}
+- no nesting of #if, e.g. no support for {{#if 1}} {{#if 2}} blah {{/if}} {{/if}}
+- remove existing {{if some.condition "text for true" "text for false"}} syntax
+- replace all existing {{if}} with the new {{#if}} syntax
+
+## **W-019**: sliding info/error message on top of page
 - status: 🕑 PENDING
 - pupose: non-blocking error or info message, such after signin
 - action:
@@ -364,9 +368,6 @@ Requirements Doc of jPulse Framework
 ## **W-0**: nested config
 - status: 🕑 PENDING
 
-## **W-0**: nested handlebars
-- status: 🕑 PENDING
-
 
 
 
@@ -377,9 +378,17 @@ status codes:
 - status: ✅ DONE
 ------------------------
 
+next: 
+- review task, ask questions
+- plan how to implement
+018
+
+------------------------
+
 - for 404 and other errors I prefer not a redirect, but keep same URI with content of webapp/view/error/index.shtml - possible?
 - cleaner styles, no duplication, move all shared style to header or footer
 - signup with email confirmation (or not, configrable with a appConfig setting)
+- make language user configurable
 
 ------------------------
 

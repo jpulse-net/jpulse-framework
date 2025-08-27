@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the routing file for the jPulse Framework WebApp
  * @file            webapp/route.js
- * @version         0.2.6
- * @release         2025-08-26
+ * @version         0.2.7
+ * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -12,6 +12,7 @@
  * @genai           99%, Cursor 1.2, Claude Sonnet 4
  */
 
+import path from 'path';
 import express from 'express';
 const router = express.Router();
 
@@ -57,12 +58,21 @@ router.get('/api/1/user/search', AuthController.requireRole(['admin', 'root']), 
 // Log API routes (require authentication)
 router.get('/api/1/log/search', AuthController.requireAuthentication, logController.search);
 
-// Dynamic content routes - handle .shtml, .tmpl, and jpulse-* files only
-// Static files (.txt, .ico, .png, .json, etc.) will fall through to Express static middleware
+// Serve common files first, so that {{handlebars}} are not processed by the view controller.
+// This is handled by nginx if the app is running behind a reverse proxy
+router.use('/common', express.static(path.join(appConfig.app.dirName, 'static', 'common')));
+
+// Dynamic content routes - handle {{handlebars}} in .shtml, .tmpl, and jpulse-* files only
 router.get(/\.(shtml|tmpl)$/, viewController.load);
 router.get(/\/jpulse-.*\.(js|css)$/, viewController.load);
-router.get(/^\/[^.]*$/, viewController.load); // e.g. /home/ for /home/index.shtml
-router.get(/^\/[^.]*\/[^.]*$/, viewController.load);
+router.get(/^\/[\w-]+\/$/, viewController.load); // e.g. /home/ ==> /home/index.shtml
+router.get('/', (req, res) => {
+    res.redirect('/home/');
+});
+
+// Anything else will fall through to Express static middleware (.txt, .ico, .png, .json, etc.)
+// This is handled by nginx if the app is running behind a reverse proxy
+router.use('/', express.static(path.join(appConfig.app.dirName, 'static')));
 
 // Catch-all 404 handler
 router.use('*', (req, res) => {

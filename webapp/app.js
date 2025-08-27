@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         0.2.6
- * @release         2025-08-26
+ * @version         0.2.7
+ * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -47,6 +47,7 @@ async function loadAppConfig() {
 const appConfig = await loadAppConfig();
 
 // Make appConfig globally available for other modules
+appConfig.app.dirName = __dirname;
 global.appConfig = appConfig;
 
 // Load the i18n object
@@ -60,8 +61,9 @@ const LogController = await import('./controller/log.js').then(m => m.default);
 
 // Make LogController globally available for other modules
 global.LogController = LogController;
+LogController.console(null, `appConfig.app.dirName: ${appConfig.app.dirName}`);
 
-// Load database connection
+// Load database connections
 const database = await import('./database.js').then(m => m.default);
 
 // Load routing
@@ -89,16 +91,8 @@ async function startApp() {
     };
     app.use(session(sessionConfig));
 
-    // Following W-008 Express Routing Order:
-    // 1. API routes: /api/1/*
-    // 2. Static /common directory (protected from template processing)
-    app.use('/common', express.static(path.join(__dirname, 'static', 'common')));
-
-    // 3. Use routes for API and dynamic content (.shtml, .tmpl, jpulse-*)
+    // All app routing is handled by routes.js
     app.use('/', routes);
-
-    // 4. Root static fallback: serves remaining static files (robots.txt, favicon, images, etc.)
-    app.use('/', express.static(path.join(__dirname, 'static')));
 
     // Get port from configuration
     const mode = appConfig.deployment.mode;

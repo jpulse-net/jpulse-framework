@@ -1,14 +1,14 @@
-# jPulse Framework / Developer Documentation v0.2.6
+# jPulse Framework / Developer Documentation v0.2.7
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.2.6):**
-- 🌐 **i18n Variable Content**: Handlebars-style variable substitution in translations with two-pass processing
-- 🔄 **Enhanced Template System**: Seamless integration of dynamic content in internationalization
-- 🎯 **Full Context Access**: All template context (user, config, url, app) available in translations
-- 🔐 **User Views Implementation**: Complete user interface with signup, login, logout views
-- 👥 **User Registration System**: Full signup workflow with validation and error handling
-- 🧪 **Comprehensive Testing**: 336 tests including i18n variable content validation
+**Latest Updates (v0.2.7):**
+- 🎯 **{{#if}} Block Handlebars**: New block-level conditional syntax replacing old {{if}} helper
+- 🔄 **Single-Pass Processing**: Combined regex for both block and inline handlebars processing
+- 🎨 **Recursive Content Processing**: Handlebars within {{#if}} blocks are processed recursively
+- 🧹 **Legacy Syntax Removal**: Complete migration from {{if condition "true" "false"}} to {{#if}} blocks
+- 🧪 **Enhanced Testing**: Updated test suite with comprehensive {{#if}} block coverage
+- 📚 **Migration Support**: Tools and patterns for converting existing templates
 
 ## 🏗️ Architecture Overview
 
@@ -25,7 +25,7 @@ Technical documentation for developers working on the jPulse Framework. This doc
 - **Configuration**: JavaScript-based `.conf` files with dynamic evaluation
 - **Templating**: Custom Handlebars implementation with security features
 - **Utilities**: CommonUtils framework for data processing and schema-based queries
-- **Testing**: Jest with automated cleanup, global setup/teardown, and 229+ tests
+- **Testing**: Jest with automated cleanup, global setup/teardown, and 230+ tests
 - **Build Tools**: npm scripts, native ES modules, version management
 - **Production**: nginx reverse proxy + PM2 process management
 - **User Management**: Complete authentication system with bcrypt and role-based access control
@@ -941,11 +941,125 @@ const safe = CommonUtils.sanitizeString(userInput);
 
 ## 🎨 Template System Architecture
 
-### Custom Handlebars Implementation
+### {{#if}} Block Handlebars Implementation (W-018)
 
-#### Core Processing Flow
+#### Core Architecture Change
+The template system was enhanced to support block-level conditionals with a new single-pass processing approach that handles both block and inline handlebars simultaneously.
+
+#### Combined Regex Processing
 ```javascript
-// webapp/controller/view.js
+// webapp/controller/view.js - Single-pass processing
+async function processHandlebars(content, context, baseDir, req, depth = 0) {
+    // Combined regex matches both {{#if}}...{{/if}} blocks and {{expression}} inline
+    const handlebarsRegex = /\{\{#(\w+)\s+([^}]+)\}\}(.*?)\{\{\/\1\}\}|\{\{([^#][^}]*|)\}\}/gs;
+    let result = content;
+    let match;
+
+    while ((match = handlebarsRegex.exec(content)) !== null) {
+        const fullMatch = match[0];
+        try {
+            let replacement;
+
+            // Check if this is a block handlebar ({{#expression}}...{{/expression}})
+            if (match[1] && match[2] && match[3] !== undefined) {
+                // Block handlebars: group 1=blockType, group 2=params, group 3=content
+                const blockType = match[1];
+                const params = match[2].trim();
+                const blockContent = match[3];
+                replacement = await evaluateBlockHandlebar(blockType, params, blockContent, context, baseDir, req, depth);
+            } else if (match[4]) {
+                // Regular handlebars: group 4=full expression
+                const expression = match[4].trim();
+                replacement = await evaluateHandlebar(expression, context, baseDir, depth);
+            } else {
+                replacement = '';
+            }
+
+            result = result.replace(fullMatch, replacement);
+        } catch (error) {
+            const errorExpression = match[1] ? `#${match[1]} ${match[2]}` : match[4] || 'unknown';
+            result = result.replace(fullMatch, `<!-- Error: ${error.message} -->`);
+        }
+    }
+
+    return result;
+}
+```
+
+#### Block Handlebar Processing
+```javascript
+// Block-level conditional processing with recursive content handling
+async function handleBlockIf(params, blockContent, context, baseDir, req, depth = 0) {
+    const condition = params.trim();
+    const conditionValue = getNestedProperty(context, condition);
+
+    // Check if there's an {{else}} block
+    const elseMatch = blockContent.match(/^(.*?)\{\{else\}\}(.*?)$/s);
+
+    let contentToProcess;
+    if (elseMatch) {
+        // Has {{else}} - choose content based on condition
+        contentToProcess = conditionValue ? elseMatch[1] : elseMatch[2];
+    } else {
+        // No {{else}} - only show content if condition is true
+        contentToProcess = conditionValue ? blockContent : '';
+    }
+
+    // Recursively process any handlebars within the selected content
+    if (contentToProcess) {
+        return await processHandlebars(contentToProcess, context, baseDir, req, depth + 1);
+    }
+
+    return '';
+}
+```
+
+#### Key Implementation Features
+1. **Single-Pass Processing**: Combined regex processes both block and inline handlebars in document order
+2. **Recursive Content Processing**: Handlebars within {{#if}} blocks are fully processed
+3. **{{else}} Support**: Complete if/else conditional logic with proper content selection
+4. **Error Handling**: Comprehensive error reporting for malformed blocks
+5. **Extensible Design**: Ready for future block types like {{#each}}
+6. **Security**: All existing security features maintained (depth limits, path validation)
+
+#### Syntax Examples
+```html
+<!-- Simple conditional block -->
+{{#if user.authenticated}}
+    <p>Welcome back, {{user.firstName}}!</p>
+    <div class="user-panel">{{user.email}}</div>
+{{/if}}
+
+<!-- If/else conditional block -->
+{{#if user.authenticated}}
+    <div class="logged-in-content">
+        <h2>Dashboard</h2>
+        <p>Last login: {{user.lastLogin}}</p>
+    </div>
+{{else}}
+    <div class="guest-content">
+        <h2>Welcome, Guest!</h2>
+        <p>Please <a href="/auth/login.shtml">sign in</a> to continue.</p>
+    </div>
+{{/if}}
+
+<!-- Complex nested content -->
+{{#if config.messages.broadcast}}
+    <div class="alert alert-info">
+        <strong>{{i18n.messages.announcement}}</strong>
+        <p>{{config.messages.broadcast}}</p>
+        {{#if user.authenticated}}
+            <small>Shown to: {{user.firstName}} {{user.lastName}}</small>
+        {{/if}}
+    </div>
+{{/if}}
+```
+
+### Custom Handlebars Implementation (Legacy)
+
+#### Previous Processing Flow (Pre-W-018)
+```javascript
+// Old single-expression processing (replaced)
 async function processHandlebars(content, context, baseDir, filePath, depth = 0) {
     const regex = /\{\{([^}]+)\}\}/g;
     let result = content;
@@ -961,16 +1075,15 @@ async function processHandlebars(content, context, baseDir, filePath, depth = 0)
 }
 ```
 
-#### Helper Function Priority (Critical)
+#### Helper Function Priority (Updated for W-018)
 ```javascript
-// evaluateHandlebar() - Order matters!
+// evaluateHandlebar() - Order matters! ({{if}} helper removed in v0.2.7)
 switch (helper) {
     case 'file.include':    // FIRST - Security-critical
         return await handleFileInclude(args[0], context, baseDir, depth);
     case 'file.timestamp':  // File operations
         return handleFileTimestamp(args[0], baseDir);
-    case 'if':             // Conditional logic
-        return handleConditional(args, context);
+    // NOTE: 'if' case removed - now handled by block handlebars {{#if}}
     case 'i18n':           // Translation function (legacy)
         return handleI18nFunction(args[0], args.slice(1));
     default:
@@ -1146,6 +1259,45 @@ export default async function globalTeardown() {
 - ✅ **Error Resilience**: Cleanup continues even if individual operations fail
 - ✅ **Cross-Platform**: Works on all operating systems
 
+### W-018 Testing Implementation
+
+#### {{#if}} Block Handlebars Tests
+```javascript
+// webapp/tests/unit/controller/view.test.js
+describe('Block If Helper Processing', () => {
+    test('should process {{#if}} block with true condition', async () => {
+        const content = '{{#if user.authenticated}}Welcome back, {{user.firstName}}!{{/if}}';
+        const result = await processHandlebarsForTest(content, mockContext);
+        expect(result).toBe('Welcome back, John!');
+    });
+
+    test('should process {{#if}} with {{else}} - true condition', async () => {
+        const content = '{{#if user.authenticated}}Welcome, {{user.firstName}}{{else}}Please sign in{{/if}}';
+        const result = await processHandlebarsForTest(content, mockContext);
+        expect(result).toBe('Welcome, John');
+    });
+
+    test('should handle nested handlebars within {{#if}} blocks', async () => {
+        const content = '{{#if url.port}}Server running on port {{url.port}}{{else}}Default port{{/if}}';
+        const result = await processHandlebarsForTest(content, mockContext);
+        expect(result).toBe('Server running on port 8080');
+    });
+
+    test('should handle complex content in {{#if}} blocks', async () => {
+        const content = '{{#if user.authenticated}}<div class="user-info">{{user.firstName}} {{user.lastName}} ({{user.email}})</div>{{else}}<div class="guest-info">Guest user</div>{{/if}}';
+        const result = await processHandlebarsForTest(content, mockContext);
+        expect(result).toBe('<div class="user-info">John Doe (john@test.com)</div>');
+    });
+});
+```
+
+#### Migration Testing Strategy
+- **Legacy {{if}} Tests Removed**: All old conditional syntax tests replaced
+- **Block Processing Tests**: Comprehensive coverage of {{#if}}...{{/if}} patterns
+- **Recursive Processing Tests**: Validation of handlebars within conditional blocks
+- **Error Handling Tests**: Malformed block syntax error reporting
+- **Integration Tests**: Real-world template scenarios with complex conditions
+
 ### Enhanced Test Coverage
 
 #### CommonUtils Tests
@@ -1215,7 +1367,7 @@ describe('Security and Error Handling', () => {
 
 ### Test Execution Strategy
 ```bash
-# Run all tests (229+ tests with automated cleanup)
+# Run all tests (230+ tests with automated cleanup)
 npm test
 
 # Run specific test categories
@@ -1351,11 +1503,12 @@ function sanitizePath(inputPath) {
 ### Best Practices Established
 1. **Security by Design**: All file operations validated and constrained
 2. **Configuration Driven**: Layout and behavior controlled by `app.conf`
-3. **Test Coverage**: Every new feature gets comprehensive tests (229+ total)
+3. **Test Coverage**: Every new feature gets comprehensive tests (230+ total)
 4. **Error Handling**: Graceful degradation for missing translations/files
 5. **Performance Awareness**: Static/dynamic separation for optimal serving
 6. **Automated Test Management**: Global setup/teardown prevents conflicts
 7. **Utility-First Development**: CommonUtils pattern for reusable functions
+8. **Template Evolution**: {{#if}} blocks provide more powerful conditional rendering than legacy {{if}} syntax
 
 ---
 

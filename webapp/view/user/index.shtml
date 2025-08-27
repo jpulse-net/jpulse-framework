@@ -4,13 +4,13 @@
  * @tagline         User directory with search and statistics
  * @description     User management interface with role-based access control
  * @file            webapp/view/user/index.shtml
- * @version         0.2.6
- * @release         2025-08-26
+ * @version         0.2.7
+ * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           80%, Cursor 1.2, Claude Sonnet 4
 -->
 <html lang="en">
 <head>
@@ -351,15 +351,12 @@
 <body>
     <div class="jpulse-main">
         <div class="users-container">
-            <div style="{{if user.authenticated "display: none" "display: block"}}" class="alert alert-error">
-                {{i18n.login.notAuthenticated}}
-            </div>
-
-            <div style="{{if user.authenticated "display: block" "display: none"}}" class="page-header">
+          {{#if user.authenticated}}
+            <div class="page-header">
                 <h1>{{i18n.user.directory.title}}</h1>
             </div>
 
-            <div style="{{if user.authenticated "display: block" "display: none"}}" class="stats-grid" id="statsGrid">
+            <div class="stats-grid" id="statsGrid">
                 <div class="stat-card">
                     <div class="stat-number" id="totalUsers">-</div>
                     <div class="stat-label">{{i18n.user.directory.totalUsers}}</div>
@@ -378,79 +375,76 @@
                 </div>
             </div>
 
-            {{if user.authenticated
-                "<div class=\"search-section\">
-                    <form class=\"search-form\" id=\"searchForm\" onsubmit=\"searchUsers(event)\">
-                        <div class=\"search-fields\">
-                            <div class=\"form-group\">
-                                <label for=\"searchName\">{{i18n.user.directory.searchName}}</label>
-                                <input type=\"text\" id=\"searchName\" name=\"name\" placeholder=\"{{i18n.user.directory.searchNamePlaceholder}}\">
-                            </div>
-                            <div class=\"form-group\">
-                                <label for=\"searchEmail\">{{i18n.user.directory.searchEmail}}</label>
-                                <input type=\"email\" id=\"searchEmail\" name=\"email\" placeholder=\"{{i18n.user.directory.searchEmailPlaceholder}}\">
-                            </div>
-                            <div class=\"form-group\">
-                                <label for=\"searchRole\">{{i18n.user.directory.searchRole}}</label>
-                                <select id=\"searchRole\" name=\"role\">
-                                    <option value=\"\">{{i18n.user.directory.allRoles}}</option>
-                                    <option value=\"root\">Root</option>
-                                    <option value=\"admin\">Admin</option>
-                                    <option value=\"user\">User</option>
-                                    <option value=\"guest\">Guest</option>
-                                </select>
-                            </div>
-                            <div class=\"form-group\">
-                                <label for=\"searchStatus\">{{i18n.user.directory.searchStatus}}</label>
-                                <select id=\"searchStatus\" name=\"status\">
-                                    <option value=\"\">{{i18n.user.directory.allStatuses}}</option>
-                                    <option value=\"active\">{{i18n.user.directory.statusActive}}</option>
-                                    <option value=\"inactive\">{{i18n.user.directory.statusInactive}}</option>
-                                    <option value=\"pending\">{{i18n.user.directory.statusPending}}</option>
-                                    <option value=\"suspended\">{{i18n.user.directory.statusSuspended}}</option>
-                                </select>
-                            </div>
+            <div class="search-section">
+                <form class="search-form" id="searchForm" onsubmit="searchUsers(event)">
+                    <div class="search-fields">
+                        <div class="form-group">
+                            <label for="searchName">{{i18n.user.directory.searchName}}</label>
+                            <input type="text" id="searchName" name="name" placeholder="{{i18n.user.directory.searchNamePlaceholder}}">
                         </div>
-                        <div class=\"btn-group\">
-                            <button type=\"submit\" class=\"btn btn-primary\">{{i18n.user.directory.search}}</button>
-                            <button type=\"button\" class=\"btn btn-secondary\" onclick=\"clearSearch()\">{{i18n.user.directory.clear}}</button>
+                        <div class="form-group">
+                            <label for="searchEmail">{{i18n.user.directory.searchEmail}}</label>
+                            <input type="email" id="searchEmail" name="email" placeholder="{{i18n.user.directory.searchEmailPlaceholder}}">
                         </div>
-                    </form>
-                </div>"
-                ""
-            }}
-
-            {{if user.authenticated
-                "<div class=\"users-table-container\">
-                    <div id=\"loadingIndicator\" class=\"loading\">
-                        {{i18n.user.directory.loading}}
+                        <div class="form-group">
+                            <label for="searchRole">{{i18n.user.directory.searchRole}}</label>
+                            <select id="searchRole" name="role">
+                                <option value="">{{i18n.user.directory.allRoles}}</option>
+                                <option value="root">Root</option>
+                                <option value="admin">Admin</option>
+                                <option value="user">User</option>
+                                <option value="guest">Guest</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="searchStatus">{{i18n.user.directory.searchStatus}}</label>
+                            <select id="searchStatus" name="status">
+                                <option value="">{{i18n.user.directory.allStatuses}}</option>
+                                <option value="active">{{i18n.user.directory.statusActive}}</option>
+                                <option value="inactive">{{i18n.user.directory.statusInactive}}</option>
+                                <option value="pending">{{i18n.user.directory.statusPending}}</option>
+                                <option value="suspended">{{i18n.user.directory.statusSuspended}}</option>
+                            </select>
+                        </div>
                     </div>
-                    <table class=\"users-table\" id=\"usersTable\" style=\"display: none;\">
-                        <thead>
-                            <tr>
-                                <th>{{i18n.user.directory.user}}</th>
-                                <th>{{i18n.user.directory.email}}</th>
-                                <th>{{i18n.user.directory.roles}}</th>
-                                <th>{{i18n.user.directory.status}}</th>
-                                <th>{{i18n.user.directory.lastLogin}}</th>
-                                <th>{{i18n.user.directory.actions}}</th>
-                            </tr>
-                        </thead>
-                        <tbody id=\"usersTableBody\">
-                        </tbody>
-                    </table>
-                    <div id=\"noResults\" class=\"no-results\" style=\"display: none;\">
-                        {{i18n.user.directory.noResults}}
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">{{i18n.user.directory.search}}</button>
+                        <button type="button" class="btn btn-secondary" onclick="clearSearch()">{{i18n.user.directory.clear}}</button>
                     </div>
-                </div>"
-                ""
-            }}
+                </form>
+            </div>
 
-            {{if user.authenticated
-                "<div class=\"pagination\" id=\"pagination\" style=\"display: none;\">
-                </div>"
-                ""
-            }}
+            <div class="users-table-container">
+                <div id="loadingIndicator" class="loading">
+                    {{i18n.user.directory.loading}}
+                </div>
+                <table class="users-table" id="usersTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>{{i18n.user.directory.user}}</th>
+                            <th>{{i18n.user.directory.email}}</th>
+                            <th>{{i18n.user.directory.roles}}</th>
+                            <th>{{i18n.user.directory.status}}</th>
+                            <th>{{i18n.user.directory.lastLogin}}</th>
+                            <th>{{i18n.user.directory.actions}}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                    </tbody>
+                </table>
+                <div id="noResults" class="no-results" style="display: none;">
+                    {{i18n.user.directory.noResults}}
+                </div>
+            </div>
+
+            <div class="pagination" id="pagination" style="display: none;">
+            </div>
+
+          {{else}}
+            <div class="alert alert-error">
+                {{i18n.login.notAuthenticated}}
+            </div>
+          {{/if}}
         </div>
     </div>
 

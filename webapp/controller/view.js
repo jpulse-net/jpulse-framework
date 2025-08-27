@@ -3,7 +3,7 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.2.7
+ * @version         0.2.8
  * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -86,7 +86,7 @@ async function load(req, res) {
                 param: req.query || {}
             },
             // Add i18n object to context for dot notation access
-            i18n: i18n.langs[i18n.default] || {},
+            i18n: i18n.getLang(i18n.default), // FIXME: use session language
             req: req
         };
 

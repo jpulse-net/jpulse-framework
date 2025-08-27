@@ -3,7 +3,7 @@
  * @tagline         Integration tests for Auth Controller middleware
  * @description     Tests for authentication middleware integration patterns
  * @file            webapp/tests/integration/auth-middleware.test.js
- * @version         0.2.7
+ * @version         0.2.8
  * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

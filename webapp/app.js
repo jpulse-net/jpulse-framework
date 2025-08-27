@@ -3,7 +3,7 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         0.2.7
+ * @version         0.2.8
  * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -61,7 +61,7 @@ const LogController = await import('./controller/log.js').then(m => m.default);
 
 // Make LogController globally available for other modules
 global.LogController = LogController;
-LogController.console(null, `appConfig.app.dirName: ${appConfig.app.dirName}`);
+LogController.console(null, `app: appConfig.app.dirName: ${appConfig.app.dirName}`);
 
 // Load database connections
 const database = await import('./database.js').then(m => m.default);
@@ -101,16 +101,16 @@ async function startApp() {
     // Start the server
     app.listen(port, () => {
         // Use LogController for structured logging (no req object for server startup)
-        LogController.console(null, `jPulse Framework WebApp v${appConfig.app.version} (${appConfig.app.release})`);
-        LogController.console(null, `Server running in ${appConfig.deployment[mode].name} mode on port ${port}`);
-        LogController.console(null, `Database: ${appConfig.deployment[mode].db}`);
+        LogController.console(null, `app: jPulse Framework WebApp v${appConfig.app.version} (${appConfig.app.release})`);
+        LogController.console(null, `app: Server running in ${appConfig.deployment[mode].name} mode on port ${port}`);
+        LogController.console(null, `app: Database: ${appConfig.deployment[mode].db}`);
     });
 }
 
 // Start the application
 startApp().catch(error => {
     // Use LogController for error logging (no req object for startup errors)
-    LogController.error(null, `Failed to start application: ${error.message}`);
+    LogController.error(null, `app: Failed to start application: ${error.message}`);
     process.exit(1);
 });
 

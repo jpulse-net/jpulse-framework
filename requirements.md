@@ -301,14 +301,14 @@ Requirements Doc of jPulse Framework
   - signOut: 'Sign out {{user.id}}' // ==> 'Sign out jsmith'
 
 ## **W-018**: create {{#if}} handlebar for simple nesting
-- status: 🚧 IN_PROGRESS
+- status: ✅ COMPLETED
 - syntax: {{#if some.condition}} show this with {{other.handlebars}} {{/if}}
 - syntax: {{#if some.condition}} show if true {{else}} show if false {{/if}}
 - no nesting of #if, e.g. no support for {{#if 1}} {{#if 2}} blah {{/if}} {{/if}}
 - remove existing {{if some.condition "text for true" "text for false"}} syntax
 - replace all existing {{if}} with the new {{#if}} syntax
 
-## **W-019**: sliding info/error message on top of page
+## **W-019**: slide down/up info and error message on top of page
 - status: 🕑 PENDING
 - pupose: non-blocking error or info message, such after signin
 - action:
@@ -320,9 +320,21 @@ Requirements Doc of jPulse Framework
   - show message for 3 sec with yellow background
 - provide a common JavaScript function to show a sliding message without a msg= URL parameter
 
+## **W-020**: i18n with fallback
+- status: 🚧 IN_PROGRESS
+- audit language:
+  - compare to default ('en')
+  - report missing and extra fields
+  - patch other language with missing fields from default language
 
 
 
+
+
+## **W-0**: fix user profile view to read from API
+- status: 🕑 PENDING
+- user profile view should use REST API to get user data
+- update does not work, needs to be fixed
 
 ## **W-0**: broadcast message
 - status: 🕑 PENDING
@@ -345,6 +357,10 @@ Requirements Doc of jPulse Framework
   - themes
   - additional models, controllers, views
 
+## **W-0**: user preferred language
+- status: 🕑 PENDING
+- make language a user preference
+
 ## **W-0**: create themes
 - status: 🕑 PENDING
 - initially a dark and light theme, light is default
@@ -354,7 +370,7 @@ Requirements Doc of jPulse Framework
 
 ## **W-0**: create caching infrastrucure
 - status: 🕑 PENDING
-- redis to cache config, what else?
+- redis to cache site config (what else? sessions?)
 - should work in multi node instances, and multi app server instances
 
 ## **W-0**: i18n with auto-discovery and app update
@@ -368,6 +384,16 @@ Requirements Doc of jPulse Framework
 ## **W-0**: nested config
 - status: 🕑 PENDING
 
+## **W-0**: signup with email confirmation
+- status: 🕑 PENDING
+- optional with a appConfig setting
+
+## **W-0**: authentication with OAuth2
+- status: 🕑 PENDING
+
+## **W-0**: authentication with LDAP
+- status: 🕑 PENDING
+
 
 
 
@@ -378,17 +404,22 @@ status codes:
 - status: ✅ DONE
 ------------------------
 
-next: 
+next:
 - review task, ask questions
 - plan how to implement
-018
+- wait for my go ahead to implement
+
+------------------------
+
+git actions:
+git add -A
+git commit -F commit-message.txt
+git push
 
 ------------------------
 
 - for 404 and other errors I prefer not a redirect, but keep same URI with content of webapp/view/error/index.shtml - possible?
 - cleaner styles, no duplication, move all shared style to header or footer
-- signup with email confirmation (or not, configrable with a appConfig setting)
-- make language user configurable
 
 ------------------------
 

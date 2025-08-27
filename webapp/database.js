@@ -3,7 +3,7 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the database interface for the jPulse Framework WebApp
  * @file            webapp/database.js
- * @version         0.2.7
+ * @version         0.2.8
  * @release         2025-08-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -23,11 +23,16 @@ let client = null;
  */
 async function connect() {
     try {
+        // Check if appConfig is available
+        if (!global.appConfig) {
+            throw new Error('appConfig is not defined');
+        }
+
         // Get configuration
-        const mode = appConfig.deployment.mode;
-        const dbName = appConfig.deployment[mode].db;
-        const dbMode = appConfig.database.mode;
-        const config = appConfig.database[dbMode];
+        const mode = global.appConfig.deployment.mode;
+        const dbName = global.appConfig.deployment[mode].db;
+        const dbMode = global.appConfig.database.mode;
+        const config = global.appConfig.database[dbMode];
 
         // Build connection URL
         let url = config.url.replace('%DB%', dbName);
@@ -55,17 +60,17 @@ async function connect() {
 
         // Use LogController if available, otherwise fallback to console
         if (global.LogController) {
-            LogController.console(null, `Connected to MongoDB: ${dbName} (${dbMode} mode)`);
+            LogController.console(null, `database: Connected to: ${dbName} (${dbMode} mode)`);
         } else {
-            console.log(`Connected to MongoDB: ${dbName} (${dbMode} mode)`);
+            console.log(`database: Connected to: ${dbName} (${dbMode} mode)`);
         }
         return true;
     } catch (error) {
         // Use LogController if available, otherwise fallback to console
         if (global.LogController) {
-            LogController.error(null, `Database connection failed (continuing without database): ${error.message}`);
+            LogController.error(null, `database: Connection failed (continuing without database): ${error.message}`);
         } else {
-            console.warn('Database connection failed (continuing without database):', error.message);
+            console.warn('database: Connection failed (continuing without database):', error.message);
         }
         return false;
     }
@@ -109,9 +114,9 @@ async function close() {
 connect().catch(error => {
     // Use LogController if available, otherwise fallback to console
     if (global.LogController) {
-        LogController.error(null, `Failed to initialize database connection: ${error.message}`);
+        LogController.error(null, `database: Failed to initialize database connection: ${error.message}`);
     } else {
-        console.warn('Failed to initialize database connection:', error.message);
+        console.warn('database: Failed to initialize database connection:', error.message);
     }
 });
 

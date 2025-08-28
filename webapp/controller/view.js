@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.2.8
- * @release         2025-08-27
+ * @version         0.3.0
+ * @release         2025-08-28
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -19,6 +19,7 @@ import logController from './log.js';
 import configModel from '../model/config.js';
 import i18n from '../translations/i18n.js';
 import CommonUtils from '../utils/common.js';
+import AuthController from './auth.js';
 
 /**
  * Load and render .shtml template files with handlebars expansion
@@ -86,7 +87,7 @@ async function load(req, res) {
                 param: req.query || {}
             },
             // Add i18n object to context for dot notation access
-            i18n: i18n.getLang(i18n.default), // FIXME: use session language
+            i18n: i18n.getLang(AuthController.getUserLanguage(req)),
             req: req
         };
 

@@ -321,20 +321,36 @@ Requirements Doc of jPulse Framework
 - provide a common JavaScript function to show a sliding message without a msg= URL parameter
 
 ## **W-020**: i18n with fallback
-- status: 🚧 IN_PROGRESS
+- status: ✅ COMPLETED
 - audit language:
   - compare to default ('en')
   - report missing and extra fields
   - patch other language with missing fields from default language
 
+## **W-021**: fix user profile view to read from API
+- status: 🚧 IN_PROGRESS
+- user profile view now loads fresh data from /api/1/user/profile API endpoint
+- profile updates work correctly and increment saveCount properly
+- UserModel.updateById() now increments saveCount like ConfigModel
+
+## **W-022**: user preferred language
+- status: ✅ COMPLETED
+- centralized language preference handling in AuthController
+- AuthController.getUserLanguage() helper function with fallback support
+- better separation of concerns between authentication and view logic
 
 
 
 
-## **W-0**: fix user profile view to read from API
+
+
+## **W-0**: controller.view: create {{#each}} handlebar
 - status: 🕑 PENDING
-- user profile view should use REST API to get user data
-- update does not work, needs to be fixed
+- syntax: {{#each array}} {{@index}}: {{this}} {{/each}}
+  - @index: zero-based index
+  - this: array element value
+- use kay path in case the array elements are objects, such as:
+  - {{#each users}} {{this.firstName}} {{this.lastName}} {{/each}}
 
 ## **W-0**: broadcast message
 - status: 🕑 PENDING
@@ -356,10 +372,6 @@ Requirements Doc of jPulse Framework
 - plugins for:
   - themes
   - additional models, controllers, views
-
-## **W-0**: user preferred language
-- status: 🕑 PENDING
-- make language a user preference
 
 ## **W-0**: create themes
 - status: 🕑 PENDING

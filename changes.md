@@ -4,6 +4,64 @@ This document tracks the evolution of the jPulse Framework through its work item
 
 ## 🚀 Version History
 
+### v0.3.0 (2025-08-27)
+**Commit:** `TBD` - W-021, W-022, v0.3.0: API-driven profile management and enhanced user language preferences
+
+#### Major Features
+- **API-Driven Profile Management**: User profiles now load fresh data from REST API endpoints instead of session data
+- **Enhanced Data Consistency**: Profile updates properly increment saveCount for version tracking
+- **Centralized Language Preferences**: User language preference handling moved to AuthController for better separation
+- **Real-time Profile Updates**: Dynamic form updates without page reloads
+- **Comprehensive API Testing**: Full validation of profile API endpoints with automated testing
+
+#### Technical Improvements
+- **UserModel.updateById() Enhancement**: Fixed saveCount increment logic to match ConfigModel pattern
+- **AuthController Helper Functions**: Added getUserLanguage() and updateUserSession() for centralized user data management
+- **Profile View Refactoring**: JavaScript loadProfileData() function for dynamic API-based data loading
+- **Session Synchronization**: Proper session data updates when user preferences change
+- **View Controller Integration**: Updated to use AuthController.getUserLanguage() for better architecture
+
+#### API Endpoints Enhanced
+- `GET /api/1/user/profile` - Retrieve fresh user profile data from database
+- `PUT /api/1/user/profile` - Update user profile with proper saveCount incrementing
+- Enhanced error handling and data validation for profile operations
+
+#### Testing Results
+- **337 Tests**: All tests passing with comprehensive coverage
+- **API Integration Testing**: Verified profile load, update, and saveCount increment functionality
+- **Regression Testing**: No existing functionality broken
+- **Performance**: Test suite execution time optimized to ~3.5 seconds
+
+### v0.2.8 (2025-08-27)
+**Commit:** `TBD` - Enhanced i18n with dynamic discovery, translation auditing, and auto-fixing
+
+#### Major Features
+- **Dynamic Language Discovery**: Automatically detects all lang-*.conf files without manual configuration
+- **Translation Auditing**: Comprehensive analysis comparing all languages against default language structure
+- **Auto-fixing Missing Translations**: Automatically copies missing fields from default language
+- **Enhanced i18n API**: New getLang(langCode) with fallback and getList() methods
+
+#### Technical Improvements
+- **Smart Loading Order**: Default language loads first, followed by alphabetical ordering
+- **Intelligent Grouping**: Reports missing/extra objects instead of individual fields
+- **Deep Object Analysis**: getObjectPaths() extracts dot-notation paths for comprehensive comparison
+- **ES Module Compatibility**: Fixed Node.js built-in module imports with 'node:' prefix
+
+### v0.2.7 (2025-08-26)
+**Commit:** `c99c90a` - W-018, v0.2.7: {{#if}} block handlebars with single-pass processing
+
+#### Major Features
+- **{{#if}} Block Handlebars**: New block-level conditional syntax replacing old {{if}} helper
+- **Single-Pass Processing**: Combined regex for both block and inline handlebars processing
+- **Recursive Content Processing**: Handlebars within {{#if}} blocks are processed recursively
+- **Legacy {{if}} Removal**: Complete migration from old syntax to new block syntax
+
+#### Technical Improvements
+- **Enhanced Template System**: More powerful conditional rendering with nested content support
+- **Migration Tools**: Regex converter for existing templates with automated conversion
+- **Comprehensive Testing**: All tests updated for new {{#if}} syntax with full coverage
+- **Performance Optimization**: Single-pass processing improves template rendering speed
+
 ### v0.2.1 (2025-08-25)
 **Commit:** `b317873` - W-009, v0.2.1: CommonUtils framework with schema-based queries and automated test cleanup
 
@@ -177,6 +235,24 @@ This document tracks the evolution of the jPulse Framework through its work item
 - **Description**: Updated README.md, developers.md, created changes.md and API.md
 - **Implementation**: Removed W-nnn references, focused on features, added version history, externalized API documentation
 
+#### **W-018**: Create {{#if}} Handlebar for Simple Nesting
+- **Status**: ✅ DONE
+- **Version**: v0.2.7
+- **Description**: Block-level conditional syntax with {{#if}}...{{else}}...{{/if}} support
+- **Implementation**: Single-pass processing in webapp/controller/view.js with recursive content processing
+
+#### **W-021**: Fix User Profile View to Read from API
+- **Status**: ✅ DONE
+- **Version**: v0.3.0
+- **Description**: User profile view loads fresh data from REST API instead of session data
+- **Implementation**: Enhanced UserModel.updateById() with saveCount increment, API-driven profile view with loadProfileData()
+
+#### **W-022**: User Preferred Language
+- **Status**: ✅ DONE
+- **Version**: v0.3.0
+- **Description**: Centralized user language preference handling in AuthController
+- **Implementation**: AuthController.getUserLanguage() and updateUserSession() helper functions
+
 ### 🔄 Pending Work Items
 
 #### **W-011**: Create User Model, Controller
@@ -222,7 +298,7 @@ This document tracks the evolution of the jPulse Framework through its work item
 ## 📊 Development Statistics
 
 ### Code Quality Metrics
-- **Total Tests**: 229+ (as of v0.2.1)
+- **Total Tests**: 337 (as of v0.3.0)
 - **Test Pass Rate**: 100%
 - **Test Coverage**: Comprehensive (unit + integration)
 - **Security Features**: Path traversal protection, input validation, secure defaults

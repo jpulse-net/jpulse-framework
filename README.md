@@ -1,14 +1,14 @@
-# jPulse Framework v0.2.8
+# jPulse Framework v0.3.0
 
 A modern, lightweight web application framework built with Node.js, Express, and MongoDB. jPulse combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content.
 
-**Latest Release Highlights (v0.2.7):**
-- ✅ **{{#if}} Block Handlebars**: New block-level conditional syntax with {{else}} support
-- ✅ **Single-Pass Processing**: Combined regex for both block and inline handlebars processing
-- ✅ **Recursive Content Processing**: Handlebars within {{#if}} blocks are processed recursively
-- ✅ **Legacy {{if}} Removal**: Clean migration from old syntax to new block syntax
-- ✅ **Enhanced Template System**: More powerful conditional rendering with nested content support
-- ✅ **Comprehensive Testing**: All tests updated for new {{#if}} syntax with full coverage
+**Latest Release Highlights (v0.3.0):**
+- ✅ **API-Driven Profile Management**: User profiles now load fresh data from REST API instead of session data
+- ✅ **Enhanced Data Consistency**: Profile updates properly increment saveCount for version tracking
+- ✅ **User Language Preferences**: Centralized language preference handling in AuthController
+- ✅ **Improved Session Management**: Better separation of concerns between authentication and user data
+- ✅ **Dynamic Profile Updates**: Real-time profile form updates without page reloads
+- ✅ **Comprehensive API Testing**: Full API endpoint validation with automated testing
 
 ## 🚀 Quick Start
 
@@ -59,7 +59,7 @@ Complete multi-language support with natural syntax:
 ### 🧪 **Comprehensive Testing Framework**
 Enterprise-grade testing with Jest and automated cleanup:
 
-- **230+ Tests**: Unit and integration tests with 100% pass rate
+- **337 Tests**: Unit and integration tests with 100% pass rate
 - **Automated Test Cleanup**: Global setup/teardown prevents conflicts
 - **Test Organization**: Hierarchical structure with fixtures and helpers
 - **Mock Utilities**: Comprehensive test utilities for all components
@@ -128,7 +128,10 @@ Complete user system with secure authentication and role-based access control:
 - **Session Management**: Persistent MongoDB sessions with connect-mongo
 - **Role-Based Access Control**: Simple role system (guest, user, admin, root)
 - **User Interface Views**: Login, logout, signup, profile, and user directory pages
-- **User Profile Management**: Complete profile and password management with avatar initials
+- **API-Driven Profile Management**: User profiles load fresh data from REST API endpoints
+- **Real-time Profile Updates**: Dynamic form updates without page reloads
+- **Data Version Tracking**: Profile updates increment saveCount for consistency
+- **Language Preference Handling**: Centralized user language preferences in AuthController
 - **User Search API**: Admin-only user search with schema-based queries
 - **Password Policy**: Configurable minimum length requirements
 - **Multi-language Support**: Comprehensive i18n for all authentication flows
@@ -154,7 +157,7 @@ Complete user system with secure authentication and role-based access control:
 - **CommonUtils Library**: 8 utility functions for data processing, validation, and formatting
 - **Schema-Based Queries**: Dynamic MongoDB query generation from URI parameters
 - **Automated Test Cleanup**: Jest global setup/teardown prevents test conflicts
-- **Comprehensive Testing**: 229+ tests with 100% pass rate
+- **Comprehensive Testing**: 337 tests with 100% pass rate
 
 ## 📁 Project Structure
 
@@ -491,7 +494,7 @@ jPulse features a custom Handlebars implementation with enterprise security and 
 
 ## 🧪 Testing
 
-The framework includes a comprehensive test suite with **229+ tests** and **automated cleanup**:
+The framework includes a comprehensive test suite with **337 tests** and **automated cleanup**:
 
 ```bash
 # Run all tests
@@ -520,7 +523,7 @@ npm test -- --testPathPattern="template"
 - **Static File Serving**: Direct nginx (production)
 - **Memory Usage**: ~50MB baseline
 - **Concurrent Users**: 1000+ (with proper nginx setup)
-- **Test Suite**: 230+ tests in ~2.5s with automated cleanup
+- **Test Suite**: 337 tests in ~3.5s with automated cleanup
 
 ### Optimization Features
 - Static/dynamic content separation
@@ -581,10 +584,10 @@ This project is licensed under the GPL v3 License - see the [LICENSE](LICENSE) f
 - **Named Exports**: Convenient import syntax for individual functions
 
 ### ✅ **Enhanced Testing Infrastructure**
-- **230+ Tests** with 100% pass rate
+- **337 Tests** with 100% pass rate
 - **Automated Test Cleanup**: Jest global setup/teardown prevents conflicts
 - **Comprehensive Coverage**: CommonUtils, security, i18n, responsive design, {{#if}} blocks
-- **Performance Optimized**: ~2.5s test execution time
+- **Performance Optimized**: ~3.5s test execution time
 
 ### ✅ **Modern Template System**
 - Secure file inclusion with path traversal protection

@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         0.2.8
- * @release         2025-08-27
+ * @version         0.3.0
+ * @release         2025-08-28
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -14,6 +14,7 @@
 
 import UserModel from '../model/user.js';
 import LogController from './log.js';
+import AuthController from './auth.js';
 
 /**
  * User Controller - handles /api/1/user/* REST API endpoints (excluding login/logout which moved to AuthController)
@@ -225,15 +226,8 @@ class UserController {
                 });
             }
 
-            // Update session data
-            if (filteredData.profile) {
-                if (filteredData.profile.firstName) req.session.user.firstName = filteredData.profile.firstName;
-                if (filteredData.profile.lastName) req.session.user.lastName = filteredData.profile.lastName;
-                if (filteredData.profile.nickName !== undefined) req.session.user.nickName = filteredData.profile.nickName;
-            }
-            if (filteredData.preferences) {
-                req.session.user.preferences = { ...req.session.user.preferences, ...filteredData.preferences };
-            }
+            // Update session data using AuthController helper
+            AuthController.updateUserSession(req, updatedUser);
 
             // Remove sensitive data
             const { passwordHash, ...userProfile } = updatedUser;

@@ -1,14 +1,14 @@
-# jPulse Framework / Developer Documentation v0.2.8
+# jPulse Framework / Developer Documentation v0.3.0
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.2.7):**
-- 🎯 **{{#if}} Block Handlebars**: New block-level conditional syntax replacing old {{if}} helper
-- 🔄 **Single-Pass Processing**: Combined regex for both block and inline handlebars processing
-- 🎨 **Recursive Content Processing**: Handlebars within {{#if}} blocks are processed recursively
-- 🧹 **Legacy Syntax Removal**: Complete migration from {{if condition "true" "false"}} to {{#if}} blocks
-- 🧪 **Enhanced Testing**: Updated test suite with comprehensive {{#if}} block coverage
-- 📚 **Migration Support**: Tools and patterns for converting existing templates
+**Latest Updates (v0.3.0):**
+- 🔗 **API-Driven Profile Management**: User profiles now load fresh data from REST API instead of session data
+- 📊 **Enhanced Data Consistency**: Profile updates properly increment saveCount for version tracking
+- 🌐 **User Language Preferences**: Centralized language preference handling in AuthController
+- 🔧 **Improved Session Management**: Better separation of concerns between authentication and user data
+- ⚡ **Dynamic Profile Updates**: Real-time profile form updates without page reloads
+- 🧪 **Comprehensive API Testing**: Full API endpoint validation with automated testing
 
 ## 🏗️ Architecture Overview
 
@@ -25,7 +25,7 @@ Technical documentation for developers working on the jPulse Framework. This doc
 - **Configuration**: JavaScript-based `.conf` files with dynamic evaluation
 - **Templating**: Custom Handlebars implementation with security features
 - **Utilities**: CommonUtils framework for data processing and schema-based queries
-- **Testing**: Jest with automated cleanup, global setup/teardown, and 230+ tests
+- **Testing**: Jest with automated cleanup, global setup/teardown, and 337 tests
 - **Build Tools**: npm scripts, native ES modules, version management
 - **Production**: nginx reverse proxy + PM2 process management
 - **User Management**: Complete authentication system with bcrypt and role-based access control
@@ -132,7 +132,7 @@ i18n.t = (key, ...args) => {
 ```
 
 #### Translation Features
-- **Dot Notation Access**: Natural `i18n.app.name` syntax in templates  
+- **Dot Notation Access**: Natural `i18n.app.name` syntax in templates
 - **Variable Content**: Handlebars-style `{{variable}}` substitution with full context access
 - **Two-Pass Processing**: First pass resolves i18n, second pass resolves variables
 - **Full Context**: Access to user, config, url, app objects in translations
@@ -1444,6 +1444,177 @@ function sanitizePath(inputPath) {
 - **File Extension**: Whitelist approach for includes
 - **View Root Jail**: All includes resolved within `webapp/view/`
 - **Error Sanitization**: Stack traces filtered in production
+
+### API-Driven Profile Management (W-021, W-022)
+
+#### Core Architecture Changes
+
+**Problem Statement:**
+The user profile view was loading data from session storage instead of fresh database data, and profile updates weren't properly incrementing the saveCount field for version tracking. Additionally, user language preferences were scattered across different controllers.
+
+#### Implementation Overview
+
+**1. Enhanced UserModel.updateById() Method**
+```javascript
+// webapp/model/user.js - Fixed saveCount increment
+static async updateById(id, data) {
+    try {
+        // Validate data for update
+        this.validate(data, true);
+
+        // Get current document to increment saveCount
+        const current = await this.findById(id);
+        if (!current) {
+            return null;
+        }
+
+        // Prepare data for save
+        const updateData = await this.prepareSaveData(data, true);
+        updateData.saveCount = (current.saveCount || 0) + 1; // KEY FIX
+
+        // Update in database
+        const collection = this.getCollection();
+        const result = await collection.updateOne(
+            { _id: new ObjectId(id) },
+            { $set: updateData }
+        );
+
+        return await this.findById(id);
+    } catch (error) {
+        throw new Error(`Failed to update user: ${error.message}`);
+    }
+}
+```
+
+**2. AuthController Language Helper Functions**
+```javascript
+// webapp/controller/auth.js - Centralized language handling
+static getUserLanguage(req, defaultLang = null) {
+    let fallback = defaultLang || 'en';
+    try {
+        if (typeof global !== 'undefined' && global.i18n) {
+            fallback = defaultLang || global.i18n.default;
+        }
+    } catch (error) {
+        // Fallback to 'en' if i18n is not available
+    }
+
+    // Return user's preferred language or fallback
+    return req.session?.user?.preferences?.language || fallback;
+}
+
+static updateUserSession(req, userData) {
+    if (req.session?.user && userData) {
+        // Update session with fresh data
+        if (userData.profile) {
+            if (userData.profile.firstName) req.session.user.firstName = userData.profile.firstName;
+            if (userData.profile.lastName) req.session.user.lastName = userData.profile.lastName;
+            if (userData.profile.nickName !== undefined) req.session.user.nickName = userData.profile.nickName;
+            req.session.user.initials = (userData.profile.firstName?.charAt(0) || '?') + (userData.profile.lastName?.charAt(0) || '');
+        }
+        if (userData.preferences) {
+            req.session.user.preferences = { ...req.session.user.preferences, ...userData.preferences };
+        }
+    }
+}
+```
+
+**3. API-Driven Profile View**
+```javascript
+// webapp/view/user/profile.shtml - Dynamic data loading
+async function loadProfileData() {
+    try {
+        const response = await fetch('/api/1/user/profile', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            const user = result.data;
+
+            // Update profile header
+            const initials = (user.profile?.firstName?.charAt(0) || '?') + (user.profile?.lastName?.charAt(0) || '');
+            document.querySelector('.profile-avatar').textContent = initials;
+            document.querySelector('.profile-info h1').textContent = `${user.profile?.firstName || ''} ${user.profile?.lastName || ''}`;
+
+            // Update form fields with fresh API data
+            document.getElementById('firstName').value = user.profile?.firstName || '';
+            document.getElementById('lastName').value = user.profile?.lastName || '';
+            document.getElementById('nickName').value = user.profile?.nickName || '';
+            document.getElementById('email').value = user.email || '';
+
+            // Update preferences
+            document.getElementById('language').value = user.preferences?.language || 'en';
+            document.getElementById('theme').value = user.preferences?.theme || 'light';
+        }
+    } catch (error) {
+        showAlert('Network error while loading profile: ' + error.message, 'error');
+    }
+}
+
+// Load fresh data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadProfileData();
+});
+```
+
+**4. Enhanced Profile Update Flow**
+```javascript
+// Proper data structure for API updates
+async function saveProfile() {
+    const formData = {
+        profile: {
+            firstName: document.getElementById('firstName').value,
+            lastName: document.getElementById('lastName').value,
+            nickName: document.getElementById('nickName').value
+        },
+        preferences: {
+            language: document.getElementById('language').value,
+            theme: document.getElementById('theme').value
+        }
+    };
+
+    try {
+        const response = await fetch('/api/1/user/profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+            showAlert('Profile updated successfully!', 'success');
+            editMode = false;
+            cancelEdit();
+            // Reload fresh data from API instead of page reload
+            await loadProfileData();
+        }
+    } catch (error) {
+        showAlert('Network error: ' + error.message, 'error');
+    }
+}
+```
+
+#### Key Benefits Achieved
+
+1. **Data Consistency**: Profile views now display fresh database data instead of potentially stale session data
+2. **Version Tracking**: saveCount properly increments with each update (1 → 2 → 3 → 4)
+3. **Better Architecture**: Centralized language preference handling in AuthController
+4. **Enhanced UX**: Real-time profile updates without page reloads
+5. **API-First**: Profile management now uses REST API endpoints consistently
+6. **Session Synchronization**: Session data updated when profile changes occur
+
+#### Testing Results
+
+- **API Endpoint Testing**: Confirmed GET/PUT `/api/1/user/profile` work correctly
+- **SaveCount Verification**: Tested incremental updates (1→2→3→4)
+- **Profile View Testing**: Verified dynamic data loading and form population
+- **Regression Testing**: All 337 tests pass, no existing functionality broken
+- **Integration Testing**: Complete signup → login → profile update → logout flow
 
 ## 🚀 Performance Considerations
 

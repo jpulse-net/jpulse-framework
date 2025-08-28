@@ -4,8 +4,8 @@
  * @tagline         User profile view with edit capabilities
  * @description     User profile management with view and edit modes
  * @file            webapp/view/user/profile.shtml
- * @version         0.2.8
- * @release         2025-08-27
+ * @version         0.3.0
+ * @release         2025-08-28
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -403,9 +403,11 @@
 
         async function saveProfile() {
             const formData = {
-                firstName: document.getElementById('firstName').value,
-                lastName: document.getElementById('lastName').value,
-                nickName: document.getElementById('nickName').value,
+                profile: {
+                    firstName: document.getElementById('firstName').value,
+                    lastName: document.getElementById('lastName').value,
+                    nickName: document.getElementById('nickName').value
+                },
                 preferences: {
                     language: document.getElementById('language').value,
                     theme: document.getElementById('theme').value
@@ -426,8 +428,8 @@
                     showAlert('Profile updated successfully!', 'success');
                     editMode = false;
                     cancelEdit();
-                    // Optionally reload page to reflect changes
-                    setTimeout(() => window.location.reload(), 1000);
+                    // Reload fresh data from API
+                    await loadProfileData();
                 } else {
                     const error = await response.json();
                     showAlert(error.error || 'Failed to update profile', 'error');
@@ -466,11 +468,54 @@
             }, 5000);
         }
 
-        // Set current language and theme values
+        // Load user profile data from API
         document.addEventListener('DOMContentLoaded', function() {
-            // This would be populated from user session data
-            // For now, we'll use the template values
+            loadProfileData();
         });
+
+        async function loadProfileData() {
+            try {
+                const response = await fetch('/api/1/user/profile', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    const user = result.data;
+
+                    // Update profile header
+                    const initials = (user.profile?.firstName?.charAt(0) || '?') + (user.profile?.lastName?.charAt(0) || '');
+                    document.querySelector('.profile-avatar').textContent = initials;
+                    document.querySelector('.profile-info h1').textContent = `${user.profile?.firstName || ''} ${user.profile?.lastName || ''}`;
+                    document.querySelector('.user-details').innerHTML = `@${user.loginId} • ${user.email}`;
+
+                    // Update form fields
+                    document.getElementById('firstName').value = user.profile?.firstName || '';
+                    document.getElementById('lastName').value = user.profile?.lastName || '';
+                    document.getElementById('nickName').value = user.profile?.nickName || '';
+                    document.getElementById('email').value = user.email || '';
+
+                    // Update preferences
+                    document.getElementById('language').value = user.preferences?.language || 'en';
+                    document.getElementById('theme').value = user.preferences?.theme || 'light';
+
+                    // Update status badge if needed
+                    const statusBadge = document.querySelector('.status-badge');
+                    if (statusBadge && user.status) {
+                        statusBadge.textContent = user.status.charAt(0).toUpperCase() + user.status.slice(1);
+                        statusBadge.className = `status-badge status-${user.status}`;
+                    }
+                } else {
+                    const error = await response.json();
+                    showAlert(error.error || 'Failed to load profile data', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error while loading profile: ' + error.message, 'error');
+            }
+        }
     </script>
 
     {{file.include "jpulse-footer.tmpl"}}

@@ -3,8 +3,8 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         0.2.8
- * @release         2025-08-27
+ * @version         0.3.0
+ * @release         2025-08-28
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,11 +20,58 @@ import CommonUtils from '../utils/common.js';
  * Auth Controller - handles authentication, authorization, and middleware
  */
 class AuthController {
-    
+
+    // ============================================================================
+    // HELPER FUNCTIONS
+    // ============================================================================
+
+    /**
+     * Get user's preferred language from session with fallback to default
+     * @param {object} req - Express request object
+     * @param {string} defaultLang - Default language code (optional, defaults to i18n.default)
+     * @returns {string} Language code
+     */
+    static getUserLanguage(req, defaultLang = null) {
+        // Dynamically import i18n to avoid circular dependency and top-level await issues
+        let fallback = defaultLang || 'en'; // Default fallback
+        try {
+            // Use dynamic import to get i18n default language
+            if (typeof global !== 'undefined' && global.i18n) {
+                fallback = defaultLang || global.i18n.default;
+            }
+        } catch (error) {
+            // Fallback to 'en' if i18n is not available
+        }
+
+        // Return user's preferred language or fallback
+        return req.session?.user?.preferences?.language || fallback;
+    }
+
+    /**
+     * Update user session data (called when user preferences change)
+     * @param {object} req - Express request object
+     * @param {object} userData - Updated user data from database
+     */
+    static updateUserSession(req, userData) {
+        if (req.session?.user && userData) {
+            // Update session with fresh data
+            if (userData.profile) {
+                if (userData.profile.firstName) req.session.user.firstName = userData.profile.firstName;
+                if (userData.profile.lastName) req.session.user.lastName = userData.profile.lastName;
+                if (userData.profile.nickName !== undefined) req.session.user.nickName = userData.profile.nickName;
+                // Update initials
+                req.session.user.initials = (userData.profile.firstName?.charAt(0) || '?') + (userData.profile.lastName?.charAt(0) || '');
+            }
+            if (userData.preferences) {
+                req.session.user.preferences = { ...req.session.user.preferences, ...userData.preferences };
+            }
+        }
+    }
+
     // ============================================================================
     // MIDDLEWARE FUNCTIONS
     // ============================================================================
-    
+
     /**
      * Middleware to require authentication
      * Uses CommonUtils.sendError for proper API/web error handling
@@ -39,7 +86,7 @@ class AuthController {
         }
         next();
     }
-    
+
     /**
      * Middleware factory to require specific roles
      * Uses CommonUtils.sendError for proper API/web error handling
@@ -52,21 +99,21 @@ class AuthController {
                 LogController.error(req, 'Authentication required for role check - access denied');
                 return CommonUtils.sendError(req, res, 401, 'Authentication required', 'UNAUTHORIZED');
             }
-            
+
             if (!AuthController.isAuthorized(req, roles)) {
                 const roleList = Array.isArray(roles) ? roles.join(', ') : roles;
                 LogController.error(req, `Role required (${roleList}) - access denied for user ${req.session.user.loginId}`);
                 return CommonUtils.sendError(req, res, 403, `Required role: ${roleList}`, 'INSUFFICIENT_PRIVILEGES');
             }
-            
+
             next();
         };
     }
-    
+
     // ============================================================================
     // UTILITY FUNCTIONS (for use in controllers)
     // ============================================================================
-    
+
     /**
      * Check if request has authenticated user (utility function)
      * @param {object} req - Express request object
@@ -75,7 +122,7 @@ class AuthController {
     static isAuthenticated(req) {
         return !!(req.session && req.session.user && req.session.user.authenticated);
     }
-    
+
     /**
      * Check if authenticated user has required role(s) (utility function)
      * @param {object} req - Express request object
@@ -86,23 +133,23 @@ class AuthController {
         if (!AuthController.isAuthenticated(req)) {
             return false;
         }
-        
+
         const user = req.session.user;
         if (!user.roles || !Array.isArray(user.roles)) {
             return false;
         }
-        
+
         // Convert single role to array for consistent handling
         const requiredRoles = Array.isArray(roles) ? roles : [roles];
-        
+
         // Check if user has any of the required roles
         return user.roles.some(userRole => requiredRoles.includes(userRole));
     }
-    
+
     // ============================================================================
     // AUTHENTICATION ENDPOINTS (moved from UserController)
     // ============================================================================
-    
+
     /**
      * User login/authentication
      * POST /api/1/auth/login

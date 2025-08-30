@@ -24,20 +24,20 @@
 
     /* Responsive container system */
     .jpulse-container {
-        max-width: {{appConfig.window.maxWidth}}px;
+        max-width: {{appConfig.view.maxWidth}}px;
         margin: 0 auto;
-        padding: 0 {{appConfig.window.minMarginLeftRight}}px;
+        padding: 0 {{appConfig.view.minMarginLeftRight}}px;
         width: 100%;
     }
 
     /* White content box styling */
     .jpulse-main {
         background: white;
-        margin: 20px {{appConfig.window.minMarginLeftRight}}px;
+        margin: 20px {{appConfig.view.minMarginLeftRight}}px;
         padding: 30px;
         border-radius: 8px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        max-width: {{appConfig.window.maxWidth}}px;
+        max-width: {{appConfig.view.maxWidth}}px;
         margin-left: auto;
         margin-right: auto;
         /* Ensure content is never hidden by adding min margins */
@@ -46,15 +46,15 @@
     }
 
     /* On smaller viewports, ensure minimum margins */
-    @media (max-width: calc({{appConfig.window.maxWidth}}px + {{appConfig.window.minMarginLeftRight}}px * 2)) {
+    @media (max-width: calc({{appConfig.view.maxWidth}}px + {{appConfig.view.minMarginLeftRight}}px * 2)) {
         .jpulse-container {
-            margin: 0 {{appConfig.window.minMarginLeftRight}}px;
+            margin: 0 {{appConfig.view.minMarginLeftRight}}px;
             max-width: none;
-            padding: 0 {{appConfig.window.minMarginLeftRight}}px;
+            padding: 0 {{appConfig.view.minMarginLeftRight}}px;
         }
 
         .jpulse-main {
-            margin: 20px {{appConfig.window.minMarginLeftRight}}px;
+            margin: 20px {{appConfig.view.minMarginLeftRight}}px;
             max-width: none;
         }
     }
@@ -62,7 +62,7 @@
     /* Handle very narrow viewports (like when devtools is open) */
     @media (max-width: 800px) {
         .jpulse-main {
-            margin: 10px {{appConfig.window.minMarginLeftRight}}px;
+            margin: 10px {{appConfig.view.minMarginLeftRight}}px;
             padding: 20px;
         }
 
@@ -99,7 +99,7 @@
 
     .jpulse-header-content {
         /* Match .jpulse-main content area exactly */
-        max-width: calc({{appConfig.window.maxWidth}}px - {{appConfig.window.minMarginLeftRight}}px * 2);
+        max-width: calc({{appConfig.view.maxWidth}}px - {{appConfig.view.minMarginLeftRight}}px * 2);
         margin: 0 auto;
         padding: 0 30px;
         width: 100%;
@@ -111,10 +111,10 @@
     }
 
     /* Header responsive adjustments */
-    @media (max-width: calc({{appConfig.window.maxWidth}}px + {{appConfig.window.minMarginLeftRight}}px * 2)) {
+    @media (max-width: calc({{appConfig.view.maxWidth}}px + {{appConfig.view.minMarginLeftRight}}px * 2)) {
         .jpulse-header-content {
             /* Match .jpulse-main content area on small screens */
-            margin: 0 {{appConfig.window.minMarginLeftRight}}px;
+            margin: 0 {{appConfig.view.minMarginLeftRight}}px;
             max-width: none;
             padding: 0 30px;
         }
@@ -218,7 +218,7 @@
 
     .jpulse-footer-content {
         /* Match .jpulse-main content area exactly */
-        max-width: calc({{appConfig.window.maxWidth}}px - {{appConfig.window.minMarginLeftRight}}px * 2);
+        max-width: calc({{appConfig.view.maxWidth}}px - {{appConfig.view.minMarginLeftRight}}px * 2);
         margin: 0 auto;
         padding: 0 30px;
         display: flex;
@@ -230,10 +230,10 @@
     }
 
     /* Footer responsive adjustments */
-    @media (max-width: calc({{appConfig.window.maxWidth}}px + {{appConfig.window.minMarginLeftRight}}px * 2)) {
+    @media (max-width: calc({{appConfig.view.maxWidth}}px + {{appConfig.view.minMarginLeftRight}}px * 2)) {
         .jpulse-footer-content {
             /* Match .jpulse-main content area on small screens */
-            margin: 0 {{appConfig.window.minMarginLeftRight}}px;
+            margin: 0 {{appConfig.view.minMarginLeftRight}}px;
             max-width: none;
             padding: 0 30px;
         }

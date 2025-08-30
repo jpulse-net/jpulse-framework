@@ -3,8 +3,8 @@
  * @tagline         Unit tests for template include system (header/footer)
  * @description     Tests for the new template include features and file.include helper
  * @file            webapp/tests/unit/controller/template-includes.test.js
- * @version         0.3.0
- * @release         2025-08-28
+ * @version         0.3.1
+ * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -41,7 +41,7 @@ describe('Template Includes System', () => {
                 id: ''
             },
             appConfig: {
-                window: {
+                view: {
                     maxWidth: 1200,
                     minMarginLeftRight: 20
                 }
@@ -154,11 +154,11 @@ describe('Template Includes System', () => {
         test('should include responsive CSS with appConfig values', () => {
             const mockHeaderCSS = `
                 .jpulse-container {
-                    max-width: ${mockContext.appConfig.window.maxWidth}px;
-                    padding: 0 ${mockContext.appConfig.window.minMarginLeftRight}px;
+                    max-width: ${mockContext.appConfig.view.maxWidth}px;
+                    padding: 0 ${mockContext.appConfig.view.minMarginLeftRight}px;
                 }
                 .jpulse-header-content {
-                    max-width: calc(${mockContext.appConfig.window.maxWidth}px - ${mockContext.appConfig.window.minMarginLeftRight}px * 2);
+                    max-width: calc(${mockContext.appConfig.view.maxWidth}px - ${mockContext.appConfig.view.minMarginLeftRight}px * 2);
                 }
             `;
 
@@ -261,14 +261,14 @@ describe('Template Includes System', () => {
             const templateContent = `
                 <title>{{i18n.app.title}}</title>
                 <meta name="version" content="{{app.version}}">
-                <meta name="max-width" content="{{appConfig.window.maxWidth}}">
+                <meta name="max-width" content="{{appConfig.view.maxWidth}}">
             `;
 
             // Simulate handlebars processing
             const processedContent = templateContent
                 .replace('{{i18n.app.title}}', mockContext.i18n.app.title)
                 .replace('{{app.version}}', mockContext.app.version)
-                .replace('{{appConfig.window.maxWidth}}', mockContext.appConfig.window.maxWidth.toString());
+                .replace('{{appConfig.view.maxWidth}}', mockContext.appConfig.view.maxWidth.toString());
 
             expect(processedContent).toContain('jPulse Framework WebApp');
             expect(processedContent).toContain('0.1.5');

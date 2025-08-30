@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.3.0
- * @release         2025-08-28
+ * @version         0.3.1
+ * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -39,7 +39,7 @@ async function load(req, res) {
 
         // Determine the file path
         let filePath = req.path;
-        const defaultTemplate = appConfig?.view?.defaultTemplate || 'index.shtml';
+        const defaultTemplate = appConfig?.controller?.view?.defaultTemplate || 'index.shtml';
         if (filePath === '/') {
             filePath = `/home/${defaultTemplate}`;
         } else if (!filePath.endsWith('.shtml')) {
@@ -260,7 +260,7 @@ function getNestedProperty(obj, path) {
  */
 async function handleFileInclude(filePath, context, baseDir, depth = 0) {
     // Check include depth to prevent infinite recursion
-    const maxDepth = appConfig?.view?.maxIncludeDepth || 10;
+    const maxDepth = appConfig?.controller?.view?.maxIncludeDepth || 10;
     if (depth >= maxDepth) {
         throw new Error(`Maximum include depth (${maxDepth}) exceeded`);
     }

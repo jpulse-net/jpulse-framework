@@ -1,7 +1,10 @@
 # Local work files
-cursor_log.txt
 commit-message*.txt
+tt-*
 *.save[0-9]
+*.save[0-9][0-9]
+# FIXME: below is temporarily added
+webapp/view/jpulse-common.js
 
 # Dependencies
 node_modules/

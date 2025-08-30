@@ -684,8 +684,8 @@ Available context in translations:
 
 #### Configuration Access
 ```html
-<div style="max-width: {{appConfig.window.maxWidth}}px;">
-<input maxlength="{{appConfig.log.maxMsgLength}}">
+<div style="max-width: {{appConfig.view.maxWidth}}px;">
+<input maxlength="{{appConfig.controller.log.maxMsgLength}}">
 <span>{{appConfig.app.version}}</span>
 ```
 

@@ -3,8 +3,8 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         0.3.0
- * @release         2025-08-28
+ * @version         0.3.1
+ * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -371,21 +371,23 @@ describe('View Controller Handlebars Processing', () => {
     });
 
     describe('Configuration Integration', () => {
-        test('should use appConfig.view.defaultTemplate for path resolution', async () => {
+        test('should use appConfig.controller.view.defaultTemplate for path resolution', async () => {
             // This would require mocking the actual load function
             // For now, we test that the configuration values are accessible
             const originalAppConfig = global.appConfig;
             global.appConfig = {
                 ...originalAppConfig,
-                view: {
-                    defaultTemplate: 'custom.shtml',
-                    maxIncludeDepth: 5
+                controller: {
+                    view: {
+                        defaultTemplate: 'custom.shtml',
+                        maxIncludeDepth: 5
+                    }
                 }
             };
 
             // Test that we can access the config values
-            expect(global.appConfig.view.defaultTemplate).toBe('custom.shtml');
-            expect(global.appConfig.view.maxIncludeDepth).toBe(5);
+            expect(global.appConfig.controller.view.defaultTemplate).toBe('custom.shtml');
+            expect(global.appConfig.controller.view.maxIncludeDepth).toBe(5);
 
             global.appConfig = originalAppConfig;
         });

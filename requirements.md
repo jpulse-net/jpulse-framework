@@ -83,23 +83,27 @@ Requirements Doc of jPulse Framework
 
 ## **W-001**: create hello world app
 - status: ✅ DONE
+- type: Feature
 - create logic in webapp/app.js
 - use appConfig.deployment[mode].port in webapp/app.conf
 - create package.json, package-lock.json
 
 ## **W-002**: create internationalization framework
 - status: ✅ DONE
+- type: Feature
 - all user facing text can be translated
 - translations: one file per language
 
 ## **W-003**: create test framework
 - status: ✅ DONE
+- type: Feature
 - create webapp/tests/
 - create test hierarchy using subdirectories
 - implement first tests for translations/i18n.js
 
 ## **W-004**: create site admin config model & controller
 - status: ✅ DONE
+- type: Feature
 - create webapp/model/config.js -- model
 - create webapp/controller/config.js -- controller
   - read & save functions for routes: /api/1/config/*
@@ -130,6 +134,7 @@ Requirements Doc of jPulse Framework
 
 ## **W-005**: create log infrastructure
 - status: ✅ DONE
+- type: Feature
 - create webapp/model/log.js -- model
   - called by other controllers (config, user, ...) on doc create, update, delete
 - create webapp/controller/log.js -- controller
@@ -160,6 +165,7 @@ Requirements Doc of jPulse Framework
 
 ## **W-006**: create server sice include function
 - status: ✅ DONE
+- type: Feature
 - create webapp/controller/view.js
   - function load(req, res) loads a view file and expands {{handlebars}}:
     - {{app.version}}
@@ -186,12 +192,14 @@ Requirements Doc of jPulse Framework
 
 ## **W-007**: rename project from Bubble Framework to jPulse Framework
 - status: ✅ DONE
+- type: Feature
 - rename git repo to /peterthoeny/jpulse-framework
 - rename any text references to project name
 
 ## **W-008**: strategy for view content and static content; HTML header & footer strategy
 - status: ✅ DONE
-- goal: clean separation using routing precedence
+- type: Feature
+- objective: clean separation using routing precedence
 - File Mapping:
   - `webapp/static/*` → URI `/` (e.g., `webapp/static/robots.txt` → `/robots.txt`)
   - `webapp/view/*` → URI `/` (e.g., `webapp/view/home/index.shtml` → `/home/index.shtml`)
@@ -224,11 +232,13 @@ Requirements Doc of jPulse Framework
 
 ## **W-009**: common utilities infrastructure; flexible shema-based query
 - status: ✅ DONE
+- type: Feature
 - create a common utilities infrastructure
 - add schemaBasedQuery() from logs so that it can be used by all controllers (see log.schemaBasedQuery)
 
 ## **W-010**: doc improvements
 - status: ✅ DONE
+- type: Feature
 - update README.md, developers.md based on requirements.md doc
 - focus on DONE to-do items W-001 to W-009
 - in README.md, remove mention of W-nnn, just state the features
@@ -236,8 +246,9 @@ Requirements Doc of jPulse Framework
 - create a API.md doc
 - remove legacy {{i18n "app.name"}} notation, replaced by {{i18n.app.name}} dot notation
 
-## **W-011**: create user model, controller
+## **W-011**: create user model & controller
 - status: ✅ DONE
+- type: Feature
 - create webapp/model/user.js
 - create webapp/controller/user.js
 - plan for authentication based on appConfig.login.mode:
@@ -252,6 +263,7 @@ Requirements Doc of jPulse Framework
 
 ## **W-012**: create user views
 - status: ✅ DONE
+- type: Feature
 - create webapp/view/user/profile.shtml
   - two modes: view and edit
   - edit by owner and admin
@@ -267,18 +279,22 @@ Requirements Doc of jPulse Framework
 
 ## **W-013**: create site admin views
 - status: 🕑 PENDING
+- type: Feature
 - create webapp/view/admin/index.shtml -- admin home
 - create webapp/view/admin/config.shtml -- edit config
 
-## **W-014**: strategy for seamless update of custom jPulse deployments
+## **W-014**: strategy for seamless update of site-specific jPulse deployments
 - status: 🕑 PENDING
+- type: Feature
 - jPulse will be the base framework for multiple web apps
 - define a clean structure of two sets:
   - jPulse framework directories and files
   - site specific directories and files
+- automatic way to override/extend jPulse config, models, controllers, views with site-specific settings
 
-## **W-015**: clean onboarding strategy
+## **W-015**: strategy for clean onboarding
 - status: 🕑 PENDING
+- type: Feature
 - define an clean out of box experience when deploying a jPulse based webserver for the first time
 - sensible defaults
 - handholding for:
@@ -291,17 +307,20 @@ Requirements Doc of jPulse Framework
 
 ## **W-016**: create auth controller
 - status: ✅ COMPLETED
+- type: Feature
 - handles login, logout
 - handles auth.isAuthenticated and auth.isAuthorized for middleware
 - use as needed in routing
 
 ## **W-017**: i18n with variable content
 - status: ✅ COMPLETED
+- type: Feature
 - handlebar based, example:
   - signOut: 'Sign out {{user.id}}' // ==> 'Sign out jsmith'
 
 ## **W-018**: create {{#if}} handlebar for simple nesting
 - status: ✅ COMPLETED
+- type: Feature
 - syntax: {{#if some.condition}} show this with {{other.handlebars}} {{/if}}
 - syntax: {{#if some.condition}} show if true {{else}} show if false {{/if}}
 - no nesting of #if, e.g. no support for {{#if 1}} {{#if 2}} blah {{/if}} {{/if}}
@@ -310,6 +329,7 @@ Requirements Doc of jPulse Framework
 
 ## **W-019**: slide down/up info and error message on top of page
 - status: 🕑 PENDING
+- type: Feature
 - pupose: non-blocking error or info message, such after signin
 - action:
   - slide down, show, hide message from below page banner
@@ -322,30 +342,100 @@ Requirements Doc of jPulse Framework
 
 ## **W-020**: i18n with fallback
 - status: ✅ COMPLETED
+- type: Feature
 - audit language:
   - compare to default ('en')
   - report missing and extra fields
   - patch other language with missing fields from default language
 
 ## **W-021**: fix user profile view to read from API
-- status: 🚧 IN_PROGRESS
+- status: ✅ COMPLETED
+- type: Bug
 - user profile view now loads fresh data from /api/1/user/profile API endpoint
 - profile updates work correctly and increment saveCount properly
 - UserModel.updateById() now increments saveCount like ConfigModel
 
 ## **W-022**: user preferred language
 - status: ✅ COMPLETED
+- type: Feature
 - centralized language preference handling in AuthController
 - AuthController.getUserLanguage() helper function with fallback support
 - better separation of concerns between authentication and view logic
 
+## **W-023**: view: migrate views to vue.js while preserving the MVC model
+- status: ❌ CANCELED
+- type: Feature
+- objective: convert from .shtml/Handlebars to complete Vue.js solution while preserving MVC mental model, and upcoming framework/site separation
+- reason to cancel SPA with vue.js, and go mack to MPS with .shtml with handlebars:
+  - SPA is not a good fit for large deployments were multiple teams work on their own model/controller/view
+  - SPA is fragile: if one "page" has a runtime error the whole site is down
+  - SPA is heavy: if you have 100 "pages", all content is in browser memory
+
+## **W-024**: view: script separation with enhanced jpulse-common.js utilities
+- status: 🕑 PENDING
+- type: Feature
+- objective: avoid duplicate code in browser; spend less time to create a new view, and to maintain existing views
+- create a webapp/view/jpulse-common.js:
+  - common data and functions available to all pages
+  - it defines a jPulseCommon object, with properties like:
+    - alert() -- dialog
+    - confirm() -- dialog
+    - getCookie()
+    - setCookie()
+    - showMessage() -- show non-blocking slide down/up info/error message
+    - entityEncode()
+    - entityDecode()
+    - detectOs()
+    - detectBrowser()
+    - isMobile()
+    - isTouchDevice()
+    - windowHasFocus()
+- use library like bootstrap or vue?
+
+## **W-025**: view: component-based styling with framework/site separation
+- status: 🕑 PENDING
+- type: Feature
+- objective: clean styles, hierarchy, less duplication; spend less time to create a new view, and to maintain existing views
+- move all shareable style to webapp/view/jpulse-header.tmpl and/or webapp/view/jpulse-footer.tmpl
+- use library like bootstrap or vue?
+
+## **W-026**: config: appConfig structure should match model, controller, and view structure
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- restructure webapp/app.conf to match the file structure with controllers, views, etc.
+- example: appConfig.controller.view.maxIncludeDepth
+
+## **W-0**: i18n: key path should match controller and view structure
+- status: 🕑 PENDING
+- type: Feature
+- restructure the language files to match the controllers and views by directory and file name
+- example: i18n.view.auth.login.loginFailed
+- example: i18n.controller.auth.unauthorizedByRole
 
 
 
 
+
+
+
+
+
+## **W-0**: i18n: internationalize user facing controller messages
+- status: 🕑 PENDING
+- type: Feature
+- internationalize user facing controller messages
+- remove async in view.processHandlebars()
+- add optional context to i18n.translate(langCode, keyPath, context = {})
+- add optional context to i18n.t(keyPath, context = {}, langCode = this.default, fallbackLang = this.default)
+
+## **W-0**: error reporting without redirect
+- status: 🕑 PENDING
+- type: Feature
+- for 404 and other errors do not redirect to /error/index.shtml, but show error message with same style like webapp/view/error/index.shtml
 
 ## **W-0**: controller.view: create {{#each}} handlebar
 - status: 🕑 PENDING
+- type: Feature
 - syntax: {{#each array}} {{@index}}: {{this}} {{/each}}
   - @index: zero-based index
   - this: array element value
@@ -354,20 +444,23 @@ Requirements Doc of jPulse Framework
 
 ## **W-0**: broadcast message
 - status: 🕑 PENDING
-- purpose: admin can broadcast message, such as "scheduled downtime this Saturday 10am-12pm"
+- type: Feature
+- objective: admin can broadcast message, such as "scheduled downtime this Saturday 10am-12pm"
 - show yellow broadcast message just below banner
-- brodcast message div has [-] button to minimize message
-  - reduced to [+] button, when clicked restored the message div
+- brodcast message div has [-] button on left to minimize message
+  - reduced to [+] button, when clicked restore the message div
   - minimize status is remembered across page loads
   - minimize status is reset after 4 hours (appConfig setting)
 - broadcast message can be set in site config
 
 ## **W-0**: docker strategy
 - status: 🕑 PENDING
+- type: Idea
 - new jpulse-docker project?
 
 ## **W-0**: create plugin infrastructure
 - status: 🕑 PENDING
+- type: Feature
 - strategy: drop in specific directory, with auto discovery
 - plugins for:
   - themes
@@ -375,6 +468,7 @@ Requirements Doc of jPulse Framework
 
 ## **W-0**: create themes
 - status: 🕑 PENDING
+- type: Feature
 - initially a dark and light theme, light is default
 - user can set preferred theme
 - way to define new themes
@@ -382,31 +476,73 @@ Requirements Doc of jPulse Framework
 
 ## **W-0**: create caching infrastrucure
 - status: 🕑 PENDING
+- type: Feature
 - redis to cache site config (what else? sessions?)
 - should work in multi node instances, and multi app server instances
 
 ## **W-0**: i18n with auto-discovery and app update
 - status: 🕑 PENDING
+- type: Idea
+- objective: this feature avoids an app restart when translations are updated or added
 - when a new language file is added to webapp/translations, the app sould pick it up dynamically, or by an admin requesting a web-based resources reload
 - when a language file has been updated, the app should pick up the changes dynamically, or by an admin requesting a web-based resources reload
 
-## **W-0**: change paging API with limit & skip to cursor based paging
+## **W-0**: change paging API using limit & skip to cursor based paging
 - status: 🕑 PENDING
+- type: Feature
+- objective: paged queries that do not miss or duplicate docs between calls
 
-## **W-0**: nested config
+## **W-0**: nested site config
 - status: 🕑 PENDING
+- type: Idea
+- objective: separate admin tasks for larger orgs, such as an admin for Sales, another for Engineering, or separate by divisions
 
 ## **W-0**: signup with email confirmation
 - status: 🕑 PENDING
-- optional with a appConfig setting
+- type: Feature
+- make it optional with a appConfig setting
 
 ## **W-0**: authentication with OAuth2
 - status: 🕑 PENDING
+- type: Feature
 
 ## **W-0**: authentication with LDAP
 - status: 🕑 PENDING
+- type: Feature
 
+## **W-0**: websocket strategy
+- status: 🕑 PENDING
+- type: Idea
+- objective: standard way where views can establish a persistent bi-directional communication with a controller, useful for single page apps, or concurrent edit of content
+- high availability with ping pong initiated on both sides
+- a way for a controller to register a websocket server
+- a way for a view to register a websocket client
 
+## **W-0**: i18n: utility app to manage translations
+- status: 🕑 PENDING
+- type: Idea
+- objective: make it easy for translators to create & maintain language files
+- web app:
+  - select language
+  - show hierarchy of translation
+  - at each node, show default English text on top, selected language below
+    - save on focus loss, or save button?
+  - for view text (i18n.view.*) add link to jPulse app
+
+## **W-0**:
+- status: 🕑 PENDING
+- type: Idea
+- objective:
+
+## **W-0**:
+- status: 🕑 PENDING
+- type: Idea
+- objective:
+
+## **W-0**:
+- status: 🕑 PENDING
+- type: Idea
+- objective:
 
 
 ------------------------
@@ -414,6 +550,7 @@ status codes:
 - status: 🕑 PENDING
 - status: 🚧 IN_PROGRESS
 - status: ✅ DONE
+- status: ❌ CANCELED
 ------------------------
 
 next:
@@ -430,8 +567,6 @@ git push
 
 ------------------------
 
-- for 404 and other errors I prefer not a redirect, but keep same URI with content of webapp/view/error/index.shtml - possible?
-- cleaner styles, no duplication, move all shared style to header or footer
 
 ------------------------
 
@@ -455,8 +590,8 @@ jpulse-framework/               # Main project
 │   │   ├── model/              # Custom/extended models
 │   │   ├── view/               # Custom templates
 │   │   └── static/             # Site-specific assets
-│   ├── app.conf               # Site configuration
-│   └── site.json              # Site metadata
+│   ├── app.conf                # Site configuration
+│   └── site.json               # Site metadata
 └── .jpulse/                    # Framework metadata
     ├── framework-version.json  # Version tracking
     └── update-history.json     # Update log
@@ -509,3 +644,7 @@ jpulse-framework/               # Main project
 - ✅ Backward compatibility maintained
 
 -----------
+
+Conversation with Grok on view strategy, e.g. buld your own or use vue:
+https://grok.com/share/c2hhcmQtNA%3D%3D_5c4f68c9-f2ae-46d2-aa33-3f6975601839
+

@@ -3,8 +3,8 @@
  * @tagline         Unit tests for responsive layout and appConfig integration
  * @description     Tests for the new responsive layout features and appConfig context
  * @file            webapp/tests/unit/controller/responsive-layout.test.js
- * @version         0.3.0
- * @release         2025-08-28
+ * @version         0.3.1
+ * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -26,13 +26,15 @@ describe('Responsive Layout and AppConfig Integration', () => {
                 version: '0.1.5',
                 release: '2025-08-24'
             },
-            window: {
-                maxWidth: 1200,
-                minMarginLeftRight: 20
+            controller: {
+                view: {
+                    defaultTemplate: 'index.shtml',
+                    maxIncludeDepth: 10
+                }
             },
             view: {
-                defaultTemplate: 'index.shtml',
-                maxIncludeDepth: 10
+                maxWidth: 1200,
+                minMarginLeftRight: 20
             }
         };
 
@@ -58,13 +60,13 @@ describe('Responsive Layout and AppConfig Integration', () => {
     describe('AppConfig Context Integration', () => {
         test('should expose appConfig in handlebars context', () => {
             expect(mockContext.appConfig).toBeDefined();
-            expect(mockContext.appConfig.window).toBeDefined();
-            expect(mockContext.appConfig.window.maxWidth).toBe(1200);
-            expect(mockContext.appConfig.window.minMarginLeftRight).toBe(20);
+            expect(mockContext.appConfig.view).toBeDefined();
+            expect(mockContext.appConfig.view.maxWidth).toBe(1200);
+            expect(mockContext.appConfig.view.minMarginLeftRight).toBe(20);
         });
 
         test('should provide window configuration for responsive layout', () => {
-            const windowConfig = mockContext.appConfig.window;
+            const windowConfig = mockContext.appConfig.view;
 
             expect(windowConfig.maxWidth).toBe(1200);
             expect(windowConfig.minMarginLeftRight).toBe(20);
@@ -80,7 +82,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
 
     describe('Responsive Layout Calculations', () => {
         test('should calculate correct CSS values for wide screens', () => {
-            const { maxWidth, minMarginLeftRight } = mockAppConfig.window;
+            const { maxWidth, minMarginLeftRight } = mockAppConfig.view;
 
             // Header/footer content width calculation
             const headerContentMaxWidth = maxWidth - (minMarginLeftRight * 2);
@@ -96,7 +98,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
         });
 
         test('should calculate correct responsive breakpoints', () => {
-            const { maxWidth, minMarginLeftRight } = mockAppConfig.window;
+            const { maxWidth, minMarginLeftRight } = mockAppConfig.view;
 
             // Main responsive breakpoint
             const mainBreakpoint = maxWidth + (minMarginLeftRight * 2);
@@ -112,12 +114,12 @@ describe('Responsive Layout and AppConfig Integration', () => {
 
         test('should handle different window configurations', () => {
             // Test with different maxWidth
-            const largeConfig = { ...mockAppConfig.window, maxWidth: 1600 };
+            const largeConfig = { ...mockAppConfig.view, maxWidth: 1600 };
             const largeBreakpoint = largeConfig.maxWidth + (largeConfig.minMarginLeftRight * 2);
             expect(largeBreakpoint).toBe(1640);
 
             // Test with different margins
-            const wideMarginConfig = { ...mockAppConfig.window, minMarginLeftRight: 40 };
+            const wideMarginConfig = { ...mockAppConfig.view, minMarginLeftRight: 40 };
             const wideMarginBreakpoint = wideMarginConfig.maxWidth + (wideMarginConfig.minMarginLeftRight * 2);
             expect(wideMarginBreakpoint).toBe(1280);
         });
@@ -125,7 +127,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
 
     describe('CSS Template Generation', () => {
         test('should generate correct CSS calc expressions', () => {
-            const { maxWidth, minMarginLeftRight } = mockAppConfig.window;
+            const { maxWidth, minMarginLeftRight } = mockAppConfig.view;
 
             // Simulate handlebars template rendering
             const cssTemplates = {
@@ -144,7 +146,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
         });
 
         test('should handle responsive padding calculations', () => {
-            const { minMarginLeftRight } = mockAppConfig.window;
+            const { minMarginLeftRight } = mockAppConfig.view;
 
             // Different padding values for different breakpoints
             const responsivePadding = {
@@ -182,30 +184,33 @@ describe('Responsive Layout and AppConfig Integration', () => {
             const appConfig = mockContext.appConfig;
 
             expect(appConfig).toHaveProperty('app');
-            expect(appConfig).toHaveProperty('window');
+            expect(appConfig).toHaveProperty('controller');
             expect(appConfig).toHaveProperty('view');
 
             expect(appConfig.app).toHaveProperty('version');
             expect(appConfig.app).toHaveProperty('release');
 
-            expect(appConfig.window).toHaveProperty('maxWidth');
-            expect(appConfig.window).toHaveProperty('minMarginLeftRight');
+            expect(appConfig.view).toHaveProperty('maxWidth');
+            expect(appConfig.view).toHaveProperty('minMarginLeftRight');
         });
 
         test('should handle missing window config gracefully', () => {
             const incompleteConfig = {
                 ...mockAppConfig,
-                window: {}
+                controller: {
+                    view: {}
+                },
+                view: {}
             };
-
+            
             const context = {
                 ...mockContext,
                 appConfig: incompleteConfig
             };
 
             // Should not throw errors when properties are missing
-            expect(context.appConfig.window.maxWidth).toBeUndefined();
-            expect(context.appConfig.window.minMarginLeftRight).toBeUndefined();
+            expect(context.appConfig.view.maxWidth).toBeUndefined();
+            expect(context.appConfig.view.minMarginLeftRight).toBeUndefined();
         });
     });
 
@@ -238,15 +243,15 @@ describe('Responsive Layout and AppConfig Integration', () => {
             };
 
             expect(simulatedContext.appConfig).toBe(mockAppConfig);
-            expect(simulatedContext.appConfig.window.maxWidth).toBe(1200);
+            expect(simulatedContext.appConfig.view.maxWidth).toBe(1200);
             expect(simulatedContext.i18n.app.name).toBe('jPulse Framework');
         });
 
         test('should support handlebars template expressions', () => {
             // Test expressions that would be used in templates
             const expressions = {
-                maxWidth: mockContext.appConfig.window.maxWidth,
-                minMargin: mockContext.appConfig.window.minMarginLeftRight,
+                maxWidth: mockContext.appConfig.view.maxWidth,
+                minMargin: mockContext.appConfig.view.minMarginLeftRight,
                 appVersion: mockContext.app.version
             };
 
@@ -273,7 +278,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
         test('should handle invalid window config values', () => {
             const invalidConfig = {
                 ...mockAppConfig,
-                window: {
+                view: {
                     maxWidth: 'invalid',
                     minMarginLeftRight: null
                 }
@@ -284,12 +289,12 @@ describe('Responsive Layout and AppConfig Integration', () => {
                 appConfig: invalidConfig
             };
 
-            expect(context.appConfig.window.maxWidth).toBe('invalid');
-            expect(context.appConfig.window.minMarginLeftRight).toBeNull();
+            expect(context.appConfig.view.maxWidth).toBe('invalid');
+            expect(context.appConfig.view.minMarginLeftRight).toBeNull();
         });
 
         test('should validate numeric values for calculations', () => {
-            const { maxWidth, minMarginLeftRight } = mockAppConfig.window;
+            const { maxWidth, minMarginLeftRight } = mockAppConfig.view;
 
             expect(typeof maxWidth).toBe('number');
             expect(typeof minMarginLeftRight).toBe('number');

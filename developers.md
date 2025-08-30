@@ -1,14 +1,14 @@
-# jPulse Framework / Developer Documentation v0.3.0
+# jPulse Framework / Developer Documentation v0.3.1
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.3.0):**
+**Latest Updates (v0.3.1):**
+- 🏗️ **MVC-Aligned Configuration (W-026)**: Restructured app.conf to match model/controller/view architecture
+- 📁 **Enhanced Configuration Organization**: Settings organized by component type for better maintainability
 - 🔗 **API-Driven Profile Management**: User profiles now load fresh data from REST API instead of session data
 - 📊 **Enhanced Data Consistency**: Profile updates properly increment saveCount for version tracking
 - 🌐 **User Language Preferences**: Centralized language preference handling in AuthController
 - 🔧 **Improved Session Management**: Better separation of concerns between authentication and user data
-- ⚡ **Dynamic Profile Updates**: Real-time profile form updates without page reloads
-- 🧪 **Comprehensive API Testing**: Full API endpoint validation with automated testing
 
 ## 🏗️ Architecture Overview
 
@@ -102,6 +102,89 @@ app.listen(port, () => {
 - **Database Flexibility**: MongoDB standalone or replica set configurations
 - **Template Variables**: Dynamic replacement (e.g., `%DB%`, `%SERVERS%`)
 - **Security Settings**: Session management, CORS, and middleware configuration
+
+### MVC-Aligned Configuration Structure (W-026)
+
+#### Problem Statement
+The original configuration structure was organized by functional areas (login, window, view, log) which didn't align with the framework's MVC architecture. This made it harder to understand which settings belonged to which components and reduced maintainability.
+
+#### Solution Architecture
+Restructured `webapp/app.conf` to match the file structure with model, controller, and view components:
+
+**Before (v0.3.0):**
+```javascript
+{
+    login: {
+        mode: 'internal',
+        passwordPolicy: { minLength: 8 }
+    },
+    window: {
+        maxWidth: 1200,
+        minMarginLeftRight: 20
+    },
+    view: {
+        defaultTemplate: 'index.shtml',
+        maxIncludeDepth: 10
+    },
+    log: {
+        maxMsgLength: 256
+    }
+}
+```
+
+**After (v0.3.1):**
+```javascript
+{
+    model: {
+        user: {
+            passwordPolicy: { minLength: 8 }
+        }
+    },
+    controller: {
+        auth: {
+            mode: 'internal',
+            internal: {},
+            ldap: { url: 'ldap://localhost:389' },
+            oauth2: { clientID: 'fixme' }
+        },
+        log: {
+            maxMsgLength: 256
+        },
+        view: {
+            defaultTemplate: 'index.shtml',
+            maxIncludeDepth: 10
+        }
+    },
+    view: {
+        maxWidth: 1200,
+        minMarginLeftRight: 20
+    }
+}
+```
+
+#### Key Benefits Achieved
+1. **MVC Alignment**: Configuration structure now matches `model/`, `controller/`, `view/` directories
+2. **Better Organization**: Settings grouped by component type rather than functional area
+3. **Enhanced Maintainability**: Easier to find and modify component-specific settings
+4. **Clearer Separation**: Authentication settings in `controller.auth`, user policies in `model.user`
+5. **Consistent Mental Model**: Developers can predict where settings belong based on MVC structure
+
+#### Migration Impact
+- **Tests Updated**: Fixed responsive-layout.test.js and view.test.js to use new structure
+- **Backward Compatibility**: No API changes, only internal configuration organization
+- **Documentation Updated**: All examples and references updated to new structure
+- **Zero Downtime**: Configuration changes are internal, no user-facing impact
+
+#### Implementation Details
+The restructure maintains all existing functionality while improving the developer experience:
+
+- `appConfig.controller.auth.mode` replaces `appConfig.login.mode`
+- `appConfig.model.user.passwordPolicy` replaces `appConfig.login.passwordPolicy`
+- `appConfig.view.maxWidth` replaces `appConfig.window.maxWidth`
+- `appConfig.controller.view.defaultTemplate` replaces `appConfig.view.defaultTemplate`
+- `appConfig.controller.log.maxMsgLength` replaces `appConfig.log.maxMsgLength`
+
+This change exemplifies the framework's commitment to clean architecture and developer-friendly design patterns.
 
 ### Internationalization System (W-002)
 

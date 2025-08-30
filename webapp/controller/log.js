@@ -3,8 +3,8 @@
  * @tagline         Log Controller for jPulse Framework WebApp
  * @description     This is the log controller for the jPulse Framework WebApp
  * @file            webapp/controller/log.js
- * @version         0.3.0
- * @release         2025-08-28
+ * @version         0.3.1
+ * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -143,7 +143,7 @@ class LogController {
         sanitized = sanitized.replace(/\s+/g, ' ').trim();
 
         // Truncate if too long
-        const maxLength = (typeof appConfig !== 'undefined' ? appConfig?.log?.maxMsgLength : null) || 256;
+        const maxLength = (typeof appConfig !== 'undefined' ? appConfig?.controller?.log?.maxMsgLength : null) || 256;
         if (sanitized.length <= maxLength) {
             return sanitized;
         }

@@ -3,8 +3,8 @@
  * @tagline         Integration tests for application startup flow
  * @description     Tests for the complete application initialization process
  * @file            webapp/tests/integration/app-startup.test.js
- * @version         0.3.0
- * @release         2025-08-28
+ * @version         0.3.1
+ * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -315,7 +315,6 @@ describe('Application Startup Integration', () => {
                 app: {
                     version: '1.0.0'
                 }
-                // Missing deployment and i18n sections
             }`;
 
             const config = await TestUtils.loadTestConfig(

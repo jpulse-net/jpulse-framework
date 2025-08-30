@@ -1,14 +1,14 @@
-# jPulse Framework v0.3.0
+# jPulse Framework v0.3.1
 
 A modern, lightweight web application framework built with Node.js, Express, and MongoDB. jPulse combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content.
 
-**Latest Release Highlights (v0.3.0):**
+**Latest Release Highlights (v0.3.1):**
+- ✅ **MVC-Aligned Configuration**: Restructured app.conf to match model/controller/view architecture
+- ✅ **Enhanced Configuration Organization**: Settings organized by component type for better maintainability
 - ✅ **API-Driven Profile Management**: User profiles now load fresh data from REST API instead of session data
 - ✅ **Enhanced Data Consistency**: Profile updates properly increment saveCount for version tracking
 - ✅ **User Language Preferences**: Centralized language preference handling in AuthController
 - ✅ **Improved Session Management**: Better separation of concerns between authentication and user data
-- ✅ **Dynamic Profile Updates**: Real-time profile form updates without page reloads
-- ✅ **Comprehensive API Testing**: Full API endpoint validation with automated testing
 
 ## 🚀 Quick Start
 
@@ -204,8 +204,8 @@ jPulse uses JavaScript-based configuration files for maximum flexibility:
 ```javascript
 {
     app: {
-        version:        '0.2.1',
-        release:        '2025-08-25'
+        version:        '0.3.1',
+        release:        '2025-08-29'
     },
     deployment: {
         mode:           'dev',      // 'dev' or 'prod'
@@ -250,31 +250,53 @@ jPulse uses JavaScript-based configuration files for maximum flexibility:
         saveUninitialized:  false,
         cookie: { secure: false, maxAge: 3600000 }
     },
-    login: {
-        mode:               'internal',  // 'internal', 'ldap', 'oauth2'
-        internal: { user: 'fixme', pass: 'fixme' }
-    },
-    window: {
-        maxWidth:           1200,    # Maximum content width (px)
-        minMarginLeftRight: 20       # Minimum side margins (px)
-    },
-    view: {
-        defaultTemplate:    'index.shtml',
-        cacheTemplates:     false,
-        maxIncludeDepth:    10
-    },
     i18n: {
         default:            'en'
+    },
+    model: {
+        user: {
+            passwordPolicy: {
+                minLength:      8
+            }
+        }
+    },
+    controller: {
+        auth: {
+            mode:               'internal',  // 'internal', 'ldap', 'oauth2'
+            internal: {},
+            ldap: {
+                url:            'ldap://localhost:389',
+                baseDN:         'dc=example,dc=com'
+            },
+            oauth2: {
+                clientID:       'fixme',
+                clientSecret:   'fixme'
+            }
+        },
+        log: {
+            maxMsgLength:       256
+        },
+        view: {
+            defaultTemplate:    'index.shtml',
+            maxIncludeDepth:    10
+        }
+    },
+    view: {
+        maxWidth:               1200,   // Maximum content width (px)
+        minMarginLeftRight:     20      // Minimum side margins (px)
     }
 }
 ```
 
 ### Configuration Features
+- **MVC-Aligned Structure**: Configuration organized by component type (model, controller, view)
 - **Multi-Environment**: Separate dev/prod configurations
 - **Database Flexibility**: MongoDB standalone or replica set support
-- **Authentication Options**: Internal, LDAP, or OAuth2 authentication modes
+- **Authentication Options**: Internal, LDAP, or OAuth2 authentication modes (controller.auth.mode)
 - **Security Settings**: Configurable session management and CORS policies
-- **Template Control**: Caching, include depth, and default template settings
+- **Template Control**: Include depth and default template settings (controller.view)
+- **Responsive Layout**: Configurable content width and margins (view.maxWidth, view.minMarginLeftRight)
+- **User Management**: Password policies and validation rules (model.user.passwordPolicy)
 
 ### Environment Variables
 - `NODE_ENV`: Set to `production` for production deployment

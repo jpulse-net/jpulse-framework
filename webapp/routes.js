@@ -58,20 +58,57 @@ router.get('/api/1/user/search', AuthController.requireRole(['admin', 'root']), 
 // Log API routes (require authentication)
 router.get('/api/1/log/search', AuthController.requireAuthentication, logController.search);
 
-// Serve common files first, so that {{handlebars}} are not processed by the view controller.
-// This is handled by nginx if the app is running behind a reverse proxy
-router.use('/common', express.static(path.join(appConfig.app.dirName, 'static', 'common')));
-
-// Dynamic content routes - handle {{handlebars}} in .shtml, .tmpl, and jpulse-* files only
-router.get(/\.(shtml|tmpl)$/, viewController.load);
-router.get(/\/jpulse-.*\.(js|css)$/, viewController.load);
-router.get(/^\/[\w-]+\/$/, viewController.load); // e.g. /home/ ==> /home/index.shtml
-router.get('/', (req, res) => {
-    res.redirect('/home/');
+// Handle favicon.ico requests explicitly to prevent 404s
+router.get('/favicon.ico', (req, res) => {
+    res.sendFile(path.join(appConfig.app.dirName, 'static', 'favicon.ico'));
 });
 
-// Anything else will fall through to Express static middleware (.txt, .ico, .png, .json, etc.)
-// This is handled by nginx if the app is running behind a reverse proxy
+// Serve static files first (handled by nginx in production)
+router.use('/static', express.static(path.join(appConfig.app.dirName, 'static')));
+
+// Serve site-specific static files if they exist
+const siteStaticPath = path.join(appConfig.app.dirName, '..', 'site', 'webapp', 'static');
+router.use('/site/static', express.static(siteStaticPath));
+
+// Auto-discover Vue.js SPA routes from view directories
+import fs from 'fs';
+const viewDir = path.join(appConfig.app.dirName, 'static', 'view');
+const sections = fs.readdirSync(viewDir).filter(item => {
+    const itemPath = path.join(viewDir, item);
+    return fs.statSync(itemPath).isDirectory() && item !== 'shared'; // Exclude shared directory
+});
+
+// Generate routes for discovered sections
+sections.forEach(section => {
+    router.get(`/${section}`, viewController.load);           // /section
+    router.get(`/${section}/`, viewController.load);          // /section/
+    router.get(`/${section}/:page`, viewController.load);     // /section/page
+});
+
+console.log(`Auto-discovered Vue.js SPA routes for sections: ${sections.join(', ')}`);
+
+// Legacy manual routes (can be removed once auto-discovery is verified)
+// router.get('/home', viewController.load);
+// router.get('/home/', viewController.load);
+// router.get('/user', viewController.load);
+// router.get('/user/', viewController.load);
+// router.get('/user/:page', viewController.load);
+// router.get('/auth', viewController.load);
+// router.get('/auth/', viewController.load);
+// router.get('/auth/:page', viewController.load);
+// router.get('/error', viewController.load);
+// router.get('/error/', viewController.load);
+
+// Legacy support for .shtml files during migration (can be removed later)
+router.get(/\.(shtml|tmpl)$/, viewController.load);
+router.get(/\/jpulse-.*\.(js|css)$/, viewController.load);
+
+// Root redirect to home
+router.get('/', (req, res) => {
+    res.redirect('/home');
+});
+
+// Serve remaining static files from root static directory
 router.use('/', express.static(path.join(appConfig.app.dirName, 'static')));
 
 // Catch-all 404 handler

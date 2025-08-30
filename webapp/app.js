@@ -49,6 +49,8 @@ const appConfig = await loadAppConfig();
 // Make appConfig globally available for other modules
 appConfig.app.dirName = __dirname;
 global.appConfig = appConfig;
+console.log('DEBUG 1 appConfig:', appConfig);
+console.log('DEBUG 2 appConfig:', JSON.stringify(appConfig, null, 2));
 
 // Load the i18n object
 const i18n = await import('./translations/i18n.js').then(m => m.default);

@@ -14,334 +14,158 @@
 
 import fs from 'fs';
 import path from 'path';
-import url from 'url';
-import logController from './log.js';
 import configModel from '../model/config.js';
-import i18n from '../translations/i18n.js';
-import CommonUtils from '../utils/common.js';
 import AuthController from './auth.js';
 
-/**
- * Load and render .shtml template files with handlebars expansion
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
-async function load(req, res) {
+const view = {
+  // Load and render a view
+  async load(req, res) {
     const startTime = Date.now();
-    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
-    const loginId = req.session?.user?.loginId || '(guest)';
-    const vmId = process.env.VM_ID || '0';
-    const pmId = process.env.pm_id || '0';
 
     try {
-        // Log the request
-        logController.consoleApi(req, `view.load( ${req.path} )`);
+      // Log the request
+      LogController.consoleApi(req, `view.load( ${req.path} )`);
 
-        // Determine the file path
-        let filePath = req.path;
-        const defaultTemplate = appConfig?.view?.defaultTemplate || 'index.shtml';
-        if (filePath === '/') {
-            filePath = `/home/${defaultTemplate}`;
-        } else if (!filePath.endsWith('.shtml')) {
-            filePath += `/${defaultTemplate}`;
+      // Determine section from path (maintains MVC mental model)
+      const pathParts = req.path.split('/').filter(p => p);
+      const section = pathParts[0] || 'home';  // user, auth, dashboard, home, etc.
+      const page = pathParts[1] || 'index';
+
+      // Get global config for context
+      const globalConfig = await configModel.findById('global');
+
+      // Build context for Vue app hydration (no circular references)
+      const context = {
+        app: {
+          version: appConfig.app.version,
+          release: appConfig.app.release
+        },
+        user: {
+          id: req.session?.user?.id || '',
+          firstName: req.session?.user?.firstName || '',
+          nickName: req.session?.user?.nickName || '',
+          lastName: req.session?.user?.lastName || '',
+          email: req.session?.user?.email || '',
+          initials: req.session?.user?.initials || '?',
+          authenticated: !!req.session?.user
+        },
+        config: globalConfig?.data || {},
+        appConfig: appConfig,
+        url: {
+          domain: `${req.protocol}://${req.get('host')}`,
+          protocol: req.protocol,
+          hostname: req.hostname,
+          port: req.get('host')?.split(':')[1] || '',
+          pathname: req.path,
+          search: req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '',
+          param: req.query || {}
+        },
+        i18n: {
+          currentLanguage: AuthController.getUserLanguage(req),
+          availableLanguages: Object.keys(i18n.langs),
+          translations: i18n.getLang(AuthController.getUserLanguage(req))
+        },
+        // Add routing info for Vue
+        route: {
+          section,
+          page,
+          path: req.path,
+          fullPath: req.url
         }
+      };
 
-        const fullPath = path.join(process.cwd(), 'webapp', 'view', filePath.substring(1));
+      // Serve Vue app bootstrap HTML
+      const html = generateVueAppHtml(context, section);
 
-        // Check if file exists
-        if (!fs.existsSync(fullPath)) {
-            logController.error(req, `File not found: ${fullPath}`);
-            return CommonUtils.sendError(req, res, 404, `Page not found: ${req.path}`, 'NOT_FOUND');
-        }
+      // Log completion time
+      const duration = Date.now() - startTime;
+      LogController.console(req, `view.load completed in ${duration}ms`);
 
-        // Read the file
-        let content = fs.readFileSync(fullPath, 'utf8');
-
-        // Get global config for handlebars context
-        const globalConfig = await configModel.findById('global');
-
-        // Create handlebars context
-        const context = {
-            app: {
-                version: appConfig.app.version,
-                release: appConfig.app.release
-            },
-            user: {
-                id: req.session?.user?.id || '',
-                firstName: req.session?.user?.firstName || '',
-                nickName: req.session?.user?.nickName || '',
-                lastName: req.session?.user?.lastName || '',
-                email: req.session?.user?.email || '',
-                initials: req.session?.user?.initials || '?',
-                authenticated: !!req.session?.user
-            },
-            config: globalConfig?.data || {},
-            appConfig: appConfig, // Add app.conf configuration
-            url: {
-                domain: `${req.protocol}://${req.get('host')}`,
-                protocol: req.protocol,
-                hostname: req.hostname,
-                port: req.get('host')?.split(':')[1] || '',
-                pathname: req.path,
-                search: req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '',
-                param: req.query || {}
-            },
-            // Add i18n object to context for dot notation access
-            i18n: i18n.getLang(AuthController.getUserLanguage(req)),
-            req: req
-        };
-
-        // Process handlebars
-        content = await processHandlebars(content, context, path.dirname(fullPath), req, 0);
-
-        // Second pass: Process any handlebars expressions that were returned from i18n translations
-        content = await processHandlebars(content, context, path.dirname(fullPath), req, 0);
-
-        // Log completion time
-        const duration = Date.now() - startTime;
-        logController.console(req, `view.load completed in ${duration}ms`);
-
-        // Send response
-        res.set('Content-Type', 'text/html');
-        res.send(content);
+      res.set('Content-Type', 'text/html');
+      res.send(html);
 
     } catch (error) {
-        logController.error(req, `view.load error: ${error.message}`);
-        res.status(500).send('Internal server error');
+      LogController.error(req, `view.load error: ${error.message}`);
+      res.status(500).send('Internal server error');
     }
-}
-
-/**
- * Process handlebars in content
- * @param {string} content - Template content
- * @param {Object} context - Handlebars context data
- * @param {string} baseDir - Base directory for file includes
- * @param {Object} req - Express request object for logging
- * @param {number} depth - Current include depth for recursion protection
- * @returns {string} Processed content
- */
-async function processHandlebars(content, context, baseDir, req, depth = 0) {
-    // Combined regex to match both block handlebars ({{#if}}...{{/if}}) and regular handlebars ({{expression}})
-    const handlebarsRegex = /\{\{#(\w+)\s+([^}]+)\}\}(.*?)\{\{\/\1\}\}|\{\{([^#][^}]*|)\}\}/gs;
-    let result = content;
-    let match;
-    while ((match = handlebarsRegex.exec(content)) !== null) {
-        const fullMatch = match[0];
-        try {
-            let replacement;
-
-            // Check if this is a block handlebar ({{#expression}}...{{/expression}})
-            if (match[1] && match[2] && match[3] !== undefined) {
-                // Block handlebars: group 1=blockType, group 2=params, group 3=content
-                const blockType = match[1];
-                const params = match[2].trim();
-                const blockContent = match[3];
-                replacement = await evaluateBlockHandlebar(blockType, params, blockContent, context, baseDir, req, depth);
-            } else if (match[4]) {
-                // Regular handlebars: group 4=full expression
-                const expression = match[4].trim();
-                replacement = await evaluateHandlebar(expression, context, baseDir, depth);
-            } else {
-                replacement = '';
-            }
-
-            result = result.replace(fullMatch, replacement);
-        } catch (error) {
-            const errorExpression = match[1] ? `#${match[1]} ${match[2]}` : match[4] || 'unknown';
-            logController.error(req, `view.load: Handlebars error in "${errorExpression}": ${error.message}`);
-            result = result.replace(fullMatch, `<!-- Error: ${error.message} -->`);
-        }
-    }
-    return result;
-}
-
-/**
- * Evaluate a block handlebars expression ({{#type}}...{{/type}})
- * @param {string} blockType - The block type (e.g., 'if', 'each')
- * @param {string} params - The parameters for the block
- * @param {string} blockContent - The content within the block
- * @param {Object} context - Context data
- * @param {string} baseDir - Base directory for file operations
- * @param {Object} req - Express request object for logging
- * @param {number} depth - Current include depth
- * @returns {string} Evaluated result
- */
-async function evaluateBlockHandlebar(blockType, params, blockContent, context, baseDir, req, depth = 0) {
-    switch (blockType) {
-        case 'if':
-            return await handleBlockIf(params, blockContent, context, baseDir, req, depth);
-        default:
-            throw new Error(`Unknown block type: ${blockType}`);
-    }
-}
-
-/**
- * Evaluate a single handlebars expression
- * @param {string} expression - The handlebars expression (without {{}})
- * @param {Object} context - Context data
- * @param {string} baseDir - Base directory for file operations
- * @param {number} depth - Current include depth
- * @returns {string} Evaluated result
- */
-async function evaluateHandlebar(expression, context, baseDir, depth = 0) {
-    const parts = parseArguments(expression);
-    const helper = parts[0];
-    const args = parts.slice(1);
-
-    // Handle helper functions first (before property access)
-    switch (helper) {
-        case 'file.include':
-            return await handleFileInclude(args[0], context, baseDir, depth);
-        case 'file.timestamp':
-            return await handleFileTimestamp(args[0]);
-        default:
-            // Handle property access (no spaces, contains dots)
-            if (!helper.includes(' ') && helper.includes('.')) {
-                return getNestedProperty(context, helper) || '';
-            }
-            // Unknown helper, return empty
-            return '';
-    }
-}
-
-/**
- * Parse handlebars arguments (space-separated, quoted strings preserved)
- * @param {string} expression - The full expression
- * @returns {Array} Array of arguments
- */
-function parseArguments(expression) {
-    const args = [];
-    let current = '';
-    let inQuotes = false;
-    let quoteChar = '';
-    for (let i = 0; i < expression.length; i++) {
-        const char = expression[i];
-        if (!inQuotes && (char === '"' || char === "'")) {
-            inQuotes = true;
-            quoteChar = char;
-        } else if (inQuotes && char === quoteChar) {
-            inQuotes = false;
-            quoteChar = '';
-        } else if (!inQuotes && char === ' ') {
-            if (current.trim()) {
-                args.push(current.trim());
-                current = '';
-            }
-        } else {
-            current += char;
-        }
-    }
-    if (current.trim()) {
-        args.push(current.trim());
-    }
-    return args;
-}
-
-/**
- * Get nested property from object using dot notation
- * @param {Object} obj - Object to search in
- * @param {string} path - Dot-separated path
- * @returns {*} Property value or undefined
- */
-function getNestedProperty(obj, path) {
-    return path.split('.').reduce((current, key) => {
-        return current && current[key] !== undefined ? current[key] : undefined;
-    }, obj);
-}
-
-/**
- * Handle file.include helper - SECURE VERSION
- * Always resolves relative to view root, prohibits path traversal
- * @param {string} filePath - Path to include (with quotes)
- * @param {Object} context - Context for nested processing
- * @param {string} baseDir - Base directory (ignored for security)
- * @param {number} depth - Current include depth
- * @returns {string} Included content
- */
-async function handleFileInclude(filePath, context, baseDir, depth = 0) {
-    // Check include depth to prevent infinite recursion
-    const maxDepth = appConfig?.view?.maxIncludeDepth || 10;
-    if (depth >= maxDepth) {
-        throw new Error(`Maximum include depth (${maxDepth}) exceeded`);
-    }
-
-    // Remove quotes
-    const cleanPath = filePath.replace(/^["']|["']$/g, '');
-
-    // Security: Prohibit path traversal and absolute paths
-    if (cleanPath.includes('../') || cleanPath.includes('..\\') || path.isAbsolute(cleanPath)) {
-        throw new Error(`Prohibited path in include: ${cleanPath}. Use relative paths from view root only.`);
-    }
-
-    // Always resolve relative to view root for security and consistency
-    const viewRoot = path.join(process.cwd(), 'webapp', 'view');
-    const fullPath = path.join(viewRoot, cleanPath);
-
-    // Double-check that resolved path is still within view root
-    if (!fullPath.startsWith(viewRoot)) {
-        throw new Error(`Path traversal attempt blocked: ${cleanPath}`);
-    }
-
-    if (!fs.existsSync(fullPath)) {
-        throw new Error(`Include file not found: ${cleanPath} (resolved to: ${fullPath})`);
-    }
-
-    const content = fs.readFileSync(fullPath, 'utf8');
-    // Recursively process handlebars in included content
-    return await processHandlebars(content, context, viewRoot, null, depth + 1);
-}
-
-/**
- * Handle file.timestamp helper
- * @param {string} filePath - Path to file (with quotes)
- * @returns {string} File modification timestamp
- */
-async function handleFileTimestamp(filePath) {
-    const cleanPath = filePath.replace(/^["']|["']$/g, '');
-    const fullPath = path.resolve(process.cwd(), 'webapp', 'view', cleanPath);
-    if (!fs.existsSync(fullPath)) {
-        return '';
-    }
-    const stats = fs.statSync(fullPath);
-    return stats.mtime.toISOString();
-}
-
-/**
- * Handle block if conditional helper ({{#if}}...{{/if}})
- * @param {string} params - The condition parameter
- * @param {string} blockContent - Content within the if block
- * @param {Object} context - Context for evaluation
- * @param {string} baseDir - Base directory for file operations
- * @param {Object} req - Express request object for logging
- * @param {number} depth - Current include depth
- * @returns {string} Result based on condition
- */
-async function handleBlockIf(params, blockContent, context, baseDir, req, depth = 0) {
-    const condition = params.trim();
-    const conditionValue = getNestedProperty(context, condition);
-
-    // Check if there's an {{else}} block
-    const elseMatch = blockContent.match(/^(.*?)\{\{else\}\}(.*?)$/s);
-
-    let contentToProcess;
-    if (elseMatch) {
-        // Has {{else}} - choose content based on condition
-        contentToProcess = conditionValue ? elseMatch[1] : elseMatch[2];
-    } else {
-        // No {{else}} - only show content if condition is true
-        contentToProcess = conditionValue ? blockContent : '';
-    }
-
-    // Recursively process any handlebars within the selected content
-    if (contentToProcess) {
-        return await processHandlebars(contentToProcess, context, baseDir, req, depth + 1);
-    }
-
-    return '';
-}
-
-export default {
-    load
+  }
 };
 
-// EOF webapp/controller/view.js
+/**
+ * Generate Vue app HTML with framework/site component loading
+ */
+function generateVueAppHtml(context, section) {
+
+  // Components will be auto-discovered by the Vue core
+
+  const siteStylesPath = path.join(appConfig.app.dirName, '..', 'site', 'webapp', 'static', 'view', 'site-styles.css');
+  const siteStyles = fs.existsSync(siteStylesPath)
+    ? `  <link rel="stylesheet" href="/site/static/view/site-styles.css">`
+    : '  <!-- Site styles not found, skipping -->';
+
+  const maxWidth = appConfig.window?.maxWidth || 1200;
+  const minMarginLeftRight = appConfig.window?.minMarginLeftRight || 20;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${context.app.version} - jPulse</title>
+
+  <style>
+    :root {
+      --jp-max-width: ${maxWidth}px;
+      --jp-min-margin-left-right: ${minMarginLeftRight}px;
+    }
+  </style>
+
+  <!-- Framework styles -->
+  <link rel="stylesheet" href="/static/view/jpulse-styles.css">
+
+  <!-- Site-specific styles if they exist -->
+${siteStyles}
+</head>
+<body>
+  <div id="jpulse-app">
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Loading jPulse...</p>
+    </div>
+  </div>
+
+  <!-- Context data for Vue hydration -->
+  <script type="application/json" id="jpulse-context">
+${JSON.stringify(context, null, 2)}
+  </script>
+
+  <!-- Framework dependencies -->
+  <script src="/static/common/vue/vue${appConfig.deployment.mode === 'production' ? '.min' : ''}.js"></script>
+  <script src="/static/view/jpulse-common.js"></script>
+  <script src="/static/view/jpulse-vue-core.js"></script>
+
+  <!-- Components will be auto-discovered and loaded by Vue core -->
+
+  <script>
+    // Set global context for Vue components
+    window.jPulseContext = JSON.parse(document.getElementById('jpulse-context').textContent);
+
+    // Initialize Vue app with framework/site component resolution
+    document.addEventListener('DOMContentLoaded', function() {
+      // Wait for components to be registered
+      setTimeout(() => {
+        if (window.jPulse && window.jPulse.initApp) {
+          jPulse.initApp('${section}', ${JSON.stringify(context.route)});
+        } else {
+          console.error('jPulse.initApp not found. Vue core may not have loaded properly.');
+        }
+      }, 100);
+    });
+  </script>
+</body>
+</html>`;
+}
+
+
+
+export default view;

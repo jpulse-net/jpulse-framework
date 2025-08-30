@@ -12,8 +12,10 @@
  * @genai           99%, Cursor 1.2, Claude Sonnet 4
  */
 
-import LogModel from '../model/log.js';
+import fs from 'fs';
+import path from 'path';
 import CommonUtils from '../utils/common.js';
+import LogModel from '../model/log.js';
 import os from 'os';
 
 /**
@@ -255,12 +257,27 @@ class LogController {
         return String(value);
     }
 
+    /**
+     * Log a client-side event to the console
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
+     */
+    static logClientEvent(req, res) {
+        const { event, path, message } = req.body;
+        if (event && path) {
+            LogController.console(req, `client: ${event} to ${path}`);
+        } else if (message) {
+            LogController.console(req, `client: ${message}`);
+        }
+        res.status(200).json({ success: true });
+    }
+
 }
 
 // Export both the class and individual functions for convenience
 export default LogController;
 
 // Named exports for direct function access
-export const { search, console: logConsole, consoleApi, error: logError, logChange } = LogController;
+export const { search, console: logConsole, consoleApi, error: logError, logChange, logClientEvent } = LogController;
 
 // EOF webapp/controller/log.js

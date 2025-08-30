@@ -1,6 +1,7 @@
 # Local work files
-cursor_log.txt
+##cursor_log.txt
 commit-message*.txt
+tt-*
 *.save[0-9]
 
 # Dependencies

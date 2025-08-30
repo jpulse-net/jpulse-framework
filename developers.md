@@ -1,14 +1,14 @@
-# jPulse Framework / Developer Documentation v0.3.1
+# jPulse Framework / Developer Documentation v0.3.2
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.3.1):**
+**Latest Updates (v0.3.2):**
+- 🌐 **I18n Structure Alignment (W-027)**: Language files restructured to match controller and view architecture
+- 📁 **Improved Translation Organization**: Translation keys now organized by controller/view structure for better maintainability
+- 🔧 **Enhanced Template Integration**: Streamlined handlebars variable processing with restructured language files
 - 🏗️ **MVC-Aligned Configuration (W-026)**: Restructured app.conf to match model/controller/view architecture
 - 📁 **Enhanced Configuration Organization**: Settings organized by component type for better maintainability
 - 🔗 **API-Driven Profile Management**: User profiles now load fresh data from REST API instead of session data
-- 📊 **Enhanced Data Consistency**: Profile updates properly increment saveCount for version tracking
-- 🌐 **User Language Preferences**: Centralized language preference handling in AuthController
-- 🔧 **Improved Session Management**: Better separation of concerns between authentication and user data
 
 ## 🏗️ Architecture Overview
 

@@ -3,7 +3,7 @@
  * @tagline         Unit tests for responsive layout and appConfig integration
  * @description     Tests for the new responsive layout features and appConfig context
  * @file            webapp/tests/unit/controller/responsive-layout.test.js
- * @version         0.3.1
+ * @version         0.3.2
  * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -24,7 +24,8 @@ describe('Responsive Layout and AppConfig Integration', () => {
         mockAppConfig = {
             app: {
                 version: '0.1.5',
-                release: '2025-08-24'
+                release: '2025-08-24',
+                name: 'jPulse Framework'
             },
             controller: {
                 view: {
@@ -220,7 +221,8 @@ describe('Responsive Layout and AppConfig Integration', () => {
             const simulatedContext = {
                 app: {
                     version: mockAppConfig.app.version,
-                    release: mockAppConfig.app.release
+                    release: mockAppConfig.app.release,
+                    name: mockAppConfig.app.name
                 },
                 user: {
                     id: '',
@@ -234,17 +236,12 @@ describe('Responsive Layout and AppConfig Integration', () => {
                     pathname: '/test',
                     search: '',
                     param: {}
-                },
-                i18n: {
-                    app: {
-                        name: 'jPulse Framework'
-                    }
                 }
             };
 
             expect(simulatedContext.appConfig).toBe(mockAppConfig);
             expect(simulatedContext.appConfig.view.maxWidth).toBe(1200);
-            expect(simulatedContext.i18n.app.name).toBe('jPulse Framework');
+            expect(simulatedContext.app.name).toBe('jPulse Framework');
         });
 
         test('should support handlebars template expressions', () => {

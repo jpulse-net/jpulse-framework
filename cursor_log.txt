@@ -1097,7 +1097,7 @@ User has implemented W-026 to restructure webapp/app.conf to match MVC file stru
 
 1. Compare old app.conf.save1 with new app.conf to understand changes
 2. Fix failing tests that reference old config structure
-3. Update documentation (README.md, developers.md, API.md) 
+3. Update documentation (README.md, developers.md, API.md)
 4. Update commit-message.txt for W-025, v0.3.1
 5. Do not commit changes
 
@@ -1141,3 +1141,51 @@ TEST STATUS:
 - ✅ W-026 implementation fully functional and tested
 
 NOTE: The intermittent test failures appear to be test isolation/global state issues rather than actual code problems, as evidenced by all tests passing when run individually. The W-026 configuration restructure implementation is complete and fully validated.
+
+
+============================================================
+
+2025-08-30 11:42: **W-027**: i18n language files structure aligned with controller and view architecture - COMPLETED
+
+TASK COMPLETION SUMMARY:
+
+✅ **Test Issues Fixed**: All 337 tests now passing
+- Fixed template-includes.test.js: Updated mockContext.app.name to 'jPulse Framework WebApp'
+- Fixed view.test.js: Added missing app.name property to mockContext
+- Fixed i18n-variable-content.test.js: Updated test expectations to match actual variable content in restructured language files
+- Replaced non-existent "Hello" and "Hallo" examples with actual content: 'Powered by {{app.shortName}}', '{{url.param.username}}'
+
+✅ **Documentation Updated**: Complete documentation refresh for W-027 v0.3.2
+- README.md: Updated version to v0.3.2, added i18n structure alignment highlights
+- developers.md: Updated version and added i18n restructuring details
+- changes.md: Added comprehensive v0.3.2 release entry with technical improvements, translation structure changes, and testing results
+- All documentation reflects the new hierarchical translation key organization
+
+✅ **Commit Message Prepared**: Comprehensive commit message for W-027, v0.3.2
+- Created commit-message.txt following established format: "W-027, v0.3.2: I18n language files structure aligned with controller and view architecture..."
+- Includes all major improvements: hierarchical keys, enhanced template integration, comprehensive test fixes
+
+✅ **I18n Structure Successfully Implemented**:
+- Language files now organized with controller/view hierarchy matching MVC architecture
+- Translation keys follow dot notation: view.auth.login.title, view.user.profile.personalInfo
+- Enhanced maintainability through structured organization
+- Backward compatibility maintained with UNUSED section for migration support
+
+TECHNICAL CHANGES COMPLETED:
+- webapp/tests/unit/controller/template-includes.test.js: Fixed app.name expectation
+- webapp/tests/unit/controller/view.test.js: Added missing app.name to mockContext
+- webapp/tests/unit/translations/i18n-variable-content.test.js: Updated variable content expectations
+- README.md, developers.md, changes.md: Version updates and feature documentation
+- commit-message.txt: Comprehensive commit message prepared
+
+FINAL RESULTS:
+✅ All 337 tests passing (18 test suites)
+✅ I18n structure properly aligned with MVC architecture
+✅ Documentation completely updated and consistent
+✅ Zero breaking changes to existing functionality
+✅ Enhanced translation organization and maintainability
+✅ Ready for v0.3.2 release commit (per user request: don't commit)
+
+STATUS: W-027 i18n language files structure alignment COMPLETED successfully! 🎯
+
+The changes were accepted and all W-027 objectives have been successfully achieved.

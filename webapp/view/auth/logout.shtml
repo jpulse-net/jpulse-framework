@@ -4,7 +4,7 @@
  * @tagline         User logout confirmation and processing page
  * @description     Logout confirmation with automatic session termination
  * @file            webapp/view/auth/logout.shtml
- * @version         0.3.1
+ * @version         0.3.2
  * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{app.version}} - {{i18n.auth.logout.title}}</title>
+    <title>{{app.version}} - {{i18n.view.auth.logout.title}}</title>
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
@@ -280,8 +280,8 @@
                     <div class="logout-icon">
                         👋
                     </div>
-                    <h1>{{i18n.auth.logout.title}}</h1>
-                    <p>{{i18n.auth.logout.confirmMessage}}</p>
+                    <h1>{{i18n.view.auth.logout.title}}</h1>
+                    <p>{{i18n.view.auth.logout.confirmMessage}}</p>
                 </div>
 
                 <div class="user-info">
@@ -295,23 +295,23 @@
                 </div>
 
                 <div class="logout-info">
-                    {{i18n.auth.logout.securityNote}}
+                    {{i18n.view.auth.logout.securityNote}}
                 </div>
 
                 <div class="logout-actions">
                     <button id="logoutButton" class="btn btn-danger" onclick="performLogout()">
-                        {{i18n.auth.logout.confirmLogout}}
+                        {{i18n.view.auth.logout.confirmLogout}}
                     </button>
                     <a href="/" class="btn btn-secondary">
-                        {{i18n.auth.logout.cancel}}
+                        {{i18n.view.auth.logout.cancel}}
                     </a>
                 </div>
 
                 <div class="quick-actions">
-                    <h4>{{i18n.auth.logout.quickActions}}</h4>
-                    <a href="/user/profile.shtml" class="btn btn-secondary">{{i18n.header.profile}}</a>
-                    <a href="/user/index.shtml" class="btn btn-secondary">{{i18n.auth.logout.viewUsers}}</a>
-                    <a href="/" class="btn btn-secondary">{{i18n.auth.logout.home}}</a>
+                    <h4>{{i18n.view.auth.logout.quickActions}}</h4>
+                    <a href="/user/profile.shtml" class="btn btn-secondary">{{i18n.view.auth.common.profile}}</a>
+                    <a href="/user/index.shtml" class="btn btn-secondary">{{i18n.view.auth.logout.viewUsers}}</a>
+                    <a href="/" class="btn btn-secondary">{{i18n.view.auth.logout.home}}</a>
                 </div>
             </div>
           {{else}}
@@ -320,13 +320,13 @@
                     <div class="logout-icon">
                         ℹ️
                     </div>
-                    <h1>{{i18n.auth.logout.notLoggedIn}}</h1>
+                    <h1>{{i18n.view.auth.logout.notLoggedIn}}</h1>
                     <div class="alert alert-info">
-                        {{i18n.auth.logout.alreadyLoggedOut}}
+                        {{i18n.view.auth.logout.alreadyLoggedOut}}
                     </div>
                     <div class="logout-actions">
-                        <a href="/auth/login.shtml" class="btn btn-danger">{{i18n.header.signin}}</a>
-                        <a href="/" class="btn btn-secondary">{{i18n.auth.logout.home}}</a>
+                        <a href="/auth/login.shtml" class="btn btn-danger">{{i18n.view.auth.common.signin}}</a>
+                        <a href="/" class="btn btn-secondary">{{i18n.view.auth.logout.home}}</a>
                     </div>
                 </div>
             </div>
@@ -337,15 +337,15 @@
                     ✓
                 </div>
                 <div class="success-message">
-                    <h2>{{i18n.auth.logout.logoutSuccess}}</h2>
-                    <p>{{i18n.auth.logout.sessionEnded}}</p>
+                    <h2>{{i18n.view.auth.logout.logoutSuccess}}</h2>
+                    <p>{{i18n.view.auth.logout.sessionEnded}}</p>
                 </div>
                 <div class="redirect-info">
-                    {{i18n.auth.logout.redirectingIn}} <span id="countdown" class="countdown">3</span> {{i18n.auth.logout.seconds}}
+                    {{i18n.view.auth.logout.redirectingIn}} <span id="countdown" class="countdown">3</span> {{i18n.view.auth.logout.seconds}}
                 </div>
                 <div class="logout-actions">
-                    <a href="/auth/login.shtml" class="btn btn-danger">{{i18n.header.signin}}</a>
-                    <a href="/" class="btn btn-secondary">{{i18n.auth.logout.home}}</a>
+                    <a href="/auth/login.shtml" class="btn btn-danger">{{i18n.view.auth.common.signin}}</a>
+                    <a href="/" class="btn btn-secondary">{{i18n.view.auth.logout.home}}</a>
                 </div>
             </div>
         </div>
@@ -358,7 +358,7 @@
             // Show loading state
             logoutButton.disabled = true;
             logoutButton.classList.add('loading');
-            logoutButton.textContent = '{{i18n.auth.logout.loggingOut}}';
+            logoutButton.textContent = '{{i18n.view.auth.logout.loggingOut}}';
 
             try {
                 const response = await fetch('/api/1/auth/logout', {
@@ -373,16 +373,16 @@
                 if (response.ok && result.success) {
                     showLogoutSuccess();
                 } else {
-                    showError(result.error || '{{i18n.auth.logout.logoutFailed}}');
+                    showError(result.error || '{{i18n.view.auth.logout.logoutFailed}}');
                 }
             } catch (error) {
-                showError('{{i18n.auth.logout.networkError}}');
+                showError('{{i18n.view.auth.logout.networkError}}');
                 console.error('Logout error:', error);
             } finally {
                 // Reset button state
                 logoutButton.disabled = false;
                 logoutButton.classList.remove('loading');
-                logoutButton.textContent = '{{i18n.auth.logout.confirmLogout}}';
+                logoutButton.textContent = '{{i18n.view.auth.logout.confirmLogout}}';
             }
         }
 

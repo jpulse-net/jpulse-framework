@@ -3,7 +3,7 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         0.3.1
+ * @version         0.3.2
  * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -67,7 +67,8 @@ describe('View Controller Handlebars Processing', () => {
         mockContext = {
             app: {
                 version: '0.1.4',
-                release: '2025-08-24'
+                release: '2025-08-24',
+                name: 'Test App Title'
             },
             user: {
                 id: mockReq.session?.user?.id || '',
@@ -269,7 +270,7 @@ describe('View Controller Handlebars Processing', () => {
         });
 
         test('should handle mixed content with HTML', async () => {
-            const content = '<h1>{{i18n.app.title}}</h1><p>Welcome {{user.firstName}}!</p>';
+            const content = '<h1>{{app.name}}</h1><p>Welcome {{user.firstName}}!</p>';
             const result = await processHandlebarsForTest(content, mockContext);
             expect(result).toBe('<h1>Test App Title</h1><p>Welcome John!</p>');
         });

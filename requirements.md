@@ -400,33 +400,44 @@ Requirements Doc of jPulse Framework
 - use library like bootstrap or vue?
 
 ## **W-026**: config: appConfig structure should match model, controller, and view structure
-- status: 🚧 IN_PROGRESS
+- status: ✅ COMPLETED
 - type: Feature
 - restructure webapp/app.conf to match the file structure with controllers, views, etc.
 - example: appConfig.controller.view.maxIncludeDepth
 
-## **W-0**: i18n: key path should match controller and view structure
-- status: 🕑 PENDING
+## **W-027**: i18n: language files structure should match controller and view structure
+- status: ✅ COMPLETED
 - type: Feature
-- restructure the language files to match the controllers and views by directory and file name
-- example: i18n.view.auth.login.loginFailed
-- example: i18n.controller.auth.unauthorizedByRole
+- restructure the language files to match the file structure with controllers and views
+  - example: i18n.view.auth.login.loginFailed
+- prepare for controllers with i18n
+  - example: i18n.controller.auth.unauthorizedByRole
 
-
-
-
-
-
-
-
-
-## **W-0**: i18n: internationalize user facing controller messages
-- status: 🕑 PENDING
+## **W-028**: i18n: internationalize user facing controller messages
+- status: 🚧 IN_PROGRESS
 - type: Feature
 - internationalize user facing controller messages
 - remove async in view.processHandlebars()
 - add optional context to i18n.translate(langCode, keyPath, context = {})
 - add optional context to i18n.t(keyPath, context = {}, langCode = this.default, fallbackLang = this.default)
+
+
+I finished **W-028**: i18n: internationalize user facing controller messages
+- run tests, and fix issue
+- update docs: readme.md, developers.md, changelog.md in project root
+- update commit-message.txt, following the same format, specify: W-028, v0.3.3
+- don't commit
+
+
+
+
+
+
+
+## **W-0**: docs: restructure user facing and developer facing documentation
+- status: 🕑 PENDING
+- type: Feature
+- recommendation in tt-dev-doc-structure.md (to be reviewed)
 
 ## **W-0**: error reporting without redirect
 - status: 🕑 PENDING

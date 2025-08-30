@@ -3,7 +3,7 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         0.3.1
+ * @version         0.3.2
  * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -49,6 +49,7 @@ const appConfig = await loadAppConfig();
 // Make appConfig globally available for other modules
 appConfig.app.dirName = __dirname;
 global.appConfig = appConfig;
+console.log('DEBUG appConfig:', JSON.stringify(appConfig, null, 2));
 
 // Load the i18n object
 const i18n = await import('./translations/i18n.js').then(m => m.default);

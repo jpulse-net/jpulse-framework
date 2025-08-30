@@ -3,7 +3,7 @@
  * @tagline         Unit tests for template include system (header/footer)
  * @description     Tests for the new template include features and file.include helper
  * @file            webapp/tests/unit/controller/template-includes.test.js
- * @version         0.3.1
+ * @version         0.3.2
  * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -30,10 +30,11 @@ describe('Template Includes System', () => {
         mockFs.readFileSync = jest.fn();
 
         // Mock handlebars context
-        mockContext = {
+                    mockContext = {
             app: {
                 version: '0.1.5',
-                release: '2025-08-24'
+                release: '2025-08-24',
+                name: 'jPulse Framework WebApp'
             },
             user: {
                 authenticated: false,
@@ -47,10 +48,6 @@ describe('Template Includes System', () => {
                 }
             },
             i18n: {
-                app: {
-                    name: 'jPulse Framework',
-                    title: 'jPulse Framework WebApp'
-                },
                 header: {
                     profile: 'Profile',
                     signout: 'Sign Out',
@@ -197,7 +194,7 @@ describe('Template Includes System', () => {
                     <div class="jpulse-header-content">
                         <a href="/" class="jpulse-logo">
                             <div class="jpulse-logo-icon">jP</div>
-                            <span>{{i18n.app.name}}</span>
+                            <span>{{app.name}}</span>
                         </a>
                         <div class="jpulse-user-menu">
                             <div class="jpulse-user-icon" onclick="toggleUserMenu()">
@@ -211,7 +208,7 @@ describe('Template Includes System', () => {
             expect(mockFooterHTML).toContain('jpulse-header');
             expect(mockFooterHTML).toContain('jpulse-logo-icon');
             expect(mockFooterHTML).toContain('jpulse-user-menu');
-            expect(mockFooterHTML).toContain('{{i18n.app.name}}');
+            expect(mockFooterHTML).toContain('{{app.name}}');
         });
 
         test('should include footer content with i18n', () => {
@@ -219,23 +216,23 @@ describe('Template Includes System', () => {
                 <footer class="jpulse-footer">
                     <div class="jpulse-footer-content">
                         <div class="jpulse-footer-left">
-                            <span>© 2025 {{i18n.app.name}}</span>
+                            <span>© 2025 {{app.name}}</span>
                             <span class="jpulse-version">v{{app.version}}</span>
                         </div>
                         <div class="jpulse-footer-right">
-                            <a href="/about">{{i18n.footer.about}}</a>
-                            <a href="https://github.com/peterthoeny/jpulse-framework" target="_blank">{{i18n.footer.github}}</a>
-                            <span>{{i18n.footer.poweredBy}} jPulse</span>
+                            <a href="/about">{{i18n.view.pageDecoration.about}}</a>
+                            <a href="https://github.com/peterthoeny/jpulse-framework" target="_blank">{{i18n.view.pageDecoration.github}}</a>
+                            <span>{{i18n.view.pageDecoration.poweredBy}} jPulse</span>
                         </div>
                     </div>
                 </footer>
             `;
 
-            expect(mockFooterContent).toContain('{{i18n.app.name}}');
+            expect(mockFooterContent).toContain('{{app.name}}');
             expect(mockFooterContent).toContain('{{app.version}}');
-            expect(mockFooterContent).toContain('{{i18n.footer.about}}');
-            expect(mockFooterContent).toContain('{{i18n.footer.github}}');
-            expect(mockFooterContent).toContain('{{i18n.footer.poweredBy}}');
+            expect(mockFooterContent).toContain('{{i18n.view.pageDecoration.about}}');
+            expect(mockFooterContent).toContain('{{i18n.view.pageDecoration.github}}');
+            expect(mockFooterContent).toContain('{{i18n.view.pageDecoration.poweredBy}}');
         });
 
         test('should handle user authentication states', () => {
@@ -259,14 +256,14 @@ describe('Template Includes System', () => {
     describe('Template Processing Integration', () => {
         test('should process nested handlebars expressions', () => {
             const templateContent = `
-                <title>{{i18n.app.title}}</title>
+                <title>{{app.name}}</title>
                 <meta name="version" content="{{app.version}}">
                 <meta name="max-width" content="{{appConfig.view.maxWidth}}">
             `;
 
             // Simulate handlebars processing
             const processedContent = templateContent
-                .replace('{{i18n.app.title}}', mockContext.i18n.app.title)
+                .replace('{{app.name}}', mockContext.app.name)
                 .replace('{{app.version}}', mockContext.app.version)
                 .replace('{{appConfig.view.maxWidth}}', mockContext.appConfig.view.maxWidth.toString());
 
@@ -291,14 +288,14 @@ describe('Template Includes System', () => {
         test('should process file includes recursively', () => {
             // Test that includes can contain other handlebars expressions
             const includeWithHandlebars = `
-                <div class="header-title">{{i18n.app.name}}</div>
+                <div class="header-title">{{app.name}}</div>
                 <div class="header-version">v{{app.version}}</div>
             `;
 
             mockFs.readFileSync.mockReturnValue(includeWithHandlebars);
 
             // The included content should also be processed
-            expect(includeWithHandlebars).toContain('{{i18n.app.name}}');
+            expect(includeWithHandlebars).toContain('{{app.name}}');
             expect(includeWithHandlebars).toContain('{{app.version}}');
         });
     });

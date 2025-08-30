@@ -4,7 +4,7 @@
  * @tagline         User registration and account creation page
  * @description     Signup form for internal user registration
  * @file            webapp/view/auth/signup.shtml
- * @version         0.3.1
+ * @version         0.3.2
  * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{app.version}} - {{i18n.auth.signup.title}}</title>
+    <title>{{app.version}} - {{i18n.view.auth.signup.title}}</title>
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
@@ -275,84 +275,84 @@
                     {{user.initials}}
                 </div>
                 <div class="welcome-message">
-                    <h2>{{i18n.auth.login.welcomeBack}}, {{user.firstName}}!</h2>
-                    <p>{{i18n.auth.login.alreadyLoggedIn}}</p>
+                    <h2>{{i18n.view.auth.login.welcomeBack}}, {{user.firstName}}!</h2>
+                    <p>{{i18n.view.auth.login.alreadyLoggedIn}}</p>
                 </div>
                 <div class="action-buttons">
-                    <a href="/user/profile.shtml" class="btn btn-primary">{{i18n.header.profile}}</a>
-                    <a href="/" class="btn btn-secondary">{{i18n.auth.signup.goHome}}</a>
+                    <a href="/user/profile.shtml" class="btn btn-primary">{{i18n.view.auth.common.profile}}</a>
+                    <a href="/" class="btn btn-secondary">{{i18n.view.auth.signup.goHome}}</a>
                 </div>
             </div>
           {{else}}
             <div class="signup-card">
                 <div class="signup-header">
                     <div class="signup-logo">jP</div>
-                    <h1>{{i18n.auth.signup.title}}</h1>
-                    <p>{{i18n.auth.signup.subtitle}}</p>
+                    <h1>{{i18n.view.auth.signup.title}}</h1>
+                    <p>{{i18n.view.auth.signup.subtitle}}</p>
                 </div>
 
                 <!-- Signup form for internal authentication -->
                 <form id="signupForm" onsubmit="handleSignup(event)">
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="firstName">{{i18n.auth.signup.firstName}}</label>
+                            <label for="firstName">{{i18n.view.auth.signup.firstName}}</label>
                             <input type="text"
                                    id="firstName"
                                    name="firstName"
-                                   placeholder="{{i18n.auth.signup.firstNamePlaceholder}}"
+                                   placeholder="{{i18n.view.auth.signup.firstNamePlaceholder}}"
                                    required
                                    autocomplete="given-name">
                         </div>
                         <div class="form-group">
-                            <label for="lastName">{{i18n.auth.signup.lastName}}</label>
+                            <label for="lastName">{{i18n.view.auth.signup.lastName}}</label>
                             <input type="text"
                                    id="lastName"
                                    name="lastName"
-                                   placeholder="{{i18n.auth.signup.lastNamePlaceholder}}"
+                                   placeholder="{{i18n.view.auth.signup.lastNamePlaceholder}}"
                                    required
                                    autocomplete="family-name">
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="username">{{i18n.auth.signup.username}}</label>
+                        <label for="username">{{i18n.view.auth.signup.username}}</label>
                         <input type="text"
                                id="username"
                                name="username"
-                               placeholder="{{i18n.auth.signup.usernamePlaceholder}}"
+                               placeholder="{{i18n.view.auth.signup.usernamePlaceholder}}"
                                required
                                autocomplete="username">
                     </div>
 
                     <div class="form-group">
-                        <label for="email">{{i18n.auth.signup.email}}</label>
+                        <label for="email">{{i18n.view.auth.signup.email}}</label>
                         <input type="email"
                                id="email"
                                name="email"
-                               placeholder="{{i18n.auth.signup.emailPlaceholder}}"
+                               placeholder="{{i18n.view.auth.signup.emailPlaceholder}}"
                                required
                                autocomplete="email">
                     </div>
 
                     <div class="form-group">
-                        <label for="password">{{i18n.auth.signup.password}}</label>
+                        <label for="password">{{i18n.view.auth.signup.password}}</label>
                         <input type="password"
                                id="password"
                                name="password"
-                               placeholder="{{i18n.auth.signup.passwordPlaceholder}}"
+                               placeholder="{{i18n.view.auth.signup.passwordPlaceholder}}"
                                required
                                autocomplete="new-password">
                         <div class="password-requirements">
-                            {{i18n.auth.signup.passwordRequirements}}
+                            {{i18n.view.auth.signup.passwordRequirements}}
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="confirmPassword">{{i18n.auth.signup.confirmPassword}}</label>
+                        <label for="confirmPassword">{{i18n.view.auth.signup.confirmPassword}}</label>
                         <input type="password"
                                id="confirmPassword"
                                name="confirmPassword"
-                               placeholder="{{i18n.auth.signup.confirmPasswordPlaceholder}}"
+                               placeholder="{{i18n.view.auth.signup.confirmPasswordPlaceholder}}"
                                required
                                autocomplete="new-password">
                     </div>
@@ -360,18 +360,18 @@
                     <div class="terms-checkbox">
                         <label class="checkbox-label">
                             <input type="checkbox" id="acceptTerms" name="acceptTerms" required>
-                            <span>{{i18n.auth.signup.termsAccept}}</span>
+                            <span>{{i18n.view.auth.signup.termsAccept}}</span>
                         </label>
                     </div>
 
                     <button type="submit" class="signup-button" id="signupButton">
-                        {{i18n.auth.signup.signUp}}
+                        {{i18n.view.auth.signup.signUp}}
                     </button>
                 </form>
 
                 <div class="signin-link">
-                    {{i18n.auth.signup.alreadyHaveAccount}}
-                    <a href="/auth/login.shtml">{{i18n.auth.signup.signIn}}</a>
+                    {{i18n.view.auth.signup.alreadyHaveAccount}}
+                    <a href="/auth/login.shtml">{{i18n.view.auth.signup.signIn}}</a>
                 </div>
             </div>
           {{/if}}
@@ -384,7 +384,7 @@
 
             const button = document.getElementById('signupButton');
             const originalText = button.textContent;
-            button.textContent = '{{i18n.auth.signup.signingUp}}';
+            button.textContent = '{{i18n.view.auth.signup.signingUp}}';
             button.disabled = true;
 
             const formData = new FormData(event.target);
@@ -400,14 +400,14 @@
 
             // Client-side validation
             if (data.password !== data.confirmPassword) {
-                alert('{{i18n.auth.signup.passwordMismatch}}');
+                alert('{{i18n.view.auth.signup.passwordMismatch}}');
                 button.textContent = originalText;
                 button.disabled = false;
                 return;
             }
 
             if (!data.acceptTerms) {
-                alert('{{i18n.auth.signup.termsAccept}}');
+                alert('{{i18n.view.auth.signup.termsAccept}}');
                 button.textContent = originalText;
                 button.disabled = false;
                 return;
@@ -428,12 +428,12 @@
                     const username = result.data.user.loginId;
                     window.location.href = `/auth/login.shtml?signup=success&username=${encodeURIComponent(username)}`;
                 } else {
-                    const errorMessage = result.error || '{{i18n.auth.signup.signupFailed}}';
+                    const errorMessage = result.error || '{{i18n.view.auth.signup.signupFailed}}';
                     alert(errorMessage);
                 }
             } catch (error) {
                 console.error('Signup error:', error);
-                alert('{{i18n.auth.signup.networkError}}');
+                alert('{{i18n.view.auth.signup.networkError}}');
             } finally {
                 button.textContent = originalText;
                 button.disabled = false;

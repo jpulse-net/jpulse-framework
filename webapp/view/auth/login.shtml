@@ -4,7 +4,7 @@
  * @tagline         User authentication login page
  * @description     Login form for internal authentication with support for LDAP/OAuth2 planning
  * @file            webapp/view/auth/login.shtml
- * @version         0.3.1
+ * @version         0.3.2
  * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{app.version}} - {{i18n.auth.login.title}}</title>
+    <title>{{app.version}} - {{i18n.view.auth.login.title}}</title>
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
@@ -395,51 +395,51 @@
                     {{user.initials}}
                 </div>
                 <div class="welcome-message">
-                    <h2>{{i18n.auth.login.welcomeBack}}, {{user.firstName}}!</h2>
-                    <p>{{i18n.auth.login.alreadyLoggedIn}}</p>
+                    <h2>{{i18n.view.auth.login.welcomeBack}}, {{user.firstName}}!</h2>
+                    <p>{{i18n.view.auth.login.alreadyLoggedIn}}</p>
                 </div>
                 <div class="action-buttons">
-                    <a href="/user/profile.shtml" class="btn btn-primary">{{i18n.header.profile}}</a>
-                    <a href="/" class="btn btn-secondary">{{i18n.auth.login.goHome}}</a>
+                    <a href="/user/profile.shtml" class="btn btn-primary">{{i18n.view.auth.common.profile}}</a>
+                    <a href="/" class="btn btn-secondary">{{i18n.view.auth.login.goHome}}</a>
                 </div>
             </div>
           {{else}}
             <div class="login-card">
                 <div class="login-header">
                     <div class="login-logo">jP</div>
-                    <h1>{{i18n.auth.login.title}}</h1>
-                    <p>{{i18n.auth.login.subtitle}}</p>
+                    <h1>{{i18n.view.auth.login.title}}</h1>
+                    <p>{{i18n.view.auth.login.subtitle}}</p>
                 </div>
 
                 <div class="redirect-info">
-                    {{i18n.auth.login.redirectMessage}}
+                    {{i18n.view.auth.login.redirectMessage}}
                 </div>
 
                 <div class="signup-success-info">
                     <div class="success-message">
                         <span class="success-icon">✅</span>
-                        <span id="signupSuccessText">{{i18n.auth.login.signupSuccessMessage}}</span>
+                        <span id="signupSuccessText">{{i18n.view.auth.login.signupSuccessMessage}}</span>
                     </div>
                 </div>
 
                 <!-- Login form for internal authentication -->
                 <form id="loginForm" onsubmit="handleLogin(event)">
                     <div class="form-group">
-                        <label for="identifier">{{i18n.auth.login.identifier}}</label>
+                        <label for="identifier">{{i18n.view.auth.login.identifier}}</label>
                         <input type="text"
                                id="identifier"
                                name="identifier"
-                               placeholder="{{i18n.auth.login.identifierPlaceholder}}"
+                               placeholder="{{i18n.view.auth.login.identifierPlaceholder}}"
                                required
                                autocomplete="username">
                     </div>
 
                     <div class="form-group">
-                        <label for="password">{{i18n.auth.login.password}}</label>
+                        <label for="password">{{i18n.view.auth.login.password}}</label>
                         <input type="password"
                                id="password"
                                name="password"
-                               placeholder="{{i18n.auth.login.passwordPlaceholder}}"
+                               placeholder="{{i18n.view.auth.login.passwordPlaceholder}}"
                                required
                                autocomplete="current-password">
                     </div>
@@ -447,37 +447,37 @@
                     <div class="remember-forgot">
                         <label class="remember-me">
                             <input type="checkbox" id="rememberMe" name="rememberMe">
-                            <span>{{i18n.auth.login.rememberMe}}</span>
+                            <span>{{i18n.view.auth.login.rememberMe}}</span>
                         </label>
                         <a href="#" class="forgot-password" onclick="showForgotPassword()">
-                            {{i18n.auth.login.forgotPassword}}
+                            {{i18n.view.auth.login.forgotPassword}}
                         </a>
                     </div>
 
                     <button type="submit" class="login-button" id="loginButton">
-                        {{i18n.auth.login.signIn}}
+                        {{i18n.view.auth.login.signIn}}
                     </button>
                 </form>
 
                 <!-- Future auth methods (LDAP, OAuth2) -->
                 <div class="divider" style="display: none;" id="authDivider">
-                    <span>{{i18n.auth.login.orSignInWith}}</span>
+                    <span>{{i18n.view.auth.login.orSignInWith}}</span>
                 </div>
 
                 <div class="auth-methods" style="display: none;" id="authMethods">
                     <a href="#" class="auth-method disabled" id="ldapAuth">
                         <span>🏢</span>
-                        <span>{{i18n.auth.login.signInLDAP}}</span>
+                        <span>{{i18n.view.auth.login.signInLDAP}}</span>
                     </a>
                     <a href="#" class="auth-method disabled" id="oauth2Auth">
                         <span>🔗</span>
-                        <span>{{i18n.auth.login.signInOAuth2}}</span>
+                        <span>{{i18n.view.auth.login.signInOAuth2}}</span>
                     </a>
                 </div>
 
                 <div class="signup-link">
-                    {{i18n.auth.login.noAccount}}
-                    <a href="/auth/signup.shtml">{{i18n.auth.login.signUp}}</a>
+                    {{i18n.view.auth.login.noAccount}}
+                    <a href="/auth/signup.shtml">{{i18n.view.auth.login.signUp}}</a>
                 </div>
             </div>
           {{/if}}
@@ -500,14 +500,14 @@
 
             // Validate form
             if (!identifier.value.trim() || !password.value.trim()) {
-                showError('{{i18n.auth.login.errorMissingFields}}');
+                showError('{{i18n.view.auth.login.errorMissingFields}}');
                 return;
             }
 
             // Show loading state
             loginButton.disabled = true;
             loginButton.classList.add('loading');
-            loginButton.textContent = '{{i18n.auth.login.signingIn}}';
+            loginButton.textContent = '{{i18n.view.auth.login.signingIn}}';
 
             try {
                 const response = await fetch('/api/1/auth/login', {
@@ -525,7 +525,7 @@
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    showSuccess('{{i18n.auth.login.loginSuccess}}');
+                    showSuccess('{{i18n.view.auth.login.loginSuccess}}');
 
                     // Redirect after successful login
                     const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/';
@@ -533,7 +533,7 @@
                         window.location.href = redirectUrl;
                     }, 1000);
                 } else {
-                    const errorMessage = result.error || '{{i18n.auth.login.loginFailed}}';
+                    const errorMessage = result.error || '{{i18n.view.auth.login.loginFailed}}';
                     showError(errorMessage);
 
                     // Highlight error fields
@@ -543,13 +543,13 @@
                     }
                 }
             } catch (error) {
-                showError('{{i18n.auth.login.networkError}}');
+                showError('{{i18n.view.auth.login.networkError}}');
                 console.error('Login error:', error);
             } finally {
                 // Reset button state
                 loginButton.disabled = false;
                 loginButton.classList.remove('loading');
-                loginButton.textContent = '{{i18n.auth.login.signIn}}';
+                loginButton.textContent = '{{i18n.view.auth.login.signIn}}';
             }
         }
 
@@ -584,7 +584,7 @@
         }
 
         function showForgotPassword() {
-            alert('{{i18n.auth.login.forgotPasswordMessage}}');
+            alert('{{i18n.view.auth.login.forgotPasswordMessage}}');
         }
 
         // Auto-focus first input field

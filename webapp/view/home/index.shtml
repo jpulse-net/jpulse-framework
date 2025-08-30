@@ -4,7 +4,7 @@
  * @tagline         Home page of jPulse Framework
  * @description     This is the home page of jPulse Framework
  * @file            webapp/view/home/index.shtml
- * @version         0.3.1
+ * @version         0.3.2
  * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -68,10 +68,10 @@
 </head>
 <body>
     <div class="jpulse-main">
-        <h1>🫧 {{i18n.app.title}} - Home Page</h1>
+        <h1>🫧 {{app.name}} - Home Page</h1>
 
         <div class="info">
-            <p><strong>Framework:</strong> jPulse Framework</p>
+            <p><strong>Framework:</strong> {{app.name}}</p>
             <p><strong>Version:</strong> <span class="version">{{app.version}} ({{app.release}})</span></p>
             <p><strong>Current URL:</strong> {{url.domain}}{{url.pathname}}{{url.search}}</p>
             <p><strong>Protocol:</strong> {{url.protocol}}</p>
@@ -96,9 +96,9 @@
                 <li><strong>Conditionals:</strong> {{#if user.authenticated}}User {{user.id}} is logged in{{else}}User is guest{{/if}}</li>
                 <li><strong>i18n:</strong>
                     {{#if user.authenticated}}
-                      {{i18n.login.welcome}}
+                      {{i18n.view.auth.login.welcomeBack}}
                     {{else}}
-                      {{i18n.login.notAuthenticated}}
+                      {{i18n.view.auth.common.notAuthenticated}}
                     {{/if}}
                 </li>
                 <li><strong>Config:</strong> Admin email: {{config.email.adminEmail}}</li>

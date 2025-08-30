@@ -3,7 +3,7 @@
     <div class="jpulse-header-content">
         <a href="/" class="jpulse-logo">
             <div class="jpulse-logo-icon">jP</div>
-            <span>{{i18n.app.name}}</span>
+            <span>{{app.name}}</span>
         </a>
         <div class="jpulse-user-menu">
             <div class="jpulse-user-icon" onclick="toggleUserMenu()">
@@ -11,12 +11,12 @@
             </div>
             <div class="jpulse-dropdown" id="userDropdown">
               {{#if user.authenticated}}
-                <a href="/user/profile.shtml">{{i18n.header.profile}}</a>
-                <a href="/user/index.shtml">{{i18n.user.directory.title}}</a>
-                <a href="/auth/logout.shtml">{{i18n.header.signout}}</a>
+                <a href="/user/profile.shtml">{{i18n.view.auth.common.profile}}</a>
+                <a href="/user/index.shtml">{{i18n.view.user.index.title}}</a>
+                <a href="/auth/logout.shtml">{{i18n.view.auth.common.signout}}</a>
               {{else}}
-                <a href="/auth/login.shtml">{{i18n.header.signin}}</a>
-                <a href="/auth/signup.shtml">{{i18n.header.signup}}</a>
+                <a href="/auth/login.shtml">{{i18n.view.auth.common.signin}}</a>
+                <a href="/auth/signup.shtml">{{i18n.view.auth.common.signup}}</a>
               {{/if}}
             </div>
         </div>
@@ -27,13 +27,13 @@
 <footer class="jpulse-footer">
     <div class="jpulse-footer-content">
         <div class="jpulse-footer-left">
-            <span>© 2025 {{i18n.app.name}}</span>
+            <span>{{app.copyright}}</span>
             <span class="jpulse-version">v{{app.version}}</span>
         </div>
         <div class="jpulse-footer-right">
-            <a href="/about">{{i18n.footer.about}}</a>
-            <a href="https://github.com/peterthoeny/jpulse-framework" target="_blank">{{i18n.footer.github}}</a>
-            <span>{{i18n.footer.poweredBy}} jPulse</span>
+            <a href="/about">{{i18n.view.pageDecoration.about}}</a>
+            <a href="https://github.com/peterthoeny/jpulse-framework" target="_blank">{{i18n.view.pageDecoration.github}}</a>
+            <span>{{i18n.view.pageDecoration.poweredBy}}</span>
         </div>
     </div>
 </footer>

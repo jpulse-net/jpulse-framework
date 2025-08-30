@@ -3,7 +3,7 @@
  * @tagline         Test variable content support in i18n translations
  * @description     Tests the new handlebars-style variable substitution in i18n translations
  * @file            webapp/tests/unit/translations/i18n-variable-content.test.js
- * @version         0.3.1
+ * @version         0.3.2
  * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -47,7 +47,8 @@ describe('I18N Variable Content', () => {
             // Check that we have some variable content examples
             expect(langEnContent).toContain('{{user.firstName}}');
             expect(langEnContent).toContain('Welcome back, {{user.firstName}}!');
-            expect(langEnContent).toContain('Hello {{user.firstName}} {{user.lastName}} ({{user.email}})');
+            expect(langEnContent).toContain('Powered by {{app.shortName}}');
+            expect(langEnContent).toContain('{{url.param.username}}');
         });
 
         test('should have variable content examples in German translation files', () => {
@@ -58,7 +59,8 @@ describe('I18N Variable Content', () => {
             // Check that we have some variable content examples  
             expect(langDeContent).toContain('{{user.firstName}}');
             expect(langDeContent).toContain('Willkommen zurück, {{user.firstName}}!');
-            expect(langDeContent).toContain('Hallo {{user.firstName}} {{user.lastName}} ({{user.email}})');
+            expect(langDeContent).toContain('Unterstützt von {{app.shortName}}');
+            expect(langDeContent).toContain('{username}');
         });
 
         test('should verify translation files do not contain old parameter substitution', () => {

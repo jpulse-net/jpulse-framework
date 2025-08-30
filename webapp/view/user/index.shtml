@@ -4,7 +4,7 @@
  * @tagline         User directory with search and statistics
  * @description     User management interface with role-based access control
  * @file            webapp/view/user/index.shtml
- * @version         0.3.1
+ * @version         0.3.2
  * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{app.version}} - {{i18n.user.directory.title}}</title>
+    <title>{{app.version}} - {{i18n.view.user.index.title}}</title>
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
@@ -353,25 +353,25 @@
         <div class="users-container">
           {{#if user.authenticated}}
             <div class="page-header">
-                <h1>{{i18n.user.directory.title}}</h1>
+                <h1>{{i18n.view.user.index.title}}</h1>
             </div>
 
             <div class="stats-grid" id="statsGrid">
                 <div class="stat-card">
                     <div class="stat-number" id="totalUsers">-</div>
-                    <div class="stat-label">{{i18n.user.directory.totalUsers}}</div>
+                    <div class="stat-label">{{i18n.view.user.index.totalUsers}}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="activeUsers">-</div>
-                    <div class="stat-label">{{i18n.user.directory.activeUsers}}</div>
+                    <div class="stat-label">{{i18n.view.user.index.activeUsers}}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="adminUsers">-</div>
-                    <div class="stat-label">{{i18n.user.directory.adminUsers}}</div>
+                    <div class="stat-label">{{i18n.view.user.index.adminUsers}}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="recentLogins">-</div>
-                    <div class="stat-label">{{i18n.user.directory.recentLogins}}</div>
+                    <div class="stat-label">{{i18n.view.user.index.recentLogins}}</div>
                 </div>
             </div>
 
@@ -379,17 +379,17 @@
                 <form class="search-form" id="searchForm" onsubmit="searchUsers(event)">
                     <div class="search-fields">
                         <div class="form-group">
-                            <label for="searchName">{{i18n.user.directory.searchName}}</label>
-                            <input type="text" id="searchName" name="name" placeholder="{{i18n.user.directory.searchNamePlaceholder}}">
+                            <label for="searchName">{{i18n.view.user.index.searchName}}</label>
+                            <input type="text" id="searchName" name="name" placeholder="{{i18n.view.user.index.searchNamePlaceholder}}">
                         </div>
                         <div class="form-group">
-                            <label for="searchEmail">{{i18n.user.directory.searchEmail}}</label>
-                            <input type="email" id="searchEmail" name="email" placeholder="{{i18n.user.directory.searchEmailPlaceholder}}">
+                            <label for="searchEmail">{{i18n.view.user.index.searchEmail}}</label>
+                            <input type="email" id="searchEmail" name="email" placeholder="{{i18n.view.user.index.searchEmailPlaceholder}}">
                         </div>
                         <div class="form-group">
-                            <label for="searchRole">{{i18n.user.directory.searchRole}}</label>
+                            <label for="searchRole">{{i18n.view.user.index.searchRole}}</label>
                             <select id="searchRole" name="role">
-                                <option value="">{{i18n.user.directory.allRoles}}</option>
+                                <option value="">{{i18n.view.user.index.allRoles}}</option>
                                 <option value="root">Root</option>
                                 <option value="admin">Admin</option>
                                 <option value="user">User</option>
@@ -397,43 +397,43 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="searchStatus">{{i18n.user.directory.searchStatus}}</label>
+                            <label for="searchStatus">{{i18n.view.user.index.searchStatus}}</label>
                             <select id="searchStatus" name="status">
-                                <option value="">{{i18n.user.directory.allStatuses}}</option>
-                                <option value="active">{{i18n.user.directory.statusActive}}</option>
-                                <option value="inactive">{{i18n.user.directory.statusInactive}}</option>
-                                <option value="pending">{{i18n.user.directory.statusPending}}</option>
-                                <option value="suspended">{{i18n.user.directory.statusSuspended}}</option>
+                                <option value="">{{i18n.view.user.index.allStatuses}}</option>
+                                <option value="active">{{i18n.view.user.index.statusActive}}</option>
+                                <option value="inactive">{{i18n.view.user.index.statusInactive}}</option>
+                                <option value="pending">{{i18n.view.user.index.statusPending}}</option>
+                                <option value="suspended">{{i18n.view.user.index.statusSuspended}}</option>
                             </select>
                         </div>
                     </div>
                     <div class="btn-group">
-                        <button type="submit" class="btn btn-primary">{{i18n.user.directory.search}}</button>
-                        <button type="button" class="btn btn-secondary" onclick="clearSearch()">{{i18n.user.directory.clear}}</button>
+                        <button type="submit" class="btn btn-primary">{{i18n.view.user.index.search}}</button>
+                        <button type="button" class="btn btn-secondary" onclick="clearSearch()">{{i18n.view.user.index.clear}}</button>
                     </div>
                 </form>
             </div>
 
             <div class="users-table-container">
                 <div id="loadingIndicator" class="loading">
-                    {{i18n.user.directory.loading}}
+                    {{i18n.view.user.index.loading}}
                 </div>
                 <table class="users-table" id="usersTable" style="display: none;">
                     <thead>
                         <tr>
-                            <th>{{i18n.user.directory.user}}</th>
-                            <th>{{i18n.user.directory.email}}</th>
-                            <th>{{i18n.user.directory.roles}}</th>
-                            <th>{{i18n.user.directory.status}}</th>
-                            <th>{{i18n.user.directory.lastLogin}}</th>
-                            <th>{{i18n.user.directory.actions}}</th>
+                            <th>{{i18n.view.user.index.user}}</th>
+                            <th>{{i18n.view.user.index.email}}</th>
+                            <th>{{i18n.view.user.index.roles}}</th>
+                            <th>{{i18n.view.user.index.status}}</th>
+                            <th>{{i18n.view.user.index.lastLogin}}</th>
+                            <th>{{i18n.view.user.index.actions}}</th>
                         </tr>
                     </thead>
                     <tbody id="usersTableBody">
                     </tbody>
                 </table>
                 <div id="noResults" class="no-results" style="display: none;">
-                    {{i18n.user.directory.noResults}}
+                    {{i18n.view.user.index.noResults}}
                 </div>
             </div>
 
@@ -442,7 +442,7 @@
 
           {{else}}
             <div class="alert alert-error">
-                {{i18n.login.notAuthenticated}}
+                {{i18n.view.auth.common.notAuthenticated}}
             </div>
           {{/if}}
         </div>

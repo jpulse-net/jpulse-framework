@@ -3,7 +3,7 @@
  * @tagline         Unit tests for i18n functionality using mock objects
  * @description     Tests for i18n translation functions and logic
  * @file            webapp/tests/unit/translations/i18n-functions.test.js
- * @version         0.3.1
+ * @version         0.3.2
  * @release         2025-08-30
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -33,8 +33,10 @@ describe('I18N Functions and Logic', () => {
                         value: 'Very deep nested value'
                     }
                 },
-                login: {
-                    notAuthenticated: 'Error: You are not authenticated, please login'
+                view: {
+                    auth: {
+                        notAuthenticated: 'Error: You are not authenticated, please login'
+                    }
                 }
             },
             de: {
@@ -48,8 +50,10 @@ describe('I18N Functions and Logic', () => {
                         value: 'Sehr tief verschachtelter Wert'
                     }
                 },
-                login: {
-                    notAuthenticated: 'Fehler: Sie sind nicht authentifiziert, bitte melden Sie sich an'
+                view: {
+                    auth: {
+                        notAuthenticated: 'Fehler: Sie sind nicht authentifiziert, bitte melden Sie sich an'
+                    }
                 }
             }
         };
@@ -67,7 +71,7 @@ describe('I18N Functions and Logic', () => {
         test('should translate nested keys', () => {
             expect(i18n.t('nested.deep')).toBe('Deep nested message');
             expect(i18n.t('nested.deeper.value')).toBe('Very deep nested value');
-            expect(i18n.t('login.notAuthenticated')).toBe('Error: You are not authenticated, please login');
+            expect(i18n.t('view.auth.notAuthenticated')).toBe('Error: You are not authenticated, please login');
         });
 
         test('should handle parameter substitution with single parameter', () => {
@@ -255,32 +259,30 @@ describe('I18N Functions and Logic', () => {
 
     describe('Dot Notation Context Access', () => {
         test('should support direct property access via context object', () => {
-            // Test the dot notation feature: {{i18n.app.name}}
+            // Test the dot notation feature: {{i18n.view.pageDecoration.about}}
             const contextI18n = i18n.langs[i18n.default];
 
             expect(contextI18n.simple).toBe('Simple message');
             expect(contextI18n.nested.deep).toBe('Deep nested message');
             expect(contextI18n.nested.deeper.value).toBe('Very deep nested value');
-            expect(contextI18n.login.notAuthenticated).toBe('Error: You are not authenticated, please login');
+            expect(contextI18n.view.auth.notAuthenticated).toBe('Error: You are not authenticated, please login');
         });
 
         test('should work with app-specific translations', () => {
             const appTranslations = {
                 en: {
-                    app: {
-                        name: 'jPulse Framework',
-                        title: 'jPulse Framework WebApp'
-                    },
-                    header: {
-                        profile: 'Profile',
-                        signout: 'Sign Out',
-                        signin: 'Sign In',
-                        signup: 'Sign Up'
-                    },
-                    footer: {
-                        about: 'About',
-                        github: 'GitHub',
-                        poweredBy: 'Powered by'
+                    view: {
+                        pageDecoration: {
+                            about: 'About',
+                            github: 'GitHub',
+                            poweredBy: 'Powered by'
+                        },
+                        auth: {
+                            profile: 'Profile',
+                            signout: 'Sign Out',
+                            signin: 'Sign In',
+                            signup: 'Sign Up'
+                        }
                     }
                 }
             };
@@ -289,12 +291,13 @@ describe('I18N Functions and Logic', () => {
             const context = appI18n.langs[appI18n.default];
 
             // Test dot notation access as used in templates
-            expect(context.app.name).toBe('jPulse Framework');
-            expect(context.app.title).toBe('jPulse Framework WebApp');
-            expect(context.header.profile).toBe('Profile');
-            expect(context.header.signout).toBe('Sign Out');
-            expect(context.footer.about).toBe('About');
-            expect(context.footer.poweredBy).toBe('Powered by');
+            expect(context.view.pageDecoration.about).toBe('About');
+            expect(context.view.pageDecoration.github).toBe('GitHub');
+            expect(context.view.pageDecoration.poweredBy).toBe('Powered by');
+            expect(context.view.auth.profile).toBe('Profile');
+            expect(context.view.auth.signout).toBe('Sign Out');
+            expect(context.view.auth.signin).toBe('Sign In');
+            expect(context.view.auth.signup).toBe('Sign Up');
         });
 
         test('should handle missing properties gracefully in dot notation', () => {

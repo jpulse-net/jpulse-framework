@@ -4,6 +4,33 @@ This document tracks the evolution of the jPulse Framework through its work item
 
 ## 🚀 Version History
 
+### v0.3.2 (2025-08-30)
+**Commit:** `TBD` - W-027, v0.3.2: I18n language files structure aligned with controller and view architecture
+
+#### Major Features
+- **I18n Structure Alignment (W-027)**: Language files restructured to match controller and view architecture for better maintainability
+- **Improved Translation Organization**: Translation keys now organized hierarchically by controller/view structure
+- **Enhanced Template Integration**: Streamlined handlebars variable processing with restructured language files
+- **MVC-Consistent Translation Access**: Translation keys follow the same organizational pattern as the application structure
+
+#### Technical Improvements
+- **Language File Restructuring**: Moved from flat structure to nested controller/view organization
+- **Template Variable Updates**: Updated all view templates to use new translation key structure
+- **Test Suite Fixes**: Updated i18n tests to match new language file structure and variable content
+- **Handlebars Processing**: Enhanced template processing to work with restructured translation keys
+
+#### Translation Structure Changes
+- **Controller Section**: `controller: {}` - Reserved for controller-specific translations
+- **View Section**: `view: { pageDecoration: {}, auth: {}, error: {}, user: {} }` - Organized by view components
+- **Hierarchical Keys**: Translation keys now follow dot notation matching view file structure
+- **Backward Compatibility**: UNUSED section maintained temporarily for migration support
+
+#### Testing Results
+- **337 Tests**: All tests passing with comprehensive coverage
+- **I18n Integration Testing**: Verified translation key access and variable substitution
+- **Template Processing**: Confirmed handlebars processing works with new structure
+- **Regression Testing**: No existing functionality broken
+
 ### v0.3.0 (2025-08-27)
 **Commit:** `TBD` - W-021, W-022, v0.3.0: API-driven profile management and enhanced user language preferences
 

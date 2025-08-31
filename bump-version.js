@@ -21,6 +21,7 @@ const conf = {
         'package.json',
         'package-lock.json',
         'README.md',
+        'API.md',
         'developers.md',
         'bump-version.js',
         'babel.config.cjs',
@@ -66,15 +67,19 @@ const conf = {
         {
             pattern: 'README.md',
             replacements: [
-                { from: /^(# jPulse Framework v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` },
-                { from: /(version-)[\d.]+(-blue)/g, to: (version, match, p1, p2) => `${p1}${version}${p2}` }
+                { from: /^(# jPulse Framework v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` }
+            ]
+        },
+        {
+            pattern: 'API.md',
+            replacements: [
+                { from: /^(# jPulse Framework.* v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'developers.md',
             replacements: [
-                { from: /^(# jPulse Framework.* v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` },
-                { from: /version-[\d.]+-blue/, to: (version) => `version-${version}-blue` }
+                { from: /^(# jPulse Framework.* v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` }
             ]
         },
     ],

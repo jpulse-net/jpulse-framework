@@ -2,7 +2,8 @@
 
 A modern, lightweight, and extensible web application framework using the MVC (model, view, controller) pattern. jPulse is built with Node.js, Express, and MongoDB, and combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content. It is extensible, where multiple teams can work independently to build large and scalable applications targeting midsize to large organizations in the government and private sector.
 
-**Latest Release Highlights (v0.3.2):**
+**Latest Release Highlights (v0.3.3):**
+- ✅ **View Controller Caching (W-028)**: Configurable caching for template and include files to boost performance
 - ✅ **I18n Structure Alignment (W-027)**: Language files restructured to match controller and view architecture
 - ✅ **Improved Translation Organization**: Translation keys now organized by controller/view structure for better maintainability
 - ✅ **Enhanced Template Integration**: Streamlined handlebars variable processing with restructured language files
@@ -91,7 +92,7 @@ Powerful template rendering with security-first design:
 
 - **Handlebars Integration**: Custom implementation with security features
 - **Block Conditionals**: `{{#if condition}}content{{else}}alternative{{/if}}` syntax
-- **Template Includes**: Secure file inclusion with path traversal protection
+- **Template Includes**: Secure file inclusion with path traversal protection and configurable caching
 - **Context Integration**: Access to app config, user data, and translations
 - **Recursive Processing**: Handlebars within conditional blocks are processed
 - **File Operations**: `{{file.include}}` and `{{file.timestamp}}` helpers
@@ -529,6 +530,7 @@ npm test -- --testPathPattern="template"
 ```
 
 ### Test Coverage
+
 - ✅ **Integration Tests**: Application startup, routing
 - ✅ **Unit Tests**: Controllers, models, utilities
 - ✅ **CommonUtils Tests**: 51 tests for schema queries, validation, formatting
@@ -541,15 +543,17 @@ npm test -- --testPathPattern="template"
 ## 📊 Performance
 
 ### Benchmarks
-- **Template Rendering**: ~15-20ms per page
+
+- **Template Rendering**: ~5-10ms per page (with caching enabled)
 - **Static File Serving**: Direct nginx (production)
 - **Memory Usage**: ~50MB baseline
 - **Concurrent Users**: 1000+ (with proper nginx setup)
 - **Test Suite**: 337 tests in ~3.5s with automated cleanup
 
 ### Optimization Features
+
 - Static/dynamic content separation
-- Template include caching
+- Configurable template and include file caching
 - Gzip compression ready
 - CDN-friendly asset structure
 

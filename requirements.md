@@ -414,7 +414,7 @@ Requirements Doc of jPulse Framework
   - example: i18n.controller.auth.unauthorizedByRole
 
 ## **W-028**: view controller: cache template and include files
-- status: 🚧 IN_PROGRESS
+- status: ✅ COMPLETED
 - type: Feature
 - remove async in view.processHandlebars()
 - cache template files based on appConfig.controller.view.cacheTemplateFiles flag

@@ -625,7 +625,7 @@ The `createdAt` parameter supports flexible date formats:
 
 ## 🎨 Template Rendering API
 
-Server-side template processing with handlebars variables and secure file inclusion.
+Server-side template processing with handlebars variables, secure file inclusion, and performance-optimized caching for frequently accessed templates and includes.
 
 ### Render Templates
 Load and render `.shtml` templates with handlebars processing.
@@ -761,6 +761,9 @@ The template system supports powerful block-level conditionals with {{#if}} synt
 ```
 
 #### File Operations
+
+**Overview**: Securely includes other template files and retrieves file modification timestamps. For performance, these operations leverage a caching mechanism, especially for frequently accessed or pre-loaded files.
+
 ```html
 <!-- Secure file includes -->
 {{file.include "jpulse-header.tmpl"}}
@@ -770,6 +773,12 @@ The template system supports powerful block-level conditionals with {{#if}} synt
 <!-- File timestamps -->
 <span>Last modified: {{file.timestamp "jpulse-header.tmpl"}}</span>
 ```
+
+**Caching Details**:
+
+- Template includes (`{{file.include}}`) and file timestamps (`{{file.timestamp}}`) are cached for performance
+- Common include files (e.g., `jpulse-header.tmpl`, `jpulse-footer.tmpl`) and their timestamps are asynchronously pre-loaded at module initialization
+- Caching behavior is configurable via application settings (`appConfig.controller.view.cacheIncludeFiles` and `appConfig.controller.view.cacheTemplateFiles`)
 
 #### Block Conditional Rendering (v0.2.7)
 ```html

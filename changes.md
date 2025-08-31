@@ -4,6 +4,57 @@ This document tracks the evolution of the jPulse Framework through its work item
 
 ## 🚀 Version History
 
+### v0.3.3 (2025-08-30)
+**Commit:** `TBD` - W-028, v0.3.3: View controller enhanced with configurable template and include file caching for performance.
+
+#### Major Features
+- **Configurable Template Caching (W-028)**: Main `.shtml` template files are now cached based on `appConfig.controller.view.cacheTemplateFiles` for improved rendering speed.
+- **Configurable Include File Caching (W-028)**: Common include files and their timestamps are cached based on `appConfig.controller.view.cacheIncludeFiles` to reduce blocking I/O.
+- **Synchronous Handlebars Processing**: The `processHandlebars` function and its recursive helpers (e.g., `evaluateHandlebar`, `handleFileInclude`) now operate synchronously for more straightforward control flow.
+- **Asynchronous Pre-loading**: Essential include files (`jpulse-header.tmpl`, `jpulse-footer.tmpl`) and their timestamps are pre-loaded asynchronously at module initialization.
+
+#### Technical Improvements
+- `processHandlebars` and related functions (`evaluateHandlebar`, `evaluateBlockHandlebar`, `handleFileInclude`, `handleFileTimestamp`, `handleBlockIf`) were refactored to remove `async/await` where possible.
+- A module-level `cache` object was introduced with `cache.include`, `cache.fileTimestamp`, and `cache.templateFiles` properties to store file contents and timestamps.
+- An Immediately Invoked Async Function (IIAF) handles the asynchronous pre-loading of known include files and their timestamps into `cache.include` and `cache.fileTimestamp` respectively.
+- The `load` function now checks `cache.templateFiles` before reading a template. If not found and `appConfig.controller.view.cacheTemplateFiles` is true, it reads the file and populates the cache.
+- The `handleFileInclude` function now checks `cache.include` before reading an include file. If not found and `appConfig.controller.view.cacheIncludeFiles` is true, it reads the file and populates the cache.
+- All template file system reads within `load` were converted from `fs.readFileSync` to `await fsPromises.readFile`.
+- File paths consistently use `path.join(global.appConfig.app.dirName, 'view', ...)` for improved consistency.
+
+#### Testing Results
+- Existing view controller tests will need to be updated to reflect the synchronous nature of `processHandlebars` and the caching mechanisms.
+- New unit and integration tests should be added to verify the caching logic and flag-based conditional behavior for both template and include files.
+
+#### Architectural Improvements
+- Reduced Server Load: Caching frequently accessed templates and includes minimizes redundant file system reads during request processing.
+- Improved Responsiveness: Synchronous `processHandlebars` reduces the overhead of `async/await` state management for template expansion, contributing to faster response times.
+- Configurable Performance: The introduction of caching flags allows administrators to tailor caching behavior to specific deployment environments (e.g., development vs. production).
+- Consistent I/O Pattern: Main template loading now leverages non-blocking `fsPromises` uniformly within the `load` function.
+
+#### Documentation Updates
+- `README.md`: Updated to v0.3.3 and highlight the new caching features.
+- `developers.md`: Added comprehensive details about the caching implementation, including configuration flags and how the `processHandlebars` function now operates.
+- `changes.md`: Added a detailed v0.3.3 release entry with technical improvements and architectural benefits.
+- `app.conf` and relevant configuration documentation: Updated to include the new `controller.view.cacheTemplateFiles` and `controller.view.cacheIncludeFiles` settings.
+
+#### Developer Experience Improvements
+- Faster Development Cycle: When caching is enabled, local development with frequently reloaded pages will benefit from cached content, reducing wait times.
+- Clearer Code Logic: The conversion of `processHandlebars` to synchronous simplifies the mental model for template expansion, as it no longer involves `await` chaining within its core logic.
+- Flexible Configuration: Developers can easily enable or disable caching based on their specific needs and environment without code changes.
+
+#### Migration Impact
+- Minimal impact on external code. The primary changes are confined to `webapp/controller/view.js`.
+- Requires adding `controller.view.cacheTemplateFiles` and `controller.view.cacheIncludeFiles` flags to the application configuration (e.g., `app.conf`). Default values should be set to `true` to enable caching by default.
+
+### v0.3.2 (2025-08-30)
+// ... existing code ...
+#### **W-028**: View controller: Cache Template and Include Files
+- **Status**: ✅ DONE
+- **Version**: v0.3.3
+- **Description**: Enhanced view controller to cache template and include files for performance.
+- **Implementation**: `webapp/controller/view.js` now uses configurable caching for `.shtml` templates and include files, with asynchronous pre-loading for common includes, and `processHandlebars` converted to a synchronous operation.
+
 ### v0.3.2 (2025-08-30)
 **Commit:** `TBD` - W-027, v0.3.2: I18n language files structure aligned with controller and view architecture
 

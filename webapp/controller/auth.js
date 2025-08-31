@@ -3,8 +3,8 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         0.3.2
- * @release         2025-08-30
+ * @version         0.3.3
+ * @release         2025-08-31
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -59,6 +59,7 @@ class AuthController {
                 if (userData.profile.firstName) req.session.user.firstName = userData.profile.firstName;
                 if (userData.profile.lastName) req.session.user.lastName = userData.profile.lastName;
                 if (userData.profile.nickName !== undefined) req.session.user.nickName = userData.profile.nickName;
+                if (!userData.profile.nickName) req.session.user.nickName = userData.profile.firstName;
                 // Update initials
                 req.session.user.initials = (userData.profile.firstName?.charAt(0) || '?') + (userData.profile.lastName?.charAt(0) || '');
             }
@@ -195,7 +196,7 @@ class AuthController {
                 email: user.email,
                 firstName: user.profile.firstName,
                 lastName: user.profile.lastName,
-                nickName: user.profile.nickName,
+                nickName: user.profile.nickName || user.profile.firstName,
                 initials: (user.profile.firstName?.charAt(0) || '?') + (user.profile.lastName?.charAt(0) || ''),
                 roles: user.roles,
                 preferences: user.preferences,

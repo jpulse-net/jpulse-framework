@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.3.2
- * @release         2025-08-30
+ * @version         0.3.3
+ * @release         2025-08-31
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,6 +20,45 @@ import configModel from '../model/config.js';
 import i18n from '../translations/i18n.js';
 import CommonUtils from '../utils/common.js';
 import AuthController from './auth.js';
+import fsPromises from 'fs/promises'; // New import
+
+// Module-level cache
+// FIXME: cache invalidation on demand
+// FIXME: cache based on appConfig.controller.view.cacheTemplateFiles and appConfig.controller.view.cacheIncludeFiles flags
+const cache = {
+    templateFiles: {},
+    includeFiles: {},
+    fileTimestamp: {},
+    knownFiles: [
+        'jpulse-header.tmpl',
+        'jpulse-footer.tmpl'
+    ]
+};
+
+// Asynchronously pre-load known includes once when the module loads
+(async () => {
+    const viewDir = path.join(global.appConfig.app.dirName, 'view');
+    for (const includePath of cache.knownFiles) {
+        const fullPath = path.join(viewDir, includePath);
+        try {
+            // Pre-load only if include file caching is enabled
+            if (global.appConfig.controller.view.cacheIncludeFiles) {
+                const content = await fsPromises.readFile(fullPath, 'utf8');
+                cache.includeFiles[includePath] = content;
+
+                const stats = await fsPromises.stat(fullPath);
+                const timestamp = stats.mtime.valueOf();
+                cache.fileTimestamp[includePath] = timestamp;
+
+                logController.console(null, `view: Pre-loaded ${includePath} and its timestamp ${timestamp}`);
+            } else {
+                logController.console(null, `view: Include file caching disabled, skipped pre-loading ${includePath}`);
+            }
+        } catch (err) {
+            logController.error(null, `view: Failed to pre-load ${includePath}: ${err.message}`);
+        }
+    }
+})();
 
 /**
  * Load and render .shtml template files with handlebars expansion
@@ -39,14 +78,15 @@ async function load(req, res) {
 
         // Determine the file path
         let filePath = req.path;
-        const defaultTemplate = appConfig?.controller?.view?.defaultTemplate || 'index.shtml';
+        const defaultTemplate = global.appConfig?.controller?.view?.defaultTemplate || 'index.shtml';
         if (filePath === '/') {
             filePath = `/home/${defaultTemplate}`;
         } else if (!filePath.endsWith('.shtml')) {
-            filePath += `/${defaultTemplate}`;
+            filePath = filePath.replace(/\/$/, '') + `/${defaultTemplate}`;
         }
 
-        const fullPath = path.join(process.cwd(), 'webapp', 'view', filePath.substring(1));
+        const viewDir = path.join(global.appConfig.app.dirName, 'view');
+        const fullPath = path.join(viewDir, filePath.substring(1));
 
         // Check if file exists
         if (!fs.existsSync(fullPath)) {
@@ -54,8 +94,20 @@ async function load(req, res) {
             return CommonUtils.sendError(req, res, 404, `Page not found: ${req.path}`, 'NOT_FOUND');
         }
 
-        // Read the file
-        let content = fs.readFileSync(fullPath, 'utf8');
+        // Read the file asynchronously, utilizing cache.templateFiles
+        let content;
+        if (global.appConfig.controller.view.cacheTemplateFiles && cache.templateFiles[filePath]) {
+            content = cache.templateFiles[filePath];
+            logController.console(req, `view.load: Template cache hit for ${filePath}`);
+        } else {
+            content = await fsPromises.readFile(fullPath, 'utf8');
+            if (global.appConfig.controller.view.cacheTemplateFiles) {
+                cache.templateFiles[filePath] = content;
+                logController.console(req, `view.load: Loaded template ${filePath} and added to cache`);
+            } else {
+                logController.console(req, `view.load: Loaded template ${filePath} (caching disabled)`);
+            }
+        }
 
         // Get global config for handlebars context
         const globalConfig = await configModel.findById('global');
@@ -89,14 +141,14 @@ async function load(req, res) {
         };
 
         // Process handlebars
-        content = await processHandlebars(content, context, path.dirname(fullPath), req, 0);
+        content = processHandlebars(content, context, viewDir, req, 0);
 
         // Second pass: Process any handlebars expressions that were returned from i18n translations
-        content = await processHandlebars(content, context, path.dirname(fullPath), req, 0);
+        content = processHandlebars(content, context, viewDir, req, 0);
 
         // Log completion time
         const duration = Date.now() - startTime;
-        logController.console(req, `view.load completed in ${duration}ms`);
+        logController.console(req, `view.load: Completed in ${duration}ms`);
 
         // Send response
         res.set('Content-Type', 'text/html');
@@ -112,12 +164,12 @@ async function load(req, res) {
  * Process handlebars in content
  * @param {string} content - Template content
  * @param {Object} context - Handlebars context data
- * @param {string} baseDir - Base directory for file includes
+ * @param {string} viewDir - View base directory for file includes
  * @param {Object} req - Express request object for logging
  * @param {number} depth - Current include depth for recursion protection
  * @returns {string} Processed content
  */
-async function processHandlebars(content, context, baseDir, req, depth = 0) {
+function processHandlebars(content, context, viewDir, req, depth = 0) {
     // Combined regex to match both block handlebars ({{#if}}...{{/if}}) and regular handlebars ({{expression}})
     const handlebarsRegex = /\{\{#(\w+)\s+([^}]+)\}\}(.*?)\{\{\/\1\}\}|\{\{([^#][^}]*|)\}\}/gs;
     let result = content;
@@ -133,11 +185,11 @@ async function processHandlebars(content, context, baseDir, req, depth = 0) {
                 const blockType = match[1];
                 const params = match[2].trim();
                 const blockContent = match[3];
-                replacement = await evaluateBlockHandlebar(blockType, params, blockContent, context, baseDir, req, depth);
+                replacement = evaluateBlockHandlebar(blockType, params, blockContent, context, viewDir, req, depth);
             } else if (match[4]) {
                 // Regular handlebars: group 4=full expression
                 const expression = match[4].trim();
-                replacement = await evaluateHandlebar(expression, context, baseDir, depth);
+                replacement = evaluateHandlebar(expression, context, viewDir, req, depth);
             } else {
                 replacement = '';
             }
@@ -158,15 +210,15 @@ async function processHandlebars(content, context, baseDir, req, depth = 0) {
  * @param {string} params - The parameters for the block
  * @param {string} blockContent - The content within the block
  * @param {Object} context - Context data
- * @param {string} baseDir - Base directory for file operations
+ * @param {string} viewDir - View base directory for file operations
  * @param {Object} req - Express request object for logging
  * @param {number} depth - Current include depth
  * @returns {string} Evaluated result
  */
-async function evaluateBlockHandlebar(blockType, params, blockContent, context, baseDir, req, depth = 0) {
+function evaluateBlockHandlebar(blockType, params, blockContent, context, viewDir, req, depth = 0) {
     switch (blockType) {
         case 'if':
-            return await handleBlockIf(params, blockContent, context, baseDir, req, depth);
+            return handleBlockIf(params, blockContent, context, viewDir, req, depth);
         default:
             throw new Error(`Unknown block type: ${blockType}`);
     }
@@ -176,11 +228,11 @@ async function evaluateBlockHandlebar(blockType, params, blockContent, context, 
  * Evaluate a single handlebars expression
  * @param {string} expression - The handlebars expression (without {{}})
  * @param {Object} context - Context data
- * @param {string} baseDir - Base directory for file operations
+ * @param {string} viewDir - View base directory for file operations
  * @param {number} depth - Current include depth
  * @returns {string} Evaluated result
  */
-async function evaluateHandlebar(expression, context, baseDir, depth = 0) {
+function evaluateHandlebar(expression, context, viewDir, req, depth = 0) {
     const parts = parseArguments(expression);
     const helper = parts[0];
     const args = parts.slice(1);
@@ -188,9 +240,11 @@ async function evaluateHandlebar(expression, context, baseDir, depth = 0) {
     // Handle helper functions first (before property access)
     switch (helper) {
         case 'file.include':
-            return await handleFileInclude(args[0], context, baseDir, depth);
+            // server side include, handle recursively
+            return handleFileInclude(args[0], context, viewDir, req, depth);
         case 'file.timestamp':
-            return await handleFileTimestamp(args[0]);
+            // server side timestamp, use to avoid browser caching
+            return handleFileTimestamp(args[0], viewDir, req);
         default:
             // Handle property access (no spaces, contains dots)
             if (!helper.includes(' ') && helper.includes('.')) {
@@ -251,56 +305,86 @@ function getNestedProperty(obj, path) {
  * Always resolves relative to view root, prohibits path traversal
  * @param {string} filePath - Path to include (with quotes)
  * @param {Object} context - Context for nested processing
- * @param {string} baseDir - Base directory (ignored for security)
+ * @param {string} viewDir - View base directory
  * @param {number} depth - Current include depth
  * @returns {string} Included content
  */
-async function handleFileInclude(filePath, context, baseDir, depth = 0) {
+function handleFileInclude(filePath, context, viewDir, req, depth = 0) {
     // Check include depth to prevent infinite recursion
-    const maxDepth = appConfig?.controller?.view?.maxIncludeDepth || 10;
+    const maxDepth = global.appConfig?.controller?.view?.maxIncludeDepth || 10;
     if (depth >= maxDepth) {
         throw new Error(`Maximum include depth (${maxDepth}) exceeded`);
     }
 
     // Remove quotes
-    const cleanPath = filePath.replace(/^["']|["']$/g, '');
+    const includePath = filePath.replace(/^["']|["']$/g, '');
 
     // Security: Prohibit path traversal and absolute paths
-    if (cleanPath.includes('../') || cleanPath.includes('..\\') || path.isAbsolute(cleanPath)) {
-        throw new Error(`Prohibited path in include: ${cleanPath}. Use relative paths from view root only.`);
+    if (includePath.includes('../') || includePath.includes('..\\') || path.isAbsolute(includePath)) {
+        throw new Error(`Prohibited path in include: ${includePath}. Use relative paths from view root only.`);
     }
 
     // Always resolve relative to view root for security and consistency
-    const viewRoot = path.join(process.cwd(), 'webapp', 'view');
-    const fullPath = path.join(viewRoot, cleanPath);
+    const fullPath = path.join(viewDir, includePath);
 
     // Double-check that resolved path is still within view root
-    if (!fullPath.startsWith(viewRoot)) {
-        throw new Error(`Path traversal attempt blocked: ${cleanPath}`);
+    if (!fullPath.startsWith(viewDir)) {
+        throw new Error(`Path traversal attempt blocked: ${includePath}`);
+    }
+
+    // Check cache first
+    if (global.appConfig.controller.view.cacheIncludeFiles && cache.includeFiles[includePath]) {
+        logController.console(req, `view.load: Include cache hit for ${includePath}`);
+        return processHandlebars(cache.includeFiles[includePath], context, viewDir, null, depth + 1);
     }
 
     if (!fs.existsSync(fullPath)) {
-        throw new Error(`Include file not found: ${cleanPath} (resolved to: ${fullPath})`);
+        throw new Error(`Include file not found: ${includePath} (resolved to: ${fullPath})`);
     }
 
     const content = fs.readFileSync(fullPath, 'utf8');
-    // Recursively process handlebars in included content
-    return await processHandlebars(content, context, viewRoot, null, depth + 1);
+    logController.console(req, `view.load: Loaded ${includePath}`);
+    // Add to cache before returning, if caching is enabled
+    if (global.appConfig.controller.view.cacheIncludeFiles) {
+        cache.includeFiles[includePath] = content;
+        logController.console(req, `view.load: Added ${includePath} to include cache`);
+    } else {
+        logController.console(req, `view.load: Loaded ${includePath} (include caching disabled)`);
+    }
+    // Recursively process handlebars in included content (now synchronous)
+    return processHandlebars(content, context, viewDir, null, depth + 1);
 }
 
 /**
  * Handle file.timestamp helper
  * @param {string} filePath - Path to file (with quotes)
+ * @param {string} viewDir - View base directory for file operations
+ * @param {Object} req - Express request object for logging
  * @returns {string} File modification timestamp
  */
-async function handleFileTimestamp(filePath) {
-    const cleanPath = filePath.replace(/^["']|["']$/g, '');
-    const fullPath = path.resolve(process.cwd(), 'webapp', 'view', cleanPath);
+function handleFileTimestamp(filePath, viewDir, req) {
+    const includePath = filePath.replace(/^["']|["']$/g, '');
+    const fullPath = path.resolve(viewDir, includePath);
+
+    // Check cache first for file timestamp
+    if (global.appConfig.controller.view.cacheIncludeFiles && cache.fileTimestamp[includePath]) {
+        logController.console(req, `view.load: Timestamp cache hit for ${includePath}`);
+        return cache.fileTimestamp[includePath];
+    }
+
     if (!fs.existsSync(fullPath)) {
-        return '';
+        throw new Error(`File not found: ${includePath} (resolved to: ${fullPath})`);
     }
     const stats = fs.statSync(fullPath);
-    return stats.mtime.toISOString();
+    const timestamp = stats.mtime.valueOf();
+    // Cache the timestamp, if caching is enabled
+    if (global.appConfig.controller.view.cacheIncludeFiles) {
+        logController.console(req, `view.load: Loaded timestamp ${timestamp} of ${includePath} and added to cache`);
+        cache.fileTimestamp[includePath] = timestamp;
+    } else {
+        logController.console(req, `view.load: Loaded timestamp ${timestamp} of ${includePath} (include caching disabled)`);
+    }
+    return timestamp;
 }
 
 /**
@@ -308,12 +392,12 @@ async function handleFileTimestamp(filePath) {
  * @param {string} params - The condition parameter
  * @param {string} blockContent - Content within the if block
  * @param {Object} context - Context for evaluation
- * @param {string} baseDir - Base directory for file operations
+ * @param {string} viewDir - View base directory for file operations
  * @param {Object} req - Express request object for logging
  * @param {number} depth - Current include depth
  * @returns {string} Result based on condition
  */
-async function handleBlockIf(params, blockContent, context, baseDir, req, depth = 0) {
+function handleBlockIf(params, blockContent, context, viewDir, req, depth = 0) {
     const condition = params.trim();
     const conditionValue = getNestedProperty(context, condition);
 
@@ -329,9 +413,9 @@ async function handleBlockIf(params, blockContent, context, baseDir, req, depth 
         contentToProcess = conditionValue ? blockContent : '';
     }
 
-    // Recursively process any handlebars within the selected content
+    // Recursively process any handlebars within the selected content (now synchronous)
     if (contentToProcess) {
-        return await processHandlebars(contentToProcess, context, baseDir, req, depth + 1);
+        return processHandlebars(contentToProcess, context, viewDir, req, depth + 1);
     }
 
     return '';

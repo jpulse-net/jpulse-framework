@@ -413,16 +413,15 @@ Requirements Doc of jPulse Framework
 - prepare for controllers with i18n
   - example: i18n.controller.auth.unauthorizedByRole
 
-## **W-028**: i18n: internationalize user facing controller messages
+## **W-028**: view controller: cache template and include files
 - status: 🚧 IN_PROGRESS
 - type: Feature
-- internationalize user facing controller messages
 - remove async in view.processHandlebars()
-- add optional context to i18n.translate(langCode, keyPath, context = {})
-- add optional context to i18n.t(keyPath, context = {}, langCode = this.default, fallbackLang = this.default)
+- cache template files based on appConfig.controller.view.cacheTemplateFiles flag
+- cache include files and file timestamps based on appConfig.controller.view.cacheIncludeFiles flag
 
 
-I finished **W-028**: i18n: internationalize user facing controller messages
+I finished **W-028**: view controller: cache template and include files
 - run tests, and fix issue
 - update docs: readme.md, developers.md, changelog.md in project root
 - update commit-message.txt, following the same format, specify: W-028, v0.3.3
@@ -433,6 +432,12 @@ I finished **W-028**: i18n: internationalize user facing controller messages
 
 
 
+## **W-028**: i18n: internationalize user facing controller messages
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- internationalize user facing controller messages
+- add optional context to i18n.translate(langCode, keyPath, context = {})
+- add optional context to i18n.t(keyPath, context = {}, langCode = this.default, fallbackLang = this.default)
 
 ## **W-0**: docs: restructure user facing and developer facing documentation
 - status: 🕑 PENDING
@@ -572,7 +577,7 @@ next:
 ------------------------
 
 git actions:
-git add -A
+git add .
 git commit -F commit-message.txt
 git push
 

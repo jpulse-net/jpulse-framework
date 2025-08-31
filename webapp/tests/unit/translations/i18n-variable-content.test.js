@@ -3,8 +3,8 @@
  * @tagline         Test variable content support in i18n translations
  * @description     Tests the new handlebars-style variable substitution in i18n translations
  * @file            webapp/tests/unit/translations/i18n-variable-content.test.js
- * @version         0.3.2
- * @release         2025-08-30
+ * @version         0.3.3
+ * @release         2025-08-31
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -27,6 +27,7 @@ describe('I18N Variable Content', () => {
                     id: 'testuser',
                     firstName: 'John',
                     lastName: 'Doe',
+                    nickName: 'John',
                     email: 'john.doe@example.com',
                     authenticated: true
                 },
@@ -45,8 +46,8 @@ describe('I18N Variable Content', () => {
             const langEnContent = fs.readFileSync(langEnPath, 'utf8');
             
             // Check that we have some variable content examples
-            expect(langEnContent).toContain('{{user.firstName}}');
-            expect(langEnContent).toContain('Welcome back, {{user.firstName}}!');
+            expect(langEnContent).toContain('{{user.nickName}}');
+            expect(langEnContent).toContain('Welcome back, {{user.nickName}}!');
             expect(langEnContent).toContain('Powered by {{app.shortName}}');
             expect(langEnContent).toContain('{{url.param.username}}');
         });
@@ -57,8 +58,8 @@ describe('I18N Variable Content', () => {
             const langDeContent = fs.readFileSync(langDePath, 'utf8');
             
             // Check that we have some variable content examples  
-            expect(langDeContent).toContain('{{user.firstName}}');
-            expect(langDeContent).toContain('Willkommen zurück, {{user.firstName}}!');
+            expect(langDeContent).toContain('{{user.nickName}}');
+            expect(langDeContent).toContain('Willkommen zurück, {{user.nickName}}!');
             expect(langDeContent).toContain('Unterstützt von {{app.shortName}}');
             expect(langDeContent).toContain('{username}');
         });
@@ -80,39 +81,44 @@ describe('I18N Variable Content', () => {
 
         test('should verify two-pass handlebars processing works with i18n variable content', () => {
             // This test simulates what happens in the ViewController:
-            // 1. First pass: {{i18n.login.welcome}} -> 'Welcome back, {{user.firstName}}!'
-            // 2. Second pass: {{user.firstName}} -> 'John'
+            // 1. First pass: {{i18n.view.auth.login.welcomeBack}} -> 'Welcome back, {{user.nickName}}!'
+            // 2. Second pass: {{user.nickName}} -> 'John'
             
             // Mock i18n structure
             const mockI18n = {
-                login: {
-                    welcome: 'Welcome back, {{user.firstName}}!',
-                    greeting: 'Hello {{user.firstName}} {{user.lastName}}'
+                view: {
+                    auth: {
+                        login: {
+                            welcomeBack: 'Welcome back, {{user.nickName}}!',
+                            testGreeting: 'Hello {{user.firstName}} {{user.lastName}}'
+                        }
+                    }
                 }
             };
             
             const mockContext = {
                 user: {
                     firstName: 'John',
+                    nickName: 'John',
                     lastName: 'Doe'
                 },
                 i18n: mockI18n
             };
             
             // Simulate first pass: template contains {{i18n.login.welcome}}
-            let content = 'User message: {{i18n.login.welcome}}';
+            let content = 'User message: {{i18n.view.auth.login.welcomeBack}}';
             
             // After first pass, i18n reference is resolved but variables remain
-            content = content.replace('{{i18n.login.welcome}}', mockI18n.login.welcome);
-            expect(content).toBe('User message: Welcome back, {{user.firstName}}!');
+            content = content.replace('{{i18n.view.auth.login.welcomeBack}}', mockI18n.view.auth.login.welcomeBack);
+            expect(content).toBe('User message: Welcome back, {{user.nickName}}!');
             
             // After second pass, user variables should be resolved
-            content = content.replace('{{user.firstName}}', mockContext.user.firstName);
+            content = content.replace('{{user.nickName}}', mockContext.user.nickName);
             expect(content).toBe('User message: Welcome back, John!');
             
             // Test multiple variables
-            let multiContent = 'Profile: {{i18n.login.greeting}}';
-            multiContent = multiContent.replace('{{i18n.login.greeting}}', mockI18n.login.greeting);
+            let multiContent = 'Profile: {{i18n.view.auth.login.testGreeting}}';
+            multiContent = multiContent.replace('{{i18n.view.auth.login.testGreeting}}', mockI18n.view.auth.login.testGreeting);
             expect(multiContent).toBe('Profile: Hello {{user.firstName}} {{user.lastName}}');
             
             multiContent = multiContent.replace('{{user.firstName}}', mockContext.user.firstName);

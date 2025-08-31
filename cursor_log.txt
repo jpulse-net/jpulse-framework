@@ -1189,3 +1189,39 @@ FINAL RESULTS:
 STATUS: W-027 i18n language files structure alignment COMPLETED successfully! 🎯
 
 The changes were accepted and all W-027 objectives have been successfully achieved.
+
+
+
+
+
+============================================================
+
+2025-08-30 17:40: **W-028**: User requested to enhance the view controller to cache template and include files
+
+I assisted in repurposing the feature to "W-028: view controller: cache template and include files" with the following key changes:
+
+1.  **Initial Assessment & Clarification**:
+    *   The initial query was to assess if the `async` nature of `processHandlebars()` in `webapp/controller/view.js` could be removed.
+    *   We clarified that while `processHandlebars()` could be made synchronous if all its internal calls were synchronous, file system operations like `fs.readFileSync()` are inherently blocking. This led to the strategy of caching to mitigate blocking I/O for frequently accessed files.
+
+2.  **Caching Mechanism Introduction**:
+    *   Introduced a module-level `cache` object in `webapp/controller/view.js` with `templateFiles`, `includeFiles`, `fileTimestamp`, and `knownFiles` properties.
+    *   An immediately invoked `async` function was implemented at the module level to asynchronously pre-load `jpulse-header.tmpl` and `jpulse-footer.tmpl` into `cache.includeFiles` and `cache.fileTimestamp` on module load. This optimizes startup for common includes.
+
+3.  **`processHandlebars()` Refactoring to Synchronous**:
+    *   `processHandlebars()` and its related helper functions (`evaluateHandlebar()`, `evaluateBlockHandlebar()`, `handleFileInclude()`, `handleFileTimestamp()`, `handleBlockIf()`) were converted from `async` to synchronous functions.
+
+4.  **`load()` Function Enhancements**:
+    *   Modified `load()` to use `await fsPromises.readFile(fullPath, 'utf8')` for reading the main `.shtml` template files (line 89) to make this operation non-blocking, as the `load()` function itself remains `async` due to database calls.
+    *   Implemented caching for `.shtml` template files within the `load()` function using `cache.templateFiles`. These are loaded on demand, not pre-loaded.
+
+5.  **Conditional Caching with Configuration Flags**:
+    *   Integrated caching flags: `global.appConfig.controller.view.cacheTemplateFiles` and `global.appConfig.controller.view.cacheIncludeFiles`.
+    *   The `load()` function now checks `cacheTemplateFiles` before reading/writing to `cache.templateFiles`.
+    *   The pre-loading logic for `knownFiles` and the `handleFileInclude()` and `handleFileTimestamp()` functions now check `cacheIncludeFiles` before reading/writing to `cache.includeFiles` and `cache.fileTimestamp` respectively.
+
+6.  **Error Handling Improvement**:
+    *   The `handleFileTimestamp()` function was updated (by you) to throw an error when an include file is not found, instead of returning an empty string.
+
+The goal of converting `processHandlebars()` to synchronous while mitigating blocking I/O with strategic asynchronous pre-loading and conditional caching for template and include files has been achieved.
+

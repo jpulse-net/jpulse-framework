@@ -4,8 +4,8 @@
  * @tagline         Home page of jPulse Framework
  * @description     This is the home page of jPulse Framework
  * @file            webapp/view/home/index.shtml
- * @version         0.3.2
- * @release         2025-08-30
+ * @version         0.3.3
+ * @release         2025-08-31
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -135,7 +135,7 @@
             <h4>🎯 Bottom Content - Header should still be visible!</h4>
         </div>
 
-        <p><em>File timestamp: {{file.timestamp "./index.shtml"}}</em></p>
+        <p><em>File timestamp: {{file.timestamp "jpulse-footer.tmpl"}}</em></p>
     </div>
 
     {{file.include "jpulse-footer.tmpl"}}

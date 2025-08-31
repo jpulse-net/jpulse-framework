@@ -1,4 +1,4 @@
-# jPulse Framework / Developer Documentation v0.3.2
+# jPulse Framework / Developer Documentation v0.3.3
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 

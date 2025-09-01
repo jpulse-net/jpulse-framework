@@ -3,7 +3,7 @@
  * @tagline         Advanced Unit Tests for CommonUtils
  * @description     Additional focused tests for common utility functions
  * @file            webapp/tests/unit/utils/common-utils-advanced.test.js
- * @version         0.3.6
+ * @version         0.3.7
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -260,16 +260,6 @@ describe('CommonUtils - Advanced Tests', () => {
             expect(CommonUtils.formatValue(true)).toBe('true');
             expect(CommonUtils.formatValue(null)).toBe('null');
             expect(CommonUtils.formatValue(undefined)).toBe('undefined');
-        });
-
-        test('generateId should create unique identifiers', () => {
-            const id1 = CommonUtils.generateId();
-            const id2 = CommonUtils.generateId();
-            const prefixedId = CommonUtils.generateId('user_');
-
-            expect(id1).not.toBe(id2);
-            expect(typeof id1).toBe('string');
-            expect(prefixedId.startsWith('user_')).toBe(true);
         });
 
         test('isValidEmail should validate email addresses', () => {

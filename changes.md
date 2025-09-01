@@ -4,28 +4,42 @@ This document tracks the evolution of the jPulse Framework through its work item
 
 ## 🚀 Version History
 
-### v0.3.4 (2025-08-31)
-**Commit:** `TBD` - W-029, v0.3.4: I18n: Internationalized user-facing controller messages and added consistent controller logs.
+### v0.3.7 (2025-09-01)
+**Commit:** `TBD` - W-032, v0.3.7: User: Consolidated user identifiers to 'username' and added 'uuid' field.
 
 #### Major Features
-- **Comprehensive I18n for User Messages**: All user-facing messages across `config.js`, `view.js`, `log.js`, `auth.js`, and `user.js` controllers are now internationalized using `i18n.translate()`, ensuring multi-language support.
-- **Standardized Controller Logging**: Implemented a consistent logging format (`<controller>.<method>: <type>: <message>`) for all `LogController.console()` and `LogController.error()` calls, enhancing log readability and debuggability.
+- **User ID Consolidation (W-032)**: Standardized user identification across the application to `username`, deprecating previous `loginId` and `userId` inconsistencies.
+- **Unique User Identifier (UUID)**: Introduced a new `uuid` field, generated automatically upon user creation, providing an immutable and universally unique identifier for user documents.
 
 #### Technical Improvements
-- **Log-Message Pairing**: Every user-facing response (success or error) is now immediately preceded by a corresponding `LogController` entry, providing a clear audit trail.
-- **Optimized Error Logging**: `catch` blocks now feature a single initial `LogController.error` entry to prevent redundant logging, with subsequent error responses in conditional blocks being message-only.
-- **Refined `throw` Handling**: Eliminated `LogController.error` calls directly before `throw new Error` statements in internal functions to avoid double-logging, relying on outer `try...catch` blocks for single, comprehensive error capture.
+- **`UserModel` Refactoring**:
+  - `loginId` field in schema renamed to `username`.
+  - New `uuid` field added to the `UserModel` schema.
+  - `UserModel.validate` method updated to validate `username`.
+  - `UserModel.prepareSaveData` updated to generate `uuid` for new users.
+  - `UserModel.findByLoginId` renamed to `UserModel.findByUsername`.
+  - `UserModel.create` and `UserModel.authenticate` methods updated to use `findByUsername`.
+- **`UserController` Updates**:
+  - `signup` method updated to use `username` in `userData` object, log messages, and response data.
+  - `get`, `update`, and `changePassword` methods updated to use `req.session.user.username` and `updatedBy` fields.
+- **`AuthController` Adjustments**:
+  - `login` method updated to construct `req.session.user` with `username` and update log messages.
+  - `logout` method updated to use `username` in log messages.
+  - Error messages in `login` method updated to refer to "username or email".
+- **`LogController` Consistency**:
+  - `getContext` method updated to extract `username` from session for log entries.
 
 #### Documentation Updates
-- `README.md`: Updated to v0.3.4 and highlighted the new i18n and logging consistency features.
-- `developers.md`: Added a detailed section on "Consistency in Messaging and Logging", outlining the new architectural principles, benefits, and migration impact, and updated to v0.3.4.
-- `changes.md`: Added this detailed v0.3.4 release entry.
-- Translation files (`lang-en.conf`, `lang-de.conf`): Extended with new keys following the `controller.<controllerName>.<method>.<key>` or `controller.<controllerName>.<key>` pattern.
+- `README.md`: Updated to v0.3.7 and highlighted the user ID consolidation and UUID feature.
+- `developers.md`: Updated to v0.3.7 and included a detailed entry for the user ID and UUID changes.
+- `API.md`: Updated API documentation to reflect the change from `loginId` to `username` in relevant sections.
+- `changes.md`: Added this detailed v0.3.7 release entry.
+- `requirements.md`: Updated `W-032` status to `✅ DONE`.
 
 #### Developer Experience Improvements
-- Simplified Message Management: Centralized translation keys make it easier to add, modify, and audit user-facing text.
-- Accelerated Debugging: Clearer and more consistent logs reduce the time spent understanding application flow and diagnosing issues.
-- Enforced Code Quality: Standardized practices for messaging and logging promote uniformity and reduce potential for inconsistencies across the codebase.
+- **Unified User ID**: A single, consistent identifier (`username`) simplifies user management and reduces potential for confusion.
+- **Immutable User Reference**: The `uuid` provides a stable identifier for users, decoupled from potentially changing usernames or other fields.
+- **Streamlined Codebase**: Removal of redundant `loginId` and `userId` references cleans up the codebase.
 
 ### v0.3.6 (2025-08-31)
 **Commit:** `TBD` - W-031, v0.3.6: i18n: `i18n.js` moved to `webapp/utils/` and translation files renamed (e.g., `lang-en.conf` to `en.conf`).
@@ -49,6 +63,36 @@ This document tracks the evolution of the jPulse Framework through its work item
 - **Clearer Project Structure**: Grouping `i18n.js` with other utilities in `webapp/utils/` makes the `translations/` directory more focused on just the translation data.
 - **Simplified File Management**: The shorter, more direct names for translation files reduce verbosity and improve readability.
 - **Consistent Naming Conventions**: The updated file naming aligns with a more modern and streamlined approach to asset management.
+
+### v0.3.5 (2025-08-31)
+**Commit:** `TBD` - W-030, v0.3.5: log: rename LogController log methods for consistency
+
+- LogController.consoleApi() ==> LogController.logRequest()
+- LogController.console()    ==> LogController.logInfo()
+- LogController.error()      ==> LogController.logError()
+
+### v0.3.4 (2025-08-31)
+**Commit:** `TBD` - W-029, v0.3.4: I18n: Internationalized user-facing controller messages and added consistent controller logs.
+
+ #### Major Features
+- **Comprehensive I18n for User Messages**: All user-facing messages across `config.js`, `view.js`, `log.js`, `auth.js`, and `user.js` controllers are now internationalized using `i18n.translate()`, ensuring multi-language support.
+- **Standardized Controller Logging**: Implemented a consistent logging format (`<controller>.<method>: <type>: <message>`) for all `LogController.console()` and `LogController.error()` calls, enhancing log readability and debuggability.
+
+ #### Technical Improvements
+- **Log-Message Pairing**: Every user-facing response (success or error) is now immediately preceded by a corresponding `LogController` entry, providing a clear audit trail.
+- **Optimized Error Logging**: `catch` blocks now feature a single initial `LogController.error` entry to prevent redundant logging, with subsequent error responses in conditional blocks being message-only.
+- **Refined `throw` Handling**: Eliminated `LogController.error` calls directly before `throw new Error` statements in internal functions to avoid double-logging, relying on outer `try...catch` blocks for single, comprehensive error capture.
+
+ #### Documentation Updates
+- `README.md`: Updated to v0.3.4 and highlighted the new i18n and logging consistency features.
+- `developers.md`: Added a detailed section on "Consistency in Messaging and Logging", outlining the new architectural principles, benefits, and migration impact, and updated to v0.3.4.
+- `changes.md`: Added this detailed v0.3.4 release entry.
+- Translation files (`lang-en.conf`, `lang-de.conf`): Extended with new keys following the `controller.<controllerName>.<method>.<key>` or `controller.<controllerName>.<key>` pattern.
+
+ #### Developer Experience Improvements
+- Simplified Message Management: Centralized translation keys make it easier to add, modify, and audit user-facing text.
+- Accelerated Debugging: Clearer and more consistent logs reduce the time spent understanding application flow and diagnosing issues.
+- Enforced Code Quality: Standardized practices for messaging and logging promote uniformity and reduce potential for inconsistencies across the codebase.
 
 ### v0.3.3 (2025-08-30)
 **Commit:** `TBD` - W-028, v0.3.3: View controller enhanced with configurable template and include file caching for performance.
@@ -94,7 +138,7 @@ This document tracks the evolution of the jPulse Framework through its work item
 - Requires adding `controller.view.cacheTemplateFiles` and `controller.view.cacheIncludeFiles` flags to the application configuration (e.g., `app.conf`). Default values should be set to `true` to enable caching by default.
 
 ### v0.3.2 (2025-08-30)
-// ... existing code ...
+
 #### **W-028**: View controller: Cache Template and Include Files
 - **Status**: ✅ DONE
 - **Version**: v0.3.3
@@ -102,6 +146,7 @@ This document tracks the evolution of the jPulse Framework through its work item
 - **Implementation**: `webapp/controller/view.js` now uses configurable caching for `.shtml` templates and include files, with asynchronous pre-loading for common includes, and `processHandlebars` converted to a synchronous operation.
 
 ### v0.3.2 (2025-08-30)
+
 **Commit:** `TBD` - W-027, v0.3.2: I18n language files structure aligned with controller and view architecture
 
 #### Major Features

@@ -3,7 +3,7 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         0.3.6
+ * @version         0.3.7
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -273,22 +273,17 @@ class CommonUtils {
     }
 
     /**
-     * Generate unique identifier
-     *
-     * Creates a unique identifier string using timestamp and random components.
-     * Useful for generating unique IDs when ObjectId is not available.
+     * Generate a UUID v4
      *
      * @param {string} prefix - Optional prefix for the ID (default: '')
      * @returns {string} Unique identifier
-     *
-     * @example
-     * CommonUtils.generateId();           // Returns: '1692914460123_abc123'
-     * CommonUtils.generateId('user_');    // Returns: 'user_1692914460123_def456'
      */
-    static generateId(prefix = '') {
-        const timestamp = Date.now();
-        const random = Math.random().toString(36).substring(2, 8);
-        return `${prefix}${timestamp}_${random}`;
+    static generateUuid() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+        });
     }
 
     /**
@@ -377,7 +372,7 @@ export const {
     buildDateQuery,
     deepMerge,
     formatValue,
-    generateId,
+    generateUuid,
     isValidEmail,
     sanitizeString,
     sendError

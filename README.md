@@ -1,8 +1,9 @@
-# jPulse Framework v0.3.6
+# jPulse Framework v0.3.7
 
 A modern, lightweight, and extensible web application framework using the MVC (model, view, controller) pattern. jPulse is built with Node.js, Express, and MongoDB, and combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content. It is extensible, where multiple teams can work independently to build large and scalable applications targeting midsize to large organizations in the government and private sector.
 
-**Latest Release Highlights (v0.3.6):**
+**Latest Release Highlights (v0.3.7):**
+- ✅ **User ID Consolidation and UUID (W-032)**: Unified user identification to 'username', deprecated 'loginId'/'userId', and introduced a unique 'uuid' field for immutable user references.
 - ✅ **I18n Module Restructuring (W-031)**: `i18n.js` moved to `webapp/utils/` and translation files renamed (e.g., `lang-en.conf` to `en.conf`), improving project organization and simplifying file management.
 - ✅ **I18n and Logging Consistency (W-029)**: User-facing messages internationalized and controller logs standardized for clarity and consistency.
 - ✅ **View Controller Caching (W-028)**: Configurable caching for template and include files to boost performance

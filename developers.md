@@ -1,8 +1,9 @@
-# jPulse Framework / Developer Documentation v0.3.6
+# jPulse Framework / Developer Documentation v0.3.7
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.3.6):**
+**Latest Updates (v0.3.7):**
+- 👤 **User ID Consolidation and UUID (W-032)**: Unified user identification to 'username', deprecated 'loginId'/'userId', and introduced a unique 'uuid' field for immutable user references.
 - 🌐 **I18n Module Restructuring (W-031)**: `i18n.js` moved to `webapp/utils/` and translation files renamed (e.g., `lang-en.conf` to `en.conf`), improving project organization and simplifying file management.
 - 🌐 **I18n and Logging Consistency (W-029)**: User-facing messages internationalized and controller logs standardized for clarity and consistency.
 - 🌐 **I18n Structure Alignment (W-027)**: Language files restructured to match controller and view architecture
@@ -350,7 +351,7 @@ class UserModel {
     // Complete user schema with validation
     static schema = {
         _id: { type: 'objectId', auto: true },
-        loginId: { type: 'string', required: true, unique: true },
+        username: { type: 'string', required: true, unique: true },
         email: { type: 'string', required: true, unique: true, validate: 'email' },
         passwordHash: { type: 'string', required: true },
         profile: {
@@ -385,7 +386,7 @@ class UserModel {
 
     // Authentication with security checks
     static async authenticate(identifier, password) {
-        let user = await this.findByLoginId(identifier) || await this.findByEmail(identifier);
+        let user = await this.findByUsername(identifier) || await this.findByEmail(identifier);
         if (!user || user.status !== 'active') return null;
 
         const isValid = await this.verifyPassword(password, user.passwordHash);
@@ -457,7 +458,7 @@ class AuthController {
         if (user) {
             req.session.user = {
                 id: user._id.toString(),
-                loginId: user.loginId,
+                username: user.username,
                 firstName: user.profile.firstName,
                 lastName: user.profile.lastName,
                 email: user.email,
@@ -593,7 +594,7 @@ static async signup(req, res) {
 
         // Create user with structured data
         const userData = {
-            loginId: username,
+            username: username,
             email: email,
             password: password,
             profile: {
@@ -618,7 +619,7 @@ static async signup(req, res) {
             data: {
                 user: {
                     id: newUser._id,
-                    loginId: newUser.loginId,
+                    username: newUser.username,
                     email: newUser.email,
                     firstName: newUser.profile.firstName,
                     lastName: newUser.profile.lastName
@@ -675,7 +676,7 @@ static async login(req, res) {
     // Create session user object with initials
     req.session.user = {
         id: user._id,
-        loginId: user.loginId,
+        username: user.username,
         email: user.email,
         firstName: user.profile.firstName,
         lastName: user.profile.lastName,
@@ -698,7 +699,7 @@ const context = {
         param: req.query
     },
     user: {
-        loginId: req.session?.user?.loginId || '',
+        username: req.session?.user?.username || '',
         email: req.session?.user?.email || '',
         firstName: req.session?.user?.firstName || '',
         lastName: req.session?.user?.lastName || '',
@@ -800,36 +801,36 @@ class LogController {
     // Unified console logging for initial API or page requests
     static logRequest(req, message) {
         const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
-        const loginId = req?.session?.user?.loginId || '(guest)';
+        const username = req?.session?.user?.username || '(guest)';
         const clientIp = req?.ip || req?.connection?.remoteAddress || 'unknown';
         const vmId = process.env.VM_ID || '0';
         const pmId = process.env.pm_id || '0';
 
-        const logEntry = `==${timestamp}, ===, ${loginId}, ip:${clientIp}, vm:${vmId}, id:${pmId}, === ${message}`;
+        const logEntry = `==${timestamp}, ===, ${username}, ip:${clientIp}, vm:${vmId}, id:${pmId}, === ${message}`;
         console.log(logEntry);
     }
 
     // Unified console logging of informational messages
     static logInfo(req, message) {
         const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
-        const loginId = req?.session?.user?.loginId || '(guest)';
+        const username = req?.session?.user?.username || '(guest)';
         const clientIp = req?.ip || req?.connection?.remoteAddress || 'unknown';
         const vmId = process.env.VM_ID || '0';
         const pmId = process.env.pm_id || '0';
 
-        const logEntry = `- ${timestamp}, msg, ${loginId}, ip:${clientIp}, vm:${vmId}, id:${pmId}, ${message}`;
+        const logEntry = `- ${timestamp}, msg, ${username}, ip:${clientIp}, vm:${vmId}, id:${pmId}, ${message}`;
         console.log(logEntry);
     }
 
     // Unified error logging of error messages
     static logError(req, message) {
         const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
-        const loginId = req?.session?.user?.loginId || '(guest)';
+        const username = req?.session?.user?.username || '(guest)';
         const clientIp = req?.ip || req?.connection?.remoteAddress || 'unknown';
         const vmId = process.env.VM_ID || '0';
         const pmId = process.env.pm_id || '0';
 
-        const logEntry = `- ${timestamp}, ERR, ${loginId}, ip:${clientIp}, vm:${vmId}, id:${pmId}, ${message}`;
+        const logEntry = `- ${timestamp}, ERR, ${username}, ip:${clientIp}, vm:${vmId}, id:${pmId}, ${message}`;
         console.error(logEntry);
     }
 }

@@ -3,7 +3,7 @@
  * @tagline         Authentication tests for User Model and Controller
  * @description     Unit tests for user authentication, login, logout, and security features
  * @file            webapp/tests/unit/user/user-authentication.test.js
- * @version         0.3.6
+ * @version         0.3.7
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -57,7 +57,7 @@ describe('User Authentication Tests', () => {
         test('should authenticate valid active users', () => {
             const mockUser = {
                 _id: '507f1f77bcf86cd799439011',
-                loginId: 'testuser',
+                username: 'testuser',
                 email: 'test@example.com',
                 passwordHash: '$2b$12$hashedpassword...',
                 status: 'active',
@@ -89,14 +89,14 @@ describe('User Authentication Tests', () => {
             expect(result).toBeDefined();
             expect(result.passwordHash).toBeUndefined();
             expect(result._id).toBe('507f1f77bcf86cd799439011');
-            expect(result.loginId).toBe('testuser');
+            expect(result.username).toBe('testuser');
             expect(result.email).toBe('test@example.com');
         });
 
         test('should reject inactive users', () => {
             const inactiveUser = {
                 _id: '507f1f77bcf86cd799439011',
-                loginId: 'testuser',
+                username: 'testuser',
                 email: 'test@example.com',
                 passwordHash: '$2b$12$hashedpassword...',
                 status: 'inactive'
@@ -116,7 +116,7 @@ describe('User Authentication Tests', () => {
         test('should reject suspended users', () => {
             const suspendedUser = {
                 _id: '507f1f77bcf86cd799439011',
-                loginId: 'testuser',
+                username: 'testuser',
                 email: 'test@example.com',
                 passwordHash: '$2b$12$hashedpassword...',
                 status: 'suspended'
@@ -150,7 +150,7 @@ describe('User Authentication Tests', () => {
         test('should create proper session user object', () => {
             const user = {
                 _id: '507f1f77bcf86cd799439011',
-                loginId: 'jsmith',
+                username: 'jsmith',
                 email: 'john@example.com',
                 profile: {
                     firstName: 'John',
@@ -168,7 +168,7 @@ describe('User Authentication Tests', () => {
             const createSessionUser = (user) => {
                 return {
                     id: user._id.toString(),
-                    loginId: user.loginId,
+                    username: user.username,
                     firstName: user.profile.firstName,
                     lastName: user.profile.lastName,
                     nickName: user.profile.nickName || '',
@@ -182,7 +182,7 @@ describe('User Authentication Tests', () => {
             const sessionUser = createSessionUser(user);
 
             expect(sessionUser.id).toBe('507f1f77bcf86cd799439011');
-            expect(sessionUser.loginId).toBe('jsmith');
+            expect(sessionUser.username).toBe('jsmith');
             expect(sessionUser.firstName).toBe('John');
             expect(sessionUser.lastName).toBe('Smith');
             expect(sessionUser.nickName).toBe('Johnny');
@@ -196,7 +196,7 @@ describe('User Authentication Tests', () => {
         test('should handle missing profile fields in session creation', () => {
             const user = {
                 _id: '507f1f77bcf86cd799439011',
-                loginId: 'jsmith',
+                username: 'jsmith',
                 email: 'john@example.com',
                 profile: {
                     firstName: 'John',
@@ -209,7 +209,7 @@ describe('User Authentication Tests', () => {
             const createSessionUser = (user) => {
                 return {
                     id: user._id.toString(),
-                    loginId: user.loginId,
+                    username: user.username,
                     firstName: user.profile.firstName,
                     lastName: user.profile.lastName,
                     nickName: user.profile.nickName || '',
@@ -305,7 +305,7 @@ describe('User Authentication Tests', () => {
 
         test('should handle users without roles', () => {
             const userWithoutRoles = {
-                loginId: 'test'
+                username: 'test'
             };
 
             const hasRole = (user, role) => {

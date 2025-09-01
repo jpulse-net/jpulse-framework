@@ -3,7 +3,7 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         0.3.6
+ * @version         0.3.7
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -168,7 +168,7 @@ class AuthController {
             const { identifier, password } = req.body;
 
             if (!identifier || !password) {
-                LogController.logError(req, 'auth.login: error: Both identifier (loginId or email) and password are required');
+                LogController.logError(req, 'auth.login: error: Both identifier (username or email) and password are required');
                 const message = i18n.translate('controller.auth.idAndPasswordRequired');
                 return res.status(400).json({
                     success: false,
@@ -199,7 +199,7 @@ class AuthController {
             // Store user in session
             req.session.user = {
                 id: user._id.toString(),
-                loginId: user.loginId,
+                username: user.username,
                 email: user.email,
                 firstName: user.profile.firstName,
                 lastName: user.profile.lastName,
@@ -210,7 +210,7 @@ class AuthController {
                 authenticated: true
             };
 
-            LogController.logInfo(req, `auth.login: success: User ${user.loginId} logged in successfully`);
+            LogController.logInfo(req, `auth.login: success: User ${user.username} logged in successfully`);
             const message = i18n.translate('controller.auth.loginSuccessful');
             res.json({
                 success: true,
@@ -240,9 +240,9 @@ class AuthController {
      */
     static async logout(req, res) {
         try {
-            const loginId = req.session.user ? req.session.user.loginId : '(unknown)';
+            const username = req.session.user ? req.session.user.username : '(unknown)';
 
-            LogController.logRequest(req, `auth.logout( ${loginId} )`);
+            LogController.logRequest(req, `auth.logout( ${username} )`);
 
             // Destroy session
             req.session.destroy((err) => {
@@ -256,7 +256,7 @@ class AuthController {
                     });
                 }
 
-                LogController.logInfo(req, `auth.logout: success: User ${loginId} logged out successfully`);
+                LogController.logInfo(req, `auth.logout: success: User ${username} logged out successfully`);
                 const message = i18n.translate('controller.auth.logoutSuccessful');
                 res.json({
                     success: true,

@@ -3,7 +3,7 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         0.3.6
+ * @version         0.3.7
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -27,7 +27,8 @@ class UserModel {
      */
     static schema = {
         _id: { type: 'objectId', auto: true },
-        loginId: { type: 'string', required: true, unique: true },
+        username: { type: 'string', required: true, unique: true },
+        uuid: { type: 'string', required: true, unique: true, auto: true },
         email: { type: 'string', required: true, unique: true, validate: 'email' },
         passwordHash: { type: 'string', required: true },
         profile: {
@@ -110,16 +111,16 @@ class UserModel {
     static validate(data, isUpdate = false, skipPassword = false) {
         const errors = [];
 
-        // Validate loginId (required for create, optional for update)
-        if (!isUpdate && (!data.loginId || typeof data.loginId !== 'string')) {
-            errors.push('loginId is required and must be a string');
+        // Validate username (required for create, optional for update)
+        if (!isUpdate && (!data.username || typeof data.username !== 'string')) {
+            errors.push('username is required and must be a string');
         }
-        if (data.loginId !== undefined) {
-            if (typeof data.loginId !== 'string' || data.loginId.trim() === '') {
-                errors.push('loginId must be a non-empty string');
+        if (data.username !== undefined) {
+            if (typeof data.username !== 'string' || data.username.trim() === '') {
+                errors.push('username must be a non-empty string');
             }
-            if (!/^[a-zA-Z0-9_.-]+$/.test(data.loginId)) {
-                errors.push('loginId can only contain letters, numbers, dots, dashes, and underscores');
+            if (!/^[a-zA-Z0-9_.-]+$/.test(data.username)) {
+                errors.push('username can only contain letters, numbers, dots, dashes, and underscores');
             }
         }
 
@@ -195,6 +196,7 @@ class UserModel {
 
         if (!isUpdate) {
             result.createdAt = now;
+            result.uuid = CommonUtils.generateUuid();
             result.saveCount = 1;
         }
 
@@ -224,21 +226,6 @@ class UserModel {
     }
 
     /**
-     * Find user by loginId
-     * @param {string} loginId - User login ID
-     * @returns {Promise<object|null>} User document or null if not found
-     */
-    static async findByLoginId(loginId) {
-        try {
-            const collection = this.getCollection();
-            const result = await collection.findOne({ loginId: loginId });
-            return result;
-        } catch (error) {
-            throw new Error(`Failed to find user by loginId: ${error.message}`);
-        }
-    }
-
-    /**
      * Find user by email
      * @param {string} email - User email
      * @returns {Promise<object|null>} User document or null if not found
@@ -250,6 +237,21 @@ class UserModel {
             return result;
         } catch (error) {
             throw new Error(`Failed to find user by email: ${error.message}`);
+        }
+    }
+
+    /**
+     * Find user by username
+     * @param {string} username - User login ID
+     * @returns {Promise<object|null>} User document or null if not found
+     */
+    static async findByUsername(username) {
+        try {
+            const collection = this.getCollection();
+            const result = await collection.findOne({ username: username });
+            return result;
+        } catch (error) {
+            throw new Error(`Failed to find user by username: ${error.message}`);
         }
     }
 
@@ -353,8 +355,8 @@ class UserModel {
             // Validate data
             this.validate(data, false);
 
-            // Check if loginId already exists
-            const existingUser = await this.findByLoginId(data.loginId);
+            // Check if username already exists
+            const existingUser = await this.findByUsername(data.username);
             if (existingUser) {
                 throw new Error('Username already exists');
             }
@@ -433,8 +435,8 @@ class UserModel {
      */
     static async authenticate(identifier, password) {
         try {
-            // Find user by loginId or email
-            let user = await this.findByLoginId(identifier);
+            // Find user by username or email
+            let user = await this.findByUsername(identifier);
             if (!user) {
                 user = await this.findByEmail(identifier);
             }

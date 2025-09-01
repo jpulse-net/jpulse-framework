@@ -3,7 +3,7 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         0.3.6
+ * @version         0.3.7
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -70,7 +70,7 @@ class UserController {
 
             // Prepare user data
             const userData = {
-                loginId: username,
+                username: username,
                 email: email,
                 password: password,
                 profile: {
@@ -90,14 +90,14 @@ class UserController {
             // Create user
             const newUser = await UserModel.create(userData);
 
-            LogController.logInfo(req, `user.signup: success: ${newUser.loginId} created successfully`);
+            LogController.logInfo(req, `user.signup: success: ${newUser.username} created successfully`);
             const message = i18n.translate('controller.user.signup.accountCreatedSuccessfully');
             res.status(201).json({
                 success: true,
                 data: {
                     user: {
                         id: newUser._id.toString(),
-                        loginId: newUser.loginId,
+                        username: newUser.username,
                         email: newUser.email,
                         firstName: newUser.profile.firstName,
                         lastName: newUser.profile.lastName
@@ -176,7 +176,7 @@ class UserController {
             // Remove sensitive data
             const { passwordHash, ...userProfile } = user;
 
-            LogController.logInfo(req, `user.get: success: profile retrieved for user ${req.session.user.loginId}`);
+            LogController.logInfo(req, `user.get: success: profile retrieved for user ${req.session.user.username}`);
             const message = i18n.translate('controller.user.profile.retrievedSuccessfully');
             res.json({
                 success: true,
@@ -209,7 +209,7 @@ class UserController {
             // Authentication is handled by AuthController.requireAuthentication middleware
 
             const updateData = { ...req.body };
-            updateData.updatedBy = req.session.user.loginId;
+            updateData.updatedBy = req.session.user.username;
 
             // Users can only update their own profile (non-admin fields)
             const allowedFields = ['profile', 'preferences'];
@@ -253,7 +253,7 @@ class UserController {
             // Remove sensitive data
             const { passwordHash, ...userProfile } = updatedUser;
 
-            LogController.logInfo(req, `user.update: success: profile updated for user ${req.session.user.loginId}`);
+            LogController.logInfo(req, `user.update: success: profile updated for user ${req.session.user.username}`);
             const message = i18n.translate('controller.user.profile.updatedSuccessfully');
             res.json({
                 success: true,
@@ -321,7 +321,7 @@ class UserController {
             // Verify current password
             const isCurrentValid = await UserModel.verifyPassword(currentPassword, user.passwordHash);
             if (!isCurrentValid) {
-                LogController.logError(req, `user.changePassword: error: invalid current password for user ${req.session.user.loginId}`);
+                LogController.logError(req, `user.changePassword: error: invalid current password for user ${req.session.user.username}`);
                 const message = i18n.translate('controller.user.password.invalidCurrentPassword');
                 return res.status(400).json({
                     success: false,
@@ -333,12 +333,12 @@ class UserController {
             // Update password
             const updateData = {
                 password: newPassword,
-                updatedBy: req.session.user.loginId
+                updatedBy: req.session.user.username
             };
 
             await UserModel.updateById(req.session.user.id, updateData);
 
-            LogController.logInfo(req, `user.changePassword: success: Password changed for user ${req.session.user.loginId}`);
+            LogController.logInfo(req, `user.changePassword: success: Password changed for user ${req.session.user.username}`);
 
             const message = i18n.translate('controller.user.password.changedSuccessfully');
             res.json({

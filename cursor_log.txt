@@ -1239,3 +1239,10 @@ User question: @i18n.js is currently outside of the MVC structure. we have a @ut
     - `webapp/controller/view.js`
     - `webapp/tests/helpers/test-utils.js`
 - Provided code changes to `webapp/utils/i18n.js` to adjust translation file loading logic to account for language files without the `lang-` prefix (e.g., `en.conf` instead of `lang-en.conf`).
+
+
+============================================================
+
+2025-08-31 22:45: next task: ## **W-0**: user: fix username vs userId vs loginId inconsistencies; add uuid field
+
+Header: Guiding through W-0: user ID inconsistencies and UUID field\n\nSummary:\nI'm starting to address the W-0 task to fix user ID inconsistencies and add a uuid field. I've logged the current prompt and created a todo list based on the requirements.md file. I will now focus on adding tests for CommonUtils.generateUuid().\n\nDetails:\nThe current time is 2025-08-31 22:41.\nI will begin by adding tests for CommonUtils.generateUuid(), as the generateUuid() method itself is marked as done.

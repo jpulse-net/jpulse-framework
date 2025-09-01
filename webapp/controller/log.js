@@ -3,7 +3,7 @@
  * @tagline         Log Controller for jPulse Framework WebApp
  * @description     This is the log controller for the jPulse Framework WebApp
  * @file            webapp/controller/log.js
- * @version         0.3.6
+ * @version         0.3.7
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -64,15 +64,15 @@ class LogController {
      */
     static getContext(req = null) {
         const context = {
-            loginId: '(guest)',
+            username: '(guest)',
             ip: '0.0.0.0',
             vm: 0,
             id: 0
         };
 
-        // Extract login ID from session
-        if (req?.session?.username) {
-            context.loginId = req.session.username;
+        // Extract username from session
+        if (req?.session?.user?.username) {
+            context.username = req.session.user.username;
         }
 
         // Extract IP address from request
@@ -170,7 +170,7 @@ class LogController {
         const timestamp = LogController.formatTimestamp();
         const context = LogController.getContext(req);
         const sanitizedMessage = LogController.sanitizeMessage(message);
-        const logLine = `==${timestamp}, ===, ${context.loginId}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, === ${sanitizedMessage}`;
+        const logLine = `==${timestamp}, ===, ${context.username}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, === ${sanitizedMessage}`;
         console.log(logLine);
     }
 
@@ -184,7 +184,7 @@ class LogController {
         const timestamp = LogController.formatTimestamp();
         const context = LogController.getContext(req);
         const sanitizedMessage = LogController.sanitizeMessage(message);
-        const logLine = `- ${timestamp}, msg, ${context.loginId}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${sanitizedMessage}`;
+        const logLine = `- ${timestamp}, msg, ${context.username}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${sanitizedMessage}`;
         console.log(logLine);
     }
 
@@ -198,7 +198,7 @@ class LogController {
         const timestamp = LogController.formatTimestamp();
         const context = LogController.getContext(req);
         const sanitizedMessage = LogController.sanitizeMessage(error);
-        const logLine = `- ${timestamp}, ERR, ${context.loginId}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${sanitizedMessage}`;
+        const logLine = `- ${timestamp}, ERR, ${context.username}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${sanitizedMessage}`;
         console.error(logLine);
     }
 
@@ -215,7 +215,7 @@ class LogController {
     static async logChange(req, docType, action, docId, oldDoc = null, newDoc = null) {
         try {
             const context = LogController.getContext(req);
-            const createdBy = context.loginId;
+            const createdBy = context.username;
 
             // Log to database
             const logEntry = await LogModel.logChange(docType, action, docId, oldDoc, newDoc, createdBy);

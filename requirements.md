@@ -449,25 +449,37 @@ Requirements Doc of jPulse Framework
 - rename webapp/translations/lang-de.conf to just webapp/translations/de.conf
 - fix all references to i18n.js and language files
 
-
-
-
-
-
-
-## **W-0**: user: fix username vs userId inconsistency; add uuid field
-- status: 🚧 IN_PROGRESS
+## **W-032**: user: fix username vs userId vs loginId inconsistencies; add uuid field
+- status: ✅ COMPLETED
 - type: Feature
-- some controllers refer to username, others to userId ==> change all to username
+- some code refers to username, some to userId, some to loginId:
+  - username: user views, translations, sessions
+  - userId: user view
+  - loginId: user view, user controller, user model, MongoDB users collection
+- fix all user ID reference, consolidate on username
 - add uuid field, generated on intial doc creation, never changes
+- add a CommonUtils.generateUuid() method - DONE
+- add tests for CommonUtils.generateUuid()
+- remove the unused CommonUtils.generateId() method, remove its tests
+- fix user tests
 - no need to patch existing docs in users collection
 
 
+
+
+
+
+
+
+
+
+- status: 🚧 IN_PROGRESS
 I finished **W-028**: view controller: cache template and include files
 - run tests, and fix issue
 - update docs: readme.md, developers.md, changelog.md in project root
 - update commit-message.txt, following the same format, specify: W-028, v0.3.3
 - don't commit
+
 
 
 ## **W-0**: docs: restructure user facing and developer facing documentation

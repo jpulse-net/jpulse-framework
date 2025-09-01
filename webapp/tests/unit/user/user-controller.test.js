@@ -3,7 +3,7 @@
  * @tagline         Controller tests for User authentication and management
  * @description     Unit tests for UserController endpoints, error handling, and HTTP responses
  * @file            webapp/tests/unit/user/user-controller.test.js
- * @version         0.3.6
+ * @version         0.3.7
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -33,7 +33,7 @@ describe('User Controller Tests', () => {
 
             const mockUser = {
                 _id: '507f1f77bcf86cd799439011',
-                loginId: 'jsmith',
+                username: 'jsmith',
                 email: 'john@example.com',
                 profile: {
                     firstName: 'John',
@@ -48,7 +48,7 @@ describe('User Controller Tests', () => {
                 if (authenticatedUser) {
                     req.session.user = {
                         id: authenticatedUser._id.toString(),
-                        loginId: authenticatedUser.loginId,
+                        username: authenticatedUser.username,
                         firstName: authenticatedUser.profile.firstName,
                         lastName: authenticatedUser.profile.lastName,
                         nickName: authenticatedUser.profile.nickName,
@@ -79,7 +79,7 @@ describe('User Controller Tests', () => {
                 success: true,
                 message: 'Login successful',
                 data: expect.objectContaining({
-                    loginId: 'jsmith',
+                    username: 'jsmith',
                     firstName: 'John',
                     authenticated: true
                 })
@@ -164,7 +164,7 @@ describe('User Controller Tests', () => {
                 session: {
                     user: {
                         id: '507f1f77bcf86cd799439011',
-                        loginId: 'jsmith',
+                        username: 'jsmith',
                         authenticated: true
                     },
                     destroy: jest.fn((callback) => callback())
@@ -273,7 +273,7 @@ describe('User Controller Tests', () => {
         test('should return user profile for authenticated user', () => {
             const mockUser = {
                 _id: '507f1f77bcf86cd799439011',
-                loginId: 'jsmith',
+                username: 'jsmith',
                 email: 'john@example.com',
                 profile: {
                     firstName: 'John',
@@ -291,6 +291,7 @@ describe('User Controller Tests', () => {
                 session: {
                     user: {
                         id: '507f1f77bcf86cd799439011',
+                        username: 'jsmith',
                         authenticated: true
                     }
                 }

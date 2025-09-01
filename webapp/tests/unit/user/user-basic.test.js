@@ -3,7 +3,7 @@
  * @tagline         Basic tests for User Model and Controller
  * @description     Unit tests for User Model validation and basic functionality
  * @file            webapp/tests/unit/user/user-basic.test.js
- * @version         0.3.6
+ * @version         0.3.7
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -58,8 +58,8 @@ describe('User Model Basic Tests', () => {
     });
 
     describe('User Schema Validation Logic', () => {
-        test('should validate loginId format correctly', () => {
-            const validLoginIds = [
+        test('should validate username format correctly', () => {
+            const validUsernames = [
                 'jsmith',
                 'john.doe',
                 'user123',
@@ -67,7 +67,7 @@ describe('User Model Basic Tests', () => {
                 'test-user'
             ];
 
-            const invalidLoginIds = [
+            const invalidUsernames = [
                 'john doe',      // space
                 'user@domain',   // @ symbol
                 'user#123',      // # symbol
@@ -75,17 +75,17 @@ describe('User Model Basic Tests', () => {
                 ''               // empty
             ];
 
-            const loginIdRegex = /^[a-zA-Z0-9_.-]+$/;
+            const usernameRegex = /^[a-zA-Z0-9_.-]+$/;
 
-            validLoginIds.forEach(loginId => {
-                expect(loginIdRegex.test(loginId)).toBe(true);
+            validUsernames.forEach(username => {
+                expect(usernameRegex.test(username)).toBe(true);
             });
 
-            invalidLoginIds.forEach(loginId => {
-                if (loginId === '') {
-                    expect(loginId.trim() === '').toBe(true);
+            invalidUsernames.forEach(username => {
+                if (username === '') {
+                    expect(username.trim() === '').toBe(true);
                 } else {
-                    expect(loginIdRegex.test(loginId)).toBe(false);
+                    expect(usernameRegex.test(username)).toBe(false);
                 }
             });
         });
@@ -164,7 +164,8 @@ describe('User Model Basic Tests', () => {
         test('should validate complete user schema structure', () => {
             const completeUser = {
                 _id: '507f1f77bcf86cd799439011',
-                loginId: 'jsmith',
+                uuid: 'c376a91d-556b-4e0e-924b-3d02a9e5c4d6',
+                username: 'jsmith',
                 email: 'john.smith@example.com',
                 passwordHash: '$2b$12$hashedpassword...',
                 profile: {
@@ -190,9 +191,13 @@ describe('User Model Basic Tests', () => {
 
             // Validate all required fields exist and have correct types
             expect(typeof completeUser._id).toBe('string');
-            expect(typeof completeUser.loginId).toBe('string');
+            expect(typeof completeUser.uuid).toBe('string');
+            expect(typeof completeUser.username).toBe('string');
             expect(typeof completeUser.email).toBe('string');
             expect(typeof completeUser.passwordHash).toBe('string');
+
+            // Validate UUID format
+            expect(completeUser.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
 
             // Validate profile structure
             expect(completeUser.profile).toBeDefined();
@@ -230,7 +235,7 @@ describe('User Model Basic Tests', () => {
     describe('Default Values Application', () => {
         test('should apply default values correctly', () => {
             const input = {
-                loginId: 'testuser',
+                username: 'testuser',
                 email: 'test@example.com',
                 profile: {
                     firstName: 'Test',
@@ -284,7 +289,7 @@ describe('User Model Basic Tests', () => {
         test('should handle authentication flow correctly', () => {
             const mockUser = {
                 _id: '507f1f77bcf86cd799439011',
-                loginId: 'testuser',
+                username: 'testuser',
                 email: 'test@example.com',
                 passwordHash: '$2b$12$hashedpassword...',
                 status: 'active',
@@ -310,7 +315,7 @@ describe('User Model Basic Tests', () => {
         test('should remove password hash from returned user data', () => {
             const userWithPassword = {
                 _id: '507f1f77bcf86cd799439011',
-                loginId: 'testuser',
+                username: 'testuser',
                 email: 'test@example.com',
                 passwordHash: '$2b$12$hashedpassword...',
                 profile: { firstName: 'Test', lastName: 'User' }
@@ -321,7 +326,7 @@ describe('User Model Basic Tests', () => {
 
             expect(userWithoutPassword.passwordHash).toBeUndefined();
             expect(userWithoutPassword._id).toBeDefined();
-            expect(userWithoutPassword.loginId).toBeDefined();
+            expect(userWithoutPassword.username).toBeDefined();
             expect(userWithoutPassword.email).toBeDefined();
             expect(userWithoutPassword.profile).toBeDefined();
         });
@@ -358,7 +363,7 @@ describe('User Model Basic Tests', () => {
         test('should format session user data correctly', () => {
             const user = {
                 _id: '507f1f77bcf86cd799439011',
-                loginId: 'jsmith',
+                username: 'jsmith',
                 email: 'john@example.com',
                 profile: {
                     firstName: 'John',
@@ -375,7 +380,7 @@ describe('User Model Basic Tests', () => {
             // Simulate session user creation
             const sessionUser = {
                 id: user._id.toString(),
-                loginId: user.loginId,
+                username: user.username,
                 email: user.email,
                 firstName: user.profile.firstName,
                 lastName: user.profile.lastName,
@@ -386,7 +391,7 @@ describe('User Model Basic Tests', () => {
             };
 
             expect(sessionUser.id).toBe('507f1f77bcf86cd799439011');
-            expect(sessionUser.loginId).toBe('jsmith');
+            expect(sessionUser.username).toBe('jsmith');
             expect(sessionUser.email).toBe('john@example.com');
             expect(sessionUser.firstName).toBe('John');
             expect(sessionUser.lastName).toBe('Smith');

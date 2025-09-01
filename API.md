@@ -1,4 +1,4 @@
-# jPulse Framework / API Documentation v0.3.6
+# jPulse Framework / API Documentation v0.3.7
 
 Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
 
@@ -61,7 +61,7 @@ Create a new user account with validation and error handling.
     "data": {
         "user": {
             "id": "60f7b3b3b3b3b3b3b3b3b3b3",
-            "loginId": "johndoe",
+            "username": "johndoe",
             "email": "john@example.com",
             "firstName": "John",
             "lastName": "Doe"
@@ -84,14 +84,14 @@ Create a new user account with validation and error handling.
 - Email must be unique and valid format
 
 #### Login
-Authenticate user with loginId/email and password, creating a persistent session.
+Authenticate user with username/email and password, creating a persistent session.
 
 **Endpoint:** `POST /api/1/auth/login`
 
 **Request Body:**
 ```json
 {
-    "identifier": "jsmith",        // loginId or email
+    "identifier": "jsmith",        // username or email
     "password": "securepassword123"
 }
 ```
@@ -103,7 +103,7 @@ Authenticate user with loginId/email and password, creating a persistent session
     "message": "Login successful",
     "data": {
         "id": "66cb1234567890abcdef1234",
-        "loginId": "jsmith",
+        "username": "jsmith",
         "firstName": "John",
         "lastName": "Smith",
         "email": "john@example.com",
@@ -149,7 +149,7 @@ Retrieve current user's profile information.
     "message": "Profile retrieved successfully",
     "data": {
         "id": "66cb1234567890abcdef1234",
-        "loginId": "jsmith",
+        "username": "jsmith",
         "email": "john@example.com",
         "profile": {
             "firstName": "John",
@@ -236,7 +236,7 @@ Search and filter users with advanced query capabilities. Requires admin or root
 **Authentication:** Required (Admin/Root roles only)
 
 **Query Parameters:**
-- `loginId` (string): Login ID filter with wildcard support (`*`)
+- `username` (string): Login ID filter with wildcard support (`*`)
 - `email` (string): Email filter with wildcard support (`*`)
 - `profile.firstName` (string): First name filter with wildcard support
 - `profile.lastName` (string): Last name filter with wildcard support
@@ -275,7 +275,7 @@ GET /api/1/user/search?status=active&lastLogin=2025-08-25&limit=10
     "data": [
         {
             "id": "66cb1234567890abcdef1234",
-            "loginId": "jsmith",
+            "username": "jsmith",
             "email": "john@example.com",
             "profile": {
                 "firstName": "John",
@@ -316,7 +316,7 @@ User documents follow this comprehensive schema:
 ```javascript
 {
     _id: ObjectId,              // MongoDB ObjectId
-    loginId: String,            // Unique login identifier
+    username: String,           // Unique login identifier
     email: String,              // Unique email address (validated)
     passwordHash: String,       // bcrypt hashed password (never returned in API)
     profile: {
@@ -936,7 +936,7 @@ Authenticated users have access to:
 ```javascript
 req.session.user = {
     id: "user123",
-    loginId: "jsmith",
+    username: "jsmith",
     firstName: "John",
     lastName: "Smith",
     email: "john@example.com",

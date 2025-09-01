@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for CommonUtils
  * @description     Tests for common utility functions
  * @file            webapp/tests/unit/utils/common-utils.test.js
- * @version         0.3.6
+ * @version         0.3.7
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -228,24 +228,21 @@ describe('CommonUtils', () => {
         });
     });
 
-    describe('generateId', () => {
-        test('should generate unique IDs', () => {
-            const id1 = CommonUtils.generateId();
-            const id2 = CommonUtils.generateId();
+    describe('generateUuid', () => {
+        test('should generate unique UUIDs', () => {
+            const uuid1 = CommonUtils.generateUuid();
+            const uuid2 = CommonUtils.generateUuid();
 
-            expect(id1).not.toBe(id2);
-            expect(typeof id1).toBe('string');
-            expect(typeof id2).toBe('string');
+            expect(uuid1).not.toBe(uuid2);
+            expect(typeof uuid1).toBe('string');
+            expect(typeof uuid2).toBe('string');
         });
 
-        test('should include prefix when provided', () => {
-            const id = CommonUtils.generateId('test_');
-            expect(id).toMatch(/^test_\d+_[a-z0-9]+$/);
-        });
-
-        test('should follow expected format', () => {
-            const id = CommonUtils.generateId();
-            expect(id).toMatch(/^\d+_[a-z0-9]+$/);
+        test('should generate UUIDs in the correct format (v4)', () => {
+            const uuid = CommonUtils.generateUuid();
+            // Regex for UUID v4: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+            // Where 'y' can be 8, 9, a, or b
+            expect(uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
         });
     });
 

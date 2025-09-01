@@ -3,7 +3,7 @@
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/translations/i18n.js
- * @version         0.3.4
+ * @version         0.3.5
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,7 +15,7 @@
 // Load required modules for path resolution and file system operations
 import { join } from 'node:path';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import logController from '../controller/log.js';
+import LogController from '../controller/log.js';
 
 /**
  * Deep clone an object
@@ -139,10 +139,10 @@ function auditAndFixTranslations(defaultLang, targetLang, langCode) {
     });
     // Log audit results
     if (missingGroups.length > 0) {
-        logController.error(null, `i18n: - missing: ${missingGroups.join(', ')}`);
+        LogController.logError(null, `i18n: - missing: ${missingGroups.join(', ')}`);
     }
     if (extraGroups.length > 0) {
-        logController.error(null, `i18n: - extra: ${extraGroups.join(', ')}`);
+        LogController.logError(null, `i18n: - extra: ${extraGroups.join(', ')}`);
     }
     // Copy missing fields from default language
     missing.forEach(keyPath => {
@@ -191,7 +191,7 @@ async function loadTranslations() {
             if (b.name === defaultFile) return 1;
             return a.name.localeCompare(b.name);
         });
-        logController.console(null, `i18n: Loading ${sortedFiles.length} translation files...`);
+        LogController.logInfo(null, `i18n: Loading ${sortedFiles.length} translation files...`);
         let defaultLangData = null;
         // Load each translation file
         for (const file of sortedFiles) {
@@ -205,7 +205,7 @@ async function loadTranslations() {
                 const lang = Object.keys(obj)[0];
                 if (lang && obj[lang]) {
                     i18n.langs[lang] = obj[lang];
-                    logController.console(null, `i18n: ✓ Loaded language: ${lang} (${obj[lang].lang || lang})`);
+                    LogController.logInfo(null, `i18n: ✓ Loaded language: ${lang} (${obj[lang].lang || lang})`);
 
                     // Store default language data for auditing
                     if (lang === i18n.default) {
@@ -215,10 +215,10 @@ async function loadTranslations() {
                         auditAndFixTranslations(defaultLangData, i18n.langs[lang], lang);
                     }
                 } else {
-                    logController.error(null, `i18n: Warning: Invalid structure in ${file.filePath}`);
+                    LogController.logError(null, `i18n: Warning: Invalid structure in ${file.filePath}`);
                 }
             } catch (fileError) {
-                logController.error(null, `i18n: Error loading translation file ${file.filePath}:`, fileError.message);
+                LogController.logError(null, `i18n: Error loading translation file ${file.filePath}:`, fileError.message);
             }
         }
         return i18n;
@@ -237,7 +237,7 @@ class I18n {
         this.default = data.default;
         // Validate default language exists
         if (this.default && !this.langs[this.default]) {
-            logController.error(null, `i18n: Warning: Default language '${this.default}' not found. Available languages:`, Object.keys(this.langs));
+            LogController.logError(null, `i18n: Warning: Default language '${this.default}' not found. Available languages:`, Object.keys(this.langs));
             // Fallback to first available language
             this.default = Object.keys(this.langs)[0] || 'en';
         }
@@ -257,7 +257,7 @@ class I18n {
             return this.langs[langCode];
         }
         // Fallback to default language
-        logController.error(null, `i18n: Warning: Language '${langCode}' not found, falling back to '${this.default}'`);
+        LogController.logError(null, `i18n: Warning: Language '${langCode}' not found, falling back to '${this.default}'`);
         return this.langs[this.default] || {};
     }
 
@@ -305,7 +305,7 @@ class I18n {
             if (result && typeof result === 'object' && result.hasOwnProperty(key)) {
                 result = result[key];
             } else {
-                logController.error(null, `i18n: Translation not found: ${langCode}.${keyPath}`);
+                LogController.logError(null, `i18n: Translation not found: ${langCode}.${keyPath}`);
                 return keyPath; // Return key path as fallback
             }
         }
@@ -344,8 +344,8 @@ if (Object.keys(i18n.langs).length === 0) {
     process.exit(1);
 }
 
-logController.console(null, `i18n: Initialized with languages: ${i18n.getCodes().join(', ')}`);
-logController.console(null, `i18n: Default language: ${i18n.default}`);
+LogController.logInfo(null, `i18n: Initialized with languages: ${i18n.getCodes().join(', ')}`);
+LogController.logInfo(null, `i18n: Default language: ${i18n.default}`);
 //console.log('DEBUG: i18n.langs', JSON.stringify(i18n.langs, null, 2));
 
 export default i18n;

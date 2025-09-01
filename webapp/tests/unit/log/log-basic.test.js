@@ -3,7 +3,7 @@
  * @tagline         Unit tests for log model and controller basic functionality
  * @description     This file contains unit tests for the log model and controller
  * @file            webapp/tests/unit/log/log-basic.test.js
- * @version         0.3.4
+ * @version         0.3.5
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -386,19 +386,19 @@ describe('Log Controller Context Extraction', () => {
         expect(context.id).toBe(0);
     });
 
-    test('should format console log correctly', () => {
+    test('should format logInfo log correctly', () => {
         const mockReq = {
             session: { username: 'testuser' },
             ip: '192.168.1.100'
         };
 
-        LogController.console(mockReq, 'Test message');
+        LogController.logInfo(mockReq, 'Test message');
 
         expect(consoleLogs).toHaveLength(1);
         expect(consoleLogs[0]).toMatch(/^- \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}, msg, testuser, ip:192\.168\.1\.100, vm:0, id:0, Test message$/);
     });
 
-    test('should format API log correctly', () => {
+    test('should format logRequest log correctly', () => {
         const mockReq = {
             session: { username: 'testuser' },
             ip: '192.168.1.100'
@@ -410,13 +410,13 @@ describe('Log Controller Context Extraction', () => {
         expect(consoleLogs[0]).toMatch(/^==\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}, ===, testuser, ip:192\.168\.1\.100, vm:0, id:0, === API call$/);
     });
 
-    test('should format error log correctly', () => {
+    test('should format logError log correctly', () => {
         const mockReq = {
             session: { username: 'testuser' },
             ip: '192.168.1.100'
         };
 
-        LogController.error(mockReq, 'Error message');
+        LogController.logError(mockReq, 'Error message');
 
         expect(consoleErrors).toHaveLength(1);
         expect(consoleErrors[0]).toMatch(/^- \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}, ERR, testuser, ip:192\.168\.1\.100, vm:0, id:0, Error message$/);

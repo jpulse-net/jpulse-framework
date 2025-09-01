@@ -3,7 +3,7 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         0.3.4
+ * @version         0.3.5
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -48,8 +48,8 @@ describe('AuthController', () => {
 
         // Setup mock LogController
         LogController.logRequest = jest.fn();
-        LogController.console = jest.fn();
-        LogController.error = jest.fn();
+        LogController.logInfo = jest.fn();
+        LogController.logError = jest.fn();
 
         // Setup mock CommonUtils
         CommonUtils.sendError = jest.fn();
@@ -148,7 +148,7 @@ describe('AuthController', () => {
                 expect(CommonUtils.sendError).not.toHaveBeenCalled();
             });
 
-            test('should send error for unauthenticated user', () => {
+            test('should send logError for unauthenticated user', () => {
                 mockReq.session.user = { authenticated: false };
 
                 AuthController.requireAuthentication(mockReq, mockRes, mockNext);
@@ -157,12 +157,12 @@ describe('AuthController', () => {
                     mockReq, mockRes, 401, 'Authentication required', 'UNAUTHORIZED'
                 );
                 expect(mockNext).not.toHaveBeenCalled();
-                expect(LogController.error).toHaveBeenCalledWith(
+                expect(LogController.logError).toHaveBeenCalledWith(
                     mockReq, 'Authentication required - access denied'
                 );
             });
 
-            test('should send error for missing user session', () => {
+            test('should send logError for missing user session', () => {
                 mockReq.session = {};
 
                 AuthController.requireAuthentication(mockReq, mockRes, mockNext);
@@ -194,7 +194,7 @@ describe('AuthController', () => {
                 expect(CommonUtils.sendError).not.toHaveBeenCalled();
             });
 
-            test('should send error for user without required role', () => {
+            test('should send logError for user without required role', () => {
                 mockReq.session.user = {
                     authenticated: true,
                     roles: ['user'],
@@ -208,12 +208,12 @@ describe('AuthController', () => {
                     mockReq, mockRes, 403, 'Required role: admin, root', 'INSUFFICIENT_PRIVILEGES'
                 );
                 expect(mockNext).not.toHaveBeenCalled();
-                expect(LogController.error).toHaveBeenCalledWith(
+                expect(LogController.logError).toHaveBeenCalledWith(
                     mockReq, 'Role required (admin, root) - access denied for user testuser'
                 );
             });
 
-            test('should send auth error for unauthenticated user', () => {
+            test('should send logError for unauthenticated user', () => {
                 mockReq.session = {};
 
                 const middleware = AuthController.requireRole(['admin']);
@@ -223,7 +223,7 @@ describe('AuthController', () => {
                     mockReq, mockRes, 401, 'Authentication required', 'UNAUTHORIZED'
                 );
                 expect(mockNext).not.toHaveBeenCalled();
-                expect(LogController.error).toHaveBeenCalledWith(
+                expect(LogController.logError).toHaveBeenCalledWith(
                     mockReq, 'Authentication required for role check - access denied'
                 );
             });
@@ -322,7 +322,7 @@ describe('AuthController', () => {
 
                 await AuthController.login(mockReq, mockRes);
 
-                expect(LogController.error).toHaveBeenCalledWith(
+                expect(LogController.logError).toHaveBeenCalledWith(
                     mockReq, 'Login failed for identifier: testuser'
                 );
                 expect(mockRes.status).toHaveBeenCalledWith(401);
@@ -338,7 +338,7 @@ describe('AuthController', () => {
 
                 await AuthController.login(mockReq, mockRes);
 
-                expect(LogController.error).toHaveBeenCalledWith(
+                expect(LogController.logError).toHaveBeenCalledWith(
                     mockReq, 'auth.login failed: Database error'
                 );
                 expect(mockRes.status).toHaveBeenCalledWith(500);
@@ -386,7 +386,7 @@ describe('AuthController', () => {
                     mockReq, 'auth.logout( testuser )'
                 );
                 expect(mockReq.session.destroy).toHaveBeenCalled();
-                expect(LogController.console).toHaveBeenCalledWith(
+                expect(LogController.logInfo).toHaveBeenCalledWith(
                     mockReq, 'User testuser logged out successfully'
                 );
                 expect(mockRes.json).toHaveBeenCalledWith({
@@ -420,7 +420,7 @@ describe('AuthController', () => {
 
                 await AuthController.logout(mockReq, mockRes);
 
-                expect(LogController.error).toHaveBeenCalledWith(
+                expect(LogController.logError).toHaveBeenCalledWith(
                     mockReq, 'auth.logout failed: Session destroy failed'
                 );
                 expect(mockRes.status).toHaveBeenCalledWith(500);
@@ -440,7 +440,7 @@ describe('AuthController', () => {
 
                 await AuthController.logout(mockReq, mockRes);
 
-                expect(LogController.error).toHaveBeenCalledWith(
+                expect(LogController.logError).toHaveBeenCalledWith(
                     mockReq, 'auth.logout failed: Unexpected error'
                 );
                 expect(mockRes.status).toHaveBeenCalledWith(500);

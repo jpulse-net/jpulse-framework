@@ -3,7 +3,7 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.3.4
+ * @version         0.3.5
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -50,12 +50,12 @@ const cache = {
                 const timestamp = stats.mtime.valueOf();
                 cache.fileTimestamp[includePath] = timestamp;
 
-                LogController.console(null, `view: Pre-loaded ${includePath} and its timestamp ${timestamp}`);
+                LogController.logInfo(null, `view: Pre-loaded ${includePath} and its timestamp ${timestamp}`);
             } else {
-                LogController.console(null, `view: Include file caching disabled, skipped pre-loading ${includePath}`);
+                LogController.logInfo(null, `view: Include file caching disabled, skipped pre-loading ${includePath}`);
             }
         } catch (err) {
-            LogController.error(null, `view: Failed to pre-load ${includePath}: ${err.message}`);
+            LogController.logError(null, `view: Failed to pre-load ${includePath}: ${err.message}`);
         }
     }
 })();
@@ -90,7 +90,7 @@ async function load(req, res) {
 
         // Check if file exists
         if (!fs.existsSync(fullPath)) {
-            LogController.error(req, `view.load: error: File not found: ${fullPath}`);
+            LogController.logError(req, `view.load: error: File not found: ${fullPath}`);
             const message = i18n.translate('controller.view.pageNotFoundError', { path: req.path });
             return CommonUtils.sendError(req, res, 404, message, 'NOT_FOUND');
         }
@@ -99,14 +99,14 @@ async function load(req, res) {
         let content;
         if (global.appConfig.controller.view.cacheTemplateFiles && cache.templateFiles[filePath]) {
             content = cache.templateFiles[filePath];
-            //LogController.console(req, `view.load: Template cache hit for ${filePath}`);
+            //LogController.logInfo(req, `view.load: Template cache hit for ${filePath}`);
         } else {
             content = await fsPromises.readFile(fullPath, 'utf8');
             if (global.appConfig.controller.view.cacheTemplateFiles) {
                 cache.templateFiles[filePath] = content;
-                //LogController.console(req, `view.load: Loaded template ${filePath} and added to cache`);
+                //LogController.logInfo(req, `view.load: Loaded template ${filePath} and added to cache`);
             } else {
-                //LogController.console(req, `view.load: Loaded template ${filePath} (caching disabled)`);
+                //LogController.logInfo(req, `view.load: Loaded template ${filePath} (caching disabled)`);
             }
         }
 
@@ -149,14 +149,14 @@ async function load(req, res) {
 
         // Log completion time
         const duration = Date.now() - startTime;
-        LogController.console(req, `view.load: Completed in ${duration}ms`);
+        LogController.logInfo(req, `view.load: Completed in ${duration}ms`);
 
         // Send response
         res.set('Content-Type', 'text/html');
         res.send(content);
 
     } catch (error) {
-        LogController.error(req, `view.load: Error: ${error.message}`);
+        LogController.logError(req, `view.load: Error: ${error.message}`);
         const message = i18n.translate('controller.view.internalServerError', { error: error.message });
         res.status(500).send(message);
     }
@@ -199,7 +199,7 @@ function processHandlebars(content, context, viewDir, req, depth = 0) {
             result = result.replace(fullMatch, replacement);
         } catch (error) {
             const errorExpression = match[1] ? `#${match[1]} ${match[2]}` : match[4] || 'unknown';
-            LogController.error(req, `view.load: error: Handlebars "${errorExpression}": ${error.message}`);
+            LogController.logError(req, `view.load: error: Handlebars "${errorExpression}": ${error.message}`);
             result = result.replace(fullMatch, `<!-- Error: ${error.message} -->`);
         }
     }
@@ -336,7 +336,7 @@ function handleFileInclude(filePath, context, viewDir, req, depth = 0) {
 
     // Check cache first
     if (global.appConfig.controller.view.cacheIncludeFiles && cache.includeFiles[includePath]) {
-        LogController.console(req, `view.load: Include cache hit for ${includePath}`);
+        LogController.logInfo(req, `view.load: Include cache hit for ${includePath}`);
         return processHandlebars(cache.includeFiles[includePath], context, viewDir, null, depth + 1);
     }
 
@@ -345,13 +345,13 @@ function handleFileInclude(filePath, context, viewDir, req, depth = 0) {
     }
 
     const content = fs.readFileSync(fullPath, 'utf8');
-    LogController.console(req, `view.load: Loaded ${includePath}`);
+    LogController.logInfo(req, `view.load: Loaded ${includePath}`);
     // Add to cache before returning, if caching is enabled
     if (global.appConfig.controller.view.cacheIncludeFiles) {
         cache.includeFiles[includePath] = content;
-        //LogController.console(req, `view.load: Added ${includePath} to include cache`);
+        //LogController.logInfo(req, `view.load: Added ${includePath} to include cache`);
     } else {
-        //LogController.console(req, `view.load: Loaded ${includePath} (include caching disabled)`);
+        //LogController.logInfo(req, `view.load: Loaded ${includePath} (include caching disabled)`);
     }
     // Recursively process handlebars in included content (now synchronous)
     return processHandlebars(content, context, viewDir, req, depth + 1);
@@ -370,7 +370,7 @@ function handleFileTimestamp(filePath, viewDir, req) {
 
     // Check cache first for file timestamp
     if (global.appConfig.controller.view.cacheIncludeFiles && cache.fileTimestamp[includePath]) {
-        //LogController.console(req, `view.load: Timestamp cache hit for ${includePath}`);
+        //LogController.logInfo(req, `view.load: Timestamp cache hit for ${includePath}`);
         return cache.fileTimestamp[includePath];
     }
 
@@ -381,10 +381,10 @@ function handleFileTimestamp(filePath, viewDir, req) {
     const timestamp = stats.mtime.valueOf();
     // Cache the timestamp, if caching is enabled
     if (global.appConfig.controller.view.cacheIncludeFiles) {
-        //LogController.console(req, `view.load: Loaded timestamp ${timestamp} of ${includePath} and added to cache`);
+        //LogController.logInfo(req, `view.load: Loaded timestamp ${timestamp} of ${includePath} and added to cache`);
         cache.fileTimestamp[includePath] = timestamp;
     } else {
-        //LogController.console(req, `view.load: Loaded timestamp ${timestamp} of ${includePath} (include caching disabled)`);
+        //LogController.logInfo(req, `view.load: Loaded timestamp ${timestamp} of ${includePath} (include caching disabled)`);
     }
     return timestamp;
 }

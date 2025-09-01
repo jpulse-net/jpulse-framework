@@ -1,4 +1,4 @@
-# jPulse Framework / Developer Documentation v0.3.4
+# jPulse Framework / Developer Documentation v0.3.5
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
@@ -46,10 +46,10 @@ A standardized approach was implemented to ensure all user-facing messages are i
 
 #### Key Principles
 1.  **Internationalization for All User Messages**: All messages returned in `res.json` or through `CommonUtils.sendError` are now translated using `i18n.translate(key, context)`. This ensures multi-language support and simplifies message management.
-2.  **Consistent Logging Format**: All `LogController.console()` and `LogController.error()` messages now adhere to the `<controller>.<method>: <type>: <message>` format (e.g., `config.get: error: id is required`). This improves readability and searchability of logs.
+2.  **Consistent Logging Format**: All `LogController.logInfo()` and `LogController.logError()` messages now adhere to the `<controller>.<method>: <type>: <message>` format (e.g., `config.get: error: id is required`). This improves readability and searchability of logs.
 3.  **Log-Message Pairing**: Every user-facing message is immediately preceded by a corresponding `LogController` entry. This provides a clear audit trail in the logs for every response sent to the client.
-4.  **Single Log Entry in Catch Blocks**: To avoid redundant logging, `catch` blocks now contain only one initial `LogController.error` entry at the beginning. Subsequent conditional error responses within the `catch` block (e.g., specific error handling for duplicate keys) are not preceded by additional `LogController` calls.
-5.  **No Log Before Throw**: `LogController.error` calls are *not* placed immediately before `throw new Error` statements in internal helper functions, as the error will be caught and logged by the outer `try...catch` block, preventing duplicate entries.
+4.  **Single Log Entry in Catch Blocks**: To avoid redundant logging, `catch` blocks now contain only one initial `LogController.logError` entry at the beginning. Subsequent conditional error responses within the `catch` block (e.g., specific error handling for duplicate keys) are not preceded by additional `LogController` calls.
+5.  **No Log Before Throw**: `LogController.logError` calls are *not* placed immediately before `throw new Error` statements in internal helper functions, as the error will be caught and logged by the outer `try...catch` block, preventing duplicate entries.
 
 #### Benefits Achieved
 1.  **Enhanced Maintainability**: Easier to manage and update user messages across multiple languages.
@@ -84,8 +84,8 @@ global.LogController = LogController;
 const mode = appConfig.deployment.mode; // 'dev' or 'prod'
 const port = appConfig.deployment[mode].port;
 app.listen(port, () => {
-    LogController.console(null, `jPulse Framework WebApp v${appConfig.app.version}`);
-    LogController.console(null, `Server running in ${mode} mode on port ${port}`);
+    LogController.logInfo(null, `jPulse Framework WebApp v${appConfig.app.version}`);
+    LogController.logInfo(null, `Server running in ${mode} mode on port ${port}`);
 });
 ```
 
@@ -478,7 +478,7 @@ class UserController {
         const results = await UserModel.search(req.query);
         const elapsed = Date.now() - startTime;
 
-        LogController.console(req, `user.search completed in ${elapsed}ms`);
+        LogController.logInfo(req, `user.search completed in ${elapsed}ms`);
         res.json({
             success: true,
             message: `Found ${results.data.length} users`,
@@ -592,7 +592,7 @@ static async signup(req, res) {
         };
 
         const newUser = await UserModel.create(userData);
-        LogController.console(req, `User ${username} created successfully`);
+        LogController.logInfo(req, `User ${username} created successfully`);
 
         res.status(201).json({
             success: true,
@@ -609,7 +609,7 @@ static async signup(req, res) {
         });
 
     } catch (error) {
-        LogController.error(req, `user.signup failed: ${error.message}`);
+        LogController.logError(req, `user.signup failed: ${error.message}`);
 
         // Handle specific error types
         if (error.message.includes('Username already exists')) {
@@ -778,19 +778,7 @@ static sendError(req, res, statusCode, message, code = null) {
 #### Structured Logging System (`webapp/controller/log.js`)
 ```javascript
 class LogController {
-    // Unified console logging format
-    static console(req, message) {
-        const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
-        const loginId = req?.session?.user?.loginId || '(guest)';
-        const clientIp = req?.ip || req?.connection?.remoteAddress || 'unknown';
-        const vmId = process.env.VM_ID || '0';
-        const pmId = process.env.pm_id || '0';
-
-        const logEntry = `- ${timestamp}, msg, ${loginId}, ip:${clientIp}, vm:${vmId}, id:${pmId}, ${message}`;
-        console.log(logEntry);
-    }
-
-    // API-specific logging with enhanced format
+    // Unified console logging for initial API or page requests
     static logRequest(req, message) {
         const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
         const loginId = req?.session?.user?.loginId || '(guest)';
@@ -802,8 +790,20 @@ class LogController {
         console.log(logEntry);
     }
 
-    // Error logging with stack traces
-    static error(req, message) {
+    // Unified console logging of informational messages
+    static logInfo(req, message) {
+        const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
+        const loginId = req?.session?.user?.loginId || '(guest)';
+        const clientIp = req?.ip || req?.connection?.remoteAddress || 'unknown';
+        const vmId = process.env.VM_ID || '0';
+        const pmId = process.env.pm_id || '0';
+
+        const logEntry = `- ${timestamp}, msg, ${loginId}, ip:${clientIp}, vm:${vmId}, id:${pmId}, ${message}`;
+        console.log(logEntry);
+    }
+
+    // Unified error logging of error messages
+    static logError(req, message) {
         const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
         const loginId = req?.session?.user?.loginId || '(guest)';
         const clientIp = req?.ip || req?.connection?.remoteAddress || 'unknown';
@@ -826,7 +826,7 @@ static async search(req, res) {
     const results = await LogModel.search(req.query);
     const elapsed = Date.now() - startTime;
 
-    LogController.console(req, `log.search completed in ${elapsed}ms`);
+    LogController.logInfo(req, `log.search completed in ${elapsed}ms`);
     res.json({
         success: true,
         message: `Found ${results.data.length} log entries`,

@@ -431,6 +431,15 @@ Requirements Doc of jPulse Framework
 - internationalize user facing controller messages, e.g. no hard-coded messages
 - add consitent log entries in controller APIs
 
+## **W-030**: rename LogController log methods for consistency
+- status: ✅ COMPLETED
+- type: Feature
+- LogController.consoleApi() ==> LogController.logRequest()
+- LogController.console()    ==> LogController.logInfo()
+- LogController.error()      ==> LogController.logError()
+
+
+
 
 
 

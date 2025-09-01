@@ -3,7 +3,7 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the database interface for the jPulse Framework WebApp
  * @file            webapp/database.js
- * @version         0.3.4
+ * @version         0.3.5
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -60,7 +60,7 @@ async function connect() {
 
         // Use LogController if available, otherwise fallback to console
         if (global.LogController) {
-            LogController.console(null, `database: Connected to: ${dbName} (${dbMode} mode)`);
+            LogController.logInfo(null, `database: Connected to: ${dbName} (${dbMode} mode)`);
         } else {
             console.log(`database: Connected to: ${dbName} (${dbMode} mode)`);
         }
@@ -68,7 +68,7 @@ async function connect() {
     } catch (error) {
         // Use LogController if available, otherwise fallback to console
         if (global.LogController) {
-            LogController.error(null, `database: Connection failed (continuing without database): ${error.message}`);
+            LogController.logError(null, `database: Connection failed (continuing without database): ${error.message}`);
         } else {
             console.warn('database: Connection failed (continuing without database):', error.message);
         }

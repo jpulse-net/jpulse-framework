@@ -3,7 +3,7 @@
  * @tagline         Log Controller for jPulse Framework WebApp
  * @description     This is the log controller for the jPulse Framework WebApp
  * @file            webapp/controller/log.js
- * @version         0.3.4
+ * @version         0.3.5
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -35,7 +35,7 @@ class LogController {
             const results = await LogModel.search(req.query);
             const elapsed = Date.now() - startTime;
 
-            LogController.console(req, `log.search: completed in ${elapsed}ms`);
+            LogController.logInfo(req, `log.search: completed in ${elapsed}ms`);
 
             const message = i18n.translate('controller.log.searchSuccess', { count: results.data.length });
             res.json({
@@ -46,7 +46,7 @@ class LogController {
             });
 
         } catch (error) {
-            LogController.error(req, `log.search: error: ${error.message}`);
+            LogController.logError(req, `log.search: error: ${error.message}`);
             const message = i18n.translate('controller.log.searchError');
             res.status(500).json({
                 success: false,
@@ -161,21 +161,7 @@ class LogController {
     }
 
     /**
-     * Console logging with unified format
-     * Format: "- YYYY-MM-DD HH:MM:SS, msg, loginId, ip:1.2.3.4, vm:123, id:8, actual message text"
-     * @param {object} req - Express request object
-     * @param {string} message - Message to log
-     */
-    static console(req, message) {
-        const timestamp = LogController.formatTimestamp();
-        const context = LogController.getContext(req);
-        const sanitizedMessage = LogController.sanitizeMessage(message);
-        const logLine = `- ${timestamp}, msg, ${context.loginId}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${sanitizedMessage}`;
-        console.log(logLine);
-    }
-
-    /**
-     * Console logging for initial API or page requests
+     * Unified console logging for initial API or page requests
      * Format: "==YYYY-MM-DD HH:MM:SS, ===, loginId, ip:1.2.3.4, vm:123, id:8, === actual message"
      * @param {object} req - Express request object
      * @param {string} message - Message to log
@@ -184,22 +170,34 @@ class LogController {
         const timestamp = LogController.formatTimestamp();
         const context = LogController.getContext(req);
         const sanitizedMessage = LogController.sanitizeMessage(message);
-
         const logLine = `==${timestamp}, ===, ${context.loginId}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, === ${sanitizedMessage}`;
         console.log(logLine);
     }
 
     /**
-     * Error logging with unified format
+     * Unified console logging of informational messages
+     * Format: "- YYYY-MM-DD HH:MM:SS, msg, loginId, ip:1.2.3.4, vm:123, id:8, actual message text"
+     * @param {object} req - Express request object
+     * @param {string} message - Message to log
+     */
+    static logInfo(req, message) {
+        const timestamp = LogController.formatTimestamp();
+        const context = LogController.getContext(req);
+        const sanitizedMessage = LogController.sanitizeMessage(message);
+        const logLine = `- ${timestamp}, msg, ${context.loginId}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${sanitizedMessage}`;
+        console.log(logLine);
+    }
+
+    /**
+     * Unified error logging of error messages
      * Format: "- YYYY-MM-DD HH:MM:SS, ERR, loginId, ip:1.2.3.4, vm:123, id:8, actual error message"
      * @param {object} req - Express request object
      * @param {string} error - Error message to log
      */
-    static error(req, error) {
+    static logError(req, error) {
         const timestamp = LogController.formatTimestamp();
         const context = LogController.getContext(req);
         const sanitizedMessage = LogController.sanitizeMessage(error);
-
         const logLine = `- ${timestamp}, ERR, ${context.loginId}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${sanitizedMessage}`;
         console.error(logLine);
     }
@@ -233,11 +231,11 @@ class LogController {
                 });
                 message += ` (${changeStrings.join(', ')})`;
             }
-            LogController.console(req, message);
+            LogController.logInfo(req, message);
 
             return logEntry;
         } catch (error) {
-            LogController.error(req, `Failed to log change: ${error.message}`);
+            LogController.logError(req, `Failed to log change: ${error.message}`);
             throw error;
         }
     }
@@ -263,6 +261,6 @@ class LogController {
 export default LogController;
 
 // Named exports for direct function access
-export const { search, console: logConsole, logRequest, error: logError, logChange } = LogController;
+export const { search, logConsole, logRequest, logError, logChange } = LogController;
 
 // EOF webapp/controller/log.js

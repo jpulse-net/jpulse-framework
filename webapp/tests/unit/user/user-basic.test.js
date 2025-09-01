@@ -16,6 +16,11 @@ import { jest } from '@jest/globals';
 import TestUtils from '../../helpers/test-utils.js';
 
 describe('User Model Basic Tests', () => {
+    beforeEach(() => {
+        // Use consolidated configuration
+        TestUtils.setupGlobalMocksWithConsolidatedConfig();
+    });
+
     describe('Password Policy Validation', () => {
         test('should validate password length correctly', () => {
             const minLength = 8;

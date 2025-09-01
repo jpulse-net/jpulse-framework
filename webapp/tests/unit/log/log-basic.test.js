@@ -356,13 +356,13 @@ describe('Log Controller Context Extraction', () => {
 
     test('should extract context from request', () => {
         const mockReq = {
-            session: { username: 'testuser' },
+            session: { user: { username: 'testuser' } },
             ip: '192.168.1.100'
         };
 
         const context = LogController.getContext(mockReq);
 
-        expect(context.loginId).toBe('testuser');
+        expect(context.username).toBe('testuser');
         expect(context.ip).toBe('192.168.1.100');
         expect(context.vm).toBe(0); // Default when no hostname match
         expect(context.id).toBe(0); // Default when no pm2
@@ -373,14 +373,14 @@ describe('Log Controller Context Extraction', () => {
 
         const context = LogController.getContext(mockReq);
 
-        expect(context.loginId).toBe('(guest)');
+        expect(context.username).toBe('(guest)');
         expect(context.ip).toBe('192.168.1.100');
     });
 
     test('should handle missing request', () => {
         const context = LogController.getContext(null);
 
-        expect(context.loginId).toBe('(guest)');
+        expect(context.username).toBe('(guest)');
         expect(context.ip).toBe('0.0.0.0');
         expect(context.vm).toBe(0);
         expect(context.id).toBe(0);
@@ -388,7 +388,7 @@ describe('Log Controller Context Extraction', () => {
 
     test('should format logInfo log correctly', () => {
         const mockReq = {
-            session: { username: 'testuser' },
+            session: { user: { username: 'testuser' } },
             ip: '192.168.1.100'
         };
 
@@ -400,7 +400,7 @@ describe('Log Controller Context Extraction', () => {
 
     test('should format logRequest log correctly', () => {
         const mockReq = {
-            session: { username: 'testuser' },
+            session: { user: { username: 'testuser' } },
             ip: '192.168.1.100'
         };
 
@@ -412,7 +412,7 @@ describe('Log Controller Context Extraction', () => {
 
     test('should format logError log correctly', () => {
         const mockReq = {
-            session: { username: 'testuser' },
+            session: { user: { username: 'testuser' } },
             ip: '192.168.1.100'
         };
 

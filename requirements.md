@@ -424,6 +424,19 @@ Requirements Doc of jPulse Framework
 
 ## Chat instructions
 
+app works again. is there a cleaner way to bootstrap? can we get rid of all the "global." prefix? maybe all modules have a .initialize()?
+
+how about this in webapp/controller/config.js:
+
+LogController;  // initialized in .initialize()
+i18n;           // initialized in .initialize()
+
+async function initialize(initObjects) {
+    if(initObjects.LogController) LogController= initObjects.LogController;
+    if(initObjects.i18n) LogController= initObjects.i18n;
+    // or possibly auto-detection?
+}
+
 next work item: **W-0xx**: .....
 - review task, ask questions
 - plan how to implement
@@ -441,6 +454,9 @@ git add .
 git commit -F commit-message.txt
 git push
 
+## Tests how to
+
+npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 
 
 

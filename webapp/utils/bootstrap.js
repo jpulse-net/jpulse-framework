@@ -55,6 +55,11 @@ export async function bootstrap(options = {}) {
             console.log('⏭️  Database: Skipped');
         }
 
+        // Step 5: Set up CommonUtils globally
+        const CommonUtilsModule = await import('./common.js');
+        global.CommonUtils = CommonUtilsModule.default;
+        console.log('✅ CommonUtils: Available globally');
+
         console.log(`🎉 jPulse Bootstrap: ${isTest ? 'Test' : 'App'} initialization complete!`);
 
         return {

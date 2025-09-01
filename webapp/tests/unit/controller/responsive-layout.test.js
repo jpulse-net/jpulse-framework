@@ -15,36 +15,20 @@
 import { describe, test, expect, beforeEach } from '@jest/globals';
 import TestUtils from '../../helpers/test-utils.js';
 
+// Set up global appConfig BEFORE any dynamic imports
+TestUtils.setupGlobalMocksWithConsolidatedConfig();
+
 describe('Responsive Layout and AppConfig Integration', () => {
     let mockAppConfig;
     let mockContext;
 
     beforeEach(() => {
-        // Mock app.conf configuration
-        mockAppConfig = {
-            app: {
-                version: '0.1.5',
-                release: '2025-08-24',
-                name: 'jPulse Framework'
-            },
-            controller: {
-                view: {
-                    defaultTemplate: 'index.shtml',
-                    maxIncludeDepth: 10
-                }
-            },
-            view: {
-                maxWidth: 1200,
-                minMarginLeftRight: 20
-            }
-        };
+        // Use consolidated configuration
+        mockAppConfig = TestUtils.getConsolidatedConfig();
 
         // Mock handlebars context with appConfig
         mockContext = {
-            app: {
-                version: mockAppConfig.app.version,
-                release: mockAppConfig.app.release
-            },
+            app: mockAppConfig.app,
             appConfig: mockAppConfig,
             user: {
                 id: '',
@@ -76,8 +60,8 @@ describe('Responsive Layout and AppConfig Integration', () => {
         });
 
         test('should maintain backward compatibility with app config', () => {
-            expect(mockContext.app.version).toBe('0.1.5');
-            expect(mockContext.app.release).toBe('2025-08-24');
+            expect(mockContext.app.version).toBe('0.3.7');
+            expect(mockContext.app.release).toBe('2025-09-01');
         });
     });
 
@@ -203,7 +187,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
                 },
                 view: {}
             };
-            
+
             const context = {
                 ...mockContext,
                 appConfig: incompleteConfig
@@ -254,7 +238,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
 
             expect(expressions.maxWidth).toBe(1200);
             expect(expressions.minMargin).toBe(20);
-            expect(expressions.appVersion).toBe('0.1.5');
+            expect(expressions.appVersion).toBe('0.3.7');
         });
     });
 

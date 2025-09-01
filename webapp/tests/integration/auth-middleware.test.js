@@ -1,7 +1,7 @@
 /**
  * @name            jPulse Framework / WebApp / Tests / Integration / Auth Middleware
- * @tagline         Integration tests for Auth Controller middleware
- * @description     Tests for authentication middleware integration patterns
+ * @tagline         Integration tests for authentication middleware
+ * @description     Tests authentication middleware behavior in realistic scenarios
  * @file            webapp/tests/integration/auth-middleware.test.js
  * @version         0.3.7
  * @release         2025-09-01
@@ -12,8 +12,11 @@
  * @genai           99%, Cursor 1.2, Claude Sonnet 4
  */
 
-import AuthController from '../../controller/auth.js';
-import CommonUtils from '../../utils/common.js';
+import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+
+// Import modules dynamically after global setup completes
+let AuthController;
+let CommonUtils;
 
 // Mock dependencies
 jest.mock('../../model/user.js');
@@ -23,20 +26,41 @@ jest.mock('../../controller/log.js', () => ({
     error: jest.fn()
 }));
 
-describe('Auth Middleware Integration Patterns', () => {
+describe('Auth Middleware Integration', () => {
     let mockReq, mockRes, mockNext;
 
-    beforeEach(() => {
+    beforeEach(async () => {
+        // Dynamic imports ensure global setup has completed
+        if (!AuthController) {
+            AuthController = (await import('../../controller/auth.js')).default;
+            CommonUtils = (await import('../../utils/common.js')).default;
+        }
+
+        // Mock request object
         mockReq = {
             session: {},
-            originalUrl: '/api/1/test'
+            body: {},
+            originalUrl: '/api/1/test',
+            headers: {
+                'x-forwarded-for': '192.168.1.100'
+            },
+            connection: {
+                remoteAddress: '192.168.1.100'
+            },
+            ip: '192.168.1.100'
         };
+
+        // Mock response object
         mockRes = {
+            json: jest.fn(),
             status: jest.fn().mockReturnThis(),
-            json: jest.fn().mockReturnThis(),
-            redirect: jest.fn().mockReturnThis()
+            redirect: jest.fn()
         };
+
+        // Mock next function
         mockNext = jest.fn();
+
+        // Reset mocks
         jest.clearAllMocks();
     });
 
@@ -68,7 +92,7 @@ describe('Auth Middleware Integration Patterns', () => {
         test('should stop chain at authentication failure', async () => {
             mockReq.session = {}; // No authentication
 
-            const sendErrorSpy = jest.spyOn(CommonUtils, 'sendError').mockImplementation();
+            const sendErrorSpy = jest.spyOn(global.CommonUtils, 'sendError').mockImplementation();
 
             // Authentication should fail
             AuthController.requireAuthentication(mockReq, mockRes, mockNext);
@@ -91,7 +115,7 @@ describe('Auth Middleware Integration Patterns', () => {
                 }
             };
 
-            const sendErrorSpy = jest.spyOn(CommonUtils, 'sendError').mockImplementation();
+            const sendErrorSpy = jest.spyOn(global.CommonUtils, 'sendError').mockImplementation();
 
             // Authentication should pass
             AuthController.requireAuthentication(mockReq, mockRes, mockNext);
@@ -101,7 +125,7 @@ describe('Auth Middleware Integration Patterns', () => {
             mockNext.mockClear();
             const roleMiddleware = AuthController.requireRole(['admin', 'root']);
             roleMiddleware(mockReq, mockRes, mockNext);
-            
+
             expect(sendErrorSpy).toHaveBeenCalledWith(
                 mockReq, mockRes, 403, 'Required role: admin, root', 'INSUFFICIENT_PRIVILEGES'
             );
@@ -176,12 +200,12 @@ describe('Auth Middleware Integration Patterns', () => {
                 }
             };
 
-            const sendErrorSpy = jest.spyOn(CommonUtils, 'sendError').mockImplementation();
+            const sendErrorSpy = jest.spyOn(global.CommonUtils, 'sendError').mockImplementation();
 
             // Should fail role check
             const roleMiddleware = AuthController.requireRole(['admin', 'root']);
             roleMiddleware(mockReq, mockRes, mockNext);
-            
+
             expect(sendErrorSpy).toHaveBeenCalledWith(
                 mockReq, mockRes, 403, 'Required role: admin, root', 'INSUFFICIENT_PRIVILEGES'
             );
@@ -196,7 +220,7 @@ describe('Auth Middleware Integration Patterns', () => {
             mockReq.originalUrl = '/api/1/user/profile';
             mockReq.session = {}; // Unauthenticated
 
-            const sendErrorSpy = jest.spyOn(CommonUtils, 'sendError').mockImplementation();
+            const sendErrorSpy = jest.spyOn(global.CommonUtils, 'sendError').mockImplementation();
 
             AuthController.requireAuthentication(mockReq, mockRes, mockNext);
 
@@ -211,7 +235,7 @@ describe('Auth Middleware Integration Patterns', () => {
             mockReq.originalUrl = '/user/profile.shtml';
             mockReq.session = {}; // Unauthenticated
 
-            const sendErrorSpy = jest.spyOn(CommonUtils, 'sendError').mockImplementation();
+            const sendErrorSpy = jest.spyOn(global.CommonUtils, 'sendError').mockImplementation();
 
             AuthController.requireAuthentication(mockReq, mockRes, mockNext);
 
@@ -234,7 +258,7 @@ describe('Auth Middleware Integration Patterns', () => {
                 }
             };
 
-            const sendErrorSpy = jest.spyOn(CommonUtils, 'sendError').mockImplementation();
+            const sendErrorSpy = jest.spyOn(global.CommonUtils, 'sendError').mockImplementation();
 
             AuthController.requireAuthentication(mockReq, mockRes, mockNext);
 
@@ -254,7 +278,7 @@ describe('Auth Middleware Integration Patterns', () => {
                 }
             };
 
-            const sendErrorSpy = jest.spyOn(CommonUtils, 'sendError').mockImplementation();
+            const sendErrorSpy = jest.spyOn(global.CommonUtils, 'sendError').mockImplementation();
 
             const roleMiddleware = AuthController.requireRole(['user']);
             roleMiddleware(mockReq, mockRes, mockNext);

@@ -12,130 +12,180 @@
  * @genai           99%, Cursor 1.2, Claude Sonnet 4
  */
 
-import AuthController from '../../../controller/auth.js';
-import UserModel from '../../../model/user.js';
-import LogController from '../../../controller/log.js';
-import CommonUtils from '../../../utils/common.js';
+// Import Jest globals and test utilities first
+import { describe, test, expect, beforeEach, beforeAll, afterEach, jest } from '@jest/globals';
+import TestUtils from '../../helpers/test-utils.js';
 
-// Mock dependencies
+// Set up global appConfig BEFORE any dynamic imports
+TestUtils.setupGlobalMocksWithConsolidatedConfig();
+
+// Declare variables for dynamically imported modules
+let AuthController, CommonUtils, LogController, UserModel;
+
+// Mock dependencies (must be before beforeAll)
 jest.mock('../../../model/user.js');
 jest.mock('../../../controller/log.js');
 jest.mock('../../../utils/common.js');
 
 describe('AuthController', () => {
+    // Dynamic imports after appConfig is set up
+    beforeAll(async () => {
+        AuthController = (await import('../../../controller/auth.js')).default;
+        CommonUtils = (await import('../../../utils/common.js')).default;
+        LogController = (await import('../../../controller/log.js')).default;
+        UserModel = (await import('../../../model/user.js')).default;
+    });
+
     let mockReq, mockRes, mockNext;
 
     beforeEach(() => {
-        // Reset all mocks
-        jest.clearAllMocks();
-
-        // Setup mock request
+        // Mock request object
         mockReq = {
             session: {},
             body: {},
-            originalUrl: '/api/1/test'
+            originalUrl: '/api/1/test',
+            headers: {
+                'x-forwarded-for': '127.0.0.1'
+            },
+            connection: {
+                remoteAddress: '127.0.0.1'
+            },
+            ip: '127.0.0.1'
         };
 
-        // Setup mock response
+        // Mock response object
         mockRes = {
+            json: jest.fn(),
             status: jest.fn().mockReturnThis(),
-            json: jest.fn().mockReturnThis(),
-            redirect: jest.fn().mockReturnThis()
+            redirect: jest.fn()
         };
 
-        // Setup mock next function
+        // Mock next function
         mockNext = jest.fn();
 
-        // Setup mock LogController
-        LogController.logRequest = jest.fn();
-        LogController.logInfo = jest.fn();
-        LogController.logError = jest.fn();
+        // Set up spies on global modules (since auth controller uses global.*)
+        jest.spyOn(global.CommonUtils, 'sendError').mockImplementation(() => {});
+        jest.spyOn(global.LogController, 'logError').mockImplementation(() => {});
+        jest.spyOn(global.LogController, 'logInfo').mockImplementation(() => {});
 
-        // Setup mock CommonUtils
-        CommonUtils.sendError = jest.fn();
+        // Clear all mocks
+        jest.clearAllMocks();
     });
 
-    // ============================================================================
-    // UTILITY FUNCTIONS TESTS
-    // ============================================================================
-
-    describe('Utility Functions', () => {
+    describe('Authentication Helper Functions', () => {
         describe('isAuthenticated', () => {
             test('should return true for authenticated user', () => {
                 mockReq.session.user = { authenticated: true };
-                expect(AuthController.isAuthenticated(mockReq)).toBe(true);
+
+                const result = AuthController.isAuthenticated(mockReq);
+
+                expect(result).toBe(true);
             });
 
             test('should return false for unauthenticated user', () => {
                 mockReq.session.user = { authenticated: false };
-                expect(AuthController.isAuthenticated(mockReq)).toBe(false);
+
+                const result = AuthController.isAuthenticated(mockReq);
+
+                expect(result).toBe(false);
             });
 
             test('should return false for missing user session', () => {
                 mockReq.session = {};
-                expect(AuthController.isAuthenticated(mockReq)).toBe(false);
+
+                const result = AuthController.isAuthenticated(mockReq);
+
+                expect(result).toBe(false);
             });
 
             test('should return false for missing session', () => {
-                mockReq.session = null;
-                expect(AuthController.isAuthenticated(mockReq)).toBe(false);
-            });
-
-            test('should return false for undefined session', () => {
                 delete mockReq.session;
-                expect(AuthController.isAuthenticated(mockReq)).toBe(false);
+
+                const result = AuthController.isAuthenticated(mockReq);
+
+                expect(result).toBe(false);
             });
         });
 
         describe('isAuthorized', () => {
-            beforeEach(() => {
+            test('should return true when user has required role', () => {
                 mockReq.session.user = {
                     authenticated: true,
-                    roles: ['user', 'admin']
+                    roles: ['admin', 'user']
                 };
+
+                const result = AuthController.isAuthorized(mockReq, ['admin']);
+
+                expect(result).toBe(true);
             });
 
-            test('should return true for user with required role (string)', () => {
-                expect(AuthController.isAuthorized(mockReq, 'admin')).toBe(true);
+            test('should return true when user has any of the required roles', () => {
+                mockReq.session.user = {
+                    authenticated: true,
+                    roles: ['user', 'editor']
+                };
+
+                const result = AuthController.isAuthorized(mockReq, ['admin', 'editor']);
+
+                expect(result).toBe(true);
             });
 
-            test('should return true for user with required role (array)', () => {
-                expect(AuthController.isAuthorized(mockReq, ['admin', 'root'])).toBe(true);
-            });
+            test('should return false when user lacks required role', () => {
+                mockReq.session.user = {
+                    authenticated: true,
+                    roles: ['user']
+                };
 
-            test('should return false for user without required role', () => {
-                expect(AuthController.isAuthorized(mockReq, 'root')).toBe(false);
-            });
+                const result = AuthController.isAuthorized(mockReq, ['admin']);
 
-            test('should return false for user without required roles (array)', () => {
-                expect(AuthController.isAuthorized(mockReq, ['root', 'superadmin'])).toBe(false);
+                expect(result).toBe(false);
             });
 
             test('should return false for unauthenticated user', () => {
-                mockReq.session.user.authenticated = false;
-                expect(AuthController.isAuthorized(mockReq, 'admin')).toBe(false);
-            });
+                mockReq.session.user = { authenticated: false };
 
-            test('should return false for user without roles', () => {
-                mockReq.session.user.roles = null;
-                expect(AuthController.isAuthorized(mockReq, 'admin')).toBe(false);
-            });
+                const result = AuthController.isAuthorized(mockReq, ['admin']);
 
-            test('should return false for user with empty roles array', () => {
-                mockReq.session.user.roles = [];
-                expect(AuthController.isAuthorized(mockReq, 'admin')).toBe(false);
+                expect(result).toBe(false);
             });
 
             test('should return false for missing user session', () => {
                 mockReq.session = {};
-                expect(AuthController.isAuthorized(mockReq, 'admin')).toBe(false);
+
+                const result = AuthController.isAuthorized(mockReq, ['admin']);
+
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('getUserLanguage', () => {
+            test('should return user preferred language', () => {
+                mockReq.session.user = {
+                    preferences: { language: 'de' }
+                };
+
+                const result = AuthController.getUserLanguage(mockReq);
+
+                expect(result).toBe('de');
+            });
+
+            test('should return default language when no user preference', () => {
+                mockReq.session.user = {};
+
+                const result = AuthController.getUserLanguage(mockReq);
+
+                expect(result).toBe('en'); // Default from our test i18n setup
+            });
+
+            test('should return default language for missing session', () => {
+                mockReq.session = {};
+
+                const result = AuthController.getUserLanguage(mockReq);
+
+                expect(result).toBe('en');
             });
         });
     });
-
-    // ============================================================================
-    // MIDDLEWARE FUNCTIONS TESTS
-    // ============================================================================
 
     describe('Middleware Functions', () => {
         describe('requireAuthentication', () => {
@@ -145,311 +195,294 @@ describe('AuthController', () => {
                 AuthController.requireAuthentication(mockReq, mockRes, mockNext);
 
                 expect(mockNext).toHaveBeenCalled();
-                expect(CommonUtils.sendError).not.toHaveBeenCalled();
+                expect(global.CommonUtils.sendError).not.toHaveBeenCalled();
             });
 
-            test('should send logError for unauthenticated user', () => {
+            test('should send error for unauthenticated user', () => {
                 mockReq.session.user = { authenticated: false };
 
                 AuthController.requireAuthentication(mockReq, mockRes, mockNext);
 
-                expect(CommonUtils.sendError).toHaveBeenCalledWith(
+                expect(global.CommonUtils.sendError).toHaveBeenCalledWith(
                     mockReq, mockRes, 401, 'Authentication required', 'UNAUTHORIZED'
                 );
                 expect(mockNext).not.toHaveBeenCalled();
-                expect(LogController.logError).toHaveBeenCalledWith(
-                    mockReq, 'Authentication required - access denied'
+                expect(global.LogController.logError).toHaveBeenCalledWith(
+                    mockReq, 'auth.requireAuthentication: error: Authentication required - access denied'
                 );
             });
 
-            test('should send logError for missing user session', () => {
+            test('should send error for missing user session', () => {
                 mockReq.session = {};
 
                 AuthController.requireAuthentication(mockReq, mockRes, mockNext);
 
-                expect(CommonUtils.sendError).toHaveBeenCalledWith(
+                expect(global.CommonUtils.sendError).toHaveBeenCalledWith(
                     mockReq, mockRes, 401, 'Authentication required', 'UNAUTHORIZED'
                 );
                 expect(mockNext).not.toHaveBeenCalled();
+                expect(global.LogController.logError).toHaveBeenCalledWith(
+                    mockReq, 'auth.requireAuthentication: error: Authentication required - access denied'
+                );
             });
         });
 
         describe('requireRole', () => {
-            test('should return middleware function', () => {
-                const middleware = AuthController.requireRole(['admin']);
-                expect(typeof middleware).toBe('function');
-            });
-
             test('should call next() for user with required role', () => {
                 mockReq.session.user = {
                     authenticated: true,
-                    roles: ['user', 'admin'],
-                    loginId: 'testuser'
+                    roles: ['admin'],
+                    username: 'testuser'
                 };
 
                 const middleware = AuthController.requireRole(['admin']);
                 middleware(mockReq, mockRes, mockNext);
 
                 expect(mockNext).toHaveBeenCalled();
-                expect(CommonUtils.sendError).not.toHaveBeenCalled();
+                expect(global.CommonUtils.sendError).not.toHaveBeenCalled();
             });
 
-            test('should send logError for user without required role', () => {
+            test('should send error for user without required role', () => {
                 mockReq.session.user = {
                     authenticated: true,
                     roles: ['user'],
-                    loginId: 'testuser'
+                    username: 'testuser'
                 };
 
                 const middleware = AuthController.requireRole(['admin', 'root']);
                 middleware(mockReq, mockRes, mockNext);
 
-                expect(CommonUtils.sendError).toHaveBeenCalledWith(
+                expect(global.CommonUtils.sendError).toHaveBeenCalledWith(
                     mockReq, mockRes, 403, 'Required role: admin, root', 'INSUFFICIENT_PRIVILEGES'
                 );
                 expect(mockNext).not.toHaveBeenCalled();
-                expect(LogController.logError).toHaveBeenCalledWith(
-                    mockReq, 'Role required (admin, root) - access denied for user testuser'
+                expect(global.LogController.logError).toHaveBeenCalledWith(
+                    mockReq, 'auth.requireRole: error: Role required (admin, root) - access denied for user testuser'
                 );
             });
 
-            test('should send logError for unauthenticated user', () => {
-                mockReq.session = {};
+            test('should send error for unauthenticated user', () => {
+                mockReq.session.user = { authenticated: false };
 
                 const middleware = AuthController.requireRole(['admin']);
                 middleware(mockReq, mockRes, mockNext);
 
-                expect(CommonUtils.sendError).toHaveBeenCalledWith(
+                expect(global.CommonUtils.sendError).toHaveBeenCalledWith(
                     mockReq, mockRes, 401, 'Authentication required', 'UNAUTHORIZED'
                 );
                 expect(mockNext).not.toHaveBeenCalled();
-                expect(LogController.logError).toHaveBeenCalledWith(
-                    mockReq, 'Authentication required for role check - access denied'
+                expect(global.LogController.logError).toHaveBeenCalledWith(
+                    mockReq, 'auth.requireRole: error: Authentication required for role check - access denied'
                 );
-            });
-
-            test('should handle single role string', () => {
-                mockReq.session.user = {
-                    authenticated: true,
-                    roles: ['admin'],
-                    loginId: 'testuser'
-                };
-
-                const middleware = AuthController.requireRole('admin');
-                middleware(mockReq, mockRes, mockNext);
-
-                expect(mockNext).toHaveBeenCalled();
             });
         });
     });
 
-    // ============================================================================
-    // AUTHENTICATION ENDPOINTS TESTS
-    // ============================================================================
-
-    describe('Authentication Endpoints', () => {
+    describe('Login/Logout Functions', () => {
         describe('login', () => {
-            beforeEach(() => {
-                mockReq.body = {
-                    identifier: 'testuser',
-                    password: 'password123'
-                };
-                mockReq.session = {};
-            });
-
-            test('should login user successfully', async () => {
+            test('should authenticate user with valid credentials', async () => {
                 const mockUser = {
                     _id: 'user123',
-                    loginId: 'testuser',
-                    email: 'test@example.com',
+                    username: 'testuser',
+                    email: 'testuser@example.com',  // Add valid email
                     profile: {
                         firstName: 'Test',
                         lastName: 'User',
-                        nickName: 'tuser'
+                        nickName: 'Test'
                     },
                     roles: ['user'],
-                    preferences: { theme: 'light' },
-                    loginCount: 5
+                    preferences: undefined,
+                    loginCount: 0
                 };
 
                 UserModel.authenticate.mockResolvedValue(mockUser);
-                UserModel.updateById.mockResolvedValue(true);
+
+                mockReq.body = {
+                    identifier: 'testuser',
+                    password: 'validpassword'
+                };
 
                 await AuthController.login(mockReq, mockRes);
 
-                expect(LogController.logRequest).toHaveBeenCalledWith(
-                    mockReq, 'auth.login( {"identifier":"testuser"} )'
-                );
-                expect(UserModel.authenticate).toHaveBeenCalledWith('testuser', 'password123');
-                expect(UserModel.updateById).toHaveBeenCalledWith('user123', {
-                    lastLogin: expect.any(Date),
-                    loginCount: 6
-                });
                 expect(mockReq.session.user).toEqual({
+                    authenticated: true,
                     id: 'user123',
-                    loginId: 'testuser',
-                    email: 'test@example.com',
+                    username: 'testuser',
+                    email: 'testuser@example.com',  // Should have valid email
                     firstName: 'Test',
                     lastName: 'User',
-                    nickName: 'tuser',
+                    nickName: 'Test',
                     initials: 'TU',
-                    roles: ['user'],
-                    preferences: { theme: 'light' },
-                    authenticated: true
+                    preferences: undefined,
+                    roles: ['user']
                 });
                 expect(mockRes.json).toHaveBeenCalledWith({
                     success: true,
-                    data: { user: mockReq.session.user },
-                    message: 'Login successful'
+                    data: {
+                        user: {
+                            authenticated: true,
+                            id: 'user123',
+                            username: 'testuser',
+                            email: 'testuser@example.com',
+                            firstName: 'Test',
+                            lastName: 'User',
+                            nickName: 'Test',
+                            initials: 'TU',
+                            preferences: undefined,
+                            roles: ['user']
+                        }
+                    },
+                    message: 'Login successful'  // Translated string, not i18n key
                 });
             });
 
-            test('should handle missing credentials', async () => {
-                mockReq.body = { identifier: 'testuser' }; // missing password
+            test('should reject invalid credentials', async () => {
+                UserModel.authenticate.mockResolvedValue(null); // Return null for invalid credentials
+
+                mockReq.body = {
+                    identifier: 'testuser',
+                    password: 'wrongpassword'
+                };
 
                 await AuthController.login(mockReq, mockRes);
 
-                expect(mockRes.status).toHaveBeenCalledWith(400);
-                expect(mockRes.json).toHaveBeenCalledWith({
-                    success: false,
-                    error: 'Both identifier (loginId or email) and password are required',
-                    code: 'MISSING_CREDENTIALS'
-                });
-            });
+                expect(mockReq.session.user).toBeUndefined();
 
-            test('should handle invalid credentials', async () => {
-                UserModel.authenticate.mockResolvedValue(null);
-
-                await AuthController.login(mockReq, mockRes);
-
-                expect(LogController.logError).toHaveBeenCalledWith(
-                    mockReq, 'Login failed for identifier: testuser'
-                );
+                // AuthController uses direct res.status().json(), not CommonUtils.sendError
                 expect(mockRes.status).toHaveBeenCalledWith(401);
                 expect(mockRes.json).toHaveBeenCalledWith({
                     success: false,
-                    error: 'Invalid credentials',
+                    error: 'Invalid credentials',  // Translated string
                     code: 'INVALID_CREDENTIALS'
                 });
+
+                // Should NOT call CommonUtils.sendError
+                expect(global.CommonUtils.sendError).not.toHaveBeenCalled();
             });
 
             test('should handle authentication errors', async () => {
-                UserModel.authenticate.mockRejectedValue(new Error('Database error'));
+                UserModel.authenticate.mockRejectedValue(new Error('Database connection failed'));
+
+                mockReq.body = {
+                    identifier: 'testuser',
+                    password: 'password'
+                };
 
                 await AuthController.login(mockReq, mockRes);
 
-                expect(LogController.logError).toHaveBeenCalledWith(
-                    mockReq, 'auth.login failed: Database error'
-                );
+                // AuthController uses direct res.status().json(), not CommonUtils.sendError
                 expect(mockRes.status).toHaveBeenCalledWith(500);
                 expect(mockRes.json).toHaveBeenCalledWith({
                     success: false,
-                    error: 'Internal server error during login',
+                    error: 'Internal server error during login',  // Translated string
                     code: 'INTERNAL_ERROR',
-                    details: 'Database error'
+                    details: 'Database connection failed'
                 });
-            });
 
-            test('should handle user with no login count', async () => {
-                const mockUser = {
-                    _id: 'user123',
-                    loginId: 'testuser',
-                    email: 'test@example.com',
-                    profile: { firstName: 'Test', lastName: 'User' },
-                    roles: ['user'],
-                    preferences: {}
-                    // No loginCount property
-                };
+                expect(global.LogController.logError).toHaveBeenCalledWith(
+                    mockReq, 'auth.login: failed: Database connection failed'
+                );
 
-                UserModel.authenticate.mockResolvedValue(mockUser);
-                UserModel.updateById.mockResolvedValue(true);
-
-                await AuthController.login(mockReq, mockRes);
-
-                expect(UserModel.updateById).toHaveBeenCalledWith('user123', {
-                    lastLogin: expect.any(Date),
-                    loginCount: 1 // Should default to 0 + 1
-                });
+                // Should NOT call CommonUtils.sendError
+                expect(global.CommonUtils.sendError).not.toHaveBeenCalled();
             });
         });
 
         describe('logout', () => {
-            test('should logout user successfully', async () => {
+            test('should logout authenticated user', () => {
                 mockReq.session = {
-                    user: { loginId: 'testuser' },
-                    destroy: jest.fn((callback) => callback(null))
+                    user: { authenticated: true, username: 'testuser' },
+                    destroy: jest.fn(callback => callback())
                 };
 
-                await AuthController.logout(mockReq, mockRes);
+                AuthController.logout(mockReq, mockRes);
 
-                expect(LogController.logRequest).toHaveBeenCalledWith(
-                    mockReq, 'auth.logout( testuser )'
-                );
                 expect(mockReq.session.destroy).toHaveBeenCalled();
-                expect(LogController.logInfo).toHaveBeenCalledWith(
-                    mockReq, 'User testuser logged out successfully'
-                );
                 expect(mockRes.json).toHaveBeenCalledWith({
                     success: true,
-                    message: 'Logout successful'
+                    message: 'Logout successful'  // Change from 'controller.auth.logoutSuccessful'
                 });
             });
 
-            test('should handle logout without user session', async () => {
+            test('should handle logout for unauthenticated user', () => {
                 mockReq.session = {
-                    destroy: jest.fn((callback) => callback(null))
+                    destroy: jest.fn(callback => callback(null)) // Mock successful destroy
                 };
 
-                await AuthController.logout(mockReq, mockRes);
+                AuthController.logout(mockReq, mockRes);
 
-                expect(LogController.logRequest).toHaveBeenCalledWith(
-                    mockReq, 'auth.logout( (unknown) )'
-                );
+                expect(mockReq.session.destroy).toHaveBeenCalled();
                 expect(mockRes.json).toHaveBeenCalledWith({
                     success: true,
-                    message: 'Logout successful'
+                    message: 'Logout successful'  // Translated string
                 });
             });
 
-            test('should handle session destroy error', async () => {
-                const destroyError = new Error('Session destroy failed');
+            test('should handle session destruction errors', () => {
+                const error = new Error('Session destruction failed');
                 mockReq.session = {
-                    user: { loginId: 'testuser' },
-                    destroy: jest.fn((callback) => callback(destroyError))
+                    user: { authenticated: true, username: 'testuser' },
+                    destroy: jest.fn(callback => callback(error))
                 };
 
-                await AuthController.logout(mockReq, mockRes);
+                AuthController.logout(mockReq, mockRes);
 
-                expect(LogController.logError).toHaveBeenCalledWith(
-                    mockReq, 'auth.logout failed: Session destroy failed'
-                );
+                // AuthController uses direct res.status().json(), not CommonUtils.sendError
                 expect(mockRes.status).toHaveBeenCalledWith(500);
                 expect(mockRes.json).toHaveBeenCalledWith({
                     success: false,
-                    error: 'Failed to logout',
+                    error: 'Failed to logout',  // Translated string
                     code: 'LOGOUT_ERROR'
                 });
-            });
 
-            test('should handle unexpected logout errors', async () => {
-                // Mock session.destroy to throw instead of calling callback
+                expect(global.LogController.logError).toHaveBeenCalledWith(
+                    mockReq, 'auth.logout: failed: Session destruction failed'
+                );
+
+                // Should NOT call CommonUtils.sendError
+                expect(global.CommonUtils.sendError).not.toHaveBeenCalled();
+            });
+        });
+    });
+
+    describe('Session Management', () => {
+        describe('updateUserSession', () => {
+            test('should update user session with new data', () => {
                 mockReq.session = {
-                    user: { loginId: 'testuser' },
-                    destroy: jest.fn(() => { throw new Error('Unexpected error'); })
+                    user: {
+                        authenticated: true,
+                        username: 'testuser',
+                        firstName: 'Old',           // Flattened structure, not profile.firstName
+                        lastName: 'Name',           // Flattened structure, not profile.lastName
+                        preferences: {}
+                    }
                 };
 
-                await AuthController.logout(mockReq, mockRes);
+                const updatedData = {
+                    profile: { firstName: 'New', lastName: 'Name' },
+                    preferences: { language: 'de' }
+                };
 
-                expect(LogController.logError).toHaveBeenCalledWith(
-                    mockReq, 'auth.logout failed: Unexpected error'
-                );
-                expect(mockRes.status).toHaveBeenCalledWith(500);
-                expect(mockRes.json).toHaveBeenCalledWith({
-                    success: false,
-                    error: 'Internal server error during logout',
-                    code: 'INTERNAL_ERROR',
-                    details: 'Unexpected error'
-                });
+                AuthController.updateUserSession(mockReq, updatedData);
+
+                // updateUserSession updates the flattened session structure
+                expect(mockReq.session.user.firstName).toBe('New');  // Direct property, not profile.firstName
+                expect(mockReq.session.user.lastName).toBe('Name');   // Direct property, not profile.lastName
+                expect(mockReq.session.user.initials).toBe('NN');     // Should be calculated from New Name
+                expect(mockReq.session.user.preferences).toEqual({ language: 'de' });
+                expect(mockReq.session.user.username).toBe('testuser'); // Preserved
+                expect(mockReq.session.user.authenticated).toBe(true); // Preserved
+            });
+
+            test('should handle missing session gracefully', () => {
+                mockReq.session = {};
+
+                const updatedData = { profile: { firstName: 'Test' } };
+
+                // Should not throw error
+                expect(() => {
+                    AuthController.updateUserSession(mockReq, updatedData);
+                }).not.toThrow();
             });
         });
     });

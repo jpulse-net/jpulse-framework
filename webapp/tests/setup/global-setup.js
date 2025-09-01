@@ -20,6 +20,71 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
+ * Initialize global appConfig for all tests
+ */
+async function initializeGlobalConfig() {
+    try {
+        // Import Jest-independent config loader
+        const { setupGlobalAppConfig } = await import('../helpers/config-loader.js');
+        
+        // Set up global appConfig using consolidated configuration
+        const success = setupGlobalAppConfig();
+        
+        if (success) {
+            console.log('🔧 Global appConfig initialized from consolidated config');
+        } else {
+            console.log('🔧 Global appConfig initialized with fallback config');
+        }
+        return true;
+    } catch (error) {
+        console.error('❌ Failed to initialize global appConfig:', error.message);
+        throw error;
+    }
+}
+
+/**
+ * Initialize LogController for tests
+ */
+async function initializeLogController() {
+    try {
+        // Import LogController after appConfig is available
+        const LogController = await import('../../controller/log.js');
+        
+        // Make LogController globally available
+        global.LogController = LogController.default;
+        
+        console.log('📝 LogController initialized for test environment');
+        return true;
+    } catch (error) {
+        console.error('❌ Failed to initialize LogController:', error.message);
+        throw error;
+    }
+}
+
+/**
+ * Initialize database connection for tests
+ */
+async function initializeTestDatabase() {
+    try {
+        // Import database module after appConfig is set up
+        const Database = await import('../../database.js');
+        
+        // Wait for database to be fully initialized
+        const connected = await Database.default.initialize();
+        
+        if (connected) {
+            console.log('🗄️  Database initialization completed successfully');
+        } else {
+            console.log('🗄️  Database initialization failed (continuing without database)');
+        }
+        return connected;
+    } catch (error) {
+        console.warn('⚠️  Database initialization failed:', error.message);
+        return false;
+    }
+}
+
+/**
  * Clean up temporary test files
  */
 async function cleanupTempFiles() {
@@ -67,8 +132,16 @@ export default async function globalSetup() {
     console.log('🚀 Jest Global Setup: Starting test environment preparation...');
 
     try {
+        // Clean up any leftover files first
         await cleanupTempFiles();
         await cleanupTestDatabases();
+        
+        // Initialize global configuration
+        await initializeGlobalConfig();
+        
+        // Use shared bootstrap sequence
+        const { bootstrap } = await import('../../utils/bootstrap.js');
+        await bootstrap({ isTest: true, skipDatabase: false });
 
         console.log('✅ Jest Global Setup: Test environment ready!');
     } catch (error) {

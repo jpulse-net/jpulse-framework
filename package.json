@@ -8,9 +8,9 @@
         "start": "node webapp/app.js",
         "dev": "node webapp/app.js",
         "prod": "NODE_ENV=production node webapp/app.js",
-        "test": "jest",
-        "test:unit": "jest webapp/tests/unit",
-        "test:integration": "jest webapp/tests/integration",
+        "test": "jest --runInBand",
+        "test:unit": "jest webapp/tests/unit --runInBand",
+        "test:integration": "jest webapp/tests/integration --runInBand",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage"
     },

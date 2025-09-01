@@ -37,8 +37,14 @@ describe('View Controller Handlebars Processing', () => {
     let mockReq, mockContext;
 
     beforeEach(() => {
-        // Clean up any existing global mocks
-        TestUtils.cleanupGlobalMocks();
+        // Use consolidated configuration
+        TestUtils.setupGlobalMocksWithConsolidatedConfig();
+        
+        // Or if you need specific overrides for testing:
+        global.appConfig = {
+            ...TestUtils.getConsolidatedConfig(),
+            // Add any test-specific overrides here
+        };
 
         // Mock request object
         mockReq = {

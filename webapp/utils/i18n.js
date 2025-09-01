@@ -1,9 +1,9 @@
 /**
- * @name            jPulse Framework / WebApp / Translations / I18N
+ * @name            jPulse Framework / WebApp / Utils / I18N
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
- * @file            webapp/translations/i18n.js
- * @version         0.3.5
+ * @file            webapp/utils/i18n.js
+ * @version         0.3.6
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -156,7 +156,7 @@ function auditAndFixTranslations(defaultLang, targetLang, langCode) {
 
 /**
  * Function to dynamically discover and load all translation files
- * Automatically finds all lang-*.conf files in the translations directory
+ * Automatically finds all *.conf files in the translations directory
  */
 async function loadTranslations() {
     const i18n = {
@@ -172,10 +172,10 @@ async function loadTranslations() {
             console.error('i18n Warning: Translations directory not found:', translationsDir);
             process.exit(1);
         }
-        // Read directory and filter for lang-*.conf files
+        // Read directory and filter for *.conf files
         const allFiles = readdirSync(translationsDir);
         const langFiles = allFiles
-            .filter(file => file.startsWith('lang-') && file.endsWith('.conf'))
+            .filter(file => file.endsWith('.conf'))
             .map(file => ({
                 filePath: join(translationsDir, file),
                 name: file
@@ -185,7 +185,7 @@ async function loadTranslations() {
             process.exit(1);
         }
         // Sort files to load default language first
-        const defaultFile = `lang-${i18n.default}.conf`;
+        const defaultFile = `${i18n.default}.conf`;
         const sortedFiles = langFiles.sort((a, b) => {
             if (a.name === defaultFile) return -1;
             if (b.name === defaultFile) return 1;
@@ -350,4 +350,4 @@ LogController.logInfo(null, `i18n: Default language: ${i18n.default}`);
 
 export default i18n;
 
-// EOF webapp/translations/i18n.js
+// EOF webapp/utils/i18n.js

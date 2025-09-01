@@ -1,8 +1,9 @@
-# jPulse Framework v0.3.5
+# jPulse Framework v0.3.6
 
 A modern, lightweight, and extensible web application framework using the MVC (model, view, controller) pattern. jPulse is built with Node.js, Express, and MongoDB, and combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content. It is extensible, where multiple teams can work independently to build large and scalable applications targeting midsize to large organizations in the government and private sector.
 
-**Latest Release Highlights (v0.3.4):**
+**Latest Release Highlights (v0.3.6):**
+- ✅ **I18n Module Restructuring (W-031)**: `i18n.js` moved to `webapp/utils/` and translation files renamed (e.g., `lang-en.conf` to `en.conf`), improving project organization and simplifying file management.
 - ✅ **I18n and Logging Consistency (W-029)**: User-facing messages internationalized and controller logs standardized for clarity and consistency.
 - ✅ **View Controller Caching (W-028)**: Configurable caching for template and include files to boost performance
 - ✅ **I18n Structure Alignment (W-027)**: Language files restructured to match controller and view architecture
@@ -165,29 +166,34 @@ Complete user system with secure authentication and role-based access control:
 
 ```
 jpulse-framework/
-├── webapp/                 # Main application directory
+├── webapp/                # Main application directory
 │   ├── app.js             # Express application entry point
 │   ├── app.conf           # Application configuration
 │   ├── controller/        # Business logic controllers
-│   │   ├── config.js      # Configuration management
+│   │   ├── config.js      # Site configuration
 │   │   ├── log.js         # Logging functionality
 │   │   ├── user.js        # User management
 │   │   └── view.js        # Template rendering engine
 │   ├── model/             # Data models
+│   │   ├── config.js      # Site configuration
+│   │   ├── log.js         # Logging of create, udpate, delete actions
+│   │   └── user.js        # User management
 │   ├── utils/             # Common utilities (NEW)
-│   │   └── common.js      # Schema-based queries, validation, formatting
+│   │   ├── common.js      # Schema-based queries, validation, formatting
+│   │   └── i18n.js        # Translation engine
 │   ├── static/            # Static assets (CSS, JS, images)
 │   │   ├── robots.txt     # Search engine directives
 │   │   └── favicon.ico    # Site icon
 │   ├── translations/      # Internationalization files
-│   │   ├── i18n.js        # Translation engine
-│   │   ├── lang-en.conf   # English translations
-│   │   └── lang-de.conf   # German translations
+│   │   ├── en.conf        # English translations
+│   │   └── de.conf        # German translations
 │   ├── view/              # Template files
 │   │   ├── jpulse-header.tmpl  # Shared header template
 │   │   ├── jpulse-footer.tmpl  # Shared footer template
-│   │   ├── home/          # Home page templates
-│   │   └── error/         # Error page templates
+│   │   ├── auth/          # User authentication pages
+│   │   ├── home/          # Home page
+│   │   ├── error/         # Error page
+│   │   └── user/          # User pages
 │   └── tests/             # Comprehensive test suite
 │       ├── setup/         # Test environment setup (NEW)
 │       │   ├── global-setup.js    # Pre-test cleanup
@@ -496,7 +502,7 @@ jPulse features a custom Handlebars implementation with enterprise security and 
 ## 🌍 Internationalization
 
 ### Adding New Languages
-1. Create translation file: `webapp/translations/lang-[code].conf`
+1. Create translation file: `webapp/translations/[code].conf` (e.g., `en.conf`)
 2. Add translations in key-value format:
    ```conf
    app: {
@@ -508,7 +514,7 @@ jPulse features a custom Handlebars implementation with enterprise security and 
        signup: "Sign Up"
    }
    ```
-3. Update `webapp/translations/i18n.js` to load the new language
+3. The `webapp/utils/i18n.js` engine will dynamically load the new language.
 
 ### Using Translations
 ```html

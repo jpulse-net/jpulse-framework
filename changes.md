@@ -27,6 +27,29 @@ This document tracks the evolution of the jPulse Framework through its work item
 - Accelerated Debugging: Clearer and more consistent logs reduce the time spent understanding application flow and diagnosing issues.
 - Enforced Code Quality: Standardized practices for messaging and logging promote uniformity and reduce potential for inconsistencies across the codebase.
 
+### v0.3.6 (2025-08-31)
+**Commit:** `TBD` - W-031, v0.3.6: i18n: `i18n.js` moved to `webapp/utils/` and translation files renamed (e.g., `lang-en.conf` to `en.conf`).
+
+#### Major Features
+- **I18n Module Restructuring**: The `i18n.js` module has been moved from `webapp/translations/` to `webapp/utils/`, aligning it with other shared utility components and improving project organization.
+- **Simplified Translation File Naming**: Translation files have been renamed to remove the `lang-` prefix (e.g., `lang-en.conf` is now `en.conf`), resulting in cleaner and more concise filenames.
+
+#### Technical Improvements
+- **Import Path Updates**: All references to `i18n.js` in `webapp/app.js`, `webapp/controller/auth.js`, `webapp/controller/config.js`, `webapp/controller/user.js`, `webapp/controller/view.js`, and `webapp/tests/helpers/test-utils.js` have been updated to reflect its new location.
+- **Dynamic Translation Loading Adaptation**: The `loadTranslations` function within `webapp/utils/i18n.js` has been updated to dynamically discover and load translation files based on the new naming convention (e.g., `*.conf` files).
+- **Documentation Header Updates**: The JSDoc headers in `webapp/utils/i18n.js` and `webapp/tests/helpers/test-utils.js` have been updated to reflect the new version and file paths.
+
+#### Documentation Updates
+- `README.md`: Updated to v0.3.6 and highlighted the i18n restructuring and file renaming.
+- `developers.md`: Added a detailed section on "i18n Module Restructuring and File Renaming", outlining the architectural changes and benefits, and updated to v0.3.6.
+- `changes.md`: Added this detailed v0.3.6 release entry.
+- Project structure diagrams in `README.md` and `developers.md` updated to reflect the new location of `i18n.js` and the simplified translation file names.
+
+#### Developer Experience Improvements
+- **Clearer Project Structure**: Grouping `i18n.js` with other utilities in `webapp/utils/` makes the `translations/` directory more focused on just the translation data.
+- **Simplified File Management**: The shorter, more direct names for translation files reduce verbosity and improve readability.
+- **Consistent Naming Conventions**: The updated file naming aligns with a more modern and streamlined approach to asset management.
+
 ### v0.3.3 (2025-08-30)
 **Commit:** `TBD` - W-028, v0.3.3: View controller enhanced with configurable template and include file caching for performance.
 
@@ -353,6 +376,12 @@ This document tracks the evolution of the jPulse Framework through its work item
 - **Version**: v0.3.0
 - **Description**: Centralized user language preference handling in AuthController
 - **Implementation**: AuthController.getUserLanguage() and updateUserSession() helper functions
+
+#### **W-031**: i18n: Move i18n.js to webapp/utils/; rename translation files
+- **Status**: ✅ DONE
+- **Version**: v0.3.6
+- **Description**: Cleaned directory structure by moving i18n.js to webapp/utils/ and simplified translation file names by removing the 'lang-' prefix.
+- **Implementation**: Moved `webapp/translations/i18n.js` to `webapp/utils/i18n.js`, renamed `webapp/translations/lang-en.conf` to `webapp/translations/en.conf` (and similar for other languages), and updated all relevant import paths and translation loading logic.
 
 ### 🔄 Pending Work Items
 

@@ -1,8 +1,9 @@
-# jPulse Framework / Developer Documentation v0.3.5
+# jPulse Framework / Developer Documentation v0.3.6
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.3.4):**
+**Latest Updates (v0.3.6):**
+- 🌐 **I18n Module Restructuring (W-031)**: `i18n.js` moved to `webapp/utils/` and translation files renamed (e.g., `lang-en.conf` to `en.conf`), improving project organization and simplifying file management.
 - 🌐 **I18n and Logging Consistency (W-029)**: User-facing messages internationalized and controller logs standardized for clarity and consistency.
 - 🌐 **I18n Structure Alignment (W-027)**: Language files restructured to match controller and view architecture
 - 📁 **Improved Translation Organization**: Translation keys now organized by controller/view structure for better maintainability
@@ -215,6 +216,24 @@ The restructure maintains all existing functionality while improving the develop
 This change exemplifies the framework's commitment to clean architecture and developer-friendly design patterns.
 
 ### Internationalization System (W-002)
+
+#### Problem Statement
+The `i18n.js` module, while providing core internationalization functionality, was located directly within the `webapp/translations/` directory, making it less aligned with the `utils/` directory intended for common, non-MVC specific utilities. Additionally, the `lang-` prefix on translation files (e.g., `lang-en.conf`) was verbose and could be simplified.
+
+#### Solution Architecture
+The `i18n.js` module has been moved to `webapp/utils/` to centralize common utility logic. Correspondingly, the language files have been renamed to a simpler format (e.g., `en.conf`), and the module's loading logic updated to dynamically discover and parse these new filenames.
+
+#### Key Benefits Achieved
+1.  **Improved Project Structure**: `i18n.js` now resides in `webapp/utils/`, clearly identifying it as a shared utility. The `webapp/translations/` directory is now solely focused on holding the language-specific `.conf` data files.
+2.  **Simplified File Naming**: Removing the `lang-` prefix from translation files (e.g., `en.conf`) reduces verbosity and improves file management readability.
+3.  **Enhanced Maintainability**: A more logical file organization makes it easier for developers to locate and manage i18n-related code and data.
+4.  **Dynamic Loading**: The `i18n.js` module automatically adapts to the new file naming convention for translation files, requiring no manual updates when adding new languages.
+
+#### Migration Impact
+- **File Move**: `webapp/translations/i18n.js` moved to `webapp/utils/i18n.js`.
+- **File Renaming**: `webapp/translations/lang-en.conf` renamed to `webapp/translations/en.conf`, and similar for other language files.
+- **Import Paths Updated**: All files importing `i18n.js` (`app.js`, `controller/auth.js`, `controller/config.js`, `controller/user.js`, `controller/view.js`, `tests/helpers/test-utils.js`) have had their import paths adjusted.
+- **Loading Logic Updated**: The `loadTranslations` function in `webapp/utils/i18n.js` was updated to recognize the new translation file naming convention (`*.conf`).
 
 #### Translation Engine (`webapp/translations/i18n.js`)
 ```javascript
@@ -1254,7 +1273,7 @@ const context = {
 
 #### Translation Lookup Function
 ```javascript
-// webapp/translations/i18n.js
+// webapp/utils/i18n.js
 i18n.t = (key, ...args) => {
     const keyParts = key.split('.');
     let text = i18n.langs[i18n.default];
@@ -1318,19 +1337,20 @@ The header/footer elements must align exactly with the main content's text area:
 ### Test Structure
 ```
 webapp/tests/
-├── setup/             # Test environment management (NEW)
+├── setup/              # Test environment management (NEW)
 │   ├── global-setup.js    # Pre-test cleanup
 │   └── global-teardown.js # Post-test cleanup
-├── fixtures/          # Test data and configuration files
-├── helpers/           # Test utilities and mock objects
-├── integration/       # End-to-end application tests
-└── unit/             # Isolated component tests
-    ├── config/       # Configuration system tests
-    ├── controller/   # Business logic tests
-    ├── log/          # Logging functionality tests
-    ├── model/        # Data model tests
-    ├── utils/        # CommonUtils tests (NEW)
-    └── translations/ # i18n system tests
+├── fixtures/           # Test data and configuration files
+├── helpers/            # Test utilities and mock objects
+├── integration/        # End-to-end application tests
+└── unit/               # Isolated component tests
+    ├── config/         # Configuration system tests
+    ├── controller/     # Business logic tests
+    ├── log/            # Logging functionality tests
+    ├── model/          # Data model tests
+    ├── utils/          # CommonUtils tests (NEW)
+    │   └── i18n/       # i18n system tests (moved from webapp/translations/tests)
+    └── translations/   # ONLY .conf file-specific tests
 ```
 
 ### Automated Test Cleanup System (NEW)

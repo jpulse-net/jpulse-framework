@@ -3,7 +3,7 @@
  * @tagline         Integration tests for application startup flow
  * @description     Tests for the complete application initialization process
  * @file            webapp/tests/integration/app-startup.test.js
- * @version         0.3.5
+ * @version         0.3.6
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -138,8 +138,8 @@ describe('Application Startup Integration', () => {
             }`;
 
             mockFiles['./webapp/app.conf'] = appConfig;
-            mockFiles['./webapp/translations/lang-en.conf'] = enTranslations;
-            mockFiles['./webapp/translations/lang-de.conf'] = deTranslations;
+            mockFiles['./webapp/translations/en.conf'] = enTranslations;
+            mockFiles['./webapp/translations/de.conf'] = deTranslations;
 
             TestUtils.mockFileSystem(mockFiles);
 
@@ -149,8 +149,8 @@ describe('Application Startup Integration', () => {
 
             // Load translations
             const translations = await TestUtils.loadTestTranslations([
-                './webapp/translations/lang-en.conf',
-                './webapp/translations/lang-de.conf'
+                './webapp/translations/en.conf',
+                './webapp/translations/de.conf'
             ]);
 
             expect(translations.langs.en).toBeDefined();
@@ -233,8 +233,8 @@ describe('Application Startup Integration', () => {
             }`;
 
             mockFiles['./webapp/app.conf'] = appConfig;
-            mockFiles['./webapp/translations/lang-en.conf'] = enTranslations;
-            mockFiles['./webapp/translations/lang-de.conf'] = deTranslations;
+            mockFiles['./webapp/translations/en.conf'] = enTranslations;
+            mockFiles['./webapp/translations/de.conf'] = deTranslations;
 
             TestUtils.mockFileSystem(mockFiles);
 
@@ -248,8 +248,8 @@ describe('Application Startup Integration', () => {
 
             // 3. Load translations (requires global.appConfig)
             const translations = await TestUtils.loadTestTranslations([
-                './webapp/translations/lang-en.conf',
-                './webapp/translations/lang-de.conf'
+                './webapp/translations/en.conf',
+                './webapp/translations/de.conf'
             ]);
 
             expect(translations).toBeDefined();
@@ -306,7 +306,7 @@ describe('Application Startup Integration', () => {
 
             // But translations should fail
             await expect(
-                TestUtils.loadTestTranslations(['./webapp/translations/lang-en.conf'])
+                TestUtils.loadTestTranslations(['./webapp/translations/en.conf'])
             ).rejects.toThrow('Failed to load test translations');
         });
 

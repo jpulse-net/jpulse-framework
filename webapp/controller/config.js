@@ -3,7 +3,7 @@
  * @tagline         Config Controller for jPulse Framework WebApp
  * @description     This is the config controller for the jPulse Framework WebApp
  * @file            webapp/controller/config.js
- * @version         0.3.5
+ * @version         0.3.6
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -14,7 +14,7 @@
 
 import ConfigModel from '../model/config.js';
 import LogController from './log.js';
-import i18n from '../translations/i18n.js';
+import i18n from '../utils/i18n.js';
 
 /**
  * Config Controller - handles /api/1/config/* REST API endpoints

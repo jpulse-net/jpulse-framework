@@ -3,7 +3,7 @@
  * @tagline         Test variable content support in i18n translations
  * @description     Tests the new handlebars-style variable substitution in i18n translations
  * @file            webapp/tests/unit/translations/i18n-variable-content.test.js
- * @version         0.3.5
+ * @version         0.3.6
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -42,7 +42,7 @@ describe('I18N Variable Content', () => {
 
         test('should have variable content examples in English translation files', () => {
             const fs = require('fs');
-            const langEnPath = path.join(process.cwd(), 'webapp', 'translations', 'lang-en.conf');
+            const langEnPath = path.join(process.cwd(), 'webapp', 'translations', 'en.conf');
             const langEnContent = fs.readFileSync(langEnPath, 'utf8');
             
             // Check that we have some variable content examples
@@ -54,7 +54,7 @@ describe('I18N Variable Content', () => {
 
         test('should have variable content examples in German translation files', () => {
             const fs = require('fs');
-            const langDePath = path.join(process.cwd(), 'webapp', 'translations', 'lang-de.conf');
+            const langDePath = path.join(process.cwd(), 'webapp', 'translations', 'de.conf');
             const langDeContent = fs.readFileSync(langDePath, 'utf8');
             
             // Check that we have some variable content examples  
@@ -66,8 +66,8 @@ describe('I18N Variable Content', () => {
 
         test('should verify translation files do not contain old parameter substitution', () => {
             const fs = require('fs');
-            const langEnPath = path.join(process.cwd(), 'webapp', 'translations', 'lang-en.conf');
-            const langDePath = path.join(process.cwd(), 'webapp', 'translations', 'lang-de.conf');
+            const langEnPath = path.join(process.cwd(), 'webapp', 'translations', 'en.conf');
+            const langDePath = path.join(process.cwd(), 'webapp', 'translations', 'de.conf');
             
             const langEnContent = fs.readFileSync(langEnPath, 'utf8');
             const langDeContent = fs.readFileSync(langDePath, 'utf8');

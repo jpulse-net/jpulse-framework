@@ -3,7 +3,7 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         0.3.5
+ * @version         0.3.6
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,7 +15,7 @@
 import UserModel from '../model/user.js';
 import LogController from './log.js';
 import CommonUtils from '../utils/common.js';
-import i18n from '../translations/i18n.js';
+import i18n from '../utils/i18n.js';
 
 /**
  * Auth Controller - handles authentication, authorization, and middleware

@@ -47,7 +47,7 @@ Requirements Doc of jPulse Framework
   - app.conf              # app config
   - app.js                # main app
   - route.js              # URI routing
-  - database.js           # database interface
+  - database.js           # MongoDB database interface
   - model/                # model -- database interface
     - config.js             # schema for configs collection
     - log.js                # schema for logs collection
@@ -69,15 +69,17 @@ Requirements Doc of jPulse Framework
       - logout.shtml
     - error/
       - index.shtml         # handles error messages with msg URL parameter
-  - translations/           # translations - multiple languages
+  - utils/                # utilties
+    - common.js             # common functions used by modeld and controllers
     - i18n.js               # handles internationalization
-    - lang-en.conf          # English translation
-    - lang-de.conf          # Genram translation
+  - translations/         # translations - multiple languages
+    - en.conf               # English translation
+    - de.conf               # Genram translation
   - static/               # static content served by nginx
     - robots.txt            # robots file
     - favicon.ico           # app favicon
     - images/               # app images and icons
-    - utils/                # 3rd party packages
+    - common/               # 3rd party packages
 
 # To-Do Work Items
 
@@ -438,6 +440,14 @@ Requirements Doc of jPulse Framework
 - LogController.console()    ==> LogController.logInfo()
 - LogController.error()      ==> LogController.logError()
 
+## **W-031**: i18n: move i18n.js script to webapp/utils/ & rename translation files
+- status: ✅ COMPLETED
+- type: Feature
+- objective: clean dir structure where all MVC utilities reside in webapp/utils/
+- move webapp/translations/i18n.js script to webapp/utils
+- rename webapp/translations/lang-en.conf to just webapp/translations/en.conf
+- rename webapp/translations/lang-de.conf to just webapp/translations/de.conf
+- fix all references to i18n.js and language files
 
 
 
@@ -445,14 +455,12 @@ Requirements Doc of jPulse Framework
 
 
 
-
-
-## **W-0**: fix username vs userId inconsistency
+## **W-0**: user: fix username vs userId inconsistency; add uuid field
 - status: 🚧 IN_PROGRESS
-- type: Bug
-- some controllers refer to username, others to userId
-
-
+- type: Feature
+- some controllers refer to username, others to userId ==> change all to username
+- add uuid field, generated on intial doc creation, never changes
+- no need to patch existing docs in users collection
 
 
 I finished **W-028**: view controller: cache template and include files

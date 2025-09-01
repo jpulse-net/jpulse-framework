@@ -3,7 +3,7 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.3.5
+ * @version         0.3.6
  * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -17,7 +17,7 @@ import path from 'path';
 import url from 'url';
 import LogController from './log.js';
 import configModel from '../model/config.js';
-import i18n from '../translations/i18n.js';
+import i18n from '../utils/i18n.js';
 import CommonUtils from '../utils/common.js';
 import AuthController from './auth.js';
 import fsPromises from 'fs/promises'; // New import

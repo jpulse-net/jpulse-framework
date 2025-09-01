@@ -1222,3 +1222,20 @@ I assisted in repurposing the feature to "W-028: view controller: cache template
 
 The goal of converting `processHandlebars()` to synchronous while mitigating blocking I/O with strategic asynchronous pre-loading and conditional caching for template and include files has been achieved.
 
+
+============================================================
+
+2025-08-31 21:15:10: **W-031**: i18n: move i18n.js to webapp/utils/; rename ranslation files
+
+User question: @i18n.js is currently outside of the MVC structure. we have a @utils/ directory that can hold common utilities used by multiple models and controllers. would it make sense to move i18n.js to webapp/utils/?
+
+- Accepted user's provided current date: 2025-08-31
+- Provided `mv` command to move `webapp/translations/i18n.js` to `webapp/utils/i18n.js`.
+- Provided code changes to update import paths for `i18n.js` in the following files:
+    - `webapp/app.js`
+    - `webapp/controller/auth.js`
+    - `webapp/controller/config.js`
+    - `webapp/controller/user.js`
+    - `webapp/controller/view.js`
+    - `webapp/tests/helpers/test-utils.js`
+- Provided code changes to `webapp/utils/i18n.js` to adjust translation file loading logic to account for language files without the `lang-` prefix (e.g., `en.conf` instead of `lang-en.conf`).

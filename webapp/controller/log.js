@@ -22,6 +22,17 @@ import os from 'os';
 class LogController {
 
     /**
+     * Initialize LogController
+     * @returns {object} LogController instance
+     */
+    static async initialize() {
+        // LogController doesn't need complex initialization, but this provides consistency
+        // Future enhancements could add log configuration, log level setup, etc.
+        console.log('LogController: Initialized and ready');
+        return LogController;
+    }
+
+    /**
      * Search log entries
      * GET /api/1/log/search
      * @param {object} req - Express request object

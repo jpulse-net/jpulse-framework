@@ -17,7 +17,7 @@ import path from 'path';
 import url from 'url';
 import LogController from './log.js';
 import configModel from '../model/config.js';
-import i18n from '../utils/i18n.js';
+// i18n will be available globally after bootstrap
 import CommonUtils from '../utils/common.js';
 import AuthController from './auth.js';
 import fsPromises from 'fs/promises'; // New import
@@ -91,7 +91,7 @@ async function load(req, res) {
         // Check if file exists
         if (!fs.existsSync(fullPath)) {
             LogController.logError(req, `view.load: error: File not found: ${fullPath}`);
-            const message = i18n.translate('controller.view.pageNotFoundError', { path: req.path });
+            const message = global.i18n.translate('controller.view.pageNotFoundError', { path: req.path });
             return CommonUtils.sendError(req, res, 404, message, 'NOT_FOUND');
         }
 
@@ -137,7 +137,7 @@ async function load(req, res) {
                 param: req.query || {}
             },
             // Add i18n object to context for dot notation access
-            i18n: i18n.getLang(AuthController.getUserLanguage(req)),
+            i18n: global.i18n.getLang(AuthController.getUserLanguage(req)),
             req: req
         };
 
@@ -157,7 +157,7 @@ async function load(req, res) {
 
     } catch (error) {
         LogController.logError(req, `view.load: Error: ${error.message}`);
-        const message = i18n.translate('controller.view.internalServerError', { error: error.message });
+        const message = global.i18n.translate('controller.view.internalServerError', { error: error.message });
         res.status(500).send(message);
     }
 }

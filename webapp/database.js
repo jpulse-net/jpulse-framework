@@ -110,21 +110,63 @@ async function close() {
     }
 }
 
-// Initialize connection when module is loaded
-connect().catch(error => {
-    // Use LogController if available, otherwise fallback to console
-    if (global.LogController) {
-        LogController.error(null, `database: Failed to initialize database connection: ${error.message}`);
-    } else {
-        console.warn('database: Failed to initialize database connection:', error.message);
+let isInitialized = false;
+let initializationPromise = null;
+
+/**
+ * Initialize database connection
+ * Returns a promise that resolves when connection is ready
+ */
+async function initialize() {
+    if (isInitialized) {
+        return true;
     }
-});
+
+    if (initializationPromise) {
+        return initializationPromise;
+    }
+
+    initializationPromise = (async () => {
+        try {
+            if (!global.appConfig) {
+                throw new Error('appConfig must be available before database initialization');
+            }
+
+            const connected = await connect();
+            isInitialized = connected;
+            return connected;
+        } catch (error) {
+            // Use LogController if available, otherwise fallback to console
+            if (global.LogController) {
+                LogController.logError(null, `database: Failed to initialize database connection: ${error.message}`);
+            } else {
+                console.warn('database: Failed to initialize database connection:', error.message);
+            }
+            isInitialized = false;
+            return false;
+        }
+    })();
+
+    return initializationPromise;
+}
+
+/**
+ * Check if database is initialized
+ */
+export function isReady() {
+    return isInitialized;
+}
+
+// Remove automatic initialization - let app.js and tests control when this happens
+console.log('database: Module loaded, waiting for explicit initialization');
 
 export default {
+    initialize,
     connect,
     getDb,
     getClient,
-    close
+    close,
+    isReady
 };
 
 // EOF webapp/database.js

@@ -24,23 +24,79 @@ import { fileURLToPath } from 'url';
 // Get current directory for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const projectRoot = path.dirname(__dirname); // Parent of webapp/
 
-// Configuration loader for .conf files
+// Smart configuration loader with timestamp-based caching
 async function loadAppConfig() {
     try {
         const fs = await import('fs');
-        const configPath = path.join(__dirname, 'app.conf');
-        const content = fs.readFileSync(configPath, 'utf8');
-        const fn = new Function(`return (
-            ${content}
-        )`); // extra newlines in case content ends in a // comment
-        const appConfig = fn();
-        //console.log('appConfig:', JSON.stringify(appConfig, null, 2));
-        return appConfig;
+
+        // Configuration paths
+        const confPath = path.join(__dirname, 'app.conf');
+        const jpulseDir = path.join(projectRoot, '.jpulse');
+        const jsonPath = path.join(jpulseDir, 'app.json');
+        const sourcesPath = path.join(jpulseDir, 'config-sources.json');
+
+        // Ensure .jpulse directory exists
+        if (!fs.existsSync(jpulseDir)) {
+            fs.mkdirSync(jpulseDir, { recursive: true });
+            console.log('Created .jpulse directory at project root');
+        }
+
+        // Check if JSON needs regeneration
+        const needsRegeneration = shouldRegenerateConfig(fs, confPath, jsonPath);
+
+        if (needsRegeneration) {
+            console.log('Configuration changed, regenerating .jpulse/app.json...');
+            const config = await generateConsolidatedConfig(fs, confPath);
+
+            // Save consolidated config
+            fs.writeFileSync(jsonPath, JSON.stringify(config, null, 2));
+
+            // Save source metadata
+            const sources = [{ path: confPath, type: 'framework', timestamp: fs.statSync(confPath).mtime }];
+            fs.writeFileSync(sourcesPath, JSON.stringify(sources, null, 2));
+
+            console.log('Generated consolidated configuration in .jpulse/app.json');
+            return config;
+        } else {
+            // Load from cached JSON
+            console.log('Using cached configuration from .jpulse/app.json');
+            return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+        }
+
     } catch (error) {
-        console.error('Error: Failed to load configuration from app.conf', error);
+        console.error('Error: Failed to load configuration', error);
         process.exit(1);
     }
+}
+
+// Check if configuration needs regeneration
+function shouldRegenerateConfig(fs, confPath, jsonPath) {
+    // If JSON doesn't exist, regenerate
+    if (!fs.existsSync(jsonPath)) {
+        return true;
+    }
+
+    // If source .conf is newer than cached JSON, regenerate
+    const confStat = fs.statSync(confPath);
+    const jsonStat = fs.statSync(jsonPath);
+
+    return confStat.mtime > jsonStat.mtime;
+}
+
+// Generate consolidated configuration (Phase 1: single source)
+async function generateConsolidatedConfig(fs, confPath) {
+    // Phase 1: Load framework config only
+    const content = fs.readFileSync(confPath, 'utf8');
+    const config = new Function(`return (${content})`)();
+
+    // Set dirName just like the main app logic does
+    config.app.dirName = __dirname;
+
+    // Future phases will add plugin and site config merging here
+
+    return config;
 }
 
 // Load configuration
@@ -49,29 +105,19 @@ const appConfig = await loadAppConfig();
 // Make appConfig globally available for other modules
 appConfig.app.dirName = __dirname;
 global.appConfig = appConfig;
-console.log('DEBUG appConfig:', JSON.stringify(appConfig, null, 2));
+//console.log('DEBUG appConfig:', JSON.stringify(appConfig, null, 2));
 
-// Load the i18n object
-const i18n = await import('./utils/i18n.js').then(m => m.default);
-
-// Make i18n globally available for other modules
-global.i18n = i18n;
-
-// Load log controller first for proper logging
-const LogController = await import('./controller/log.js').then(m => m.default);
-
-// Make LogController globally available for other modules
-global.LogController = LogController;
-LogController.logInfo(null, `app: appConfig.app.dirName: ${appConfig.app.dirName}`);
-
-// Load database connections
-const database = await import('./database.js').then(m => m.default);
+// Load the i18n object and initialize core modules
+const { bootstrap } = await import('./utils/bootstrap.js');
+const modules = await bootstrap({ isTest: false });
 
 // Load routing
 const routes = await import('./routes.js').then(m => m.default);
 
 // Main application function
 async function startApp() {
+    // Core modules are already initialized by bootstrap
+
     // Create Express application
     const app = express();
 
@@ -81,16 +127,17 @@ async function startApp() {
     app.use(bodyParser.json(appConfig.middleware.bodyParser.json));
 
     // Configure session with MongoDB store
-    const sessionConfig = {
-        ...appConfig.session,
+    app.use(session({
+        secret: appConfig.middleware.session.secret,
+        resave: appConfig.middleware.session.resave,
+        saveUninitialized: appConfig.middleware.session.saveUninitialized,
         store: MongoStore.create({
-            clientPromise: Promise.resolve(database.getClient()),
+            clientPromise: Promise.resolve(modules.database.getClient()),  // Use bootstrap result
             dbName: appConfig.deployment[appConfig.deployment.mode].db,
             collectionName: 'sessions',
-            ttl: Math.floor(appConfig.session.cookie.maxAge / 1000) // TTL in seconds
+            touchAfter: appConfig.middleware.session.touchAfter
         })
-    };
-    app.use(session(sessionConfig));
+    }));
 
     // All app routing is handled by routes.js
     app.use('/', routes);

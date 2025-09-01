@@ -15,7 +15,6 @@
 // Load required modules for path resolution and file system operations
 import { join } from 'node:path';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import LogController from '../controller/log.js';
 
 /**
  * Deep clone an object
@@ -139,10 +138,10 @@ function auditAndFixTranslations(defaultLang, targetLang, langCode) {
     });
     // Log audit results
     if (missingGroups.length > 0) {
-        LogController.logError(null, `i18n: - missing: ${missingGroups.join(', ')}`);
+        global.LogController.logError(null, `i18n: - missing: ${missingGroups.join(', ')}`);
     }
     if (extraGroups.length > 0) {
-        LogController.logError(null, `i18n: - extra: ${extraGroups.join(', ')}`);
+        global.LogController.logError(null, `i18n: - extra: ${extraGroups.join(', ')}`);
     }
     // Copy missing fields from default language
     missing.forEach(keyPath => {
@@ -158,14 +157,21 @@ function auditAndFixTranslations(defaultLang, targetLang, langCode) {
  * Function to dynamically discover and load all translation files
  * Automatically finds all *.conf files in the translations directory
  */
-async function loadTranslations() {
+function loadTranslations() {
+    // Handle case where appConfig might not be available yet (e.g., in tests)
+    const config = global.appConfig;
+
+    if (!config) {
+        throw new Error('appConfig must be available before loading translations. Set up global.appConfig first.');
+    }
+
     const i18n = {
         langs: {},
-        default: appConfig.i18n?.default || 'en'
+        default: config.i18n?.default || 'en'
     };
     try {
         // Dynamically discover all language files
-        const translationsDir = join(appConfig.app.dirName, 'translations');
+        const translationsDir = join(config.app.dirName, 'translations');
 
         // Check if translations directory exists
         if (!existsSync(translationsDir)) {
@@ -191,7 +197,7 @@ async function loadTranslations() {
             if (b.name === defaultFile) return 1;
             return a.name.localeCompare(b.name);
         });
-        LogController.logInfo(null, `i18n: Loading ${sortedFiles.length} translation files...`);
+        global.LogController.logInfo(null, `i18n: Loading ${sortedFiles.length} translation files...`);
         let defaultLangData = null;
         // Load each translation file
         for (const file of sortedFiles) {
@@ -205,7 +211,7 @@ async function loadTranslations() {
                 const lang = Object.keys(obj)[0];
                 if (lang && obj[lang]) {
                     i18n.langs[lang] = obj[lang];
-                    LogController.logInfo(null, `i18n: ✓ Loaded language: ${lang} (${obj[lang].lang || lang})`);
+                    global.LogController.logInfo(null, `i18n: ✓ Loaded language: ${lang} (${obj[lang].lang || lang})`);
 
                     // Store default language data for auditing
                     if (lang === i18n.default) {
@@ -215,10 +221,10 @@ async function loadTranslations() {
                         auditAndFixTranslations(defaultLangData, i18n.langs[lang], lang);
                     }
                 } else {
-                    LogController.logError(null, `i18n: Warning: Invalid structure in ${file.filePath}`);
+                    global.LogController.logError(null, `i18n: Warning: Invalid structure in ${file.filePath}`);
                 }
             } catch (fileError) {
-                LogController.logError(null, `i18n: Error loading translation file ${file.filePath}:`, fileError.message);
+                global.LogController.logError(null, `i18n: Error loading translation file ${file.filePath}:`, fileError.message);
             }
         }
         return i18n;
@@ -237,7 +243,7 @@ class I18n {
         this.default = data.default;
         // Validate default language exists
         if (this.default && !this.langs[this.default]) {
-            LogController.logError(null, `i18n: Warning: Default language '${this.default}' not found. Available languages:`, Object.keys(this.langs));
+            global.LogController.logError(null, `i18n: Warning: Default language '${this.default}' not found. Available languages:`, Object.keys(this.langs));
             // Fallback to first available language
             this.default = Object.keys(this.langs)[0] || 'en';
         }
@@ -257,7 +263,7 @@ class I18n {
             return this.langs[langCode];
         }
         // Fallback to default language
-        LogController.logError(null, `i18n: Warning: Language '${langCode}' not found, falling back to '${this.default}'`);
+        global.LogController.logError(null, `i18n: Warning: Language '${langCode}' not found, falling back to '${this.default}'`);
         return this.langs[this.default] || {};
     }
 
@@ -305,7 +311,7 @@ class I18n {
             if (result && typeof result === 'object' && result.hasOwnProperty(key)) {
                 result = result[key];
             } else {
-                LogController.logError(null, `i18n: Translation not found: ${langCode}.${keyPath}`);
+                global.LogController.logError(null, `i18n: Translation not found: ${langCode}.${keyPath}`);
                 return keyPath; // Return key path as fallback
             }
         }
@@ -334,20 +340,54 @@ class I18n {
     }
 }
 
-// Load translations and create enhanced i18n instance
-const translationData = await loadTranslations();
-const i18n = new I18n(translationData);
+let i18nInstance = null;
 
-// Validate that we have at least one language
-if (Object.keys(i18n.langs).length === 0) {
-    console.error('Error: No valid translations loaded');
-    process.exit(1);
+/**
+ * Initialize i18n (LogController must be globally available)
+ * @returns {object} Initialized i18n instance
+ */
+export async function initialize() {
+    if (i18nInstance) {
+        return i18nInstance;
+    }
+
+    // LogController should already be available globally from bootstrap
+    if (!global.LogController) {
+        throw new Error('LogController must be initialized before i18n. Check bootstrap sequence.');
+    }
+
+    // Load translations using existing functionality
+    const translationData = loadTranslations();
+    i18nInstance = new I18n(translationData);
+
+    // Validate that we have at least one language
+    if (Object.keys(i18nInstance.langs).length === 0) {
+        console.error('Error: No valid translations loaded');
+        process.exit(1);
+    }
+
+    global.LogController.logInfo(null, `i18n: Initialized with languages: ${i18nInstance.getCodes().join(', ')}`);
+    global.LogController.logInfo(null, `i18n: Default language: ${i18nInstance.default}`);
+
+    return i18nInstance;
 }
 
-LogController.logInfo(null, `i18n: Initialized with languages: ${i18n.getCodes().join(', ')}`);
-LogController.logInfo(null, `i18n: Default language: ${i18n.default}`);
-//console.log('DEBUG: i18n.langs', JSON.stringify(i18n.langs, null, 2));
+/**
+ * Get the initialized i18n instance
+ */
+export function getInstance() {
+    if (!i18nInstance) {
+        throw new Error('i18n not initialized. Call initialize() first.');
+    }
+    return i18nInstance;
+}
 
-export default i18n;
+// Module is ready for initialization - call initialize() to set up i18n
+console.log('i18n: Module loaded, ready for explicit initialization');
+
+export default {
+    initialize,
+    getInstance
+};
 
 // EOF webapp/utils/i18n.js

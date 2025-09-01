@@ -1,4 +1,5 @@
 # Local work files
+.jpulse/
 commit-message*.txt
 tt-*
 *.save[0-9]

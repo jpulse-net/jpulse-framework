@@ -333,12 +333,12 @@ class CommonUtils {
      * @param {number} statusCode - HTTP status code (404, 500, etc.)
      * @param {string} message - Error message for user
      * @param {string} code - Application error code (NOT_FOUND, INVALID_CREDENTIALS, etc.)
-     * 
+     *
      * @example
      * // For API requests: returns JSON with success: false
      * CommonUtils.sendError(req, res, 404, 'User not found', 'USER_NOT_FOUND');
      * // Returns: {"success": false, "error": "User not found", "code": "USER_NOT_FOUND", "path": "/api/1/user/123"}
-     * 
+     *
      * // For view requests: redirects to error page
      * CommonUtils.sendError(req, res, 404, 'Page not found');
      * // Redirects to: /error/index.shtml?msg=Page%20not%20found&code=404

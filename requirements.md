@@ -1,6 +1,7 @@
 Requirements Doc of jPulse Framework
 ====================================
 
+-------------------------------------------------------------------------
 # Objectives
 
 - generic web application framework using MongoDB, Node.js, Express
@@ -12,6 +13,7 @@ Requirements Doc of jPulse Framework
 - the controller is the API that interfaces between model and view
 - license: GPL v3
 
+-------------------------------------------------------------------------
 # Requirements
 
 - modular app configuration
@@ -41,7 +43,8 @@ Requirements Doc of jPulse Framework
   - stored persistently in mongo
   - maybe: cached in each app instance using redis
 
-# Directories
+-------------------------------------------------------------------------
+# Directory Structure
 
 - webapp/
   - app.conf              # app config
@@ -81,30 +84,31 @@ Requirements Doc of jPulse Framework
     - images/               # app images and icons
     - common/               # 3rd party packages
 
-# To-Do Work Items
+-------------------------------------------------------------------------
+# ✅ COMPLETED & ❌ CANCELED Work Items
 
 ## **W-001**: create hello world app
-- status: ✅ DONE
+- status: ✅ COMPLETED
 - type: Feature
 - create logic in webapp/app.js
 - use appConfig.deployment[mode].port in webapp/app.conf
 - create package.json, package-lock.json
 
 ## **W-002**: create internationalization framework
-- status: ✅ DONE
+- status: ✅ COMPLETED
 - type: Feature
 - all user facing text can be translated
 - translations: one file per language
 
 ## **W-003**: create test framework
-- status: ✅ DONE
+- status: ✅ COMPLETED
 - type: Feature
 - create webapp/tests/
 - create test hierarchy using subdirectories
 - implement first tests for translations/i18n.js
 
 ## **W-004**: create site admin config model & controller
-- status: ✅ DONE
+- status: ✅ COMPLETED
 - type: Feature
 - create webapp/model/config.js -- model
 - create webapp/controller/config.js -- controller
@@ -135,7 +139,7 @@ Requirements Doc of jPulse Framework
 - create tests, and test
 
 ## **W-005**: create log infrastructure
-- status: ✅ DONE
+- status: ✅ COMPLETED
 - type: Feature
 - create webapp/model/log.js -- model
   - called by other controllers (config, user, ...) on doc create, update, delete
@@ -166,7 +170,7 @@ Requirements Doc of jPulse Framework
 - create tests, and test
 
 ## **W-006**: create server sice include function
-- status: ✅ DONE
+- status: ✅ COMPLETED
 - type: Feature
 - create webapp/controller/view.js
   - function load(req, res) loads a view file and expands {{handlebars}}:
@@ -193,13 +197,13 @@ Requirements Doc of jPulse Framework
     - {{i18n.login.notAuthenticated}}
 
 ## **W-007**: rename project from Bubble Framework to jPulse Framework
-- status: ✅ DONE
+- status: ✅ COMPLETED
 - type: Feature
 - rename git repo to /peterthoeny/jpulse-framework
 - rename any text references to project name
 
 ## **W-008**: strategy for view content and static content; HTML header & footer strategy
-- status: ✅ DONE
+- status: ✅ COMPLETED
 - type: Feature
 - objective: clean separation using routing precedence
 - File Mapping:
@@ -233,23 +237,23 @@ Requirements Doc of jPulse Framework
   - responsive design matching main app window
 
 ## **W-009**: common utilities infrastructure; flexible shema-based query
-- status: ✅ DONE
+- status: ✅ COMPLETED
 - type: Feature
 - create a common utilities infrastructure
 - add schemaBasedQuery() from logs so that it can be used by all controllers (see log.schemaBasedQuery)
 
 ## **W-010**: doc improvements
-- status: ✅ DONE
+- status: ✅ COMPLETED
 - type: Feature
 - update README.md, developers.md based on requirements.md doc
-- focus on DONE to-do items W-001 to W-009
+- focus on COMPLETED to-do items W-001 to W-009
 - in README.md, remove mention of W-nnn, just state the features
 - create changes.md that lists W-nnn and version numbers based on git commit history and requirements.md
 - create a API.md doc
 - remove legacy {{i18n "app.name"}} notation, replaced by {{i18n.app.name}} dot notation
 
 ## **W-011**: create user model & controller
-- status: ✅ DONE
+- status: ✅ COMPLETED
 - type: Feature
 - create webapp/model/user.js
 - create webapp/controller/user.js
@@ -264,7 +268,7 @@ Requirements Doc of jPulse Framework
 - document in README, API, changes, developers
 
 ## **W-012**: create user views
-- status: ✅ DONE
+- status: ✅ COMPLETED
 - type: Feature
 - create webapp/view/user/profile.shtml
   - two modes: view and edit
@@ -278,34 +282,6 @@ Requirements Doc of jPulse Framework
 - proper 404 error handling:
   - for /api/... return a JSON with "success": false
   - else show formatted error page as in view/error/index.shtml
-
-## **W-013**: create site admin views
-- status: 🕑 PENDING
-- type: Feature
-- create webapp/view/admin/index.shtml -- admin home
-- create webapp/view/admin/config.shtml -- edit config
-
-## **W-014**: strategy for seamless update of site-specific jPulse deployments
-- status: 🕑 PENDING
-- type: Feature
-- jPulse will be the base framework for multiple web apps
-- define a clean structure of two sets:
-  - jPulse framework directories and files
-  - site specific directories and files
-- automatic way to override/extend jPulse config, models, controllers, views with site-specific settings
-
-## **W-015**: strategy for clean onboarding
-- status: 🕑 PENDING
-- type: Feature
-- define an clean out of box experience when deploying a jPulse based webserver for the first time
-- sensible defaults
-- handholding for:
-  - dev and prod deployments
-  - nginx setup
-  - single app server, or multiple app servers with load balancer setup
-  - pm2 setup with single jPulse instance (fork), or multiple instances (cluster)
-  - mongddb deployment with standalone, or replicaset config
-  - mongodb setup with sysdba admin, dev data user, prod data user
 
 ## **W-016**: create auth controller
 - status: ✅ COMPLETED
@@ -328,19 +304,6 @@ Requirements Doc of jPulse Framework
 - no nesting of #if, e.g. no support for {{#if 1}} {{#if 2}} blah {{/if}} {{/if}}
 - remove existing {{if some.condition "text for true" "text for false"}} syntax
 - replace all existing {{if}} with the new {{#if}} syntax
-
-## **W-019**: slide down/up info and error message on top of page
-- status: 🕑 PENDING
-- type: Feature
-- pupose: non-blocking error or info message, such after signin
-- action:
-  - slide down, show, hide message from below page banner
-- triggered by msg= URL parameter on all pages
-- if message starts with "error" (case insensitive):
-  - show message for 7 sec with red background
-- else considered an info message:
-  - show message for 3 sec with yellow background
-- provide a common JavaScript function to show a sliding message without a msg= URL parameter
 
 ## **W-020**: i18n with fallback
 - status: ✅ COMPLETED
@@ -372,34 +335,6 @@ Requirements Doc of jPulse Framework
   - SPA is not a good fit for large deployments were multiple teams work on their own model/controller/view
   - SPA is fragile: if one "page" has a runtime error the whole site is down
   - SPA is heavy: if you have 100 "pages", all content is in browser memory
-
-## **W-024**: view: script separation with enhanced jpulse-common.js utilities
-- status: 🕑 PENDING
-- type: Feature
-- objective: avoid duplicate code in browser; spend less time to create a new view, and to maintain existing views
-- create a webapp/view/jpulse-common.js:
-  - common data and functions available to all pages
-  - it defines a jPulseCommon object, with properties like:
-    - alert() -- dialog
-    - confirm() -- dialog
-    - getCookie()
-    - setCookie()
-    - showMessage() -- show non-blocking slide down/up info/error message
-    - entityEncode()
-    - entityDecode()
-    - detectOs()
-    - detectBrowser()
-    - isMobile()
-    - isTouchDevice()
-    - windowHasFocus()
-- use library like bootstrap or vue?
-
-## **W-025**: view: component-based styling with framework/site separation
-- status: 🕑 PENDING
-- type: Feature
-- objective: clean styles, hierarchy, less duplication; spend less time to create a new view, and to maintain existing views
-- move all shareable style to webapp/view/jpulse-header.tmpl and/or webapp/view/jpulse-footer.tmpl
-- use library like bootstrap or vue?
 
 ## **W-026**: config: appConfig structure should match model, controller, and view structure
 - status: ✅ COMPLETED
@@ -468,19 +403,120 @@ Requirements Doc of jPulse Framework
 
 
 
+-------------------------------------------------------------------------
+# 🚧 IN_PROGRESS Work Items
 
+## **W-026**: tests: fix issues with ECMAScript Modules loading and appConfig
+- status: 🕑 PENDING
+- type: Bug
+- issue with tests clean, it does not work
+- issue with ECMAScript Modules loading
+- issue with app config
 
+## Potential next items:
+**W-014**: strategy for seamless update of site-specific jPulse deployments
+**W-024**: view: script separation with enhanced jpulse-common.js utilities
+**W-019**: slide down/up info and error message on top of page
+**W-013**: create site admin views
+**W-0**: error reporting without redirect
+**W-025**: view: component-based styling with framework/site separation
+**W-015**: strategy for clean onboarding
 
+## Chat instructions
 
+next work item: **W-0xx**: .....
+- review task, ask questions
+- plan how to implement
+- wait for my go ahead to implement
 
-- status: 🚧 IN_PROGRESS
-I finished **W-028**: view controller: cache template and include files
+I finished **W-0xx**: .....
 - run tests, and fix issue
-- update docs: readme.md, developers.md, changelog.md in project root
-- update commit-message.txt, following the same format, specify: W-028, v0.3.3
+- update docs: README.md, API.md, developers.md, changelog.md in project root
+- update commit-message.txt, following the same format, specify: W-0xx, v0.3.x
 - don't commit
 
+Misc:
+- status: 🚧 IN_PROGRESS
+git add .
+git commit -F commit-message.txt
+git push
 
+
+
+
+
+
+-------------------------------------------------------------------------
+# TO-DO Work Items
+
+## **W-013**: create site admin views
+- status: 🕑 PENDING
+- type: Feature
+- create webapp/view/admin/index.shtml -- admin home
+- create webapp/view/admin/config.shtml -- edit config
+
+## **W-014**: strategy for seamless update of site-specific jPulse deployments
+- status: 🕑 PENDING
+- type: Feature
+- jPulse will be the base framework for multiple web apps
+- define a clean structure of two sets:
+  - jPulse framework directories and files
+  - site specific directories and files
+- automatic way to override/extend jPulse config, models, controllers, views with site-specific settings
+
+## **W-015**: strategy for clean onboarding
+- status: 🕑 PENDING
+- type: Feature
+- define an clean out of box experience when deploying a jPulse based webserver for the first time
+- sensible defaults
+- handholding for:
+  - dev and prod deployments
+  - nginx setup
+  - single app server, or multiple app servers with load balancer setup
+  - pm2 setup with single jPulse instance (fork), or multiple instances (cluster)
+  - mongddb deployment with standalone, or replicaset config
+  - mongodb setup with sysdba admin, dev data user, prod data user
+
+## **W-019**: slide down/up info and error message on top of page
+- status: 🕑 PENDING
+- type: Feature
+- pupose: non-blocking error or info message, such after signin
+- action:
+  - slide down, show, hide message from below page banner
+- triggered by msg= URL parameter on all pages
+- if message starts with "error" (case insensitive):
+  - show message for 7 sec with red background
+- else considered an info message:
+  - show message for 3 sec with yellow background
+- provide a common JavaScript function to show a sliding message without a msg= URL parameter
+
+## **W-024**: view: script separation with enhanced jpulse-common.js utilities
+- status: 🕑 PENDING
+- type: Feature
+- objective: avoid duplicate code in browser; spend less time to create a new view, and to maintain existing views
+- create a webapp/view/jpulse-common.js:
+  - common data and functions available to all pages
+  - it defines a jPulseCommon object, with properties like:
+    - alert() -- dialog
+    - confirm() -- dialog
+    - getCookie()
+    - setCookie()
+    - showMessage() -- show non-blocking slide down/up info/error message
+    - entityEncode()
+    - entityDecode()
+    - detectOs()
+    - detectBrowser()
+    - isMobile()
+    - isTouchDevice()
+    - windowHasFocus()
+- use library like bootstrap or vue?
+
+## **W-025**: view: component-based styling with framework/site separation
+- status: 🕑 PENDING
+- type: Feature
+- objective: clean styles, hierarchy, less duplication; spend less time to create a new view, and to maintain existing views
+- move all shareable style to webapp/view/jpulse-header.tmpl and/or webapp/view/jpulse-footer.tmpl
+- use library like bootstrap or vue?
 
 ## **W-0**: docs: restructure user facing and developer facing documentation
 - status: 🕑 PENDING
@@ -533,7 +569,7 @@ I finished **W-028**: view controller: cache template and include files
 - way to define new themes
   - drop in a directory, with auto discovery
 
-## **W-0**: create caching infrastrucure
+## **W-0**: create redis caching infrastrucure
 - status: 🕑 PENDING
 - type: Feature
 - redis to cache site config (what else? sessions?)
@@ -608,24 +644,9 @@ I finished **W-028**: view controller: cache template and include files
 status codes:
 - status: 🕑 PENDING
 - status: 🚧 IN_PROGRESS
-- status: ✅ DONE
+- status: ✅ COMPLETED
 - status: ❌ CANCELED
 ------------------------
-
-next:
-- review task, ask questions
-- plan how to implement
-- wait for my go ahead to implement
-
-------------------------
-
-git actions:
-git add .
-git commit -F commit-message.txt
-git push
-
-------------------------
-
 
 ------------------------
 
@@ -651,7 +672,16 @@ jpulse-framework/               # Main project
 │   │   └── static/             # Site-specific assets
 │   ├── app.conf                # Site configuration
 │   └── site.json               # Site metadata
+├── plugins/                    # Plugin infrastructure
+│   ├── auth-ldap/
+│   │   ├── plugin.json         # Plugin metadata
+│   │   ├── config.conf         # Plugin config defaults
+│   │   └── webapp/             # Plugin MVC components
+│   └── dashboard-analytics/
 └── .jpulse/                    # Framework metadata
+    ├── app.json                # Consolidated runtime configuration
+    ├── config-sources.json     # Source file tracking
+    ├── plugins.json            # Plugin registry and status
     ├── framework-version.json  # Version tracking
     └── update-history.json     # Update log
 ```

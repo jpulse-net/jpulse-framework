@@ -1243,6 +1243,135 @@ User question: @i18n.js is currently outside of the MVC structure. we have a @ut
 
 ============================================================
 
-2025-08-31 22:45: next task: ## **W-0**: user: fix username vs userId vs loginId inconsistencies; add uuid field
+2025-08-31 22:45: next task: **W-032**: user: fix username vs userId vs loginId inconsistencies; add uuid field
 
-Header: Guiding through W-0: user ID inconsistencies and UUID field\n\nSummary:\nI'm starting to address the W-0 task to fix user ID inconsistencies and add a uuid field. I've logged the current prompt and created a todo list based on the requirements.md file. I will now focus on adding tests for CommonUtils.generateUuid().\n\nDetails:\nThe current time is 2025-08-31 22:41.\nI will begin by adding tests for CommonUtils.generateUuid(), as the generateUuid() method itself is marked as done.
+Guiding through W-032: user ID inconsistencies and UUID field
+
+Summary:
+I'm starting to address the W-032 task to fix user ID inconsistencies and add a uuid field. I've logged the current prompt and created a todo list based on the requirements.md file. I will now focus on adding tests for CommonUtils.generateUuid().
+
+Details:
+The current time is 2025-08-31 22:41.
+I will begin by adding tests for CommonUtils.generateUuid(), as the generateUuid() method itself is marked as done.
+
+
+============================================================
+
+2025-09-01 00:22: finished task: **W-032**: user: fix username vs userId vs loginId inconsistencies; add uuid field
+
+Major Features:
+- User ID Consolidation (W-032): Standardized user identification across the application to 'username', deprecating previous 'loginId' and 'userId' inconsistencies.
+- Unique User Identifier (UUID): Introduced a new 'uuid' field, generated automatically upon user creation, providing an immutable and universally unique identifier for user documents.
+
+Technical Improvements:
+- `UserModel` Refactoring:
+  - `loginId` field in schema renamed to `username`.
+  - New `uuid` field added to the `UserModel` schema.
+  - `UserModel.validate` method updated to validate `username`.
+  - `UserModel.prepareSaveData` updated to generate `uuid` for new users.
+  - `UserModel.findByLoginId` renamed to `UserModel.findByUsername`.
+  - `UserModel.create` and `UserModel.authenticate` methods updated to use `findByUsername`.
+- `UserController` Updates:
+  - `signup` method updated to use `username` in `userData` object, log messages, and response data.
+  - `get`, `update`, and `changePassword` methods updated to use `req.session.user.username` and `updatedBy` fields.
+- `AuthController` Adjustments:
+  - `login` method updated to construct `req.session.user` with `username` and update log messages.
+  - `logout` method updated to use `username` in log messages.
+  - Error messages in `login` method updated to refer to "username or email".
+- `LogController` Consistency:
+  - `getContext` method updated to extract `username` from session for log entries.
+
+Documentation Updates:
+- `README.md`: Updated to v0.3.7 and highlighted the user ID consolidation and UUID feature.
+- `developers.md`: Updated to v0.3.7 and included a detailed entry for the user ID and UUID changes.
+- `API.md`: Updated API documentation to reflect the change from `loginId` to `username` in relevant sections.
+- `changes.md`: Added this detailed v0.3.7 release entry.
+- `requirements.md`: Updated `W-032` status to `✅ DONE`.
+
+Developer Experience Improvements:
+- Unified User ID: A single, consistent identifier (`username`) simplifies user management and reduces potential for confusion.
+- Immutable User Reference: The `uuid` provides a stable identifier for users, decoupled from potentially changing usernames or other fields.
+- Streamlined Codebase: Removal of redundant `loginId` and `userId` references cleans up the codebase.
+Changes were accepted.
+
+
+============================================================
+
+2025-09-01 12:11: **W-026**: Configuration strategy analysis for ESM compatibility and W-014 plugin infrastructure
+
+User requested advice on W-026 (tests: fix issues with ECMAScript Modules loading and appConfig) with consideration for W-014 (strategy for seamless update of site-specific jPulse deployments).
+
+Current status: Test Suites: 5 failed, 13 passed, 18 total; Tests: 8 failed, 285 passed, 293 total
+
+PROBLEM ANALYSIS:
+- ESM environment conflicts with dynamic new Function() configuration loading in app.conf
+- Race conditions from async loadAppConfig() causing timing issues in test environment
+- Jest/Babel incompatibility with dynamic evaluation in ESM context
+- Global state issues where global.appConfig set asynchronously causes undefined access
+
+STRATEGIC SOLUTION: Runtime Configuration Consolidation with Timestamp-Based Caching
+
+User's enhanced approach (preferred over build script):
+- jPulse reads app.conf as before
+- Compares timestamp to .jpulse/app.json and updates if missing/outdated
+- Future W-014: .jpulse/app.json contains consolidated jpulse and site .conf
+
+PLUGIN INFRASTRUCTURE CONSIDERATION:
+User asked about plugin infrastructure location and .jpulse directory placement.
+
+RECOMMENDATION: Root-level .jpulse/ directory for optimal plugin architecture
+
+Directory Structure:
+                  
+```
+jpulse-framework/                   # Project root
+├── .jpulse/                        # Framework metadata (ROOT LEVEL)
+│   ├── app.json                    # Consolidated runtime configuration
+│   ├── config-sources.json        # Source file tracking
+│   ├── plugins.json                # Plugin registry and status
+│   ├── framework-version.json      # Version tracking
+│   └── update-history.json         # Update log
+├── webapp/                         # Core framework
+│   ├── app.conf                    # Framework configuration source
+│   └── ...
+├── site/                           # Site customizations (W-014)
+│   └── webapp/app.conf             # Site configuration overrides
+├── plugins/                        # Plugin infrastructure
+│   ├── auth-ldap/
+│   │   ├── plugin.json             # Plugin metadata
+│   │   ├── config.conf             # Plugin config defaults
+│   │   └── webapp/                 # Plugin MVC components
+│   └── dashboard-analytics/
+└── ...
+```
+
+ENHANCED CONSOLIDATION STRATEGY:
+Configuration Precedence Chain:
+Framework app.conf (priority 1) → Plugin config.conf files (priority 2) → Site app.conf (priority 3) → .jpulse/app.json (final runtime config)
+
+IMPLEMENTATION PHASES:
+Phase 1 (W-026 Fix):
+- Create .jpulse/ directory at project root
+- Implement timestamp-based configuration consolidation in app.js
+- Update tests to use consolidated JSON configuration
+- Maintain backward compatibility with .conf editing
+
+Phase 2 (W-014 Integration):
+- Add site configuration discovery and merging
+- Implement multi-source timestamp tracking
+- Add configuration validation and conflict detection
+
+Phase 3 (Plugin Infrastructure):
+- Add plugin discovery and configuration merging
+- Implement plugin registry and activation system
+- Create plugin development tooling
+
+BENEFITS:
+✅ Zero Build Steps: Configuration consolidation happens automatically at runtime
+✅ ESM Compatibility: Runtime generates ESM-compatible JSON automatically
+✅ Plugin Ready: Root-level .jpulse/ positions framework for plugin architecture
+✅ W-014 Foundation: Multi-source configuration merging built-in
+✅ Development Efficiency: Changes detected and applied immediately
+✅ Test Reliability: Consistent configuration source eliminates race conditions
+
+FINAL RECOMMENDATION: Implement root-level .jpulse/ with runtime configuration consolidation. This solves immediate W-026 test failures while creating optimal foundation for plugin infrastructure and W-014 seamless updates.

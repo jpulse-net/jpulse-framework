@@ -3,8 +3,8 @@
  * @tagline         Integration tests for Auth Controller middleware
  * @description     Tests for authentication middleware integration patterns
  * @file            webapp/tests/integration/auth-middleware.test.js
- * @version         0.3.3
- * @release         2025-08-31
+ * @version         0.3.4
+ * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,7 +18,7 @@ import CommonUtils from '../../utils/common.js';
 // Mock dependencies
 jest.mock('../../model/user.js');
 jest.mock('../../controller/log.js', () => ({
-    consoleApi: jest.fn(),
+    logRequest: jest.fn(),
     console: jest.fn(),
     error: jest.fn()
 }));

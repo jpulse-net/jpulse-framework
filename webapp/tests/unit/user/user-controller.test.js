@@ -3,8 +3,8 @@
  * @tagline         Controller tests for User authentication and management
  * @description     Unit tests for UserController endpoints, error handling, and HTTP responses
  * @file            webapp/tests/unit/user/user-controller.test.js
- * @version         0.3.3
- * @release         2025-08-31
+ * @version         0.3.4
+ * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -461,7 +461,7 @@ describe('User Controller Tests', () => {
         test('should log errors with proper format', () => {
             const mockLogController = {
                 error: jest.fn(),
-                consoleApi: jest.fn()
+                logRequest: jest.fn()
             };
 
             const mockReq = {
@@ -476,7 +476,7 @@ describe('User Controller Tests', () => {
 
             const processWithErrorLogging = (req, res) => {
                 try {
-                    mockLogController.consoleApi(req, `user.search( ${JSON.stringify(req.query)} )`);
+                    mockLogController.logRequest(req, `user.search( ${JSON.stringify(req.query)} )`);
 
                     // Simulate error
                     throw new Error('Database connection failed');
@@ -492,7 +492,7 @@ describe('User Controller Tests', () => {
 
             processWithErrorLogging(mockReq, mockRes);
 
-            expect(mockLogController.consoleApi).toHaveBeenCalledWith(mockReq, 'user.search( {} )');
+            expect(mockLogController.logRequest).toHaveBeenCalledWith(mockReq, 'user.search( {} )');
             expect(mockLogController.error).toHaveBeenCalledWith(mockReq, 'user.search failed: Database connection failed');
             expect(mockRes.status).toHaveBeenCalledWith(500);
         });
@@ -513,14 +513,14 @@ describe('User Controller Tests', () => {
             };
 
             const mockLogController = {
-                consoleApi: jest.fn(),
+                logRequest: jest.fn(),
                 console: jest.fn()
             };
 
             const processWithTiming = (req, res) => {
                 const startTime = Date.now();
 
-                mockLogController.consoleApi(req, 'user.search( {} )');
+                mockLogController.logRequest(req, 'user.search( {} )');
 
                 // Simulate successful operation
                 const mockResults = { data: [], pagination: {} };
@@ -538,7 +538,7 @@ describe('User Controller Tests', () => {
 
             processWithTiming(mockReq, mockRes);
 
-            expect(mockLogController.consoleApi).toHaveBeenCalledWith(mockReq, 'user.search( {} )');
+            expect(mockLogController.logRequest).toHaveBeenCalledWith(mockReq, 'user.search( {} )');
             expect(mockLogController.console).toHaveBeenCalledWith(mockReq, expect.stringMatching(/user\.search completed in \d+ms/));
             expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
                 success: true,

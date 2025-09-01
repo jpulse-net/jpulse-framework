@@ -3,8 +3,8 @@
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/translations/i18n.js
- * @version         0.3.3
- * @release         2025-08-31
+ * @version         0.3.4
+ * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -291,12 +291,13 @@ class I18n {
     }
 
     /**
-     * Get translation for a nested key path
+     * Get translation for a nested key path (internal function)
      * @param {string} langCode - Language code
      * @param {string} keyPath - Dot-separated key path (e.g., 'login.notAuthenticated')
+     * @param {object} context - Context object (single level key/value pairs)
      * @returns {string} Translation or key path if not found
      */
-    translate(langCode, keyPath) {
+    _translate(langCode, keyPath, context = {}) {
         const lang = this.getLang(langCode);
         const keys = keyPath.split('.');
         let result = lang;
@@ -308,22 +309,26 @@ class I18n {
                 return keyPath; // Return key path as fallback
             }
         }
+        if (context) {
+            result = result.replace(/{{(.*?)}}/g, (match, p1) => context[p1] || match);
+        }
         return result;
     }
 
     /**
      * Get translation with fallback chain
      * @param {string} keyPath - Dot-separated key path
+     * @param {object} context - Context object (single level key/value pairs)
      * @param {string} langCode - Primary language code
      * @param {string} fallbackLang - Fallback language code (optional)
      * @returns {string} Translation
      */
-    t(keyPath, langCode = this.default, fallbackLang = this.default) {
+    translate(keyPath, context = {}, langCode = this.default, fallbackLang = this.default) {
         // Try primary language
-        let result = this.translate(langCode, keyPath);
+        let result = this._translate(langCode, keyPath, context);
         // If not found and fallback is different, try fallback
         if (result === keyPath && fallbackLang !== langCode) {
-            result = this.translate(fallbackLang, keyPath);
+            result = this._translate(fallbackLang, keyPath, context);
         }
         return result;
     }

@@ -420,6 +420,31 @@ Requirements Doc of jPulse Framework
 - cache template files based on appConfig.controller.view.cacheTemplateFiles flag
 - cache include files and file timestamps based on appConfig.controller.view.cacheIncludeFiles flag
 
+## **W-029**: i18n: internationalize user facing controller messages; add consistent controller logs
+- status: ✅ COMPLETED
+- type: Feature
+- rename i18n.translate() to i18n._translate()
+- rename i18n.t() to i18n.translate()
+- add optional context to i18n._translate(langCode, keyPath, context = {})
+- add optional context to i18n.translate(keyPath, context = {}, langCode = this.default, fallbackLang = this.default)
+- use consistent function names, such as ConfigController.get() instead of ConfigController.getConfig()
+- internationalize user facing controller messages, e.g. no hard-coded messages
+- add consitent log entries in controller APIs
+
+
+
+
+
+
+
+
+## **W-0**: fix username vs userId inconsistency
+- status: 🚧 IN_PROGRESS
+- type: Bug
+- some controllers refer to username, others to userId
+
+
+
 
 I finished **W-028**: view controller: cache template and include files
 - run tests, and fix issue
@@ -427,17 +452,6 @@ I finished **W-028**: view controller: cache template and include files
 - update commit-message.txt, following the same format, specify: W-028, v0.3.3
 - don't commit
 
-
-
-
-
-
-## **W-028**: i18n: internationalize user facing controller messages
-- status: 🚧 IN_PROGRESS
-- type: Feature
-- internationalize user facing controller messages
-- add optional context to i18n.translate(langCode, keyPath, context = {})
-- add optional context to i18n.t(keyPath, context = {}, langCode = this.default, fallbackLang = this.default)
 
 ## **W-0**: docs: restructure user facing and developer facing documentation
 - status: 🕑 PENDING

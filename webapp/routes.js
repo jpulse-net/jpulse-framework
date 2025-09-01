@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the routing file for the jPulse Framework WebApp
  * @file            webapp/route.js
- * @version         0.3.3
- * @release         2025-08-31
+ * @version         0.3.4
+ * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -19,7 +19,7 @@ const router = express.Router();
 // Load controllers
 import AuthController from './controller/auth.js';
 import UserController from './controller/user.js';
-import configController from './controller/config.js';
+import ConfigController from './controller/config.js';
 import logController from './controller/log.js';
 import viewController from './controller/view.js';
 import CommonUtils from './utils/common.js';
@@ -36,13 +36,13 @@ router.get('/api/1/status', (req, res) => {
 });
 
 // Config API routes
-router.get('/api/1/config', configController.listConfigs);
-router.get('/api/1/config/:id', configController.getConfig);
-router.get('/api/1/config/:id/effective', configController.getEffectiveConfig);
-router.post('/api/1/config', configController.createConfig);
-router.put('/api/1/config/:id', configController.updateConfig);
-router.put('/api/1/config/:id/upsert', configController.upsertConfig);
-router.delete('/api/1/config/:id', configController.deleteConfig);
+router.get('/api/1/config', ConfigController.list);
+router.get('/api/1/config/:id', ConfigController.get);
+router.get('/api/1/config/:id/effective', ConfigController.getEffective);
+router.post('/api/1/config', ConfigController.create);
+router.put('/api/1/config/:id', ConfigController.update);
+router.put('/api/1/config/:id/upsert', ConfigController.upsert);
+router.delete('/api/1/config/:id', ConfigController.delete);
 
 // Auth API routes
 router.post('/api/1/auth/login', AuthController.login);
@@ -50,8 +50,8 @@ router.post('/api/1/auth/logout', AuthController.logout);
 
 // User API routes (with authentication middleware where needed)
 router.post('/api/1/user/signup', UserController.signup);
-router.get('/api/1/user/profile', AuthController.requireAuthentication, UserController.getProfile);
-router.put('/api/1/user/profile', AuthController.requireAuthentication, UserController.updateProfile);
+router.get('/api/1/user/profile', AuthController.requireAuthentication, UserController.get);
+router.put('/api/1/user/profile', AuthController.requireAuthentication, UserController.update);
 router.put('/api/1/user/password', AuthController.requireAuthentication, UserController.changePassword);
 router.get('/api/1/user/search', AuthController.requireRole(['admin', 'root']), UserController.search);
 

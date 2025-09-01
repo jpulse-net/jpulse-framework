@@ -3,8 +3,8 @@
  * @tagline         Config Controller for jPulse Framework WebApp
  * @description     This is the config controller for the jPulse Framework WebApp
  * @file            webapp/controller/config.js
- * @version         0.3.3
- * @release         2025-08-31
+ * @version         0.3.4
+ * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -14,6 +14,7 @@
 
 import ConfigModel from '../model/config.js';
 import LogController from './log.js';
+import i18n from '../translations/i18n.js';
 
 /**
  * Config Controller - handles /api/1/config/* REST API endpoints
@@ -25,35 +26,43 @@ class ConfigController {
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
-    static async getConfig(req, res) {
+    static async get(req, res) {
+        const id = req.params.id;
+        LogController.logRequest(req, `config.get( ${id || ''} )`);
         try {
-            const { id } = req.params;
             if (!id) {
+                LogController.error(req, `config.get: error: id is required`);
+                const message = i18n.translate('controller.config.configIdRequired');
                 return res.status(400).json({
                     success: false,
-                    error: 'Config ID is required',
+                    error: message,
                     code: 'MISSING_ID'
                 });
             }
             const config = await ConfigModel.findById(id);
             if (!config) {
+                LogController.error(req, `config.get: error: config not found for id: ${id}`);
+                const message = i18n.translate('controller.config.configNotFound', { id });
                 return res.status(404).json({
                     success: false,
-                    error: `Config with ID '${id}' not found`,
+                    error: message,
                     code: 'CONFIG_NOT_FOUND'
                 });
             }
+            LogController.console(req, `config.get: success: config retrieved for id: ${id}`);
+            const message = i18n.translate('controller.config.configGetDone', { id });
             res.json({
                 success: true,
                 data: config,
-                message: `Config '${id}' retrieved successfully`
+                message: message
             });
 
         } catch (error) {
-            console.error('Error getting config:', error);
+            LogController.error(req, `config.get: error: ${error.message}`);
+            const message = i18n.translate('controller.config.configGetFailed', { id });
             res.status(500).json({
                 success: false,
-                error: 'Internal server error while retrieving config',
+                error: message,
                 code: 'INTERNAL_ERROR',
                 details: error.message
             });
@@ -66,35 +75,43 @@ class ConfigController {
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
-    static async getEffectiveConfig(req, res) {
+    static async getEffective(req, res) {
+        const id = req.params.id;
+        LogController.logRequest(req, `config.getEffective( ${id || ''} )`);
         try {
-            const { id } = req.params;
             if (!id) {
+                LogController.error(req, `config.getEffective: error: id is required`);
+                const message = i18n.translate('controller.config.configIdRequired');
                 return res.status(400).json({
                     success: false,
-                    error: 'Config ID is required',
+                    error: message,
                     code: 'MISSING_ID'
                 });
             }
             const config = await ConfigModel.getEffectiveConfig(id);
             if (!config) {
+                LogController.error(req, `config.getEffective: error: config not found for id: ${id}`);
+                const message = i18n.translate('controller.config.configNotFound', { id });
                 return res.status(404).json({
                     success: false,
-                    error: `Config with ID '${id}' not found`,
+                    error: message,
                     code: 'CONFIG_NOT_FOUND'
                 });
             }
+            LogController.console(req, `config.getEffective: success: config retrieved for id: ${id}`);
+            const message = i18n.translate('controller.config.configGetEffectiveDone', { id });
             res.json({
                 success: true,
                 data: config,
-                message: `Effective config '${id}' retrieved successfully`
+                message: message
             });
 
         } catch (error) {
-            console.error('Error getting effective config:', error);
+            LogController.error(req, `config.getEffective: error: ${error.message}`);
+            const message = i18n.translate('controller.config.configGetEffectiveFailed', { id });
             res.status(500).json({
                 success: false,
-                error: 'Internal server error while retrieving effective config',
+                error: message,
                 code: 'INTERNAL_ERROR',
                 details: error.message
             });
@@ -107,9 +124,10 @@ class ConfigController {
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
-    static async listConfigs(req, res) {
+    static async list(req, res) {
+        const parent = req.query.parent;
+        LogController.logRequest(req, `config.list( ${parent || ''} )`);
         try {
-            const { parent } = req.query;
             const filter = {};
 
             // Filter by parent if specified
@@ -117,18 +135,21 @@ class ConfigController {
                 filter.parent = parent === 'null' ? null : parent;
             }
             const configs = await ConfigModel.find(filter);
+            LogController.console(req, `config.list: success: configs retrieved, count: ${configs.length}`);
+            const message = i18n.translate('controller.config.configListRetrieved', { count: configs.length });
             res.json({
                 success: true,
                 data: configs,
                 count: configs.length,
-                message: `Retrieved ${configs.length} config(s)`
+                message: message
             });
 
         } catch (error) {
-            console.error('Error listing configs:', error);
+            LogController.error(req, `config.list: error: ${error.message}`);
+            const message = i18n.translate('controller.config.configListFailed');
             res.status(500).json({
                 success: false,
-                error: 'Internal server error while listing configs',
+                error: message,
                 code: 'INTERNAL_ERROR',
                 details: error.message
             });
@@ -141,15 +162,16 @@ class ConfigController {
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
-    static async createConfig(req, res) {
+    static async create(req, res) {
+        const configData = req.body;
+        LogController.logRequest(req, `config.create( ${JSON.stringify(configData)} )`);
         try {
-            LogController.consoleApi(req, `config.create( ${JSON.stringify(req.body)} )`);
-
-            const configData = req.body;
             if (!configData || Object.keys(configData).length === 0) {
+                LogController.error(req, `config.create: error: config data is required`);
+                const message = i18n.translate('controller.config.configDataRequired');
                 return res.status(400).json({
                     success: false,
-                    error: 'Config data is required',
+                    error: message,
                     code: 'MISSING_DATA'
                 });
             }
@@ -161,33 +183,37 @@ class ConfigController {
 
             // Log the creation
             await LogController.logChange(req, 'config', 'create', config._id, null, config);
-
+            LogController.console(req, `config.create: success: config created for id: ${config._id}`);
+            const message = i18n.translate('controller.config.configCreated', { id: config._id });
             res.status(201).json({
                 success: true,
                 data: config,
-                message: `Config '${config._id}' created successfully`
+                message: message
             });
 
         } catch (error) {
-            LogController.error(req, `config.create failed: ${error.message}`);
+            LogController.error(req, `config.create: error: ${error.message}`); // Initial log for the catch block
             if (error.message.includes('Validation failed')) {
+                const message = i18n.translate('controller.config.configValidationFailed');
                 return res.status(400).json({
                     success: false,
-                    error: 'Validation failed',
+                    error: message,
                     code: 'VALIDATION_ERROR',
                     details: error.message
                 });
             }
             if (error.message.includes('duplicate key') || error.code === 11000) {
+                const message = i18n.translate('controller.config.configDuplicateId', { id: configData.id });
                 return res.status(409).json({
                     success: false,
-                    error: 'Config with this ID already exists',
+                    error: message,
                     code: 'DUPLICATE_ID'
                 });
             }
+            const message = i18n.translate('controller.config.configCreateFailed');
             res.status(500).json({
                 success: false,
-                error: 'Internal server error while creating config',
+                error: message,
                 code: 'INTERNAL_ERROR',
                 details: error.message
             });
@@ -200,23 +226,26 @@ class ConfigController {
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
-    static async updateConfig(req, res) {
+    static async update(req, res) {
+        const id = req.params.id;
+        const updateData = req.body;
+        LogController.logRequest(req, `config.update( ${id || ''}, ${JSON.stringify(updateData)} )`);
         try {
-            LogController.consoleApi(req, `config.update( ${req.params.id}, ${JSON.stringify(req.body)} )`);
-
-            const { id } = req.params;
-            const updateData = req.body;
             if (!id) {
+                LogController.error(req, `config.update: error: id is required`);
+                const message = i18n.translate('controller.config.configIdRequired');
                 return res.status(400).json({
                     success: false,
-                    error: 'Config ID is required',
+                    error: message,
                     code: 'MISSING_ID'
                 });
             }
             if (!updateData || Object.keys(updateData).length === 0) {
+                LogController.error(req, `config.update: error: update data is required`);
+                const message = i18n.translate('controller.config.configDataRequired');
                 return res.status(400).json({
                     success: false,
-                    error: 'Update data is required',
+                    error: message,
                     code: 'MISSING_DATA'
                 });
             }
@@ -224,9 +253,11 @@ class ConfigController {
             // Get old document for logging
             const oldConfig = await ConfigModel.findById(id);
             if (!oldConfig) {
+                LogController.error(req, `config.update: error: config not found for id: ${id}`);
+                const message = i18n.translate('controller.config.configNotFound', { id });
                 return res.status(404).json({
                     success: false,
-                    error: `Config with ID '${id}' not found`,
+                    error: message,
                     code: 'CONFIG_NOT_FOUND'
                 });
             }
@@ -239,26 +270,29 @@ class ConfigController {
 
             // Log the update
             await LogController.logChange(req, 'config', 'update', id, oldConfig, config);
-
+            LogController.console(req, `config.update: success: config updated for id: ${id}`);
+            const message = i18n.translate('controller.config.configUpdated', { id });
             res.json({
                 success: true,
                 data: config,
-                message: `Config '${id}' updated successfully`
+                message: message
             });
 
         } catch (error) {
-            LogController.error(req, `config.update failed: ${error.message}`);
+            LogController.error(req, `config.update: error: ${error.message}`); // Initial log for the catch block
             if (error.message.includes('Validation failed')) {
+                const message = i18n.translate('controller.config.configValidationFailed');
                 return res.status(400).json({
                     success: false,
-                    error: 'Validation failed',
+                    error: message,
                     code: 'VALIDATION_ERROR',
                     details: error.message
                 });
             }
+            const message = i18n.translate('controller.config.configUpdateFailed');
             res.status(500).json({
                 success: false,
-                error: 'Internal server error while updating config',
+                error: message,
                 code: 'INTERNAL_ERROR',
                 details: error.message
             });
@@ -271,21 +305,26 @@ class ConfigController {
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
-    static async upsertConfig(req, res) {
+    static async upsert(req, res) {
+        const id = req.params.id;
+        const configData = req.body;
+        LogController.logRequest(req, `config.upsert( ${id || ''}, ${JSON.stringify(configData)} )`);
         try {
-            const { id } = req.params;
-            const configData = req.body;
             if (!id) {
+                LogController.error(req, `config.upsert: error: id is required`);
+                const message = i18n.translate('controller.config.configIdRequired');
                 return res.status(400).json({
                     success: false,
-                    error: 'Config ID is required',
+                    error: message,
                     code: 'MISSING_ID'
                 });
             }
             if (!configData || Object.keys(configData).length === 0) {
+                LogController.error(req, `config.upsert: error: config data is required`);
+                const message = i18n.translate('controller.config.configDataRequired');
                 return res.status(400).json({
                     success: false,
-                    error: 'Config data is required',
+                    error: message,
                     code: 'MISSING_DATA'
                 });
             }
@@ -294,25 +333,29 @@ class ConfigController {
                 configData.updatedBy = req.session.user.id || req.session.user.loginId || '';
             }
             const config = await ConfigModel.upsert(id, configData);
+            LogController.console(req, `config.upsert: success: config upserted for id: ${id}`);
+            const message = i18n.translate('controller.config.configSaved', { id });
             res.json({
                 success: true,
                 data: config,
-                message: `Config '${id}' saved successfully`
+                message: message
             });
 
         } catch (error) {
-            console.error('Error upserting config:', error);
+            LogController.error(req, `config.upsert: error: ${error.message}`); // Initial log for the catch block
             if (error.message.includes('Validation failed')) {
+                const message = i18n.translate('controller.config.configValidationFailed');
                 return res.status(400).json({
                     success: false,
-                    error: 'Validation failed',
+                    error: message,
                     code: 'VALIDATION_ERROR',
                     details: error.message
                 });
             }
+            const message = i18n.translate('controller.config.configSaveFailed');
             res.status(500).json({
                 success: false,
-                error: 'Internal server error while saving config',
+                error: message,
                 code: 'INTERNAL_ERROR',
                 details: error.message
             });
@@ -325,15 +368,16 @@ class ConfigController {
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
-    static async deleteConfig(req, res) {
+    static async delete(req, res) {
+        const id = req.params.id;
+        LogController.logRequest(req, `config.delete( ${id || ''})`);
         try {
-            LogController.consoleApi(req, `config.delete( ${req.params.id} )`);
-
-            const { id } = req.params;
             if (!id) {
+                LogController.error(req, `config.delete: error: id is required`);
+                const message = i18n.translate('controller.config.configIdRequired');
                 return res.status(400).json({
                     success: false,
-                    error: 'Config ID is required',
+                    error: message,
                     code: 'MISSING_ID'
                 });
             }
@@ -341,9 +385,11 @@ class ConfigController {
             // Get document before deletion for logging
             const oldConfig = await ConfigModel.findById(id);
             if (!oldConfig) {
+                LogController.error(req, `config.delete: error: config not found for id: ${id}`);
+                const message = i18n.translate('controller.config.configNotFound', { id });
                 return res.status(404).json({
                     success: false,
-                    error: `Config with ID '${id}' not found`,
+                    error: message,
                     code: 'CONFIG_NOT_FOUND'
                 });
             }
@@ -352,17 +398,19 @@ class ConfigController {
 
             // Log the deletion
             await LogController.logChange(req, 'config', 'delete', id, oldConfig, null);
-
+            LogController.console(req, `config.delete: success: config deleted for id: ${id}`);
+            const message = i18n.translate('controller.config.configDeleted', { id });
             res.json({
                 success: true,
-                message: `Config '${id}' deleted successfully`
+                message: message
             });
 
         } catch (error) {
-            LogController.error(req, `config.delete failed: ${error.message}`);
+            LogController.error(req, `config.delete: error: ${error.message}`); // Initial log for the catch block
+            const message = i18n.translate('controller.config.configDeleteFailed');
             res.status(500).json({
                 success: false,
-                error: 'Internal server error while deleting config',
+                error: message,
                 code: 'INTERNAL_ERROR',
                 details: error.message
             });

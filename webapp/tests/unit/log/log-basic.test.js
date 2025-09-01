@@ -3,8 +3,8 @@
  * @tagline         Unit tests for log model and controller basic functionality
  * @description     This file contains unit tests for the log model and controller
  * @file            webapp/tests/unit/log/log-basic.test.js
- * @version         0.3.3
- * @release         2025-08-31
+ * @version         0.3.4
+ * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -404,7 +404,7 @@ describe('Log Controller Context Extraction', () => {
             ip: '192.168.1.100'
         };
 
-        LogController.consoleApi(mockReq, 'API call');
+        LogController.logRequest(mockReq, 'API call');
 
         expect(consoleLogs).toHaveLength(1);
         expect(consoleLogs[0]).toMatch(/^==\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}, ===, testuser, ip:192\.168\.1\.100, vm:0, id:0, === API call$/);

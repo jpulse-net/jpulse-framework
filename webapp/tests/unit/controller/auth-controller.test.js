@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         0.3.3
- * @release         2025-08-31
+ * @version         0.3.4
+ * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -47,7 +47,7 @@ describe('AuthController', () => {
         mockNext = jest.fn();
 
         // Setup mock LogController
-        LogController.consoleApi = jest.fn();
+        LogController.logRequest = jest.fn();
         LogController.console = jest.fn();
         LogController.error = jest.fn();
 
@@ -277,7 +277,7 @@ describe('AuthController', () => {
 
                 await AuthController.login(mockReq, mockRes);
 
-                expect(LogController.consoleApi).toHaveBeenCalledWith(
+                expect(LogController.logRequest).toHaveBeenCalledWith(
                     mockReq, 'auth.login( {"identifier":"testuser"} )'
                 );
                 expect(UserModel.authenticate).toHaveBeenCalledWith('testuser', 'password123');
@@ -382,7 +382,7 @@ describe('AuthController', () => {
 
                 await AuthController.logout(mockReq, mockRes);
 
-                expect(LogController.consoleApi).toHaveBeenCalledWith(
+                expect(LogController.logRequest).toHaveBeenCalledWith(
                     mockReq, 'auth.logout( testuser )'
                 );
                 expect(mockReq.session.destroy).toHaveBeenCalled();
@@ -402,7 +402,7 @@ describe('AuthController', () => {
 
                 await AuthController.logout(mockReq, mockRes);
 
-                expect(LogController.consoleApi).toHaveBeenCalledWith(
+                expect(LogController.logRequest).toHaveBeenCalledWith(
                     mockReq, 'auth.logout( (unknown) )'
                 );
                 expect(mockRes.json).toHaveBeenCalledWith({

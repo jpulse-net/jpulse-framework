@@ -3,8 +3,8 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         0.3.3
- * @release         2025-08-31
+ * @version         0.3.4
+ * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,6 +15,7 @@
 import UserModel from '../model/user.js';
 import LogController from './log.js';
 import CommonUtils from '../utils/common.js';
+import i18n from '../translations/i18n.js';
 
 /**
  * Auth Controller - handles authentication, authorization, and middleware
@@ -82,8 +83,9 @@ class AuthController {
      */
     static requireAuthentication(req, res, next) {
         if (!AuthController.isAuthenticated(req)) {
-            LogController.error(req, 'Authentication required - access denied');
-            return CommonUtils.sendError(req, res, 401, 'Authentication required', 'UNAUTHORIZED');
+            LogController.error(req, 'auth.requireAuthentication: error: Authentication required - access denied');
+            const message = i18n.translate('controller.auth.authenticationRequired');
+            return CommonUtils.sendError(req, res, 401, message, 'UNAUTHORIZED');
         }
         next();
     }
@@ -97,14 +99,16 @@ class AuthController {
     static requireRole(roles) {
         return (req, res, next) => {
             if (!AuthController.isAuthenticated(req)) {
-                LogController.error(req, 'Authentication required for role check - access denied');
-                return CommonUtils.sendError(req, res, 401, 'Authentication required', 'UNAUTHORIZED');
+                LogController.error(req, 'auth.requireRole: error: Authentication required for role check - access denied');
+                const message = i18n.translate('controller.auth.authenticationRequired');
+                return CommonUtils.sendError(req, res, 401, message, 'UNAUTHORIZED');
             }
 
             if (!AuthController.isAuthorized(req, roles)) {
                 const roleList = Array.isArray(roles) ? roles.join(', ') : roles;
-                LogController.error(req, `Role required (${roleList}) - access denied for user ${req.session.user.loginId}`);
-                return CommonUtils.sendError(req, res, 403, `Required role: ${roleList}`, 'INSUFFICIENT_PRIVILEGES');
+                LogController.error(req, `auth.requireRole: error: Role required (${roleList}) - access denied for user ${req.session.user.loginId}`);
+                const message = i18n.translate('controller.auth.roleRequired', { roles: roleList });
+                return CommonUtils.sendError(req, res, 403, message, 'INSUFFICIENT_PRIVILEGES');
             }
 
             next();
@@ -159,14 +163,16 @@ class AuthController {
      */
     static async login(req, res) {
         try {
-            LogController.consoleApi(req, `auth.login( ${JSON.stringify({ identifier: req.body.identifier })} )`);
+            LogController.logRequest(req, `auth.login( ${JSON.stringify({ identifier: req.body.identifier })} )`);
 
             const { identifier, password } = req.body;
 
             if (!identifier || !password) {
+                LogController.error(req, 'auth.login: error: Both identifier (loginId or email) and password are required');
+                const message = i18n.translate('controller.auth.idAndPasswordRequired');
                 return res.status(400).json({
                     success: false,
-                    error: 'Both identifier (loginId or email) and password are required',
+                    error: message,
                     code: 'MISSING_CREDENTIALS'
                 });
             }
@@ -175,10 +181,11 @@ class AuthController {
             const user = await UserModel.authenticate(identifier, password);
 
             if (!user) {
-                LogController.error(req, `Login failed for identifier: ${identifier}`);
+                LogController.error(req, `auth.login: error: Login failed for identifier: ${identifier}`);
+                const message = i18n.translate('controller.auth.invalidCredentials');
                 return res.status(401).json({
                     success: false,
-                    error: 'Invalid credentials',
+                    error: message,
                     code: 'INVALID_CREDENTIALS'
                 });
             }
@@ -203,21 +210,22 @@ class AuthController {
                 authenticated: true
             };
 
-            LogController.console(req, `User ${user.loginId} logged in successfully`);
-
+            LogController.console(req, `auth.login: success: User ${user.loginId} logged in successfully`);
+            const message = i18n.translate('controller.auth.loginSuccessful');
             res.json({
                 success: true,
                 data: {
                     user: req.session.user
                 },
-                message: 'Login successful'
+                message: message
             });
 
         } catch (error) {
-            LogController.error(req, `auth.login failed: ${error.message}`);
+            LogController.error(req, `auth.login: failed: ${error.message}`);
+            const message = i18n.translate('controller.auth.loginInternalError', { error: error.message });
             res.status(500).json({
                 success: false,
-                error: 'Internal server error during login',
+                error: message,
                 code: 'INTERNAL_ERROR',
                 details: error.message
             });
@@ -234,32 +242,34 @@ class AuthController {
         try {
             const loginId = req.session.user ? req.session.user.loginId : '(unknown)';
 
-            LogController.consoleApi(req, `auth.logout( ${loginId} )`);
+            LogController.logRequest(req, `auth.logout( ${loginId} )`);
 
             // Destroy session
             req.session.destroy((err) => {
                 if (err) {
-                    LogController.error(req, `auth.logout failed: ${err.message}`);
+                    LogController.error(req, `auth.logout: failed: ${err.message}`);
+                    const message = i18n.translate('controller.auth.logoutFailed');
                     return res.status(500).json({
                         success: false,
-                        error: 'Failed to logout',
+                        error: message,
                         code: 'LOGOUT_ERROR'
                     });
                 }
 
-                LogController.console(req, `User ${loginId} logged out successfully`);
-
+                LogController.console(req, `auth.logout: success: User ${loginId} logged out successfully`);
+                const message = i18n.translate('controller.auth.logoutSuccessful');
                 res.json({
                     success: true,
-                    message: 'Logout successful'
+                    message: message
                 });
             });
 
         } catch (error) {
-            LogController.error(req, `auth.logout failed: ${error.message}`);
+            LogController.error(req, `auth.logout: failed: ${error.message}`);
+            const message = i18n.translate('controller.auth.logoutInternalError', { error: error.message });
             res.status(500).json({
                 success: false,
-                error: 'Internal server error during logout',
+                error: message,
                 code: 'INTERNAL_ERROR',
                 details: error.message
             });

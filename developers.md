@@ -1,8 +1,9 @@
-# jPulse Framework / Developer Documentation v0.3.3
+# jPulse Framework / Developer Documentation v0.3.4
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.3.2):**
+**Latest Updates (v0.3.4):**
+- 🌐 **I18n and Logging Consistency (W-029)**: User-facing messages internationalized and controller logs standardized for clarity and consistency.
 - 🌐 **I18n Structure Alignment (W-027)**: Language files restructured to match controller and view architecture
 - 📁 **Improved Translation Organization**: Translation keys now organized by controller/view structure for better maintainability
 - 🔧 **Enhanced Template Integration**: Streamlined handlebars variable processing with restructured language files
@@ -34,6 +35,33 @@ Technical documentation for developers working on the jPulse Framework. This doc
 - **Security**: Password hashing, session management, path traversal protection, input validation
 
 ## 🏗️ Application Architecture Details
+
+### Consistency in Messaging and Logging (W-029)
+
+#### Problem Statement
+Across various controllers, user-facing messages (both success and error) were often hardcoded and lacked consistent internationalization. Additionally, logging patterns varied, leading to redundant entries or unclear messages, hindering debugging and auditing efforts.
+
+#### Solution Architecture
+A standardized approach was implemented to ensure all user-facing messages are internationalized using `i18n.translate()` and that `LogController` entries follow a consistent format and placement.
+
+#### Key Principles
+1.  **Internationalization for All User Messages**: All messages returned in `res.json` or through `CommonUtils.sendError` are now translated using `i18n.translate(key, context)`. This ensures multi-language support and simplifies message management.
+2.  **Consistent Logging Format**: All `LogController.console()` and `LogController.error()` messages now adhere to the `<controller>.<method>: <type>: <message>` format (e.g., `config.get: error: id is required`). This improves readability and searchability of logs.
+3.  **Log-Message Pairing**: Every user-facing message is immediately preceded by a corresponding `LogController` entry. This provides a clear audit trail in the logs for every response sent to the client.
+4.  **Single Log Entry in Catch Blocks**: To avoid redundant logging, `catch` blocks now contain only one initial `LogController.error` entry at the beginning. Subsequent conditional error responses within the `catch` block (e.g., specific error handling for duplicate keys) are not preceded by additional `LogController` calls.
+5.  **No Log Before Throw**: `LogController.error` calls are *not* placed immediately before `throw new Error` statements in internal helper functions, as the error will be caught and logged by the outer `try...catch` block, preventing duplicate entries.
+
+#### Benefits Achieved
+1.  **Enhanced Maintainability**: Easier to manage and update user messages across multiple languages.
+2.  **Improved Debugging**: Clear, consistent log entries provide a reliable timeline of events and responses.
+3.  **Better User Experience**: Consistent and translated error/success messages for all users.
+4.  **Reduced Log Noise**: Eliminates duplicate log entries for errors, making logs more concise.
+5.  **Standardized Development**: Enforces a consistent pattern for handling messages and logs across the entire application, improving team collaboration and code quality.
+
+#### Migration Impact
+- **Controllers Updated**: `config.js`, `view.js`, `log.js`, `auth.js`, and `user.js` have been updated to reflect these new patterns.
+- **Translation Keys**: New translation keys have been added to `lang-en.conf` (and other language files) following a `controller.<controllerName>.<method>.<key>` or `controller.<controllerName>.<key>` pattern.
+- **Minimal API Changes**: These changes are primarily internal, affecting message and logging infrastructure without altering existing API endpoint behavior.
 
 ### Express Application Bootstrap (W-001)
 
@@ -443,7 +471,7 @@ class UserController {
     // User search with middleware protection
     static async search(req, res) {
         const startTime = Date.now();
-        LogController.consoleApi(req, `user.search( ${JSON.stringify(req.query)} )`);
+        LogController.logRequest(req, `user.search( ${JSON.stringify(req.query)} )`);
 
         // Authentication and authorization handled by AuthController.requireRole(['admin', 'root']) middleware
 
@@ -516,7 +544,7 @@ app.use(session(sessionConfig));
 static async signup(req, res) {
     const { firstName, lastName, username, email, password, confirmPassword, acceptTerms } = req.body;
 
-    LogController.consoleApi(req, `user.signup( {"username":"${username}","email":"${email}"} )`);
+    LogController.logRequest(req, `user.signup( {"username":"${username}","email":"${email}"} )`);
 
     try {
         // Validation checks
@@ -763,7 +791,7 @@ class LogController {
     }
 
     // API-specific logging with enhanced format
-    static consoleApi(req, message) {
+    static logRequest(req, message) {
         const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
         const loginId = req?.session?.user?.loginId || '(guest)';
         const clientIp = req?.ip || req?.connection?.remoteAddress || 'unknown';
@@ -793,7 +821,7 @@ class LogController {
 // MongoDB log search with CommonUtils integration and elapsed time
 static async search(req, res) {
     const startTime = Date.now();
-    LogController.consoleApi(req, `log.search( ${JSON.stringify(req.query)} )`);
+    LogController.logRequest(req, `log.search( ${JSON.stringify(req.query)} )`);
 
     const results = await LogModel.search(req.query);
     const elapsed = Date.now() - startTime;

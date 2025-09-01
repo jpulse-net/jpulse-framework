@@ -3,8 +3,8 @@
  * @tagline         Log Controller for jPulse Framework WebApp
  * @description     This is the log controller for the jPulse Framework WebApp
  * @file            webapp/controller/log.js
- * @version         0.3.3
- * @release         2025-08-31
+ * @version         0.3.4
+ * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -30,25 +30,27 @@ class LogController {
     static async search(req, res) {
         const startTime = Date.now();
         try {
-            LogController.consoleApi(req, `log.search( ${JSON.stringify(req.query)} )`);
+            LogController.logRequest(req, `log.search( ${JSON.stringify(req.query)} )`);
 
             const results = await LogModel.search(req.query);
             const elapsed = Date.now() - startTime;
 
-            LogController.console(req, `log.search completed in ${elapsed}ms`);
+            LogController.console(req, `log.search: completed in ${elapsed}ms`);
 
+            const message = i18n.translate('controller.log.searchSuccess', { count: results.data.length });
             res.json({
                 success: true,
-                message: `Found ${results.data.length} log entries`,
+                message: message,
                 ...results,
                 elapsed
             });
 
         } catch (error) {
-            LogController.error(req, `log.search failed: ${error.message}`);
+            LogController.error(req, `log.search: error: ${error.message}`);
+            const message = i18n.translate('controller.log.searchError');
             res.status(500).json({
                 success: false,
-                error: 'Internal server error while searching logs',
+                error: message,
                 code: 'SEARCH_ERROR',
                 details: error.message
             });
@@ -178,7 +180,7 @@ class LogController {
      * @param {object} req - Express request object
      * @param {string} message - Message to log
      */
-    static consoleApi(req, message) {
+    static logRequest(req, message) {
         const timestamp = LogController.formatTimestamp();
         const context = LogController.getContext(req);
         const sanitizedMessage = LogController.sanitizeMessage(message);
@@ -261,6 +263,6 @@ class LogController {
 export default LogController;
 
 // Named exports for direct function access
-export const { search, console: logConsole, consoleApi, error: logError, logChange } = LogController;
+export const { search, console: logConsole, logRequest, error: logError, logChange } = LogController;
 
 // EOF webapp/controller/log.js

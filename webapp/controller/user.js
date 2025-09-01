@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         0.3.3
- * @release         2025-08-31
+ * @version         0.3.4
+ * @release         2025-09-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,6 +15,7 @@
 import UserModel from '../model/user.js';
 import LogController from './log.js';
 import AuthController from './auth.js';
+import i18n from '../translations/i18n.js';
 
 /**
  * User Controller - handles /api/1/user/* REST API endpoints (excluding login/logout which moved to AuthController)
@@ -30,33 +31,39 @@ class UserController {
      */
     static async signup(req, res) {
         try {
-            LogController.consoleApi(req, `user.signup( ${JSON.stringify({ username: req.body.username, email: req.body.email })} )`);
+            LogController.logRequest(req, `user.signup( ${JSON.stringify({ username: req.body.username, email: req.body.email })} )`);
 
             const { firstName, lastName, username, email, password, confirmPassword, acceptTerms } = req.body;
 
             // Validate required fields
             if (!firstName || !lastName || !username || !email || !password) {
+                LogController.error(req, 'user.signup: error: missing required fields');
+                const message = i18n.translate('controller.user.signup.missingFields');
                 return res.status(400).json({
                     success: false,
-                    error: 'All fields are required: firstName, lastName, username, email, password',
+                    error: message,
                     code: 'MISSING_FIELDS'
                 });
             }
 
             // Validate password confirmation
             if (password !== confirmPassword) {
+                LogController.error(req, 'user.signup: error: password mismatch');
+                const message = i18n.translate('controller.user.signup.passwordMismatch');
                 return res.status(400).json({
                     success: false,
-                    error: 'Passwords do not match',
+                    error: message,
                     code: 'PASSWORD_MISMATCH'
                 });
             }
 
             // Validate terms acceptance
             if (!acceptTerms) {
+                LogController.error(req, 'user.signup: error: terms not accepted');
+                const message = i18n.translate('controller.user.signup.termsNotAccepted');
                 return res.status(400).json({
                     success: false,
-                    error: 'You must accept the terms and conditions',
+                    error: message,
                     code: 'TERMS_NOT_ACCEPTED'
                 });
             }
@@ -83,8 +90,8 @@ class UserController {
             // Create user
             const newUser = await UserModel.create(userData);
 
-            LogController.console(req, `User ${newUser.loginId} created successfully`);
-
+            LogController.console(req, `user.signup: success: ${newUser.loginId} created successfully`);
+            const message = i18n.translate('controller.user.signup.accountCreatedSuccessfully');
             res.status(201).json({
                 success: true,
                 data: {
@@ -96,40 +103,45 @@ class UserController {
                         lastName: newUser.profile.lastName
                     }
                 },
-                message: 'User account created successfully'
+                message: message
             });
 
         } catch (error) {
-            LogController.error(req, `user.signup failed: ${error.message}`);
+            LogController.error(req, `user.signup: error: ${error.message}`);
 
             // Handle specific error types
             if (error.message.includes('Username already exists')) {
+                const message = i18n.translate('controller.user.signup.usernameExists');
                 return res.status(409).json({
                     success: false,
-                    error: 'Username already exists. Please choose another.',
+                    error: message,
                     code: 'USERNAME_EXISTS'
                 });
             }
 
             if (error.message.includes('Email address already registered')) {
+                const message = i18n.translate('controller.user.signup.emailExists');
                 return res.status(409).json({
                     success: false,
-                    error: 'Email address already registered. Please sign in instead.',
+                    error: message,
                     code: 'EMAIL_EXISTS'
                 });
             }
 
             if (error.message.includes('Validation failed')) {
+                const message = i18n.translate('controller.user.signup.validationFailed', { details: error.message });
                 return res.status(400).json({
                     success: false,
-                    error: error.message,
-                    code: 'VALIDATION_ERROR'
+                    error: message,
+                    code: 'VALIDATION_ERROR',
+                    details: error.message
                 });
             }
 
+            const message = i18n.translate('controller.user.signup.internalError', { details: error.message });
             res.status(500).json({
                 success: false,
-                error: 'Internal server error during signup',
+                error: message,
                 code: 'INTERNAL_ERROR',
                 details: error.message
             });
@@ -142,9 +154,9 @@ class UserController {
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
-    static async getProfile(req, res) {
+    static async get(req, res) {
         try {
-            LogController.consoleApi(req, `user.getProfile()`);
+            LogController.logRequest(req, `user.get()`);
 
             // Authentication is handled by AuthController.requireAuthentication middleware
 
@@ -152,9 +164,11 @@ class UserController {
             const user = await UserModel.findById(req.session.user.id);
 
             if (!user) {
+                LogController.error(req, `user.get: error: user not found for session ID: ${req.session.user.id}`);
+                const message = i18n.translate('controller.user.profile.userNotFound');
                 return res.status(404).json({
                     success: false,
-                    error: 'User not found',
+                    error: message,
                     code: 'USER_NOT_FOUND'
                 });
             }
@@ -162,17 +176,20 @@ class UserController {
             // Remove sensitive data
             const { passwordHash, ...userProfile } = user;
 
+            LogController.console(req, `user.get: success: profile retrieved for user ${req.session.user.loginId}`);
+            const message = i18n.translate('controller.user.profile.retrievedSuccessfully');
             res.json({
                 success: true,
                 data: userProfile,
-                message: 'Profile retrieved successfully'
+                message: message
             });
 
         } catch (error) {
-            LogController.error(req, `user.getProfile failed: ${error.message}`);
+            LogController.error(req, `user.get: error: ${error.message}`);
+            const message = i18n.translate('controller.user.profile.internalError', { details: error.message });
             res.status(500).json({
                 success: false,
-                error: 'Internal server error while retrieving profile',
+                error: message,
                 code: 'INTERNAL_ERROR',
                 details: error.message
             });
@@ -185,9 +202,9 @@ class UserController {
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
-    static async updateProfile(req, res) {
+    static async update(req, res) {
         try {
-            LogController.consoleApi(req, `user.updateProfile( ${JSON.stringify(req.body)} )`);
+            LogController.logRequest(req, `user.update( ${JSON.stringify(req.body)} )`);
 
             // Authentication is handled by AuthController.requireAuthentication middleware
 
@@ -209,9 +226,11 @@ class UserController {
             }
 
             if (Object.keys(filteredData).length === 0) {
+                LogController.error(req, 'user.update: error: no valid fields to update');
+                const message = i18n.translate('controller.user.profile.noValidFieldsToUpdate');
                 return res.status(400).json({
                     success: false,
-                    error: 'No valid fields to update',
+                    error: message,
                     code: 'NO_UPDATE_DATA'
                 });
             }
@@ -219,9 +238,11 @@ class UserController {
             const updatedUser = await UserModel.updateById(req.session.user.id, filteredData);
 
             if (!updatedUser) {
+                LogController.error(req, `user.update: error: user not found for session ID: ${req.session.user.id}`);
+                const message = i18n.translate('controller.user.profile.userNotFound');
                 return res.status(404).json({
                     success: false,
-                    error: 'User not found',
+                    error: message,
                     code: 'USER_NOT_FOUND'
                 });
             }
@@ -232,25 +253,29 @@ class UserController {
             // Remove sensitive data
             const { passwordHash, ...userProfile } = updatedUser;
 
+            LogController.console(req, `user.update: success: profile updated for user ${req.session.user.loginId}`);
+            const message = i18n.translate('controller.user.profile.updatedSuccessfully');
             res.json({
                 success: true,
                 data: userProfile,
-                message: 'Profile updated successfully'
+                message: message
             });
 
         } catch (error) {
-            LogController.error(req, `user.updateProfile failed: ${error.message}`);
+            LogController.error(req, `user.update: error: ${error.message}`);
             if (error.message.includes('Validation failed')) {
+                const message = i18n.translate('controller.user.profile.validationFailed', { details: error.message });
                 return res.status(400).json({
                     success: false,
-                    error: 'Validation failed',
+                    error: message,
                     code: 'VALIDATION_ERROR',
                     details: error.message
                 });
             }
+            const message = i18n.translate('controller.user.profile.updateInternalError', { details: error.message });
             res.status(500).json({
                 success: false,
-                error: 'Internal server error while updating profile',
+                error: message,
                 code: 'INTERNAL_ERROR',
                 details: error.message
             });
@@ -265,16 +290,18 @@ class UserController {
      */
     static async changePassword(req, res) {
         try {
-            LogController.consoleApi(req, `user.changePassword()`);
+            LogController.logRequest(req, `user.changePassword()`);
 
             // Authentication is handled by AuthController.requireAuthentication middleware
 
             const { currentPassword, newPassword } = req.body;
 
             if (!currentPassword || !newPassword) {
+                LogController.error(req, 'user.changePassword: error: missing current or new password');
+                const message = i18n.translate('controller.user.password.missingPasswords');
                 return res.status(400).json({
                     success: false,
-                    error: 'Both current and new passwords are required',
+                    error: message,
                     code: 'MISSING_PASSWORDS'
                 });
             }
@@ -282,9 +309,11 @@ class UserController {
             // Get current user
             const user = await UserModel.findById(req.session.user.id);
             if (!user) {
+                LogController.error(req, `user.changePassword: error: user not found for session ID: ${req.session.user.id}`);
+                const message = i18n.translate('controller.user.password.userNotFound');
                 return res.status(404).json({
                     success: false,
-                    error: 'User not found',
+                    error: message,
                     code: 'USER_NOT_FOUND'
                 });
             }
@@ -292,9 +321,11 @@ class UserController {
             // Verify current password
             const isCurrentValid = await UserModel.verifyPassword(currentPassword, user.passwordHash);
             if (!isCurrentValid) {
+                LogController.error(req, `user.changePassword: error: invalid current password for user ${req.session.user.loginId}`);
+                const message = i18n.translate('controller.user.password.invalidCurrentPassword');
                 return res.status(400).json({
                     success: false,
-                    error: 'Current password is incorrect',
+                    error: message,
                     code: 'INVALID_CURRENT_PASSWORD'
                 });
             }
@@ -307,26 +338,29 @@ class UserController {
 
             await UserModel.updateById(req.session.user.id, updateData);
 
-            LogController.console(req, `Password changed successfully for user ${req.session.user.loginId}`);
+            LogController.console(req, `user.changePassword: success: Password changed for user ${req.session.user.loginId}`);
 
+            const message = i18n.translate('controller.user.password.changedSuccessfully');
             res.json({
                 success: true,
-                message: 'Password changed successfully'
+                message: message
             });
 
         } catch (error) {
-            LogController.error(req, `user.changePassword failed: ${error.message}`);
+            LogController.error(req, `user.changePassword: error: ${error.message}`);
             if (error.message.includes('Password must be at least')) {
+                const message = i18n.translate('controller.user.password.policyError', { details: error.message });
                 return res.status(400).json({
                     success: false,
-                    error: 'Password validation failed',
+                    error: message,
                     code: 'PASSWORD_POLICY_ERROR',
                     details: error.message
                 });
             }
+            const message = i18n.translate('controller.user.password.internalError', { details: error.message });
             res.status(500).json({
                 success: false,
-                error: 'Internal server error while changing password',
+                error: message,
                 code: 'INTERNAL_ERROR',
                 details: error.message
             });
@@ -342,28 +376,29 @@ class UserController {
     static async search(req, res) {
         const startTime = Date.now();
         try {
-            LogController.consoleApi(req, `user.search( ${JSON.stringify(req.query)} )`);
+            LogController.logRequest(req, `user.search( ${JSON.stringify(req.query)} )`);
 
             // Authentication and authorization are handled by AuthController.requireRole(['admin', 'root']) middleware
 
             const results = await UserModel.search(req.query);
             const elapsed = Date.now() - startTime;
 
-            LogController.console(req, `user.search completed in ${elapsed}ms`);
-
+            LogController.console(req, `user.search: success: completed in ${elapsed}ms`);
+            const message = i18n.translate('controller.user.search.success', { count: results.data.length });
             res.json({
                 success: true,
-                message: `Found ${results.data.length} users`,
+                message: message,
                 ...results,
                 elapsed
             });
 
         } catch (error) {
-            LogController.error(req, `user.search failed: ${error.message}`);
+            LogController.error(req, `user.search: error: ${error.message}`);
+            const message = i18n.translate('controller.user.search.internalError', { details: error.message });
             res.status(500).json({
                 success: false,
-                error: 'Internal server error while searching users',
-                code: 'SEARCH_ERROR',
+                error: message,
+                code: 'INTERNAL_ERROR',
                 details: error.message
             });
         }

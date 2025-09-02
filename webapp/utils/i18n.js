@@ -15,6 +15,7 @@
 // Load required modules for path resolution and file system operations
 import { join } from 'node:path';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import CommonUtils from './common.js';
 
 /**
  * Deep clone an object
@@ -175,7 +176,7 @@ function loadTranslations() {
 
         // Check if translations directory exists
         if (!existsSync(translationsDir)) {
-            console.error('i18n Warning: Translations directory not found:', translationsDir);
+            global.LogController.logError(null, `i18n: error: Translations directory not found: ${translationsDir}`);
             process.exit(1);
         }
         // Read directory and filter for *.conf files
@@ -187,7 +188,7 @@ function loadTranslations() {
                 name: file
             }));
         if (langFiles.length === 0) {
-            console.error('i18n Warning: No translation files found in', translationsDir);
+            global.LogController.logError(null, `i18n: error: No translation files found in ${translationsDir}`);
             process.exit(1);
         }
         // Sort files to load default language first
@@ -229,7 +230,7 @@ function loadTranslations() {
         }
         return i18n;
     } catch (error) {
-        console.error(`i18n Error: Failed to load translations:`, error);
+        global.LogController.logError(null, `i18n: error: Failed to load translations: ${error.message}`);
         process.exit(1);
     }
 }
@@ -362,7 +363,7 @@ export async function initialize() {
 
     // Validate that we have at least one language
     if (Object.keys(i18nInstance.langs).length === 0) {
-        console.error('Error: No valid translations loaded');
+        global.LogController.logError(null, `i18n: error: No valid translations loaded`);
         process.exit(1);
     }
 
@@ -383,7 +384,7 @@ export function getInstance() {
 }
 
 // Module is ready for initialization - call initialize() to set up i18n
-console.log('i18n: Module loaded, ready for explicit initialization');
+console.log(CommonUtils.formatLogMessage('i18n: Module loaded, ready for explicit initialization'));
 
 export default {
     initialize,

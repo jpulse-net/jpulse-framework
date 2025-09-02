@@ -20,6 +20,7 @@ import session from 'express-session';
 import MongoStore from 'connect-mongo';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import CommonUtils from './utils/common.js';
 
 // Get current directory for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -40,14 +41,14 @@ async function loadAppConfig() {
         // Ensure .jpulse directory exists
         if (!fs.existsSync(jpulseDir)) {
             fs.mkdirSync(jpulseDir, { recursive: true });
-            console.log('Created .jpulse directory at project root');
+            console.log(CommonUtils.formatLogMessage('app: Created .jpulse directory at project root'));
         }
 
         // Check if JSON needs regeneration
         const needsRegeneration = shouldRegenerateConfig(fs, confPath, jsonPath);
 
         if (needsRegeneration) {
-            console.log('Configuration changed, regenerating .jpulse/app.json...');
+            console.log(CommonUtils.formatLogMessage('app: Configuration changed, regenerating .jpulse/app.json...'));
             const config = await generateConsolidatedConfig(fs, confPath);
 
             // Save consolidated config
@@ -57,16 +58,16 @@ async function loadAppConfig() {
             const sources = [{ path: confPath, type: 'framework', timestamp: fs.statSync(confPath).mtime }];
             fs.writeFileSync(sourcesPath, JSON.stringify(sources, null, 2));
 
-            console.log('Generated consolidated configuration in .jpulse/app.json');
+            console.log(CommonUtils.formatLogMessage('app: Generated consolidated configuration in .jpulse/app.json'));
             return config;
         } else {
             // Load from cached JSON
-            console.log('Using cached configuration from .jpulse/app.json');
+            console.log(CommonUtils.formatLogMessage('app: Using cached configuration from .jpulse/app.json'));
             return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
         }
 
     } catch (error) {
-        console.error('Error: Failed to load configuration', error);
+        console.error(CommonUtils.formatLogMessage(`app: error: Failed to load configuration: ${error.message}`, 'ERR'));
         process.exit(1);
     }
 }

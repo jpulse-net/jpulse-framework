@@ -361,6 +361,87 @@ class CommonUtils {
             return res.redirect(`/error/index.shtml?msg=${errorMessage}&code=${statusCode}`);
         }
     }
+
+    /**
+     * Extract context information for logging (username, IP, VM, ID)
+     * @param {object} req - Express request object (optional)
+     * @returns {object} Context object with username, ip, vm, id
+     */
+    static getLogContext(req = null) {
+        const context = {
+            username: 'guest',
+            ip: '0.0.0.0',
+            vm: 0,
+            id: 0
+        };
+
+        // Extract username from session
+        if (req?.session?.user?.username) {
+            context.username = req.session.user.username;
+        }
+
+        // Extract IP address from request
+        if (req) {
+            context.ip = req.ip ||
+                       req.connection?.remoteAddress ||
+                       req.socket?.remoteAddress ||
+                       (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
+                       '0.0.0.0';
+
+            // Clean up IPv6 mapped IPv4 addresses
+            if (context.ip.startsWith('::ffff:')) {
+                context.ip = context.ip.substring(7);
+            }
+        }
+
+        // Extract VM number from hostname
+        try {
+            const hostname = os.hostname();
+            const vmMatch = hostname.match(/(\d+)$/);
+            if (vmMatch) {
+                context.vm = parseInt(vmMatch[1]);
+            }
+        } catch (error) {
+            // Ignore hostname errors
+        }
+
+        // Extract pm2 instance ID
+        if (process.env.pm_id) {
+            context.id = parseInt(process.env.pm_id) || 0;
+        } else if (process.env.NODE_APP_INSTANCE) {
+            context.id = parseInt(process.env.NODE_APP_INSTANCE) || 0;
+        }
+
+        return context;
+    }
+
+    /**
+     * Format timestamp for logging
+     * @returns {string} Formatted timestamp (YYYY-MM-DD HH:MM:SS)
+     */
+    static formatTimestamp() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    /**
+     * Format log message with consistent structure
+     * @param {string} message - Log message
+     * @param {string} level - Log level (msg, ERR, etc.)
+     * @param {object} req - Express request object (optional)
+     * @returns {string} Formatted log message
+     */
+    static formatLogMessage(message, level = 'msg', req = null) {
+        const timestamp = CommonUtils.formatTimestamp();
+        const context = CommonUtils.getLogContext(req);
+        return `- ${timestamp}, ${level}, ${context.username}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${message}`;
+    }
 }
 
 export default CommonUtils;
@@ -375,7 +456,10 @@ export const {
     generateUuid,
     isValidEmail,
     sanitizeString,
-    sendError
+    sendError,
+    getLogContext,
+    formatTimestamp,
+    formatLogMessage
 } = CommonUtils;
 
 // EOF webapp/utils/common.js

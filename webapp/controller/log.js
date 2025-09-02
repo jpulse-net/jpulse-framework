@@ -28,7 +28,7 @@ class LogController {
     static async initialize() {
         // LogController doesn't need complex initialization, but this provides consistency
         // Future enhancements could add log configuration, log level setup, etc.
-        console.log('LogController: Initialized and ready');
+        console.log(CommonUtils.formatLogMessage('LogController: Initialized and ready'));
         return LogController;
     }
 
@@ -69,74 +69,6 @@ class LogController {
     }
 
     /**
-     * Get context information from request and environment
-     * @param {object} req - Express request object
-     * @returns {object} Context information
-     */
-    static getContext(req = null) {
-        const context = {
-            username: '(guest)',
-            ip: '0.0.0.0',
-            vm: 0,
-            id: 0
-        };
-
-        // Extract username from session
-        if (req?.session?.user?.username) {
-            context.username = req.session.user.username;
-        }
-
-        // Extract IP address from request
-        if (req) {
-            context.ip = req.ip ||
-                       req.connection?.remoteAddress ||
-                       req.socket?.remoteAddress ||
-                       (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
-                       '0.0.0.0';
-
-            // Clean up IPv6 mapped IPv4 addresses
-            if (context.ip.startsWith('::ffff:')) {
-                context.ip = context.ip.substring(7);
-            }
-        }
-
-        // Extract VM number from hostname
-        try {
-            const hostname = os.hostname();
-            const vmMatch = hostname.match(/(\d+)$/);
-            if (vmMatch) {
-                context.vm = parseInt(vmMatch[1]);
-            }
-        } catch (error) {
-            // Ignore hostname errors
-        }
-
-        // Extract pm2 instance ID
-        if (process.env.pm_id) {
-            context.id = parseInt(process.env.pm_id) || 0;
-        } else if (process.env.NODE_APP_INSTANCE) {
-            context.id = parseInt(process.env.NODE_APP_INSTANCE) || 0;
-        }
-
-        return context;
-    }
-
-    /**
-     * Format timestamp for logging
-     * @returns {string} Formatted timestamp (YYYY-MM-DD HH:MM:SS)
-     */
-    static formatTimestamp() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    }
-
-    /**
      * Sanitize and truncate log messages
      * - Replace non-printable chars (newlines, tabs, etc.) with spaces
      * - Replace multiple spaces with single space
@@ -172,14 +104,14 @@ class LogController {
     }
 
     /**
-     * Unified console logging for initial API or page requests
-     * Format: "==YYYY-MM-DD HH:MM:SS, ===, loginId, ip:1.2.3.4, vm:123, id:8, === actual message"
+     * Unified console logging of request messages
+     * Format: "==YYYY-MM-DD HH:MM:SS, ===, loginId, ip:1.2.3.4, vm:123, id:8, === actual message text"
      * @param {object} req - Express request object
      * @param {string} message - Message to log
      */
     static logRequest(req, message) {
-        const timestamp = LogController.formatTimestamp();
-        const context = LogController.getContext(req);
+        const timestamp = CommonUtils.formatTimestamp();
+        const context = CommonUtils.getLogContext(req);
         const sanitizedMessage = LogController.sanitizeMessage(message);
         const logLine = `==${timestamp}, ===, ${context.username}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, === ${sanitizedMessage}`;
         console.log(logLine);
@@ -192,8 +124,8 @@ class LogController {
      * @param {string} message - Message to log
      */
     static logInfo(req, message) {
-        const timestamp = LogController.formatTimestamp();
-        const context = LogController.getContext(req);
+        const timestamp = CommonUtils.formatTimestamp();
+        const context = CommonUtils.getLogContext(req);
         const sanitizedMessage = LogController.sanitizeMessage(message);
         const logLine = `- ${timestamp}, msg, ${context.username}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${sanitizedMessage}`;
         console.log(logLine);
@@ -206,11 +138,11 @@ class LogController {
      * @param {string} error - Error message to log
      */
     static logError(req, error) {
-        const timestamp = LogController.formatTimestamp();
-        const context = LogController.getContext(req);
+        const timestamp = CommonUtils.formatTimestamp();
+        const context = CommonUtils.getLogContext(req);
         const sanitizedMessage = LogController.sanitizeMessage(error);
         const logLine = `- ${timestamp}, ERR, ${context.username}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${sanitizedMessage}`;
-        console.error(logLine);
+        console.log(logLine);
     }
 
     /**
@@ -225,7 +157,7 @@ class LogController {
      */
     static async logChange(req, docType, action, docId, oldDoc = null, newDoc = null) {
         try {
-            const context = LogController.getContext(req);
+            const context = CommonUtils.getLogContext(req);
             const createdBy = context.username;
 
             // Log to database

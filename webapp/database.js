@@ -13,6 +13,7 @@
  */
 
 import { MongoClient } from 'mongodb';
+import CommonUtils from './utils/common.js';
 
 let db = null;
 let client = null;
@@ -58,20 +59,10 @@ async function connect() {
         await client.connect();
         db = client.db(dbName);
 
-        // Use LogController if available, otherwise fallback to console
-        if (global.LogController) {
-            LogController.logInfo(null, `database: Connected to: ${dbName} (${dbMode} mode)`);
-        } else {
-            console.log(`database: Connected to: ${dbName} (${dbMode} mode)`);
-        }
+        console.log(CommonUtils.formatLogMessage(`database: Connected to: ${dbName} (${dbMode} mode)`));
         return true;
     } catch (error) {
-        // Use LogController if available, otherwise fallback to console
-        if (global.LogController) {
-            LogController.logError(null, `database: Connection failed (continuing without database): ${error.message}`);
-        } else {
-            console.warn('database: Connection failed (continuing without database):', error.message);
-        }
+        console.error(CommonUtils.formatLogMessage(`database: error: Connection failed (continuing without database): ${error.message}`, 'ERR'));
         return false;
     }
 }
@@ -101,12 +92,7 @@ async function close() {
         await client.close();
         db = null;
         client = null;
-        // Use LogController if available, otherwise fallback to console
-        if (global.LogController) {
-            LogController.console(null, 'Database connection closed');
-        } else {
-            console.log('Database connection closed');
-        }
+        console.log(CommonUtils.formatLogMessage('database: Connection closed'));
     }
 }
 
@@ -136,12 +122,7 @@ async function initialize() {
             isInitialized = connected;
             return connected;
         } catch (error) {
-            // Use LogController if available, otherwise fallback to console
-            if (global.LogController) {
-                LogController.logError(null, `database: Failed to initialize database connection: ${error.message}`);
-            } else {
-                console.warn('database: Failed to initialize database connection:', error.message);
-            }
+            console.error(CommonUtils.formatLogMessage(`database: error: Failed to initialize database connection: ${error.message}`, 'ERR'));
             isInitialized = false;
             return false;
         }
@@ -158,7 +139,7 @@ export function isReady() {
 }
 
 // Remove automatic initialization - let app.js and tests control when this happens
-console.log('database: Module loaded, waiting for explicit initialization');
+console.log(CommonUtils.formatLogMessage('database: Module loaded, waiting for explicit initialization'));
 
 export default {
     initialize,

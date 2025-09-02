@@ -1297,9 +1297,9 @@ Changes were accepted.
 
 ============================================================
 
-2025-09-01 12:11: **W-026**: Configuration strategy analysis for ESM compatibility and W-014 plugin infrastructure
+2025-09-01 12:11: **W-033**: Configuration strategy analysis for ESM compatibility and W-014 plugin infrastructure
 
-User requested advice on W-026 (tests: fix issues with ECMAScript Modules loading and appConfig) with consideration for W-014 (strategy for seamless update of site-specific jPulse deployments).
+User requested advice on W-033 (tests: fix issues with ECMAScript Modules loading and appConfig) with consideration for W-014 (strategy for seamless update of site-specific jPulse deployments).
 
 Current status: Test Suites: 5 failed, 13 passed, 18 total; Tests: 8 failed, 285 passed, 293 total
 
@@ -1327,7 +1327,7 @@ Directory Structure:
 jpulse-framework/                   # Project root
 ├── .jpulse/                        # Framework metadata (ROOT LEVEL)
 │   ├── app.json                    # Consolidated runtime configuration
-│   ├── config-sources.json        # Source file tracking
+│   ├── config-sources.json         # Source file tracking
 │   ├── plugins.json                # Plugin registry and status
 │   ├── framework-version.json      # Version tracking
 │   └── update-history.json         # Update log
@@ -1350,7 +1350,7 @@ Configuration Precedence Chain:
 Framework app.conf (priority 1) → Plugin config.conf files (priority 2) → Site app.conf (priority 3) → .jpulse/app.json (final runtime config)
 
 IMPLEMENTATION PHASES:
-Phase 1 (W-026 Fix):
+Phase 1 (W-033 Fix):
 - Create .jpulse/ directory at project root
 - Implement timestamp-based configuration consolidation in app.js
 - Update tests to use consolidated JSON configuration
@@ -1374,14 +1374,14 @@ BENEFITS:
 ✅ Development Efficiency: Changes detected and applied immediately
 ✅ Test Reliability: Consistent configuration source eliminates race conditions
 
-FINAL RECOMMENDATION: Implement root-level .jpulse/ with runtime configuration consolidation. This solves immediate W-026 test failures while creating optimal foundation for plugin infrastructure and W-014 seamless updates.
+FINAL RECOMMENDATION: Implement root-level .jpulse/ with runtime configuration consolidation. This solves immediate W-033 test failures while creating optimal foundation for plugin infrastructure and W-014 seamless updates.
 
 
 
 
 ============================================================
 
-2025-09-01 15:57: **W-026**: ESM compatibility and configuration consolidation - COMPLETED
+2025-09-01 15:57: **W-033**: ESM compatibility and configuration consolidation - COMPLETED
 
 Successfully resolved all ESM module loading and appConfig issues with comprehensive bootstrap architecture.
 
@@ -1439,7 +1439,7 @@ The bootstrap architecture provides excellent foundation for W-014 seamless site
 
 ==============================================================
 
-2025-09-01 16:50: W-026 COMPLETED - ESM and appConfig Issues Fixed
+2025-09-01 16:50: W-033 COMPLETED - ESM and appConfig Issues Fixed
 
 MAJOR SUCCESS: All tests now passing! 🎉
 - Test Suites: 18 passed, 18 total (was 5 failed, 13 passed)
@@ -1504,7 +1504,7 @@ Files Modified:
 - webapp/tests/unit/controller/responsive-layout.test.js (global setup, version updates)
 - package.json (--runInBand for all test scripts)
 
-W-026 Status: COMPLETE ✅
+W-033 Status: COMPLETE ✅
 Ready for W-014 (site-specific deployments) when needed.
 
 Changes accepted and working in production.
@@ -1512,7 +1512,7 @@ Changes accepted and working in production.
 
 ==============================================================
 
-2025-09-01 18:06: W-026 FINALIZED - Log Consolidation and Test Infrastructure Complete
+2025-09-01 18:06: W-033 FINALIZED - Log Consolidation and Test Infrastructure Complete
 
 FINAL SUCCESS: All 331 tests passing with consistent logging architecture! 🎉
 
@@ -1564,7 +1564,7 @@ FINAL RESULTS:
 ✅ Zero code duplication in logging utilities
 ✅ Production-ready logging architecture for enterprise use
 
-W-026 Status: COMPLETELY FINISHED ✅
+W-033 Status: COMPLETELY FINISHED ✅
 Ready for W-014 (site-specific deployments) with solid foundation.
 
 Changes accepted and logging architecture finalized.
@@ -1586,20 +1586,20 @@ This prevents test failures when versions are bumped in the future.
 
 ============================================================
 
-2025-09-01 20:55: W-026 Finalization Action Items
+2025-09-01 20:55: W-033 Finalization Action Items
 
-Completing action items for finalized W-026: tests: fix issues with ECMAScript Modules loading and appConfig
+Completing action items for finalized W-033: tests: fix issues with ECMAScript Modules loading and appConfig
 
 Action Items Completed:
-1. ✅ Updated README.md to v0.3.8 with W-026 highlights
+1. ✅ Updated README.md to v0.3.8 with W-033 highlights
 2. ✅ Updated API.md to v0.3.8
-3. ✅ Updated developers.md to v0.3.8 with W-026 entry
-4. ✅ Updated changes.md with comprehensive W-026 release notes
-5. ✅ Updated commit-message.txt following format: W-026, v0.3.8
+3. ✅ Updated developers.md to v0.3.8 with W-033 entry
+4. ✅ Updated changes.md with comprehensive W-033 release notes
+5. ✅ Updated commit-message.txt following format: W-033, v0.3.8
 6. ✅ Ready for commit (not committing per instructions)
 
-W-026 Status: COMPLETELY FINALIZED ✅**Latest Release Highlights (v0.3.8):**
-- ✅ **ESM Testing Infrastructure (W-026)**: Fixed ECMAScript Modules loading issues, implemented runtime configuration consolidation, and created shared bootstrap architecture for consistent dependency management
+W-033 Status: COMPLETELY FINALIZED ✅**Latest Release Highlights (v0.3.8):**
+- ✅ **ESM Testing Infrastructure (W-033)**: Fixed ECMAScript Modules loading issues, implemented runtime configuration consolidation, and created shared bootstrap architecture for consistent dependency management
 - ✅ **Production-Ready Logging**: Standardized logging format across all modules with consistent timestamp and context formatting
 - ✅ **Test Suite Optimization**: Achieved 100% test pass rate with improved test isolation and parallel execution support
 - ✅ **Configuration Consolidation**: Runtime .conf to .json conversion with timestamp-based caching for optimal performance
@@ -1619,3 +1619,13 @@ W-026 Status: COMPLETELY FINALIZED ✅**Latest Release Highlights (v0.3.8):**
 # jPulse Framework / API Documentation v0.3.8
 
 Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
+
+============================================================
+
+2025-09-01 21:45: User requested implementation of W-034: error reporting without redirect
+
+I implemented the requested feature by modifying `webapp/controller/view.js` to directly render the error page (`webapp/view/error/index.shtml`) when a requested view file is not found. This was achieved by setting the HTTP status code to 404 and injecting the error message and status code into the Handlebars context via `req.query`, allowing the existing error template to display the information without a browser redirect. The `fullPath` variable in `view.js` was also changed from `const` to `let` to allow reassignment.
+
+The user confirmed that the implementation is working correctly and that tests are passing.
+
+The changes were accepted.

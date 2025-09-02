@@ -3,8 +3,8 @@
 A modern, lightweight, and extensible web application framework using the MVC (model, view, controller) pattern. jPulse is built with Node.js, Express, and MongoDB, and combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content. It is extensible, where multiple teams can work independently to build large and scalable applications targeting midsize to large organizations in the government and private sector.
 
 **Latest Releases Highlights:**
-- ✅ **Improved Error Handling (W-026)**: Direct rendering of 404 error pages via `viewController` without redirects, preserving URLs and enhancing user experience
-- ✅ **ESM Testing Infrastructure (W-026)**: Fixed ECMAScript Modules loading issues, implemented runtime configuration consolidation, and created shared bootstrap architecture for consistent dependency management
+- ✅ **Improved Error Handling (W-034)**: Direct rendering of 404 error pages via `viewController` without redirects, preserving URLs and enhancing user experience
+- ✅ **ESM Testing Infrastructure (W-033)**: Fixed ECMAScript Modules loading issues, implemented runtime configuration consolidation, and created shared bootstrap architecture for consistent dependency management
 - ✅ **Production-Ready Logging**: Standardized logging format across all modules with consistent timestamp and context formatting
 - ✅ **Test Suite Optimization**: Achieved 100% test pass rate with improved test isolation and parallel execution support
 - ✅ **Configuration Consolidation**: Runtime .conf to .json conversion with timestamp-based caching for optimal performance

@@ -409,6 +409,12 @@ Requirements Doc of jPulse Framework
 - add jpulse/config-sources.json with timestamp of app.conf for auto-update of app.json
 - add webapp/utils/bootstrap.js - architecture to created centralized dependency initialization system for consistent module loading order
 
+## **W-033**: error reporting without redirect
+- status: ✅ COMPLETED
+- type: Feature
+- view controller: for 404 and other errors do not redirect to /error/index.shtml, but show error message with same style and content like webapp/view/error/index.shtml
+- keep webapp/view/error/index.shtml for client side redirects that need a 404 page
+
 
 
 
@@ -418,11 +424,28 @@ Requirements Doc of jPulse Framework
 -------------------------------------------------------------------------
 # 🚧 IN_PROGRESS Work Items
 
-## **W-026**: error reporting without redirect
-- status: ✅ COMPLETED
+
+## **W-024**: view: script separation with enhanced jpulse-common.js utilities
+- status: 🚧 IN_PROGRESS
 - type: Feature
-- view controller: for 404 and other errors do not redirect to /error/index.shtml, but show error message with same style and content like webapp/view/error/index.shtml
-- keep webapp/view/error/index.shtml for client side redirects that need a 404 page
+- objective: avoid duplicate code in browser; spend less time to create a new view and to maintain existing views
+- create a webapp/view/jpulse-common.js:
+  - common data and functions available to all pages
+  - it defines a jPulseCommon object, with properties like:
+    - alert() -- dialog
+    - confirm() -- dialog
+    - getCookie()
+    - setCookie()
+    - showMessage() -- show non-blocking slide down/up info/error message
+    - entityEncode()
+    - entityDecode()
+    - detectOs()
+    - detectBrowser()
+    - isMobile()
+    - isTouchDevice()
+    - windowHasFocus()
+- use library like bootstrap or vue?
+
 
 
 ## Potential next items:
@@ -505,27 +528,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - else considered an info message:
   - show message for 3 sec with yellow background
 - provide a common JavaScript function to show a sliding message without a msg= URL parameter
-
-## **W-024**: view: script separation with enhanced jpulse-common.js utilities
-- status: 🕑 PENDING
-- type: Feature
-- objective: avoid duplicate code in browser; spend less time to create a new view, and to maintain existing views
-- create a webapp/view/jpulse-common.js:
-  - common data and functions available to all pages
-  - it defines a jPulseCommon object, with properties like:
-    - alert() -- dialog
-    - confirm() -- dialog
-    - getCookie()
-    - setCookie()
-    - showMessage() -- show non-blocking slide down/up info/error message
-    - entityEncode()
-    - entityDecode()
-    - detectOs()
-    - detectBrowser()
-    - isMobile()
-    - isTouchDevice()
-    - windowHasFocus()
-- use library like bootstrap or vue?
 
 ## **W-025**: view: component-based styling with framework/site separation
 - status: 🕑 PENDING

@@ -3,8 +3,8 @@
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
 **Latest Updates (v0.3.8):**
-- 🚫 **Error Reporting Without Redirect (W-026)**: Modified `viewController.load` to directly render 404 error pages for UI requests, preserving the URL and enhancing user experience by removing unnecessary redirects.
-- 🧪 **ESM Testing Infrastructure (W-026)**: Fixed ECMAScript Modules loading issues, implemented runtime configuration consolidation, and created shared bootstrap architecture for consistent dependency management
+- 🚫 **Error Reporting Without Redirect (W-034)**: Modified `viewController.load` to directly render 404 error pages for UI requests, preserving the URL and enhancing user experience by removing unnecessary redirects.
+- 🧪 **ESM Testing Infrastructure (W-033)**: Fixed ECMAScript Modules loading issues, implemented runtime configuration consolidation, and created shared bootstrap architecture for consistent dependency management
 - 📊 **Production-Ready Logging**: Standardized logging format across all modules with consistent timestamp and context formatting
 - 🎯 **Test Suite Optimization**: Achieved 100% test pass rate with improved test isolation and parallel execution support
 - ⚙️ **Configuration Consolidation**: Runtime .conf to .json conversion with timestamp-based caching for optimal performance

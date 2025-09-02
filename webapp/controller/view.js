@@ -81,8 +81,9 @@ async function load(req, res) {
         const defaultTemplate = global.appConfig?.controller?.view?.defaultTemplate || 'index.shtml';
         if (filePath === '/') {
             filePath = `/home/${defaultTemplate}`;
-        } else if (!filePath.endsWith('.shtml')) {
-            filePath = filePath.replace(/\/$/, '') + `/${defaultTemplate}`;
+        } else if (filePath.endsWith('/')) {
+            // Only append default template for directory requests (ending with /)
+            filePath = filePath + defaultTemplate;
         }
 
         const viewDir = path.join(global.appConfig.app.dirName, 'view');
@@ -161,8 +162,19 @@ async function load(req, res) {
         const duration = Date.now() - startTime;
         LogController.logInfo(req, `view.load: Completed in ${duration}ms`);
 
-        // Send response
-        res.set('Content-Type', 'text/html');
+        // Send response with appropriate content type
+        const fileExtension = path.extname(filePath).toLowerCase();
+        let contentType = 'text/html';
+
+        if (fileExtension === '.css') {
+            contentType = 'text/css';
+        } else if (fileExtension === '.js') {
+            contentType = 'application/javascript';
+        } else if (fileExtension === '.tmpl') {
+            contentType = 'text/html';
+        }
+
+        res.set('Content-Type', contentType);
         res.send(content);
 
     } catch (error) {

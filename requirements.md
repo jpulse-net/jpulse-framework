@@ -399,7 +399,7 @@ Requirements Doc of jPulse Framework
 - fix user tests
 - no need to patch existing docs in users collection
 
-## **W-026**: tests: fix ECMAScript Modules infrastructure; consolidate configuration
+## **W-033**: tests: fix ECMAScript Modules infrastructure; consolidate configuration
 - status: ✅ COMPLETED
 - type: Feature
 - issue with tests clean, it does not work
@@ -409,7 +409,7 @@ Requirements Doc of jPulse Framework
 - add jpulse/config-sources.json with timestamp of app.conf for auto-update of app.json
 - add webapp/utils/bootstrap.js - architecture to created centralized dependency initialization system for consistent module loading order
 
-## **W-033**: error reporting without redirect
+## **W-034**: error reporting without redirect
 - status: ✅ COMPLETED
 - type: Feature
 - view controller: for 404 and other errors do not redirect to /error/index.shtml, but show error message with same style and content like webapp/view/error/index.shtml
@@ -421,11 +421,12 @@ Requirements Doc of jPulse Framework
 
 
 
+
 -------------------------------------------------------------------------
 # 🚧 IN_PROGRESS Work Items
 
 
-## **W-024**: view: script separation with enhanced jpulse-common.js utilities
+## **W-035**: view: script separation with enhanced jpulse-common.js utilities
 - status: 🚧 IN_PROGRESS
 - type: Feature
 - objective: avoid duplicate code in browser; spend less time to create a new view and to maintain existing views
@@ -436,7 +437,7 @@ Requirements Doc of jPulse Framework
     - confirm() -- dialog
     - getCookie()
     - setCookie()
-    - showMessage() -- show non-blocking slide down/up info/error message
+    - showMessage() -- show non-blocking slide down/up info/error message (later: W-019)
     - entityEncode()
     - entityDecode()
     - detectOs()
@@ -444,16 +445,22 @@ Requirements Doc of jPulse Framework
     - isMobile()
     - isTouchDevice()
     - windowHasFocus()
-- use library like bootstrap or vue?
+- use library like bootstrap, or continue native?
+  - at a later point offer vue.js as an option for more dynamic content per page (e.g. not SPA) (via plugin once plugin infrastructure is available?)
+
+
+
+
+
+- in jpulse-header.tmpl, load jpulse-common.js with file timestamp to avoid browser caching issues:
+  <script src="/jpulse-common.js?t={{file.timestamp "/jpulse-common.js"}}"></script>
 
 
 
 ## Potential next items:
 **W-014**: strategy for seamless update of site-specific jPulse deployments
-**W-024**: view: script separation with enhanced jpulse-common.js utilities
 **W-019**: slide down/up info and error message on top of page
 **W-013**: create site admin views
-**W-025**: view: component-based styling with framework/site separation
 **W-015**: strategy for clean onboarding
 
 ## Chat instructions
@@ -487,6 +494,13 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 
 -------------------------------------------------------------------------
 # TO-DO Work Items
+
+## **W-025**: view: component-based styling with framework/site separation
+- status: 🕑 PENDING
+- type: Feature
+- objective: clean styles, hierarchy, less duplication; spend less time to create a new view, and to maintain existing views
+- move all shareable style to webapp/view/jpulse-common.css (or directly into webapp/view/jpulse-header.tmpl ?)
+  - if only the former: include /view/jpulse-common.css in webapp/view/jpulse-header.tmpl
 
 ## **W-013**: create site admin views
 - status: 🕑 PENDING
@@ -528,13 +542,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - else considered an info message:
   - show message for 3 sec with yellow background
 - provide a common JavaScript function to show a sliding message without a msg= URL parameter
-
-## **W-025**: view: component-based styling with framework/site separation
-- status: 🕑 PENDING
-- type: Feature
-- objective: clean styles, hierarchy, less duplication; spend less time to create a new view, and to maintain existing views
-- move all shareable style to webapp/view/jpulse-header.tmpl and/or webapp/view/jpulse-footer.tmpl
-- use library like bootstrap or vue?
 
 ## **W-0**: docs: restructure user facing and developer facing documentation
 - status: 🕑 PENDING

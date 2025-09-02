@@ -1,0 +1,72 @@
+/*
+ * @name            jPulse Framework / WebApp / View / jPulse Common CSS
+ * @tagline         Common CSS of the jPulse Framework
+ * @description     This is the common CSS for the jPulse Framework
+ * @file            webapp/view/jpulse-common.css
+ * @version         0.3.9
+ * @release         2025-09-02
+ * @repository      https://github.com/peterthoeny/web-ide-bridge
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         GPL v3, see LICENSE file
+ * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ */
+
+/* ========================================
+ * PHASE 1: Alert System Styles
+ * ======================================== */
+
+.jp-alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    border: 1px solid;
+    animation: jp-alert-slide-in 0.3s ease-out;
+    position: relative;
+}
+
+.jp-alert-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border-color: #bee5eb;
+}
+
+.jp-alert-error {
+    background: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+}
+
+.jp-alert-success {
+    background: #d4edda;
+    color: #155724;
+    border-color: #c3e6cb;
+}
+
+.jp-alert-warning {
+    background: #fff3cd;
+    color: #856404;
+    border-color: #ffeaa7;
+}
+
+@keyframes jp-alert-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========================================
+ * PLACEHOLDER: Future Phase Styles
+ * ======================================== */
+
+/* Phase 2: Form components will go here */
+/* Phase 3: Button components will go here */
+/* Phase 4: Card/container components will go here */
+
+/* EOF webapp/view/jpulse-common.css */

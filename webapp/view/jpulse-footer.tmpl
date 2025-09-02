@@ -1,15 +1,15 @@
 <!-- Visual Header Banner (positioned at top via CSS) -->
-<header class="jpulse-header">
-    <div class="jpulse-header-content">
-        <a href="/" class="jpulse-logo">
-            <div class="jpulse-logo-icon">jP</div>
+<header class="jp-header">
+    <div class="jp-header-content">
+        <a href="/" class="jp-logo">
+            <div class="jp-logo-icon">jP</div>
             <span>{{app.name}}</span>
         </a>
-        <div class="jpulse-user-menu">
-            <div class="jpulse-user-icon" onclick="toggleUserMenu()">
+        <div class="jp-user-menu">
+            <div class="jp-user-icon" onclick="toggleUserMenu()">
                 <span>👤</span>
             </div>
-            <div class="jpulse-dropdown" id="userDropdown">
+            <div class="jp-dropdown" id="userDropdown">
               {{#if user.authenticated}}
                 <a href="/user/profile.shtml">{{i18n.view.auth.common.profile}}</a>
                 <a href="/user/index.shtml">{{i18n.view.user.index.title}}</a>
@@ -24,16 +24,14 @@
 </header>
 
 <!-- Footer -->
-<footer class="jpulse-footer">
-    <div class="jpulse-footer-content">
-        <div class="jpulse-footer-left">
-            <span>{{app.copyright}}</span>
-            <span class="jpulse-version">v{{app.version}}</span>
+<footer class="jp-footer">
+    <div class="jp-footer-content">
+        <div class="jp-footer-left">
+            <span>&copy; 2025 {{app.version}}</span>
+            <a href="/about">{{i18n.view.common.about}}</a>
         </div>
-        <div class="jpulse-footer-right">
-            <a href="/about">{{i18n.view.pageDecoration.about}}</a>
-            <a href="https://github.com/peterthoeny/jpulse-framework" target="_blank">{{i18n.view.pageDecoration.github}}</a>
-            <span>{{i18n.view.pageDecoration.poweredBy}}</span>
+        <div class="jp-footer-right">
+            <span class="jp-version">{{app.version}} - {{app.release}}</span>
         </div>
     </div>
 </footer>

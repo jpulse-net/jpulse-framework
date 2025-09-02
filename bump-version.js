@@ -35,6 +35,7 @@ const conf = {
         'webapp/translations/*.js',
         'webapp/translations/*.conf',
         'webapp/view/*.js',
+        'webapp/view/*.css',
         'webapp/view/*/*.shtml',
 
         // Test files

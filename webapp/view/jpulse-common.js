@@ -21,7 +21,7 @@ window.jPulseCommon = {
      * Show alert message with consistent styling
      * @param {string} message - The message to display
      * @param {string} type - Alert type: 'info', 'error', 'success', 'warning'
-     * @param {Element} container - Container element (defaults to .jpulse-main)
+     * @param {Element} container - Container element (defaults to .jp-main)
      * @param {number} duration - Auto-hide duration in ms (0 = no auto-hide)
      * @returns {Element} The created alert element
      */
@@ -32,7 +32,7 @@ window.jPulseCommon = {
 
         // Find target container
         const target = container ||
-                      document.querySelector('.jpulse-main') ||
+                      document.querySelector('.jp-main') ||
                       document.querySelector('.jp-container') ||
                       document.body;
 

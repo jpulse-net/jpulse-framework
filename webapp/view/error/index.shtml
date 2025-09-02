@@ -20,7 +20,8 @@
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
-        .main-content {
+        /* Page-specific error layout styles */
+        .error-layout {
             padding: 2rem 1rem;
             min-height: calc(100vh - 200px);
             display: flex;
@@ -28,66 +29,10 @@
             justify-content: center;
         }
 
-        .container {
-            max-width: 600px;
-            width: 100%;
-        }
-
-        .error-container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            padding: 3rem;
-            text-align: center;
-        }
-
-        .error-icon {
-            font-size: 4rem;
-            margin-bottom: 1.5rem;
-        }
-
         .error-content h1 {
             color: #e53e3e;
             font-size: 1.875rem;
             font-weight: 600;
-            margin-bottom: 2rem;
-        }
-
-        .error-details {
-            background: #f7fafc;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            text-align: left;
-        }
-
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .detail-row:last-child {
-            border-bottom: none;
-        }
-
-        .detail-row strong {
-            color: #4a5568;
-            font-weight: 600;
-            min-width: 80px;
-        }
-
-        .detail-row span {
-            color: #2d3748;
-            word-break: break-all;
-            text-align: right;
-            flex: 1;
-            margin-left: 1rem;
-        }
-
-        .error-message {
             margin-bottom: 2rem;
         }
 
@@ -98,58 +43,19 @@
             margin: 0;
         }
 
-        .error-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 500;
-            text-align: center;
-            transition: all 0.2s;
-            border: 2px solid transparent;
-            display: inline-block;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #f7fafc;
-            color: #4a5568;
-            border-color: #e2e8f0;
-        }
-
-        .btn-secondary:hover {
-            background: #edf2f7;
-            border-color: #cbd5e0;
-        }
-
         @media (max-width: 640px) {
-            .error-container {
+            .jp-error-container {
                 padding: 2rem 1.5rem;
                 margin: 1rem;
             }
 
-            .detail-row {
+            .jp-detail-row {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 0.25rem;
             }
 
-            .detail-row span {
+            .jp-detail-row span {
                 text-align: left;
                 margin-left: 0;
             }
@@ -158,46 +64,48 @@
                 flex-direction: column;
             }
 
-            .btn {
+            .jp-btn {
                 width: 100%;
             }
         }
     </style>
 </head>
 <body>
-    <div class="jpulse-main">
-        <div class="main-content">
-            <div class="container">
-                <div class="error-container">
-                    <div class="error-icon">
+    <div class="jp-main">
+        <div class="error-layout">
+            <div class="jp-container">
+                <div class="jp-error-container">
+                    <div class="jp-error-icon">
                         ⚠️
                     </div>
 
                     <div class="error-content">
                         <h1>{{i18n.view.error.title}} {{url.param.code}}</h1>
 
-                        <div class="error-details">
-                            <div class="detail-row">
+                        <div class="jp-error-details">
+                            <div class="jp-detail-row">
                                 <strong>{{i18n.view.error.message}}:</strong>
                                 <span>{{url.param.msg}}</span>
                             </div>
 
-                            <div class="detail-row">
+                            <div class="jp-detail-row">
                                 <strong>{{i18n.view.error.path}}:</strong>
                                 <span>{{url.pathname}}</span>
                             </div>
 
-                            <div class="detail-row">
+                            <div class="jp-detail-row">
                                 <strong>{{i18n.view.error.user}}:</strong>
+                                <span>
                                 {{#if user.authenticated}}
                                     {{user.firstName}}
                                 {{else}}
                                     {{i18n.view.error.guest}}
                                 {{/if}}
+                                </span>
                             </div>
                         </div>
 
-                        <div class="error-message">
+                        <div class="error-message jp-mb-30">
                           {{#if user.authenticated}}
                             <p>{{i18n.view.error.apologize}}</p>
                           {{else}}
@@ -205,16 +113,15 @@
                           {{/if}}
                         </div>
 
-                        <div class="error-actions">
-                            <a href="/" class="btn btn-primary">
+                        <div class="error-actions jp-flex-center jp-gap-15 jp-flex-wrap">
+                            <a href="/" class="jp-btn jp-btn-primary">
                                 ← {{i18n.view.error.backToHome}}
                             </a>
                           {{#if user.authenticated}}
-                            <div class="error-actions-authenticated">
-                                <a href="/auth/login.shtml" class="btn btn-secondary">
-                                    {{i18n.view.auth.common.signin}}
-                                </a>
-                            </div>
+                            {{else}}
+                            <a href="/auth/login.shtml" class="jp-btn jp-btn-secondary">
+                                {{i18n.view.auth.common.signin}}
+                            </a>
                           {{/if}}
                         </div>
                     </div>

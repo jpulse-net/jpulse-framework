@@ -415,19 +415,8 @@ Requirements Doc of jPulse Framework
 - view controller: for 404 and other errors do not redirect to /error/index.shtml, but show error message with same style and content like webapp/view/error/index.shtml
 - keep webapp/view/error/index.shtml for client side redirects that need a 404 page
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-# 🚧 IN_PROGRESS Work Items
-
-
 ## **W-035**: view: script separation with enhanced jpulse-common.js utilities
-- status: 🚧 IN_PROGRESS
+- status: ✅ COMPLETED
 - type: Feature
 - objective: avoid duplicate code in browser; spend less time to create a new view and to maintain existing views
 - create a webapp/view/jpulse-common.js:
@@ -449,20 +438,46 @@ Requirements Doc of jPulse Framework
   - at a later point offer vue.js as an option for more dynamic content per page (e.g. not SPA) (via plugin once plugin infrastructure is available?)
 
 
-## **W-036**: view: migrate existing views to use jpulse-common.js utilities
+
+
+
+
+
+-------------------------------------------------------------------------
+# 🚧 IN_PROGRESS Work Items
+
+## **W-025**: view: component-based styling with framework/site separation
 - status: 🚧 IN_PROGRESS
 - type: Feature
-- Phase 1: auth/login.shtml - Replace showError/showSuccess (~25 lines saved)
-- Phase 2: user/profile.shtml - Replace showAlert/API calls (~35 lines saved)
-- Phase 3: auth/signup.shtml - Replace form handling (~40 lines saved)
-- Phase 4: user/index.shtml - Replace showError/API calls (~20 lines saved)
-- Phase 5: auth/logout.shtml - Minimal changes needed
+- objective:
+  - clean styles, clean hierarchy, less duplication, less style in pages (only custom ones)
+  - spend less time to create a new view & maintain existing views
+- move all shareable style to webapp/view/jpulse-common.css (or directly into webapp/view/jpulse-header.tmpl ?)
+  - if only the former: include /view/jpulse-common.css in webapp/view/jpulse-header.tmpl
+- phase 1: extract framework styles & create component Library
+  - move 290+ lines from jpulse-header.tmpl to jpulse-common.css
+  - create complete component library (buttons, cards, forms, stats, layout)
+  - implement .jp-theme-* classes for future theme support
+  - convert existing jpulse-* classes to jp-* prefix
+- phase 2: proof-of-concept migration (2 pages)
+   - migrate home/index.shtml (simple patterns)
+   - migrate error/index.shtml (complex styling)
+   - validate component system works in practice
+   - document migration patterns
+- phase 3: framework/site separation preparation
+  - Organize CSS: Framework Core vs Site Customizable sections
+  - Prepare override-friendly structure for W-014
+  - Performance testing and cross-browser validation
+
+
+
 
 
 
 
 
 ## Potential next items:
+**W-036**: view: migrate existing views to use jpulse-common.js utilities
 **W-014**: strategy for seamless update of site-specific jPulse deployments
 **W-019**: slide down/up info and error message on top of page
 **W-013**: create site admin views
@@ -476,14 +491,15 @@ next work item: **W-0xx**: .....
 - wait for my go ahead to implement
 
 I finished **W-0xx**: .....
-- run tests, and fix issue
-
+- run tests, and fix issues
 - update docs: README.md, API.md, developers.md, changelog.md in project root
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-02 00:32
-
 - update commit-message.txt, following the same format, specify: W-026, v0.3.9
-- don't commit
+  - don't commit
+
+
+
 
 Misc:
 - status: 🚧 IN_PROGRESS
@@ -502,12 +518,14 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 -------------------------------------------------------------------------
 # TO-DO Work Items
 
-## **W-025**: view: component-based styling with framework/site separation
+## **W-036**: view: migrate existing views to use jpulse-common.js utilities
 - status: 🕑 PENDING
 - type: Feature
-- objective: clean styles, hierarchy, less duplication; spend less time to create a new view, and to maintain existing views
-- move all shareable style to webapp/view/jpulse-common.css (or directly into webapp/view/jpulse-header.tmpl ?)
-  - if only the former: include /view/jpulse-common.css in webapp/view/jpulse-header.tmpl
+- phase 1: auth/login.shtml - Replace showError/showSuccess (~25 lines saved)
+- phase 2: user/profile.shtml - Replace showAlert/API calls (~35 lines saved)
+- phase 3: auth/signup.shtml - Replace form handling (~40 lines saved)
+- phase 4: user/index.shtml - Replace showError/API calls (~20 lines saved)
+- phase 5: auth/logout.shtml - Minimal changes needed
 
 ## **W-013**: create site admin views
 - status: 🕑 PENDING
@@ -550,6 +568,14 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - show message for 3 sec with yellow background
 - provide a common JavaScript function to show a sliding message without a msg= URL parameter
 
+## **W-0**: create themes
+- status: 🕑 PENDING
+- type: Feature
+- initially a dark and light theme, light is default
+- user can set preferred theme
+- way to define new themes
+  - drop in a directory, with auto discovery
+
 ## **W-0**: docs: restructure user facing and developer facing documentation
 - status: 🕑 PENDING
 - type: Feature
@@ -587,14 +613,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - plugins for:
   - themes
   - additional models, controllers, views
-
-## **W-0**: create themes
-- status: 🕑 PENDING
-- type: Feature
-- initially a dark and light theme, light is default
-- user can set preferred theme
-- way to define new themes
-  - drop in a directory, with auto discovery
 
 ## **W-0**: create redis caching infrastrucure
 - status: 🕑 PENDING

@@ -6,7 +6,7 @@
  * @file            webapp/view/home/index.shtml
  * @version         0.4.0
  * @release         2025-09-02
- * @repository      https://github.com/peterthoeny/web-ide-bridge
+ * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file
@@ -20,119 +20,96 @@
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
-        /* Page-specific styles */
-        .main-content {
-            margin: 40px;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            border-bottom: 2px solid #007acc;
-            padding-bottom: 10px;
-        }
-        .info {
-            background: #e7f3ff;
-            padding: 15px;
-            border-radius: 5px;
+        /* Page-specific demo content styles only */
+        .demo-spacer {
+            height: 200px;
             margin: 20px 0;
-        }
-        .version {
-            color: #666;
-            font-size: 0.9em;
-        }
-        .status {
-            color: #007acc;
-            font-weight: bold;
-        }
-        .handlebars-demo {
-            background: #f0f8ff;
             padding: 20px;
             border-radius: 5px;
-            margin: 20px 0;
-            border-left: 4px solid #007acc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .user-info {
-            background: #fff3cd;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-        }
+
+        .demo-spacer-1 { background: linear-gradient(45deg, #e3f2fd, #bbdefb); }
+        .demo-spacer-2 { background: linear-gradient(45deg, #f3e5f5, #e1bee7); }
+        .demo-spacer-3 { background: linear-gradient(45deg, #e8f5e8, #c8e6c9); }
+        .demo-spacer-4 { background: linear-gradient(45deg, #fff3e0, #ffcc02); }
+        .demo-spacer-5 { background: linear-gradient(45deg, #ffebee, #ffcdd2); }
     </style>
 </head>
 <body>
-    <div class="jpulse-main">
-        <h1>🫧 {{app.name}} - Home Page</h1>
+    <div class="jp-main">
+        <h1 class="jp-title">🫧 {{app.name}} - Home Page</h1>
 
-        <div class="info">
+        <div class="jp-info-box">
             <p><strong>Framework:</strong> {{app.name}}</p>
-            <p><strong>Version:</strong> <span class="version">{{app.version}} ({{app.release}})</span></p>
+            <p><strong>Version:</strong> <span class="jp-text-muted jp-text-small">{{app.version}} ({{app.release}})</span></p>
             <p><strong>Current URL:</strong> {{url.domain}}{{url.pathname}}{{url.search}}</p>
             <p><strong>Protocol:</strong> {{url.protocol}}</p>
             <p><strong>Hostname:</strong> {{url.hostname}}</p>
             <p>{{#if url.port}}<strong>Port:</strong> {{else}}{{/if}}{{url.port}}</p>
             <p><strong>Test 404 link:</strong> <a href="/home/x.shtml">/home/x.shtml</a></p>
         </div>
-        <div class="user-info">
+
+        <div class="jp-warning-box">
             <h3>User Information</h3>
             <p>{{#if user.authenticated}}Welcome back!{{else}}You are not logged in{{/if}}</p>
-            {{#if user.authenticated}}<p><strong>User ID:</strong> {{else}}<p>Please log in to see your user information.</p>{{/if}}
-            {{#if user.authenticated}}<p><strong>Name:</strong> {{else}}{{/if}}{{user.firstName}} {{user.lastName}}{{#if user.authenticated}}</p>{{else}}{{/if}}
-            {{#if user.authenticated}}<p><strong>Email:</strong> {{else}}{{/if}}{{user.email}}{{#if user.authenticated}}</p>{{else}}{{/if}}
+            {{#if user.authenticated}}<p><strong>User ID:</strong> {{user.id}}</p>{{else}}<p>Please log in to see your user information.</p>{{/if}}
+            {{#if user.authenticated}}<p><strong>Name:</strong> {{user.firstName}} {{user.lastName}}</p>{{else}}{{/if}}
+            {{#if user.authenticated}}<p><strong>Email:</strong> {{user.email}}</p>{{else}}{{/if}}
         </div>
 
-        <div class="handlebars-demo">
-            <h3>Handlebars Demo</h3>
-            <p>This page demonstrates various handlebars features:</p>
-            <ul>
-                <li><strong>App info:</strong> {{app.version}} / {{app.release}}</li>
-                <li><strong>URL parsing:</strong> {{url.domain}} + {{url.pathname}}</li>
-                <li><strong>URL params:</strong> Try ?name=test → {{url.param.name}}</li>
-                <li><strong>Conditionals:</strong> {{#if user.authenticated}}User {{user.id}} is logged in{{else}}User is guest{{/if}}</li>
-                <li><strong>i18n:</strong>
-                    {{#if user.authenticated}}
-                      {{i18n.view.auth.login.welcomeBack}}
-                    {{else}}
-                      {{i18n.view.auth.common.notAuthenticated}}
-                    {{/if}}
-                </li>
-                <li><strong>Config:</strong> Admin email: {{config.email.adminEmail}}</li>
-            </ul>
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Handlebars Demo</h3>
+            </div>
+            <div class="jp-card-body">
+                <p>This page demonstrates various handlebars features:</p>
+                <ul>
+                    <li><strong>App info:</strong> {{app.version}} / {{app.release}}</li>
+                    <li><strong>URL parsing:</strong> {{url.domain}} + {{url.pathname}}</li>
+                    <li><strong>URL params:</strong> Try ?name=test → {{url.param.name}}</li>
+                    <li><strong>Conditionals:</strong> {{#if user.authenticated}}User {{user.id}} is logged in{{else}}User is guest{{/if}}</li>
+                    <li><strong>i18n:</strong>
+                        {{#if user.authenticated}}
+                          {{i18n.view.auth.login.welcomeBack}}
+                        {{else}}
+                          {{i18n.view.auth.common.notAuthenticated}}
+                        {{/if}}
+                    </li>
+                    <li><strong>Config:</strong> Admin email: {{config.email.adminEmail}}</li>
+                </ul>
+            </div>
         </div>
 
         <p>This is a server-side rendered template using the viewController with handlebars processing.</p>
-        <p><strong>Status:</strong> <span class="status">✅ W-006 viewController - IMPLEMENTED</span></p>
+        <p><strong>Status:</strong> <span class="jp-theme-text-primary" style="color: #007acc; font-weight: bold;">✅ W-006 viewController - IMPLEMENTED</span></p>
 
         <!-- Test content to demonstrate sticky header -->
-        <div style="margin: 40px 0; padding: 20px; background: #f0f8ff; border-radius: 5px;">
+        <div class="jp-info-box">
             <h3>🔍 Sticky Header Test</h3>
             <p><strong>Instructions:</strong> Scroll down this page to see the sticky header in action!</p>
             <p>The blue header with the jPulse logo should remain fixed at the top of the browser window as you scroll.</p>
         </div>
 
-        <div style="height: 200px; background: linear-gradient(45deg, #e3f2fd, #bbdefb); margin: 20px 0; padding: 20px; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+        <div class="demo-spacer demo-spacer-1">
             <h4>📏 Spacer Content Block 1</h4>
         </div>
 
-        <div style="height: 200px; background: linear-gradient(45deg, #f3e5f5, #e1bee7); margin: 20px 0; padding: 20px; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+        <div class="demo-spacer demo-spacer-2">
             <h4>📏 Spacer Content Block 2</h4>
         </div>
 
-        <div style="height: 200px; background: linear-gradient(45deg, #e8f5e8, #c8e6c9); margin: 20px 0; padding: 20px; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+        <div class="demo-spacer demo-spacer-3">
             <h4>📏 Spacer Content Block 3</h4>
         </div>
 
-        <div style="height: 200px; background: linear-gradient(45deg, #fff3e0, #ffcc02); margin: 20px 0; padding: 20px; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+        <div class="demo-spacer demo-spacer-4">
             <h4>📏 Spacer Content Block 4 - Keep Scrolling!</h4>
         </div>
 
-        <div style="height: 200px; background: linear-gradient(45deg, #ffebee, #ffcdd2); margin: 20px 0; padding: 20px; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+        <div class="demo-spacer demo-spacer-5">
             <h4>🎯 Bottom Content - Header should still be visible!</h4>
         </div>
 

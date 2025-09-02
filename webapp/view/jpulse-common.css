@@ -69,4 +69,39 @@
 /* Phase 3: Button components will go here */
 /* Phase 4: Card/container components will go here */
 
+/* ========================================
+ * PHASE 3: Form Component Styles
+ * ======================================== */
+
+.jp-field-error {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2) !important;
+}
+
+.jp-btn-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.jp-btn-loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    margin: auto;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: jp-btn-spin 1s linear infinite;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+}
+
+@keyframes jp-btn-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 /* EOF webapp/view/jpulse-common.css */

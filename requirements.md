@@ -449,11 +449,16 @@ Requirements Doc of jPulse Framework
   - at a later point offer vue.js as an option for more dynamic content per page (e.g. not SPA) (via plugin once plugin infrastructure is available?)
 
 
+## **W-036**: view: migrate existing views to use jpulse-common.js utilities
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- Phase 1: auth/login.shtml - Replace showError/showSuccess (~25 lines saved)
+- Phase 2: user/profile.shtml - Replace showAlert/API calls (~35 lines saved)
+- Phase 3: auth/signup.shtml - Replace form handling (~40 lines saved)
+- Phase 4: user/index.shtml - Replace showError/API calls (~20 lines saved)
+- Phase 5: auth/logout.shtml - Minimal changes needed
 
 
-
-- in jpulse-header.tmpl, load jpulse-common.js with file timestamp to avoid browser caching issues:
-  <script src="/jpulse-common.js?t={{file.timestamp "/jpulse-common.js"}}"></script>
 
 
 
@@ -472,11 +477,13 @@ next work item: **W-0xx**: .....
 
 I finished **W-0xx**: .....
 - run tests, and fix issue
+
 - update docs: README.md, API.md, developers.md, changelog.md in project root
+- show me cursor_log.txt update text I can copy & paste
+  - current date: 2025-09-02 00:32
+
 - update commit-message.txt, following the same format, specify: W-026, v0.3.9
 - don't commit
-- show me cursor_log.txt update text I can copy & paste
-  - current date: 2025-09-01 21:45
 
 Misc:
 - status: 🚧 IN_PROGRESS

@@ -3,7 +3,7 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         0.3.9
+ * @version         0.4.0
  * @release         2025-09-02
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -488,21 +488,63 @@ window.jPulseCommon = {
     },
 
     // ========================================
-    // PLACEHOLDERS (Future Phases)
+    // PHASE 5: Browser & Device Detection
     // ========================================
 
-    // Browser/Device Detection (Phase 5)
-    isMobile: () => window.innerWidth <= 768,
-    isTouchDevice: () => 'ontouchstart' in window,
-    windowHasFocus: () => document.hasFocus(),
+    /**
+     * Device and browser detection utilities
+     */
+    device: {
+        isMobile: () => window.innerWidth <= 768,
+        isTablet: () => window.innerWidth > 768 && window.innerWidth <= 1024,
+        isDesktop: () => window.innerWidth > 1024,
+        isTouchDevice: () => 'ontouchstart' in window || navigator.maxTouchPoints > 0,
 
-    // Placeholder functions for future phases
-    detectOs: () => { /* OS detection - Phase 5 */ },
-    detectBrowser: () => { /* browser detection - Phase 5 */ },
-    getCookie: (name) => { /* cookie getter - Phase 5 */ },
-    setCookie: (name, value, days = 30) => { /* cookie setter - Phase 5 */ },
-    entityEncode: (str) => { /* HTML entity encoding - Phase 4 */ },
-    entityDecode: (str) => { /* HTML entity decoding - Phase 4 */ }
+        getViewportSize: () => ({
+            width: window.innerWidth,
+            height: window.innerHeight
+        }),
+
+        detectBrowser: () => {
+            const ua = navigator.userAgent;
+            if (ua.includes('Chrome') && !ua.includes('Edg')) return 'chrome';
+            if (ua.includes('Firefox')) return 'firefox';
+            if (ua.includes('Safari') && !ua.includes('Chrome')) return 'safari';
+            if (ua.includes('Edg')) return 'edge';
+            return 'unknown';
+        },
+
+        detectOs: () => {
+            const ua = navigator.userAgent;
+            if (ua.includes('Windows')) return 'windows';
+            if (ua.includes('Mac')) return 'mac';
+            if (ua.includes('Linux')) return 'linux';
+            if (ua.includes('Android')) return 'android';
+            if (ua.includes('iPhone') || ua.includes('iPad')) return 'ios';
+            return 'unknown';
+        }
+    },
+
+    /**
+     * Cookie management utilities
+     */
+    cookies: {
+        get: (name) => {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        },
+
+        set: (name, value, days = 30) => {
+            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+            document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
+        },
+
+        delete: (name) => {
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        }
+    }
 };
 
 // EOF webapp/view/jpulse-common.js

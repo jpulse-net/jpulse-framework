@@ -1,7 +1,8 @@
-# jPulse Framework / API Documentation v0.3.9
+# jPulse Framework / API Documentation v0.4.0
 
 Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
 
+________________________________________________
 ## 🔌 API Overview
 
 jPulse provides a comprehensive RESTful API under the `/api/1/` prefix with the following features:
@@ -31,6 +32,202 @@ https://your-domain.com/api/1/
 }
 ```
 
+________________________________________________
+## 🎨 Client-Side Utilities (jPulseCommon)
+
+The jPulse Framework includes a comprehensive client-side utility library available globally as `jPulseCommon`. This eliminates code duplication and provides consistent patterns across all views.
+
+### Alert System
+
+Display consistent user feedback messages with automatic styling and animations.
+
+```javascript
+// Basic alerts with auto-hide (5 seconds)
+jPulseCommon.showSuccess('Operation completed successfully!');
+jPulseCommon.showError('Please check your input and try again.');
+jPulseCommon.showInfo('Your session will expire in 5 minutes.');
+jPulseCommon.showWarning('This action cannot be undone.');
+
+// Custom container and duration
+jPulseCommon.showAlert('Custom message', 'info', containerElement, 10000);
+
+// Clear all alerts
+jPulseCommon.clearAlerts();
+```
+
+### API Call Standardization
+
+Simplified API interactions with consistent error handling and response format.
+
+```javascript
+// GET request
+const result = await jPulseCommon.api.get('/api/1/user/profile');
+if (result.success) {
+    console.log('User data:', result.data);
+} else {
+    jPulseCommon.showError(result.error);
+}
+
+// POST request with data
+const loginResult = await jPulseCommon.api.post('/api/1/auth/login', {
+    identifier: 'username',
+    password: 'password'
+});
+
+// PUT and DELETE requests
+await jPulseCommon.api.put('/api/1/user/profile', profileData);
+await jPulseCommon.api.delete('/api/1/user/session');
+
+// Advanced usage with custom options
+const customResult = await jPulseCommon.apiCall('/api/1/custom', {
+    method: 'PATCH',
+    body: data,
+    headers: { 'Custom-Header': 'value' }
+});
+```
+
+### Form Handling & Validation
+
+Streamlined form submission with validation, loading states, and error handling.
+
+```javascript
+// Simple form submission
+const form = document.getElementById('loginForm');
+jPulseCommon.form.handleSubmission(form, '/api/1/auth/login', {
+    successMessage: 'Login successful!',
+    redirectUrl: '/dashboard/',
+    loadingText: 'Signing in...'
+});
+
+// Advanced form handling with callbacks
+jPulseCommon.form.handleSubmission(form, '/api/1/user/signup', {
+    beforeSubmit: (formElement) => {
+        // Custom validation
+        const password = formElement.password.value;
+        if (password.length < 8) {
+            jPulseCommon.showError('Password must be at least 8 characters');
+            return false; // Cancel submission
+        }
+        return true; // Continue
+    },
+    onSuccess: (data) => {
+        jPulseCommon.showSuccess(`Welcome ${data.firstName}!`);
+        window.location.href = '/auth/login.shtml?signup=success';
+    },
+    onError: (error) => {
+        // Custom error handling
+        console.log('Signup failed:', error);
+    }
+});
+
+// Form utilities
+const formData = jPulseCommon.form.serialize(formElement);
+jPulseCommon.form.setLoadingState(submitButton, true, 'Processing...');
+jPulseCommon.form.clearErrors(formElement);
+
+// Validation helpers
+jPulseCommon.form.validate.email('user@example.com'); // true/false
+jPulseCommon.form.validate.password('mypassword', 8); // true/false
+jPulseCommon.form.validate.required('value'); // true/false
+```
+
+### DOM Utilities
+
+Enhanced DOM manipulation with consistent patterns.
+
+```javascript
+// DOM ready handling
+jPulseCommon.dom.ready(() => {
+    console.log('DOM is ready');
+});
+
+// Element creation and manipulation
+const div = jPulseCommon.dom.createElement('div', 'my-class', 'Hello World');
+document.body.appendChild(div);
+
+// Show/hide elements
+jPulseCommon.dom.hide(element);
+jPulseCommon.dom.show(element);
+jPulseCommon.dom.toggle(element);
+
+// String utilities
+const safe = jPulseCommon.string.escapeHtml('<script>alert("xss")</script>');
+const pretty = jPulseCommon.string.capitalize('hello world'); // "Hello world"
+const slug = jPulseCommon.string.slugify('Hello World!'); // "hello-world"
+
+// URL parameter handling
+const params = jPulseCommon.url.getParams(); // {key: 'value', ...}
+const value = jPulseCommon.url.getParam('redirect'); // 'value' or null
+```
+
+### Device & Browser Detection
+
+Responsive design and feature detection utilities.
+
+```javascript
+// Device detection
+const isMobile = jPulseCommon.device.isMobile(); // true/false
+const isTablet = jPulseCommon.device.isTablet(); // true/false
+const isDesktop = jPulseCommon.device.isDesktop(); // true/false
+const isTouch = jPulseCommon.device.isTouchDevice(); // true/false
+
+// Browser and OS detection
+const browser = jPulseCommon.device.detectBrowser(); // 'chrome', 'firefox', 'safari', 'edge'
+const os = jPulseCommon.device.detectOs(); // 'windows', 'mac', 'linux', 'ios', 'android'
+
+// Viewport information
+const viewport = jPulseCommon.device.getViewportSize(); // {width: 1920, height: 1080}
+
+// Cookie management
+jPulseCommon.cookies.set('preference', 'dark-theme', 30); // 30 days
+const theme = jPulseCommon.cookies.get('preference'); // 'dark-theme'
+jPulseCommon.cookies.delete('preference');
+```
+
+### CSS Classes
+
+The utility framework includes standardized CSS classes:
+
+- `.jp-alert`, `.jp-alert-success`, `.jp-alert-error`, `.jp-alert-info`, `.jp-alert-warning`
+- `.jp-field-error` - Applied to form fields with validation errors
+- `.jp-btn-loading` - Loading state for buttons with spinner animation
+- `.jp-hidden` - Hide/show utility class
+
+### Integration Example
+
+Complete form with error handling and user feedback:
+
+```javascript
+document.addEventListener('DOMContentLoaded', () => {
+    const loginForm = document.getElementById('loginForm');
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const result = await jPulseCommon.form.handleSubmission(
+            loginForm,
+            '/api/1/auth/login',
+            {
+                successMessage: 'Welcome back!',
+                loadingText: 'Signing in...',
+                redirectUrl: new URLSearchParams(window.location.search).get('redirect') || '/',
+                redirectDelay: 1000,
+                beforeSubmit: (form) => {
+                    // Clear any previous alerts
+                    jPulseCommon.clearAlerts();
+                    return true;
+                },
+                onError: (error) => {
+                    // Focus first input on error
+                    loginForm.querySelector('input').focus();
+                }
+            }
+        );
+    });
+});
+```
+
+________________________________________________
 ## 👤 User Management API
 
 Complete user authentication, profile management, and administrative user search.
@@ -350,6 +547,7 @@ User documents follow this comprehensive schema:
 - **Input Validation**: Comprehensive validation for all user data
 - **Login Tracking**: Automatic tracking of login attempts and success
 
+________________________________________________
 ## 🔧 Configuration Management API
 
 Complete CRUD operations for site configuration management.
@@ -511,6 +709,7 @@ Configuration documents follow this schema:
 }
 ```
 
+________________________________________________
 ## 📊 Logging API
 
 Advanced log search and retrieval with flexible query parameters.
@@ -624,6 +823,7 @@ The `createdAt` parameter supports flexible date formats:
 - `2025-08` - All logs from August 2025
 - `2025-08-25` - All logs from August 25, 2025
 
+________________________________________________
 ## 🎨 Template Rendering API
 
 Server-side template processing with handlebars variables, secure file inclusion, and performance-optimized caching for frequently accessed templates and includes.
@@ -842,6 +1042,7 @@ Content-Length: 2048
 </html>
 ```
 
+________________________________________________
 ## 🏥 Health Check API
 
 System health and status monitoring.
@@ -872,6 +1073,7 @@ Get application health status and basic information.
 - `degraded` - Some non-critical issues
 - `error` - Critical system issues
 
+________________________________________________
 ## 🔐 Authentication & Authorization
 
 ### Auth Controller System
@@ -954,6 +1156,7 @@ Some endpoints require authentication:
 - `DELETE /api/1/config/:id` - Requires admin role
 - `GET /api/1/log/search` - Requires authenticated user
 
+________________________________________________
 ## 📝 Error Handling
 
 ### Standard Error Response
@@ -986,6 +1189,7 @@ Some endpoints require authentication:
 - `422` - Validation Error
 - `500` - Internal Server Error
 
+________________________________________________
 ## 🚀 Usage Examples
 
 ### Configuration Management Workflow
@@ -1026,6 +1230,7 @@ curl http://localhost:8080/test/index.shtml
 curl -b cookies.txt http://localhost:8080/admin/dashboard.shtml
 ```
 
+________________________________________________
 ## 📚 Additional Resources
 
 - **[README.md](README.md)** - Framework overview and quick start

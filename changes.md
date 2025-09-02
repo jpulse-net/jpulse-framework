@@ -4,6 +4,47 @@ This document tracks the evolution of the jPulse Framework through its work item
 
 ## 🚀 Version History
 
+### v0.3.8 (2025-09-01)
+**Commit:** `TBD` - W-026, v0.3.8: ESM Testing Infrastructure and Configuration Consolidation
+
+#### Major Features
+- **ESM Testing Infrastructure (W-026)**: Resolved ECMAScript Modules loading issues in Jest environment, enabling proper ES module support across the test suite.
+- **Runtime Configuration Consolidation**: Implemented automatic .conf to .json conversion with timestamp-based caching for optimal performance.
+- **Shared Bootstrap Architecture**: Created centralized dependency initialization system for consistent module loading order.
+
+#### Technical Improvements
+- **Test Suite Optimization**:
+  - Fixed `import.meta.url` compatibility issues in Jest environment
+  - Implemented test isolation with `--runInBand` flag to prevent global state pollution
+  - Achieved 100% test pass rate (331 passed tests across 18 test suites)
+  - Updated test expectations to use pattern matching instead of hardcoded version numbers
+- **Configuration Management**:
+  - `.jpulse/app.json` generated automatically from `webapp/app.conf` with timestamp comparison
+  - `appConfig.app.dirName` properly set during configuration consolidation
+  - Configuration sources tracked in `.jpulse/config-sources.json`
+- **Bootstrap System (`webapp/utils/bootstrap.js`)**:
+  - Centralized initialization of `appConfig`, `LogController`, `i18n`, `Database`, and `CommonUtils`
+  - Global dependency injection pattern for consistent module access
+  - Proper dependency order management preventing initialization race conditions
+- **Logging Architecture**:
+  - Standardized log format across all modules with `CommonUtils.formatLogMessage`
+  - Consistent timestamp and context formatting (timestamp, level, username, IP, VM, ID)
+  - Moved logging utilities to `CommonUtils` for centralized access
+- **Database Integration**:
+  - Refactored database exports to single default export pattern
+  - Explicit `initialize()` method for controlled database connection timing
+  - Proper cleanup in test environment with connection management
+- **I18n Module Refactoring**:
+  - Converted from async to sync initialization removing top-level await issues
+  - Explicit `initialize()` and `getInstance()` methods for controlled loading
+  - Global dependency pattern for consistent access across controllers
+
+#### Developer Experience Improvements
+- **Test Reliability**: Eliminated flaky tests caused by module loading order and global state issues
+- **Configuration Simplicity**: Automatic config consolidation removes manual build steps
+- **Consistent Dependencies**: Global pattern eliminates import/initialization complexity
+- **Production Logging**: Enterprise-grade logging format suitable for production monitoring
+
 ### v0.3.7 (2025-09-01)
 **Commit:** `TBD` - W-032, v0.3.7: User: Consolidated user identifiers to 'username' and added 'uuid' field.
 

@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the database interface for the jPulse Framework WebApp
  * @file            webapp/database.js
- * @version         0.3.7
- * @release         2025-09-01
+ * @version         0.3.8
+ * @release         2025-09-02
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -138,8 +138,7 @@ export function isReady() {
     return isInitialized;
 }
 
-// Remove automatic initialization - let app.js and tests control when this happens
-console.log(CommonUtils.formatLogMessage('database: Module loaded, waiting for explicit initialization'));
+// Module is ready for initialization - call initialize() to set up database
 
 export default {
     initialize,

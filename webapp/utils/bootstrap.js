@@ -3,8 +3,8 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         0.3.7
- * @release         2025-09-01
+ * @version         0.3.8
+ * @release         2025-09-02
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -39,12 +39,14 @@ export async function bootstrap(options = {}) {
 
         // Step 2: Initialize LogController
         const LogControllerModule = await import('../controller/log.js');
+        bootstrapLog('LogController: Module loaded, ready for initialization');
         await LogControllerModule.default.initialize();
         global.LogController = LogControllerModule.default;
         bootstrapLog('✅ LogController: Initialized');
 
         // Step 3: Initialize i18n (depends on LogController being globally available)
         const i18nModule = await import('./i18n.js');
+        bootstrapLog('i18n: Module loaded, ready for initialization');
         const i18n = await i18nModule.initialize();  // No parameter needed!
         global.i18n = i18n;
         bootstrapLog('✅ i18n: Initialized');
@@ -53,6 +55,7 @@ export async function bootstrap(options = {}) {
         let database = null;
         if (!skipDatabase) {
             const databaseModule = await import('../database.js');
+            bootstrapLog('database: Module loaded, ready for initialization');
             const connected = await databaseModule.default.initialize();
             global.Database = databaseModule.default;
             bootstrapLog(`✅ Database: ${connected ? 'Connected' : 'Failed (continuing without)'}`);

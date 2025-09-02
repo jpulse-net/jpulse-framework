@@ -3,8 +3,8 @@
  * @tagline         Unit tests for responsive layout and appConfig integration
  * @description     Tests for the new responsive layout features and appConfig context
  * @file            webapp/tests/unit/controller/responsive-layout.test.js
- * @version         0.3.7
- * @release         2025-09-01
+ * @version         0.3.8
+ * @release         2025-09-02
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -60,8 +60,8 @@ describe('Responsive Layout and AppConfig Integration', () => {
         });
 
         test('should maintain backward compatibility with app config', () => {
-            expect(mockContext.app.version).toBe('0.3.7');
-            expect(mockContext.app.release).toBe('2025-09-01');
+            expect(mockContext.app.version).toMatch(/^\d+\.\d+\.\d+$/);
+            expect(mockContext.app.release).toMatch(/^\d{4}-\d{2}-\d{2}$/);
         });
     });
 
@@ -238,7 +238,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
 
             expect(expressions.maxWidth).toBe(1200);
             expect(expressions.minMargin).toBe(20);
-            expect(expressions.appVersion).toBe('0.3.7');
+            expect(expressions.appVersion).toMatch(/^\d+\.\d+\.\d+$/);
         });
     });
 

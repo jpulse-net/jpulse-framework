@@ -406,12 +406,18 @@ Requirements Doc of jPulse Framework
 -------------------------------------------------------------------------
 # 🚧 IN_PROGRESS Work Items
 
-## **W-026**: tests: fix issues with ECMAScript Modules loading and appConfig
-- status: 🕑 PENDING
-- type: Bug
+## **W-026**: tests: fix ECMAScript Modules infrastructure; consolidate configuration
+- status: ✅ COMPLETED
+- type: Feature
 - issue with tests clean, it does not work
 - issue with ECMAScript Modules loading
 - issue with app config
+- add jpulse/app.json with app.conf in JSON format
+- add jpulse/config-sources.json with timestamp of app.conf for auto-update of app.json
+- add webapp/utils/bootstrap.js - architecture to created centralized dependency initialization system for consistent module loading order
+
+
+
 
 ## Potential next items:
 **W-014**: strategy for seamless update of site-specific jPulse deployments
@@ -424,28 +430,16 @@ Requirements Doc of jPulse Framework
 
 ## Chat instructions
 
-app works again. is there a cleaner way to bootstrap? can we get rid of all the "global." prefix? maybe all modules have a .initialize()?
-
-how about this in webapp/controller/config.js:
-
-LogController;  // initialized in .initialize()
-i18n;           // initialized in .initialize()
-
-async function initialize(initObjects) {
-    if(initObjects.LogController) LogController= initObjects.LogController;
-    if(initObjects.i18n) LogController= initObjects.i18n;
-    // or possibly auto-detection?
-}
-
 next work item: **W-0xx**: .....
 - review task, ask questions
 - plan how to implement
 - wait for my go ahead to implement
 
 I finished **W-0xx**: .....
+- current date: 2025-09-01 20:53
 - run tests, and fix issue
 - update docs: README.md, API.md, developers.md, changelog.md in project root
-- update commit-message.txt, following the same format, specify: W-0xx, v0.3.x
+- update commit-message.txt, following the same format, specify: W-026, v0.3.8
 - don't commit
 
 Misc:

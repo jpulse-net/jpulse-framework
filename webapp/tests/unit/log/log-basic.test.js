@@ -3,8 +3,8 @@
  * @tagline         Unit tests for log model and controller basic functionality
  * @description     This file contains unit tests for the log model and controller
  * @file            webapp/tests/unit/log/log-basic.test.js
- * @version         0.3.7
- * @release         2025-09-01
+ * @version         0.3.8
+ * @release         2025-09-02
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -360,7 +360,7 @@ describe('Log Controller Context Extraction', () => {
             ip: '192.168.1.100'
         };
 
-        const context = LogController.getContext(mockReq);
+        const context = CommonUtils.getLogContext(mockReq);
 
         expect(context.username).toBe('testuser');
         expect(context.ip).toBe('192.168.1.100');
@@ -371,14 +371,14 @@ describe('Log Controller Context Extraction', () => {
     test('should handle missing session', () => {
         const mockReq = { ip: '192.168.1.100' };
 
-        const context = LogController.getContext(mockReq);
+        const context = CommonUtils.getLogContext(mockReq);
 
         expect(context.username).toBe('(guest)');
         expect(context.ip).toBe('192.168.1.100');
     });
 
     test('should handle missing request', () => {
-        const context = LogController.getContext(null);
+        const context = CommonUtils.getLogContext(null);
 
         expect(context.username).toBe('(guest)');
         expect(context.ip).toBe('0.0.0.0');
@@ -418,12 +418,12 @@ describe('Log Controller Context Extraction', () => {
 
         LogController.logError(mockReq, 'Error message');
 
-        expect(consoleErrors).toHaveLength(1);
-        expect(consoleErrors[0]).toMatch(/^- \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}, ERR, testuser, ip:192\.168\.1\.100, vm:0, id:0, Error message$/);
+        expect(consoleLogs).toHaveLength(1);
+        expect(consoleLogs[0]).toMatch(/^- \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}, ERR, testuser, ip:192\.168\.1\.100, vm:0, id:0, Error message$/);
     });
 
     test('should format timestamp correctly', () => {
-        const timestamp = LogController.formatTimestamp();
+        const timestamp = CommonUtils.formatTimestamp();
         expect(timestamp).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
     });
 });

@@ -3,8 +3,8 @@
  * @tagline         Jest Global Setup
  * @description     Global setup for Jest tests runs once before all tests start
  * @file            webapp/tests/setup/global-setup.js
- * @version         0.3.7
- * @release         2025-09-01
+ * @version         0.3.8
+ * @release         2025-09-02
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -26,10 +26,10 @@ async function initializeGlobalConfig() {
     try {
         // Import Jest-independent config loader
         const { setupGlobalAppConfig } = await import('../helpers/config-loader.js');
-        
+
         // Set up global appConfig using consolidated configuration
         const success = setupGlobalAppConfig();
-        
+
         if (success) {
             console.log('🔧 Global appConfig initialized from consolidated config');
         } else {
@@ -49,10 +49,10 @@ async function initializeLogController() {
     try {
         // Import LogController after appConfig is available
         const LogController = await import('../../controller/log.js');
-        
+
         // Make LogController globally available
         global.LogController = LogController.default;
-        
+
         console.log('📝 LogController initialized for test environment');
         return true;
     } catch (error) {
@@ -68,10 +68,10 @@ async function initializeTestDatabase() {
     try {
         // Import database module after appConfig is set up
         const Database = await import('../../database.js');
-        
+
         // Wait for database to be fully initialized
         const connected = await Database.default.initialize();
-        
+
         if (connected) {
             console.log('🗄️  Database initialization completed successfully');
         } else {
@@ -135,10 +135,15 @@ export default async function globalSetup() {
         // Clean up any leftover files first
         await cleanupTempFiles();
         await cleanupTestDatabases();
-        
+
         // Initialize global configuration
         await initializeGlobalConfig();
-        
+
+        // Make CommonUtils globally available BEFORE bootstrap
+        const CommonUtilsModule = await import('../../utils/common.js');
+        global.CommonUtils = CommonUtilsModule.default;
+        console.log('🔧 CommonUtils initialized globally for tests');
+
         // Use shared bootstrap sequence
         const { bootstrap } = await import('../../utils/bootstrap.js');
         await bootstrap({ isTest: true, skipDatabase: false });

@@ -430,6 +430,64 @@ window.jPulseCommon = {
     },
 
     // ========================================
+    // PHASE 4: DOM Utilities & Helpers
+    // ========================================
+
+    /**
+     * DOM manipulation utilities
+     */
+    dom: {
+        ready: (callback) => {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', callback);
+            } else {
+                callback();
+            }
+        },
+
+        createElement: (tag, className = '', textContent = '') => {
+            const element = document.createElement(tag);
+            if (className) element.className = className;
+            if (textContent) element.textContent = textContent;
+            return element;
+        },
+
+        hide: (element) => element.classList.add('jp-hidden'),
+        show: (element) => element.classList.remove('jp-hidden'),
+        toggle: (element) => element.classList.toggle('jp-hidden')
+    },
+
+    /**
+     * String manipulation utilities
+     */
+    string: {
+        escapeHtml: (text) => {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        },
+
+        capitalize: (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : str,
+
+        slugify: (str) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    },
+
+    /**
+     * URL utilities
+     */
+    url: {
+        getParams: () => {
+            const params = {};
+            new URLSearchParams(window.location.search).forEach((value, key) => {
+                params[key] = value;
+            });
+            return params;
+        },
+
+        getParam: (name) => new URLSearchParams(window.location.search).get(name)
+    },
+
+    // ========================================
     // PLACEHOLDERS (Future Phases)
     // ========================================
 

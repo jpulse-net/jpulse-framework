@@ -104,4 +104,9 @@
     100% { transform: rotate(360deg); }
 }
 
+/* Phase 4 utility class */
+.jp-hidden {
+    display: none !important;
+}
+
 /* EOF webapp/view/jpulse-common.css */

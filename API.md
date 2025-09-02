@@ -1,4 +1,4 @@
-# jPulse Framework / API Documentation v0.3.8
+# jPulse Framework / API Documentation v0.3.9
 
 Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
 
@@ -11,6 +11,7 @@ jPulse provides a comprehensive RESTful API under the `/api/1/` prefix with the 
 - **Query Parameters**: Flexible filtering and pagination support
 - **Authentication**: Session-based authentication with user context
 - **Error Handling**: Structured error responses with detailed messages
+- **Client-Side Error Handling**: Server-side rendering of error pages without redirects, preserving URLs.
 - **Logging**: All API calls automatically logged with user context
 
 ### Base URL Structure
@@ -910,8 +911,8 @@ The Auth Controller uses `CommonUtils.sendError()` for intelligent error respons
     "path": "/api/1/user/profile"
 }
 
-// Web requests get redirected to error page:
-// Redirects to: /error/index.shtml?msg=Authentication%20required&code=401
+// Web requests now render error page directly without redirecting:
+// Original URL is preserved, error details available via {{url.param.code}} and {{url.param.msg}}
 ```
 
 ### Session-Based Authentication

@@ -399,13 +399,6 @@ Requirements Doc of jPulse Framework
 - fix user tests
 - no need to patch existing docs in users collection
 
-
-
-
-
--------------------------------------------------------------------------
-# 🚧 IN_PROGRESS Work Items
-
 ## **W-026**: tests: fix ECMAScript Modules infrastructure; consolidate configuration
 - status: ✅ COMPLETED
 - type: Feature
@@ -419,12 +412,24 @@ Requirements Doc of jPulse Framework
 
 
 
+
+
+
+-------------------------------------------------------------------------
+# 🚧 IN_PROGRESS Work Items
+
+## **W-026**: error reporting without redirect
+- status: ✅ COMPLETED
+- type: Feature
+- view controller: for 404 and other errors do not redirect to /error/index.shtml, but show error message with same style and content like webapp/view/error/index.shtml
+- keep webapp/view/error/index.shtml for client side redirects that need a 404 page
+
+
 ## Potential next items:
 **W-014**: strategy for seamless update of site-specific jPulse deployments
 **W-024**: view: script separation with enhanced jpulse-common.js utilities
 **W-019**: slide down/up info and error message on top of page
 **W-013**: create site admin views
-**W-0**: error reporting without redirect
 **W-025**: view: component-based styling with framework/site separation
 **W-015**: strategy for clean onboarding
 
@@ -436,11 +441,12 @@ next work item: **W-0xx**: .....
 - wait for my go ahead to implement
 
 I finished **W-0xx**: .....
-- current date: 2025-09-01 20:53
 - run tests, and fix issue
 - update docs: README.md, API.md, developers.md, changelog.md in project root
-- update commit-message.txt, following the same format, specify: W-026, v0.3.8
+- update commit-message.txt, following the same format, specify: W-026, v0.3.9
 - don't commit
+- show me cursor_log.txt update text I can copy & paste
+  - current date: 2025-09-01 21:45
 
 Misc:
 - status: 🚧 IN_PROGRESS
@@ -532,11 +538,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - status: 🕑 PENDING
 - type: Feature
 - recommendation in tt-dev-doc-structure.md (to be reviewed)
-
-## **W-0**: error reporting without redirect
-- status: 🕑 PENDING
-- type: Feature
-- for 404 and other errors do not redirect to /error/index.shtml, but show error message with same style like webapp/view/error/index.shtml
 
 ## **W-0**: controller.view: create {{#each}} handlebar
 - status: 🕑 PENDING

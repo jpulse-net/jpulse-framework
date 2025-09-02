@@ -3,7 +3,7 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.3.8
+ * @version         0.3.9
  * @release         2025-09-02
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -86,13 +86,23 @@ async function load(req, res) {
         }
 
         const viewDir = path.join(global.appConfig.app.dirName, 'view');
-        const fullPath = path.join(viewDir, filePath.substring(1));
+        let fullPath = path.join(viewDir, filePath.substring(1));
 
         // Check if file exists
         if (!fs.existsSync(fullPath)) {
-            LogController.logError(req, `view.load: error: File not found: ${fullPath}`);
-            const message = global.i18n.translate('controller.view.pageNotFoundError', { path: req.path });
-            return CommonUtils.sendError(req, res, 404, message, 'NOT_FOUND');
+            const originalPath = req.path;
+            res.statusCode = 404; // Set 404 status code
+            LogController.logError(req, `view.load: error: File not found: ${filePath}`);
+            const message = global.i18n.translate('controller.view.pageNotFoundError', { path: originalPath });
+
+            // Override filePath to error page and inject params into req.query for handlebars context
+            filePath = '/error/index.shtml';
+            fullPath = path.join(viewDir, filePath.substring(1)); // Recalculate fullPath for error page
+            req.query = { // Create a new query object for the context
+                code: '404',
+                msg: message
+            };
+            // No 'return' here, let the rest of the function execute to render the error page
         }
 
         // Read the file asynchronously, utilizing cache.templateFiles

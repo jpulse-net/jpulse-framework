@@ -4,6 +4,32 @@ This document tracks the evolution of the jPulse Framework through its work item
 
 ## 🚀 Version History
 
+### v0.3.9 (2025-09-01)
+**Commit:** `TBD` - W-026, v0.3.9: Error Reporting Without Redirect for UI Pages
+
+Implemented direct rendering of 404 error pages via `viewController.load` for UI requests (e.g., `.shtml` files), eliminating the need for HTTP redirects.
+
+Major Features:
+- Direct Error Page Rendering (W-026): `viewController.load` now directly renders `webapp/view/error/index.shtml` for 404 errors on UI pages.
+
+Technical Improvements:
+- URL Preservation: The original requested URL is preserved when a 404 error occurs on a UI page.
+- Contextual Error Messages: Error details (status code and message) are injected into the Handlebars context (e.g., `{{url.param.code}}`, `{{url.param.msg}}`) for direct display in the error template.
+- Code Refinement: Changed `const fullPath` to `let fullPath` in `webapp/controller/view.js` to allow reassignment to the error template path.
+- `CommonUtils.sendError` Scope: `CommonUtils.sendError` now exclusively handles API-related errors (returning JSON).
+
+Documentation Updates:
+- `README.md`: Updated release highlights and template system features.
+- `API.md`: Updated API overview and authentication sections.
+- `developers.md`: Added a detailed section explaining the architecture and implementation.
+- `changes.md`: Added a detailed v0.3.9 release entry.
+- `requirements.md`: Updated `W-026` status to `✅ DONE`.
+
+Developer Experience Improvements:
+- Enhanced Debugging: Errors for non-existent UI pages are immediately visible on the current URL.
+- Consistent UI: Seamless user experience without abrupt redirects.
+- Clearer Separation of Concerns: Explicitly defines how API and UI errors are handled.
+
 ### v0.3.8 (2025-09-01)
 **Commit:** `TBD` - W-026, v0.3.8: ESM Testing Infrastructure and Configuration Consolidation
 
@@ -463,6 +489,12 @@ This document tracks the evolution of the jPulse Framework through its work item
 - **Description**: Centralized user language preference handling in AuthController
 - **Implementation**: AuthController.getUserLanguage() and updateUserSession() helper functions
 
+#### **W-026**: Tests: Fix ECMAScript Modules Infrastructure; Consolidate Configuration
+- **Status**: ✅ DONE
+- **Version**: v0.3.8
+- **Description**: Resolved ESM loading issues, implemented runtime config consolidation, and created shared bootstrap architecture.
+- **Implementation**: Updated `package.json` for ESM, refactored `webapp/app.js` for config loading and module bootstrapping, and fixed various ESM import paths across test files and main application files.
+
 #### **W-031**: i18n: Move i18n.js to webapp/utils/; rename translation files
 - **Status**: ✅ DONE
 - **Version**: v0.3.6
@@ -470,6 +502,12 @@ This document tracks the evolution of the jPulse Framework through its work item
 - **Implementation**: Moved `webapp/translations/i18n.js` to `webapp/utils/i18n.js`, renamed `webapp/translations/lang-en.conf` to `webapp/translations/en.conf` (and similar for other languages), and updated all relevant import paths and translation loading logic.
 
 ### 🔄 Pending Work Items
+
+#### **W-026**: Error Reporting Without Redirect
+- **Status**: 🕑 PENDING
+- **Priority**: High
+- **Description**: For 404 and other errors, do not redirect to /error/index.shtml, but show error message with same style like webapp/view/error/index.shtml
+- **Implementation**: `viewController` will directly render the `error/index.shtml` template, injecting the error details into the Handlebars context to avoid URL changes.
 
 #### **W-011**: Create User Model, Controller
 - **Status**: PENDING

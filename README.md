@@ -1,8 +1,9 @@
-# jPulse Framework v0.3.8
+# jPulse Framework v0.3.9
 
 A modern, lightweight, and extensible web application framework using the MVC (model, view, controller) pattern. jPulse is built with Node.js, Express, and MongoDB, and combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content. It is extensible, where multiple teams can work independently to build large and scalable applications targeting midsize to large organizations in the government and private sector.
 
-**Latest Release Highlights (v0.3.8):**
+**Latest Releases Highlights:**
+- ✅ **Improved Error Handling (W-026)**: Direct rendering of 404 error pages via `viewController` without redirects, preserving URLs and enhancing user experience
 - ✅ **ESM Testing Infrastructure (W-026)**: Fixed ECMAScript Modules loading issues, implemented runtime configuration consolidation, and created shared bootstrap architecture for consistent dependency management
 - ✅ **Production-Ready Logging**: Standardized logging format across all modules with consistent timestamp and context formatting
 - ✅ **Test Suite Optimization**: Achieved 100% test pass rate with improved test isolation and parallel execution support
@@ -104,6 +105,7 @@ Powerful template rendering with security-first design:
 - **Recursive Processing**: Handlebars within conditional blocks are processed
 - **File Operations**: `{{file.include}}` and `{{file.timestamp}}` helpers
 - **Depth Limiting**: Prevents infinite recursion in includes
+- **Error Handling**: Direct rendering of 404 error pages without redirects, preserving URLs.
 
 ### 🎯 **Hybrid Content Strategy**
 jPulse implements a sophisticated routing strategy that cleanly separates static and dynamic content:
@@ -328,6 +330,7 @@ jPulse provides a comprehensive RESTful API under the `/api/1/` prefix with the 
 - **🏥 Health Monitoring**: System status and health check endpoints
 - **🔐 Session Authentication**: Secure user authentication with role-based authorization
 - **📝 Structured Responses**: Consistent JSON response format with error handling and performance metrics
+- **🔗 Error Reporting (W-026)**: Direct rendering of 404 error pages via `viewController` without redirects, preserving URLs.
 
 ### Quick API Examples
 ```bash

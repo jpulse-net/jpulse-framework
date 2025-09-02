@@ -6,6 +6,39 @@ ________________________________________________
 ## 🚀 Version History
 
 ________________________________________________
+### v0.4.1 (2025-09-02)
+**Commit:** `W-025, v0.4.1: Component-based styling with framework/site separation`
+
+Implemented comprehensive CSS architecture with component library and framework/site separation preparation.
+
+Major Features:
+- **Component-Based Styling (W-025)**: Complete CSS architecture overhaul
+  - Moved 290+ lines from `jpulse-header.tmpl` to external `jpulse-common.css`
+  - Created comprehensive `jp-` component library (799 lines)
+  - Standardized on `jp-` prefix for all framework components
+  - Organized CSS into Framework Core vs Site Customizable sections
+
+Technical Achievements:
+- **Performance Optimization**: External CSS with cache-busting `{{file.timestamp}}`
+- **Framework/Site Separation**: Prepared CSS structure for W-014 implementation
+- **Theme System Foundation**: `.jp-theme-*-light/dark` classes ready for W-037
+- **Responsive Design**: Maintained all breakpoints with `{{appConfig.view.*}}` integration
+- **Component Library**: Buttons, cards, forms, alerts, stats, typography, utilities
+
+Development Impact:
+- **Clean Architecture**: Clear separation of framework vs customizable styles
+- **Reduced Duplication**: Component-based approach eliminates style repetition
+- **Maintainable Code**: External CSS with organized component structure
+- **Future-Proof**: Ready for theme system and site-specific overrides
+
+Proof-of-Concept Migrations:
+- `home/index.shtml` - Removed 45 lines of custom CSS, replaced with `jp-` components
+- `error/index.shtml` - Removed 143 lines of custom CSS, enhanced error layout
+- Migration guide created for W-036 remaining view updates
+
+Breaking Changes: Clean break from `jpulse-*` to `jp-*` naming convention
+
+________________________________________________
 ### v0.4.0 (2025-09-02)
 **Commit:** `W-035, v0.4.0: Enhanced jpulse-common.js utilities - Complete script separation framework`
 

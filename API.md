@@ -1,4 +1,4 @@
-# jPulse Framework / API Documentation v0.4.0
+# jPulse Framework / API Documentation v0.4.1
 
 Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
 
@@ -13,6 +13,7 @@ jPulse provides a comprehensive RESTful API under the `/api/1/` prefix with the 
 - **Authentication**: Session-based authentication with user context
 - **Error Handling**: Structured error responses with detailed messages
 - **Client-Side Error Handling**: Server-side rendering of error pages without redirects, preserving URLs.
+- **Component-Based Styling**: Complete `jp-` CSS component library with responsive design and theme system foundation
 - **Logging**: All API calls automatically logged with user context
 
 ### Base URL Structure
@@ -226,6 +227,37 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 ```
+
+________________________________________________
+## 🎨 Component Library (jp-* CSS Classes)
+
+The jPulse Framework provides a comprehensive component library with consistent `jp-` prefixed classes for rapid development.
+
+### Layout Components
+- `.jp-container` - Responsive container with configurable max-width
+- `.jp-main` - Main content area with white background and shadow
+- `.jp-card` - Reusable card component with header/body/footer structure
+
+### UI Components  
+- `.jp-btn` + variants (primary, secondary, success, danger, outline, loading)
+- `.jp-alert` + variants (info, error, success, warning) with animations
+- `.jp-info-box/warning-box/error-box` - Message containers with colored borders
+
+### Form Components
+- `.jp-form-group/label/input/select/textarea` - Complete form styling
+- `.jp-form-grid` - Responsive form layouts
+- `.jp-search-section` + `.jp-search-form` - Search interface components
+- `.jp-field-error` - Error state styling with focus indicators
+
+### Utilities
+- `.jp-flex/flex-between/flex-center/flex-wrap` - Flexbox utilities
+- `.jp-gap-10/15/20` - Gap spacing utilities  
+- `.jp-mb-10/15/20/30` - Margin bottom utilities
+- `.jp-hidden` - Element visibility control
+
+### Theme System (Future W-037)
+- `.jp-theme-*-light/dark` classes prepared for theme switching
+- Aligns with existing user preferences: `light` and `dark` themes
 
 ________________________________________________
 ## 👤 User Management API

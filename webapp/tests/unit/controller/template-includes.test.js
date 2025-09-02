@@ -3,7 +3,7 @@
  * @tagline         Unit tests for template include system (header/footer)
  * @description     Tests for the new template include features and file.include helper
  * @file            webapp/tests/unit/controller/template-includes.test.js
- * @version         0.4.0
+ * @version         0.4.1
  * @release         2025-09-02
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

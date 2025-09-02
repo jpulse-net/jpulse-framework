@@ -1,9 +1,9 @@
 /*
  * @name            jPulse Framework / WebApp / View / jPulse Common CSS
  * @tagline         Common CSS of the jPulse Framework
- * @description     This is the common CSS for the jPulse Framework
+ * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         0.4.0
+ * @version         0.4.1
  * @release         2025-09-02
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -13,10 +13,10 @@
  */
 
 /* ========================================
- * FRAMEWORK CORE STYLES
+ * FRAMEWORK CORE STYLES (never overridden)
  * ======================================== */
 
-/* Base & Reset Styles */
+/* Base Reset - Essential for consistent rendering */
 * {
     box-sizing: border-box;
 }
@@ -26,12 +26,10 @@ body {
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
     line-height: 1.6;
-    color: #333;
-    background-color: #f5f5f5;
     padding-top: 30px; /* Account for sticky header */
 }
 
-/* Layout System */
+/* Core Layout System - Framework structure */
 .jp-container {
     max-width: {{appConfig.view.maxWidth}}px;
     margin: 0 auto;
@@ -50,11 +48,11 @@ body {
     margin-right: auto;
     min-width: 0;
     box-sizing: border-box;
-    padding-top: 30px; /* Account for fixed header */
+    padding-top: 30px;
     min-height: calc(100vh - 30px);
 }
 
-/* Responsive Layout */
+/* Core Responsive Breakpoints */
 @media (max-width: calc({{appConfig.view.maxWidth}}px + {{appConfig.view.minMarginLeftRight}}px * 2)) {
     .jp-container {
         margin: 0 {{appConfig.view.minMarginLeftRight}}px;
@@ -83,9 +81,16 @@ body {
 }
 
 /* ========================================
- * HEADER COMPONENT
+ * SITE CUSTOMIZABLE STYLES (can be overridden in site/webapp/view/)
  * ======================================== */
 
+/* Color Scheme & Theming */
+body {
+    color: #333;
+    background-color: #f5f5f5;
+}
+
+/* Header Component - Site customizable colors/styling */
 .jp-header {
     position: fixed;
     top: 0;
@@ -163,7 +168,7 @@ body {
 
 @media (max-width: 600px) {
     .jp-logo span {
-        display: none; /* Hide text on small screens, show only icon */
+        display: none;
     }
 }
 
@@ -226,10 +231,7 @@ body {
     background: #f5f5f5;
 }
 
-/* ========================================
- * FOOTER COMPONENT
- * ======================================== */
-
+/* Footer Component - Site customizable styling */
 .jp-footer {
     margin-top: 40px;
     padding: 20px 0;
@@ -301,10 +303,10 @@ body {
 }
 
 /* ========================================
- * COMPONENT LIBRARY
+ * COMPONENT LIBRARY (site customizable)
  * ======================================== */
 
-/* Alert System */
+/* Alert System Components */
 .jp-alert {
     padding: 12px 16px;
     border-radius: 8px;
@@ -678,7 +680,10 @@ body {
     text-align: center;
 }
 
-/* Utility Classes */
+/* ========================================
+ * UTILITY CLASSES (framework core)
+ * ======================================== */
+
 .jp-hidden {
     display: none !important;
 }
@@ -737,10 +742,10 @@ body {
 }
 
 /* ========================================
- * THEME SYSTEM (for future W-0: create themes)
+ * THEME SYSTEM (for future W-037: create themes)
  * ======================================== */
 
-/* Theme Color Classes - Light Theme (default) */
+/* Light Theme Classes (default) */
 .jp-theme-text-primary { color: #333; }
 .jp-theme-text-secondary { color: #666; }
 .jp-theme-text-muted { color: #999; }
@@ -751,7 +756,7 @@ body {
 .jp-theme-border-primary { border-color: #007acc; }
 .jp-theme-shadow-light { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
 
-/* Dark Theme Overrides (for future implementation) */
+/* Dark Theme Overrides (for future W-0: create themes implementation) */
 /*
 .jp-theme-dark .jp-theme-text-primary { color: #e0e0e0; }
 .jp-theme-dark .jp-theme-text-secondary { color: #b0b0b0; }
@@ -760,6 +765,34 @@ body {
 .jp-theme-dark .jp-theme-bg-light { background-color: #1a202c; }
 .jp-theme-dark .jp-theme-border-light { border-color: #555; }
 .jp-theme-dark .jp-theme-shadow-light { box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+
+Body theme class application:
+<body class="jp-theme-{{user.preferences.theme}}">
+*/
+
+/* ========================================
+ * SITE OVERRIDE EXAMPLES (for future W-014: framework/site separation)
+ * ======================================== */
+
+/*
+Site-specific overrides would go in: site/webapp/view/jpulse-common.css
+
+Example site customizations:
+.jp-header {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.jp-btn-primary {
+    background: #28a745;
+}
+
+.jp-btn-primary:hover {
+    background: #218838;
+}
+
+.jp-logo-icon {
+    color: #28a745;
+}
 */
 
 /* EOF webapp/view/jpulse-common.css */

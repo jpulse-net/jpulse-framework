@@ -1,8 +1,10 @@
-# jPulse Framework / Developer Documentation v0.4.0
+# jPulse Framework / Developer Documentation v0.4.1
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.3.8):**
+**Latest Updates (v0.4.1):**
+- 🎨 **Component-Based Styling (W-025)**: Complete CSS architecture with `jp-` component library, framework/site separation preparation, and theme system foundation. Moved 290+ lines from templates to external CSS with responsive design and performance optimization.
+- ✅ **Enhanced JavaScript Utilities (W-035)**: Complete `jpulse-common.js` framework with 5-phase utility system - alert management, API standardization, form handling, DOM utilities, and device detection. Eliminates 300+ lines of duplicate code across views with 40-50% faster development.
 - 🚫 **Error Reporting Without Redirect (W-034)**: Modified `viewController.load` to directly render 404 error pages for UI requests, preserving the URL and enhancing user experience by removing unnecessary redirects.
 - 🧪 **ESM Testing Infrastructure (W-033)**: Fixed ECMAScript Modules loading issues, implemented runtime configuration consolidation, and created shared bootstrap architecture for consistent dependency management
 - 📊 **Production-Ready Logging**: Standardized logging format across all modules with consistent timestamp and context formatting
@@ -962,192 +964,53 @@ const context = {
 - **Error Handling**: Graceful degradation with clear error messages
 
 ________________________________________________
-## 🎨 Client-Side Development (W-035)
+## 🎨 Component-Based Styling Architecture (W-025)
 
-### jPulseCommon Utility Framework
+### CSS Organization Strategy
 
-The jPulse Framework includes a comprehensive client-side utility library that eliminates code duplication and provides consistent development patterns across all views.
+The jPulse Framework uses a three-tier CSS architecture designed for framework/site separation:
 
-#### Architecture Design
+#### Framework Core (never overridden)
+- Base reset styles and box-sizing
+- Core layout system (`.jp-container`, `.jp-main`)
+- Responsive breakpoints using `{{appConfig.view.*}}`
+- Utility classes (`.jp-hidden`, `.jp-flex-*`, `.jp-gap-*`)
 
-```javascript
-// Global namespace pattern prevents conflicts
-window.jPulseCommon = {
-    // Phase 1: Alert System
-    showAlert, showSuccess, showError, showInfo, showWarning, clearAlerts,
+#### Site Customizable (can be overridden)
+- Color schemes and theming
+- Component styling (buttons, cards, forms)
+- Header/footer appearance
+- Typography and spacing
 
-    // Phase 2: API Standardization
-    apiCall, api: { get, post, put, delete },
+#### Theme System (W-037 preparation)
+- `.jp-theme-*-light/dark` naming convention
+- Aligns with existing user preferences
+- Ready for theme switching implementation
 
-    // Phase 3: Form Handling
-    form: { serialize, setLoadingState, clearErrors, handleSubmission, validate },
+### Component Library
 
-    // Phase 4: DOM & String Utilities
-    dom: { ready, createElement, hide, show, toggle },
-    string: { escapeHtml, capitalize, slugify },
-    url: { getParams, getParam },
+**Performance Optimized:**
+- External CSS with cache-busting: `jpulse-common.css?t={{file.timestamp}}`
+- 290+ lines moved from inline styles to external file
+- Browser caching with smart invalidation
 
-    // Phase 5: Device Detection
-    device: { isMobile, isDesktop, detectBrowser, detectOs },
-    cookies: { get, set, delete }
-};
-```
+**Developer Experience:**
+- Consistent `jp-` prefix for all framework components
+- Separate classes for clarity (`.jp-btn-primary`, `.jp-btn-secondary`)
+- Migration guide provided for view updates
 
-#### Development Patterns
-
-**1. Consistent Error Handling**
-```javascript
-// Before W-035 (25+ lines per view)
-async function handleLogin() {
-    try {
-        const response = await fetch('/api/1/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        const result = await response.json();
-        if (response.ok) {
-            showSuccessMessage('Login successful');
-            window.location.href = '/';
-        } else {
-            showErrorMessage(result.error || 'Login failed');
-        }
-    } catch (error) {
-        showErrorMessage('Network error');
-    }
-}
-
-// After W-035 (5 lines)
-const result = await jPulseCommon.api.post('/api/1/auth/login', data);
-if (result.success) {
-    jPulseCommon.showSuccess('Login successful');
-    window.location.href = '/';
-} else {
-    jPulseCommon.showError(result.error);
-}
-```
-
-**2. Form Handling Standardization**
-```javascript
-// Replaces 40+ lines of form handling per view
-jPulseCommon.form.handleSubmission(formElement, '/api/1/endpoint', {
-    successMessage: 'Operation completed!',
-    loadingText: 'Processing...',
-    redirectUrl: '/success-page/',
-    beforeSubmit: (form) => customValidation(form),
-    onSuccess: (data) => customSuccessHandler(data),
-    onError: (error) => customErrorHandler(error)
-});
-```
-
-**3. Responsive Design Utilities**
-```javascript
-// Device-aware functionality
-if (jPulseCommon.device.isMobile()) {
-    // Mobile-specific behavior
-    jPulseCommon.dom.hide(desktopOnlyElement);
-}
-
-// Browser-specific features
-if (jPulseCommon.device.detectBrowser() === 'safari') {
-    // Safari-specific workarounds
-}
-```
-
-#### CSS Architecture Integration
-
-The utility framework includes standardized CSS classes following the jp-/jpulse- naming convention:
-
+**Framework/Site Separation Ready:**
 ```css
-/* Alert system */
-.jp-alert { /* Base alert styling */ }
-.jp-alert-success { background: #d4edda; color: #155724; }
-.jp-alert-error { background: #f8d7da; color: #721c24; }
+/* Framework Core - webapp/view/jpulse-common.css */
+.jp-container { /* layout system */ }
 
-/* Form states */
-.jp-field-error { border-color: #dc3545; }
-.jp-btn-loading { /* Loading spinner animation */ }
-
-/* Utilities */
-.jp-hidden { display: none !important; }
+/* Site Override - site/webapp/view/jpulse-common.css */
+.jp-header { background: custom-gradient; }
 ```
 
-#### Dynamic Asset Serving
+### Migration Patterns
 
-Enhanced `webapp/controller/view.js` to properly serve jpulse-* files:
-
-```javascript
-// Content-Type detection for dynamic assets
-const fileExtension = path.extname(filePath).toLowerCase();
-let contentType = 'text/html';
-
-if (fileExtension === '.css') {
-    contentType = 'text/css';
-} else if (fileExtension === '.js') {
-    contentType = 'application/javascript';
-}
-
-res.set('Content-Type', contentType);
-```
-
-#### Cache-Busting Implementation
-
-```html
-<!-- Automatic cache-busting with handlebars timestamps -->
-<link rel="stylesheet" href="/jpulse-common.css?t={{file.timestamp "jpulse-common.css"}}">
-<script src="/jpulse-common.js?t={{file.timestamp "jpulse-common.js"}}"></script>
-```
-
-#### Development Workflow
-
-**1. Creating New Views**
-- Use `jPulseCommon.dom.ready()` for initialization
-- Implement form handling with `jPulseCommon.form.handleSubmission()`
-- Use consistent error/success messaging
-- Apply responsive patterns with device detection
-
-**2. Testing Client-Side Features**
-```javascript
-// Browser console testing
-jPulseCommon.showSuccess('Testing alert system');
-jPulseCommon.api.get('/api/1/status').then(console.log);
-console.log('Device info:', {
-    mobile: jPulseCommon.device.isMobile(),
-    browser: jPulseCommon.device.detectBrowser()
-});
-```
-
-**3. Performance Considerations**
-- All utilities loaded once, cached by browser
-- Namespace pattern prevents global conflicts
-- Minimal DOM manipulation for optimal performance
-- Automatic cleanup of event listeners and timers
-
-#### Future Compatibility
-
-The framework is designed for future enhancements:
-- **Theme System (W-0xx)**: CSS custom properties support ready
-- **Vue.js Integration**: Event-driven architecture compatible with SPA patterns
-- **Component Library**: Foundation for reusable UI components
-
-#### Migration Guidelines
-
-When migrating existing views to use jPulseCommon:
-
-1. **Replace Alert Functions**: Convert `showError()`, `showSuccess()` to `jPulseCommon.*`
-2. **Standardize API Calls**: Replace fetch patterns with `jPulseCommon.api.*`
-3. **Update Form Handling**: Use `jPulseCommon.form.handleSubmission()`
-4. **Apply CSS Classes**: Use jp-prefixed classes for consistency
-5. **Test Thoroughly**: Verify all functionality before removing old code
-
-#### Code Reduction Metrics
-
-- **login.shtml**: ~25 lines eliminated (alert functions, API calls)
-- **profile.shtml**: ~35 lines eliminated (form handling, API calls)
-- **signup.shtml**: ~40 lines eliminated (validation, submission)
-- **user/index.shtml**: ~20 lines eliminated (search, error handling)
-
-Total: **300+ lines** of duplicate code eliminated across the framework.
+See `docs/dev/W025-MIGRATION-GUIDE.md` for complete migration patterns and component usage examples.
 
 ________________________________________________
 ## 🎯 Major Implementation Milestones

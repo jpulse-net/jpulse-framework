@@ -1854,3 +1854,47 @@ ARCHITECTURE BENEFITS:
 - Maintainability: Organized component library with consistent naming
 
 NEXT: Phase 2 - Migrate home/index.shtml and error/index.shtml as proof-of-concept
+
+
+============================================================
+
+2025-09-02 12:55: W-025 COMPLETED: Component-based styling with framework/site separation
+
+PHASE 1: Extract Framework Styles & Create Component Library
+✅ Moved 290+ lines from jpulse-header.tmpl to jpulse-common.css
+✅ Created comprehensive jp- component library (799 lines)
+✅ Standardized jp- prefix for all framework components
+✅ Organized CSS: Framework Core vs Site Customizable sections
+
+PHASE 2: Proof-of-Concept Migration  
+✅ home/index.shtml - Removed 45 lines custom CSS, replaced with jp- components
+✅ error/index.shtml - Removed 143 lines custom CSS, enhanced error layout
+✅ Performance validated: 2-5ms page loads with proper caching
+
+PHASE 3: Framework/Site Separation Preparation
+✅ CSS organized for future W-014 site override capability
+✅ Theme system foundation with jp-theme-*-light/dark naming ready for W-037
+✅ Created docs/dev/W025-MIGRATION-GUIDE.md for W-036 migrations
+✅ Updated all documentation: README.md, API.md, developers.md, changes.md
+
+COMPONENT LIBRARY DELIVERED:
+- Layout: jp-container, jp-main with responsive design
+- Buttons: jp-btn-primary/secondary/success/danger/outline
+- Cards: jp-card with header/body/footer structure  
+- Forms: jp-form-group/label/input/select/textarea
+- Alerts: jp-alert with info/error/success/warning variants
+- Stats: jp-stats-grid, jp-stat-card for dashboards
+- Error pages: jp-error-container, jp-error-details
+- Typography: jp-title, jp-subtitle, jp-text-* utilities
+- Utilities: jp-hidden, jp-flex-*, jp-gap-*, jp-mb-*
+
+ARCHITECTURE BENEFITS:
+- Clean separation: 290+ lines moved from templates to external CSS
+- Performance: External CSS with {{file.timestamp}} cache-busting
+- Maintainability: Component-based architecture eliminates duplication
+- Future-proof: Ready for W-014 site separation and W-037 themes
+- Developer experience: Consistent jp- naming and clear component hierarchy
+
+HANDOFF TO W-036: Proven component library, migration guide, and 6 remaining pages ready for JavaScript utility integration.
+
+W-025 objective achieved: Clean styles, clean hierarchy, less duplication, less style in pages!

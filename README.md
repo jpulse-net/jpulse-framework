@@ -1,8 +1,9 @@
-# jPulse Framework v0.4.0
+# jPulse Framework v0.4.1
 
 A modern, lightweight, and extensible web application framework using the MVC (model, view, controller) pattern. jPulse is built with Node.js, Express, and MongoDB, and combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content. It is extensible, where multiple teams can work independently to build large and scalable applications targeting midsize to large organizations in the government and private sector.
 
 **Latest Releases Highlights:**
+- ✅ **Component-Based Styling (W-025)**: Complete CSS architecture with `jp-` component library, framework/site separation preparation, and theme system foundation. Moved 290+ lines from templates to external CSS with responsive design and performance optimization.
 - ✅ **Enhanced JavaScript Utilities (W-035)**: Complete `jpulse-common.js` framework with 5-phase utility system - alert management, API standardization, form handling, DOM utilities, and device detection. Eliminates 300+ lines of duplicate code across views with 40-50% faster development.
 - ✅ **Improved Error Handling (W-034)**: Direct rendering of 404 error pages via `viewController` without redirects, preserving URLs and enhancing user experience
 - ✅ **ESM Testing Infrastructure (W-033)**: Fixed ECMAScript Modules loading issues, implemented runtime configuration consolidation, and created shared bootstrap architecture for consistent dependency management

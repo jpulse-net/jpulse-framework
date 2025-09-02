@@ -3,7 +3,7 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         0.4.0
+ * @version         0.4.1
  * @release         2025-09-02
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

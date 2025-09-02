@@ -478,6 +478,7 @@ Requirements Doc of jPulse Framework
 
 ## Potential next items:
 **W-036**: view: migrate existing views to use jpulse-common.js utilities
+**W-037**: create themes
 **W-014**: strategy for seamless update of site-specific jPulse deployments
 **W-019**: slide down/up info and error message on top of page
 **W-013**: create site admin views
@@ -494,8 +495,8 @@ I finished **W-0xx**: .....
 - run tests, and fix issues
 - update docs: README.md, API.md, developers.md, changelog.md in project root
 - show me cursor_log.txt update text I can copy & paste
-  - current date: 2025-09-02 00:32
-- update commit-message.txt, following the same format, specify: W-026, v0.3.9
+  - current date: 2025-09-02 12:55
+- update commit-message.txt, following the same format, specify: W-025, v0.4.1
   - don't commit
 
 
@@ -526,6 +527,14 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - phase 3: auth/signup.shtml - Replace form handling (~40 lines saved)
 - phase 4: user/index.shtml - Replace showError/API calls (~20 lines saved)
 - phase 5: auth/logout.shtml - Minimal changes needed
+
+## **W-037**: create themes
+- status: 🕑 PENDING
+- type: Feature
+- initially a dark and light theme, light is default
+- user can set preferred theme
+- way to define new themes
+  - drop in a directory, with auto discovery
 
 ## **W-013**: create site admin views
 - status: 🕑 PENDING
@@ -567,14 +576,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - else considered an info message:
   - show message for 3 sec with yellow background
 - provide a common JavaScript function to show a sliding message without a msg= URL parameter
-
-## **W-0**: create themes
-- status: 🕑 PENDING
-- type: Feature
-- initially a dark and light theme, light is default
-- user can set preferred theme
-- way to define new themes
-  - drop in a directory, with auto discovery
 
 ## **W-0**: docs: restructure user facing and developer facing documentation
 - status: 🕑 PENDING
@@ -763,7 +764,7 @@ jpulse-framework/               # Main project
 
 ### Phase 3: Enhanced Features (W-013c)
 - Foundation for plugin infrastructure (W-016)
-- Theme system support (W-017)
+- Theme system support (W-037)
 - Advanced customization tools
 
 ### Deferred Decisions:

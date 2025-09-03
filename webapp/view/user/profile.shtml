@@ -4,8 +4,8 @@
  * @tagline         User profile view with edit capabilities
  * @description     User profile management with view and edit modes
  * @file            webapp/view/user/profile.shtml
- * @version         0.4.1
- * @release         2025-09-02
+ * @version         0.4.3
+ * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -358,13 +358,13 @@
             const result = await jPulseCommon.api.put('/api/1/user/profile', profileData);
 
             if (result.success) {
-                jPulseCommon.showSuccess('{{i18n.view.user.profile.profileUpdatedSuccess}}');
+                jPulseCommon.showSlideDownSuccess('{{i18n.view.user.profile.profileUpdatedSuccess}}');
                 editMode = false;
                 cancelEdit();
                 // Reload fresh data from API
                 await loadProfile();
             } else {
-                jPulseCommon.showError(result.error || '{{i18n.view.user.profile.failedToUpdateProfile}}');
+                jPulseCommon.showSlideDownError(result.error || '{{i18n.view.user.profile.failedToUpdateProfile}}');
             }
         }
 
@@ -403,17 +403,17 @@
 
             // Validate required fields
             if (!jPulseCommon.form.validate.required(currentPassword)) {
-                jPulseCommon.showError('{{i18n.view.user.profile.currentPasswordRequired}}');
+                jPulseCommon.showSlideDownError('{{i18n.view.user.profile.currentPasswordRequired}}');
                 return false;
             }
 
             if (!jPulseCommon.form.validate.password(newPassword)) {
-                jPulseCommon.showError('{{i18n.view.user.profile.newPasswordTooShort}}');
+                jPulseCommon.showSlideDownError('{{i18n.view.user.profile.newPasswordTooShort}}');
                 return false;
             }
 
             if (!jPulseCommon.form.validate.match(newPassword, confirmPassword)) {
-                jPulseCommon.showError('{{i18n.view.user.profile.passwordsDoNotMatch}}');
+                jPulseCommon.showSlideDownError('{{i18n.view.user.profile.passwordsDoNotMatch}}');
                 formElement.querySelector('#confirmPassword').classList.add('jp-field-error');
                 return false;
             }
@@ -424,7 +424,7 @@
         async function loadProfile() {
             try {
                 const result = await jPulseCommon.api.get('/api/1/user/profile');
-                if (result.success) {
+                if (result.success && result.data) {
                     const user = result.data;
 
                     // Update form fields
@@ -444,10 +444,10 @@
                         statusBadge.className = `jp-status-badge jp-status-${user.status}`;
                     }
                 } else {
-                    jPulseCommon.showError(result.error || '{{i18n.view.user.profile.failedToLoadProfile}}');
+                    jPulseCommon.showSlideDownError(result.error || '{{i18n.view.user.profile.failedToLoadProfile}}');
                 }
             } catch (error) {
-                jPulseCommon.showError('{{i18n.view.user.profile.networkErrorLoadingProfile}}: ' + error.message);
+                jPulseCommon.showSlideDownError('{{i18n.view.user.profile.networkErrorLoadingProfile}}: ' + error.message);
             }
         }
 
@@ -471,16 +471,16 @@
                         });
                     } else {
                         console.error('Languages data is not an array:', languages);
-                        jPulseCommon.showError('Invalid language data format received from server');
+                        jPulseCommon.showSlideDownError('Invalid language data format received from server');
                     }
 
                     languageSelect.value = currentValue;
                 } else {
-                    jPulseCommon.showError('Failed to load language options: ' + (response.error || 'Unknown error'));
+                    jPulseCommon.showSlideDownError('Failed to load language options: ' + (response.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Failed to load languages:', error);
-                jPulseCommon.showError('Failed to load language options. Please refresh the page.');
+                jPulseCommon.showSlideDownError('Failed to load language options. Please refresh the page.');
             }
         }
 
@@ -504,16 +504,16 @@
                         });
                     } else {
                         console.error('Themes data is not an array:', themes);
-                        jPulseCommon.showError('Invalid theme data format received from server');
+                        jPulseCommon.showSlideDownError('Invalid theme data format received from server');
                     }
 
                     themeSelect.value = currentValue;
                 } else {
-                    jPulseCommon.showError('Failed to load theme options: ' + (response.error || 'Unknown error'));
+                    jPulseCommon.showSlideDownError('Failed to load theme options: ' + (response.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Failed to load themes:', error);
-                jPulseCommon.showError('Failed to load theme options. Please refresh the page.');
+                jPulseCommon.showSlideDownError('Failed to load theme options. Please refresh the page.');
             }
         }
 

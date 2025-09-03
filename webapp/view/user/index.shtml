@@ -4,7 +4,7 @@
  * @tagline         User directory with search and statistics
  * @description     User management interface with role-based access control
  * @file            webapp/view/user/index.shtml
- * @version         0.4.2
+ * @version         0.4.3
  * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -459,10 +459,10 @@
                     displayUsers(userData);
                     setupPagination(result.pagination);
                 } else {
-                    jPulseCommon.showError(result.error || '{{i18n.view.user.index.failedToLoadUsers}}');
+                    jPulseCommon.showSlideDownError(result.error || '{{i18n.view.user.index.failedToLoadUsers}}');
                 }
             } catch (error) {
-                jPulseCommon.showError('{{i18n.view.user.index.networkError}}');
+                jPulseCommon.showSlideDownError('{{i18n.view.user.index.networkError}}');
             } finally {
                 // Hide loading state
                 document.getElementById('loadingIndicator').style.display = 'none';
@@ -635,17 +635,17 @@
                         });
                     } else {
                         console.error('Roles data is not an array:', roles);
-                        jPulseCommon.showError('Invalid role data format received from server');
+                        jPulseCommon.showSlideDownError('Invalid role data format received from server');
                     }
 
                     // Restore selection
                     roleSelect.value = currentValue;
                 } else {
-                    jPulseCommon.showError('Failed to load role options: ' + (response.error || 'Unknown error'));
+                    jPulseCommon.showSlideDownError('Failed to load role options: ' + (response.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Failed to load roles:', error);
-                jPulseCommon.showError('Failed to load role options. Please refresh the page.');
+                jPulseCommon.showSlideDownError('Failed to load role options. Please refresh the page.');
             }
         }
 

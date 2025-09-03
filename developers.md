@@ -1,4 +1,4 @@
-# jPulse Framework / Developer Documentation v0.4.2
+# jPulse Framework / Developer Documentation v0.4.3
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
@@ -20,6 +20,75 @@ Technical documentation for developers working on the jPulse Framework. This doc
 - 🏗️ **MVC-Aligned Configuration (W-026)**: Restructured app.conf to match model/controller/view architecture
 - 📁 **Enhanced Configuration Organization**: Settings organized by component type for better maintainability
 - 🔗 **API-Driven Profile Management**: User profiles now load fresh data from REST API instead of session data
+
+**Latest Updates (v0.4.3):**
+- 🎨 **Slide-Down Message System (W-019)**: Complete implementation of non-blocking slide-down messages with smooth animations, dynamic stacking, and comprehensive API renaming for clarity. All `showAlert/showError/showSuccess/showInfo/showWarning` functions renamed to `showSlideDown*` equivalents with enhanced UX.
+- 🎨 **View Migration & API Simplification (W-036)**: Complete migration of all 5 view files to jpulse-common utilities with API response simplification and dynamic schema-aware frontend. Eliminated confusing double-wrapped responses, implemented dynamic dropdown population from backend APIs, and enhanced search functionality with proper pagination.
+- 🎨 **Component-Based Styling (W-025)**: Complete CSS architecture with `jp-` component library, framework/site separation preparation, and theme system foundation. Moved 290+ lines from templates to external CSS with responsive design and performance optimization.
+- ✅ **Enhanced JavaScript Utilities (W-035)**: Complete `jpulse-common.js` framework with 5-phase utility system - alert management, API standardization, form handling, DOM utilities, and device detection. Eliminates 300+ lines of duplicate code across views with 40-50% faster development.
+- 🚫 **Error Reporting Without Redirect (W-034)**: Modified `viewController.load` to directly render 404 error pages for UI requests, preserving the URL and enhancing user experience by removing unnecessary redirects.
+- 🧪 **ESM Testing Infrastructure (W-033)**: Fixed ECMAScript Modules loading issues, implemented runtime configuration consolidation, and created shared bootstrap architecture for consistent dependency management
+- 📊 **Production-Ready Logging**: Standardized logging format across all modules with consistent timestamp and context formatting
+- 🎯 **Test Suite Optimization**: Achieved 100% test pass rate with improved test isolation and parallel execution support
+- ⚙️ **Configuration Consolidation**: Runtime .conf to .json conversion with timestamp-based caching for optimal performance
+- 👤 **User ID Consolidation and UUID (W-032)**: Unified user identification to 'username', deprecated 'loginId'/'userId', and introduced a unique 'uuid' field for immutable user references.
+- 🌐 **I18n Module Restructuring (W-031)**: `i18n.js` moved to `webapp/utils/` and translation files renamed (e.g., `lang-en.conf` to `en.conf`), improving project organization and simplifying file management.
+- 🌐 **I18n and Logging Consistency (W-029)**: User-facing messages internationalized and controller logs standardized for clarity and consistency.
+- 🌐 **I18n Structure Alignment (W-027)**: Language files restructured to match controller and view architecture
+- 📁 **Improved Translation Organization**: Translation keys now organized by controller/view structure for better maintainability
+- 🔧 **Enhanced Template Integration**: Streamlined handlebars variable processing with restructured language files
+- 🏗️ **MVC-Aligned Configuration (W-026)**: Restructured app.conf to match model/controller/view architecture
+- 📁 **Enhanced Configuration Organization**: Settings organized by component type for better maintainability
+- 🔗 **API-Driven Profile Management**: User profiles now load fresh data from REST API instead of session data
+
+________________________________________________
+## 🚨 Breaking Changes & Migration Guide
+
+### v0.4.3 - Slide-Down Message System API Renaming
+
+**Breaking Changes:**
+All alert/message functions have been renamed for clarity and consistency:
+
+```javascript
+// OLD API (deprecated)
+jPulseCommon.showAlert(message, type, container, duration)
+jPulseCommon.showError(message, container)
+jPulseCommon.showSuccess(message, container)
+jPulseCommon.showInfo(message, container)
+jPulseCommon.showWarning(message, container)
+jPulseCommon.clearAlerts(container)
+
+// NEW API (v0.4.3+)
+jPulseCommon.showSlideDownMessage(message, type, duration)
+jPulseCommon.showSlideDownError(message)
+jPulseCommon.showSlideDownSuccess(message)
+jPulseCommon.showSlideDownInfo(message)
+jPulseCommon.showSlideDownWarning(message)
+jPulseCommon.clearSlideDownMessages()
+```
+
+**CSS Classes:**
+```css
+/* OLD classes (deprecated) */
+.jp-alert, .jp-alert-show, .jp-alert-hide
+.jp-alert-info, .jp-alert-error, .jp-alert-success, .jp-alert-warning
+
+/* NEW classes (v0.4.3+) */
+.jp-slide-down, .jp-slide-down-show, .jp-slide-down-hide
+.jp-slide-down-info, .jp-slide-down-error, .jp-slide-down-success, .jp-slide-down-warning
+```
+
+**Migration Steps:**
+1. Replace all `jPulseCommon.show*` function calls with `jPulseCommon.showSlideDown*` equivalents
+2. Remove `container` parameters (no longer supported for better UX consistency)
+3. Update any custom CSS that references `.jp-alert` classes to use `.jp-slide-down`
+4. Test message functionality to ensure proper slide-down animations
+
+**Benefits:**
+- Self-documenting API names clearly indicate slide-down behavior
+- Consistent UX with all messages appearing in the same location
+- Enhanced animations and dynamic stacking
+- Simplified API without unused container parameter
 
 ________________________________________________
 ## 🏗️ Architecture Overview

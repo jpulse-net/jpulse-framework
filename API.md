@@ -1,4 +1,4 @@
-# jPulse Framework / API Documentation v0.4.2
+# jPulse Framework / API Documentation v0.4.3
 
 Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
 
@@ -45,23 +45,30 @@ ________________________________________________
 
 The jPulse Framework includes a comprehensive client-side utility library available globally as `jPulseCommon`. This eliminates code duplication and provides consistent patterns across all views.
 
-### Alert System
+### Slide-Down Message System
 
-Display consistent user feedback messages with automatic styling and animations.
+Display non-blocking slide-down messages with smooth animations and intelligent stacking.
 
 ```javascript
-// Basic alerts with auto-hide (5 seconds)
-jPulseCommon.showSuccess('Operation completed successfully!');
-jPulseCommon.showError('Please check your input and try again.');
-jPulseCommon.showInfo('Your session will expire in 5 minutes.');
-jPulseCommon.showWarning('This action cannot be undone.');
+// Basic slide-down messages with configurable auto-hide durations
+jPulseCommon.showSlideDownSuccess('Operation completed successfully!'); // 3s duration
+jPulseCommon.showSlideDownError('Please check your input and try again.'); // 6s duration
+jPulseCommon.showSlideDownInfo('Your session will expire in 5 minutes.'); // 3s duration
+jPulseCommon.showSlideDownWarning('This action cannot be undone.'); // 5s duration
 
-// Custom container and duration
-jPulseCommon.showAlert('Custom message', 'info', containerElement, 10000);
+// Custom duration (overrides config defaults)
+jPulseCommon.showSlideDownMessage('Custom message', 'info', 10000);
 
-// Clear all alerts
-jPulseCommon.clearAlerts();
+// Clear all slide-down messages
+jPulseCommon.clearSlideDownMessages();
 ```
+
+**Features:**
+- **Non-blocking**: Messages overlay content without shifting page layout
+- **Smooth animations**: 0.6s slide transitions from behind header
+- **Dynamic stacking**: Multiple messages stack intelligently with 5px gaps
+- **Responsive design**: Adapts to screen size using `appConfig.view.slideDownMessage` settings
+- **Independent timing**: Each message respects its configured duration without interference
 
 ### API Call Standardization
 
@@ -245,7 +252,7 @@ The jPulse Framework provides a comprehensive component library with consistent 
 - `.jp-main` - Main content area with white background and shadow
 - `.jp-card` - Reusable card component with header/body/footer structure
 
-### UI Components  
+### UI Components
 - `.jp-btn` + variants (primary, secondary, success, danger, outline, loading)
 - `.jp-alert` + variants (info, error, success, warning) with animations
 - `.jp-info-box/warning-box/error-box` - Message containers with colored borders
@@ -258,7 +265,7 @@ The jPulse Framework provides a comprehensive component library with consistent 
 
 ### Utilities
 - `.jp-flex/flex-between/flex-center/flex-wrap` - Flexbox utilities
-- `.jp-gap-10/15/20` - Gap spacing utilities  
+- `.jp-gap-10/15/20` - Gap spacing utilities
 - `.jp-mb-10/15/20/30` - Margin bottom utilities
 - `.jp-hidden` - Element visibility control
 

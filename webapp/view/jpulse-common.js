@@ -3,7 +3,7 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         0.4.2
+ * @version         0.4.3
  * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -13,147 +13,145 @@
  */
 
 window.jPulseCommon = {
-    // Alert queue management
-    _alertQueue: [],
-    _alertContainer: null,
+    // Slide-down message queue management
+    _slideDownQueue: [],
 
     // ========================================
-    // PHASE 1: Core Alert & Messaging System
+    // PHASE 1: Core Slide-Down Messaging System
     // ========================================
 
     /**
-     * Show non-blocking slide-down alert message with consistent styling
+     * Show non-blocking slide-down message with consistent styling
      * @param {string} message - The message to display
-     * @param {string} type - Alert type: 'info', 'error', 'success', 'warning'
+     * @param {string} type - Message type: 'info', 'error', 'success', 'warning'
      * @param {number} duration - Auto-hide duration in ms (0 = no auto-hide, uses config if not specified)
-     * @returns {Element} The created alert element
+     * @returns {Element} The created slide-down message element
      */
-    showAlert: (message, type = 'info', duration = null) => {
+    showSlideDownMessage: (message, type = 'info', duration = null) => {
         // Get duration from config if not specified
         if (duration === null) {
             const config = window.appConfig?.view?.slideDownMessage?.duration;
             duration = config?.[type] || 5000;
         }
 
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `jp-alert jp-alert-${type}`;
-        alertDiv.textContent = message;
-        alertDiv.dataset.type = type;
-        alertDiv.dataset.duration = duration;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `jp-slide-down jp-slide-down-${type}`;
+        messageDiv.textContent = message;
+        messageDiv.dataset.type = type;
+        messageDiv.dataset.duration = duration;
 
         // Add to queue
-        jPulseCommon._alertQueue.push(alertDiv);
+        jPulseCommon._slideDownQueue.push(messageDiv);
 
-        // Process only the new alert
-        jPulseCommon._processNewAlert(alertDiv);
+        // Process only the new message
+        jPulseCommon._processSlideDownMessage(messageDiv);
 
-        return alertDiv;
+        return messageDiv;
     },
 
     /**
-     * Process a single new alert
-     * @param {Element} alertDiv - The alert element to process
+     * Process a single new slide-down message
+     * @param {Element} messageDiv - The message element to process
      */
-    _processNewAlert: (alertDiv) => {
-        const index = jPulseCommon._alertQueue.indexOf(alertDiv);
+    _processSlideDownMessage: (messageDiv) => {
+        const index = jPulseCommon._slideDownQueue.indexOf(messageDiv);
 
         // Add to DOM first so we can measure height
-        document.body.appendChild(alertDiv);
+        document.body.appendChild(messageDiv);
 
         // Force reflow to ensure styles are applied
-        alertDiv.offsetHeight;
+        messageDiv.offsetHeight;
 
-        // Calculate dynamic stacking based on actual heights of previous alerts
+        // Calculate dynamic stacking based on actual heights of previous messages
         let stackOffset = 0;
         if (index > 0) {
             for (let i = 0; i < index; i++) {
-                const prevAlert = jPulseCommon._alertQueue[i];
-                if (prevAlert && prevAlert.parentNode) {
-                    stackOffset += prevAlert.offsetHeight + 5; // 5px gap between messages
+                const prevMessage = jPulseCommon._slideDownQueue[i];
+                if (prevMessage && prevMessage.parentNode) {
+                    stackOffset += prevMessage.offsetHeight + 5; // 5px gap between messages
                 }
             }
         }
 
-        // Stack alerts below header
-        alertDiv.dataset.stackIndex = index;
-        alertDiv.style.setProperty('--stack-offset', `${stackOffset}px`);
+        // Stack messages below header
+        messageDiv.dataset.stackIndex = index;
+        messageDiv.style.setProperty('--stack-offset', `${stackOffset}px`);
 
         // Trigger slide-down animation
         setTimeout(() => {
-            alertDiv.classList.add('jp-alert-show');
+            messageDiv.classList.add('jp-slide-down-show');
         }, 100);
 
         // Auto-hide after duration
-        const duration = parseInt(alertDiv.dataset.duration);
+        const duration = parseInt(messageDiv.dataset.duration);
         if (duration > 0) {
             setTimeout(() => {
-                jPulseCommon._hideAlert(alertDiv);
+                jPulseCommon._hideSlideDownMessage(messageDiv);
             }, duration);
         }
     },
 
     /**
-     * Hide alert with slide-up animation
-     * @param {Element} alertDiv - Alert element to hide
+     * Hide slide-down message with slide-up animation
+     * @param {Element} messageDiv - Message element to hide
      */
-    _hideAlert: (alertDiv) => {
-        if (!alertDiv || !alertDiv.parentNode) return;
+    _hideSlideDownMessage: (messageDiv) => {
+        if (!messageDiv || !messageDiv.parentNode) return;
 
         // Trigger slide-up animation (back behind header)
-        alertDiv.classList.remove('jp-alert-show');
-        alertDiv.classList.add('jp-alert-hide');
+        messageDiv.classList.remove('jp-slide-down-show');
+        messageDiv.classList.add('jp-slide-down-hide');
 
         // Remove from DOM after animation
         setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.remove();
+            if (messageDiv.parentNode) {
+                messageDiv.remove();
             }
             // Remove from queue
-            const index = jPulseCommon._alertQueue.indexOf(alertDiv);
+            const index = jPulseCommon._slideDownQueue.indexOf(messageDiv);
             if (index > -1) {
-                jPulseCommon._alertQueue.splice(index, 1);
+                jPulseCommon._slideDownQueue.splice(index, 1);
             }
-            // Don't reposition remaining alerts - let them stay in their original positions
         }, 600); // Match the longer animation time
     },
 
     /**
-     * Show error alert (red styling)
+     * Show error slide-down message (red styling)
      */
-    showError: (message) => {
-        return jPulseCommon.showAlert(message, 'error');
+    showSlideDownError: (message) => {
+        return jPulseCommon.showSlideDownMessage(message, 'error');
     },
 
     /**
-     * Show success alert (green styling)
+     * Show success slide-down message (green styling)
      */
-    showSuccess: (message) => {
-        return jPulseCommon.showAlert(message, 'success');
+    showSlideDownSuccess: (message) => {
+        return jPulseCommon.showSlideDownMessage(message, 'success');
     },
 
     /**
-     * Show info alert (blue styling)
+     * Show info slide-down message (blue styling)
      */
-    showInfo: (message) => {
-        return jPulseCommon.showAlert(message, 'info');
+    showSlideDownInfo: (message) => {
+        return jPulseCommon.showSlideDownMessage(message, 'info');
     },
 
     /**
-     * Show warning alert (yellow styling)
+     * Show warning slide-down message (yellow styling)
      */
-    showWarning: (message) => {
-        return jPulseCommon.showAlert(message, 'warning');
+    showSlideDownWarning: (message) => {
+        return jPulseCommon.showSlideDownMessage(message, 'warning');
     },
 
     /**
-     * Clear all alert messages
+     * Clear all slide-down messages
      */
-    clearAlerts: () => {
-        // Clear all alerts in queue
-        jPulseCommon._alertQueue.forEach(alertDiv => {
-            jPulseCommon._hideAlert(alertDiv);
+    clearSlideDownMessages: () => {
+        // Clear all messages in queue
+        jPulseCommon._slideDownQueue.forEach(messageDiv => {
+            jPulseCommon._hideSlideDownMessage(messageDiv);
         });
-        jPulseCommon._alertQueue = [];
+        jPulseCommon._slideDownQueue = [];
     },
 
     // ========================================
@@ -338,7 +336,7 @@ window.jPulseCommon = {
             });
 
             // Clear any existing alerts in the form
-            jPulseCommon.clearAlerts();
+            jPulseCommon.clearSlideDownMessages();
         },
 
         /**
@@ -409,7 +407,7 @@ window.jPulseCommon = {
                 });
 
                 if (hasErrors) {
-                    jPulseCommon.showError('Please fill in all required fields.');
+                    jPulseCommon.showSlideDownError('Please fill in all required fields.');
                     return { success: false, error: 'Required fields missing' };
                 }
             }
@@ -432,7 +430,7 @@ window.jPulseCommon = {
                 if (result.success) {
                     // Success handling
                     if (config.successMessage) {
-                        jPulseCommon.showSuccess(config.successMessage);
+                        jPulseCommon.showSlideDownSuccess(config.successMessage);
                     }
 
                     if (config.clearOnSuccess) {
@@ -452,7 +450,7 @@ window.jPulseCommon = {
                 } else {
                     // Error handling
                     const errorMessage = config.errorMessage || result.error || 'Submission failed';
-                    jPulseCommon.showError(errorMessage);
+                    jPulseCommon.showSlideDownError(errorMessage);
 
                     // Handle field-specific errors if provided by API
                     if (result.data && result.data.fieldErrors) {
@@ -473,7 +471,7 @@ window.jPulseCommon = {
 
             } catch (error) {
                 const errorMessage = `Submission error: ${error.message}`;
-                jPulseCommon.showError(errorMessage);
+                jPulseCommon.showSlideDownError(errorMessage);
                 return { success: false, error: errorMessage };
 
             } finally {

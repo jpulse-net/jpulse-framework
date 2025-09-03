@@ -3,7 +3,7 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         0.4.2
+ * @version         0.4.3
  * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -822,5 +822,73 @@ Example site customizations:
     color: #28a745;
 }
 */
+
+/* Slide-Down Message System Components */
+.jp-slide-down {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    border: 1px solid;
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(calc(-100% - var(--stack-offset, 0px)));
+    min-width: {{appConfig.view.slideDownMessage.minWidth}}px;
+    max-width: {{appConfig.view.slideDownMessage.maxWidth}}px;
+    width: calc(100vw - {{appConfig.view.slideDownMessage.minMarginLeftRight}}px * 2);
+    z-index: 999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: transform 0.6s ease-out;
+    text-align: left;
+}
+
+.jp-slide-down.jp-slide-down-show {
+    transform: translateX(-50%) translateY(calc(28px + var(--stack-offset, 0px)));
+}
+
+.jp-slide-down.jp-slide-down-hide {
+    transform: translateX(-50%) translateY(calc(-100% - var(--stack-offset, 0px)));
+}
+
+.jp-slide-down-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border-color: #bee5eb;
+}
+
+.jp-slide-down-error {
+    background: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+}
+
+.jp-slide-down-success {
+    background: #d4edda;
+    color: #155724;
+    border-color: #c3e6cb;
+}
+
+.jp-slide-down-warning {
+    background: #fff3cd;
+    color: #856404;
+    border-color: #ffeaa7;
+}
+
+/* Responsive adjustments for slide-down messages */
+@media (max-width: calc({{appConfig.view.slideDownMessage.maxWidth}}px + {{appConfig.view.slideDownMessage.minMarginLeftRight}}px * 2)) {
+    .jp-slide-down {
+        width: calc(100vw - {{appConfig.view.slideDownMessage.minMarginLeftRight}}px * 2);
+        max-width: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .jp-slide-down {
+        width: calc(100vw - 20px);
+        min-width: auto;
+        font-size: 13px;
+        padding: 10px 14px;
+    }
+}
 
 /* EOF webapp/view/jpulse-common.css */

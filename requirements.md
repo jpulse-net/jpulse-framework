@@ -536,10 +536,10 @@ next work item: **W-036**: view: migrate existing views to use jpulse-common.js 
 
 I finished **W-0xx**: .....
 - run tests, and fix issues
-- update docs: README.md, API.md, developers.md, changelog.md in project root
+- update docs: README.md, API.md, developers.md, changes.md in project root
 - show me cursor_log.txt update text I can copy & paste
-  - current date: 2025-09-02 22:11
-- update commit-message.txt, following the same format, specify: W-036, v0.4.2
+  - current date: 2025-09-03 01:44
+- update commit-message.txt, following the same format, specify: W-019, v0.4.3
   - don't commit
 
 

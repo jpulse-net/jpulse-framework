@@ -4,8 +4,8 @@
  * @tagline         Home page of jPulse Framework
  * @description     This is the home page of jPulse Framework
  * @file            webapp/view/home/index.shtml
- * @version         0.4.1
- * @release         2025-09-02
+ * @version         0.4.2
+ * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{app.version}} - Home</title>
+    <title>{{app.version}} - {{i18n.view.home.title}}</title>
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
@@ -42,6 +42,22 @@
     <div class="jp-main">
         <h1 class="jp-title">🫧 {{app.name}} - Home Page</h1>
 
+        <!-- Introduction Box (i18n messages) - at the top -->
+        <div class="jp-info-box">
+            <p>{{i18n.view.home.introduction}}</p>
+            <p>{{#if user.authenticated}}{{i18n.view.home.welcomeBack}}{{else}}{{i18n.view.home.notLoggedIn}}{{/if}}</p>
+        </div>
+
+        <!-- User Information Box (testing content) -->
+        <div class="jp-warning-box">
+            <h3>User Information</h3>
+            <p>{{#if user.authenticated}}{{i18n.view.home.welcomeBack}}{{else}}{{i18n.view.home.notLoggedIn}}{{/if}}</p>
+            {{#if user.authenticated}}<p><strong>User ID:</strong> {{user.id}}</p>{{else}}<p>{{i18n.view.home.pleaseLogin}}</p>{{/if}}
+            {{#if user.authenticated}}<p><strong>Name:</strong> {{user.firstName}} {{user.lastName}}</p>{{else}}{{/if}}
+            {{#if user.authenticated}}<p><strong>Email:</strong> {{user.email}}</p>{{else}}{{/if}}
+        </div>
+
+        <!-- Framework Information Box -->
         <div class="jp-info-box">
             <p><strong>Framework:</strong> {{app.name}}</p>
             <p><strong>Version:</strong> <span class="jp-text-muted jp-text-small">{{app.version}} ({{app.release}})</span></p>
@@ -52,14 +68,7 @@
             <p><strong>Test 404 link:</strong> <a href="/home/x.shtml">/home/x.shtml</a></p>
         </div>
 
-        <div class="jp-warning-box">
-            <h3>User Information</h3>
-            <p>{{#if user.authenticated}}Welcome back!{{else}}You are not logged in{{/if}}</p>
-            {{#if user.authenticated}}<p><strong>User ID:</strong> {{user.id}}</p>{{else}}<p>Please log in to see your user information.</p>{{/if}}
-            {{#if user.authenticated}}<p><strong>Name:</strong> {{user.firstName}} {{user.lastName}}</p>{{else}}{{/if}}
-            {{#if user.authenticated}}<p><strong>Email:</strong> {{user.email}}</p>{{else}}{{/if}}
-        </div>
-
+        <!-- Handlebars Demo Box -->
         <div class="jp-card">
             <div class="jp-card-header">
                 <h3>Handlebars Demo</h3>
@@ -83,10 +92,11 @@
             </div>
         </div>
 
+        <!-- Status Information -->
         <p>This is a server-side rendered template using the viewController with handlebars processing.</p>
         <p><strong>Status:</strong> <span class="jp-theme-text-primary" style="color: #007acc; font-weight: bold;">✅ W-006 viewController - IMPLEMENTED</span></p>
 
-        <!-- Test content to demonstrate sticky header -->
+        <!-- Sticky Header Test Box -->
         <div class="jp-info-box">
             <h3>🔍 Sticky Header Test</h3>
             <p><strong>Instructions:</strong> Scroll down this page to see the sticky header in action!</p>

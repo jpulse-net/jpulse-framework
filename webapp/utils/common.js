@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         0.4.1
- * @release         2025-09-02
+ * @version         0.4.2
+ * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -70,8 +70,29 @@ class CommonUtils {
                 if (dateQuery !== null) {
                     query[key] = dateQuery;
                 }
+            } else if (fieldSchema.type === 'array') {
+                // Handle array fields (like roles)
+                let arrayValues;
+                if (typeof value === 'string' && value.includes(',')) {
+                    // Handle comma-separated values like "admin,user"
+                    arrayValues = value.split(',').map(v => v.trim()).filter(v => v);
+                } else {
+                    // Single value
+                    arrayValues = [String(value).trim()];
+                }
+
+                if (fieldSchema.enum) {
+                    // For enum arrays, filter valid values and check if array contains any of them
+                    const validValues = arrayValues.filter(v => fieldSchema.enum.includes(v));
+                    if (validValues.length > 0) {
+                        query[key] = { $in: validValues };
+                    }
+                } else {
+                    // For non-enum arrays, check if array contains any of the values
+                    query[key] = { $in: arrayValues };
+                }
             } else if (fieldSchema.enum) {
-                // Handle enum fields first (before string type check)
+                // Handle enum fields (before string type check)
                 if (fieldSchema.enum.includes(value)) {
                     query[key] = value;
                 } else {
@@ -86,7 +107,7 @@ class CommonUtils {
                     const regex = stringValue.replace(/[*%]/g, '.*');
                     query[key] = { $regex: new RegExp(regex, 'i') };
                 } else {
-                    // Case-insensitive partial matching for strings
+                    // Case-insensitive partial matching for strings (including email)
                     query[key] = { $regex: new RegExp(stringValue, 'i') };
                 }
             } else if (fieldSchema.type === 'number') {

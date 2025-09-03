@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         0.4.1
- * @release         2025-09-02
+ * @version         0.4.2
+ * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -298,8 +298,18 @@ class UserModel {
     static async search(queryParams, options = {}) {
         try {
             // Build MongoDB query from URI parameters
-            const ignoreFields = ['limit', 'skip', 'sort', 'page', 'password', 'passwordHash'];
+            const ignoreFields = ['limit', 'skip', 'sort', 'page', 'password', 'passwordHash', 'name'];
             const query = CommonUtils.schemaBasedQuery(UserModel.schema, queryParams, ignoreFields);
+
+            // Handle special 'name' parameter to search both firstName and lastName
+            if (queryParams.name && queryParams.name.trim()) {
+                const nameValue = queryParams.name.trim();
+                query.$or = [
+                    { 'profile.firstName': { $regex: new RegExp(nameValue, 'i') } },
+                    { 'profile.lastName': { $regex: new RegExp(nameValue, 'i') } },
+                    { 'username': { $regex: new RegExp(nameValue, 'i') } }
+                ];
+            }
 
             // Handle pagination
             const limit = Math.min(parseInt(queryParams.limit) || 50, 1000);
@@ -336,7 +346,7 @@ class UserModel {
                     limit,
                     skip: options.skip || 0,
                     page: Math.floor((options.skip || 0) / limit) + 1,
-                    pages: Math.ceil(totalCount / limit)
+                    totalPages: Math.ceil(totalCount / limit)  // Add totalPages for frontend
                 },
                 query: query
             };

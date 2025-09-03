@@ -4,8 +4,8 @@
  * @tagline         User registration and account creation page
  * @description     Signup form for internal user registration
  * @file            webapp/view/auth/signup.shtml
- * @version         0.4.1
- * @release         2025-09-02
+ * @version         0.4.2
+ * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,30 +20,8 @@
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
-        .auth-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: calc(100vh - 200px);
-            padding: 2rem 1rem;
-        }
-
-        .signup-card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            padding: 2.5rem;
-            width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        .signup-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .signup-logo {
+        /* Page-specific styles only - common styles are in jpulse-common.css */
+        .jp-signup-logo {
             width: 60px;
             height: 60px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -57,62 +35,23 @@
             margin: 0 auto 1rem;
         }
 
-        .signup-header h1 {
-            color: #2d3748;
-            margin-bottom: 0.5rem;
-            font-size: 1.875rem;
-            font-weight: 600;
-        }
-
-        .signup-header p {
-            color: #718096;
-            margin: 0;
-        }
-
-        .form-row {
+        .jp-form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
         }
 
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #4a5568;
-            font-weight: 500;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.2s, box-shadow 0.2s;
-            box-sizing: border-box;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .password-requirements {
+        .jp-password-requirements {
             font-size: 0.875rem;
             color: #718096;
             margin-top: 0.25rem;
         }
 
-        .terms-checkbox {
+        .jp-terms-checkbox {
             margin-bottom: 1.5rem;
         }
 
-        .checkbox-label {
+        .jp-checkbox-label {
             display: flex;
             align-items: flex-start;
             gap: 0.5rem;
@@ -122,254 +61,144 @@
             line-height: 1.4;
         }
 
-        .checkbox-label input[type="checkbox"] {
+        .jp-checkbox-label input[type="checkbox"] {
             margin: 0;
             width: auto;
         }
 
-        .signup-button {
-            width: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 0.875rem;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-bottom: 1.5rem;
-        }
-
-        .signup-button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .signup-button:active {
-            transform: translateY(0);
-        }
-
-        .signup-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .signin-link {
+        .jp-signin-link {
             text-align: center;
             color: #718096;
             font-size: 0.875rem;
         }
 
-        .signin-link a {
+        .jp-signin-link a {
             color: #667eea;
             text-decoration: none;
             font-weight: 500;
         }
 
-        .signin-link a:hover {
+        .jp-signin-link a:hover {
             text-decoration: underline;
         }
 
-        .already-logged-in {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            padding: 3rem;
-            text-align: center;
-            width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        .user-avatar-large {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 2rem;
-            font-weight: bold;
-            margin: 0 auto 1.5rem;
-        }
-
-        .welcome-message h2 {
-            color: #2d3748;
-            margin-bottom: 0.5rem;
-            font-size: 1.5rem;
-        }
-
-        .welcome-message p {
-            color: #718096;
-            margin-bottom: 2rem;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 500;
-            text-align: center;
-            transition: all 0.2s;
-            border: 2px solid transparent;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #f7fafc;
-            color: #4a5568;
-            border-color: #e2e8f0;
-        }
-
-        .btn-secondary:hover {
-            background: #edf2f7;
-            border-color: #cbd5e0;
-        }
-
         @media (max-width: 640px) {
-            .signup-card, .already-logged-in {
-                padding: 1.5rem;
-                margin: 1rem;
-            }
-
-            .form-row {
+            .jp-form-row {
                 grid-template-columns: 1fr;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
             }
         }
     </style>
 </head>
 <body>
-    <div class="jpulse-main">
-        <div class="auth-container">
+    <div class="jp-main">
+        <div class="jp-auth-container">
           {{#if user.authenticated}}
-            <div class="already-logged-in">
-                <div class="user-avatar-large">
+            <div class="jp-already-logged-in">
+                <div class="jp-user-avatar-large">
                     {{user.initials}}
                 </div>
-                <div class="welcome-message">
+                <div class="jp-welcome-message">
                     <h2>{{i18n.view.auth.login.welcomeBack}}, {{user.firstName}}!</h2>
                     <p>{{i18n.view.auth.login.alreadyLoggedIn}}</p>
                 </div>
-                <div class="action-buttons">
-                    <a href="/user/profile.shtml" class="btn btn-primary">{{i18n.view.auth.common.profile}}</a>
-                    <a href="/" class="btn btn-secondary">{{i18n.view.auth.signup.goHome}}</a>
+                <div class="jp-action-buttons">
+                    <a href="/user/profile.shtml" class="jp-btn jp-btn-primary">{{i18n.view.auth.common.profile}}</a>
+                    <a href="/" class="jp-btn jp-btn-secondary">{{i18n.view.auth.signup.goHome}}</a>
                 </div>
             </div>
           {{else}}
-            <div class="signup-card">
-                <div class="signup-header">
-                    <div class="signup-logo">jP</div>
+            <div class="jp-auth-card">
+                <div class="jp-auth-header">
+                    <div class="jp-signup-logo">jP</div>
                     <h1>{{i18n.view.auth.signup.title}}</h1>
                     <p>{{i18n.view.auth.signup.subtitle}}</p>
                 </div>
 
                 <!-- Signup form for internal authentication -->
                 <form id="signupForm" onsubmit="handleSignup(event)">
-                    <div class="form-row">
-                        <div class="form-group">
+                    <div class="jp-form-row">
+                        <div class="jp-form-group">
                             <label for="firstName">{{i18n.view.auth.signup.firstName}}</label>
                             <input type="text"
                                    id="firstName"
                                    name="firstName"
+                                   class="jp-form-input"
                                    placeholder="{{i18n.view.auth.signup.firstNamePlaceholder}}"
                                    required
                                    autocomplete="given-name">
                         </div>
-                        <div class="form-group">
+                        <div class="jp-form-group">
                             <label for="lastName">{{i18n.view.auth.signup.lastName}}</label>
                             <input type="text"
                                    id="lastName"
                                    name="lastName"
+                                   class="jp-form-input"
                                    placeholder="{{i18n.view.auth.signup.lastNamePlaceholder}}"
                                    required
                                    autocomplete="family-name">
                         </div>
                     </div>
 
-                    <div class="form-group">
+                    <div class="jp-form-group">
                         <label for="username">{{i18n.view.auth.signup.username}}</label>
                         <input type="text"
                                id="username"
                                name="username"
+                               class="jp-form-input"
                                placeholder="{{i18n.view.auth.signup.usernamePlaceholder}}"
                                required
                                autocomplete="username">
                     </div>
 
-                    <div class="form-group">
+                    <div class="jp-form-group">
                         <label for="email">{{i18n.view.auth.signup.email}}</label>
                         <input type="email"
                                id="email"
                                name="email"
+                               class="jp-form-input"
                                placeholder="{{i18n.view.auth.signup.emailPlaceholder}}"
                                required
                                autocomplete="email">
                     </div>
 
-                    <div class="form-group">
+                    <div class="jp-form-group">
                         <label for="password">{{i18n.view.auth.signup.password}}</label>
                         <input type="password"
                                id="password"
                                name="password"
+                               class="jp-form-input"
                                placeholder="{{i18n.view.auth.signup.passwordPlaceholder}}"
                                required
                                autocomplete="new-password">
-                        <div class="password-requirements">
+                        <div class="jp-password-requirements">
                             {{i18n.view.auth.signup.passwordRequirements}}
                         </div>
                     </div>
 
-                    <div class="form-group">
+                    <div class="jp-form-group">
                         <label for="confirmPassword">{{i18n.view.auth.signup.confirmPassword}}</label>
                         <input type="password"
                                id="confirmPassword"
                                name="confirmPassword"
+                               class="jp-form-input"
                                placeholder="{{i18n.view.auth.signup.confirmPasswordPlaceholder}}"
                                required
                                autocomplete="new-password">
                     </div>
 
-                    <div class="terms-checkbox">
-                        <label class="checkbox-label">
+                    <div class="jp-terms-checkbox">
+                        <label class="jp-checkbox-label">
                             <input type="checkbox" id="acceptTerms" name="acceptTerms" required>
                             <span>{{i18n.view.auth.signup.termsAccept}}</span>
                         </label>
                     </div>
 
-                    <button type="submit" class="signup-button" id="signupButton">
+                    <button type="submit" class="jp-btn jp-btn-primary jp-btn-full" id="signupButton">
                         {{i18n.view.auth.signup.signUp}}
                     </button>
                 </form>
 
-                <div class="signin-link">
+                <div class="jp-signin-link">
                     {{i18n.view.auth.signup.alreadyHaveAccount}}
                     <a href="/auth/login.shtml">{{i18n.view.auth.signup.signIn}}</a>
                 </div>
@@ -379,69 +208,48 @@
     </div>
 
     <script>
+        // Enhanced signup handling using jPulseCommon utilities
         async function handleSignup(event) {
             event.preventDefault();
 
-            const button = document.getElementById('signupButton');
-            const originalText = button.textContent;
-            button.textContent = '{{i18n.view.auth.signup.signingUp}}';
-            button.disabled = true;
+            const form = event.target;
+            const formData = jPulseCommon.form.serialize(form);
 
-            const formData = new FormData(event.target);
-            const data = {
-                firstName: formData.get('firstName'),
-                lastName: formData.get('lastName'),
-                username: formData.get('username'),
-                email: formData.get('email'),
-                password: formData.get('password'),
-                confirmPassword: formData.get('confirmPassword'),
-                acceptTerms: formData.get('acceptTerms') === 'on'
-            };
-
-            // Client-side validation
-            if (data.password !== data.confirmPassword) {
-                alert('{{i18n.view.auth.signup.passwordMismatch}}');
-                button.textContent = originalText;
-                button.disabled = false;
+            // Client-side validation for password match
+            if (formData.password !== formData.confirmPassword) {
+                jPulseCommon.showError('{{i18n.view.auth.signup.passwordMismatch}}');
                 return;
             }
 
-            if (!data.acceptTerms) {
-                alert('{{i18n.view.auth.signup.termsAccept}}');
-                button.textContent = originalText;
-                button.disabled = false;
+            // Check terms acceptance
+            if (!formData.acceptTerms) {
+                jPulseCommon.showError('{{i18n.view.auth.signup.termsAccept}}');
                 return;
             }
 
-            try {
-                const response = await fetch('/api/1/user/signup', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-
-                if (response.ok && result.success) {
-                    const username = result.data.user.loginId;
-                    window.location.href = `/auth/login.shtml?signup=success&username=${encodeURIComponent(username)}`;
-                } else {
-                    const errorMessage = result.error || '{{i18n.view.auth.signup.signupFailed}}';
-                    alert(errorMessage);
+            // Use jPulseCommon form submission with correct parameters
+            await jPulseCommon.form.handleSubmission(form, '/api/1/user/signup', {
+                method: 'POST',
+                loadingText: '{{i18n.view.auth.signup.signingUp}}',
+                successMessage: null, // Don't show automatic success message
+                onSuccess: (data) => {
+                    if (data && data.user && data.user.username) {
+                        const username = data.user.username;
+                        window.location.href = `/auth/login.shtml?signup=success&username=${encodeURIComponent(username)}`;
+                    } else {
+                        // Fallback if structure is unexpected
+                        window.location.href = '/auth/login.shtml?signup=success';
+                    }
+                },
+                onError: (error) => {
+                    const errorMessage = error || '{{i18n.view.auth.signup.signupFailed}}';
+                    jPulseCommon.showError(errorMessage);
                 }
-            } catch (error) {
-                console.error('Signup error:', error);
-                alert('{{i18n.view.auth.signup.networkError}}');
-            } finally {
-                button.textContent = originalText;
-                button.disabled = false;
-            }
+            });
         }
 
-        // Auto-focus first input field
-        document.addEventListener('DOMContentLoaded', function() {
+        // Auto-focus first input field using jPulseCommon
+        jPulseCommon.dom.ready(() => {
             const firstNameField = document.getElementById('firstName');
             if (firstNameField) {
                 firstNameField.focus();

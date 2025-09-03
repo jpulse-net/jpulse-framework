@@ -438,16 +438,8 @@ Requirements Doc of jPulse Framework
   - at a later point offer vue.js as an option for more dynamic content per page (e.g. not SPA) (via plugin once plugin infrastructure is available?)
 
 
-
-
-
-
-
--------------------------------------------------------------------------
-# 🚧 IN_PROGRESS Work Items
-
 ## **W-025**: view: component-based styling with framework/site separation
-- status: 🚧 IN_PROGRESS
+- status: ✅ COMPLETED
 - type: Feature
 - objective:
   - clean styles, clean hierarchy, less duplication, less style in pages (only custom ones)
@@ -474,30 +466,85 @@ Requirements Doc of jPulse Framework
 
 
 
+-------------------------------------------------------------------------
+# 🚧 IN_PROGRESS Work Items
+
+## **W-036**: view: migrate existing views to use jpulse-common.js and jpulse-common.css
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective:
+  - clean separation of common JavaScript utilities, and page specific functionality
+  - clean separation of common styles, and page specific styles
+  - easy onboarding of front-end developers
+  - less time to create a new page
+- dependency on completed work items:
+  - W-035: view: script separation with enhanced jpulse-common.js utilities
+  - W-025: view: component-based styling with framework/site separation
+- consider future work items:
+  - W-037: view: create themes
+  - W-014: app: strategy for seamless update of site-specific jPulse deployments
+- phase 1: auth/login.shtml
+  - Replace showError/showSuccess (~25 lines saved)
+- phase 2: user/profile.shtml
+  - Replace showAlert/API calls (~35 lines saved)
+- phase 3: auth/signup.shtml
+  - Replace form handling (~40 lines saved)
+- phase 4: user/index.shtml
+  - Replace showError/API calls (~20 lines saved)
+- phase 5: auth/logout.shtml
+  - Minimal changes needed
+- make sure to not use hard-coded user facing messages that could be translated
+- make sure to update the two existing language files webapp/translations/en.conf and webapp/translations/de.conf
+
+
+
+
+
+
+
 
 
 ## Potential next items:
-**W-036**: view: migrate existing views to use jpulse-common.js utilities
-**W-037**: create themes
-**W-014**: strategy for seamless update of site-specific jPulse deployments
-**W-019**: slide down/up info and error message on top of page
-**W-013**: create site admin views
-**W-015**: strategy for clean onboarding
+**W-037**: view: create themes
+**W-014**: app: strategy for seamless update of site-specific jPulse deployments
+**W-019**: view: slide down/up info and error message on top of page
+**W-013**: view: create site admin views
+**W-015**: deployment: strategy for clean onboarding
 
 ## Chat instructions
 
-next work item: **W-0xx**: .....
+next work item: **W-036**: view: migrate existing views to use jpulse-common.js and jpulse-common.css
 - review task, ask questions
 - plan how to implement
+- suggest improvement for cleaner separation, easier onboarding of developers, faster time to create a new page
 - wait for my go ahead to implement
 
 I finished **W-0xx**: .....
 - run tests, and fix issues
 - update docs: README.md, API.md, developers.md, changelog.md in project root
 - show me cursor_log.txt update text I can copy & paste
-  - current date: 2025-09-02 12:55
-- update commit-message.txt, following the same format, specify: W-025, v0.4.1
+  - current date: 2025-09-02 22:11
+- update commit-message.txt, following the same format, specify: W-036, v0.4.2
   - don't commit
+
+
+
+- don't hard-code the available languages in i18n.view.user.profile
+  - use i18n api to get the list, there is a [['key', 'Value'], ...]
+- don't hard-code i18n.view.user.index.roleRoot, etc. in translations
+  - use an auth controller api to get the available roles (for now a dummy hard-coded return is fine)
+- do not i18n user roles, an admin in Germany and Japan perfeclty understand the English term
+  - remove from translations i18n
+  - show acual values returned by search API
+- do not i18n statuses, an admin in Germany and Japan perfeclty understand the English term
+  - remove from translations i18n
+  - show acual values returned by search API
+
+
+- enhance === view.load( /error/index.shtml ) log to show additional details on what is wrong, likely in followup log entry
+
+
+
 
 
 
@@ -519,16 +566,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 -------------------------------------------------------------------------
 # TO-DO Work Items
 
-## **W-036**: view: migrate existing views to use jpulse-common.js utilities
-- status: 🕑 PENDING
-- type: Feature
-- phase 1: auth/login.shtml - Replace showError/showSuccess (~25 lines saved)
-- phase 2: user/profile.shtml - Replace showAlert/API calls (~35 lines saved)
-- phase 3: auth/signup.shtml - Replace form handling (~40 lines saved)
-- phase 4: user/index.shtml - Replace showError/API calls (~20 lines saved)
-- phase 5: auth/logout.shtml - Minimal changes needed
-
-## **W-037**: create themes
+## **W-037**: view: create themes
 - status: 🕑 PENDING
 - type: Feature
 - initially a dark and light theme, light is default
@@ -536,13 +574,13 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - way to define new themes
   - drop in a directory, with auto discovery
 
-## **W-013**: create site admin views
+## **W-013**: view: create site admin views
 - status: 🕑 PENDING
 - type: Feature
 - create webapp/view/admin/index.shtml -- admin home
 - create webapp/view/admin/config.shtml -- edit config
 
-## **W-014**: strategy for seamless update of site-specific jPulse deployments
+## **W-014**: app: strategy for seamless update of site-specific jPulse deployments
 - status: 🕑 PENDING
 - type: Feature
 - jPulse will be the base framework for multiple web apps
@@ -551,7 +589,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - site specific directories and files
 - automatic way to override/extend jPulse config, models, controllers, views with site-specific settings
 
-## **W-015**: strategy for clean onboarding
+## **W-015**: deployment: strategy for clean onboarding
 - status: 🕑 PENDING
 - type: Feature
 - define an clean out of box experience when deploying a jPulse based webserver for the first time
@@ -564,7 +602,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - mongddb deployment with standalone, or replicaset config
   - mongodb setup with sysdba admin, dev data user, prod data user
 
-## **W-019**: slide down/up info and error message on top of page
+## **W-019**: view: slide down/up info and error message on top of page
 - status: 🕑 PENDING
 - type: Feature
 - pupose: non-blocking error or info message, such after signin
@@ -614,6 +652,14 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - plugins for:
   - themes
   - additional models, controllers, views
+
+## **W-0**: view controller: strategy for cache invalidation
+- status: 🕑 PENDING
+- type: Feature
+- objective:
+  - ability to invalidate template load cache (.shtml, .tmpl, .css, .js) so that the app does not need to be restarted
+  - should work in multi node instances, and multi app server instances
+- automated way across all node instances of the app with a timer, file change detection, or on-demand via API?
 
 ## **W-0**: create redis caching infrastrucure
 - status: 🕑 PENDING
@@ -696,7 +742,7 @@ status codes:
 
 ------------------------
 
-# Detail on **W-014**: Strategy for Seamless Update of Custom jPulse Deployments
+# Detail on **W-014**: app: Strategy for Seamless Update of Custom jPulse Deployments
 
 ## Architectural Decision: Override Directory Pattern
 
@@ -769,7 +815,7 @@ jpulse-framework/               # Main project
 
 ### Deferred Decisions:
 - **Configuration Merging**: Deep merge strategy details to be decided during implementation
-- **Update Tooling**: Framework update utilities deferred to W-014 (onboarding strategy)
+- **Update Tooling**: Framework update utilities deferred to W-015 (onboarding strategy)
 
 ### Benefits:
 - ✅ Clean separation of framework vs. site-specific code

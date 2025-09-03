@@ -3,8 +3,8 @@
  * @tagline         Integration tests for authentication middleware
  * @description     Tests authentication middleware behavior in realistic scenarios
  * @file            webapp/tests/integration/auth-middleware.test.js
- * @version         0.4.1
- * @release         2025-09-02
+ * @version         0.4.2
+ * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -60,7 +60,22 @@ describe('Auth Middleware Integration', () => {
         // Mock next function
         mockNext = jest.fn();
 
-        // Reset mocks
+        // Mock i18n translate function
+        global.i18n = {
+            translate: jest.fn((key, context = {}) => {
+                const translations = {
+                    'controller.auth.roleRequired': `Insufficient privileges. Required role(s): ${context.roles}`,
+                    'controller.auth.authenticationRequired': 'Authentication required'
+                };
+                return translations[key] || key;
+            })
+        };
+
+        // Set up spies
+        sendErrorSpy = jest.spyOn(global.CommonUtils, 'sendError').mockImplementation(() => {});
+        logErrorSpy = jest.spyOn(global.LogController, 'logError').mockImplementation(() => {});
+
+        // Clear all mocks
         jest.clearAllMocks();
     });
 
@@ -127,7 +142,7 @@ describe('Auth Middleware Integration', () => {
             roleMiddleware(mockReq, mockRes, mockNext);
 
             expect(sendErrorSpy).toHaveBeenCalledWith(
-                mockReq, mockRes, 403, 'Required role: admin, root', 'INSUFFICIENT_PRIVILEGES'
+                mockReq, mockRes, 403, 'Insufficient privileges. Required role(s): admin, root', 'INSUFFICIENT_PRIVILEGES'
             );
             expect(mockNext).not.toHaveBeenCalled();
 
@@ -207,7 +222,7 @@ describe('Auth Middleware Integration', () => {
             roleMiddleware(mockReq, mockRes, mockNext);
 
             expect(sendErrorSpy).toHaveBeenCalledWith(
-                mockReq, mockRes, 403, 'Required role: admin, root', 'INSUFFICIENT_PRIVILEGES'
+                mockReq, mockRes, 403, 'Insufficient privileges. Required role(s): admin, root', 'INSUFFICIENT_PRIVILEGES'
             );
             expect(mockNext).not.toHaveBeenCalled();
 
@@ -284,7 +299,7 @@ describe('Auth Middleware Integration', () => {
             roleMiddleware(mockReq, mockRes, mockNext);
 
             expect(sendErrorSpy).toHaveBeenCalledWith(
-                mockReq, mockRes, 403, 'Required role: user', 'INSUFFICIENT_PRIVILEGES'
+                mockReq, mockRes, 403, 'Insufficient privileges. Required role(s): user', 'INSUFFICIENT_PRIVILEGES'
             );
             expect(mockNext).not.toHaveBeenCalled();
 

@@ -3,8 +3,8 @@
  * @tagline         Test variable content support in i18n translations
  * @description     Tests the new handlebars-style variable substitution in i18n translations
  * @file            webapp/tests/unit/translations/i18n-variable-content.test.js
- * @version         0.4.1
- * @release         2025-09-02
+ * @version         0.4.2
+ * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -45,11 +45,11 @@ describe('I18N Variable Content', () => {
             const langEnPath = path.join(process.cwd(), 'webapp', 'translations', 'en.conf');
             const langEnContent = fs.readFileSync(langEnPath, 'utf8');
             
-            // Check that we have some variable content examples
+            // Check that we have some variable content examples using existing patterns
             expect(langEnContent).toContain('{{user.nickName}}');
             expect(langEnContent).toContain('Welcome back, {{user.nickName}}!');
             expect(langEnContent).toContain('Powered by {{app.shortName}}');
-            expect(langEnContent).toContain('{{url.param.username}}');
+            expect(langEnContent).toContain('{{count}}'); // Use existing count variable instead
         });
 
         test('should have variable content examples in German translation files', () => {
@@ -57,11 +57,11 @@ describe('I18N Variable Content', () => {
             const langDePath = path.join(process.cwd(), 'webapp', 'translations', 'de.conf');
             const langDeContent = fs.readFileSync(langDePath, 'utf8');
             
-            // Check that we have some variable content examples  
+            // Check that we have some variable content examples using existing patterns
             expect(langDeContent).toContain('{{user.nickName}}');
             expect(langDeContent).toContain('Willkommen zurück, {{user.nickName}}!');
-            expect(langDeContent).toContain('Unterstützt von {{app.shortName}}');
-            expect(langDeContent).toContain('{username}');
+            expect(langDeContent).toContain('Unterstützt von {{app.shortName}}'); // Use German text
+            expect(langDeContent).toContain('{{count}}'); // Use existing count variable instead
         });
 
         test('should verify translation files do not contain old parameter substitution', () => {

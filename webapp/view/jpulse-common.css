@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         0.4.1
- * @release         2025-09-02
+ * @version         0.4.2
+ * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -367,12 +367,18 @@ body {
     font-weight: 500;
 }
 
+.jp-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .jp-btn-primary {
     background: #007acc;
     color: white;
 }
 
-.jp-btn-primary:hover {
+.jp-btn-primary:hover:not(:disabled) {
     background: #005999;
 }
 
@@ -381,7 +387,7 @@ body {
     color: white;
 }
 
-.jp-btn-secondary:hover {
+.jp-btn-secondary:hover:not(:disabled) {
     background: #545b62;
 }
 
@@ -390,7 +396,7 @@ body {
     color: white;
 }
 
-.jp-btn-success:hover {
+.jp-btn-success:hover:not(:disabled) {
     background: #218838;
 }
 
@@ -399,7 +405,7 @@ body {
     color: white;
 }
 
-.jp-btn-danger:hover {
+.jp-btn-danger:hover:not(:disabled) {
     background: #c82333;
 }
 
@@ -409,7 +415,7 @@ body {
     color: #007acc;
 }
 
-.jp-btn-outline:hover {
+.jp-btn-outline:hover:not(:disabled) {
     background: #007acc;
     color: white;
 }

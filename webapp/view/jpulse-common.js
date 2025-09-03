@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         0.4.1
- * @release         2025-09-02
+ * @version         0.4.2
+ * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -127,31 +127,29 @@ window.jPulseCommon = {
             }
 
             if (!response.ok) {
-                const errorMessage = result.error || result.message || `HTTP ${response.status}: ${response.statusText}`;
-                return {
-                    success: false,
-                    data: null,
-                    error: errorMessage,
-                    response: response,
-                    status: response.status
-                };
+                // For non-OK responses, if the result already has error structure, return it
+                // Otherwise, create a standardized error response
+                if (result && typeof result === 'object' && 'success' in result) {
+                    return result; // Controller already returned proper error format
+                } else {
+                    const errorMessage = result.error || result.message || `HTTP ${response.status}: ${response.statusText}`;
+                    return {
+                        success: false,
+                        error: errorMessage,
+                        code: 'HTTP_ERROR'
+                    };
+                }
             }
 
-            return {
-                success: true,
-                data: result,
-                error: null,
-                response: response,
-                status: response.status
-            };
+            // For successful responses, return the controller response directly
+            // Controllers already return { success, data, message } format
+            return result;
 
         } catch (networkError) {
             return {
                 success: false,
-                data: null,
                 error: `Network error: ${networkError.message}`,
-                response: null,
-                status: 0
+                code: 'NETWORK_ERROR'
             };
         }
     },

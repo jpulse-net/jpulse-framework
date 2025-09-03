@@ -1,4 +1,4 @@
-# jPulse Framework / API Documentation v0.4.1
+# jPulse Framework / API Documentation v0.4.2
 
 Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
 
@@ -14,7 +14,14 @@ jPulse provides a comprehensive RESTful API under the `/api/1/` prefix with the 
 - **Error Handling**: Structured error responses with detailed messages
 - **Client-Side Error Handling**: Server-side rendering of error pages without redirects, preserving URLs.
 - **Component-Based Styling**: Complete `jp-` CSS component library with responsive design and theme system foundation
+- **Dynamic Schema-Aware Frontend**: API-driven dropdown population with backend schema synchronization
 - **Logging**: All API calls automatically logged with user context
+
+### Recent API Additions (v0.4.2)
+- `GET /api/1/auth/roles` - Returns available user roles from schema
+- `GET /api/1/auth/languages` - Returns available languages from i18n system
+- `GET /api/1/auth/themes` - Returns available themes from schema
+- **Simplified API Responses**: Eliminated double-wrapped response format for cleaner frontend integration
 
 ### Base URL Structure
 ```

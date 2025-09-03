@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the routing file for the jPulse Framework WebApp
  * @file            webapp/route.js
- * @version         0.4.1
- * @release         2025-09-02
+ * @version         0.4.2
+ * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -47,6 +47,9 @@ router.delete('/api/1/config/:id', ConfigController.delete);
 // Auth API routes
 router.post('/api/1/auth/login', AuthController.login);
 router.post('/api/1/auth/logout', AuthController.logout);
+router.get('/api/1/auth/roles', AuthController.getRoles);
+router.get('/api/1/auth/languages', AuthController.getLanguages);
+router.get('/api/1/auth/themes', AuthController.getThemes);
 
 // User API routes (with authentication middleware where needed)
 router.post('/api/1/user/signup', UserController.signup);

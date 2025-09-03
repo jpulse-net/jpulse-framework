@@ -3,8 +3,8 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         0.4.1
- * @release         2025-09-02
+ * @version         0.4.2
+ * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -270,6 +270,102 @@ class AuthController {
                 error: message,
                 code: 'INTERNAL_ERROR',
                 details: error.message
+            });
+        }
+    }
+
+    /**
+     * Get available user roles
+     * GET /api/1/auth/roles
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async getRoles(req, res) {
+        try {
+            global.LogController.logRequest(req, 'auth.getRoles()');
+
+            // Get roles from UserModel schema
+            const roles = UserModel.schema.roles.enum || ['guest', 'user', 'admin', 'root'];
+
+            global.LogController.logInfo(req, `auth.getRoles: success: roles: ${roles.join(', ')}`);
+            const message = global.i18n.translate('controller.auth.rolesRetrieved');
+            res.json({
+                success: true,
+                data: roles,
+                message: message
+            });
+
+        } catch (error) {
+            global.LogController.logError(req, `auth.getRoles: error: ${error.message}`);
+            const message = global.i18n.translate('controller.auth.rolesInternalError');
+            res.status(500).json({
+                success: false,
+                error: message,
+                code: 'INTERNAL_ERROR'
+            });
+        }
+    }
+
+    /**
+     * Get available languages
+     * GET /api/1/auth/languages
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async getLanguages(req, res) {
+        try {
+            global.LogController.logRequest(req, 'auth.getLanguages()');
+
+            // Get available languages from i18n system
+            const languages = global.i18n.getList(); // Returns [['en', 'English'], ['de', 'Deutsch']]
+
+            global.LogController.logInfo(req, `auth.getLanguages: success: languages: ${JSON.stringify(languages)}`);
+            const message = global.i18n.translate('controller.auth.languagesRetrieved');
+            res.json({
+                success: true,
+                data: languages,
+                message: message
+            });
+
+        } catch (error) {
+            global.LogController.logError(req, `auth.getLanguages: error: ${error.message}`);
+            const message = global.i18n.translate('controller.auth.languagesInternalError');
+            res.status(500).json({
+                success: false,
+                error: message,
+                code: 'INTERNAL_ERROR'
+            });
+        }
+    }
+
+    /**
+     * Get available theme options
+     * GET /api/1/auth/themes
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async getThemes(req, res) {
+        try {
+            global.LogController.logRequest(req, 'auth.getThemes()');
+
+            // Get themes from UserModel schema
+            const themes = UserModel.schema.preferences.theme.enum || ['light', 'dark'];
+
+            global.LogController.logInfo(req, `auth.getThemes: success: themes: ${themes.join(', ')}`);
+            const message = global.i18n.translate('controller.auth.themesRetrieved');
+            res.json({
+                success: true,
+                data: themes,
+                message: message
+            });
+
+        } catch (error) {
+            global.LogController.logError(req, `auth.getThemes: error: ${error.message}`);
+            const message = global.i18n.translate('controller.auth.themesInternalError');
+            res.status(500).json({
+                success: false,
+                error: message,
+                code: 'INTERNAL_ERROR'
             });
         }
     }

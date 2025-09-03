@@ -3,8 +3,8 @@
  * @tagline         Advanced Unit Tests for CommonUtils
  * @description     Additional focused tests for common utility functions
  * @file            webapp/tests/unit/utils/common-utils-advanced.test.js
- * @version         0.4.1
- * @release         2025-09-02
+ * @version         0.4.2
+ * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

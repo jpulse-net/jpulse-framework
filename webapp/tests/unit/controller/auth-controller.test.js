@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         0.4.1
- * @release         2025-09-02
+ * @version         0.4.2
+ * @release         2025-09-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -55,13 +55,31 @@ describe('AuthController', () => {
 
         // Mock response object
         mockRes = {
-            json: jest.fn(),
             status: jest.fn().mockReturnThis(),
+            json: jest.fn(),
             redirect: jest.fn()
         };
 
         // Mock next function
         mockNext = jest.fn();
+
+        // Mock i18n translate function
+        global.i18n = {
+            default: 'en', // Add default property for getUserLanguage tests
+            translate: jest.fn((key, context = {}) => {
+                // Return predictable test values based on the key
+                const translations = {
+                    'controller.auth.roleRequired': `Insufficient privileges. Required role(s): ${context.roles}`,
+                    'controller.auth.authenticationRequired': 'Authentication required',
+                    'controller.auth.invalidCredentials': 'Invalid username/email or password',
+                    'controller.auth.loginSuccessful': 'Login successful',
+                    'controller.auth.loginInternalError': `Internal server error during login: ${context.error}`,
+                    'controller.auth.logoutSuccessful': 'Logout successful',
+                    'controller.auth.logoutFailed': 'Failed to log out'
+                };
+                return translations[key] || key;
+            })
+        };
 
         // Set up spies on global modules (since auth controller uses global.*)
         jest.spyOn(global.CommonUtils, 'sendError').mockImplementation(() => {});
@@ -252,8 +270,9 @@ describe('AuthController', () => {
                 const middleware = AuthController.requireRole(['admin', 'root']);
                 middleware(mockReq, mockRes, mockNext);
 
+                // Update the expected message to match the i18n translation
                 expect(global.CommonUtils.sendError).toHaveBeenCalledWith(
-                    mockReq, mockRes, 403, 'Required role: admin, root', 'INSUFFICIENT_PRIVILEGES'
+                    mockReq, mockRes, 403, 'Insufficient privileges. Required role(s): admin, root', 'INSUFFICIENT_PRIVILEGES'
                 );
                 expect(mockNext).not.toHaveBeenCalled();
                 expect(global.LogController.logError).toHaveBeenCalledWith(
@@ -332,7 +351,7 @@ describe('AuthController', () => {
                             roles: ['user']
                         }
                     },
-                    message: 'Login successful'  // Translated string, not i18n key
+                    message: 'Login successful'
                 });
             });
 
@@ -352,7 +371,7 @@ describe('AuthController', () => {
                 expect(mockRes.status).toHaveBeenCalledWith(401);
                 expect(mockRes.json).toHaveBeenCalledWith({
                     success: false,
-                    error: 'Invalid credentials',  // Translated string
+                    error: 'Invalid username/email or password',  // Updated to match i18n
                     code: 'INVALID_CREDENTIALS'
                 });
 
@@ -374,7 +393,7 @@ describe('AuthController', () => {
                 expect(mockRes.status).toHaveBeenCalledWith(500);
                 expect(mockRes.json).toHaveBeenCalledWith({
                     success: false,
-                    error: 'Internal server error during login',  // Translated string
+                    error: 'Internal server error during login: Database connection failed',  // Updated to match i18n with context
                     code: 'INTERNAL_ERROR',
                     details: 'Database connection failed'
                 });
@@ -400,7 +419,7 @@ describe('AuthController', () => {
                 expect(mockReq.session.destroy).toHaveBeenCalled();
                 expect(mockRes.json).toHaveBeenCalledWith({
                     success: true,
-                    message: 'Logout successful'  // Change from 'controller.auth.logoutSuccessful'
+                    message: 'Logout successful'
                 });
             });
 
@@ -414,7 +433,7 @@ describe('AuthController', () => {
                 expect(mockReq.session.destroy).toHaveBeenCalled();
                 expect(mockRes.json).toHaveBeenCalledWith({
                     success: true,
-                    message: 'Logout successful'  // Translated string
+                    message: 'Logout successful'
                 });
             });
 
@@ -431,7 +450,7 @@ describe('AuthController', () => {
                 expect(mockRes.status).toHaveBeenCalledWith(500);
                 expect(mockRes.json).toHaveBeenCalledWith({
                     success: false,
-                    error: 'Failed to logout',  // Translated string
+                    error: 'Failed to log out',  // Updated to match i18n (corrected spelling)
                     code: 'LOGOUT_ERROR'
                 });
 

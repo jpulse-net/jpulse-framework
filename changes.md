@@ -6,6 +6,42 @@ ________________________________________________
 ## 🚀 Version History
 
 ________________________________________________
+### v0.4.2 (2025-09-02)
+**Commit:** `W-036, v0.4.2: Complete view migration to jpulse-common utilities with API response simplification and dynamic schema-aware frontend`
+
+Completed comprehensive view migration with major architectural improvements and API simplification.
+
+Major Features:
+- **View Migration & API Simplification (W-036)**: Complete migration to jpulse-common utilities
+  - Migrated all 5 view files to jpulse-common.js and jpulse-common.css
+  - Fixed confusing double-wrapped API responses by making apiCall() return controller responses directly
+  - Implemented dynamic dropdown population from backend APIs instead of hardcoded options
+  - Added comprehensive search functionality across name, email, roles, status with proper pagination
+  - Enhanced internationalization with proper i18n for all API messages
+  - Added 3 new API endpoints: `/api/1/auth/roles`, `/api/1/auth/languages`, `/api/1/auth/themes`
+  - Created schema-aware frontend that uses actual enum values from backend
+  - Eliminated confusing `response.data.data` access patterns throughout application
+  - Updated test suite to work with new i18n system and fixed all failing tests
+
+Technical Improvements:
+- **API Response Architecture**: Simplified response format eliminates frontend confusion
+- **Dynamic Schema Synchronization**: Frontend automatically stays synchronized with backend schema
+- **Enhanced Search & Pagination**: Comprehensive search with proper context maintenance
+- **Internationalization Cleanup**: Removed hardcoded data translations, kept UI text translations
+- **Error Handling**: Proper jPulseCommon.showError integration with graceful API failure handling
+
+Files Modified (11 total):
+- `webapp/controller/auth.js` (new API endpoints, i18n messages)
+- `webapp/model/user.js` (search parameter handling)
+- `webapp/routes.js` (new API routes)
+- `webapp/utils/common.js` (debug cleanup)
+- `webapp/view/jpulse-common.js` (API response unwrapping)
+- `webapp/view/auth/login.shtml`, `signup.shtml` (Phase 1 & 3 migration)
+- `webapp/view/user/profile.shtml`, `index.shtml` (Phase 2 & 4 migration)
+- `webapp/view/home/index.shtml` (i18n cleanup)
+- `webapp/translations/en.conf`, `de.conf` (comprehensive i18n additions)
+
+________________________________________________
 ### v0.4.1 (2025-09-02)
 **Commit:** `W-025, v0.4.1: Component-based styling with framework/site separation`
 

@@ -1,8 +1,9 @@
-# jPulse Framework / Developer Documentation v0.4.1
+# jPulse Framework / Developer Documentation v0.4.2
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.4.1):**
+**Latest Updates (v0.4.2):**
+- 🎨 **View Migration & API Simplification (W-036)**: Complete migration of all 5 view files to jpulse-common utilities with API response simplification and dynamic schema-aware frontend. Eliminated confusing double-wrapped responses, implemented dynamic dropdown population from backend APIs, and enhanced search functionality with proper pagination.
 - 🎨 **Component-Based Styling (W-025)**: Complete CSS architecture with `jp-` component library, framework/site separation preparation, and theme system foundation. Moved 290+ lines from templates to external CSS with responsive design and performance optimization.
 - ✅ **Enhanced JavaScript Utilities (W-035)**: Complete `jpulse-common.js` framework with 5-phase utility system - alert management, API standardization, form handling, DOM utilities, and device detection. Eliminates 300+ lines of duplicate code across views with 40-50% faster development.
 - 🚫 **Error Reporting Without Redirect (W-034)**: Modified `viewController.load` to directly render 404 error pages for UI requests, preserving the URL and enhancing user experience by removing unnecessary redirects.

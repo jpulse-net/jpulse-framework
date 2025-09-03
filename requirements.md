@@ -437,7 +437,6 @@ Requirements Doc of jPulse Framework
 - use library like bootstrap, or continue native?
   - at a later point offer vue.js as an option for more dynamic content per page (e.g. not SPA) (via plugin once plugin infrastructure is available?)
 
-
 ## **W-025**: view: component-based styling with framework/site separation
 - status: ✅ COMPLETED
 - type: Feature
@@ -461,16 +460,8 @@ Requirements Doc of jPulse Framework
   - Prepare override-friendly structure for W-014
   - Performance testing and cross-browser validation
 
-
-
-
-
-
--------------------------------------------------------------------------
-# 🚧 IN_PROGRESS Work Items
-
 ## **W-036**: view: migrate existing views to use jpulse-common.js and jpulse-common.css
-- status: 🚧 IN_PROGRESS
+- status: ✅ COMPLETED
 - type: Feature
 - objective:
   - clean separation of common JavaScript utilities, and page specific functionality
@@ -500,6 +491,31 @@ Requirements Doc of jPulse Framework
 
 
 
+-------------------------------------------------------------------------
+# 🚧 IN_PROGRESS Work Items
+
+## **W-019**: view: create non-blocking slide-down info/alert/warning/success message
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- pupose: non-blocking error or info message, such after signin
+- current behavior:
+  - new div is temporarily inserted before the .jp-main div by default
+    - or a target div e.g. element of choice (currently unused?)
+  - the whole content shifts down, which is odd from a UX perspective
+- change to a slide-down div:
+  - slide down / show for duration / hide the slide-down div
+  - appears from below page banner (or an element of choice)
+  - coveres other content temporarily (existing content does not slide down)
+  - center slide-down div horizontally on target div (or document)
+  - show text left justified in the slide-down div
+  - min width defined in appConfig.view.slideDownMessage.minWidth
+  - max width defined in appConfig.view.slideDownMessage.minWidth
+  - duration defined by type in appConfig.view.slideDownMessage.duration.*
+  - keep current background colors based on type (defined in css)
+
+
+
+
 
 
 
@@ -507,7 +523,6 @@ Requirements Doc of jPulse Framework
 ## Potential next items:
 **W-037**: view: create themes
 **W-014**: app: strategy for seamless update of site-specific jPulse deployments
-**W-019**: view: slide down/up info and error message on top of page
 **W-013**: view: create site admin views
 **W-015**: deployment: strategy for clean onboarding
 
@@ -515,8 +530,8 @@ Requirements Doc of jPulse Framework
 
 next work item: **W-036**: view: migrate existing views to use jpulse-common.js and jpulse-common.css
 - review task, ask questions
+- suggest change of spec if it helps with usability (for users and developers)
 - plan how to implement
-- suggest improvement for cleaner separation, easier onboarding of developers, faster time to create a new page
 - wait for my go ahead to implement
 
 I finished **W-0xx**: .....
@@ -601,19 +616,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - pm2 setup with single jPulse instance (fork), or multiple instances (cluster)
   - mongddb deployment with standalone, or replicaset config
   - mongodb setup with sysdba admin, dev data user, prod data user
-
-## **W-019**: view: slide down/up info and error message on top of page
-- status: 🕑 PENDING
-- type: Feature
-- pupose: non-blocking error or info message, such after signin
-- action:
-  - slide down, show, hide message from below page banner
-- triggered by msg= URL parameter on all pages
-- if message starts with "error" (case insensitive):
-  - show message for 7 sec with red background
-- else considered an info message:
-  - show message for 3 sec with yellow background
-- provide a common JavaScript function to show a sliding message without a msg= URL parameter
 
 ## **W-0**: docs: restructure user facing and developer facing documentation
 - status: 🕑 PENDING

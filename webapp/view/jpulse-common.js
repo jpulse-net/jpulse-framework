@@ -13,79 +13,147 @@
  */
 
 window.jPulseCommon = {
+    // Alert queue management
+    _alertQueue: [],
+    _alertContainer: null,
+
     // ========================================
     // PHASE 1: Core Alert & Messaging System
     // ========================================
 
     /**
-     * Show alert message with consistent styling
+     * Show non-blocking slide-down alert message with consistent styling
      * @param {string} message - The message to display
      * @param {string} type - Alert type: 'info', 'error', 'success', 'warning'
-     * @param {Element} container - Container element (defaults to .jp-main)
-     * @param {number} duration - Auto-hide duration in ms (0 = no auto-hide)
+     * @param {number} duration - Auto-hide duration in ms (0 = no auto-hide, uses config if not specified)
      * @returns {Element} The created alert element
      */
-    showAlert: (message, type = 'info', container = null, duration = 5000) => {
+    showAlert: (message, type = 'info', duration = null) => {
+        // Get duration from config if not specified
+        if (duration === null) {
+            const config = window.appConfig?.view?.slideDownMessage?.duration;
+            duration = config?.[type] || 5000;
+        }
+
         const alertDiv = document.createElement('div');
         alertDiv.className = `jp-alert jp-alert-${type}`;
         alertDiv.textContent = message;
+        alertDiv.dataset.type = type;
+        alertDiv.dataset.duration = duration;
 
-        // Find target container
-        const target = container ||
-                      document.querySelector('.jp-main') ||
-                      document.querySelector('.jp-container') ||
-                      document.body;
+        // Add to queue
+        jPulseCommon._alertQueue.push(alertDiv);
 
-        // Insert at the top of the container
-        target.insertBefore(alertDiv, target.firstChild);
-
-        // Auto-hide after duration
-        if (duration > 0) {
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.remove();
-                }
-            }, duration);
-        }
+        // Process only the new alert
+        jPulseCommon._processNewAlert(alertDiv);
 
         return alertDiv;
     },
 
     /**
+     * Process a single new alert
+     * @param {Element} alertDiv - The alert element to process
+     */
+    _processNewAlert: (alertDiv) => {
+        const index = jPulseCommon._alertQueue.indexOf(alertDiv);
+
+        // Add to DOM first so we can measure height
+        document.body.appendChild(alertDiv);
+
+        // Force reflow to ensure styles are applied
+        alertDiv.offsetHeight;
+
+        // Calculate dynamic stacking based on actual heights of previous alerts
+        let stackOffset = 0;
+        if (index > 0) {
+            for (let i = 0; i < index; i++) {
+                const prevAlert = jPulseCommon._alertQueue[i];
+                if (prevAlert && prevAlert.parentNode) {
+                    stackOffset += prevAlert.offsetHeight + 5; // 5px gap between messages
+                }
+            }
+        }
+
+        // Stack alerts below header
+        alertDiv.dataset.stackIndex = index;
+        alertDiv.style.setProperty('--stack-offset', `${stackOffset}px`);
+
+        // Trigger slide-down animation
+        setTimeout(() => {
+            alertDiv.classList.add('jp-alert-show');
+        }, 100);
+
+        // Auto-hide after duration
+        const duration = parseInt(alertDiv.dataset.duration);
+        if (duration > 0) {
+            setTimeout(() => {
+                jPulseCommon._hideAlert(alertDiv);
+            }, duration);
+        }
+    },
+
+    /**
+     * Hide alert with slide-up animation
+     * @param {Element} alertDiv - Alert element to hide
+     */
+    _hideAlert: (alertDiv) => {
+        if (!alertDiv || !alertDiv.parentNode) return;
+
+        // Trigger slide-up animation (back behind header)
+        alertDiv.classList.remove('jp-alert-show');
+        alertDiv.classList.add('jp-alert-hide');
+
+        // Remove from DOM after animation
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+            // Remove from queue
+            const index = jPulseCommon._alertQueue.indexOf(alertDiv);
+            if (index > -1) {
+                jPulseCommon._alertQueue.splice(index, 1);
+            }
+            // Don't reposition remaining alerts - let them stay in their original positions
+        }, 600); // Match the longer animation time
+    },
+
+    /**
      * Show error alert (red styling)
      */
-    showError: (message, container = null) => {
-        return jPulseCommon.showAlert(message, 'error', container);
+    showError: (message) => {
+        return jPulseCommon.showAlert(message, 'error');
     },
 
     /**
      * Show success alert (green styling)
      */
-    showSuccess: (message, container = null) => {
-        return jPulseCommon.showAlert(message, 'success', container);
+    showSuccess: (message) => {
+        return jPulseCommon.showAlert(message, 'success');
     },
 
     /**
      * Show info alert (blue styling)
      */
-    showInfo: (message, container = null) => {
-        return jPulseCommon.showAlert(message, 'info', container);
+    showInfo: (message) => {
+        return jPulseCommon.showAlert(message, 'info');
     },
 
     /**
      * Show warning alert (yellow styling)
      */
-    showWarning: (message, container = null) => {
-        return jPulseCommon.showAlert(message, 'warning', container);
+    showWarning: (message) => {
+        return jPulseCommon.showAlert(message, 'warning');
     },
 
     /**
      * Clear all alert messages
-     * @param {Element} container - Container to clear alerts from (defaults to document)
      */
-    clearAlerts: (container = null) => {
-        const target = container || document;
-        target.querySelectorAll('.jp-alert').forEach(alert => alert.remove());
+    clearAlerts: () => {
+        // Clear all alerts in queue
+        jPulseCommon._alertQueue.forEach(alertDiv => {
+            jPulseCommon._hideAlert(alertDiv);
+        });
+        jPulseCommon._alertQueue = [];
     },
 
     // ========================================
@@ -270,7 +338,7 @@ window.jPulseCommon = {
             });
 
             // Clear any existing alerts in the form
-            jPulseCommon.clearAlerts(formElement);
+            jPulseCommon.clearAlerts();
         },
 
         /**

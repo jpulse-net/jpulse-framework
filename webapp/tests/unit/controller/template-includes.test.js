@@ -30,7 +30,7 @@ describe('Template Includes System', () => {
         mockFs.readFileSync = jest.fn();
 
         // Mock handlebars context
-                    mockContext = {
+        mockContext = {
             app: {
                 version: '0.1.5',
                 release: '2025-08-24',
@@ -43,8 +43,20 @@ describe('Template Includes System', () => {
             },
             appConfig: {
                 view: {
-                    maxWidth: 1200,
-                    minMarginLeftRight: 20
+                    mainContainer: {
+                        maxWidth: 1200,
+                        minMarginLeftRight: 20
+                    },
+                    slideDownMessage: {
+                        minWidth: 200,
+                        maxWidth: 800,
+                        duration: {
+                            info: 3000,
+                            warning: 5000,
+                            error: 6000,
+                            success: 3000
+                        }
+                    }
                 }
             },
             i18n: {
@@ -107,7 +119,7 @@ describe('Template Includes System', () => {
         });
 
         test('should validate include depth limits', () => {
-            const maxDepth = 10; // From appConfig.view.maxIncludeDepth
+            const maxDepth = 10; // From appConfig.controller.view.maxIncludeDepth
 
             // Test that we respect depth limits
             expect(maxDepth).toBe(10);
@@ -151,11 +163,11 @@ describe('Template Includes System', () => {
         test('should include responsive CSS with appConfig values', () => {
             const mockHeaderCSS = `
                 .jpulse-container {
-                    max-width: ${mockContext.appConfig.view.maxWidth}px;
-                    padding: 0 ${mockContext.appConfig.view.minMarginLeftRight}px;
+                    max-width: ${mockContext.appConfig.view.mainContainer.maxWidth}px;
+                    padding: 0 ${mockContext.appConfig.view.mainContainer.minMarginLeftRight}px;
                 }
                 .jpulse-header-content {
-                    max-width: calc(${mockContext.appConfig.view.maxWidth}px - ${mockContext.appConfig.view.minMarginLeftRight}px * 2);
+                    max-width: calc(${mockContext.appConfig.view.mainContainer.maxWidth}px - ${mockContext.appConfig.view.mainContainer.minMarginLeftRight}px * 2);
                 }
             `;
 
@@ -258,14 +270,14 @@ describe('Template Includes System', () => {
             const templateContent = `
                 <title>{{app.name}}</title>
                 <meta name="version" content="{{app.version}}">
-                <meta name="max-width" content="{{appConfig.view.maxWidth}}">
+                <meta name="max-width" content="{{appConfig.view.mainContainer.maxWidth}}">
             `;
 
             // Simulate handlebars processing
             const processedContent = templateContent
                 .replace('{{app.name}}', mockContext.app.name)
                 .replace('{{app.version}}', mockContext.app.version)
-                .replace('{{appConfig.view.maxWidth}}', mockContext.appConfig.view.maxWidth.toString());
+                .replace('{{appConfig.view.mainContainer.maxWidth}}', mockContext.appConfig.view.mainContainer.maxWidth.toString());
 
             expect(processedContent).toContain('jPulse Framework WebApp');
             expect(processedContent).toContain('0.1.5');

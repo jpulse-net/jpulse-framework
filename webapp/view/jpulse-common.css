@@ -31,19 +31,19 @@ body {
 
 /* Core Layout System - Framework structure */
 .jp-container {
-    max-width: {{appConfig.view.maxWidth}}px;
+    max-width: {{appConfig.view.mainContainer.maxWidth}}px;
     margin: 0 auto;
-    padding: 0 {{appConfig.view.minMarginLeftRight}}px;
+    padding: 0 {{appConfig.view.mainContainer.minMarginLeftRight}}px;
     width: 100%;
 }
 
 .jp-main {
     background: white;
-    margin: 20px {{appConfig.view.minMarginLeftRight}}px;
+    margin: 20px {{appConfig.view.mainContainer.minMarginLeftRight}}px;
     padding: 30px;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    max-width: {{appConfig.view.maxWidth}}px;
+    max-width: {{appConfig.view.mainContainer.maxWidth}}px;
     margin-left: auto;
     margin-right: auto;
     min-width: 0;
@@ -53,22 +53,22 @@ body {
 }
 
 /* Core Responsive Breakpoints */
-@media (max-width: calc({{appConfig.view.maxWidth}}px + {{appConfig.view.minMarginLeftRight}}px * 2)) {
+@media (max-width: calc({{appConfig.view.mainContainer.maxWidth}}px + {{appConfig.view.mainContainer.minMarginLeftRight}}px * 2)) {
     .jp-container {
-        margin: 0 {{appConfig.view.minMarginLeftRight}}px;
+        margin: 0 {{appConfig.view.mainContainer.minMarginLeftRight}}px;
         max-width: none;
-        padding: 0 {{appConfig.view.minMarginLeftRight}}px;
+        padding: 0 {{appConfig.view.mainContainer.minMarginLeftRight}}px;
     }
 
     .jp-main {
-        margin: 20px {{appConfig.view.minMarginLeftRight}}px;
+        margin: 20px {{appConfig.view.mainContainer.minMarginLeftRight}}px;
         max-width: none;
     }
 }
 
 @media (max-width: 800px) {
     .jp-main {
-        margin: 10px {{appConfig.view.minMarginLeftRight}}px;
+        margin: 10px {{appConfig.view.mainContainer.minMarginLeftRight}}px;
         padding: 20px;
     }
 }
@@ -105,7 +105,7 @@ body {
 }
 
 .jp-header-content {
-    max-width: calc({{appConfig.view.maxWidth}}px - {{appConfig.view.minMarginLeftRight}}px * 2);
+    max-width: calc({{appConfig.view.mainContainer.maxWidth}}px - {{appConfig.view.mainContainer.minMarginLeftRight}}px * 2);
     margin: 0 auto;
     padding: 0 30px;
     width: 100%;
@@ -116,9 +116,9 @@ body {
     box-sizing: border-box;
 }
 
-@media (max-width: calc({{appConfig.view.maxWidth}}px + {{appConfig.view.minMarginLeftRight}}px * 2)) {
+@media (max-width: calc({{appConfig.view.mainContainer.maxWidth}}px + {{appConfig.view.mainContainer.minMarginLeftRight}}px * 2)) {
     .jp-header-content {
-        margin: 0 {{appConfig.view.minMarginLeftRight}}px;
+        margin: 0 {{appConfig.view.mainContainer.minMarginLeftRight}}px;
         max-width: none;
         padding: 0 30px;
     }
@@ -243,7 +243,7 @@ body {
 }
 
 .jp-footer-content {
-    max-width: calc({{appConfig.view.maxWidth}}px - {{appConfig.view.minMarginLeftRight}}px * 2);
+    max-width: calc({{appConfig.view.mainContainer.maxWidth}}px - {{appConfig.view.mainContainer.minMarginLeftRight}}px * 2);
     margin: 0 auto;
     padding: 0 30px;
     display: flex;
@@ -254,9 +254,9 @@ body {
     box-sizing: border-box;
 }
 
-@media (max-width: calc({{appConfig.view.maxWidth}}px + {{appConfig.view.minMarginLeftRight}}px * 2)) {
+@media (max-width: calc({{appConfig.view.mainContainer.maxWidth}}px + {{appConfig.view.mainContainer.minMarginLeftRight}}px * 2)) {
     .jp-footer-content {
-        margin: 0 {{appConfig.view.minMarginLeftRight}}px;
+        margin: 0 {{appConfig.view.mainContainer.minMarginLeftRight}}px;
         max-width: none;
         padding: 0 30px;
     }
@@ -310,11 +310,27 @@ body {
 .jp-alert {
     padding: 12px 16px;
     border-radius: 8px;
-    margin-bottom: 20px;
     font-size: 14px;
     border: 1px solid;
-    animation: jp-alert-slide-in 0.3s ease-out;
-    position: relative;
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(calc(-100% - var(--stack-offset, 0px)));
+    min-width: {{appConfig.view.slideDownMessage.minWidth}}px;
+    max-width: {{appConfig.view.slideDownMessage.maxWidth}}px;
+    width: calc(100vw - {{appConfig.view.slideDownMessage.minMarginLeftRight}}px * 2);
+    z-index: 999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: transform 0.6s ease-out;
+    text-align: left;
+}
+
+.jp-alert.jp-alert-show {
+    transform: translateX(-50%) translateY(calc(28px + var(--stack-offset, 0px)));
+}
+
+.jp-alert.jp-alert-hide {
+    transform: translateX(-50%) translateY(calc(-100% - var(--stack-offset, 0px)));
 }
 
 .jp-alert-info {
@@ -341,14 +357,20 @@ body {
     border-color: #ffeaa7;
 }
 
-@keyframes jp-alert-slide-in {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
+/* Responsive adjustments for slide-down alerts */
+@media (max-width: calc({{appConfig.view.slideDownMessage.maxWidth}}px + {{appConfig.view.slideDownMessage.minMarginLeftRight}}px * 2)) {
+    .jp-alert {
+        width: calc(100vw - {{appConfig.view.slideDownMessage.minMarginLeftRight}}px * 2);
+        max-width: none;
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+}
+
+@media (max-width: 600px) {
+    .jp-alert {
+        width: calc(100vw - 20px);
+        min-width: auto;
+        font-size: 13px;
+        padding: 10px 14px;
     }
 }
 

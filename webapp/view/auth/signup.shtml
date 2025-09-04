@@ -4,8 +4,8 @@
  * @tagline         User registration and account creation page
  * @description     Signup form for internal user registration
  * @file            webapp/view/auth/signup.shtml
- * @version         0.4.3
- * @release         2025-09-03
+ * @version         0.4.4
+ * @release         2025-09-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,7 +20,21 @@
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
-        /* Page-specific styles only - common styles are in jpulse-common.css */
+        /* Page-specific signup styles only */
+        .jp-auth-container {
+            margin: 60px auto;
+        }
+
+        .jp-auth-card {
+            padding: 40px;
+            border-top: 4px solid #667eea;
+        }
+
+        .jp-auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
         .jp-signup-logo {
             width: 60px;
             height: 60px;
@@ -33,6 +47,18 @@
             font-size: 1.5rem;
             font-weight: bold;
             margin: 0 auto 1rem;
+        }
+
+        .jp-auth-header h1 {
+            margin: 0;
+            color: #333;
+            font-size: 1.8em;
+        }
+
+        .jp-auth-header p {
+            color: #666;
+            margin: 5px 0 0;
+            font-size: 0.9em;
         }
 
         .jp-form-row {
@@ -68,6 +94,8 @@
 
         .jp-signin-link {
             text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
             color: #718096;
             font-size: 0.875rem;
         }
@@ -82,16 +110,41 @@
             text-decoration: underline;
         }
 
+        .jp-already-logged-in {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .jp-welcome-message {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .jp-action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        /* Mobile responsiveness */
         @media (max-width: 640px) {
             .jp-form-row {
                 grid-template-columns: 1fr;
+            }
+
+            .jp-auth-container {
+                margin: 40px auto;
+            }
+
+            .jp-auth-card {
+                padding: 30px 25px;
             }
         }
     </style>
 </head>
 <body>
     <div class="jp-main">
-        <div class="jp-auth-container">
+        <div class="jp-container-400 jp-auth-container">
           {{#if user.authenticated}}
             <div class="jp-already-logged-in">
                 <div class="jp-user-avatar-large">
@@ -107,7 +160,7 @@
                 </div>
             </div>
           {{else}}
-            <div class="jp-auth-card">
+            <div class="jp-card jp-auth-card">
                 <div class="jp-auth-header">
                     <div class="jp-signup-logo">jP</div>
                     <h1>{{i18n.view.auth.signup.title}}</h1>
@@ -115,10 +168,10 @@
                 </div>
 
                 <!-- Signup form for internal authentication -->
-                <form id="signupForm" onsubmit="handleSignup(event)">
+                <form id="signupForm" class="jp-form">
                     <div class="jp-form-row">
                         <div class="jp-form-group">
-                            <label for="firstName">{{i18n.view.auth.signup.firstName}}</label>
+                            <label for="firstName" class="jp-form-label">{{i18n.view.auth.signup.firstName}}</label>
                             <input type="text"
                                    id="firstName"
                                    name="firstName"
@@ -128,7 +181,7 @@
                                    autocomplete="given-name">
                         </div>
                         <div class="jp-form-group">
-                            <label for="lastName">{{i18n.view.auth.signup.lastName}}</label>
+                            <label for="lastName" class="jp-form-label">{{i18n.view.auth.signup.lastName}}</label>
                             <input type="text"
                                    id="lastName"
                                    name="lastName"
@@ -140,7 +193,7 @@
                     </div>
 
                     <div class="jp-form-group">
-                        <label for="username">{{i18n.view.auth.signup.username}}</label>
+                        <label for="username" class="jp-form-label">{{i18n.view.auth.signup.username}}</label>
                         <input type="text"
                                id="username"
                                name="username"
@@ -151,7 +204,7 @@
                     </div>
 
                     <div class="jp-form-group">
-                        <label for="email">{{i18n.view.auth.signup.email}}</label>
+                        <label for="email" class="jp-form-label">{{i18n.view.auth.signup.email}}</label>
                         <input type="email"
                                id="email"
                                name="email"
@@ -162,7 +215,7 @@
                     </div>
 
                     <div class="jp-form-group">
-                        <label for="password">{{i18n.view.auth.signup.password}}</label>
+                        <label for="password" class="jp-form-label">{{i18n.view.auth.signup.password}}</label>
                         <input type="password"
                                id="password"
                                name="password"
@@ -176,7 +229,7 @@
                     </div>
 
                     <div class="jp-form-group">
-                        <label for="confirmPassword">{{i18n.view.auth.signup.confirmPassword}}</label>
+                        <label for="confirmPassword" class="jp-form-label">{{i18n.view.auth.signup.confirmPassword}}</label>
                         <input type="password"
                                id="confirmPassword"
                                name="confirmPassword"
@@ -193,7 +246,7 @@
                         </label>
                     </div>
 
-                    <button type="submit" class="jp-btn jp-btn-primary jp-btn-full" id="signupButton">
+                    <button type="submit" class="jp-btn jp-btn-primary jp-btn-submit" id="signupButton" style="width: 100%; margin-bottom: 20px;">
                         {{i18n.view.auth.signup.signUp}}
                     </button>
                 </form>
@@ -209,51 +262,60 @@
 
     <script>
         // Enhanced signup handling using jPulseCommon utilities
-        async function handleSignup(event) {
-            event.preventDefault();
-
-            const form = event.target;
-            const formData = jPulseCommon.form.serialize(form);
-
-            // Client-side validation for password match
-            if (formData.password !== formData.confirmPassword) {
-                jPulseCommon.showSlideDownError('{{i18n.view.auth.signup.passwordMismatch}}');
-                return;
-            }
-
-            // Check terms acceptance
-            if (!formData.acceptTerms) {
-                jPulseCommon.showSlideDownError('{{i18n.view.auth.signup.termsAccept}}');
-                return;
-            }
-
-            // Use jPulseCommon form submission with correct parameters
-            await jPulseCommon.form.handleSubmission(form, '/api/1/user/signup', {
-                method: 'POST',
-                loadingText: '{{i18n.view.auth.signup.signingUp}}',
-                successMessage: null, // Don't show automatic success message
-                onSuccess: (data) => {
-                    if (data && data.user && data.user.username) {
-                        const username = data.user.username;
-                        window.location.href = `/auth/login.shtml?signup=success&username=${encodeURIComponent(username)}`;
-                    } else {
-                        // Fallback if structure is unexpected
-                        window.location.href = '/auth/login.shtml?signup=success';
-                    }
-                },
-                onError: (error) => {
-                    const errorMessage = error || '{{i18n.view.auth.signup.signupFailed}}';
-                    jPulseCommon.showSlideDownError(errorMessage);
-                }
-            });
-        }
-
-        // Auto-focus first input field using jPulseCommon
         jPulseCommon.dom.ready(() => {
+            const signupForm = document.getElementById('signupForm');
+
+            // Simplified form submission with jPulseCommon
+            signupForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const formData = jPulseCommon.form.serialize(signupForm);
+
+                // Client-side validation for password match
+                if (formData.password !== formData.confirmPassword) {
+                    jPulseCommon.showSlideDownError('{{i18n.view.auth.signup.passwordMismatch}}');
+                    return;
+                }
+
+                // Check terms acceptance
+                if (!formData.acceptTerms) {
+                    jPulseCommon.showSlideDownError('{{i18n.view.auth.signup.termsAccept}}');
+                    return;
+                }
+
+                // Use jPulseCommon form submission
+                const result = await jPulseCommon.form.handleSubmission(signupForm, '/api/1/user/signup', {
+                    method: 'POST',
+                    loadingText: '{{i18n.view.auth.signup.signingUp}}',
+                    successMessage: null, // Don't show automatic success message
+                    onSuccess: (data) => {
+                        if (data && data.user && data.user.username) {
+                            const username = data.user.username;
+                            window.location.href = `/auth/login.shtml?signup=success&username=${encodeURIComponent(username)}`;
+                        } else {
+                            // Fallback if structure is unexpected
+                            window.location.href = '/auth/login.shtml?signup=success';
+                        }
+                    },
+                    onError: (error) => {
+                        const errorMessage = error || '{{i18n.view.auth.signup.signupFailed}}';
+                        jPulseCommon.showSlideDownError(errorMessage);
+                    }
+                });
+            });
+
+            // Auto-focus first input field
             const firstNameField = document.getElementById('firstName');
             if (firstNameField) {
                 firstNameField.focus();
             }
+
+            // Clear error states on input
+            document.querySelectorAll('.jp-form-input').forEach(input => {
+                input.addEventListener('input', function() {
+                    this.classList.remove('jp-field-error');
+                });
+            });
         });
     </script>
 

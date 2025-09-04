@@ -4,8 +4,8 @@
  * @tagline         User logout confirmation and processing page
  * @description     Logout confirmation with automatic session termination
  * @file            webapp/view/auth/logout.shtml
- * @version         0.4.3
- * @release         2025-09-03
+ * @version         0.4.4
+ * @release         2025-09-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,334 +20,60 @@
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
-        /* Logout page styles */
-        .logout-container {
-            max-width: 400px;
+        /* Page-specific logout styles only */
+        .jp-auth-container {
             margin: 80px auto;
-            padding: 0 20px;
         }
 
-        .logout-card {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            border-top: 4px solid #007acc;
-            text-align: center;
-        }
-
-        .logout-icon {
-            width: 60px;
-            height: 60px;
+        .jp-logout-icon {
             background: linear-gradient(135deg, #6c757d, #495057);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            color: white;
-            font-size: 24px;
-        }
-
-        .logout-header h1 {
-            margin: 0 0 10px;
-            color: #333;
-            font-size: 1.8em;
-        }
-
-        .logout-header p {
-            color: #666;
-            margin: 0 0 30px;
-            line-height: 1.5;
-        }
-
-        .user-info {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            border-left: 4px solid #007acc;
-        }
-
-        .user-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #007acc, #005999);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 20px;
-            font-weight: bold;
-            margin: 0 auto 15px;
-        }
-
-        .user-details {
-            color: #333;
-        }
-
-        .user-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .user-email {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .logout-actions {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-bottom: 25px;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-            transition: all 0.2s;
-            min-width: 120px;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-danger:hover:not(:disabled) {
-            background: #c82333;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            background: #545b62;
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .btn.loading {
-            position: relative;
-        }
-
-        .btn.loading::after {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            margin: auto;
-            border: 2px solid transparent;
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .logout-info {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.9em;
-        }
-
-        .success-message {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .success-icon {
-            width: 60px;
-            height: 60px;
-            background: #28a745;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            color: white;
-            font-size: 24px;
-        }
-
-        .redirect-info {
-            color: #666;
-            font-size: 0.9em;
-            margin-top: 20px;
-        }
-
-        .countdown {
-            font-weight: bold;
-            color: #007acc;
-        }
-
-        .quick-actions {
-            border-top: 1px solid #dee2e6;
-            padding-top: 20px;
-            margin-top: 25px;
-        }
-
-        .quick-actions h4 {
-            margin: 0 0 15px;
-            color: #333;
-            font-size: 1.1em;
-        }
-
-        .quick-actions .btn {
-            margin: 5px;
-            padding: 8px 16px;
-            font-size: 13px;
-            min-width: auto;
-        }
-
-        /* Not authenticated state */
-        .not-authenticated {
-            text-align: center;
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .alert-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        /* Mobile responsiveness */
-        @media (max-width: 480px) {
-            .logout-container {
-                margin: 60px auto;
-                padding: 0 15px;
-            }
-
-            .logout-card {
-                padding: 30px 25px;
-            }
-
-            .logout-actions {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-            }
-
-            .quick-actions .btn {
-                width: auto;
-                margin: 3px;
-            }
         }
     </style>
 </head>
 <body>
-    <div class="jpulse-main">
-        <div class="logout-container">
+    <div class="jp-main">
+        <div class="jp-container-400 jp-auth-container">
           {{#if user.authenticated}}
-            <div class="logout-card">
-                <div class="logout-header">
-                    <div class="logout-icon">
+            <div class="jp-card jp-auth-card">
+                <div class="jp-auth-header">
+                    <div class="jp-user-avatar-large jp-logout-icon">
                         👋
                     </div>
                     <h1>{{i18n.view.auth.logout.title}}</h1>
                     <p>{{i18n.view.auth.logout.confirmMessage}}</p>
                 </div>
 
-                <div class="user-info">
-                                    <div class="user-avatar">
-                    {{user.initials}}
-                </div>
-                    <div class="user-details">
-                        <div class="user-name">{{user.firstName}} {{user.lastName}}</div>
-                        <div class="user-email">{{user.email}}</div>
+                <div class="jp-user-info">
+                    <div class="jp-user-avatar">{{user.initials}}</div>
+                    <div class="jp-user-details">
+                        <div class="jp-user-name">{{user.firstName}} {{user.lastName}}</div>
+                        <div class="jp-user-email">{{user.email}}</div>
                     </div>
                 </div>
 
-                <div class="logout-info">
+                <div class="jp-info-box">
                     {{i18n.view.auth.logout.securityNote}}
                 </div>
 
-                <div class="logout-actions">
-                    <button id="logoutButton" class="btn btn-danger" onclick="performLogout()">
+                <div class="jp-btn-group">
+                    <button id="logoutButton" class="jp-btn jp-btn-primary" onclick="performLogout()">
                         {{i18n.view.auth.logout.confirmLogout}}
                     </button>
-                    <a href="/" class="btn btn-secondary">
-                        {{i18n.view.auth.logout.cancel}}
-                    </a>
+                    <a href="/" class="jp-btn jp-btn-secondary">{{i18n.view.auth.logout.cancel}}</a>
                 </div>
 
-                <div class="quick-actions">
+                <div class="jp-action-section">
                     <h4>{{i18n.view.auth.logout.quickActions}}</h4>
-                    <a href="/user/profile.shtml" class="btn btn-secondary">{{i18n.view.auth.common.profile}}</a>
-                    <a href="/user/index.shtml" class="btn btn-secondary">{{i18n.view.auth.logout.viewUsers}}</a>
-                    <a href="/" class="btn btn-secondary">{{i18n.view.auth.logout.home}}</a>
+                    <div class="jp-btn-group">
+                        <a href="/user/profile.shtml" class="jp-btn jp-btn-secondary">{{i18n.view.auth.common.profile}}</a>
+                        <a href="/user/index.shtml" class="jp-btn jp-btn-secondary">{{i18n.view.auth.logout.viewUsers}}</a>
+                        <a href="/" class="jp-btn jp-btn-secondary">{{i18n.view.auth.logout.home}}</a>
+                    </div>
                 </div>
             </div>
           {{else}}
-            <div class="logout-card">
-                <div class="not-authenticated">
-                    <div class="logout-icon">
-                        ℹ️
-                    </div>
-                    <h1>{{i18n.view.auth.logout.notLoggedIn}}</h1>
-                    <div class="alert alert-info">
-                        {{i18n.view.auth.logout.alreadyLoggedOut}}
-                    </div>
-                    <div class="logout-actions">
-                        <a href="/auth/login.shtml" class="btn btn-danger">{{i18n.view.auth.common.signin}}</a>
-                        <a href="/" class="btn btn-secondary">{{i18n.view.auth.logout.home}}</a>
-                    </div>
-                </div>
-            </div>
+            <!-- Not authenticated section -->
           {{/if}}
-            <!-- Success state (will be shown after logout) -->
-            <div id="logoutSuccess" class="logout-card" style="display: none;">
-                <div class="success-icon">
-                    ✓
-                </div>
-                <div class="success-message">
-                    <h2>{{i18n.view.auth.logout.logoutSuccess}}</h2>
-                    <p>{{i18n.view.auth.logout.sessionEnded}}</p>
-                </div>
-                <div class="redirect-info">
-                    {{i18n.view.auth.logout.redirectingIn}} <span id="countdown" class="countdown">3</span> {{i18n.view.auth.logout.seconds}}
-                </div>
-                <div class="logout-actions">
-                    <a href="/auth/login.shtml" class="btn btn-danger">{{i18n.view.auth.common.signin}}</a>
-                    <a href="/" class="btn btn-secondary">{{i18n.view.auth.logout.home}}</a>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -372,14 +98,18 @@
 
                 if (response.ok && result.success) {
                     showLogoutSuccess();
+                    // Don't reset button - we're redirecting anyway
                 } else {
                     showError(result.error || '{{i18n.view.auth.logout.logoutFailed}}');
+                    // Only reset button on error
+                    logoutButton.disabled = false;
+                    logoutButton.classList.remove('loading');
+                    logoutButton.textContent = '{{i18n.view.auth.logout.confirmLogout}}';
                 }
             } catch (error) {
                 showError('{{i18n.view.auth.logout.networkError}}');
                 console.error('Logout error:', error);
-            } finally {
-                // Reset button state
+                // Only reset button on error
                 logoutButton.disabled = false;
                 logoutButton.classList.remove('loading');
                 logoutButton.textContent = '{{i18n.view.auth.logout.confirmLogout}}';
@@ -387,57 +117,17 @@
         }
 
         function showLogoutSuccess() {
-            // Hide all logout cards
-            const logoutCards = document.querySelectorAll('.logout-container .logout-card');
-            logoutCards.forEach(card => {
-                if (card.id !== 'logoutSuccess') {
-                    card.style.display = 'none';
-                }
-            });
+            // Show single success message
+            jPulseCommon.showSlideDownSuccess('{{i18n.view.auth.logout.logoutSuccess}}');
 
-            // Show success message
-            const successCard = document.getElementById('logoutSuccess');
-            if (successCard) {
-                successCard.style.display = 'block';
-            }
-
-            // Start countdown
-            startRedirectCountdown();
-        }
-
-        function startRedirectCountdown() {
-            let seconds = 3;
-            const countdownElement = document.getElementById('countdown');
-
-            const interval = setInterval(() => {
-                seconds--;
-                countdownElement.textContent = seconds;
-
-                if (seconds <= 0) {
-                    clearInterval(interval);
-                    window.location.href = '/';
-                }
-            }, 1000);
+            // Simple redirect after delay (like signin page)
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
         }
 
         function showError(message) {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-error';
-            alertDiv.style.background = '#f8d7da';
-            alertDiv.style.color = '#721c24';
-            alertDiv.style.border = '1px solid #f5c6cb';
-            alertDiv.style.padding = '12px 16px';
-            alertDiv.style.borderRadius = '8px';
-            alertDiv.style.marginBottom = '20px';
-            alertDiv.textContent = message;
-
-            const logoutCard = document.querySelector('.logout-card');
-            logoutCard.insertBefore(alertDiv, logoutCard.firstChild);
-
-            // Remove error after 5 seconds
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 5000);
+            jPulseCommon.showSlideDownError(message);
         }
 
         // Auto-logout if ?auto=true parameter is present

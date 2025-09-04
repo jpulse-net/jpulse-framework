@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         0.4.3
- * @release         2025-09-03
+ * @version         0.4.4
+ * @release         2025-09-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -706,6 +706,412 @@ body {
 
 .jp-text-center {
     text-align: center;
+}
+
+/* ========================================
+ * ADDITIONAL COMMON COMPONENTS (Phase 1 - W-038)
+ * ======================================== */
+
+/* Container Variants */
+.jp-container-400 {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.jp-container-600 {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.jp-container-800 {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.jp-container-1200 {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Divider Component */
+.jp-divider {
+    text-align: center;
+    margin: 25px 0;
+    position: relative;
+    color: #666;
+}
+
+.jp-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #dee2e6;
+}
+
+.jp-divider span {
+    background: white;
+    padding: 0 15px;
+}
+
+/* Status Badge Components */
+.jp-status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.jp-status-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.jp-status-inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.jp-status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.jp-status-suspended {
+    background: #f5c6cb;
+    color: #721c24;
+}
+
+/* Role Badge Components */
+.jp-role-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-right: 4px;
+}
+
+.jp-role-root {
+    background: #dc3545;
+    color: white;
+}
+
+.jp-role-admin {
+    background: #fd7e14;
+    color: white;
+}
+
+.jp-role-user {
+    background: #007acc;
+    color: white;
+}
+
+.jp-role-guest {
+    background: #6c757d;
+    color: white;
+}
+
+/* Avatar Components */
+.jp-user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #007acc, #005999);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+    margin-right: 10px;
+}
+
+.jp-user-avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #007acc, #005999);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 32px;
+    font-weight: bold;
+    margin: 0 auto 20px;
+}
+
+/* Button Group Component */
+.jp-btn-group {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.jp-btn-group .jp-btn {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 480px) {
+    .jp-btn-group {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .jp-btn-group .jp-btn {
+        width: 100%;
+        max-width: 200px;
+    }
+}
+
+/* Table Components */
+.jp-table-container {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.jp-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.jp-table th,
+.jp-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.jp-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.jp-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+@media (max-width: 768px) {
+    .jp-table-container {
+        overflow-x: auto;
+    }
+
+    .jp-table {
+        min-width: 600px;
+    }
+}
+
+/* Pagination Component */
+.jp-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.jp-pagination button {
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    background: white;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.jp-pagination button:hover:not(:disabled) {
+    background: #f8f9fa;
+}
+
+.jp-pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.jp-pagination .jp-current-page {
+    background: #007acc;
+    color: white;
+    border-color: #007acc;
+}
+
+/* Loading and No Results States */
+.jp-loading-state {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.jp-no-results {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+/* User Info Components */
+.jp-user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin: 20px 0;
+    border-left: 4px solid #007acc;
+}
+
+.jp-user-info .jp-user-details {
+    flex: 1;
+}
+
+.jp-user-info .jp-user-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.jp-user-info .jp-user-email {
+    color: #666;
+    font-size: 14px;
+}
+
+/* Action Section Component */
+.jp-action-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #dee2e6;
+}
+
+.jp-action-section h4 {
+    margin-bottom: 15px;
+    color: #666;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Enhanced Button Group */
+.jp-btn-group {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.jp-btn-group.jp-btn-group-wrap {
+    flex-wrap: wrap;
+}
+
+.jp-btn-group.jp-btn-group-start {
+    justify-content: flex-start;
+}
+
+.jp-btn-group.jp-btn-group-end {
+    justify-content: flex-end;
+}
+
+.jp-btn-group .jp-btn {
+    flex: 0 0 auto;
+}
+
+.jp-btn-group.jp-btn-group-equal .jp-btn {
+    flex: 1;
+    min-width: 120px;
+}
+
+/* Responsive Button Groups */
+@media (max-width: 480px) {
+    .jp-btn-group.jp-btn-group-stack {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .jp-btn-group.jp-btn-group-stack .jp-btn {
+        width: 100%;
+        max-width: 200px;
+    }
+}
+
+/* Countdown/Highlight Text */
+.jp-highlight {
+    font-weight: bold;
+    color: #007acc;
+}
+
+/* Section Components */
+.jp-section {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.jp-section h3 {
+    margin-top: 0;
+    color: #007acc;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 10px;
+}
+
+/* Page Header Component */
+.jp-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #007acc;
+}
+
+@media (max-width: 768px) {
+    .jp-page-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+}
+
+/* Read-only Field Component */
+.jp-read-only-field {
+    background: #f8f9fa !important;
+    color: #6c757d !important;
+}
+
+/* Search Fields Component */
+.jp-search-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    align-items: end;
+}
+
+@media (max-width: 768px) {
+    .jp-search-fields {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Container Responsive Adjustments */
+@media (max-width: 480px) {
+    .jp-container-400,
+    .jp-container-600,
+    .jp-container-800,
+    .jp-container-1200 {
+        margin: 0 15px;
+        padding: 0 15px;
+    }
 }
 
 /* ========================================

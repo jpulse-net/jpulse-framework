@@ -487,15 +487,8 @@ Requirements Doc of jPulse Framework
 - make sure to not use hard-coded user facing messages that could be translated
 - make sure to update the two existing language files webapp/translations/en.conf and webapp/translations/de.conf
 
-
-
-
-
--------------------------------------------------------------------------
-# 🚧 IN_PROGRESS Work Items
-
 ## **W-019**: view: create non-blocking slide-down info/alert/warning/success message
-- status: 🚧 IN_PROGRESS
+- status: ✅ COMPLETED
 - type: Feature
 - pupose: non-blocking error or info message, such after signin
 - current behavior:
@@ -513,6 +506,59 @@ Requirements Doc of jPulse Framework
   - duration defined by type in appConfig.view.slideDownMessage.duration.*
   - keep current background colors based on type (defined in css)
 
+## **W-038**: view: cleaner separation of common code/style and page specific code/style
+
+- status: ✅ COMPLETED
+- type: Feature
+- objective: make current pages more maintainable, make code and style as short as possible
+- my overall assessment of current state:
+  - style: too much duplication across pages
+  - html: looks solid
+  - script: a bit too verbose, not using iPulseCommon.* functions enough, and not consistently
+- action items for all pages:
+  - replace URLSearchParams() with handlebar
+    - from: const redirect = new URLSearchParams(window.location.search).get('redirect') || '/';
+    - to:   const redirect = '{{url.param.redirect}}' || '';
+  - use jPulseCommon functions instead of JS functions, such as:
+    - from: document.addEventListener('DOMContentLoaded', function() {});
+    - to:   jPulseCommon.dom.ready(() => {});
+  - convert handleSubmission to this in webapp/view/auth/login.shtml? maybe I misunderstand?
+    - from:
+      loginForm.addEventListener('submit', async function(event) {
+          event.preventDefault();
+          const result = await jPulseCommon.form.handleSubmission(loginForm, '/api/1/auth/login', {
+            //...
+          });
+      });
+    - to:
+      jPulseCommon.form.handleSubmission(loginForm, '/api/1/auth/login', {
+        //...
+      });
+  - itendtify styles that are common, & move many styles to jpulse-common.css, such as:
+    - page .jp-login-container ==> common .jp-container-400
+    - page .jp-login-card ==> common .jp-card
+      - if jp-login-card is needed:
+        <div class="jp-login-card"> ==> <div class="jp-card jp-login-card">
+      - else:
+        <div class="jp-login-card"> ==> <div class="jp-card">
+    - page .jp-login-header ==> common .jp-card-header
+    - page .jp-divider ==> common .jp-divider
+  - webapp/view/auth/login.shtml and webapp/view/auth/signup.shtml:
+    - they have different form validation and submit handling,
+    - better to consolidate using one approach?
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+# 🚧 IN_PROGRESS Work Items
+
 
 
 
@@ -521,10 +567,10 @@ Requirements Doc of jPulse Framework
 
 
 ## Potential next items:
-**W-037**: view: create themes
-**W-014**: app: strategy for seamless update of site-specific jPulse deployments
 **W-013**: view: create site admin views
 **W-015**: deployment: strategy for clean onboarding
+**W-037**: view: create themes
+**W-014**: app: strategy for seamless update of site-specific jPulse deployments
 
 ## Chat instructions
 
@@ -538,26 +584,15 @@ I finished **W-0xx**: .....
 - run tests, and fix issues
 - update docs: README.md, API.md, developers.md, changes.md in project root
 - show me cursor_log.txt update text I can copy & paste
-  - current date: 2025-09-03 01:44
-- update commit-message.txt, following the same format, specify: W-019, v0.4.3
+  - current date: 2025-09-04 02:12
+- update commit-message.txt, following the same format, specify: W-038, v0.4.4
   - don't commit
 
 
 
-- don't hard-code the available languages in i18n.view.user.profile
-  - use i18n api to get the list, there is a [['key', 'Value'], ...]
-- don't hard-code i18n.view.user.index.roleRoot, etc. in translations
-  - use an auth controller api to get the available roles (for now a dummy hard-coded return is fine)
-- do not i18n user roles, an admin in Germany and Japan perfeclty understand the English term
-  - remove from translations i18n
-  - show acual values returned by search API
-- do not i18n statuses, an admin in Germany and Japan perfeclty understand the English term
-  - remove from translations i18n
-  - show acual values returned by search API
-
 
 - enhance === view.load( /error/index.shtml ) log to show additional details on what is wrong, likely in followup log entry
-
+- ptester8 -- duplicate username
 
 
 
@@ -570,6 +605,9 @@ git add .
 git commit -F commit-message.txt
 git push
 
+git commit --amend -F commit-message.txt
+git push --force-with-lease origin main
+
 ## Tests how to
 
 npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
@@ -581,6 +619,15 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 -------------------------------------------------------------------------
 # TO-DO Work Items
 
+## **W-013**: view: create site admin views
+- status: 🕑 PENDING
+- type: Feature
+- create webapp/view/admin/index.shtml -- admin home, links/buttons to config and logs
+- create webapp/view/admin/config.shtml -- edit site config
+- create webapp/view/admin/logs.shtml -- search logs
+- move webapp/view/user/index.shtml to webapp/view/admin/users.shtml -- search users
+- replace webapp/view/user/index.shtml with what?
+
 ## **W-037**: view: create themes
 - status: 🕑 PENDING
 - type: Feature
@@ -588,12 +635,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - user can set preferred theme
 - way to define new themes
   - drop in a directory, with auto discovery
-
-## **W-013**: view: create site admin views
-- status: 🕑 PENDING
-- type: Feature
-- create webapp/view/admin/index.shtml -- admin home
-- create webapp/view/admin/config.shtml -- edit config
 
 ## **W-014**: app: strategy for seamless update of site-specific jPulse deployments
 - status: 🕑 PENDING
@@ -650,10 +691,23 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 ## **W-0**: create plugin infrastructure
 - status: 🕑 PENDING
 - type: Feature
-- strategy: drop in specific directory, with auto discovery
+- objective: extensible framework that is easy to understand & easy to maintain
+- strategy: drop a plugin in specific directory, with auto discovery
 - plugins for:
   - themes
   - additional models, controllers, views
+- create a hello-world-plugin, ship with jpulse-framework
+
+## **W-0**: create a jpulse-ui-plugin
+- status: 🕑 PENDING
+- type: Feature
+- objective: offer common UI widgets used by front-end developers
+- inspired by jQuery UI
+  - base on jQuery UI?
+- widgets:
+  - jPulse.UI.alertDialog(msg, title = 'Alert', width, height)
+  - jPulse.UI.confirmDialog(options)
+    - options: title, message, buttons, onOpen, onClose, width, minWidth, maxWidth, height, minHeight, maxHeight, zIndex (with defaults)
 
 ## **W-0**: view controller: strategy for cache invalidation
 - status: 🕑 PENDING

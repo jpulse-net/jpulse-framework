@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.4.3
- * @release         2025-09-03
+ * @version         0.4.4
+ * @release         2025-09-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -129,11 +129,15 @@ async function load(req, res) {
             app: appConfig.app,
             user: {
                 id: req.session?.user?.id || '',
+                username: req.session?.user?.username || '',
+                loginId: req.session?.user?.loginId || '',
                 firstName: req.session?.user?.firstName || '',
                 nickName: req.session?.user?.nickName || '',
                 lastName: req.session?.user?.lastName || '',
                 email: req.session?.user?.email || '',
                 initials: req.session?.user?.initials || '?',
+                roles: req.session?.user?.roles || [],
+                preferences: req.session?.user?.preferences || {},
                 authenticated: !!req.session?.user
             },
             config: globalConfig?.data || {},
@@ -148,9 +152,9 @@ async function load(req, res) {
                 param: req.query || {}
             },
             // Add i18n object to context for dot notation access
-            i18n: global.i18n.getLang(AuthController.getUserLanguage(req)),
-            req: req
+            i18n: global.i18n.getLang(AuthController.getUserLanguage(req))
         };
+        //console.log('DEBUG: context:', JSON.stringify(context, null, 2));
 
         // Process handlebars
         content = processHandlebars(content, context, viewDir, req, 0);

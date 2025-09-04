@@ -4,8 +4,8 @@
  * @tagline         User profile view with edit capabilities
  * @description     User profile management with view and edit modes
  * @file            webapp/view/user/profile.shtml
- * @version         0.4.3
- * @release         2025-09-03
+ * @version         0.4.4
+ * @release         2025-09-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,11 +21,6 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         /* Page-specific profile styles only */
-        .jp-profile-container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
         .jp-profile-header {
             display: flex;
             align-items: center;
@@ -33,19 +28,6 @@
             margin-bottom: 30px;
             padding-bottom: 20px;
             border-bottom: 2px solid #007acc;
-        }
-
-        .jp-profile-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #007acc, #005999);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 32px;
-            font-weight: bold;
         }
 
         .jp-profile-info h1 {
@@ -76,74 +58,19 @@
             background: #f8f9fa;
             color: #6c757d;
         }
-
-        .jp-status-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .jp-status-active {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .jp-status-inactive {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .jp-status-pending {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .jp-status-suspended {
-            background: #f5c6cb;
-            color: #721c24;
-        }
-
-        .jp-btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .jp-password-form {
-            margin-top: 20px;
-        }
-
-        /* Mobile responsiveness */
-        @media (max-width: 600px) {
-            .jp-form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .jp-profile-header {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .jp-btn-group {
-                flex-direction: column;
-            }
-        }
     </style>
 </head>
 <body>
     <div class="jp-main">
-        <div class="jp-profile-container">
+        <div class="jp-container-800">
           {{#if user.authenticated}}
             <div class="jp-profile-header">
-                <div class="jp-profile-avatar">
+                <div class="jp-user-avatar-large">
                     {{user.initials}}
                 </div>
                 <div class="jp-profile-info">
                     <h1>{{user.firstName}} {{user.lastName}}</h1>
-                    <div class="jp-user-details">@{{user.loginId}} • {{user.email}}</div>
+                    <div class="jp-user-details">@{{user.username}} • {{user.email}}</div>
                     <div class="jp-user-details">
                         <span class="jp-status-badge jp-status-active">{{i18n.view.user.profile.statusActive}}</span>
                     </div>

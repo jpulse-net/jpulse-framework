@@ -4,8 +4,8 @@
  * @tagline         Home page of jPulse Framework
  * @description     This is the home page of jPulse Framework
  * @file            webapp/view/home/index.shtml
- * @version         0.4.3
- * @release         2025-09-03
+ * @version         0.4.4
+ * @release         2025-09-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -79,7 +79,8 @@
                     <li><strong>App info:</strong> {{app.version}} / {{app.release}}</li>
                     <li><strong>URL parsing:</strong> {{url.domain}} + {{url.pathname}}</li>
                     <li><strong>URL params:</strong> Try ?name=test → {{url.param.name}}</li>
-                    <li><strong>Conditionals:</strong> {{#if user.authenticated}}User {{user.id}} is logged in{{else}}User is guest{{/if}}</li>
+                    <li><strong>User roles:</strong> {{user.roles}}</li>
+                    <li><strong>Conditionals:</strong> {{#if user.authenticated}}User {{user.username}} is logged in{{else}}User is guest{{/if}}</li>
                     <li><strong>i18n:</strong>
                         {{#if user.authenticated}}
                           {{i18n.view.auth.login.welcomeBack}}
@@ -88,6 +89,16 @@
                         {{/if}}
                     </li>
                     <li><strong>Config:</strong> Admin email: {{config.email.adminEmail}}</li>
+                    <li><strong>User object debug:</strong></li>
+                    <li><strong>user.authenticated:</strong> {{user.authenticated}}</li>
+                    <li><strong>user.id:</strong> {{user.id}}</li>
+                    <li><strong>user.username:</strong> {{user.username}}</li>
+                    <li><strong>user.firstName:</strong> {{user.firstName}}</li>
+                    <li><strong>user.nickName:</strong> {{user.nickName}}</li>
+                    <li><strong>user.lastName:</strong> {{user.lastName}}</li>
+                    <li><strong>user.email:</strong> {{user.email}}</li>
+                    <li><strong>user.roles:</strong> {{user.roles}}</li>
+                    <li><strong>user.isAdmin:</strong> {{user.isAdmin}}</li>
                 </ul>
             </div>
         </div>

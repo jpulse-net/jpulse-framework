@@ -4,8 +4,8 @@
  * @tagline         Error page of jPulse Framework
  * @description     This is the error page of jPulse Framework
  * @file            webapp/view/error/index.shtml
- * @version         0.4.3
- * @release         2025-09-03
+ * @version         0.4.4
+ * @release         2025-09-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -44,28 +44,8 @@
         }
 
         @media (max-width: 640px) {
-            .jp-error-container {
-                padding: 2rem 1.5rem;
-                margin: 1rem;
-            }
-
-            .jp-detail-row {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.25rem;
-            }
-
-            .jp-detail-row span {
-                text-align: left;
-                margin-left: 0;
-            }
-
             .error-actions {
                 flex-direction: column;
-            }
-
-            .jp-btn {
-                width: 100%;
             }
         }
     </style>

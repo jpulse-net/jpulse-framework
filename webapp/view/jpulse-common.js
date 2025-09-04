@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         0.4.3
- * @release         2025-09-03
+ * @version         0.4.4
+ * @release         2025-09-04
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -354,11 +354,11 @@ window.jPulseCommon = {
         },
 
         /**
-         * Comprehensive form submission handler
+         * Comprehensive form submission handler with auto-binding support
          * @param {HTMLFormElement} formElement - The form to submit
          * @param {string} endpoint - API endpoint URL
          * @param {Object} options - Submission options
-         * @returns {Promise<Object>} API result object
+         * @returns {Promise<Object>} API result object (when called with event) or void (when auto-binding)
          */
         handleSubmission: async (formElement, endpoint, options = {}) => {
             const defaultOptions = {
@@ -373,10 +373,24 @@ window.jPulseCommon = {
                 onError: null,
                 beforeSubmit: null,
                 afterSubmit: null,
-                validateBeforeSubmit: true
+                validateBeforeSubmit: true,
+                autoBind: true  // New option for auto-binding
             };
 
             const config = { ...defaultOptions, ...options };
+
+            // If autoBind is true and we're not in an event context, bind the submit event
+            if (config.autoBind && !options._isEventCall) {
+                formElement.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    return await jPulseCommon.form.handleSubmission(formElement, endpoint, {
+                        ...options,
+                        autoBind: false,
+                        _isEventCall: true
+                    });
+                });
+                return; // Exit early for auto-binding
+            }
 
             // Find submit button
             const submitButton = formElement.querySelector('button[type="submit"]') ||

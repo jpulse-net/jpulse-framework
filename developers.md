@@ -1,4 +1,4 @@
-# jPulse Framework / Developer Documentation v0.4.3
+# jPulse Framework / Developer Documentation v0.4.4
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
@@ -40,6 +40,13 @@ Technical documentation for developers working on the jPulse Framework. This doc
 - 🏗️ **MVC-Aligned Configuration (W-026)**: Restructured app.conf to match model/controller/view architecture
 - 📁 **Enhanced Configuration Organization**: Settings organized by component type for better maintainability
 - 🔗 **API-Driven Profile Management**: User profiles now load fresh data from REST API instead of session data
+
+**Latest Releases Highlights:**
+- ✅ **View Consolidation & Common Components (W-038)**: Complete separation of common/page-specific code and style with 300+ lines of duplicate CSS eliminated, 15+ reusable components added (.jp-user-*, .jp-btn-group, .jp-action-section), and mature component library established for scalable development.
+- ✅ **Complete slide-down message system implementation (W-019)**: Implemented a non-blocking slide-down message system with comprehensive API renaming for clarity and enhanced user experience.
+- ✅ **View Migration & API Simplification (W-036)**: Complete migration of all 5 view files to jpulse-common utilities with API response simplification and dynamic schema-aware frontend. Eliminated confusing double-wrapped responses and implemented dynamic dropdown population from backend APIs.
+- ✅ **Component-Based Styling (W-025)**: Complete CSS architecture with `jp-` component library, framework/site separation preparation, and theme system foundation. Moved 290+ lines from templates to external CSS with responsive design and performance optimization.
+- ✅ **Enhanced JavaScript Utilities (W-035)**: Complete `jpulse-common.js` framework with 5-phase utility system - alert management, API standardization, form handling, DOM utilities, and device detection. Eliminates 300+ lines of duplicate code across views with 40-50% faster development.
 
 ________________________________________________
 ## 🚨 Breaking Changes & Migration Guide

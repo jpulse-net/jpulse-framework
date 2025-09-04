@@ -1,4 +1,4 @@
-# jPulse Framework / API Documentation v0.4.3
+# jPulse Framework / API Documentation v0.4.4
 
 Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
 
@@ -249,18 +249,39 @@ The jPulse Framework provides a comprehensive component library with consistent 
 
 ### Layout Components
 - `.jp-container` - Responsive container with configurable max-width
+- `.jp-container-400/600/800/1200` - Fixed-width containers for specific layouts
 - `.jp-main` - Main content area with white background and shadow
 - `.jp-card` - Reusable card component with header/body/footer structure
 
 ### UI Components
 - `.jp-btn` + variants (primary, secondary, success, danger, outline, loading)
+- `.jp-btn-group` - Button grouping with responsive stacking
 - `.jp-alert` + variants (info, error, success, warning) with animations
 - `.jp-info-box/warning-box/error-box` - Message containers with colored borders
+
+### User Components (W-038)
+- `.jp-user-info` - User profile display container with avatar and details
+- `.jp-user-avatar` - Standard 32px user avatar with gradient styling
+- `.jp-user-avatar-large` - Large 80px user avatar for profile headers
+- `.jp-user-name` - User display name styling
+- `.jp-user-login` - Username/login styling with muted color
+- `.jp-user-details` - Secondary user information styling
+
+### Status & Role Components (W-038)
+- `.jp-status-badge` - Base status indicator styling
+- `.jp-status-active/inactive/pending/suspended` - Status-specific colors
+- `.jp-role-badge` - Base role indicator styling
+- `.jp-role-root/admin/user/guest` - Role-specific colors
+
+### Action Components (W-038)
+- `.jp-action-section` - Grouped actions with header and border separator
+- `.jp-divider` - Text divider with centered label and horizontal line
 
 ### Form Components
 - `.jp-form-group/label/input/select/textarea` - Complete form styling
 - `.jp-form-grid` - Responsive form layouts
 - `.jp-search-section` + `.jp-search-form` - Search interface components
+- `.jp-search-fields` - Grid layout for search form fields with responsive behavior
 - `.jp-field-error` - Error state styling with focus indicators
 
 ### Utilities

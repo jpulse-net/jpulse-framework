@@ -4,8 +4,8 @@
  * @tagline         User authentication login page
  * @description     Login form for internal authentication with support for LDAP/OAuth2 planning
  * @file            webapp/view/auth/login.shtml
- * @version         0.4.3
- * @release         2025-09-03
+ * @version         0.4.4
+ * @release         2025-09-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,26 +21,21 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         /* Page-specific login styles only */
-        .jp-login-container {
-            max-width: 400px;
+        .jp-auth-container {
             margin: 60px auto;
-            padding: 0 20px;
         }
 
-        .jp-login-card {
-            background: white;
+        .jp-auth-card {
             padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             border-top: 4px solid #007acc;
         }
 
-        .jp-login-header {
+        .jp-auth-header {
             text-align: center;
             margin-bottom: 30px;
         }
 
-        .jp-login-logo {
+        .jp-auth-logo {
             width: 60px;
             height: 60px;
             background: linear-gradient(135deg, #007acc, #005999);
@@ -54,13 +49,13 @@
             font-weight: bold;
         }
 
-        .jp-login-header h1 {
+        .jp-auth-header h1 {
             margin: 0;
             color: #333;
             font-size: 1.8em;
         }
 
-        .jp-login-header p {
+        .jp-auth-header p {
             color: #666;
             margin: 5px 0 0;
             font-size: 0.9em;
@@ -91,28 +86,6 @@
 
         .jp-forgot-password:hover {
             text-decoration: underline;
-        }
-
-        .jp-divider {
-            text-align: center;
-            margin: 25px 0;
-            position: relative;
-            color: #666;
-        }
-
-        .jp-divider::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: #dee2e6;
-        }
-
-        .jp-divider span {
-            background: white;
-            padding: 0 15px;
         }
 
         .jp-auth-methods {
@@ -200,20 +173,6 @@
             padding: 40px;
         }
 
-        .jp-user-avatar-large {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #007acc, #005999);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 32px;
-            font-weight: bold;
-            margin: 0 auto 20px;
-        }
-
         .jp-welcome-message {
             color: #333;
             margin-bottom: 20px;
@@ -227,12 +186,11 @@
 
         /* Mobile responsiveness */
         @media (max-width: 480px) {
-            .jp-login-container {
+            .jp-auth-container {
                 margin: 40px auto;
-                padding: 0 15px;
             }
 
-            .jp-login-card {
+            .jp-auth-card {
                 padding: 30px 25px;
             }
 
@@ -246,7 +204,7 @@
 </head>
 <body>
     <div class="jp-main">
-        <div class="jp-login-container">
+        <div class="jp-container-400 jp-auth-container">
           {{#if user.authenticated}}
             <div class="jp-already-logged-in">
                 <div class="jp-user-avatar-large">
@@ -262,9 +220,9 @@
                 </div>
             </div>
           {{else}}
-            <div class="jp-login-card">
-                <div class="jp-login-header">
-                    <div class="jp-login-logo">jP</div>
+            <div class="jp-card jp-auth-card">
+                <div class="jp-auth-header">
+                    <div class="jp-auth-logo">jP</div>
                     <h1>{{i18n.view.auth.login.title}}</h1>
                     <p>{{i18n.view.auth.login.subtitle}}</p>
                 </div>
@@ -346,21 +304,17 @@
 
     <script>
         // Enhanced login handling using jPulseCommon utilities
-        document.addEventListener('DOMContentLoaded', function() {
+        jPulseCommon.dom.ready(() => {
             const loginForm = document.getElementById('loginForm');
 
-            // Enhanced form submission with jPulseCommon
-            loginForm.addEventListener('submit', async function(event) {
-                event.preventDefault();
-
-                const result = await jPulseCommon.form.handleSubmission(loginForm, '/api/1/auth/login', {
-                    successMessage: '{{i18n.view.auth.login.loginSuccess}}',
-                    loadingText: '{{i18n.view.auth.login.signingIn}}',
-                    redirectUrl: getRedirectUrl(),
-                    redirectDelay: 1000,
-                    beforeSubmit: validateLoginForm,
-                    onError: handleLoginError
-                });
+            // Option B: Clean form submission with jPulseCommon
+            jPulseCommon.form.handleSubmission(loginForm, '/api/1/auth/login', {
+                successMessage: '{{i18n.view.auth.login.loginSuccess}}',
+                loadingText: '{{i18n.view.auth.login.signingIn}}',
+                redirectUrl: '{{url.param.redirect}}' || '/',
+                redirectDelay: 1000,
+                beforeSubmit: validateLoginForm,
+                onError: handleLoginError
             });
 
             // Auto-focus first input field
@@ -370,9 +324,8 @@
             }
 
             // Handle signup success message
-            const urlParams = new URLSearchParams(window.location.search);
-            const signupSuccess = urlParams.get('signup');
-            const username = urlParams.get('username');
+            const signupSuccess = '{{url.param.signup}}';
+            const username = '{{url.param.username}}';
 
             if (signupSuccess === 'success' && username) {
                 const signupText = document.getElementById('signupSuccessText');
@@ -384,7 +337,7 @@
             }
 
             // Show redirect info if redirect parameter exists
-            const redirectParam = urlParams.get('redirect');
+            const redirectParam = '{{url.param.redirect}}';
             if (redirectParam) {
                 document.querySelector('.jp-redirect-info').style.display = 'block';
             }
@@ -414,10 +367,6 @@
                 formElement.querySelector('#identifier').classList.add('jp-field-error');
                 formElement.querySelector('#password').classList.add('jp-field-error');
             }
-        }
-
-        function getRedirectUrl() {
-            return new URLSearchParams(window.location.search).get('redirect') || '/';
         }
 
         function showForgotPassword() {

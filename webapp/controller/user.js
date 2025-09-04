@@ -3,7 +3,7 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         0.4.4
+ * @version         0.4.5
  * @release         2025-09-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -38,7 +38,7 @@ class UserController {
             // Validate required fields
             if (!firstName || !lastName || !username || !email || !password) {
                 LogController.logError(req, 'user.signup: error: missing required fields');
-                const message = global.i18n.translate('controller.user.signup.missingFields');
+                const message = global.i18n.translate(req, 'controller.user.signup.missingFields');
                 return res.status(400).json({
                     success: false,
                     error: message,
@@ -49,7 +49,7 @@ class UserController {
             // Validate password confirmation
             if (password !== confirmPassword) {
                 LogController.logError(req, 'user.signup: error: password mismatch');
-                const message = global.i18n.translate('controller.user.signup.passwordMismatch');
+                const message = global.i18n.translate(req, 'controller.user.signup.passwordMismatch');
                 return res.status(400).json({
                     success: false,
                     error: message,
@@ -60,7 +60,7 @@ class UserController {
             // Validate terms acceptance
             if (!acceptTerms) {
                 LogController.logError(req, 'user.signup: error: terms not accepted');
-                const message = global.i18n.translate('controller.user.signup.termsNotAccepted');
+                const message = global.i18n.translate(req, 'controller.user.signup.termsNotAccepted');
                 return res.status(400).json({
                     success: false,
                     error: message,
@@ -91,7 +91,7 @@ class UserController {
             const newUser = await UserModel.create(userData);
 
             LogController.logInfo(req, `user.signup: success: ${newUser.username} created successfully`);
-            const message = global.i18n.translate('controller.user.signup.accountCreatedSuccessfully');
+            const message = global.i18n.translate(req, 'controller.user.signup.accountCreatedSuccessfully');
             res.status(201).json({
                 success: true,
                 data: {
@@ -111,7 +111,7 @@ class UserController {
 
             // Handle specific error types
             if (error.message.includes('Username already exists')) {
-                const message = global.i18n.translate('controller.user.signup.usernameExists');
+                const message = global.i18n.translate(req, 'controller.user.signup.usernameExists');
                 return res.status(409).json({
                     success: false,
                     error: message,
@@ -120,7 +120,7 @@ class UserController {
             }
 
             if (error.message.includes('Email address already registered')) {
-                const message = global.i18n.translate('controller.user.signup.emailExists');
+                const message = global.i18n.translate(req, 'controller.user.signup.emailExists');
                 return res.status(409).json({
                     success: false,
                     error: message,
@@ -129,7 +129,7 @@ class UserController {
             }
 
             if (error.message.includes('Validation failed')) {
-                const message = global.i18n.translate('controller.user.signup.validationFailed', { details: error.message });
+                const message = global.i18n.translate(req, 'controller.user.signup.validationFailed', { details: error.message });
                 return res.status(400).json({
                     success: false,
                     error: message,
@@ -138,7 +138,7 @@ class UserController {
                 });
             }
 
-            const message = global.i18n.translate('controller.user.signup.internalError', { details: error.message });
+            const message = global.i18n.translate(req, 'controller.user.signup.internalError', { details: error.message });
             res.status(500).json({
                 success: false,
                 error: message,
@@ -165,7 +165,7 @@ class UserController {
 
             if (!user) {
                 LogController.logError(req, `user.get: error: user not found for session ID: ${req.session.user.id}`);
-                const message = global.i18n.translate('controller.user.profile.userNotFound');
+                const message = global.i18n.translate(req, 'controller.user.profile.userNotFound');
                 return res.status(404).json({
                     success: false,
                     error: message,
@@ -177,7 +177,7 @@ class UserController {
             const { passwordHash, ...userProfile } = user;
 
             LogController.logInfo(req, `user.get: success: profile retrieved for user ${req.session.user.username}`);
-            const message = global.i18n.translate('controller.user.profile.retrievedSuccessfully');
+            const message = global.i18n.translate(req, 'controller.user.profile.retrievedSuccessfully');
             res.json({
                 success: true,
                 data: userProfile,
@@ -186,7 +186,7 @@ class UserController {
 
         } catch (error) {
             LogController.logError(req, `user.get: error: ${error.message}`);
-            const message = global.i18n.translate('controller.user.profile.internalError', { details: error.message });
+            const message = global.i18n.translate(req, 'controller.user.profile.internalError', { details: error.message });
             res.status(500).json({
                 success: false,
                 error: message,
@@ -227,7 +227,7 @@ class UserController {
 
             if (Object.keys(filteredData).length === 0) {
                 LogController.logError(req, 'user.update: error: no valid fields to update');
-                const message = global.i18n.translate('controller.user.profile.noValidFieldsToUpdate');
+                const message = global.i18n.translate(req, 'controller.user.profile.noValidFieldsToUpdate');
                 return res.status(400).json({
                     success: false,
                     error: message,
@@ -239,7 +239,7 @@ class UserController {
 
             if (!updatedUser) {
                 LogController.logError(req, `user.update: error: user not found for session ID: ${req.session.user.id}`);
-                const message = global.i18n.translate('controller.user.profile.userNotFound');
+                const message = global.i18n.translate(req, 'controller.user.profile.userNotFound');
                 return res.status(404).json({
                     success: false,
                     error: message,
@@ -254,7 +254,7 @@ class UserController {
             const { passwordHash, ...userProfile } = updatedUser;
 
             LogController.logInfo(req, `user.update: success: profile updated for user ${req.session.user.username}`);
-            const message = global.i18n.translate('controller.user.profile.updatedSuccessfully');
+            const message = global.i18n.translate(req, 'controller.user.profile.updatedSuccessfully');
             res.json({
                 success: true,
                 data: userProfile,
@@ -264,7 +264,7 @@ class UserController {
         } catch (error) {
             LogController.logError(req, `user.update: error: ${error.message}`);
             if (error.message.includes('Validation failed')) {
-                const message = global.i18n.translate('controller.user.profile.validationFailed', { details: error.message });
+                const message = global.i18n.translate(req, 'controller.user.profile.validationFailed', { details: error.message });
                 return res.status(400).json({
                     success: false,
                     error: message,
@@ -272,7 +272,7 @@ class UserController {
                     details: error.message
                 });
             }
-            const message = global.i18n.translate('controller.user.profile.updateInternalError', { details: error.message });
+            const message = global.i18n.translate(req, 'controller.user.profile.updateInternalError', { details: error.message });
             res.status(500).json({
                 success: false,
                 error: message,
@@ -298,7 +298,7 @@ class UserController {
 
             if (!currentPassword || !newPassword) {
                 LogController.logError(req, 'user.changePassword: error: missing current or new password');
-                const message = global.i18n.translate('controller.user.password.missingPasswords');
+                const message = global.i18n.translate(req, 'controller.user.password.missingPasswords');
                 return res.status(400).json({
                     success: false,
                     error: message,
@@ -310,7 +310,7 @@ class UserController {
             const user = await UserModel.findById(req.session.user.id);
             if (!user) {
                 LogController.logError(req, `user.changePassword: error: user not found for session ID: ${req.session.user.id}`);
-                const message = global.i18n.translate('controller.user.password.userNotFound');
+                const message = global.i18n.translate(req, 'controller.user.password.userNotFound');
                 return res.status(404).json({
                     success: false,
                     error: message,
@@ -322,7 +322,7 @@ class UserController {
             const isCurrentValid = await UserModel.verifyPassword(currentPassword, user.passwordHash);
             if (!isCurrentValid) {
                 LogController.logError(req, `user.changePassword: error: invalid current password for user ${req.session.user.username}`);
-                const message = global.i18n.translate('controller.user.password.invalidCurrentPassword');
+                const message = global.i18n.translate(req, 'controller.user.password.invalidCurrentPassword');
                 return res.status(400).json({
                     success: false,
                     error: message,
@@ -340,7 +340,7 @@ class UserController {
 
             LogController.logInfo(req, `user.changePassword: success: Password changed for user ${req.session.user.username}`);
 
-            const message = global.i18n.translate('controller.user.password.changedSuccessfully');
+            const message = global.i18n.translate(req, 'controller.user.password.changedSuccessfully');
             res.json({
                 success: true,
                 message: message
@@ -349,7 +349,7 @@ class UserController {
         } catch (error) {
             LogController.logError(req, `user.changePassword: error: ${error.message}`);
             if (error.message.includes('Password must be at least')) {
-                const message = global.i18n.translate('controller.user.password.policyError', { details: error.message });
+                const message = global.i18n.translate(req, 'controller.user.password.policyError', { details: error.message });
                 return res.status(400).json({
                     success: false,
                     error: message,
@@ -357,7 +357,7 @@ class UserController {
                     details: error.message
                 });
             }
-            const message = global.i18n.translate('controller.user.password.internalError', { details: error.message });
+            const message = global.i18n.translate(req, 'controller.user.password.internalError', { details: error.message });
             res.status(500).json({
                 success: false,
                 error: message,
@@ -384,7 +384,7 @@ class UserController {
             const elapsed = Date.now() - startTime;
 
             LogController.logInfo(req, `user.search: success: completed in ${elapsed}ms`);
-            const message = global.i18n.translate('controller.user.search.success', { count: results.data.length });
+            const message = global.i18n.translate(req, 'controller.user.search.success', { count: results.data.length });
             res.json({
                 success: true,
                 message: message,
@@ -394,7 +394,7 @@ class UserController {
 
         } catch (error) {
             LogController.logError(req, `user.search: error: ${error.message}`);
-            const message = global.i18n.translate('controller.user.search.internalError', { details: error.message });
+            const message = global.i18n.translate(req, 'controller.user.search.internalError', { details: error.message });
             res.status(500).json({
                 success: false,
                 error: message,

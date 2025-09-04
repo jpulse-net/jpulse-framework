@@ -3,7 +3,7 @@
  * @tagline         Log Controller for jPulse Framework WebApp
  * @description     This is the log controller for the jPulse Framework WebApp
  * @file            webapp/controller/log.js
- * @version         0.4.4
+ * @version         0.4.5
  * @release         2025-09-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -48,7 +48,7 @@ class LogController {
 
             LogController.logInfo(req, `log.search: completed in ${elapsed}ms`);
 
-            const message = i18n.translate('controller.log.searchSuccess', { count: results.data.length });
+            const message = i18n.translate(req, 'controller.log.searchSuccess', { count: results.data.length });
             res.json({
                 success: true,
                 message: message,
@@ -58,7 +58,7 @@ class LogController {
 
         } catch (error) {
             LogController.logError(req, `log.search: error: ${error.message}`);
-            const message = i18n.translate('controller.log.searchError');
+            const message = i18n.translate(req, 'controller.log.searchError');
             res.status(500).json({
                 success: false,
                 error: message,

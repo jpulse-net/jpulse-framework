@@ -3,7 +3,7 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.4.4
+ * @version         0.4.5
  * @release         2025-09-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -94,7 +94,7 @@ async function load(req, res) {
             const originalPath = req.path;
             res.statusCode = 404; // Set 404 status code
             LogController.logError(req, `view.load: error: File not found: ${filePath}`);
-            const message = global.i18n.translate('controller.view.pageNotFoundError', { path: originalPath });
+            const message = global.i18n.translate(req, 'controller.view.pageNotFoundError', { path: originalPath });
 
             // Override filePath to error page and inject params into req.query for handlebars context
             filePath = '/error/index.shtml';
@@ -183,7 +183,7 @@ async function load(req, res) {
 
     } catch (error) {
         LogController.logError(req, `view.load: Error: ${error.message}`);
-        const message = global.i18n.translate('controller.view.internalServerError', { error: error.message });
+        const message = global.i18n.translate(req, 'controller.view.internalServerError', { error: error.message });
         res.status(500).send(message);
     }
 }

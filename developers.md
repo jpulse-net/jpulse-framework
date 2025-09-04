@@ -1,8 +1,11 @@
-# jPulse Framework / Developer Documentation v0.4.4
+# jPulse Framework / Developer Documentation v0.4.5
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.4.2):**
+**Latest Updates (v0.4.5):**
+- 🔐 **Admin Dashboard & User-Aware I18n (W-013)**: Complete admin dashboard implementation with role-based authentication, user language-aware internationalization system, and comprehensive test coverage. Features include dashboard grid layout, SVG icon system, asset organization standards, and enhanced translate() method supporting user session language preferences.
+
+**Previous Updates (v0.4.2):**
 - 🎨 **View Migration & API Simplification (W-036)**: Complete migration of all 5 view files to jpulse-common utilities with API response simplification and dynamic schema-aware frontend. Eliminated confusing double-wrapped responses, implemented dynamic dropdown population from backend APIs, and enhanced search functionality with proper pagination.
 - 🎨 **Component-Based Styling (W-025)**: Complete CSS architecture with `jp-` component library, framework/site separation preparation, and theme system foundation. Moved 290+ lines from templates to external CSS with responsive design and performance optimization.
 - ✅ **Enhanced JavaScript Utilities (W-035)**: Complete `jpulse-common.js` framework with 5-phase utility system - alert management, API standardization, form handling, DOM utilities, and device detection. Eliminates 300+ lines of duplicate code across views with 40-50% faster development.
@@ -1478,23 +1481,91 @@ ________________________________________________
 ### Test Structure
 ```
 webapp/tests/
-├── setup/              # Test environment management (NEW)
+├── setup/              # Test environment management
 │   ├── global-setup.js    # Pre-test cleanup
 │   └── global-teardown.js # Post-test cleanup
 ├── fixtures/           # Test data and configuration files
 ├── helpers/            # Test utilities and mock objects
 ├── integration/        # End-to-end application tests
+│   ├── admin-routes.test.js    # Admin route authentication (NEW v0.4.5)
+│   └── auth-middleware.test.js # Authentication middleware
 └── unit/               # Isolated component tests
     ├── config/         # Configuration system tests
     ├── controller/     # Business logic tests
+    │   ├── admin-view.test.js     # Admin dashboard view rendering (NEW v0.4.5)
+    │   └── auth-controller.test.js # Authentication controller
     ├── log/            # Logging functionality tests
     ├── model/          # Data model tests
-    ├── utils/          # CommonUtils tests (NEW)
-    │   └── i18n/       # i18n system tests (moved from webapp/translations/tests)
-    └── translations/   # ONLY .conf file-specific tests
+    ├── utils/          # CommonUtils tests
+    └── translations/   # i18n system tests
+        ├── i18n-functions.test.js      # Basic i18n functionality
+        └── i18n-user-language.test.js  # User-aware i18n (NEW v0.4.5)
 ```
 
-### Automated Test Cleanup System (NEW)
+### Admin Dashboard Testing Patterns (NEW v0.4.5)
+
+#### User-Aware I18n Testing
+```javascript
+// webapp/tests/unit/translations/i18n-user-language.test.js
+describe('I18N User Language Detection (W-013)', () => {
+    test('should use user language from request session', () => {
+        const mockReq = {
+            session: {
+                user: {
+                    preferences: {
+                        language: 'de'
+                    }
+                }
+            }
+        };
+
+        const result = i18n.translate(mockReq, 'controller.auth.authenticationRequired');
+        expect(result).toBe('Authentifizierung erforderlich');
+    });
+});
+```
+
+#### Admin Route Authentication Testing
+```javascript
+// webapp/tests/integration/admin-routes.test.js
+describe('Admin Routes Authentication (W-013)', () => {
+    test('should deny access to unauthenticated users', () => {
+        mockReq.session = {};
+        const middleware = AuthController.requireRole(['admin', 'root']);
+        middleware(mockReq, mockRes, mockNext);
+
+        expect(mockCommonUtils.sendError).toHaveBeenCalledWith(
+            mockReq, mockRes, 401, 'Authentication required', 'UNAUTHORIZED'
+        );
+    });
+});
+```
+
+#### Admin View Rendering Testing
+```javascript
+// webapp/tests/unit/controller/admin-view.test.js
+describe('Admin Dashboard View Rendering (W-013)', () => {
+    test('should load admin dashboard template', async () => {
+        const mockTemplate = `<h1>{{i18n.view.admin.index.title}}</h1>`;
+        jest.spyOn(fs.promises, 'readFile').mockResolvedValue(mockTemplate);
+
+        await viewController.load(mockReq, mockRes);
+
+        expect(mockRes.send).toHaveBeenCalled();
+        const renderedContent = mockRes.send.mock.calls[0][0];
+        expect(renderedContent).toContain('Admin Dashboard');
+    });
+});
+```
+
+#### Testing Best Practices for W-013
+1. **Mock Request Objects**: Include all required Express.js methods (`req.get()`, `res.set()`)
+2. **I18n Method Signatures**: Update existing tests to use new `translate(req, keyPath, context)` signature
+3. **Role-Based Testing**: Test both positive and negative authorization scenarios
+4. **Template Rendering**: Mock file system operations for view testing
+5. **User Language Context**: Test language fallback mechanisms
+
+### Automated Test Cleanup System
 
 #### Global Setup/Teardown Implementation
 ```javascript

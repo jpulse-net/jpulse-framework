@@ -3,7 +3,7 @@
  * @tagline         Integration tests for authentication middleware
  * @description     Tests authentication middleware behavior in realistic scenarios
  * @file            webapp/tests/integration/auth-middleware.test.js
- * @version         0.4.4
+ * @version         0.4.5
  * @release         2025-09-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -60,9 +60,9 @@ describe('Auth Middleware Integration', () => {
         // Mock next function
         mockNext = jest.fn();
 
-        // Mock i18n translate function
+        // Mock i18n translate function with new signature: translate(req, key, context)
         global.i18n = {
-            translate: jest.fn((key, context = {}) => {
+            translate: jest.fn((req, key, context = {}) => {
                 const translations = {
                     'controller.auth.roleRequired': `Insufficient privileges. Required role(s): ${context.roles}`,
                     'controller.auth.authenticationRequired': 'Authentication required'

@@ -1,4 +1,4 @@
-# jPulse Framework / API Documentation v0.4.4
+# jPulse Framework / API Documentation v0.4.5
 
 Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
 
@@ -17,7 +17,13 @@ jPulse provides a comprehensive RESTful API under the `/api/1/` prefix with the 
 - **Dynamic Schema-Aware Frontend**: API-driven dropdown population with backend schema synchronization
 - **Logging**: All API calls automatically logged with user context
 
-### Recent API Additions (v0.4.2)
+### Recent API Additions (v0.4.5)
+- **Admin Dashboard Routes**: Complete admin interface with role-based authentication
+- **User-Aware I18n**: Enhanced translate() method supporting user session language preferences
+- **Asset Organization**: Standardized page-specific asset structure (`/assets/<page-name>/`)
+- **Dashboard Components**: Responsive grid layout with SVG icon system
+
+### Previous API Additions (v0.4.2)
 - `GET /api/1/auth/roles` - Returns available user roles from schema
 - `GET /api/1/auth/languages` - Returns available languages from i18n system
 - `GET /api/1/auth/themes` - Returns available themes from schema
@@ -293,6 +299,125 @@ The jPulse Framework provides a comprehensive component library with consistent 
 ### Theme System (Future W-037)
 - `.jp-theme-*-light/dark` classes prepared for theme switching
 - Aligns with existing user preferences: `light` and `dark` themes
+
+________________________________________________
+## 🔐 Admin Dashboard Routes (v0.4.5)
+
+Complete administrative interface with role-based authentication and user-aware internationalization.
+
+### Admin Route Protection
+All admin routes require authentication and either `admin` or `root` role:
+
+```javascript
+// Route pattern: /admin/*
+router.get(/^\/admin\/.*/, AuthController.requireAuthentication, AuthController.requireRole(['admin', 'root']));
+```
+
+### Admin Dashboard Pages
+
+#### Admin Dashboard Home
+**Route:** `GET /admin/`
+**Authentication:** Required (admin/root roles)
+**Description:** Main admin dashboard with navigation cards
+
+**Features:**
+- Responsive dashboard grid layout
+- SVG icon system with 128x128px icons
+- User language-aware translations
+- Asset organization: `/assets/admin/icons/`
+
+**Dashboard Cards:**
+- **View Logs** (`/admin/logs.shtml`) - System activity monitoring
+- **Site Config** (`/admin/config.shtml`) - Global settings management
+- **Users** (`/admin/users.shtml`) - User account management
+
+#### Asset Organization Standard
+Page-specific assets follow the pattern:
+```
+webapp/static/assets/<page-name>/
+├── icons/          # SVG icons (128x128px recommended)
+├── images/         # Page-specific images
+└── scripts/        # Page-specific JavaScript
+```
+
+**Example for admin pages:**
+```
+webapp/static/assets/admin/
+├── icons/
+│   ├── logs.svg    # System logs icon
+│   ├── config.svg  # Configuration gear icon
+│   └── users.svg   # User management icon
+```
+
+### CSS Dashboard Components
+
+#### Dashboard Grid
+```css
+.jp-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    padding: 2rem 0;
+}
+```
+
+#### Dashboard Cards
+```css
+.jp-card-dashboard {
+    background: linear-gradient(to bottom, #f8f8f8 0%, #fbfbfb 40%, #fbfbfb 100%);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 2rem;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+```
+
+#### Icon Containers
+```css
+.jp-icon-container {
+    width: 128px;
+    height: 128px;
+    background-color: #007acc;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+```
+
+### User-Aware Internationalization
+
+The enhanced i18n system automatically detects user language preferences:
+
+```javascript
+// New signature: translate(req, keyPath, context = {}, fallbackLang = this.default)
+const message = global.i18n.translate(req, 'view.admin.index.title');
+
+// Automatically uses req.session.user.preferences.language
+// Falls back to framework default if no user preference
+```
+
+**Translation Structure:**
+```javascript
+// en.conf / de.conf
+view: {
+    admin: {
+        index: {
+            title: 'Admin Dashboard',           // 'Admin Dashboard' (de)
+            subtitle: 'Manage your app',       // 'Verwalten Sie Ihre App' (de)
+            viewLogs: 'View Logs',             // 'Logs anzeigen' (de)
+            viewLogsDesc: 'System activity',   // 'Systemaktivität' (de)
+            siteConfig: 'Site Config',         // 'Site-Konfiguration' (de)
+            siteConfigDesc: 'Global settings', // 'Globale Einstellungen' (de)
+            users: 'Users',                    // 'Benutzer' (de)
+            usersDesc: 'Manage accounts'       // 'Konten verwalten' (de)
+        }
+    }
+}
+```
 
 ________________________________________________
 ## 👤 User Management API

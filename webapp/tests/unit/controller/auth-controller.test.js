@@ -3,7 +3,7 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         0.4.4
+ * @version         0.4.5
  * @release         2025-09-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -63,10 +63,10 @@ describe('AuthController', () => {
         // Mock next function
         mockNext = jest.fn();
 
-        // Mock i18n translate function
+        // Mock i18n translate function with new signature: translate(req, key, context)
         global.i18n = {
             default: 'en', // Add default property for getUserLanguage tests
-            translate: jest.fn((key, context = {}) => {
+            translate: jest.fn((req, key, context = {}) => {
                 // Return predictable test values based on the key
                 const translations = {
                     'controller.auth.roleRequired': `Insufficient privileges. Required role(s): ${context.roles}`,

@@ -322,20 +322,25 @@ class I18n {
     }
 
     /**
-     * Get translation with fallback chain
+     * Get translation with user's preferred language from request session
+     * @param {object} req - Express request object (to get user's language preference)
      * @param {string} keyPath - Dot-separated key path
      * @param {object} context - Context object (single level key/value pairs)
-     * @param {string} langCode - Primary language code
      * @param {string} fallbackLang - Fallback language code (optional)
      * @returns {string} Translation
      */
-    translate(keyPath, context = {}, langCode = this.default, fallbackLang = this.default) {
-        // Try primary language
-        let result = this._translate(langCode, keyPath, context);
+    translate(req, keyPath, context = {}, fallbackLang = this.default) {
+        // Extract user's preferred language from request session
+        const userLang = req?.session?.user?.preferences?.language || this.default;
+
+        // Try user's preferred language first
+        let result = this._translate(userLang, keyPath, context);
+
         // If not found and fallback is different, try fallback
-        if (result === keyPath && fallbackLang !== langCode) {
+        if (result === keyPath && fallbackLang !== userLang) {
             result = this._translate(fallbackLang, keyPath, context);
         }
+
         return result;
     }
 }

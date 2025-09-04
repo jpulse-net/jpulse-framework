@@ -559,7 +559,15 @@ Requirements Doc of jPulse Framework
 -------------------------------------------------------------------------
 # 🚧 IN_PROGRESS Work Items
 
-
+## **W-013**: view: define standard for page assets, create site admin index page
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- define standard for page assets:
+  - webapp/static/assets/<page-name>/*
+- define common dashboard grid and icon buttons
+- create webapp/view/admin/index.shtml -- admin home
+  - with square icon buttons linking to config.shtml, logs.shtml, users.shtml
+- require root or admin role for /admin/ pages
 
 
 
@@ -622,11 +630,11 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 ## **W-013**: view: create site admin views
 - status: 🕑 PENDING
 - type: Feature
-- create webapp/view/admin/index.shtml -- admin home, links/buttons to config and logs
 - create webapp/view/admin/config.shtml -- edit site config
 - create webapp/view/admin/logs.shtml -- search logs
 - move webapp/view/user/index.shtml to webapp/view/admin/users.shtml -- search users
 - replace webapp/view/user/index.shtml with what?
+  - square icon buttons
 
 ## **W-037**: view: create themes
 - status: 🕑 PENDING

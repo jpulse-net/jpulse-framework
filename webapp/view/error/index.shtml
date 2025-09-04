@@ -20,13 +20,19 @@
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
-        /* Page-specific error layout styles */
-        .error-layout {
-            padding: 2rem 1rem;
-            min-height: calc(100vh - 200px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        /* Page-specific error styles */
+        .error-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 3rem;
+            text-align: center;
+            margin: 2rem auto;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
         }
 
         .error-content h1 {
@@ -34,6 +40,40 @@
             font-size: 1.875rem;
             font-weight: 600;
             margin-bottom: 2rem;
+        }
+
+        .error-details {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-row strong {
+            color: #4a5568;
+            font-weight: 600;
+            min-width: 80px;
+        }
+
+        .detail-row span {
+            color: #2d3748;
+            word-break: break-all;
+            text-align: right;
+            flex: 1;
+            margin-left: 1rem;
         }
 
         .error-message p {
@@ -52,58 +92,56 @@
 </head>
 <body>
     <div class="jp-main">
-        <div class="error-layout">
-            <div class="jp-container">
-                <div class="jp-error-container">
-                    <div class="jp-error-icon">
-                        ⚠️
+        <div class="jp-container-800">
+            <div class="error-container">
+                <div class="error-icon">
+                    ⚠️
+                </div>
+
+                <div class="error-content">
+                    <h1>{{i18n.view.error.title}} {{url.param.code}}</h1>
+
+                    <div class="error-details">
+                        <div class="detail-row">
+                            <strong>{{i18n.view.error.message}}:</strong>
+                            <span>{{url.param.msg}}</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <strong>{{i18n.view.error.path}}:</strong>
+                            <span>{{url.pathname}}</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <strong>{{i18n.view.error.user}}:</strong>
+                            <span>
+                            {{#if user.authenticated}}
+                                {{user.firstName}}
+                            {{else}}
+                                {{i18n.view.error.guest}}
+                            {{/if}}
+                            </span>
+                        </div>
                     </div>
 
-                    <div class="error-content">
-                        <h1>{{i18n.view.error.title}} {{url.param.code}}</h1>
+                    <div class="error-message jp-mb-30">
+                        {{#if user.authenticated}}
+                        <p>{{i18n.view.error.apologize}}</p>
+                        {{else}}
+                        <p>{{i18n.view.error.tryLogin}}</p>
+                        {{/if}}
+                    </div>
 
-                        <div class="jp-error-details">
-                            <div class="jp-detail-row">
-                                <strong>{{i18n.view.error.message}}:</strong>
-                                <span>{{url.param.msg}}</span>
-                            </div>
-
-                            <div class="jp-detail-row">
-                                <strong>{{i18n.view.error.path}}:</strong>
-                                <span>{{url.pathname}}</span>
-                            </div>
-
-                            <div class="jp-detail-row">
-                                <strong>{{i18n.view.error.user}}:</strong>
-                                <span>
-                                {{#if user.authenticated}}
-                                    {{user.firstName}}
-                                {{else}}
-                                    {{i18n.view.error.guest}}
-                                {{/if}}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="error-message jp-mb-30">
-                          {{#if user.authenticated}}
-                            <p>{{i18n.view.error.apologize}}</p>
-                          {{else}}
-                            <p>{{i18n.view.error.tryLogin}}</p>
-                          {{/if}}
-                        </div>
-
-                        <div class="error-actions jp-flex-center jp-gap-15 jp-flex-wrap">
-                            <a href="/" class="jp-btn jp-btn-primary">
-                                ← {{i18n.view.error.backToHome}}
-                            </a>
-                          {{#if user.authenticated}}
-                            {{else}}
-                            <a href="/auth/login.shtml" class="jp-btn jp-btn-secondary">
-                                {{i18n.view.auth.common.signin}}
-                            </a>
-                          {{/if}}
-                        </div>
+                    <div class="error-actions jp-flex-center jp-gap-15 jp-flex-wrap">
+                        <a href="/" class="jp-btn jp-btn-primary">
+                            ← {{i18n.view.error.backToHome}}
+                        </a>
+                        {{#if user.authenticated}}
+                        {{else}}
+                        <a href="/auth/login.shtml" class="jp-btn jp-btn-secondary">
+                            {{i18n.view.auth.common.signin}}
+                        </a>
+                        {{/if}}
                     </div>
                 </div>
             </div>

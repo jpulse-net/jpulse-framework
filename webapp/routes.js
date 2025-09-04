@@ -65,6 +65,9 @@ router.get('/api/1/log/search', AuthController.requireAuthentication, logControl
 // This is handled by nginx if the app is running behind a reverse proxy
 router.use('/common', express.static(path.join(appConfig.app.dirName, 'static', 'common')));
 
+// Admin routes (require admin role)
+router.get(/^\/admin\/.*/, AuthController.requireAuthentication, AuthController.requireRole(['admin', 'root']));
+
 // Dynamic content routes - handle {{handlebars}} in .shtml, .tmpl, and jpulse-* files only
 router.get(/\.(shtml|tmpl)$/, viewController.load);
 router.get(/\/jpulse-.*\.(js|css)$/, viewController.load);

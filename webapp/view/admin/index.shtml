@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / Admin / Index
+ * @tagline         Admin Dashboard for jPulse Framework
+ * @description     This is the admin dashboard page of jPulse Framework
+ * @file            webapp/view/admin/index.shtml
+ * @version         0.4.4
+ * @release         2025-09-04
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         GPL v3, see LICENSE file
+ * @genai           99%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{app.version}} - {{i18n.view.admin.index.title}}</title>
+
+    {{file.include "jpulse-header.tmpl"}}
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-page-header">
+            <div>
+                <h1 class="jp-title">{{i18n.view.admin.index.title}}</h1>
+                <p class="jp-subtitle">{{i18n.view.admin.index.subtitle}}</p>
+            </div>
+        </div>
+
+        <div class="jp-dashboard-grid">
+            <a href="/admin/logs.shtml" class="jp-card-dashboard jp-icon-btn">
+                <div class="jp-icon-container">
+                    <img src="/assets/admin/icons/logs.svg" class="jp-icon" alt="">
+                </div>
+                <h3 class="jp-card-title">{{i18n.view.admin.index.viewLogs}}</h3>
+                <p class="jp-card-description">{{i18n.view.admin.index.viewLogsDesc}}</p>
+            </a>
+
+            <a href="/admin/config.shtml" class="jp-card-dashboard jp-icon-btn">
+                <div class="jp-icon-container">
+                    <img src="/assets/admin/icons/config.svg" class="jp-icon" alt="">
+                </div>
+                <h3 class="jp-card-title">{{i18n.view.admin.index.siteConfig}}</h3>
+                <p class="jp-card-description">{{i18n.view.admin.index.siteConfigDesc}}</p>
+            </a>
+
+            <a href="/admin/users.shtml" class="jp-card-dashboard jp-icon-btn">
+                <div class="jp-icon-container">
+                    <img src="/assets/admin/icons/users.svg" class="jp-icon" alt="">
+                </div>
+                <h3 class="jp-card-title">{{i18n.view.admin.index.users}}</h3>
+                <p class="jp-card-description">{{i18n.view.admin.index.usersDesc}}</p>
+            </a>
+        </div>
+    </div>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

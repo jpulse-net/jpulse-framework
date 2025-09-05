@@ -7,7 +7,11 @@
         </a>
         <div class="jp-user-menu">
             <div class="jp-user-icon" onclick="toggleUserMenu()">
+              {{#if user.authenticated}}
+                <span>{{user.initials}}</span>
+              {{else}}
                 <span>👤</span>
+              {{/if}}
             </div>
             <div class="jp-dropdown" id="userDropdown">
               {{#if user.authenticated}}

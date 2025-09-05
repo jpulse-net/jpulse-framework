@@ -573,9 +573,9 @@ Requirements Doc of jPulse Framework
 - status: 🚧 IN_PROGRESS
 - type: Feature
 - move webapp/view/user/index.shtml to webapp/view/admin/users.shtml -- manage users
-- replace webapp/view/user/index.shtml with what?
+- replace webapp/view/user/index.shtml with a dashboard
   - square icon buttons
-
+- add new iPulseCommon.collapsible function to toggle a section open and close
 
 
 
@@ -609,7 +609,6 @@ I finished **W-0xx**: .....
 
 - enhance === view.load( /error/index.shtml ) log to show additional details on what is wrong, likely in followup log entry
 - ptester8 -- duplicate username
-
 
 
 

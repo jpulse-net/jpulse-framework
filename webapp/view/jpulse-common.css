@@ -196,6 +196,31 @@ body {
     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
+.jp-user-icon span {
+    font-size: 12px;
+    line-height: 1;
+}
+
+/* Mobile header improvements */
+@media (max-width: 768px) {
+    .jp-header-content {
+        overflow: hidden;
+    }
+
+    .jp-logo span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: calc(100vw - 120px);
+    }
+
+    .jp-user-icon {
+        flex-shrink: 0;
+        min-width: 24px;
+        min-height: 24px;
+    }
+}
+
 .jp-dropdown {
     position: absolute;
     top: 100%;
@@ -1335,6 +1360,109 @@ Example site customizations:
     font-size: 0.9rem;
     line-height: 1.4;
     margin: 0;
+}
+
+/* ========================================
+ * COLLAPSIBLE COMPONENT (W-039)
+ * ======================================== */
+
+/* Collapsible Section Component */
+.jp-collapsible {
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.jp-collapsible-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 20px 25px;
+    margin: 0;
+    border-bottom: 1px solid #dee2e6;
+    transition: background-color 0.2s ease;
+}
+
+.jp-collapsible-header:hover {
+    background-color: #e9ecef;
+}
+
+.jp-collapsible-header h3 {
+    margin: 0;
+    color: #007acc;
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+/* Direct h3 styling when used as collapsible header */
+.jp-collapsible > h3 {
+    margin: 0;
+    color: #007acc;
+    font-size: 1.2em; /* Slightly larger than normal but not too big */
+    font-weight: 600;
+    padding: 20px 25px;
+    border-bottom: 1px solid #dee2e6;
+    transition: background-color 0.2s ease;
+}
+
+.jp-collapsible > h3:hover {
+    background-color: #e9ecef;
+}
+
+.jp-collapsible-arrow {
+    font-size: 14px;
+    color: #007acc;
+    font-weight: bold;
+    user-select: none;
+    margin-left: 8px;
+    display: inline;
+}
+
+.jp-collapsible-content {
+    padding: 0 25px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.jp-collapsible.jp-expanded .jp-collapsible-content {
+    max-height: 1000px;
+    padding: 20px 25px;
+}
+
+/* Arrow doesn't rotate - just changes from ▶ to ▼ */
+
+/* Collapsible variants */
+.jp-collapsible-flat {
+    background: transparent;
+    border: 1px solid #dee2e6;
+}
+
+.jp-collapsible-flat .jp-collapsible-header {
+    background: transparent;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.jp-collapsible-flat .jp-collapsible-header:hover {
+    background-color: #f8f9fa;
+}
+
+/* View/Edit Mode Utilities */
+.jp-view-mode-only {
+    display: block;
+}
+
+.jp-edit-mode-only {
+    display: none;
+}
+
+.jp-edit-mode .jp-view-mode-only {
+    display: none;
+}
+
+.jp-edit-mode .jp-edit-mode-only {
+    display: block;
 }
 
 /* EOF webapp/view/jpulse-common.css */

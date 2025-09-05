@@ -622,6 +622,227 @@ window.jPulseCommon = {
         delete: (name) => {
             document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
         }
+    },
+
+    // ========================================
+    // PHASE 6: Collapsible Component (W-039)
+    // ========================================
+
+    /**
+     * Collapsible section management utilities
+     */
+    collapsible: {
+        /**
+         * Register a collapsible section with configuration
+         * @param {string} elementId - The ID of the .jp-collapsible element
+         * @param {Object} config - Configuration object
+         * @param {boolean} config.initOpen - Whether to start expanded (default: false)
+         * @param {Function} config.onOpen - Callback when opened
+         * @param {Function} config.onClose - Callback when closed
+         * @returns {Object} Handle object with methods for controlling the collapsible
+         */
+        register: (elementId, config = {}) => {
+            const element = document.getElementById(elementId);
+            if (!element) {
+                console.warn(`Collapsible element with ID '${elementId}' not found`);
+                return null;
+            }
+
+            const defaultConfig = {
+                initOpen: false,
+                onOpen: null,
+                onClose: null
+            };
+
+            const finalConfig = { ...defaultConfig, ...config };
+
+            // Setup the collapsible
+            jPulseCommon.collapsible._setup(element, finalConfig);
+
+            // Return handle object for method chaining and cleaner API
+            return {
+                elementId: elementId,
+                toggle: () => jPulseCommon.collapsible._toggle(elementId),
+                expand: () => jPulseCommon.collapsible._expand(elementId),
+                collapse: () => jPulseCommon.collapsible._collapse(elementId),
+                isExpanded: () => jPulseCommon.collapsible._isExpanded(elementId)
+            };
+        },
+
+        /**
+         * Toggle a collapsible section (internal)
+         * @param {string} elementId - The ID of the .jp-collapsible element
+         */
+        _toggle: (elementId) => {
+            const element = document.getElementById(elementId);
+            if (!element) {
+                console.warn(`Collapsible element with ID '${elementId}' not found`);
+                return;
+            }
+
+            const isExpanded = element.classList.contains('jp-expanded');
+            if (isExpanded) {
+                jPulseCommon.collapsible._collapse(elementId);
+            } else {
+                jPulseCommon.collapsible._expand(elementId);
+            }
+        },
+
+        /**
+         * Expand a collapsible section (internal)
+         * @param {string} elementId - The ID of the .jp-collapsible element
+         */
+        _expand: (elementId) => {
+            const element = document.getElementById(elementId);
+            if (!element) {
+                console.warn(`Collapsible element with ID '${elementId}' not found`);
+                return;
+            }
+            jPulseCommon.collapsible._expand(element);
+        },
+
+        /**
+         * Collapse a collapsible section (internal)
+         * @param {string} elementId - The ID of the .jp-collapsible element
+         */
+        _collapse: (elementId) => {
+            const element = document.getElementById(elementId);
+            if (!element) {
+                console.warn(`Collapsible element with ID '${elementId}' not found`);
+                return;
+            }
+            jPulseCommon.collapsible._collapse(element);
+        },
+
+        /**
+         * Check if a collapsible section is expanded (internal)
+         * @param {string} elementId - The ID of the .jp-collapsible element
+         * @returns {boolean} True if expanded, false if collapsed
+         */
+        _isExpanded: (elementId) => {
+            const element = document.getElementById(elementId);
+            if (!element) {
+                console.warn(`Collapsible element with ID '${elementId}' not found`);
+                return false;
+            }
+            return element.classList.contains('jp-expanded');
+        },
+
+        // ========================================
+        // INTERNAL FUNCTIONS (prefixed with _)
+        // ========================================
+
+        /**
+         * Setup a single collapsible section (INTERNAL)
+         * @param {Element} collapsibleElement - The .jp-collapsible element
+         * @param {Object} config - Configuration object
+         */
+        _setup: (collapsibleElement, config = {}) => {
+            // Look for either .jp-collapsible-header or direct h3 element
+            let header = collapsibleElement.querySelector('.jp-collapsible-header');
+            let h3 = null;
+
+            if (!header) {
+                // If no .jp-collapsible-header, use the h3 directly
+                h3 = collapsibleElement.querySelector('h3');
+                if (!h3) {
+                    console.warn('Collapsible element missing required h3 or .jp-collapsible-header');
+                    return;
+                }
+                header = h3; // Use h3 as the clickable header
+            } else {
+                h3 = header.querySelector('h3') || header;
+            }
+
+            let arrow = collapsibleElement.querySelector('.jp-collapsible-arrow');
+
+            // Create arrow if it doesn't exist and add it to the right of the header text
+            if (!arrow) {
+                arrow = document.createElement('span');
+                arrow.className = 'jp-collapsible-arrow';
+
+                // Append arrow at the end of the h3 element
+                h3.appendChild(arrow);
+            }
+
+            // Set initial state
+            if (config.initOpen) {
+                collapsibleElement.classList.add('jp-expanded');
+                arrow.textContent = '▼';
+            } else {
+                collapsibleElement.classList.remove('jp-expanded');
+                arrow.textContent = '▶';
+            }
+
+            // Store config on element for later use
+            collapsibleElement._jpCollapsibleConfig = config;
+
+            // Add click handler to the header (h3 or wrapper)
+            header.addEventListener('click', () => {
+                jPulseCommon.collapsible._toggle(collapsibleElement);
+            });
+
+            // Add cursor pointer style to indicate clickability
+            header.style.cursor = 'pointer';
+        },
+
+        /**
+         * Toggle a collapsible section (INTERNAL)
+         * @param {Element} collapsibleElement - The .jp-collapsible element
+         */
+        _toggle: (collapsibleElement) => {
+            const isExpanded = collapsibleElement.classList.contains('jp-expanded');
+
+            if (isExpanded) {
+                jPulseCommon.collapsible._collapse(collapsibleElement);
+            } else {
+                jPulseCommon.collapsible._expand(collapsibleElement);
+            }
+        },
+
+        /**
+         * Expand a collapsible section (INTERNAL)
+         * @param {Element} collapsibleElement - The .jp-collapsible element
+         */
+        _expand: (collapsibleElement) => {
+            const arrow = collapsibleElement.querySelector('.jp-collapsible-arrow');
+            const config = collapsibleElement._jpCollapsibleConfig || {};
+
+            collapsibleElement.classList.add('jp-expanded');
+            if (arrow) arrow.textContent = '▼';
+
+            // Call onOpen callback if provided
+            if (config.onOpen && typeof config.onOpen === 'function') {
+                config.onOpen(collapsibleElement);
+            }
+
+            // Trigger custom event
+            collapsibleElement.dispatchEvent(new CustomEvent('jp-collapsible-expanded', {
+                detail: { element: collapsibleElement }
+            }));
+        },
+
+        /**
+         * Collapse a collapsible section (INTERNAL)
+         * @param {Element} collapsibleElement - The .jp-collapsible element
+         */
+        _collapse: (collapsibleElement) => {
+            const arrow = collapsibleElement.querySelector('.jp-collapsible-arrow');
+            const config = collapsibleElement._jpCollapsibleConfig || {};
+
+            collapsibleElement.classList.remove('jp-expanded');
+            if (arrow) arrow.textContent = '▶';
+
+            // Call onClose callback if provided
+            if (config.onClose && typeof config.onClose === 'function') {
+                config.onClose(collapsibleElement);
+            }
+
+            // Trigger custom event
+            collapsibleElement.dispatchEvent(new CustomEvent('jp-collapsible-collapsed', {
+                detail: { element: collapsibleElement }
+            }));
+        }
     }
 };
 

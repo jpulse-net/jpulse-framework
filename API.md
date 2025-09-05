@@ -1,4 +1,4 @@
-# jPulse Framework / API Documentation v0.4.5
+# jPulse Framework / API Documentation v0.4.6
 
 Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
 
@@ -17,7 +17,14 @@ jPulse provides a comprehensive RESTful API under the `/api/1/` prefix with the 
 - **Dynamic Schema-Aware Frontend**: API-driven dropdown population with backend schema synchronization
 - **Logging**: All API calls automatically logged with user context
 
-### Recent API Additions (v0.4.5)
+### Recent API Additions (v0.4.6)
+- **User Management System**: Complete admin users page with search and management functionality
+- **User Dashboard**: Icon-based navigation with activity statistics and conditional admin access
+- **Enhanced Profile Page**: Unified edit mode with collapsible security sections and password management
+- **Collapsible Component**: Production-ready client-side component with clean handle-based API
+- **Comprehensive Test Coverage**: 18 new tests for client-side utilities with JSDOM environment
+
+### Previous API Additions (v0.4.5)
 - **Admin Dashboard Routes**: Complete admin interface with role-based authentication
 - **User-Aware I18n**: Enhanced translate() method supporting user session language preferences
 - **Asset Organization**: Standardized page-specific asset structure (`/assets/<page-name>/`)
@@ -151,6 +158,56 @@ jPulseCommon.form.validate.email('user@example.com'); // true/false
 jPulseCommon.form.validate.password('mypassword', 8); // true/false
 jPulseCommon.form.validate.required('value'); // true/false
 ```
+
+### Collapsible Component System
+
+Production-ready collapsible sections with clean API design and comprehensive functionality.
+
+```javascript
+// Register a collapsible section and get handle
+const securityCollapsible = jPulseCommon.collapsible.register('securitySection', {
+    initOpen: false,
+    onOpen: () => {
+        // Show password fields when opened
+        const passwordFields = document.getElementById('passwordFields');
+        jPulseCommon.dom.show(passwordFields);
+    },
+    onClose: () => {
+        // Hide and clear password fields when closed
+        const passwordFields = document.getElementById('passwordFields');
+        jPulseCommon.dom.hide(passwordFields);
+        ['currentPassword', 'newPassword', 'confirmPassword'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+    }
+});
+
+// Use the handle for clean API calls
+if (securityCollapsible.isExpanded()) {
+    securityCollapsible.collapse();
+}
+
+securityCollapsible.expand();
+securityCollapsible.toggle();
+```
+
+**HTML Structure:**
+```html
+<div id="securitySection" class="jp-collapsible">
+    <h3>Security Settings</h3>
+    <div class="jp-collapsible-content">
+        <!-- Collapsible content here -->
+    </div>
+</div>
+```
+
+**Features:**
+- **Clean API**: Handle-based methods with no string IDs in function calls
+- **Auto-setup**: Automatically creates arrows and click handlers
+- **Callbacks**: `onOpen` and `onClose` callbacks for custom logic
+- **CSS Integration**: Works with `.jp-collapsible` CSS classes
+- **Multiple Instances**: Independent collapsible sections on same page
+- **Accessibility**: Proper cursor styling and visual feedback
 
 ### DOM Utilities
 

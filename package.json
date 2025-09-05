@@ -1,6 +1,6 @@
 {
     "name": "jpulse-framework",
-    "version": "0.4.5",
+    "version": "0.4.6",
     "description": "Generic web application framework using MongoDB, Node.js, Express",
     "type": "module",
     "main": "webapp/app.js",
@@ -41,7 +41,8 @@
         "@babel/preset-env": "^7.23.0",
         "@jest/globals": "^29.7.0",
         "babel-jest": "^29.7.0",
-        "jest": "^29.7.0"
+        "jest": "^29.7.0",
+        "jsdom": "^26.1.0"
     },
     "engines": {
         "node": ">=16.0.0"

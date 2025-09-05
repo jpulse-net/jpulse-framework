@@ -1,8 +1,11 @@
-# jPulse Framework / Developer Documentation v0.4.5
+# jPulse Framework / Developer Documentation v0.4.6
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.4.5):**
+**Latest Updates (v0.4.6):**
+- 👥 **User Management & Dashboard Pages (W-039)**: Complete user management system with admin users page, user dashboard, and enhanced profile page. Features include collapsible security sections, unified edit mode, icon-based navigation, and comprehensive test coverage for client-side utilities. Includes production-ready collapsible component with clean handle-based API design and 18 comprehensive tests using JSDOM environment.
+
+**Previous Updates (v0.4.5):**
 - 🔐 **Admin Dashboard & User-Aware I18n (W-013)**: Complete admin dashboard implementation with role-based authentication, user language-aware internationalization system, and comprehensive test coverage. Features include dashboard grid layout, SVG icon system, asset organization standards, and enhanced translate() method supporting user session language preferences.
 
 **Previous Updates (v0.4.2):**

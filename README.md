@@ -1,9 +1,10 @@
-# jPulse Framework v0.4.5
+# jPulse Framework v0.4.6
 
 A modern, lightweight, and extensible web application framework using the MVC (model, view, controller) pattern. jPulse is built with Node.js, Express, and MongoDB, and combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content. It is extensible, where multiple teams can work independently to build large and scalable applications targeting midsize to large organizations in the government and private sector.
 
 **Latest Releases Highlights:**
 
+- ✅ **User Management & Dashboard Pages (W-039)**: Complete user management system with admin users page, user dashboard, and enhanced profile page. Features include collapsible security sections, unified edit mode, icon-based navigation, and comprehensive test coverage for client-side utilities. Includes production-ready collapsible component with clean API design.
 - ✅ **Admin Dashboard & User-Aware I18n (W-013)**: Complete admin dashboard implementation with role-based authentication, user language-aware internationalization system, and comprehensive test coverage. Features include dashboard grid layout, SVG icon system, asset organization standards, and enhanced translate() method supporting user session language preferences.
 - ✅ **View Consolidation & Common Components (W-038)**: Complete separation of common/page-specific code and style with 300+ lines of duplicate CSS eliminated, 15+ reusable components added (.jp-user-*, .jp-btn-group, .jp-action-section), and mature component library established for scalable development.
 - ✅ **Complete slide-down message system implementation (W-019)**: Implemented a non-blocking slide-down message system with comprehensive API renaming for clarity and enhanced user experience.

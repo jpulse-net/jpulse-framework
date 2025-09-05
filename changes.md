@@ -6,6 +6,56 @@ ________________________________________________
 ## 🚀 Version History
 
 ________________________________________________
+### v0.4.6 (2025-09-05)
+**Commit:** `W-039, v0.4.6: Complete user management system with admin users page, user dashboard, enhanced profile page, and production-ready collapsible component with comprehensive test coverage`
+
+Complete user management system implementation with admin users page, user dashboard, enhanced profile page, and production-ready collapsible component.
+
+Major Features:
+- **User Management System (W-039)**: Complete administrative user management interface
+  - Admin users page moved from `user/index.shtml` to `admin/users.shtml` with proper role-based access
+  - Advanced search functionality with name, email, and role filtering
+  - User management actions with proper authentication and authorization
+  - Clean separation between admin functionality and user-facing features
+
+- **User Dashboard**: New user-centric dashboard with icon-based navigation
+  - Activity statistics display with user engagement metrics
+  - Icon-based navigation cards for Profile and conditional Site Administration access
+  - Minimal, clean design focusing on user needs rather than administrative functions
+  - Responsive layout with proper mobile support
+
+- **Enhanced Profile Page**: Unified edit mode with improved UX
+  - Single edit mode for all sections (profile, preferences, security)
+  - Collapsible security section with password change functionality
+  - Unified save operation for profile and password changes in single API call
+  - Improved form validation and error handling with internationalized messages
+
+- **Production-Ready Collapsible Component**: Clean, reusable client-side component
+  - Handle-based API design: `const handle = jPulseCommon.collapsible.register(id, config)`
+  - Clean method calls: `handle.expand()`, `handle.collapse()`, `handle.toggle()`, `handle.isExpanded()`
+  - Automatic arrow creation and positioning (▶ collapsed, ▼ expanded)
+  - Callback support for `onOpen` and `onClose` events
+  - CSS integration with `.jp-collapsible` component classes
+  - Multiple independent instances support
+
+- **Comprehensive Test Coverage**: 18 new tests for client-side utilities
+  - Full JSDOM testing environment for DOM manipulation testing
+  - Complete API coverage for collapsible component functionality
+  - Test coverage for DOM utilities, API utilities, and component behavior
+  - Fixed function naming conflicts and parameter type mismatches during testing
+
+Technical Improvements:
+- Enhanced CSS with `.jp-collapsible`, `.jp-view-mode-only`, `.jp-edit-mode-only` utility classes
+- Mobile header improvements with proper user icon aspect ratio and text overflow handling
+- Fixed responsive grid issues on admin users page with proper column alignment
+- Added `user.svg` icon for single user representation vs `users.svg` for multiple users
+- Improved internationalization with additional German and English translations
+- Updated dropdown menu structure with proper conditional admin access
+
+Work Items Completed:
+- W-039: Complete user management system with admin pages, user dashboard, and enhanced profile UX
+
+________________________________________________
 ### v0.4.5 (2025-09-04)
 **Commit:** `W-013, v0.4.5: Complete admin dashboard implementation with role-based authentication, user language-aware internationalization system, and comprehensive test coverage`
 

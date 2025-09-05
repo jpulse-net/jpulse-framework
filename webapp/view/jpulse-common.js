@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         0.4.5
- * @release         2025-09-04
+ * @version         0.4.6
+ * @release         2025-09-05
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -698,7 +698,7 @@ window.jPulseCommon = {
                 console.warn(`Collapsible element with ID '${elementId}' not found`);
                 return;
             }
-            jPulseCommon.collapsible._expand(element);
+            jPulseCommon.collapsible._expandElement(element);
         },
 
         /**
@@ -711,7 +711,7 @@ window.jPulseCommon = {
                 console.warn(`Collapsible element with ID '${elementId}' not found`);
                 return;
             }
-            jPulseCommon.collapsible._collapse(element);
+            jPulseCommon.collapsible._collapseElement(element);
         },
 
         /**
@@ -779,7 +779,7 @@ window.jPulseCommon = {
 
             // Add click handler to the header (h3 or wrapper)
             header.addEventListener('click', () => {
-                jPulseCommon.collapsible._toggle(collapsibleElement);
+                jPulseCommon.collapsible._toggleElement(collapsibleElement);
             });
 
             // Add cursor pointer style to indicate clickability
@@ -790,13 +790,13 @@ window.jPulseCommon = {
          * Toggle a collapsible section (INTERNAL)
          * @param {Element} collapsibleElement - The .jp-collapsible element
          */
-        _toggle: (collapsibleElement) => {
+        _toggleElement: (collapsibleElement) => {
             const isExpanded = collapsibleElement.classList.contains('jp-expanded');
 
             if (isExpanded) {
-                jPulseCommon.collapsible._collapse(collapsibleElement);
+                jPulseCommon.collapsible._collapseElement(collapsibleElement);
             } else {
-                jPulseCommon.collapsible._expand(collapsibleElement);
+                jPulseCommon.collapsible._expandElement(collapsibleElement);
             }
         },
 
@@ -804,7 +804,7 @@ window.jPulseCommon = {
          * Expand a collapsible section (INTERNAL)
          * @param {Element} collapsibleElement - The .jp-collapsible element
          */
-        _expand: (collapsibleElement) => {
+        _expandElement: (collapsibleElement) => {
             const arrow = collapsibleElement.querySelector('.jp-collapsible-arrow');
             const config = collapsibleElement._jpCollapsibleConfig || {};
 
@@ -826,7 +826,7 @@ window.jPulseCommon = {
          * Collapse a collapsible section (INTERNAL)
          * @param {Element} collapsibleElement - The .jp-collapsible element
          */
-        _collapse: (collapsibleElement) => {
+        _collapseElement: (collapsibleElement) => {
             const arrow = collapsibleElement.querySelector('.jp-collapsible-arrow');
             const config = collapsibleElement._jpCollapsibleConfig || {};
 

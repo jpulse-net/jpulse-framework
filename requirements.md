@@ -569,8 +569,8 @@ Requirements Doc of jPulse Framework
 -------------------------------------------------------------------------
 # 🚧 IN_PROGRESS Work Items
 
-## **W-039**: view: create manage users page for site admins; create user home page
-- status: 🚧 IN_PROGRESS
+## **W-039**: view: create manage users page and user home page; create iPulseCommon.collapsible function
+- status: ✅ COMPLETED
 - type: Feature
 - move webapp/view/user/index.shtml to webapp/view/admin/users.shtml -- manage users
 - replace webapp/view/user/index.shtml with a dashboard
@@ -601,7 +601,7 @@ I finished **W-0xx**: .....
 - update docs: README.md, API.md, developers.md, changes.md in project root
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-04 02:12
-- update commit-message.txt, following the same format, specify: W-030138, v0.4.5
+- update commit-message.txt, following the same format, specify: W-039, v0.4.6
   - don't commit
 
 

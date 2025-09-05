@@ -1,1 +1,130 @@
-FIXME
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / User / Dashboard
+ * @tagline         Personal user dashboard
+ * @description     User dashboard with profile access and activity summary
+ * @file            webapp/view/user/index.shtml
+ * @version         0.4.5
+ * @release         2025-01-15
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         GPL v3, see LICENSE file
+ * @genai           99%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{app.version}} - {{i18n.view.user.index.title}}</title>
+
+    {{file.include "jpulse-header.tmpl"}}
+</head>
+<body>
+    <div class="jp-main">
+        {{#if user.authenticated}}
+            <div class="jp-page-header">
+                <div>
+                    <h1 class="jp-title">{{i18n.view.user.index.title}}</h1>
+                    <p class="jp-subtitle">{{i18n.view.user.index.subtitle}}</p>
+                </div>
+            </div>
+
+            <!-- User Activity Stats -->
+            <div class="jp-stats-grid" id="userStatsGrid">
+                <div class="jp-stat-card">
+                    <div class="jp-stat-number" id="lastLogin">-</div>
+                    <div class="jp-stat-label">{{i18n.view.user.index.lastLogin}}</div>
+                </div>
+                <div class="jp-stat-card">
+                    <div class="jp-stat-number" id="accountStatus">-</div>
+                    <div class="jp-stat-label">{{i18n.view.user.index.accountStatus}}</div>
+                </div>
+                <div class="jp-stat-card">
+                    <div class="jp-stat-number" id="memberSince">-</div>
+                    <div class="jp-stat-label">{{i18n.view.user.index.memberSince}}</div>
+                </div>
+            </div>
+
+            <!-- Dashboard Navigation -->
+            <div class="jp-dashboard-grid">
+                <a href="/user/profile.shtml" class="jp-card-dashboard jp-icon-btn">
+                    <div class="jp-icon-container">
+                        <img src="/assets/admin/icons/user.svg" class="jp-icon" alt="">
+                    </div>
+                    <h3 class="jp-card-title">{{i18n.view.user.index.profileSettings}}</h3>
+                    <p class="jp-card-description">{{i18n.view.user.index.profileSettingsDesc}}</p>
+                </a>
+
+                <!-- Conditional Admin Dashboard (admin/root only) -->
+                <div id="adminTile" style="display: none;">
+                    <a href="/admin/" class="jp-card-dashboard jp-icon-btn">
+                        <div class="jp-icon-container">
+                            <img src="/assets/admin/icons/config.svg" class="jp-icon" alt="">
+                        </div>
+                        <h3 class="jp-card-title">{{i18n.view.user.index.adminDashboard}}</h3>
+                        <p class="jp-card-description">{{i18n.view.user.index.adminDashboardDesc}}</p>
+                    </a>
+                </div>
+            </div>
+        {{else}}
+            <div class="jp-error-box">
+                {{i18n.view.auth.common.notAuthenticated}}
+            </div>
+        {{/if}}
+    </div>
+
+    <script>
+        // Load user dashboard data
+        jPulseCommon.dom.ready(() => {
+            loadUserStats();
+            checkAdminAccess();
+        });
+
+        async function loadUserStats() {
+            try {
+                const result = await jPulseCommon.api.get('/api/1/user/profile');
+                if (result.success && result.data) {
+                    const user = result.data;
+
+                    // Update last login
+                    const lastLoginEl = document.getElementById('lastLogin');
+                    if (user.lastLogin) {
+                        const date = new Date(user.lastLogin);
+                        lastLoginEl.textContent = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+                    } else {
+                        lastLoginEl.textContent = 'Never';
+                    }
+
+                    // Update account status
+                    const statusEl = document.getElementById('accountStatus');
+                    statusEl.textContent = user.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1) : 'Unknown';
+
+                    // Update member since
+                    const memberSinceEl = document.getElementById('memberSince');
+                    if (user.createdAt) {
+                        const date = new Date(user.createdAt);
+                        memberSinceEl.textContent = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+                    } else {
+                        memberSinceEl.textContent = 'Unknown';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load user stats:', error);
+            }
+        }
+
+        function checkAdminAccess() {
+            // Get user roles from server-side data
+            const userRoles = '{{user.roles}}'.split(',').map(role => role.trim());
+            const isAdmin = userRoles.includes('admin') || userRoles.includes('root');
+
+            if (isAdmin) {
+                document.getElementById('adminTile').style.display = 'block';
+            }
+        }
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

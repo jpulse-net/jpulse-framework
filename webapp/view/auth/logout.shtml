@@ -22,7 +22,26 @@
     <style>
         /* Page-specific logout styles only */
         .jp-auth-container {
-            margin: 80px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 60vh;
+            padding: 2rem 1rem;
+        }
+
+        .jp-auth-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .jp-auth-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
         }
 
         .jp-logout-icon {
@@ -73,6 +92,19 @@
             </div>
           {{else}}
             <!-- Not authenticated section -->
+            <div class="jp-auth-container">
+                <div class="jp-auth-card">
+                    <div class="jp-auth-icon jp-logout-icon">
+                        <span>👋</span>
+                    </div>
+                    <h2>{{i18n.view.auth.logout.notLoggedIn}}</h2>
+                    <p>{{i18n.view.auth.logout.alreadyLoggedOut}}</p>
+                    <div class="jp-btn-group">
+                        <a href="/auth/login.shtml" class="jp-btn jp-btn-primary">{{i18n.view.auth.common.signin}}</a>
+                        <a href="/" class="jp-btn jp-btn-secondary">{{i18n.view.auth.logout.home}}</a>
+                    </div>
+                </div>
+            </div>
           {{/if}}
         </div>
     </div>

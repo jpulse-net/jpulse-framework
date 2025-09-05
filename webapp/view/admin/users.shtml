@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <!--
- * @name            jPulse Framework / WebApp / View / User Directory
- * @tagline         User directory with search and statistics
- * @description     User management interface with role-based access control
- * @file            webapp/view/user/index.shtml
+ * @name            jPulse Framework / WebApp / View / Admin / Users
+ * @tagline         Admin user management interface
+ * @description     User management dashboard for site administrators
+ * @file            webapp/view/admin/users.shtml
  * @version         0.4.5
- * @release         2025-09-04
+ * @release         2025-01-15
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,15 +16,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{app.version}} - {{i18n.view.user.index.title}}</title>
+    <title>{{app.version}} - {{i18n.view.admin.users.title}}</title>
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
         /* Page-specific styles only - common styles are in jpulse-common.css */
-        .jp-search-fields {
-            grid-template-columns: 1fr 1fr auto auto auto;
-            gap: 15px;
-            align-items: end;
+        /* FORCE override - disable responsive grid and use fixed widths */
+        .jp-search-section .jp-search-form .jp-search-fields {
+            grid-template-columns: 180px 180px auto auto 160px !important;
+            gap: 15px !important;
+            align-items: end !important;
+            grid-auto-flow: column !important;
+        }
+
+        .jp-search-fields input,
+        .jp-search-fields select {
+            width: 100%;
+            min-width: 0;
+        }
+
+        /* FORCE button alignment - match input field baseline */
+        .jp-search-section .jp-search-form .jp-search-fields .jp-form-group:last-child {
+            display: flex !important;
+            align-items: flex-end !important;
+        }
+
+        .jp-search-section .jp-search-form .jp-search-fields .jp-btn-group {
+            display: flex !important;
+            gap: 10px !important;
+            white-space: nowrap !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
 
         .jp-users-actions {
@@ -71,27 +93,27 @@
         <div class="jp-container-1200">
           {{#if user.authenticated}}
             <div class="jp-page-header">
-                <h1>{{i18n.view.user.index.title}}</h1>
+                <h1>{{i18n.view.admin.users.title}}</h1>
             </div>
 
-            <!-- Admin content - will show/hide based on JavaScript role check -->
-            <div id="adminContent" style="display: none;">
+            <!-- Admin user management content -->
+            <div>
               <div class="jp-stats-grid" id="statsGrid">
                   <div class="jp-stat-card">
                       <div class="jp-stat-number" id="totalUsers">-</div>
-                      <div class="jp-stat-label">{{i18n.view.user.index.totalUsers}}</div>
+                      <div class="jp-stat-label">{{i18n.view.admin.users.totalUsers}}</div>
                   </div>
                   <div class="jp-stat-card">
                       <div class="jp-stat-number" id="activeUsers">-</div>
-                      <div class="jp-stat-label">{{i18n.view.user.index.activeUsers}}</div>
+                      <div class="jp-stat-label">{{i18n.view.admin.users.activeUsers}}</div>
                   </div>
                   <div class="jp-stat-card">
                       <div class="jp-stat-number" id="adminUsers">-</div>
-                      <div class="jp-stat-label">{{i18n.view.user.index.adminUsers}}</div>
+                      <div class="jp-stat-label">{{i18n.view.admin.users.adminUsers}}</div>
                   </div>
                   <div class="jp-stat-card">
                       <div class="jp-stat-number" id="recentLogins">-</div>
-                      <div class="jp-stat-label">{{i18n.view.user.index.recentLogins}}</div>
+                      <div class="jp-stat-label">{{i18n.view.admin.users.recentLogins}}</div>
                   </div>
               </div>
 
@@ -99,32 +121,32 @@
                   <form class="jp-search-form" id="searchForm">
                       <div class="jp-search-fields">
                           <div class="jp-form-group">
-                              <label for="searchName" class="jp-form-label">{{i18n.view.user.index.searchName}}</label>
-                              <input type="text" id="searchName" name="name" class="jp-form-input" placeholder="{{i18n.view.user.index.searchNamePlaceholder}}">
+                              <label for="searchName" class="jp-form-label">{{i18n.view.admin.users.searchName}}</label>
+                              <input type="text" id="searchName" name="name" class="jp-form-input" placeholder="{{i18n.view.admin.users.searchNamePlaceholder}}">
                           </div>
                           <div class="jp-form-group">
-                              <label for="searchEmail" class="jp-form-label">{{i18n.view.user.index.searchEmail}}</label>
-                              <input type="text" id="searchEmail" name="email" class="jp-form-input" placeholder="{{i18n.view.user.index.searchEmailPlaceholder}}">
+                              <label for="searchEmail" class="jp-form-label">{{i18n.view.admin.users.searchEmail}}</label>
+                              <input type="text" id="searchEmail" name="email" class="jp-form-input" placeholder="{{i18n.view.admin.users.searchEmailPlaceholder}}">
                           </div>
                           <div class="jp-form-group">
-                              <label for="searchRole" class="jp-form-label">{{i18n.view.user.index.searchRole}}</label>
+                              <label for="searchRole" class="jp-form-label">{{i18n.view.admin.users.searchRole}}</label>
                               <select id="searchRole" name="roles" class="jp-form-select">
-                                  <option value="">{{i18n.view.user.index.allRoles}}</option>
+                                  <option value="">{{i18n.view.admin.users.allRoles}}</option>
                                   <!-- Options will be populated dynamically -->
                               </select>
                           </div>
                           <div class="jp-form-group">
-                              <label for="searchStatus" class="jp-form-label">{{i18n.view.user.index.searchStatus}}</label>
+                              <label for="searchStatus" class="jp-form-label">{{i18n.view.admin.users.searchStatus}}</label>
                               <select id="searchStatus" name="status" class="jp-form-select">
-                                  <option value="">{{i18n.view.user.index.allStatuses}}</option>
+                                  <option value="">{{i18n.view.admin.users.allStatuses}}</option>
                                   <!-- Options will be populated from schema -->
                               </select>
                           </div>
                           <div class="jp-form-group">
                               <label>&nbsp;</label> <!-- Empty label for alignment -->
                               <div class="jp-btn-group">
-                                  <button type="submit" class="jp-btn jp-btn-primary">{{i18n.view.user.index.search}}</button>
-                                  <button type="button" class="jp-btn jp-btn-secondary" onclick="clearSearch()">{{i18n.view.user.index.clear}}</button>
+                                  <button type="submit" class="jp-btn jp-btn-primary">{{i18n.view.admin.users.search}}</button>
+                                  <button type="button" class="jp-btn jp-btn-secondary" onclick="clearSearch()">{{i18n.view.admin.users.clear}}</button>
                               </div>
                           </div>
                       </div>
@@ -135,12 +157,12 @@
                   <table class="jp-table" id="usersTable">
                       <thead>
                           <tr>
-                              <th>{{i18n.view.user.index.user}}</th>
-                              <th>{{i18n.view.user.index.email}}</th>
-                              <th>{{i18n.view.user.index.roles}}</th>
-                              <th>{{i18n.view.user.index.status}}</th>
-                              <th>{{i18n.view.user.index.lastLogin}}</th>
-                              <th>{{i18n.view.user.index.actions}}</th>
+                              <th>{{i18n.view.admin.users.user}}</th>
+                              <th>{{i18n.view.admin.users.email}}</th>
+                              <th>{{i18n.view.admin.users.roles}}</th>
+                              <th>{{i18n.view.admin.users.status}}</th>
+                              <th>{{i18n.view.admin.users.lastLogin}}</th>
+                              <th>{{i18n.view.admin.users.actions}}</th>
                           </tr>
                       </thead>
                       <tbody id="usersTableBody">
@@ -150,30 +172,18 @@
               </div>
 
               <div class="jp-pagination" id="pagination" style="display: none;">
-                  <button id="prevPage" disabled>{{i18n.view.user.index.previous}}</button>
-                  <span id="pageInfo">{{i18n.view.user.index.pageInfo}}</span>
-                  <button id="nextPage" disabled>{{i18n.view.user.index.next}}</button>
+                  <button id="prevPage" disabled>{{i18n.view.admin.users.previous}}</button>
+                  <span id="pageInfo">{{i18n.view.admin.users.pageInfo}}</span>
+                  <button id="nextPage" disabled>{{i18n.view.admin.users.next}}</button>
               </div>
 
               <div class="jp-loading-state" id="loadingState">
-                  {{i18n.view.user.index.loading}}
+                  {{i18n.view.admin.users.loading}}
               </div>
 
               <div class="jp-no-results" id="noResults" style="display: none;">
-                  {{i18n.view.user.index.noResults}}
+                  {{i18n.view.admin.users.noResults}}
               </div>
-            </div>
-
-            <!-- Non-admin content -->
-            <div id="userContent" style="display: none;">
-                <div class="jp-info-box">
-                    <h3>{{i18n.view.user.index.accessDeniedTitle}}</h3>
-                    <p>{{i18n.view.user.index.accessDeniedMessage}}</p>
-                    <div class="jp-btn-group">
-                        <a href="/user/profile.shtml" class="jp-btn jp-btn-primary">{{i18n.view.auth.common.profile}}</a>
-                        <a href="/" class="jp-btn jp-btn-secondary">{{i18n.view.user.index.goHome}}</a>
-                    </div>
-                </div>
             </div>
 
           {{else}}
@@ -193,35 +203,13 @@
 
         // Enhanced user management using jPulseCommon utilities
         jPulseCommon.dom.ready(() => {
-            checkUserAccess();
+            // Initialize admin functionality directly (route-level auth handles access)
+            loadRoles();
+            loadStatuses();
+            loadUserStats();
+            loadUsers();
+            setupEventListeners();
         });
-
-        function checkUserAccess() {
-            // Get user roles from server-side data (always a string, including empty)
-            const userRoles = '{{user.roles}}'.split(',').map(role => role.trim()); // ["admin", "user"]
-            console.log('User roles:', userRoles); // Debug log
-
-            // Check if user has admin or root role
-            const isAdmin = userRoles.includes('admin') || userRoles.includes('root');
-            console.log('Is admin:', isAdmin); // Debug log
-
-            if (isAdmin) {
-                // User has admin access
-                document.getElementById('adminContent').style.display = 'block';
-                document.getElementById('userContent').style.display = 'none';
-
-                // Initialize admin functionality (using original working functions)
-                loadRoles();
-                loadStatuses();
-                loadUserStats();
-                loadUsers();
-                setupEventListeners();
-            } else {
-                // User has limited access
-                document.getElementById('adminContent').style.display = 'none';
-                document.getElementById('userContent').style.display = 'block';
-            }
-        }
 
         function setupEventListeners() {
             // Setup search form
@@ -303,10 +291,10 @@
                     displayUsers(userData);
                     setupPagination(result.pagination);
                 } else {
-                    jPulseCommon.showSlideDownError(result.error || '{{i18n.view.user.index.failedToLoadUsers}}');
+                    jPulseCommon.showSlideDownError(result.error || '{{i18n.view.admin.users.failedToLoadUsers}}');
                 }
             } catch (error) {
-                jPulseCommon.showSlideDownError('{{i18n.view.user.index.networkError}}');
+                jPulseCommon.showSlideDownError('{{i18n.view.admin.users.networkError}}');
             } finally {
                 showLoading(false);
             }
@@ -339,10 +327,9 @@
 
             // User info with avatar
             const userCell = document.createElement('td');
-            const initial = (user.profile?.firstName?.[0] || user.username?.[0] || '?').toUpperCase();
             userCell.innerHTML = `
                 <div class="jp-user-info">
-                    <div class="jp-user-avatar">${initial}</div>
+                    <div class="jp-user-avatar">${ '{{user.initials}}' || '?'}</div>
                     <div>
                         <div class="jp-user-name">${jPulseCommon.string.escapeHtml(user.profile?.firstName || '')} ${jPulseCommon.string.escapeHtml(user.profile?.lastName || '')}</div>
                         <div class="jp-user-login">@${jPulseCommon.string.escapeHtml(user.username || '')}</div>
@@ -381,7 +368,7 @@
             // Actions
             const actionsCell = document.createElement('td');
             actionsCell.innerHTML = `
-                <button class="jp-edit-btn" onclick="viewUser('${user.id}')">{{i18n.view.user.index.viewProfile}}</button>
+                <button class="jp-edit-btn" onclick="viewUser('${user.id}')">{{i18n.view.admin.users.viewProfile}}</button>
             `;
             tr.appendChild(actionsCell);
 
@@ -402,7 +389,7 @@
 
             // Previous button
             const prevDisabled = currentPageNum <= 1;
-            paginationHTML += `<button onclick="changePage(${currentPageNum - 1})" ${prevDisabled ? 'disabled' : ''}>{{i18n.view.user.index.previous}}</button>`;
+            paginationHTML += `<button onclick="changePage(${currentPageNum - 1})" ${prevDisabled ? 'disabled' : ''}>{{i18n.view.admin.users.previous}}</button>`;
 
             // Page numbers (only show if more than 1 page)
             if (totalPages > 1) {
@@ -416,7 +403,7 @@
 
             // Next button
             const nextDisabled = currentPageNum >= totalPages;
-            paginationHTML += `<button onclick="changePage(${currentPageNum + 1})" ${nextDisabled ? 'disabled' : ''}>{{i18n.view.user.index.next}}</button>`;
+            paginationHTML += `<button onclick="changePage(${currentPageNum + 1})" ${nextDisabled ? 'disabled' : ''}>{{i18n.view.admin.users.next}}</button>`;
 
             paginationDiv.innerHTML = paginationHTML;
             paginationDiv.style.display = 'flex';
@@ -462,7 +449,7 @@
                     const currentValue = roleSelect.value; // Preserve current selection
 
                     // Clear existing options except "All Roles"
-                    roleSelect.innerHTML = '<option value="">{{i18n.view.user.index.allRoles}}</option>';
+                    roleSelect.innerHTML = '<option value="">{{i18n.view.admin.users.allRoles}}</option>';
 
                     const roles = response.data;
                     if (Array.isArray(roles)) {
@@ -491,7 +478,7 @@
             const statusSelect = document.getElementById('searchStatus');
             const currentValue = statusSelect.value;
 
-            statusSelect.innerHTML = '<option value="">{{i18n.view.user.index.allStatuses}}</option>';
+            statusSelect.innerHTML = '<option value="">{{i18n.view.admin.users.allStatuses}}</option>';
 
             statuses.forEach(status => {
                 const option = document.createElement('option');

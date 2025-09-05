@@ -138,7 +138,8 @@ async function load(req, res) {
                 initials: req.session?.user?.initials || '?',
                 roles: req.session?.user?.roles || [],
                 preferences: req.session?.user?.preferences || {},
-                authenticated: !!req.session?.user
+                authenticated: !!req.session?.user,
+                isAdmin: AuthController.isAuthorized(req, ['admin', 'root'])
             },
             config: globalConfig?.data || {},
             appConfig: appConfig, // Add app.conf configuration
@@ -154,7 +155,7 @@ async function load(req, res) {
             // Add i18n object to context for dot notation access
             i18n: global.i18n.getLang(AuthController.getUserLanguage(req))
         };
-        //console.log('DEBUG: context:', JSON.stringify(context, null, 2));
+        //console.log('DEBUG: user context:', JSON.stringify(context.user, null, 2));
 
         // Process handlebars
         content = processHandlebars(content, context, viewDir, req, 0);

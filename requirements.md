@@ -547,6 +547,16 @@ Requirements Doc of jPulse Framework
     - they have different form validation and submit handling,
     - better to consolidate using one approach?
 
+## **W-013**: view: define standard for page assets, create site admin index page
+- status: ✅ COMPLETED
+- type: Feature
+- define standard for page assets:
+  - webapp/static/assets/<page-name>/*
+- define common dashboard grid and icon buttons
+- create webapp/view/admin/index.shtml -- admin home
+  - with square icon buttons linking to config.shtml, logs.shtml, users.shtml
+- require root or admin role for /admin/ pages
+
 
 
 
@@ -559,15 +569,13 @@ Requirements Doc of jPulse Framework
 -------------------------------------------------------------------------
 # 🚧 IN_PROGRESS Work Items
 
-## **W-013**: view: define standard for page assets, create site admin index page
+## **W-039**: view: create manage users page for site admins; create user home page
 - status: 🚧 IN_PROGRESS
 - type: Feature
-- define standard for page assets:
-  - webapp/static/assets/<page-name>/*
-- define common dashboard grid and icon buttons
-- create webapp/view/admin/index.shtml -- admin home
-  - with square icon buttons linking to config.shtml, logs.shtml, users.shtml
-- require root or admin role for /admin/ pages
+- move webapp/view/user/index.shtml to webapp/view/admin/users.shtml -- manage users
+- replace webapp/view/user/index.shtml with what?
+  - square icon buttons
+
 
 
 
@@ -627,14 +635,15 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 -------------------------------------------------------------------------
 # TO-DO Work Items
 
-## **W-013**: view: create site admin views
+## **W-040**: view: create view logs page for site admins
+- status: 🕑 PENDING
+- type: Feature
+- create webapp/view/admin/logs.shtml -- search logs
+
+## **W-041**: view: create edit site config page for admins
 - status: 🕑 PENDING
 - type: Feature
 - create webapp/view/admin/config.shtml -- edit site config
-- create webapp/view/admin/logs.shtml -- search logs
-- move webapp/view/user/index.shtml to webapp/view/admin/users.shtml -- search users
-- replace webapp/view/user/index.shtml with what?
-  - square icon buttons
 
 ## **W-037**: view: create themes
 - status: 🕑 PENDING

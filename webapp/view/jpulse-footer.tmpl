@@ -11,12 +11,15 @@
             </div>
             <div class="jp-dropdown" id="userDropdown">
               {{#if user.authenticated}}
+                <a href="/user/">{{i18n.view.user.index.dashboard}}</a>
                 <a href="/user/profile.shtml">{{i18n.view.auth.common.profile}}</a>
-                <a href="/user/index.shtml">{{i18n.view.user.index.title}}</a>
                 <a href="/auth/logout.shtml">{{i18n.view.auth.common.signout}}</a>
               {{else}}
                 <a href="/auth/login.shtml">{{i18n.view.auth.common.signin}}</a>
                 <a href="/auth/signup.shtml">{{i18n.view.auth.common.signup}}</a>
+              {{/if}}
+              {{#if user.isAdmin}}
+                <a href="/admin/">{{i18n.view.user.index.adminDashboard}}</a>
               {{/if}}
             </div>
         </div>

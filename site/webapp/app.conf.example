@@ -1,0 +1,55 @@
+/**
+ * @name            jPulse Framework / Site Configuration Example
+ * @tagline         Example site-specific configuration overrides
+ * @description     Template for site customizations - copy to app.conf and customize
+ * @file            site/webapp/app.conf.example
+ * @version         0.4.10
+ * @release         2025-09-06
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Site Administrator
+ * @copyright       2025 Site Owner
+ * @license         GPL v3, see LICENSE file
+ * @genai           Created for W-014 site override system
+ */
+
+// Site-specific configuration overrides
+// Copy this file to app.conf and customize for your deployment
+{
+    app: {
+        name:           'My Custom jPulse Site',
+        shortName:      'My Site',
+        customFeature:  true,
+        siteId:         'demo-site-001'
+    },
+    
+    // Override middleware settings
+    middleware: {
+        session: {
+            secret: 'CHANGE-THIS-SECRET-IN-PRODUCTION',
+            touchAfter: 3600  // Session touch interval in seconds
+        }
+    },
+    
+    // Site-specific deployment settings
+    deployment: {
+        development: {
+            name: 'Site Development Mode',
+            customSetting: 'enabled'
+        }
+    },
+    
+    // Site-specific features
+    features: {
+        customDashboard: true,
+        siteAnalytics: true,
+        customTheme: 'blue'
+    },
+    
+    // Site contact information
+    contact: {
+        adminEmail: 'admin@yoursite.com',
+        supportEmail: 'support@yoursite.com'
+    }
+}
+
+// EOF site/webapp/app.conf.example

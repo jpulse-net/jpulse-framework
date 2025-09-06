@@ -604,7 +604,7 @@ Requirements Doc of jPulse Framework
 -------------------------------------------------------------------------
 # 🚧 IN_PROGRESS Work Items
 
-## **W-014**: app: strategy for seamless update of site-specific jPulse deployments
+## **W-014**: architecture: strategy for seamless update of site-specific jPulse deployments
 - status: 🕑 PENDING
 - type: Feature
 - objective: clean separation of jpulse code/data, and site/deployment specific code/data

@@ -169,6 +169,16 @@ global.appConfig = appConfig;
 const { bootstrap } = await import('./utils/bootstrap.js');
 const modules = await bootstrap({ isTest: false });
 
+// W-014: Initialize site registry for auto-discovery
+const SiteRegistry = (await import('./utils/site-registry.js')).default;
+const registryStats = await SiteRegistry.initialize();
+console.log(CommonUtils.formatLogMessage(`app: Site registry initialized - ${registryStats.controllers} controllers, ${registryStats.apis} APIs`));
+
+// W-014: Initialize context extensions system
+const ContextExtensions = (await import('./utils/context-extensions.js')).default;
+await ContextExtensions.initialize();
+console.log(CommonUtils.formatLogMessage('app: Context extensions initialized'));
+
 // Load routing
 const routes = await import('./routes.js').then(m => m.default);
 

@@ -68,6 +68,11 @@ router.use('/common', express.static(path.join(appConfig.app.dirName, 'static', 
 // Admin routes (require admin role)
 router.get(/^\/admin\/.*/, AuthController.requireAuthentication, AuthController.requireRole(['admin', 'root']));
 
+// W-014: Auto-register site controller APIs (no manual registration needed!)
+const SiteRegistry = (await import('./utils/site-registry.js')).default;
+const registeredApis = SiteRegistry.registerApiRoutes(router);
+LogController.logInfo(null, `routes: Auto-registered ${registeredApis} site API endpoints`);
+
 // Dynamic content routes - handle {{handlebars}} in .shtml, .tmpl, and jpulse-* files only
 router.get(/\.(shtml|tmpl)$/, viewController.load);
 router.get(/\/jpulse-.*\.(js|css)$/, viewController.load);

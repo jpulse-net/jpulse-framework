@@ -103,6 +103,28 @@
             </div>
         </div>
 
+        <!-- Site Override API Demo -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>🎯 Site Override API Demo</h3>
+            </div>
+            <div class="jp-card-body">
+                <p>Test the W-014 site override system with a live API call:</p>
+                <button id="testSiteApiBtn" class="jp-btn jp-btn-secondary">Test Site Override API</button>
+                <div id="siteApiResponse" style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px; display: none;">
+                    <strong>API Response:</strong>
+                    <pre id="siteApiResponseContent" style="margin: 10px 0; white-space: pre-wrap; font-size: 12px;"></pre>
+                </div>
+                <p style="margin-top: 10px;">
+                    <small>
+                        This calls <code>/api/1/hello</code> which is auto-discovered from <code>site/webapp/controller/hello.js</code>
+                        <br>
+                        <a href="/hello/">Visit the full demo page</a> | <a href="/api/1/hello" target="_blank">View raw API response</a>
+                    </small>
+                </p>
+            </div>
+        </div>
+
         <!-- Status Information -->
         <p>This is a server-side rendered template using the viewController with handlebars processing.</p>
         <p><strong>Status:</strong> <span class="jp-theme-text-primary" style="color: #007acc; font-weight: bold;">✅ W-006 viewController - IMPLEMENTED</span></p>
@@ -136,6 +158,39 @@
 
         <p><em>File timestamp: {{file.timestamp "jpulse-footer.tmpl"}}</em></p>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const testBtn = document.getElementById('testSiteApiBtn');
+            const responseDiv = document.getElementById('siteApiResponse');
+            const responseContent = document.getElementById('siteApiResponseContent');
+
+            if (testBtn) {
+                testBtn.addEventListener('click', async function() {
+                    testBtn.disabled = true;
+                    testBtn.textContent = 'Testing...';
+                    responseDiv.style.display = 'none';
+
+                    try {
+                        // Use jPulse.apiCall to test the site override API
+                        const response = await jPulse.apiCall('/api/1/hello', 'GET');
+
+                        responseDiv.style.display = 'block';
+                        responseContent.textContent = JSON.stringify(response, null, 2);
+                        responseDiv.style.background = '#e8f5e8'; // Success green
+
+                    } catch (error) {
+                        responseDiv.style.display = 'block';
+                        responseContent.textContent = `Error: ${error.message}`;
+                        responseDiv.style.background = '#ffebee'; // Error red
+                    }
+
+                    testBtn.disabled = false;
+                    testBtn.textContent = 'Test Site Override API';
+                });
+            }
+        });
+    </script>
 
     {{file.include "jpulse-footer.tmpl"}}
 </body>

@@ -22,6 +22,12 @@ import CommonUtils from '../utils/common.js';
 import AuthController from './auth.js';
 import fsPromises from 'fs/promises'; // New import
 
+// W-014: Import ContextExtensions at module level for performance
+let ContextExtensions = null;
+(async () => {
+    ContextExtensions = (await import('../utils/context-extensions.js')).default;
+})();
+
 // Module-level cache
 // FIXME: cache invalidation on demand
 // FIXME: cache based on appConfig.controller.view.cacheTemplateFiles and appConfig.controller.view.cacheIncludeFiles flags
@@ -86,19 +92,31 @@ async function load(req, res) {
             filePath = filePath + defaultTemplate;
         }
 
-        const viewDir = path.join(global.appConfig.app.dirName, 'view');
-        let fullPath = path.join(viewDir, filePath.substring(1));
+        // W-014: Use PathResolver to support site overrides
+        const PathResolver = (await import('../utils/path-resolver.js')).default;
+        const viewDir = path.join(global.appConfig.app.dirName, 'view'); // Keep for handlebars processing
+        let fullPath;
 
-        // Check if file exists
-        if (!fs.existsSync(fullPath)) {
+        try {
+            // Try to resolve with site override support
+            const relativePath = `view${filePath}`;
+            fullPath = PathResolver.resolveModule(relativePath);
+        } catch (error) {
+            // File not found in either site or framework
             const originalPath = req.path;
             res.statusCode = 404; // Set 404 status code
             LogController.logError(req, `view.load: error: File not found: ${filePath}`);
             const message = global.i18n.translate(req, 'controller.view.pageNotFoundError', { path: originalPath });
 
-            // Override filePath to error page and inject params into req.query for handlebars context
+            // Override filePath to error page and try to resolve it
             filePath = '/error/index.shtml';
-            fullPath = path.join(viewDir, filePath.substring(1)); // Recalculate fullPath for error page
+            try {
+                fullPath = PathResolver.resolveModule(`view${filePath}`);
+            } catch (errorPageError) {
+                // Fallback to framework error page if site override doesn't exist
+                const viewDir = path.join(global.appConfig.app.dirName, 'view');
+                fullPath = path.join(viewDir, filePath.substring(1));
+            }
             req.query = { // Create a new query object for the context
                 code: '404',
                 msg: message
@@ -124,8 +142,8 @@ async function load(req, res) {
         // Get global config for handlebars context
         const globalConfig = await configModel.findById('global');
 
-        // Create handlebars context
-        const context = {
+        // Create base handlebars context
+        const baseContext = {
             app: appConfig.app,
             user: {
                 id: req.session?.user?.id || '',
@@ -155,6 +173,11 @@ async function load(req, res) {
             // Add i18n object to context for dot notation access
             i18n: global.i18n.getLang(AuthController.getUserLanguage(req))
         };
+
+        // W-014: Extend context with site/plugin extensions
+        const context = ContextExtensions
+            ? await ContextExtensions.getExtendedContext(baseContext, req)
+            : baseContext; // Fallback if not loaded yet
         //console.log('DEBUG: user context:', JSON.stringify(context.user, null, 2));
 
         // Process handlebars

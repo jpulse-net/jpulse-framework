@@ -4,8 +4,8 @@
  * @tagline         User authentication login page
  * @description     Login form for internal authentication with support for LDAP/OAuth2 planning
  * @file            webapp/view/auth/login.shtml
- * @version         0.4.6
- * @release         2025-09-05
+ * @version         0.4.7
+ * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -204,7 +204,7 @@
 </head>
 <body>
     <div class="jp-main">
-        <div class="jp-container-400 jp-auth-container">
+        <div class="jp-container-600 jp-auth-container">
           {{#if user.authenticated}}
             <div class="jp-already-logged-in">
                 <div class="jp-user-avatar-large">
@@ -307,8 +307,8 @@
         jPulseCommon.dom.ready(() => {
             const loginForm = document.getElementById('loginForm');
 
-            // Option B: Clean form submission with jPulseCommon
-            jPulseCommon.form.handleSubmission(loginForm, '/api/1/auth/login', {
+            // Use the new explicit binding function for simple forms
+            jPulseCommon.form.bindSubmission(loginForm, '/api/1/auth/login', {
                 successMessage: '{{i18n.view.auth.login.loginSuccess}}',
                 loadingText: '{{i18n.view.auth.login.signingIn}}',
                 redirectUrl: '{{url.param.redirect}}' || '/',

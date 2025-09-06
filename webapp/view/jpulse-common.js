@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         0.4.6
- * @release         2025-09-05
+ * @version         0.4.7
+ * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -272,6 +272,152 @@ window.jPulseCommon = {
      */
     form: {
         /**
+         * Binds the comprehensive form submission handler to a form's submit event.
+         * A convenience wrapper for simple forms that don't need custom pre-submission logic.
+         * @param {HTMLFormElement} formElement - The form to bind
+         * @param {string} endpoint - API endpoint URL
+         * @param {Object} options - Submission options
+         */
+        bindSubmission: (formElement, endpoint, options = {}) => {
+            formElement.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                await jPulseCommon.form.handleSubmission(formElement, endpoint, options);
+            });
+        },
+
+        /**
+         * Executes the comprehensive form submission logic immediately.
+         * Intended to be called from within a custom `submit` event listener.
+         * @param {HTMLFormElement} formElement - The form to submit
+         * @param {string} endpoint - API endpoint URL
+         * @param {Object} options - Submission options
+         * @returns {Promise<Object>} API result object
+         */
+        handleSubmission: async (formElement, endpoint, options = {}) => {
+            const defaultOptions = {
+                method: 'POST',
+                successMessage: null,
+                errorMessage: null,
+                redirectUrl: null,
+                redirectDelay: 1000,
+                loadingText: 'Submitting...',
+                clearOnSuccess: false,
+                onSuccess: null,
+                onError: null,
+                beforeSubmit: null,
+                afterSubmit: null,
+                validateBeforeSubmit: true
+            };
+
+            const config = { ...defaultOptions, ...options };
+
+            // Find submit button
+            const submitButton = formElement.querySelector('button[type="submit"]') ||
+                               formElement.querySelector('input[type="submit"]') ||
+                               formElement.querySelector('.jp-btn-submit');
+
+            // Clear previous errors
+            jPulseCommon.form.clearErrors(formElement);
+
+            // Pre-submission callback
+            if (config.beforeSubmit && typeof config.beforeSubmit === 'function') {
+                const shouldContinue = await config.beforeSubmit(formElement);
+                if (shouldContinue === false) {
+                    return { success: false, error: 'Submission cancelled by beforeSubmit callback' };
+                }
+            }
+
+            // Basic validation
+            if (config.validateBeforeSubmit) {
+                const requiredFields = formElement.querySelectorAll('[required]');
+                let hasErrors = false;
+
+                requiredFields.forEach(field => {
+                    if (!field.value.trim()) {
+                        field.classList.add('jp-field-error');
+                        hasErrors = true;
+                    }
+                });
+
+                if (hasErrors) {
+                    jPulseCommon.showSlideDownError('Please fill in all required fields.');
+                    return { success: false, error: 'Required fields missing' };
+                }
+            }
+
+            // Set loading state
+            if (submitButton) {
+                jPulseCommon.form.setLoadingState(submitButton, true, config.loadingText);
+            }
+
+            try {
+                // Serialize form data
+                const formData = jPulseCommon.form.serialize(formElement);
+
+                // Make API call
+                const result = await jPulseCommon.apiCall(endpoint, {
+                    method: config.method,
+                    body: formData
+                });
+
+                if (result.success) {
+                    // Success handling
+                    if (config.successMessage) {
+                        jPulseCommon.showSlideDownSuccess(config.successMessage);
+                    }
+
+                    if (config.clearOnSuccess) {
+                        formElement.reset();
+                    }
+
+                    if (config.onSuccess && typeof config.onSuccess === 'function') {
+                        await config.onSuccess(result.data, formElement);
+                    }
+
+                    if (config.redirectUrl) {
+                        setTimeout(() => {
+                            window.location.href = config.redirectUrl;
+                        }, config.redirectDelay);
+                    }
+
+                } else {
+                    // Error handling
+                    // If a custom onError handler is provided, let it handle the message display.
+                    if (config.onError && typeof config.onError === 'function') {
+                        await config.onError(result.error, formElement);
+                    } else {
+                        // Otherwise, show the default error message.
+                        const errorMessage = config.errorMessage || result.error || 'Submission failed';
+                        jPulseCommon.showSlideDownError(errorMessage);
+                    }
+
+                    // Handle field-specific errors if provided by API
+                    if (result.data && result.data.fieldErrors) {
+                        jPulseCommon.form.showFieldErrors(formElement, result.data.fieldErrors);
+                    }
+                }
+
+                // Post-submission callback
+                if (config.afterSubmit && typeof config.afterSubmit === 'function') {
+                    await config.afterSubmit(result, formElement);
+                }
+
+                return result;
+
+            } catch (error) {
+                const errorMessage = `Submission error: ${error.message}`;
+                jPulseCommon.showSlideDownError(errorMessage);
+                return { success: false, error: errorMessage };
+
+            } finally {
+                // Always restore button state
+                if (submitButton) {
+                    jPulseCommon.form.setLoadingState(submitButton, false);
+                }
+            }
+        },
+
+        /**
          * Serialize form data to a plain object
          * @param {HTMLFormElement} formElement - The form to serialize
          * @returns {Object} Form data as key-value pairs
@@ -351,149 +497,6 @@ window.jPulseCommon = {
                     field.classList.add('jp-field-error');
                 }
             });
-        },
-
-        /**
-         * Comprehensive form submission handler with auto-binding support
-         * @param {HTMLFormElement} formElement - The form to submit
-         * @param {string} endpoint - API endpoint URL
-         * @param {Object} options - Submission options
-         * @returns {Promise<Object>} API result object (when called with event) or void (when auto-binding)
-         */
-        handleSubmission: async (formElement, endpoint, options = {}) => {
-            const defaultOptions = {
-                method: 'POST',
-                successMessage: null,
-                errorMessage: null,
-                redirectUrl: null,
-                redirectDelay: 1000,
-                loadingText: 'Submitting...',
-                clearOnSuccess: false,
-                onSuccess: null,
-                onError: null,
-                beforeSubmit: null,
-                afterSubmit: null,
-                validateBeforeSubmit: true,
-                autoBind: true  // New option for auto-binding
-            };
-
-            const config = { ...defaultOptions, ...options };
-
-            // If autoBind is true and we're not in an event context, bind the submit event
-            if (config.autoBind && !options._isEventCall) {
-                formElement.addEventListener('submit', async (event) => {
-                    event.preventDefault();
-                    return await jPulseCommon.form.handleSubmission(formElement, endpoint, {
-                        ...options,
-                        autoBind: false,
-                        _isEventCall: true
-                    });
-                });
-                return; // Exit early for auto-binding
-            }
-
-            // Find submit button
-            const submitButton = formElement.querySelector('button[type="submit"]') ||
-                               formElement.querySelector('input[type="submit"]') ||
-                               formElement.querySelector('.jp-btn-submit');
-
-            // Clear previous errors
-            jPulseCommon.form.clearErrors(formElement);
-
-            // Pre-submission callback
-            if (config.beforeSubmit && typeof config.beforeSubmit === 'function') {
-                const shouldContinue = await config.beforeSubmit(formElement);
-                if (shouldContinue === false) {
-                    return { success: false, error: 'Submission cancelled by beforeSubmit callback' };
-                }
-            }
-
-            // Basic validation
-            if (config.validateBeforeSubmit) {
-                const requiredFields = formElement.querySelectorAll('[required]');
-                let hasErrors = false;
-
-                requiredFields.forEach(field => {
-                    if (!field.value.trim()) {
-                        field.classList.add('jp-field-error');
-                        hasErrors = true;
-                    }
-                });
-
-                if (hasErrors) {
-                    jPulseCommon.showSlideDownError('Please fill in all required fields.');
-                    return { success: false, error: 'Required fields missing' };
-                }
-            }
-
-            // Set loading state
-            if (submitButton) {
-                jPulseCommon.form.setLoadingState(submitButton, true, config.loadingText);
-            }
-
-            try {
-                // Serialize form data
-                const formData = jPulseCommon.form.serialize(formElement);
-
-                // Make API call
-                const result = await jPulseCommon.apiCall(endpoint, {
-                    method: config.method,
-                    body: formData
-                });
-
-                if (result.success) {
-                    // Success handling
-                    if (config.successMessage) {
-                        jPulseCommon.showSlideDownSuccess(config.successMessage);
-                    }
-
-                    if (config.clearOnSuccess) {
-                        formElement.reset();
-                    }
-
-                    if (config.onSuccess && typeof config.onSuccess === 'function') {
-                        await config.onSuccess(result.data, formElement);
-                    }
-
-                    if (config.redirectUrl) {
-                        setTimeout(() => {
-                            window.location.href = config.redirectUrl;
-                        }, config.redirectDelay);
-                    }
-
-                } else {
-                    // Error handling
-                    const errorMessage = config.errorMessage || result.error || 'Submission failed';
-                    jPulseCommon.showSlideDownError(errorMessage);
-
-                    // Handle field-specific errors if provided by API
-                    if (result.data && result.data.fieldErrors) {
-                        jPulseCommon.form.showFieldErrors(formElement, result.data.fieldErrors);
-                    }
-
-                    if (config.onError && typeof config.onError === 'function') {
-                        await config.onError(result.error, formElement);
-                    }
-                }
-
-                // Post-submission callback
-                if (config.afterSubmit && typeof config.afterSubmit === 'function') {
-                    await config.afterSubmit(result, formElement);
-                }
-
-                return result;
-
-            } catch (error) {
-                const errorMessage = `Submission error: ${error.message}`;
-                jPulseCommon.showSlideDownError(errorMessage);
-                return { success: false, error: errorMessage };
-
-            } finally {
-                // Always restore button state
-                if (submitButton) {
-                    jPulseCommon.form.setLoadingState(submitButton, false);
-                }
-            }
         },
 
         /**

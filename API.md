@@ -1,4 +1,4 @@
-# jPulse Framework / API Documentation v0.4.6
+# jPulse Framework / API Documentation v0.4.7
 
 Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
 
@@ -17,7 +17,13 @@ jPulse provides a comprehensive RESTful API under the `/api/1/` prefix with the 
 - **Dynamic Schema-Aware Frontend**: API-driven dropdown population with backend schema synchronization
 - **Logging**: All API calls automatically logged with user context
 
-### Recent API Additions (v0.4.6)
+### Recent API Additions (v0.4.7)
+- **Enhanced Form Submission System**: New `bindSubmission` and `handleSubmission` functions with improved developer experience
+- **Automatic Error Message Management**: Fixed slide-down message accumulation bug with smart error clearing
+- **Comprehensive Form Testing**: Complete test coverage for form submission logic with proper mocking
+- **Developer-Friendly API Design**: "Don't make me think" approach with safe defaults and explicit opt-ins
+
+### Previous API Additions (v0.4.6)
 - **User Management System**: Complete admin users page with search and management functionality
 - **User Dashboard**: Icon-based navigation with activity statistics and conditional admin access
 - **Enhanced Profile Page**: Unified edit mode with collapsible security sections and password management
@@ -116,38 +122,80 @@ const customResult = await jPulseCommon.apiCall('/api/1/custom', {
 
 ### Form Handling & Validation
 
-Streamlined form submission with validation, loading states, and error handling.
+Enhanced form submission system with two distinct approaches for different use cases.
+
+#### bindSubmission - For Simple Forms (v0.4.7)
+Automatic event binding for straightforward form handling:
 
 ```javascript
-// Simple form submission
+// Simple form with automatic binding
 const form = document.getElementById('loginForm');
-jPulseCommon.form.handleSubmission(form, '/api/1/auth/login', {
+jPulseCommon.form.bindSubmission(form, '/api/1/auth/login', {
     successMessage: 'Login successful!',
     redirectUrl: '/dashboard/',
-    loadingText: 'Signing in...'
-});
-
-// Advanced form handling with callbacks
-jPulseCommon.form.handleSubmission(form, '/api/1/user/signup', {
-    beforeSubmit: (formElement) => {
-        // Custom validation
-        const password = formElement.password.value;
-        if (password.length < 8) {
-            jPulseCommon.showError('Password must be at least 8 characters');
-            return false; // Cancel submission
-        }
-        return true; // Continue
-    },
+    loadingText: 'Signing in...',
     onSuccess: (data) => {
-        jPulseCommon.showSuccess(`Welcome ${data.firstName}!`);
-        window.location.href = '/auth/login.shtml?signup=success';
-    },
-    onError: (error) => {
-        // Custom error handling
-        console.log('Signup failed:', error);
+        console.log('Login successful:', data);
     }
 });
+// Form automatically handles submit events
+```
 
+#### handleSubmission - For Custom Logic (v0.4.7)
+Direct execution for forms with custom validation or event handling:
+
+```javascript
+// Custom form handling with manual event binding
+const form = document.getElementById('signupForm');
+form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    // Custom client-side validation
+    const password = form.password.value;
+    const confirmPassword = form.confirmPassword.value;
+    if (password !== confirmPassword) {
+        jPulseCommon.showSlideDownError('Passwords do not match');
+        return;
+    }
+
+    // Call handleSubmission directly
+    await jPulseCommon.form.handleSubmission(form, '/api/1/user/signup', {
+        onSuccess: (data) => {
+            const username = data.user.username;
+            window.location.href = `/auth/login.shtml?signup=success&username=${encodeURIComponent(username)}`;
+        },
+        onError: (error) => {
+            // Custom error handling - framework won't show default error
+            console.log('Signup failed:', error);
+        }
+    });
+});
+```
+
+#### Form Configuration Options
+Both functions support comprehensive configuration:
+
+```javascript
+{
+    method: 'POST',                    // HTTP method
+    successMessage: 'Success!',        // Auto-display success message
+    errorMessage: 'Failed!',           // Fallback error message
+    redirectUrl: '/dashboard/',        // Auto-redirect on success
+    redirectDelay: 1000,               // Delay before redirect (ms)
+    loadingText: 'Processing...',      // Button loading text
+    clearOnSuccess: false,             // Clear form on success
+    validateBeforeSubmit: true,        // Built-in validation
+    beforeSubmit: (form) => true,      // Pre-submission callback
+    onSuccess: (data, form) => {},     // Success callback
+    onError: (error, form) => {},      // Error callback (prevents default error display)
+    afterSubmit: (result, form) => {} // Post-submission callback
+}
+```
+
+#### Form Utilities
+Helper functions for form management:
+
+```javascript
 // Form utilities
 const formData = jPulseCommon.form.serialize(formElement);
 jPulseCommon.form.setLoadingState(submitButton, true, 'Processing...');

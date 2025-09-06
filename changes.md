@@ -6,6 +6,49 @@ ________________________________________________
 ## 🚀 Version History
 
 ________________________________________________
+### v0.4.7 (2025-09-05)
+**Commit:** `W-042, v0.4.7: Enhanced form submission system with critical bug fixes, improved developer experience, and comprehensive test coverage`
+
+Enhanced form submission system with critical bug fixes and improved developer experience.
+
+Major Features:
+- **Critical Bug Fix (W-042)**: Fixed slide-down message accumulation bug
+  - Resolved multiple event handler binding issue in signup form causing duplicate API calls
+  - Changed `autoBind` default from `true` to `false` for safer API design
+  - Eliminated error message stacking with proper event handler management
+  - Single form submission now results in single API call and single error message
+
+- **Enhanced Form Submission API**: New dual-function approach for different use cases
+  - `jPulseCommon.form.bindSubmission()` for simple forms with automatic event binding
+  - `jPulseCommon.form.handleSubmission()` for custom logic with manual event handling
+  - Comprehensive configuration options supporting all form submission scenarios
+  - "Don't make me think" API design with safe defaults and explicit opt-ins
+
+- **Comprehensive Test Coverage**: Complete test suite for form submission logic
+  - 7 comprehensive test cases covering both `bindSubmission` and `handleSubmission` functions
+  - Proper mocking of `jPulseCommon.apiCall` instead of direct `fetch` mocking
+  - Test isolation improvements with `jest.clearAllMocks()` and proper cleanup
+  - Fixed mock state leakage between tests ensuring reliable test execution
+
+Technical Improvements:
+- Enhanced API design following "safe by default" principle preventing common developer mistakes
+- Improved test infrastructure with proper mocking at correct abstraction level
+- Better error handling with automatic message clearing and smart error display logic
+- Developer experience improvements with clear function separation and comprehensive documentation
+
+Bug Fixes:
+- Fixed slide-down message accumulation causing multiple identical error messages
+- Resolved double event binding issue in form submission handlers
+- Fixed test mock state leakage causing false test failures
+- Corrected form validation logic to work properly in test environments
+
+Development Impact:
+- Safer form submission API prevents common bugs like double event binding
+- Comprehensive test coverage ensures reliability of form handling logic
+- Improved developer experience with clear API design and better documentation
+- Enhanced framework stability with proper error message management
+
+________________________________________________
 ### v0.4.6 (2025-09-05)
 **Commit:** `W-039, v0.4.6: Complete user management system with admin users page, user dashboard, enhanced profile page, and production-ready collapsible component with comprehensive test coverage`
 

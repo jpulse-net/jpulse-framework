@@ -557,18 +557,6 @@ Requirements Doc of jPulse Framework
   - with square icon buttons linking to config.shtml, logs.shtml, users.shtml
 - require root or admin role for /admin/ pages
 
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-# 🚧 IN_PROGRESS Work Items
-
 ## **W-039**: view: create manage users page and user home page; create iPulseCommon.collapsible function
 - status: ✅ COMPLETED
 - type: Feature
@@ -582,8 +570,28 @@ Requirements Doc of jPulse Framework
 
 
 
+
+
+
+
+-------------------------------------------------------------------------
+# 🚧 IN_PROGRESS Work Items
+
+## **W-042**: view: fix slide down message is not cleared bug
+- status: 🚧 IN_PROGRESS
+- type: Bug
+- in the signup page, error messages in the slide down are never cleared
+- this happens when you hit [submit] after a few seconds, rinds and repeat
+- e.g. this is not stacking of multiple messages in rapid succession, which is spec
+- split out jPulsCommon.handleSubmission() into jPulsCommon.bindSubmission()
+  - use jPulsCommon.bindSubmission() for simple forms like login
+  - use jPulsCommon.handleSubmission() for complex forms like signup
+
+
+
+
+
 ## Potential next items:
-**W-013**: view: create site admin views
 **W-015**: deployment: strategy for clean onboarding
 **W-037**: view: create themes
 **W-014**: app: strategy for seamless update of site-specific jPulse deployments
@@ -596,12 +604,13 @@ next work item: **W-036**: view: migrate existing views to use jpulse-common.js 
 - plan how to implement
 - wait for my go ahead to implement
 
-I finished **W-0xx**: .....
+Almost ready for W-042 release (this chat refers to W-021, my mistake)
+
 - run tests, and fix issues
 - update docs: README.md, API.md, developers.md, changes.md in project root
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-04 02:12
-- update commit-message.txt, following the same format, specify: W-039, v0.4.6
+- update commit-message.txt, following the same format, specify: W-042, v0.4.7
   - don't commit
 
 

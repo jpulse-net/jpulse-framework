@@ -1,8 +1,11 @@
-# jPulse Framework / Developer Documentation v0.4.6
+# jPulse Framework / Developer Documentation v0.4.7
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.4.6):**
+**Latest Updates (v0.4.7):**
+- 🔧 **Enhanced Form Submission & Bug Fixes (W-042)**: Fixed critical slide-down message accumulation bug and enhanced jPulseCommon form submission system. Features include improved form handling with `bindSubmission` and `handleSubmission` functions, automatic error message clearing, comprehensive test coverage with proper mocking, and better developer experience with "don't make me think" API design. Includes 7 comprehensive tests for form submission logic.
+
+**Previous Updates (v0.4.6):**
 - 👥 **User Management & Dashboard Pages (W-039)**: Complete user management system with admin users page, user dashboard, and enhanced profile page. Features include collapsible security sections, unified edit mode, icon-based navigation, and comprehensive test coverage for client-side utilities. Includes production-ready collapsible component with clean handle-based API design and 18 comprehensive tests using JSDOM environment.
 
 **Previous Updates (v0.4.5):**
@@ -46,6 +49,91 @@ Technical documentation for developers working on the jPulse Framework. This doc
 - 🏗️ **MVC-Aligned Configuration (W-026)**: Restructured app.conf to match model/controller/view architecture
 - 📁 **Enhanced Configuration Organization**: Settings organized by component type for better maintainability
 - 🔗 **API-Driven Profile Management**: User profiles now load fresh data from REST API instead of session data
+
+________________________________________________
+## 🔧 W-042: Enhanced Form Submission System (v0.4.7)
+
+### Critical Bug Fix: Slide-Down Message Accumulation
+
+**Problem Identified:**
+- Slide-down error messages were accumulating indefinitely instead of auto-hiding
+- Multiple identical messages would stack up from repeated form submissions
+- Root cause: Multiple event handler binding in signup form
+
+**Technical Analysis:**
+```javascript
+// PROBLEM: Double event binding
+signupForm.addEventListener('submit', async (event) => {
+    // Custom handler
+    await jPulseCommon.form.handleSubmission(form, endpoint, {
+        autoBind: true  // This adds ANOTHER submit handler!
+    });
+});
+```
+
+**Solution Applied:**
+- Changed `autoBind` default from `true` to `false` for safer API design
+- Prevents accidental double event binding
+- Follows "don't make me think" principle for developers
+
+### Enhanced Form Submission API
+
+**New Functions Introduced:**
+
+1. **`bindSubmission`** - For simple forms with automatic event binding
+2. **`handleSubmission`** - For custom logic with manual event handling
+
+**API Design Principles:**
+- **Safe by Default**: `autoBind: false` prevents common mistakes
+- **Explicit Opt-in**: Developers must explicitly enable auto-binding when needed
+- **Clear Separation**: Different functions for different use cases
+- **Comprehensive Options**: Full configuration support for both approaches
+
+### Comprehensive Test Coverage
+
+**Test Infrastructure Improvements:**
+- Added `apiCallMock` to properly mock `jPulseCommon.apiCall` instead of `fetch`
+- Implemented proper test isolation with `jest.clearAllMocks()` and `afterEach` cleanup
+- Fixed mock state leakage between tests
+- Added 7 comprehensive test cases covering both form submission functions
+
+**Test Coverage:**
+- ✅ Successful form submission with callbacks
+- ✅ Error handling with custom error handlers
+- ✅ Built-in validation for required fields
+- ✅ `beforeSubmit` callback validation
+- ✅ Field-specific error display
+- ✅ Proper mock isolation between tests
+
+### Developer Experience Improvements
+
+**"Don't Make Me Think" API Design:**
+- Safe defaults prevent common bugs
+- Clear function names indicate intended usage
+- Comprehensive documentation with examples
+- Proper error messages and validation
+
+**Before (Problematic):**
+```javascript
+// Could accidentally create double event binding
+jPulseCommon.form.handleSubmission(form, endpoint, {
+    autoBind: true  // Default was true - dangerous!
+});
+```
+
+**After (Safe):**
+```javascript
+// Clear intent - automatic binding
+jPulseCommon.form.bindSubmission(form, endpoint, options);
+
+// Clear intent - manual handling
+form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    await jPulseCommon.form.handleSubmission(form, endpoint, options);
+});
+```
+
+________________________________________________
 
 **Latest Releases Highlights:**
 - ✅ **View Consolidation & Common Components (W-038)**: Complete separation of common/page-specific code and style with 300+ lines of duplicate CSS eliminated, 15+ reusable components added (.jp-user-*, .jp-btn-group, .jp-action-section), and mature component library established for scalable development.

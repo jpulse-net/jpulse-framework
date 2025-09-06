@@ -4,8 +4,8 @@
  * @tagline         User registration and account creation page
  * @description     Signup form for internal user registration
  * @file            webapp/view/auth/signup.shtml
- * @version         0.4.6
- * @release         2025-09-05
+ * @version         0.4.7
+ * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -144,7 +144,7 @@
 </head>
 <body>
     <div class="jp-main">
-        <div class="jp-container-400 jp-auth-container">
+        <div class="jp-container-600 jp-auth-container">
           {{#if user.authenticated}}
             <div class="jp-already-logged-in">
                 <div class="jp-user-avatar-large">

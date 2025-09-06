@@ -4,7 +4,7 @@
  * @tagline         User profile view with edit capabilities
  * @description     User profile management with view and edit modes
  * @file            webapp/view/user/profile.shtml
- * @version         0.4.8
+ * @version         0.4.9
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,7 +21,7 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         /* Page-specific profile styles only */
-        .jp-profile-header {
+        .local-profile-header {
             display: flex;
             align-items: flex-start;
             gap: 20px;
@@ -30,37 +30,37 @@
             border-bottom: 2px solid #007acc;
         }
 
-        .jp-profile-info h1 {
+        .local-profile-info h1 {
             margin: 0;
             color: #333;
         }
 
-        .jp-profile-info .jp-user-details {
+        .local-profile-info .jp-user-details {
             color: #666;
             margin: 5px 0;
         }
 
-        .jp-profile-section {
+        .local-profile-section {
             background: #f8f9fa;
             padding: 25px;
             border-radius: 8px;
             margin-bottom: 20px;
         }
 
-        .jp-profile-section h3 {
+        .local-profile-section h3 {
             margin-top: 0;
             color: #007acc;
             border-bottom: 1px solid #dee2e6;
             padding-bottom: 10px;
         }
 
-        .jp-profile-section h3.jp-no-content-header {
+        .local-profile-section h3.local-no-content-header {
             margin-bottom: -5px;
             border-bottom: 0 none;
             padding-bottom: 0;
         }
 
-        .jp-read-only-field {
+        .local-user-profile .jp-read-only-field {
             background: #f8f9fa;
             color: #6c757d;
         }
@@ -69,13 +69,13 @@
 </head>
 <body>
     <div class="jp-main">
-        <div class="jp-container-800">
+        <div class="jp-container-800 local-user-profile">
           {{#if user.authenticated}}
-            <div class="jp-profile-header">
+            <div class="local-profile-header">
                 <div class="jp-user-avatar-large">
                     {{user.initials}}
                 </div>
-                <div class="jp-profile-info">
+                <div class="local-profile-info">
                     <h1>{{user.firstName}} {{user.lastName}}</h1>
                     <div class="jp-user-details">@{{user.username}} • {{user.email}}</div>
                     <div class="jp-user-details">
@@ -84,7 +84,7 @@
                 </div>
             </div>
 
-            <div class="jp-profile-section">
+            <div class="local-profile-section">
                 <h3>{{i18n.view.user.profile.personalInfo}}</h3>
                 <form id="profileForm" class="jp-form">
                     <div class="jp-form-grid">
@@ -110,7 +110,7 @@
                 </form>
             </div>
 
-            <div class="jp-profile-section">
+            <div class="local-profile-section">
                 <h3>{{i18n.view.user.profile.preferences}}</h3>
                 <form id="preferencesForm" class="jp-form">
                     <div class="jp-form-grid">
@@ -129,8 +129,8 @@
                 </form>
             </div>
 
-            <div class="jp-profile-section jp-view-mode-only">
-                <h3 class="jp-no-content-header">{{i18n.view.user.profile.security}}</h3>
+            <div class="local-profile-section jp-view-mode-only">
+                <h3 class="local-no-content-header">{{i18n.view.user.profile.security}}</h3>
             </div>
 
             <div id="securitySection" class="jp-collapsible jp-edit-mode-only">

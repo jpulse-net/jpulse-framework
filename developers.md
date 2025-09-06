@@ -1,4 +1,4 @@
-# jPulse Framework / Developer Documentation v0.4.8
+# jPulse Framework / Developer Documentation v0.4.9
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
@@ -193,6 +193,53 @@ jPulse.clearSlideDownMessages()
 - Consistent UX with all messages appearing in the same location
 - Enhanced animations and dynamic stacking
 - Simplified API without unused container parameter
+
+________________________________________________
+## 🎨 CSS Prefix Convention (W-044)
+
+### Overview
+The jPulse Framework uses a clear CSS prefix convention to eliminate cognitive load when working with styles. This "don't make me think" approach makes it immediately obvious where any CSS class is defined.
+
+### Prefix Rules
+- **`jp-*`** = Common framework styles (always in `jpulse-common.css`)
+- **`local-*`** = Page-specific styles (always in the current page's `<style>` section)
+
+### Examples
+
+**Common CSS Classes** (in `jpulse-common.css`):
+```css
+.jp-btn           /* Button component */
+.jp-card          /* Card component */
+.jp-form-input    /* Form input styling */
+.jp-user-avatar   /* User avatar component */
+.jp-alert         /* Alert/message component */
+```
+
+**Page-Specific Classes** (in individual `.shtml` files):
+```css
+/* In auth/login.shtml */
+.local-auth-container    /* Login page container */
+.local-auth-logo        /* Login page logo */
+.local-remember-me      /* Remember me checkbox styling */
+
+/* In user/profile.shtml */
+.local-profile-header   /* Profile page header */
+.local-profile-section  /* Profile page sections */
+
+/* In admin/users.shtml */
+.local-users-actions    /* User management actions */
+.local-edit-btn        /* Edit button styling */
+```
+
+### Benefits
+1. **Zero Cognitive Load**: Prefix tells you exactly where to find the style
+2. **No Naming Conflicts**: Impossible to accidentally override common styles
+3. **Cleaner Code**: Page-specific styles are obviously page-specific
+4. **Easier Maintenance**: Know immediately where to look for any style
+5. **Better Searchability**: `grep "jp-"` finds common styles, `grep "local-"` finds page-specific styles
+
+### Migration from Old Convention
+Previously, both common and page-specific styles used the `jp-` prefix, creating confusion. The W-044 refactoring converted all page-specific styles to use `local-*` prefixes while maintaining all common framework styles with `jp-*` prefixes.
 
 ________________________________________________
 ## 🏗️ Architecture Overview

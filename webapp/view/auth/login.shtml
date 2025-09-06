@@ -4,7 +4,7 @@
  * @tagline         User authentication login page
  * @description     Login form for internal authentication with support for LDAP/OAuth2 planning
  * @file            webapp/view/auth/login.shtml
- * @version         0.4.8
+ * @version         0.4.9
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,21 +21,21 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         /* Page-specific login styles only */
-        .jp-auth-container {
+        .local-auth-container {
             margin: 60px auto;
         }
 
-        .jp-auth-card {
+        .local-auth-card {
             padding: 40px;
             border-top: 4px solid #007acc;
         }
 
-        .jp-auth-header {
+        .local-auth-header {
             text-align: center;
             margin-bottom: 30px;
         }
 
-        .jp-auth-logo {
+        .local-auth-logo {
             width: 60px;
             height: 60px;
             background: linear-gradient(135deg, #007acc, #005999);
@@ -49,19 +49,19 @@
             font-weight: bold;
         }
 
-        .jp-auth-header h1 {
+        .local-auth-header h1 {
             margin: 0;
             color: #333;
             font-size: 1.8em;
         }
 
-        .jp-auth-header p {
+        .local-auth-header p {
             color: #666;
             margin: 5px 0 0;
             font-size: 0.9em;
         }
 
-        .jp-remember-forgot {
+        .local-remember-forgot {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -69,30 +69,30 @@
             font-size: 0.9em;
         }
 
-        .jp-remember-me {
+        .local-remember-me {
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
-        .jp-remember-me input[type="checkbox"] {
+        .local-remember-me input[type="checkbox"] {
             width: auto;
         }
 
-        .jp-forgot-password {
+        .local-forgot-password {
             color: #007acc;
             text-decoration: none;
         }
 
-        .jp-forgot-password:hover {
+        .local-forgot-password:hover {
             text-decoration: underline;
         }
 
-        .jp-auth-methods {
+        .local-auth-methods {
             margin-bottom: 25px;
         }
 
-        .jp-auth-method {
+        .local-auth-method {
             width: 100%;
             padding: 12px;
             margin-bottom: 10px;
@@ -109,17 +109,17 @@
             color: #333;
         }
 
-        .jp-auth-method:hover {
+        .local-auth-method:hover {
             border-color: #007acc;
             background: #f8f9fa;
         }
 
-        .jp-auth-method.disabled {
+        .local-auth-method.disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
 
-        .jp-signup-link {
+        .local-signup-link {
             text-align: center;
             padding-top: 20px;
             border-top: 1px solid #dee2e6;
@@ -127,16 +127,16 @@
             font-size: 0.9em;
         }
 
-        .jp-signup-link a {
+        .local-signup-link a {
             color: #007acc;
             text-decoration: none;
         }
 
-        .jp-signup-link a:hover {
+        .local-signup-link a:hover {
             text-decoration: underline;
         }
 
-        .jp-redirect-info {
+        .local-redirect-info {
             display: none;
             background: #fff3cd;
             color: #856404;
@@ -147,7 +147,7 @@
             font-size: 0.9em;
         }
 
-        .jp-signup-success-info {
+        .local-signup-success-info {
             display: none;
             background: #d4edda;
             color: #155724;
@@ -158,27 +158,27 @@
             font-size: 0.9em;
         }
 
-        .jp-success-message {
+        .local-success-message {
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .jp-success-icon {
+        .local-success-icon {
             font-size: 16px;
         }
 
-        .jp-already-logged-in {
+        .local-already-logged-in {
             text-align: center;
             padding: 40px;
         }
 
-        .jp-welcome-message {
+        .local-welcome-message {
             color: #333;
             margin-bottom: 20px;
         }
 
-        .jp-action-buttons {
+        .local-action-buttons {
             display: flex;
             gap: 10px;
             justify-content: center;
@@ -186,15 +186,15 @@
 
         /* Mobile responsiveness */
         @media (max-width: 480px) {
-            .jp-auth-container {
+            .local-auth-container {
                 margin: 40px auto;
             }
 
-            .jp-auth-card {
+            .local-auth-card {
                 padding: 30px 25px;
             }
 
-            .jp-remember-forgot {
+            .local-remember-forgot {
                 flex-direction: column;
                 gap: 10px;
                 align-items: flex-start;
@@ -204,36 +204,36 @@
 </head>
 <body>
     <div class="jp-main">
-        <div class="jp-container-600 jp-auth-container">
+        <div class="jp-container-600 local-auth-container">
           {{#if user.authenticated}}
-            <div class="jp-already-logged-in">
+            <div class="local-already-logged-in">
                 <div class="jp-user-avatar-large">
                     {{user.initials}}
                 </div>
-                <div class="jp-welcome-message">
+                <div class="local-welcome-message">
                     <h2>{{i18n.view.auth.login.welcomeBack}}, {{user.firstName}}!</h2>
                     <p>{{i18n.view.auth.login.alreadyLoggedIn}}</p>
                 </div>
-                <div class="jp-action-buttons">
+                <div class="local-action-buttons">
                     <a href="/user/profile.shtml" class="jp-btn jp-btn-primary">{{i18n.view.auth.common.profile}}</a>
                     <a href="/" class="jp-btn jp-btn-secondary">{{i18n.view.auth.login.goHome}}</a>
                 </div>
             </div>
           {{else}}
-            <div class="jp-card jp-auth-card">
-                <div class="jp-auth-header">
-                    <div class="jp-auth-logo">jP</div>
+            <div class="jp-card local-auth-card">
+                <div class="local-auth-header">
+                    <div class="local-auth-logo">jP</div>
                     <h1>{{i18n.view.auth.login.title}}</h1>
                     <p>{{i18n.view.auth.login.subtitle}}</p>
                 </div>
 
-                <div class="jp-redirect-info">
+                <div class="local-redirect-info">
                     {{i18n.view.auth.login.redirectMessage}}
                 </div>
 
-                <div class="jp-signup-success-info">
-                    <div class="jp-success-message">
-                        <span class="jp-success-icon">✅</span>
+                <div class="local-signup-success-info">
+                    <div class="local-success-message">
+                        <span class="local-success-icon">✅</span>
                         <span id="signupSuccessText">{{i18n.view.auth.login.signupSuccessMessage}}</span>
                     </div>
                 </div>
@@ -262,12 +262,12 @@
                                autocomplete="current-password">
                     </div>
 
-                    <div class="jp-remember-forgot">
-                        <label class="jp-remember-me">
+                    <div class="local-remember-forgot">
+                        <label class="local-remember-me">
                             <input type="checkbox" id="rememberMe" name="rememberMe">
                             <span>{{i18n.view.auth.login.rememberMe}}</span>
                         </label>
-                        <a href="#" class="jp-forgot-password" onclick="showForgotPassword()">
+                        <a href="#" class="local-forgot-password" onclick="showForgotPassword()">
                             {{i18n.view.auth.login.forgotPassword}}
                         </a>
                     </div>
@@ -282,18 +282,18 @@
                     <span>{{i18n.view.auth.login.orSignInWith}}</span>
                 </div>
 
-                <div class="jp-auth-methods" style="display: none;" id="authMethods">
-                    <a href="#" class="jp-auth-method disabled" id="ldapAuth">
+                <div class="local-auth-methods" style="display: none;" id="authMethods">
+                    <a href="#" class="local-auth-method disabled" id="ldapAuth">
                         <span>🏢</span>
                         <span>{{i18n.view.auth.login.signInLDAP}}</span>
                     </a>
-                    <a href="#" class="jp-auth-method disabled" id="oauth2Auth">
+                    <a href="#" class="local-auth-method disabled" id="oauth2Auth">
                         <span>🔗</span>
                         <span>{{i18n.view.auth.login.signInOAuth2}}</span>
                     </a>
                 </div>
 
-                <div class="jp-signup-link">
+                <div class="local-signup-link">
                     {{i18n.view.auth.login.noAccount}}
                     <a href="/auth/signup.shtml">{{i18n.view.auth.login.signUp}}</a>
                 </div>
@@ -333,13 +333,13 @@
                     const messageTemplate = signupText.textContent;
                     signupText.textContent = messageTemplate.replace('{username}', username);
                 }
-                document.querySelector('.jp-signup-success-info').style.display = 'block';
+                document.querySelector('.local-signup-success-info').style.display = 'block';
             }
 
             // Show redirect info if redirect parameter exists
             const redirectParam = '{{url.param.redirect}}';
             if (redirectParam) {
-                document.querySelector('.jp-redirect-info').style.display = 'block';
+                document.querySelector('.local-redirect-info').style.display = 'block';
             }
 
             // Clear error states on input using jPulse

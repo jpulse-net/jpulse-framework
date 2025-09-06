@@ -1,4 +1,4 @@
-# jPulse Framework / API Documentation v0.4.8
+# jPulse Framework / API Documentation v0.4.9
 
 Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
 

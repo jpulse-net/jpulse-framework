@@ -4,7 +4,7 @@
  * @tagline         User logout confirmation and processing page
  * @description     Logout confirmation with automatic session termination
  * @file            webapp/view/auth/logout.shtml
- * @version         0.4.8
+ * @version         0.4.9
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,7 +21,7 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         /* Page-specific logout styles only */
-        .jp-auth-container {
+        .local-auth-container {
             display: flex;
             justify-content: center;
             align-items: center;
@@ -29,7 +29,7 @@
             padding: 2rem 1rem;
         }
 
-        .jp-auth-card {
+        .local-auth-card {
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -38,23 +38,23 @@
             width: 100%;
         }
 
-        .jp-auth-icon {
+        .local-auth-icon {
             font-size: 3rem;
             margin-bottom: 1rem;
         }
 
-        .jp-logout-icon {
+        .local-logout-icon {
             background: linear-gradient(135deg, #6c757d, #495057);
         }
     </style>
 </head>
 <body>
     <div class="jp-main">
-        <div class="jp-container-600 jp-auth-container">
+        <div class="jp-container-600 local-auth-container">
           {{#if user.authenticated}}
-            <div class="jp-card jp-auth-card">
-                <div class="jp-auth-header">
-                    <div class="jp-user-avatar-large jp-logout-icon">
+            <div class="jp-card local-auth-card">
+                <div class="local-auth-header">
+                    <div class="jp-user-avatar-large local-logout-icon">
                         👋
                     </div>
                     <h1>{{i18n.view.auth.logout.title}}</h1>
@@ -91,9 +91,9 @@
             </div>
           {{else}}
             <!-- Not authenticated section -->
-            <div class="jp-auth-container">
-                <div class="jp-auth-card">
-                    <div class="jp-auth-icon jp-logout-icon">
+            <div class="local-auth-container">
+                <div class="local-auth-card">
+                    <div class="local-auth-icon local-logout-icon">
                         <span>👋</span>
                     </div>
                     <h2>{{i18n.view.auth.logout.notLoggedIn}}</h2>

@@ -4,7 +4,7 @@
  * @tagline         User registration and account creation page
  * @description     Signup form for internal user registration
  * @file            webapp/view/auth/signup.shtml
- * @version         0.4.8
+ * @version         0.4.9
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,21 +21,21 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         /* Page-specific signup styles only */
-        .jp-auth-container {
+        .local-auth-container {
             margin: 60px auto;
         }
 
-        .jp-auth-card {
+        .local-auth-card {
             padding: 40px;
             border-top: 4px solid #667eea;
         }
 
-        .jp-auth-header {
+        .local-auth-header {
             text-align: center;
             margin-bottom: 30px;
         }
 
-        .jp-signup-logo {
+        .local-signup-logo {
             width: 60px;
             height: 60px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -49,35 +49,35 @@
             margin: 0 auto 1rem;
         }
 
-        .jp-auth-header h1 {
+        .local-auth-header h1 {
             margin: 0;
             color: #333;
             font-size: 1.8em;
         }
 
-        .jp-auth-header p {
+        .local-auth-header p {
             color: #666;
             margin: 5px 0 0;
             font-size: 0.9em;
         }
 
-        .jp-form-row {
+        .local-form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
         }
 
-        .jp-password-requirements {
+        .local-password-requirements {
             font-size: 0.875rem;
             color: #718096;
             margin-top: 0.25rem;
         }
 
-        .jp-terms-checkbox {
+        .local-terms-checkbox {
             margin-bottom: 1.5rem;
         }
 
-        .jp-checkbox-label {
+        .local-checkbox-label {
             display: flex;
             align-items: flex-start;
             gap: 0.5rem;
@@ -87,12 +87,12 @@
             line-height: 1.4;
         }
 
-        .jp-checkbox-label input[type="checkbox"] {
+        .local-checkbox-label input[type="checkbox"] {
             margin: 0;
             width: auto;
         }
 
-        .jp-signin-link {
+        .local-signin-link {
             text-align: center;
             padding-top: 20px;
             border-top: 1px solid #dee2e6;
@@ -100,27 +100,27 @@
             font-size: 0.875rem;
         }
 
-        .jp-signin-link a {
+        .local-signin-link a {
             color: #667eea;
             text-decoration: none;
             font-weight: 500;
         }
 
-        .jp-signin-link a:hover {
+        .local-signin-link a:hover {
             text-decoration: underline;
         }
 
-        .jp-already-logged-in {
+        .local-already-logged-in {
             text-align: center;
             padding: 40px;
         }
 
-        .jp-welcome-message {
+        .local-welcome-message {
             color: #333;
             margin-bottom: 20px;
         }
 
-        .jp-action-buttons {
+        .local-action-buttons {
             display: flex;
             gap: 10px;
             justify-content: center;
@@ -128,15 +128,15 @@
 
         /* Mobile responsiveness */
         @media (max-width: 640px) {
-            .jp-form-row {
+            .local-form-row {
                 grid-template-columns: 1fr;
             }
 
-            .jp-auth-container {
+            .local-auth-container {
                 margin: 40px auto;
             }
 
-            .jp-auth-card {
+            .local-auth-card {
                 padding: 30px 25px;
             }
         }
@@ -144,32 +144,32 @@
 </head>
 <body>
     <div class="jp-main">
-        <div class="jp-container-600 jp-auth-container">
+        <div class="jp-container-600 local-auth-container">
           {{#if user.authenticated}}
-            <div class="jp-already-logged-in">
+            <div class="local-already-logged-in">
                 <div class="jp-user-avatar-large">
                     {{user.initials}}
                 </div>
-                <div class="jp-welcome-message">
+                <div class="local-welcome-message">
                     <h2>{{i18n.view.auth.login.welcomeBack}}, {{user.firstName}}!</h2>
                     <p>{{i18n.view.auth.login.alreadyLoggedIn}}</p>
                 </div>
-                <div class="jp-action-buttons">
+                <div class="local-action-buttons">
                     <a href="/user/profile.shtml" class="jp-btn jp-btn-primary">{{i18n.view.auth.common.profile}}</a>
                     <a href="/" class="jp-btn jp-btn-secondary">{{i18n.view.auth.signup.goHome}}</a>
                 </div>
             </div>
           {{else}}
-            <div class="jp-card jp-auth-card">
-                <div class="jp-auth-header">
-                    <div class="jp-signup-logo">jP</div>
+            <div class="jp-card local-auth-card">
+                <div class="local-auth-header">
+                    <div class="local-signup-logo">jP</div>
                     <h1>{{i18n.view.auth.signup.title}}</h1>
                     <p>{{i18n.view.auth.signup.subtitle}}</p>
                 </div>
 
                 <!-- Signup form for internal authentication -->
                 <form id="signupForm" class="jp-form">
-                    <div class="jp-form-row">
+                    <div class="local-form-row">
                         <div class="jp-form-group">
                             <label for="firstName" class="jp-form-label">{{i18n.view.auth.signup.firstName}}</label>
                             <input type="text"
@@ -223,7 +223,7 @@
                                placeholder="{{i18n.view.auth.signup.passwordPlaceholder}}"
                                required
                                autocomplete="new-password">
-                        <div class="jp-password-requirements">
+                        <div class="local-password-requirements">
                             {{i18n.view.auth.signup.passwordRequirements}}
                         </div>
                     </div>
@@ -239,8 +239,8 @@
                                autocomplete="new-password">
                     </div>
 
-                    <div class="jp-terms-checkbox">
-                        <label class="jp-checkbox-label">
+                    <div class="local-terms-checkbox">
+                        <label class="local-checkbox-label">
                             <input type="checkbox" id="acceptTerms" name="acceptTerms" required>
                             <span>{{i18n.view.auth.signup.termsAccept}}</span>
                         </label>
@@ -251,7 +251,7 @@
                     </button>
                 </form>
 
-                <div class="jp-signin-link">
+                <div class="local-signin-link">
                     {{i18n.view.auth.signup.alreadyHaveAccount}}
                     <a href="/auth/login.shtml">{{i18n.view.auth.signup.signIn}}</a>
                 </div>

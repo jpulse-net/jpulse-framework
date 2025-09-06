@@ -575,6 +575,17 @@ Requirements Doc of jPulse Framework
   - use jPulsCommon.bindSubmission() for simple forms like login
   - use jPulsCommon.handleSubmission() for complex forms like signup
 
+## **W-043**: view: rename jPulseCommon object to jPulse
+- status: ✅ COMPLETED
+- type: Feature
+- objective: don't make me think, maintain brand, extensible
+
+## **W-044**: view: use jp-* prefix for common styles, local-* prefix for local styles
+- status: ✅ COMPLETED (v0.4.9)
+- type: Feature
+- objective: don't make me think
+- `jp-*` prefix for common framework styles (always in `jpulse-common.css`)
+- `local-*` prefix for page-specific styles (always in current page's `<style>` section)
 
 
 
@@ -587,10 +598,7 @@ Requirements Doc of jPulse Framework
 -------------------------------------------------------------------------
 # 🚧 IN_PROGRESS Work Items
 
-## **W-043**: view: rename jPulseCommon object to jPulse
-- status: 🚧 IN_PROGRESS
-- type: Feature
-- objective: don't make me think, maintain brand, extensible
+
 
 
 
@@ -617,8 +625,8 @@ Almost ready for W-042 release (this chat refers to W-021, my mistake)
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-04 02:12
-- update docs: README.md, API.md, developers.md, changes.md in project root
-- update commit-message.txt, following the same format, specify: W-043, v0.4.8
+- update *.md docs in project root
+- update commit-message.txt, following the same format, specify: W-044, v0.4.9
 - don't commit
 
 

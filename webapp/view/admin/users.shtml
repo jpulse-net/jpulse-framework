@@ -4,7 +4,7 @@
  * @tagline         Admin user management interface
  * @description     User management dashboard for site administrators
  * @file            webapp/view/admin/users.shtml
- * @version         0.4.8
+ * @version         0.4.9
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -22,26 +22,26 @@
     <style>
         /* Page-specific styles only - common styles are in jpulse-common.css */
         /* FORCE override - disable responsive grid and use fixed widths */
-        .jp-search-section .jp-search-form .jp-search-fields {
+        .local-admin-users .jp-search-section .jp-search-form .jp-search-fields {
             grid-template-columns: 180px 180px auto auto 160px !important;
             gap: 15px !important;
             align-items: end !important;
             grid-auto-flow: column !important;
         }
 
-        .jp-search-fields input,
-        .jp-search-fields select {
+        .local-admin-users .jp-search-fields input,
+        .local-admin-users .jp-search-fields select {
             width: 100%;
             min-width: 0;
         }
 
         /* FORCE button alignment - match input field baseline */
-        .jp-search-section .jp-search-form .jp-search-fields .jp-form-group:last-child {
+        .local-admin-users .jp-search-section .jp-search-form .jp-search-fields .jp-form-group:last-child {
             display: flex !important;
             align-items: flex-end !important;
         }
 
-        .jp-search-section .jp-search-form .jp-search-fields .jp-btn-group {
+        .local-admin-users .jp-search-section .jp-search-form .jp-search-fields .jp-btn-group {
             display: flex !important;
             gap: 10px !important;
             white-space: nowrap !important;
@@ -49,13 +49,13 @@
             padding: 0 !important;
         }
 
-        .jp-users-actions {
+        .local-users-actions {
             display: flex;
             gap: 10px;
             justify-content: flex-end;
         }
 
-        .jp-user-actions button {
+        .local-user-actions button {
             padding: 4px 8px;
             font-size: 12px;
             border: none;
@@ -64,33 +64,33 @@
             transition: all 0.2s;
         }
 
-        .jp-edit-btn {
+        .local-edit-btn {
             background: #007acc;
             color: white;
         }
 
-        .jp-edit-btn:hover {
+        .local-edit-btn:hover {
             background: #005999;
         }
 
-        .jp-delete-btn {
+        .local-delete-btn {
             background: #dc3545;
             color: white;
         }
 
-        .jp-delete-btn:hover {
+        .local-delete-btn:hover {
             background: #c82333;
         }
 
         /* Status-specific font size adjustment for table */
-        .jp-users-table .jp-status-badge {
+        .local-users-table .jp-status-badge {
             font-size: 11px;
         }
     </style>
 </head>
 <body>
     <div class="jp-main">
-        <div class="jp-container-1200">
+        <div class="jp-container-1200 local-admin-users">
           {{#if user.authenticated}}
             <div class="jp-page-header">
                 <h1>{{i18n.view.admin.users.title}}</h1>
@@ -368,7 +368,7 @@
             // Actions
             const actionsCell = document.createElement('td');
             actionsCell.innerHTML = `
-                <button class="jp-edit-btn" onclick="viewUser('${user.id}')">{{i18n.view.admin.users.viewProfile}}</button>
+                <button class="local-edit-btn" onclick="viewUser('${user.id}')">{{i18n.view.admin.users.viewProfile}}</button>
             `;
             tr.appendChild(actionsCell);
 

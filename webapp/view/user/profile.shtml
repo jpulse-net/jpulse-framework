@@ -4,7 +4,7 @@
  * @tagline         User profile view with edit capabilities
  * @description     User profile management with view and edit modes
  * @file            webapp/view/user/profile.shtml
- * @version         0.4.7
+ * @version         0.4.8
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -177,26 +177,26 @@
         let editMode = false;
         let originalValues = {};
 
-        // Enhanced profile management using jPulseCommon utilities
+        // Enhanced profile management using jPulse utilities
         let securityCollapsible = null;
 
-        jPulseCommon.dom.ready(() => {
+        jPulse.dom.ready(() => {
             loadProfile();
             loadLanguages();
             loadThemes();
 
             // Register the collapsible security section with handle
-            securityCollapsible = jPulseCommon.collapsible.register('securitySection', {
+            securityCollapsible = jPulse.collapsible.register('securitySection', {
                 initOpen: false,
                 onOpen: () => {
                     // Show password fields when opened
                     const passwordFields = document.getElementById('passwordFields');
-                    jPulseCommon.dom.show(passwordFields);
+                    jPulse.dom.show(passwordFields);
                 },
                 onClose: () => {
                     // Hide password fields and clear them when closed
                     const passwordFields = document.getElementById('passwordFields');
-                    jPulseCommon.dom.hide(passwordFields);
+                    jPulse.dom.hide(passwordFields);
                     ['currentPassword', 'newPassword', 'confirmPassword'].forEach(id => {
                         document.getElementById(id).value = '';
                     });
@@ -245,9 +245,9 @@
                 });
 
                 // Update buttons
-                jPulseCommon.dom.hide(editBtn);
-                jPulseCommon.dom.show(saveBtn);
-                jPulseCommon.dom.show(cancelBtn);
+                jPulse.dom.hide(editBtn);
+                jPulse.dom.show(saveBtn);
+                jPulse.dom.show(cancelBtn);
             } else {
                 cancelEdit();
             }
@@ -283,15 +283,15 @@
             });
 
             // Hide password fields and clear them
-            jPulseCommon.dom.hide(document.getElementById('passwordFields'));
+            jPulse.dom.hide(document.getElementById('passwordFields'));
             ['currentPassword', 'newPassword', 'confirmPassword'].forEach(id => {
                 document.getElementById(id).value = '';
             });
 
             // Update buttons
-            jPulseCommon.dom.show(document.getElementById('editBtn'));
-            jPulseCommon.dom.hide(document.getElementById('saveBtn'));
-            jPulseCommon.dom.hide(document.getElementById('cancelBtn'));
+            jPulse.dom.show(document.getElementById('editBtn'));
+            jPulse.dom.hide(document.getElementById('saveBtn'));
+            jPulse.dom.hide(document.getElementById('cancelBtn'));
         }
 
         async function saveProfile() {
@@ -318,10 +318,10 @@
 
             try {
                 // Always save profile and preferences first
-                const profileResult = await jPulseCommon.api.put('/api/1/user/profile', profileData);
+                const profileResult = await jPulse.api.put('/api/1/user/profile', profileData);
 
                 if (!profileResult.success) {
-                    jPulseCommon.showSlideDownError(profileResult.error || '{{i18n.view.user.profile.failedToUpdateProfile}}');
+                    jPulse.showSlideDownError(profileResult.error || '{{i18n.view.user.profile.failedToUpdateProfile}}');
                     return;
                 }
 
@@ -330,17 +330,17 @@
 
                     // Validate password fields
                     if (!currentPassword || !newPassword || !confirmPassword) {
-                        jPulseCommon.showSlideDownError('{{i18n.view.user.profile.allPasswordFieldsRequired}}');
+                        jPulse.showSlideDownError('{{i18n.view.user.profile.allPasswordFieldsRequired}}');
                         return;
                     }
 
                     if (newPassword !== confirmPassword) {
-                        jPulseCommon.showSlideDownError('{{i18n.view.user.profile.passwordsDoNotMatch}}');
+                        jPulse.showSlideDownError('{{i18n.view.user.profile.passwordsDoNotMatch}}');
                         return;
                     }
 
                     if (newPassword.length < 8) {
-                        jPulseCommon.showSlideDownError('{{i18n.view.user.profile.passwordTooShort}}');
+                        jPulse.showSlideDownError('{{i18n.view.user.profile.passwordTooShort}}');
                         return;
                     }
 
@@ -350,10 +350,10 @@
                         newPassword: newPassword
                     };
 
-                    const passwordResult = await jPulseCommon.api.put('/api/1/user/password', passwordData);
+                    const passwordResult = await jPulse.api.put('/api/1/user/password', passwordData);
 
                     if (!passwordResult.success) {
-                        jPulseCommon.showSlideDownError(passwordResult.error || '{{i18n.view.user.profile.failedToUpdatePassword}}');
+                        jPulse.showSlideDownError(passwordResult.error || '{{i18n.view.user.profile.failedToUpdatePassword}}');
                         return;
                     }
                 }
@@ -363,7 +363,7 @@
                     ? '{{i18n.view.user.profile.profileAndPasswordUpdatedSuccess}}'
                     : '{{i18n.view.user.profile.profileUpdatedSuccess}}';
 
-                jPulseCommon.showSlideDownSuccess(successMessage);
+                jPulse.showSlideDownSuccess(successMessage);
 
                 // Exit edit mode and reload data
                 editMode = false;
@@ -371,14 +371,14 @@
                 await loadProfile();
 
             } catch (error) {
-                jPulseCommon.showSlideDownError('{{i18n.view.user.profile.networkError}}: ' + error.message);
+                jPulse.showSlideDownError('{{i18n.view.user.profile.networkError}}: ' + error.message);
             }
         }
 
 
         async function loadProfile() {
             try {
-                const result = await jPulseCommon.api.get('/api/1/user/profile');
+                const result = await jPulse.api.get('/api/1/user/profile');
                 if (result.success && result.data) {
                     const user = result.data;
 
@@ -399,16 +399,16 @@
                         statusBadge.className = `jp-status-badge jp-status-${user.status}`;
                     }
                 } else {
-                    jPulseCommon.showSlideDownError(result.error || '{{i18n.view.user.profile.failedToLoadProfile}}');
+                    jPulse.showSlideDownError(result.error || '{{i18n.view.user.profile.failedToLoadProfile}}');
                 }
             } catch (error) {
-                jPulseCommon.showSlideDownError('{{i18n.view.user.profile.networkErrorLoadingProfile}}: ' + error.message);
+                jPulse.showSlideDownError('{{i18n.view.user.profile.networkErrorLoadingProfile}}: ' + error.message);
             }
         }
 
         async function loadLanguages() {
             try {
-                const response = await jPulseCommon.api.get('/api/1/auth/languages');
+                const response = await jPulse.api.get('/api/1/auth/languages');
 
                 if (response.success) {
                     const languageSelect = document.getElementById('language');
@@ -426,22 +426,22 @@
                         });
                     } else {
                         console.error('Languages data is not an array:', languages);
-                        jPulseCommon.showSlideDownError('Invalid language data format received from server');
+                        jPulse.showSlideDownError('Invalid language data format received from server');
                     }
 
                     languageSelect.value = currentValue;
                 } else {
-                    jPulseCommon.showSlideDownError('Failed to load language options: ' + (response.error || 'Unknown error'));
+                    jPulse.showSlideDownError('Failed to load language options: ' + (response.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Failed to load languages:', error);
-                jPulseCommon.showSlideDownError('Failed to load language options. Please refresh the page.');
+                jPulse.showSlideDownError('Failed to load language options. Please refresh the page.');
             }
         }
 
         async function loadThemes() {
             try {
-                const response = await jPulseCommon.api.get('/api/1/auth/themes');
+                const response = await jPulse.api.get('/api/1/auth/themes');
 
                 if (response.success) {
                     const themeSelect = document.getElementById('theme');
@@ -459,16 +459,16 @@
                         });
                     } else {
                         console.error('Themes data is not an array:', themes);
-                        jPulseCommon.showSlideDownError('Invalid theme data format received from server');
+                        jPulse.showSlideDownError('Invalid theme data format received from server');
                     }
 
                     themeSelect.value = currentValue;
                 } else {
-                    jPulseCommon.showSlideDownError('Failed to load theme options: ' + (response.error || 'Unknown error'));
+                    jPulse.showSlideDownError('Failed to load theme options: ' + (response.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Failed to load themes:', error);
-                jPulseCommon.showSlideDownError('Failed to load theme options. Please refresh the page.');
+                jPulse.showSlideDownError('Failed to load theme options. Please refresh the page.');
             }
         }
 

@@ -1,9 +1,12 @@
-# jPulse Framework / Developer Documentation v0.4.7
+# jPulse Framework / Developer Documentation v0.4.8
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.4.7):**
-- 🔧 **Enhanced Form Submission & Bug Fixes (W-042)**: Fixed critical slide-down message accumulation bug and enhanced jPulseCommon form submission system. Features include improved form handling with `bindSubmission` and `handleSubmission` functions, automatic error message clearing, comprehensive test coverage with proper mocking, and better developer experience with "don't make me think" API design. Includes 7 comprehensive tests for form submission logic.
+**Latest Updates (v0.4.8):**
+- 🚀 **Global Object Rename for Developer Productivity (W-043)**: Renamed jPulseCommon to jPulse across entire codebase for 33% reduction in typing overhead while maintaining brand clarity and framework extensibility. Features include comprehensive global search & replace across 15 files with 299+ references updated, preserved namespace for future framework objects (jPulseAdmin, jPulseAuth), and enhanced developer experience with shorter, cleaner API calls. Includes full test validation and documentation synchronization.
+
+**Previous Updates (v0.4.7):**
+- 🔧 **Enhanced Form Submission & Bug Fixes (W-042)**: Fixed critical slide-down message accumulation bug and enhanced jPulse form submission system. Features include improved form handling with `bindSubmission` and `handleSubmission` functions, automatic error message clearing, comprehensive test coverage with proper mocking, and better developer experience with "don't make me think" API design. Includes 7 comprehensive tests for form submission logic.
 
 **Previous Updates (v0.4.6):**
 - 👥 **User Management & Dashboard Pages (W-039)**: Complete user management system with admin users page, user dashboard, and enhanced profile page. Features include collapsible security sections, unified edit mode, icon-based navigation, and comprehensive test coverage for client-side utilities. Includes production-ready collapsible component with clean handle-based API design and 18 comprehensive tests using JSDOM environment.
@@ -65,7 +68,7 @@ ________________________________________________
 // PROBLEM: Double event binding
 signupForm.addEventListener('submit', async (event) => {
     // Custom handler
-    await jPulseCommon.form.handleSubmission(form, endpoint, {
+    await jPulse.form.handleSubmission(form, endpoint, {
         autoBind: true  // This adds ANOTHER submit handler!
     });
 });
@@ -92,7 +95,7 @@ signupForm.addEventListener('submit', async (event) => {
 ### Comprehensive Test Coverage
 
 **Test Infrastructure Improvements:**
-- Added `apiCallMock` to properly mock `jPulseCommon.apiCall` instead of `fetch`
+- Added `apiCallMock` to properly mock `jPulse.apiCall` instead of `fetch`
 - Implemented proper test isolation with `jest.clearAllMocks()` and `afterEach` cleanup
 - Fixed mock state leakage between tests
 - Added 7 comprehensive test cases covering both form submission functions
@@ -116,7 +119,7 @@ signupForm.addEventListener('submit', async (event) => {
 **Before (Problematic):**
 ```javascript
 // Could accidentally create double event binding
-jPulseCommon.form.handleSubmission(form, endpoint, {
+jPulse.form.handleSubmission(form, endpoint, {
     autoBind: true  // Default was true - dangerous!
 });
 ```
@@ -124,12 +127,12 @@ jPulseCommon.form.handleSubmission(form, endpoint, {
 **After (Safe):**
 ```javascript
 // Clear intent - automatic binding
-jPulseCommon.form.bindSubmission(form, endpoint, options);
+jPulse.form.bindSubmission(form, endpoint, options);
 
 // Clear intent - manual handling
 form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    await jPulseCommon.form.handleSubmission(form, endpoint, options);
+    await jPulse.form.handleSubmission(form, endpoint, options);
 });
 ```
 
@@ -152,20 +155,20 @@ All alert/message functions have been renamed for clarity and consistency:
 
 ```javascript
 // OLD API (deprecated)
-jPulseCommon.showAlert(message, type, container, duration)
-jPulseCommon.showError(message, container)
-jPulseCommon.showSuccess(message, container)
-jPulseCommon.showInfo(message, container)
-jPulseCommon.showWarning(message, container)
-jPulseCommon.clearAlerts(container)
+jPulse.showAlert(message, type, container, duration)
+jPulse.showError(message, container)
+jPulse.showSuccess(message, container)
+jPulse.showInfo(message, container)
+jPulse.showWarning(message, container)
+jPulse.clearAlerts(container)
 
 // NEW API (v0.4.3+)
-jPulseCommon.showSlideDownMessage(message, type, duration)
-jPulseCommon.showSlideDownError(message)
-jPulseCommon.showSlideDownSuccess(message)
-jPulseCommon.showSlideDownInfo(message)
-jPulseCommon.showSlideDownWarning(message)
-jPulseCommon.clearSlideDownMessages()
+jPulse.showSlideDownMessage(message, type, duration)
+jPulse.showSlideDownError(message)
+jPulse.showSlideDownSuccess(message)
+jPulse.showSlideDownInfo(message)
+jPulse.showSlideDownWarning(message)
+jPulse.clearSlideDownMessages()
 ```
 
 **CSS Classes:**
@@ -180,7 +183,7 @@ jPulseCommon.clearSlideDownMessages()
 ```
 
 **Migration Steps:**
-1. Replace all `jPulseCommon.show*` function calls with `jPulseCommon.showSlideDown*` equivalents
+1. Replace all `jPulse.show*` function calls with `jPulse.showSlideDown*` equivalents
 2. Remove `container` parameters (no longer supported for better UX consistency)
 3. Update any custom CSS that references `.jp-alert` classes to use `.jp-slide-down`
 4. Test message functionality to ensure proper slide-down animations

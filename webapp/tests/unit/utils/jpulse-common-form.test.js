@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for jPulse Common Client-Side Form Utilities
  * @description     Tests for client-side form submission utilities in jpulse-common.js
  * @file            webapp/tests/unit/utils/jpulse-common-form.test.js
- * @version         0.4.7
+ * @version         0.4.8
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -36,7 +36,7 @@ vm.runInContext(jpulseCommonContent, context);
 
 // --- Tests ---
 
-describe('jPulseCommon.form Submission Handling', () => {
+describe('jPulse.form Submission Handling', () => {
 
     let form;
     let submitButton;
@@ -54,16 +54,16 @@ describe('jPulseCommon.form Submission Handling', () => {
         
         // Reset mocks before each test
         global.fetch.mockClear();
-        showSuccessMock = jest.spyOn(window.jPulseCommon, 'showSlideDownSuccess').mockImplementation(() => {});
-        showErrorMock = jest.spyOn(window.jPulseCommon, 'showSlideDownError').mockImplementation(() => {});
-        clearErrorsMock = jest.spyOn(window.jPulseCommon.form, 'clearErrors').mockImplementation(() => {});
-        setLoadingStateMock = jest.spyOn(window.jPulseCommon.form, 'setLoadingState').mockImplementation(() => {});
+        showSuccessMock = jest.spyOn(window.jPulse, 'showSlideDownSuccess').mockImplementation(() => {});
+        showErrorMock = jest.spyOn(window.jPulse, 'showSlideDownError').mockImplementation(() => {});
+        clearErrorsMock = jest.spyOn(window.jPulse.form, 'clearErrors').mockImplementation(() => {});
+        setLoadingStateMock = jest.spyOn(window.jPulse.form, 'setLoadingState').mockImplementation(() => {});
         
         // Mock apiCall instead of fetch since handleSubmission uses apiCall
-        apiCallMock = jest.spyOn(window.jPulseCommon, 'apiCall');
+        apiCallMock = jest.spyOn(window.jPulse, 'apiCall');
 
         // Mock the serialize function to avoid FormData issues in JSDOM
-        jest.spyOn(window.jPulseCommon.form, 'serialize').mockReturnValue({
+        jest.spyOn(window.jPulse.form, 'serialize').mockReturnValue({
             username: 'testuser',
             password: 'password123'
         });
@@ -110,7 +110,7 @@ describe('jPulseCommon.form Submission Handling', () => {
             const onSuccess = jest.fn();
             const beforeSubmit = jest.fn(() => true);
 
-            window.jPulseCommon.form.bindSubmission(form, '/api/test', {
+            window.jPulse.form.bindSubmission(form, '/api/test', {
                 onSuccess: onSuccess,
                 beforeSubmit: beforeSubmit
             });
@@ -130,7 +130,7 @@ describe('jPulseCommon.form Submission Handling', () => {
                 error: 'Server validation failed'
             });
 
-            window.jPulseCommon.form.bindSubmission(form, '/api/test');
+            window.jPulse.form.bindSubmission(form, '/api/test');
 
             await submitForm();
 
@@ -140,7 +140,7 @@ describe('jPulseCommon.form Submission Handling', () => {
 
         test('should not submit if beforeSubmit returns false', async () => {
             const beforeSubmit = jest.fn(() => false);
-            window.jPulseCommon.form.bindSubmission(form, '/api/test', { beforeSubmit });
+            window.jPulse.form.bindSubmission(form, '/api/test', { beforeSubmit });
 
             await submitForm();
 
@@ -154,7 +154,7 @@ describe('jPulseCommon.form Submission Handling', () => {
         test('should fail validation if a required field is empty', async () => {
             form.querySelector('[name="username"]').value = ''; // Empty a required field
 
-            await window.jPulseCommon.form.handleSubmission(form, '/api/handle');
+            await window.jPulse.form.handleSubmission(form, '/api/handle');
 
             expect(showErrorMock).toHaveBeenCalledWith('Please fill in all required fields.');
             expect(apiCallMock).not.toHaveBeenCalled();
@@ -170,7 +170,7 @@ describe('jPulseCommon.form Submission Handling', () => {
             
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
-                await window.jPulseCommon.form.handleSubmission(form, '/api/handle', { onSuccess });
+                await window.jPulse.form.handleSubmission(form, '/api/handle', { onSuccess });
             });
 
             await submitForm();
@@ -190,7 +190,7 @@ describe('jPulseCommon.form Submission Handling', () => {
 
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
-                await window.jPulseCommon.form.handleSubmission(form, '/api/handle', { onError });
+                await window.jPulse.form.handleSubmission(form, '/api/handle', { onError });
             });
 
             await submitForm();
@@ -210,9 +210,9 @@ describe('jPulseCommon.form Submission Handling', () => {
                 }
             });
             
-            const showFieldErrorsMock = jest.spyOn(window.jPulseCommon.form, 'showFieldErrors').mockImplementation(() => {});
+            const showFieldErrorsMock = jest.spyOn(window.jPulse.form, 'showFieldErrors').mockImplementation(() => {});
 
-            await window.jPulseCommon.form.handleSubmission(form, '/api/handle');
+            await window.jPulse.form.handleSubmission(form, '/api/handle');
             
             expect(showFieldErrorsMock).toHaveBeenCalledWith(form, { username: 'Already taken' });
         });

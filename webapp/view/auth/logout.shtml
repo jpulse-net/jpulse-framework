@@ -4,7 +4,7 @@
  * @tagline         User logout confirmation and processing page
  * @description     Logout confirmation with automatic session termination
  * @file            webapp/view/auth/logout.shtml
- * @version         0.4.7
+ * @version         0.4.8
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -149,7 +149,7 @@
 
         function showLogoutSuccess() {
             // Show single success message
-            jPulseCommon.showSlideDownSuccess('{{i18n.view.auth.logout.logoutSuccess}}');
+            jPulse.showSlideDownSuccess('{{i18n.view.auth.logout.logoutSuccess}}');
 
             // Simple redirect after delay (like signin page)
             setTimeout(() => {
@@ -158,7 +158,7 @@
         }
 
         function showError(message) {
-            jPulseCommon.showSlideDownError(message);
+            jPulse.showSlideDownError(message);
         }
 
         // Auto-logout if ?auto=true parameter is present

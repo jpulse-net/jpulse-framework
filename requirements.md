@@ -565,6 +565,16 @@ Requirements Doc of jPulse Framework
   - square icon buttons
 - add new iPulseCommon.collapsible function to toggle a section open and close
 
+## **W-042**: view: fix slide down message is not cleared bug
+- status: ✅ COMPLETED
+- type: Bug
+- in the signup page, error messages in the slide down are never cleared
+- this happens when you hit [submit] after a few seconds, rinds and repeat
+- e.g. this is not stacking of multiple messages in rapid succession, which is spec
+- split out jPulsCommon.handleSubmission() into jPulsCommon.bindSubmission()
+  - use jPulsCommon.bindSubmission() for simple forms like login
+  - use jPulsCommon.handleSubmission() for complex forms like signup
+
 
 
 
@@ -577,15 +587,13 @@ Requirements Doc of jPulse Framework
 -------------------------------------------------------------------------
 # 🚧 IN_PROGRESS Work Items
 
-## **W-042**: view: fix slide down message is not cleared bug
+## **W-043**: view: rename jPulseCommon object to jPulse
 - status: 🚧 IN_PROGRESS
-- type: Bug
-- in the signup page, error messages in the slide down are never cleared
-- this happens when you hit [submit] after a few seconds, rinds and repeat
-- e.g. this is not stacking of multiple messages in rapid succession, which is spec
-- split out jPulsCommon.handleSubmission() into jPulsCommon.bindSubmission()
-  - use jPulsCommon.bindSubmission() for simple forms like login
-  - use jPulsCommon.handleSubmission() for complex forms like signup
+- type: Feature
+- objective: don't make me think, maintain brand, extensible
+
+
+
 
 
 
@@ -607,11 +615,11 @@ next work item: **W-036**: view: migrate existing views to use jpulse-common.js 
 Almost ready for W-042 release (this chat refers to W-021, my mistake)
 
 - run tests, and fix issues
-- update docs: README.md, API.md, developers.md, changes.md in project root
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-04 02:12
-- update commit-message.txt, following the same format, specify: W-042, v0.4.7
-  - don't commit
+- update docs: README.md, API.md, developers.md, changes.md in project root
+- update commit-message.txt, following the same format, specify: W-043, v0.4.8
+- don't commit
 
 
 

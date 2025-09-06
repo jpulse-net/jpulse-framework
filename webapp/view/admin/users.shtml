@@ -4,7 +4,7 @@
  * @tagline         Admin user management interface
  * @description     User management dashboard for site administrators
  * @file            webapp/view/admin/users.shtml
- * @version         0.4.7
+ * @version         0.4.8
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -201,8 +201,8 @@
         let allUsers = [];
         let userSchema = null;
 
-        // Enhanced user management using jPulseCommon utilities
-        jPulseCommon.dom.ready(() => {
+        // Enhanced user management using jPulse utilities
+        jPulse.dom.ready(() => {
             // Initialize admin functionality directly (route-level auth handles access)
             loadRoles();
             loadStatuses();
@@ -239,7 +239,7 @@
         async function loadUserStats() {
             try {
                 // Get all users to calculate stats (original approach)
-                const result = await jPulseCommon.api.get('/api/1/user/search?limit=1000');
+                const result = await jPulse.api.get('/api/1/user/search?limit=1000');
                 if (result.success) {
                     const users = result.data || [];
 
@@ -284,17 +284,17 @@
                     }
                 });
 
-                const result = await jPulseCommon.api.get('/api/1/user/search?' + params.toString());
+                const result = await jPulse.api.get('/api/1/user/search?' + params.toString());
 
                 if (result.success) {
                     const userData = result.data;
                     displayUsers(userData);
                     setupPagination(result.pagination);
                 } else {
-                    jPulseCommon.showSlideDownError(result.error || '{{i18n.view.admin.users.failedToLoadUsers}}');
+                    jPulse.showSlideDownError(result.error || '{{i18n.view.admin.users.failedToLoadUsers}}');
                 }
             } catch (error) {
-                jPulseCommon.showSlideDownError('{{i18n.view.admin.users.networkError}}');
+                jPulse.showSlideDownError('{{i18n.view.admin.users.networkError}}');
             } finally {
                 showLoading(false);
             }
@@ -331,8 +331,8 @@
                 <div class="jp-user-info">
                     <div class="jp-user-avatar">${ '{{user.initials}}' || '?'}</div>
                     <div>
-                        <div class="jp-user-name">${jPulseCommon.string.escapeHtml(user.profile?.firstName || '')} ${jPulseCommon.string.escapeHtml(user.profile?.lastName || '')}</div>
-                        <div class="jp-user-login">@${jPulseCommon.string.escapeHtml(user.username || '')}</div>
+                        <div class="jp-user-name">${jPulse.string.escapeHtml(user.profile?.firstName || '')} ${jPulse.string.escapeHtml(user.profile?.lastName || '')}</div>
+                        <div class="jp-user-login">@${jPulse.string.escapeHtml(user.username || '')}</div>
                     </div>
                 </div>
             `;
@@ -412,7 +412,7 @@
         function searchUsers(event) {
             event.preventDefault();
 
-            const formData = jPulseCommon.form.serialize(event.target);
+            const formData = jPulse.form.serialize(event.target);
             const searchParams = {};
 
             // Filter out empty values
@@ -443,7 +443,7 @@
         // Restore original working functions
         async function loadRoles() {
             try {
-                const response = await jPulseCommon.api.get('/api/1/auth/roles');
+                const response = await jPulse.api.get('/api/1/auth/roles');
                 if (response.success) {
                     const roleSelect = document.getElementById('searchRole');
                     const currentValue = roleSelect.value; // Preserve current selection
@@ -464,11 +464,11 @@
                     // Restore selection
                     roleSelect.value = currentValue;
                 } else {
-                    jPulseCommon.showSlideDownError('Failed to load role options: ' + (response.error || 'Unknown error'));
+                    jPulse.showSlideDownError('Failed to load role options: ' + (response.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Failed to load roles:', error);
-                jPulseCommon.showSlideDownError('Failed to load role options. Please refresh the page.');
+                jPulse.showSlideDownError('Failed to load role options. Please refresh the page.');
             }
         }
 

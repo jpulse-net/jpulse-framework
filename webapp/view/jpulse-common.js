@@ -3,7 +3,7 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         0.4.7
+ * @version         0.4.8
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -12,7 +12,7 @@
  * @genai           99%, Cursor 1.2, Claude Sonnet 4
  */
 
-window.jPulseCommon = {
+window.jPulse = {
     // Slide-down message queue management
     _slideDownQueue: [],
 
@@ -41,10 +41,10 @@ window.jPulseCommon = {
         messageDiv.dataset.duration = duration;
 
         // Add to queue
-        jPulseCommon._slideDownQueue.push(messageDiv);
+        jPulse._slideDownQueue.push(messageDiv);
 
         // Process only the new message
-        jPulseCommon._processSlideDownMessage(messageDiv);
+        jPulse._processSlideDownMessage(messageDiv);
 
         return messageDiv;
     },
@@ -54,7 +54,7 @@ window.jPulseCommon = {
      * @param {Element} messageDiv - The message element to process
      */
     _processSlideDownMessage: (messageDiv) => {
-        const index = jPulseCommon._slideDownQueue.indexOf(messageDiv);
+        const index = jPulse._slideDownQueue.indexOf(messageDiv);
 
         // Add to DOM first so we can measure height
         document.body.appendChild(messageDiv);
@@ -66,7 +66,7 @@ window.jPulseCommon = {
         let stackOffset = 0;
         if (index > 0) {
             for (let i = 0; i < index; i++) {
-                const prevMessage = jPulseCommon._slideDownQueue[i];
+                const prevMessage = jPulse._slideDownQueue[i];
                 if (prevMessage && prevMessage.parentNode) {
                     stackOffset += prevMessage.offsetHeight + 5; // 5px gap between messages
                 }
@@ -86,7 +86,7 @@ window.jPulseCommon = {
         const duration = parseInt(messageDiv.dataset.duration);
         if (duration > 0) {
             setTimeout(() => {
-                jPulseCommon._hideSlideDownMessage(messageDiv);
+                jPulse._hideSlideDownMessage(messageDiv);
             }, duration);
         }
     },
@@ -108,9 +108,9 @@ window.jPulseCommon = {
                 messageDiv.remove();
             }
             // Remove from queue
-            const index = jPulseCommon._slideDownQueue.indexOf(messageDiv);
+            const index = jPulse._slideDownQueue.indexOf(messageDiv);
             if (index > -1) {
-                jPulseCommon._slideDownQueue.splice(index, 1);
+                jPulse._slideDownQueue.splice(index, 1);
             }
         }, 600); // Match the longer animation time
     },
@@ -119,28 +119,28 @@ window.jPulseCommon = {
      * Show error slide-down message (red styling)
      */
     showSlideDownError: (message) => {
-        return jPulseCommon.showSlideDownMessage(message, 'error');
+        return jPulse.showSlideDownMessage(message, 'error');
     },
 
     /**
      * Show success slide-down message (green styling)
      */
     showSlideDownSuccess: (message) => {
-        return jPulseCommon.showSlideDownMessage(message, 'success');
+        return jPulse.showSlideDownMessage(message, 'success');
     },
 
     /**
      * Show info slide-down message (blue styling)
      */
     showSlideDownInfo: (message) => {
-        return jPulseCommon.showSlideDownMessage(message, 'info');
+        return jPulse.showSlideDownMessage(message, 'info');
     },
 
     /**
      * Show warning slide-down message (yellow styling)
      */
     showSlideDownWarning: (message) => {
-        return jPulseCommon.showSlideDownMessage(message, 'warning');
+        return jPulse.showSlideDownMessage(message, 'warning');
     },
 
     /**
@@ -148,10 +148,10 @@ window.jPulseCommon = {
      */
     clearSlideDownMessages: () => {
         // Clear all messages in queue
-        jPulseCommon._slideDownQueue.forEach(messageDiv => {
-            jPulseCommon._hideSlideDownMessage(messageDiv);
+        jPulse._slideDownQueue.forEach(messageDiv => {
+            jPulse._hideSlideDownMessage(messageDiv);
         });
-        jPulseCommon._slideDownQueue = [];
+        jPulse._slideDownQueue = [];
     },
 
     // ========================================
@@ -230,7 +230,7 @@ window.jPulseCommon = {
          * @param {Object} options - Additional fetch options
          */
         get: (endpoint, options = {}) => {
-            return jPulseCommon.apiCall(endpoint, { ...options, method: 'GET' });
+            return jPulse.apiCall(endpoint, { ...options, method: 'GET' });
         },
 
         /**
@@ -240,7 +240,7 @@ window.jPulseCommon = {
          * @param {Object} options - Additional fetch options
          */
         post: (endpoint, data = null, options = {}) => {
-            return jPulseCommon.apiCall(endpoint, { ...options, method: 'POST', body: data });
+            return jPulse.apiCall(endpoint, { ...options, method: 'POST', body: data });
         },
 
         /**
@@ -250,7 +250,7 @@ window.jPulseCommon = {
          * @param {Object} options - Additional fetch options
          */
         put: (endpoint, data = null, options = {}) => {
-            return jPulseCommon.apiCall(endpoint, { ...options, method: 'PUT', body: data });
+            return jPulse.apiCall(endpoint, { ...options, method: 'PUT', body: data });
         },
 
         /**
@@ -259,7 +259,7 @@ window.jPulseCommon = {
          * @param {Object} options - Additional fetch options
          */
         delete: (endpoint, options = {}) => {
-            return jPulseCommon.apiCall(endpoint, { ...options, method: 'DELETE' });
+            return jPulse.apiCall(endpoint, { ...options, method: 'DELETE' });
         }
     },
 
@@ -281,7 +281,7 @@ window.jPulseCommon = {
         bindSubmission: (formElement, endpoint, options = {}) => {
             formElement.addEventListener('submit', async (event) => {
                 event.preventDefault();
-                await jPulseCommon.form.handleSubmission(formElement, endpoint, options);
+                await jPulse.form.handleSubmission(formElement, endpoint, options);
             });
         },
 
@@ -317,7 +317,7 @@ window.jPulseCommon = {
                                formElement.querySelector('.jp-btn-submit');
 
             // Clear previous errors
-            jPulseCommon.form.clearErrors(formElement);
+            jPulse.form.clearErrors(formElement);
 
             // Pre-submission callback
             if (config.beforeSubmit && typeof config.beforeSubmit === 'function') {
@@ -340,22 +340,22 @@ window.jPulseCommon = {
                 });
 
                 if (hasErrors) {
-                    jPulseCommon.showSlideDownError('Please fill in all required fields.');
+                    jPulse.showSlideDownError('Please fill in all required fields.');
                     return { success: false, error: 'Required fields missing' };
                 }
             }
 
             // Set loading state
             if (submitButton) {
-                jPulseCommon.form.setLoadingState(submitButton, true, config.loadingText);
+                jPulse.form.setLoadingState(submitButton, true, config.loadingText);
             }
 
             try {
                 // Serialize form data
-                const formData = jPulseCommon.form.serialize(formElement);
+                const formData = jPulse.form.serialize(formElement);
 
                 // Make API call
-                const result = await jPulseCommon.apiCall(endpoint, {
+                const result = await jPulse.apiCall(endpoint, {
                     method: config.method,
                     body: formData
                 });
@@ -363,7 +363,7 @@ window.jPulseCommon = {
                 if (result.success) {
                     // Success handling
                     if (config.successMessage) {
-                        jPulseCommon.showSlideDownSuccess(config.successMessage);
+                        jPulse.showSlideDownSuccess(config.successMessage);
                     }
 
                     if (config.clearOnSuccess) {
@@ -388,12 +388,12 @@ window.jPulseCommon = {
                     } else {
                         // Otherwise, show the default error message.
                         const errorMessage = config.errorMessage || result.error || 'Submission failed';
-                        jPulseCommon.showSlideDownError(errorMessage);
+                        jPulse.showSlideDownError(errorMessage);
                     }
 
                     // Handle field-specific errors if provided by API
                     if (result.data && result.data.fieldErrors) {
-                        jPulseCommon.form.showFieldErrors(formElement, result.data.fieldErrors);
+                        jPulse.form.showFieldErrors(formElement, result.data.fieldErrors);
                     }
                 }
 
@@ -406,13 +406,13 @@ window.jPulseCommon = {
 
             } catch (error) {
                 const errorMessage = `Submission error: ${error.message}`;
-                jPulseCommon.showSlideDownError(errorMessage);
+                jPulse.showSlideDownError(errorMessage);
                 return { success: false, error: errorMessage };
 
             } finally {
                 // Always restore button state
                 if (submitButton) {
-                    jPulseCommon.form.setLoadingState(submitButton, false);
+                    jPulse.form.setLoadingState(submitButton, false);
                 }
             }
         },
@@ -482,7 +482,7 @@ window.jPulseCommon = {
             });
 
             // Clear any existing alerts in the form
-            jPulseCommon.clearSlideDownMessages();
+            jPulse.clearSlideDownMessages();
         },
 
         /**
@@ -660,15 +660,15 @@ window.jPulseCommon = {
             const finalConfig = { ...defaultConfig, ...config };
 
             // Setup the collapsible
-            jPulseCommon.collapsible._setup(element, finalConfig);
+            jPulse.collapsible._setup(element, finalConfig);
 
             // Return handle object for method chaining and cleaner API
             return {
                 elementId: elementId,
-                toggle: () => jPulseCommon.collapsible._toggle(elementId),
-                expand: () => jPulseCommon.collapsible._expand(elementId),
-                collapse: () => jPulseCommon.collapsible._collapse(elementId),
-                isExpanded: () => jPulseCommon.collapsible._isExpanded(elementId)
+                toggle: () => jPulse.collapsible._toggle(elementId),
+                expand: () => jPulse.collapsible._expand(elementId),
+                collapse: () => jPulse.collapsible._collapse(elementId),
+                isExpanded: () => jPulse.collapsible._isExpanded(elementId)
             };
         },
 
@@ -685,9 +685,9 @@ window.jPulseCommon = {
 
             const isExpanded = element.classList.contains('jp-expanded');
             if (isExpanded) {
-                jPulseCommon.collapsible._collapse(elementId);
+                jPulse.collapsible._collapse(elementId);
             } else {
-                jPulseCommon.collapsible._expand(elementId);
+                jPulse.collapsible._expand(elementId);
             }
         },
 
@@ -701,7 +701,7 @@ window.jPulseCommon = {
                 console.warn(`Collapsible element with ID '${elementId}' not found`);
                 return;
             }
-            jPulseCommon.collapsible._expandElement(element);
+            jPulse.collapsible._expandElement(element);
         },
 
         /**
@@ -714,7 +714,7 @@ window.jPulseCommon = {
                 console.warn(`Collapsible element with ID '${elementId}' not found`);
                 return;
             }
-            jPulseCommon.collapsible._collapseElement(element);
+            jPulse.collapsible._collapseElement(element);
         },
 
         /**
@@ -782,7 +782,7 @@ window.jPulseCommon = {
 
             // Add click handler to the header (h3 or wrapper)
             header.addEventListener('click', () => {
-                jPulseCommon.collapsible._toggleElement(collapsibleElement);
+                jPulse.collapsible._toggleElement(collapsibleElement);
             });
 
             // Add cursor pointer style to indicate clickability
@@ -797,9 +797,9 @@ window.jPulseCommon = {
             const isExpanded = collapsibleElement.classList.contains('jp-expanded');
 
             if (isExpanded) {
-                jPulseCommon.collapsible._collapseElement(collapsibleElement);
+                jPulse.collapsible._collapseElement(collapsibleElement);
             } else {
-                jPulseCommon.collapsible._expandElement(collapsibleElement);
+                jPulse.collapsible._expandElement(collapsibleElement);
             }
         },
 

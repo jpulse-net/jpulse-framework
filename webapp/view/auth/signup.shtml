@@ -4,7 +4,7 @@
  * @tagline         User registration and account creation page
  * @description     Signup form for internal user registration
  * @file            webapp/view/auth/signup.shtml
- * @version         0.4.7
+ * @version         0.4.8
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -261,30 +261,30 @@
     </div>
 
     <script>
-        // Enhanced signup handling using jPulseCommon utilities
-        jPulseCommon.dom.ready(() => {
+        // Enhanced signup handling using jPulse utilities
+        jPulse.dom.ready(() => {
             const signupForm = document.getElementById('signupForm');
 
-            // Simplified form submission with jPulseCommon
+            // Simplified form submission with jPulse
             signupForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
 
-                const formData = jPulseCommon.form.serialize(signupForm);
+                const formData = jPulse.form.serialize(signupForm);
 
                 // Client-side validation for password match
                 if (formData.password !== formData.confirmPassword) {
-                    jPulseCommon.showSlideDownError('{{i18n.view.auth.signup.passwordMismatch}}');
+                    jPulse.showSlideDownError('{{i18n.view.auth.signup.passwordMismatch}}');
                     return;
                 }
 
                 // Check terms acceptance
                 if (!formData.acceptTerms) {
-                    jPulseCommon.showSlideDownError('{{i18n.view.auth.signup.termsAccept}}');
+                    jPulse.showSlideDownError('{{i18n.view.auth.signup.termsAccept}}');
                     return;
                 }
 
-                // Use jPulseCommon form submission
-                const result = await jPulseCommon.form.handleSubmission(signupForm, '/api/1/user/signup', {
+                // Use jPulse form submission
+                const result = await jPulse.form.handleSubmission(signupForm, '/api/1/user/signup', {
                     method: 'POST',
                     loadingText: '{{i18n.view.auth.signup.signingUp}}',
                     successMessage: null, // Don't show automatic success message
@@ -299,7 +299,7 @@
                     },
                     onError: (error) => {
                         const errorMessage = error || '{{i18n.view.auth.signup.signupFailed}}';
-                        jPulseCommon.showSlideDownError(errorMessage);
+                        jPulse.showSlideDownError(errorMessage);
                     }
                 });
             });

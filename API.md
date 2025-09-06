@@ -1,4 +1,4 @@
-# jPulse Framework / API Documentation v0.4.7
+# jPulse Framework / API Documentation v0.4.8
 
 Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
 
@@ -60,9 +60,9 @@ https://your-domain.com/api/1/
 ```
 
 ________________________________________________
-## 🎨 Client-Side Utilities (jPulseCommon)
+## 🎨 Client-Side Utilities (jPulse)
 
-The jPulse Framework includes a comprehensive client-side utility library available globally as `jPulseCommon`. This eliminates code duplication and provides consistent patterns across all views.
+The jPulse Framework includes a comprehensive client-side utility library available globally as `jPulse`. This eliminates code duplication and provides consistent patterns across all views.
 
 ### Slide-Down Message System
 
@@ -70,16 +70,16 @@ Display non-blocking slide-down messages with smooth animations and intelligent 
 
 ```javascript
 // Basic slide-down messages with configurable auto-hide durations
-jPulseCommon.showSlideDownSuccess('Operation completed successfully!'); // 3s duration
-jPulseCommon.showSlideDownError('Please check your input and try again.'); // 6s duration
-jPulseCommon.showSlideDownInfo('Your session will expire in 5 minutes.'); // 3s duration
-jPulseCommon.showSlideDownWarning('This action cannot be undone.'); // 5s duration
+jPulse.showSlideDownSuccess('Operation completed successfully!'); // 3s duration
+jPulse.showSlideDownError('Please check your input and try again.'); // 6s duration
+jPulse.showSlideDownInfo('Your session will expire in 5 minutes.'); // 3s duration
+jPulse.showSlideDownWarning('This action cannot be undone.'); // 5s duration
 
 // Custom duration (overrides config defaults)
-jPulseCommon.showSlideDownMessage('Custom message', 'info', 10000);
+jPulse.showSlideDownMessage('Custom message', 'info', 10000);
 
 // Clear all slide-down messages
-jPulseCommon.clearSlideDownMessages();
+jPulse.clearSlideDownMessages();
 ```
 
 **Features:**
@@ -95,25 +95,25 @@ Simplified API interactions with consistent error handling and response format.
 
 ```javascript
 // GET request
-const result = await jPulseCommon.api.get('/api/1/user/profile');
+const result = await jPulse.api.get('/api/1/user/profile');
 if (result.success) {
     console.log('User data:', result.data);
 } else {
-    jPulseCommon.showError(result.error);
+    jPulse.showError(result.error);
 }
 
 // POST request with data
-const loginResult = await jPulseCommon.api.post('/api/1/auth/login', {
+const loginResult = await jPulse.api.post('/api/1/auth/login', {
     identifier: 'username',
     password: 'password'
 });
 
 // PUT and DELETE requests
-await jPulseCommon.api.put('/api/1/user/profile', profileData);
-await jPulseCommon.api.delete('/api/1/user/session');
+await jPulse.api.put('/api/1/user/profile', profileData);
+await jPulse.api.delete('/api/1/user/session');
 
 // Advanced usage with custom options
-const customResult = await jPulseCommon.apiCall('/api/1/custom', {
+const customResult = await jPulse.apiCall('/api/1/custom', {
     method: 'PATCH',
     body: data,
     headers: { 'Custom-Header': 'value' }
@@ -130,7 +130,7 @@ Automatic event binding for straightforward form handling:
 ```javascript
 // Simple form with automatic binding
 const form = document.getElementById('loginForm');
-jPulseCommon.form.bindSubmission(form, '/api/1/auth/login', {
+jPulse.form.bindSubmission(form, '/api/1/auth/login', {
     successMessage: 'Login successful!',
     redirectUrl: '/dashboard/',
     loadingText: 'Signing in...',
@@ -154,12 +154,12 @@ form.addEventListener('submit', async (event) => {
     const password = form.password.value;
     const confirmPassword = form.confirmPassword.value;
     if (password !== confirmPassword) {
-        jPulseCommon.showSlideDownError('Passwords do not match');
+        jPulse.showSlideDownError('Passwords do not match');
         return;
     }
 
     // Call handleSubmission directly
-    await jPulseCommon.form.handleSubmission(form, '/api/1/user/signup', {
+    await jPulse.form.handleSubmission(form, '/api/1/user/signup', {
         onSuccess: (data) => {
             const username = data.user.username;
             window.location.href = `/auth/login.shtml?signup=success&username=${encodeURIComponent(username)}`;
@@ -197,14 +197,14 @@ Helper functions for form management:
 
 ```javascript
 // Form utilities
-const formData = jPulseCommon.form.serialize(formElement);
-jPulseCommon.form.setLoadingState(submitButton, true, 'Processing...');
-jPulseCommon.form.clearErrors(formElement);
+const formData = jPulse.form.serialize(formElement);
+jPulse.form.setLoadingState(submitButton, true, 'Processing...');
+jPulse.form.clearErrors(formElement);
 
 // Validation helpers
-jPulseCommon.form.validate.email('user@example.com'); // true/false
-jPulseCommon.form.validate.password('mypassword', 8); // true/false
-jPulseCommon.form.validate.required('value'); // true/false
+jPulse.form.validate.email('user@example.com'); // true/false
+jPulse.form.validate.password('mypassword', 8); // true/false
+jPulse.form.validate.required('value'); // true/false
 ```
 
 ### Collapsible Component System
@@ -213,17 +213,17 @@ Production-ready collapsible sections with clean API design and comprehensive fu
 
 ```javascript
 // Register a collapsible section and get handle
-const securityCollapsible = jPulseCommon.collapsible.register('securitySection', {
+const securityCollapsible = jPulse.collapsible.register('securitySection', {
     initOpen: false,
     onOpen: () => {
         // Show password fields when opened
         const passwordFields = document.getElementById('passwordFields');
-        jPulseCommon.dom.show(passwordFields);
+        jPulse.dom.show(passwordFields);
     },
     onClose: () => {
         // Hide and clear password fields when closed
         const passwordFields = document.getElementById('passwordFields');
-        jPulseCommon.dom.hide(passwordFields);
+        jPulse.dom.hide(passwordFields);
         ['currentPassword', 'newPassword', 'confirmPassword'].forEach(id => {
             document.getElementById(id).value = '';
         });
@@ -263,27 +263,27 @@ Enhanced DOM manipulation with consistent patterns.
 
 ```javascript
 // DOM ready handling
-jPulseCommon.dom.ready(() => {
+jPulse.dom.ready(() => {
     console.log('DOM is ready');
 });
 
 // Element creation and manipulation
-const div = jPulseCommon.dom.createElement('div', 'my-class', 'Hello World');
+const div = jPulse.dom.createElement('div', 'my-class', 'Hello World');
 document.body.appendChild(div);
 
 // Show/hide elements
-jPulseCommon.dom.hide(element);
-jPulseCommon.dom.show(element);
-jPulseCommon.dom.toggle(element);
+jPulse.dom.hide(element);
+jPulse.dom.show(element);
+jPulse.dom.toggle(element);
 
 // String utilities
-const safe = jPulseCommon.string.escapeHtml('<script>alert("xss")</script>');
-const pretty = jPulseCommon.string.capitalize('hello world'); // "Hello world"
-const slug = jPulseCommon.string.slugify('Hello World!'); // "hello-world"
+const safe = jPulse.string.escapeHtml('<script>alert("xss")</script>');
+const pretty = jPulse.string.capitalize('hello world'); // "Hello world"
+const slug = jPulse.string.slugify('Hello World!'); // "hello-world"
 
 // URL parameter handling
-const params = jPulseCommon.url.getParams(); // {key: 'value', ...}
-const value = jPulseCommon.url.getParam('redirect'); // 'value' or null
+const params = jPulse.url.getParams(); // {key: 'value', ...}
+const value = jPulse.url.getParam('redirect'); // 'value' or null
 ```
 
 ### Device & Browser Detection
@@ -292,22 +292,22 @@ Responsive design and feature detection utilities.
 
 ```javascript
 // Device detection
-const isMobile = jPulseCommon.device.isMobile(); // true/false
-const isTablet = jPulseCommon.device.isTablet(); // true/false
-const isDesktop = jPulseCommon.device.isDesktop(); // true/false
-const isTouch = jPulseCommon.device.isTouchDevice(); // true/false
+const isMobile = jPulse.device.isMobile(); // true/false
+const isTablet = jPulse.device.isTablet(); // true/false
+const isDesktop = jPulse.device.isDesktop(); // true/false
+const isTouch = jPulse.device.isTouchDevice(); // true/false
 
 // Browser and OS detection
-const browser = jPulseCommon.device.detectBrowser(); // 'chrome', 'firefox', 'safari', 'edge'
-const os = jPulseCommon.device.detectOs(); // 'windows', 'mac', 'linux', 'ios', 'android'
+const browser = jPulse.device.detectBrowser(); // 'chrome', 'firefox', 'safari', 'edge'
+const os = jPulse.device.detectOs(); // 'windows', 'mac', 'linux', 'ios', 'android'
 
 // Viewport information
-const viewport = jPulseCommon.device.getViewportSize(); // {width: 1920, height: 1080}
+const viewport = jPulse.device.getViewportSize(); // {width: 1920, height: 1080}
 
 // Cookie management
-jPulseCommon.cookies.set('preference', 'dark-theme', 30); // 30 days
-const theme = jPulseCommon.cookies.get('preference'); // 'dark-theme'
-jPulseCommon.cookies.delete('preference');
+jPulse.cookies.set('preference', 'dark-theme', 30); // 30 days
+const theme = jPulse.cookies.get('preference'); // 'dark-theme'
+jPulse.cookies.delete('preference');
 ```
 
 ### CSS Classes
@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const result = await jPulseCommon.form.handleSubmission(
+        const result = await jPulse.form.handleSubmission(
             loginForm,
             '/api/1/auth/login',
             {
@@ -340,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 redirectDelay: 1000,
                 beforeSubmit: (form) => {
                     // Clear any previous alerts
-                    jPulseCommon.clearAlerts();
+                    jPulse.clearAlerts();
                     return true;
                 },
                 onError: (error) => {

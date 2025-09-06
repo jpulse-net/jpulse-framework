@@ -19,14 +19,14 @@ Major Features:
   - Single form submission now results in single API call and single error message
 
 - **Enhanced Form Submission API**: New dual-function approach for different use cases
-  - `jPulseCommon.form.bindSubmission()` for simple forms with automatic event binding
-  - `jPulseCommon.form.handleSubmission()` for custom logic with manual event handling
+  - `jPulse.form.bindSubmission()` for simple forms with automatic event binding
+  - `jPulse.form.handleSubmission()` for custom logic with manual event handling
   - Comprehensive configuration options supporting all form submission scenarios
   - "Don't make me think" API design with safe defaults and explicit opt-ins
 
 - **Comprehensive Test Coverage**: Complete test suite for form submission logic
   - 7 comprehensive test cases covering both `bindSubmission` and `handleSubmission` functions
-  - Proper mocking of `jPulseCommon.apiCall` instead of direct `fetch` mocking
+  - Proper mocking of `jPulse.apiCall` instead of direct `fetch` mocking
   - Test isolation improvements with `jest.clearAllMocks()` and proper cleanup
   - Fixed mock state leakage between tests ensuring reliable test execution
 
@@ -74,7 +74,7 @@ Major Features:
   - Improved form validation and error handling with internationalized messages
 
 - **Production-Ready Collapsible Component**: Clean, reusable client-side component
-  - Handle-based API design: `const handle = jPulseCommon.collapsible.register(id, config)`
+  - Handle-based API design: `const handle = jPulse.collapsible.register(id, config)`
   - Clean method calls: `handle.expand()`, `handle.collapse()`, `handle.toggle()`, `handle.isExpanded()`
   - Automatic arrow creation and positioning (▶ collapsed, ▼ expanded)
   - Callback support for `onOpen` and `onClose` events
@@ -245,7 +245,7 @@ Technical Improvements:
 - **Dynamic Schema Synchronization**: Frontend automatically stays synchronized with backend schema
 - **Enhanced Search & Pagination**: Comprehensive search with proper context maintenance
 - **Internationalization Cleanup**: Removed hardcoded data translations, kept UI text translations
-- **Error Handling**: Proper jPulseCommon.showError integration with graceful API failure handling
+- **Error Handling**: Proper jPulse.showError integration with graceful API failure handling
 
 Files Modified (11 total):
 - `webapp/controller/auth.js` (new API endpoints, i18n messages)
@@ -309,7 +309,7 @@ Technical Improvements:
 - **Dynamic Content-Type Detection**: Enhanced `webapp/controller/view.js` to serve CSS files as `text/css` and JS files as `application/javascript`
 - **Cache-Busting**: Implemented `{{file.timestamp}}` handlebars helper for jpulse-* dynamic assets
 - **Component Styling**: Added `webapp/view/jpulse-common.css` (113 lines) with jp-prefixed classes
-- **Namespace Protection**: jPulseCommon object prevents global variable conflicts
+- **Namespace Protection**: jPulse object prevents global variable conflicts
 - **Future-Proof Architecture**: Designed for themes and Vue.js integration compatibility
 
 Development Impact:

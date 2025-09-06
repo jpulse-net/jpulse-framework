@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for jPulse Common Client-Side Utilities
  * @description     Tests for client-side JavaScript utilities in jpulse-common.js
  * @file            webapp/tests/unit/utils/jpulse-common.test.js
- * @version         0.4.7
+ * @version         0.4.8
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -38,39 +38,39 @@ const vm = require('vm');
 const context = vm.createContext(window);
 vm.runInContext(jpulseCommonContent, context);
 
-describe('jPulseCommon Client-Side Utilities', () => {
+describe('jPulse Client-Side Utilities', () => {
 
     beforeEach(() => {
         // Clear document body for each test
         document.body.innerHTML = '';
 
         // Reset any global state
-        if (window.jPulseCommon && window.jPulseCommon.collapsible) {
+        if (window.jPulse && window.jPulse.collapsible) {
             // Clear any stored configurations
-            window.jPulseCommon.collapsible._configs = {};
+            window.jPulse.collapsible._configs = {};
         }
     });
 
-    describe('jPulseCommon.collapsible', () => {
+    describe('jPulse.collapsible', () => {
 
         test('should exist and have register method', () => {
-            expect(window.jPulseCommon).toBeDefined();
-            expect(window.jPulseCommon.collapsible).toBeDefined();
-            expect(typeof window.jPulseCommon.collapsible.register).toBe('function');
+            expect(window.jPulse).toBeDefined();
+            expect(window.jPulse.collapsible).toBeDefined();
+            expect(typeof window.jPulse.collapsible.register).toBe('function');
         });
 
         test('should not expose internal methods directly', () => {
             // Internal methods should be prefixed with _
-            expect(window.jPulseCommon.collapsible.toggle).toBeUndefined();
-            expect(window.jPulseCommon.collapsible.expand).toBeUndefined();
-            expect(window.jPulseCommon.collapsible.collapse).toBeUndefined();
-            expect(window.jPulseCommon.collapsible.isExpanded).toBeUndefined();
+            expect(window.jPulse.collapsible.toggle).toBeUndefined();
+            expect(window.jPulse.collapsible.expand).toBeUndefined();
+            expect(window.jPulse.collapsible.collapse).toBeUndefined();
+            expect(window.jPulse.collapsible.isExpanded).toBeUndefined();
 
             // Internal methods should exist with _ prefix
-            expect(typeof window.jPulseCommon.collapsible._toggle).toBe('function');
-            expect(typeof window.jPulseCommon.collapsible._expand).toBe('function');
-            expect(typeof window.jPulseCommon.collapsible._collapse).toBe('function');
-            expect(typeof window.jPulseCommon.collapsible._isExpanded).toBe('function');
+            expect(typeof window.jPulse.collapsible._toggle).toBe('function');
+            expect(typeof window.jPulse.collapsible._expand).toBe('function');
+            expect(typeof window.jPulse.collapsible._collapse).toBe('function');
+            expect(typeof window.jPulse.collapsible._isExpanded).toBe('function');
         });
 
         test('should register collapsible element and return handle', () => {
@@ -84,7 +84,7 @@ describe('jPulseCommon Client-Side Utilities', () => {
                 </div>
             `;
 
-            const handle = window.jPulseCommon.collapsible.register('testCollapsible');
+            const handle = window.jPulse.collapsible.register('testCollapsible');
 
             expect(handle).toBeDefined();
             expect(handle.elementId).toBe('testCollapsible');
@@ -97,7 +97,7 @@ describe('jPulseCommon Client-Side Utilities', () => {
         test('should return null for non-existent element', () => {
             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-            const handle = window.jPulseCommon.collapsible.register('nonExistent');
+            const handle = window.jPulse.collapsible.register('nonExistent');
 
             expect(handle).toBeNull();
             expect(consoleSpy).toHaveBeenCalledWith("Collapsible element with ID 'nonExistent' not found");
@@ -118,7 +118,7 @@ describe('jPulseCommon Client-Side Utilities', () => {
             const element = document.getElementById('testCollapsible');
             expect(element.querySelector('.jp-collapsible-arrow')).toBeNull();
 
-            window.jPulseCommon.collapsible.register('testCollapsible');
+            window.jPulse.collapsible.register('testCollapsible');
 
             const arrow = element.querySelector('.jp-collapsible-arrow');
             expect(arrow).toBeDefined();
@@ -141,7 +141,7 @@ describe('jPulseCommon Client-Side Utilities', () => {
 
             expect(header.style.cursor).toBe('');
 
-            window.jPulseCommon.collapsible.register('testCollapsible');
+            window.jPulse.collapsible.register('testCollapsible');
 
             expect(header.style.cursor).toBe('pointer');
         });
@@ -156,7 +156,7 @@ describe('jPulseCommon Client-Side Utilities', () => {
                 </div>
             `;
 
-            const handle = window.jPulseCommon.collapsible.register('testCollapsible');
+            const handle = window.jPulse.collapsible.register('testCollapsible');
             const element = document.getElementById('testCollapsible');
 
             // Should start collapsed
@@ -184,7 +184,7 @@ describe('jPulseCommon Client-Side Utilities', () => {
                 </div>
             `;
 
-            const handle = window.jPulseCommon.collapsible.register('testCollapsible');
+            const handle = window.jPulse.collapsible.register('testCollapsible');
             const element = document.getElementById('testCollapsible');
 
             // Should start collapsed
@@ -211,7 +211,7 @@ describe('jPulseCommon Client-Side Utilities', () => {
                 </div>
             `;
 
-            const handle = window.jPulseCommon.collapsible.register('testCollapsible', {
+            const handle = window.jPulse.collapsible.register('testCollapsible', {
                 initOpen: true
             });
 
@@ -234,7 +234,7 @@ describe('jPulseCommon Client-Side Utilities', () => {
             const onOpenSpy = jest.fn();
             const onCloseSpy = jest.fn();
 
-            const handle = window.jPulseCommon.collapsible.register('testCollapsible', {
+            const handle = window.jPulse.collapsible.register('testCollapsible', {
                 onOpen: onOpenSpy,
                 onClose: onCloseSpy
             });
@@ -260,7 +260,7 @@ describe('jPulseCommon Client-Side Utilities', () => {
                 </div>
             `;
 
-            const handle = window.jPulseCommon.collapsible.register('testCollapsible');
+            const handle = window.jPulse.collapsible.register('testCollapsible');
             const element = document.getElementById('testCollapsible');
             const header = element.querySelector('h3');
 
@@ -285,7 +285,7 @@ describe('jPulseCommon Client-Side Utilities', () => {
                 </div>
             `;
 
-            const handle = window.jPulseCommon.collapsible.register('testCollapsible');
+            const handle = window.jPulse.collapsible.register('testCollapsible');
             const element = document.getElementById('testCollapsible');
             const arrow = element.querySelector('.jp-collapsible-arrow');
 
@@ -317,8 +317,8 @@ describe('jPulseCommon Client-Side Utilities', () => {
                 </div>
             `;
 
-            const handle1 = window.jPulseCommon.collapsible.register('collapsible1');
-            const handle2 = window.jPulseCommon.collapsible.register('collapsible2');
+            const handle1 = window.jPulse.collapsible.register('collapsible1');
+            const handle2 = window.jPulse.collapsible.register('collapsible2');
 
             // Both should start collapsed
             expect(handle1.isExpanded()).toBe(false);
@@ -351,7 +351,7 @@ describe('jPulseCommon Client-Side Utilities', () => {
 
             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-            const handle = window.jPulseCommon.collapsible.register('testCollapsible');
+            const handle = window.jPulse.collapsible.register('testCollapsible');
 
             // The current implementation doesn't validate h3 presence, it returns a handle
             // but the functionality won't work properly without h3
@@ -373,7 +373,7 @@ describe('jPulseCommon Client-Side Utilities', () => {
                 </div>
             `;
 
-            const handle = window.jPulseCommon.collapsible.register('testCollapsible');
+            const handle = window.jPulse.collapsible.register('testCollapsible');
 
             expect(handle).toBeDefined();
             expect(handle.elementId).toBe('testCollapsible');
@@ -385,13 +385,13 @@ describe('jPulseCommon Client-Side Utilities', () => {
         });
     });
 
-    describe('jPulseCommon.dom utilities', () => {
+    describe('jPulse.dom utilities', () => {
 
         test('should have dom utilities', () => {
-            expect(window.jPulseCommon.dom).toBeDefined();
-            expect(typeof window.jPulseCommon.dom.ready).toBe('function');
-            expect(typeof window.jPulseCommon.dom.show).toBe('function');
-            expect(typeof window.jPulseCommon.dom.hide).toBe('function');
+            expect(window.jPulse.dom).toBeDefined();
+            expect(typeof window.jPulse.dom.ready).toBe('function');
+            expect(typeof window.jPulse.dom.show).toBe('function');
+            expect(typeof window.jPulse.dom.hide).toBe('function');
         });
 
         test('should handle show/hide functionality', () => {
@@ -409,23 +409,23 @@ describe('jPulseCommon Client-Side Utilities', () => {
             expect(element.classList.contains('jp-hidden')).toBe(true);
 
             // Show element (removes jp-hidden class)
-            window.jPulseCommon.dom.show(element);
+            window.jPulse.dom.show(element);
             expect(element.classList.contains('jp-hidden')).toBe(false);
 
             // Hide element (adds jp-hidden class)
-            window.jPulseCommon.dom.hide(element);
+            window.jPulse.dom.hide(element);
             expect(element.classList.contains('jp-hidden')).toBe(true);
         });
     });
 
-    describe('jPulseCommon.api utilities', () => {
+    describe('jPulse.api utilities', () => {
 
         test('should have api utilities', () => {
-            expect(window.jPulseCommon.api).toBeDefined();
-            expect(typeof window.jPulseCommon.api.get).toBe('function');
-            expect(typeof window.jPulseCommon.api.post).toBe('function');
-            expect(typeof window.jPulseCommon.api.put).toBe('function');
-            expect(typeof window.jPulseCommon.api.delete).toBe('function');
+            expect(window.jPulse.api).toBeDefined();
+            expect(typeof window.jPulse.api.get).toBe('function');
+            expect(typeof window.jPulse.api.post).toBe('function');
+            expect(typeof window.jPulse.api.put).toBe('function');
+            expect(typeof window.jPulse.api.delete).toBe('function');
         });
     });
 });

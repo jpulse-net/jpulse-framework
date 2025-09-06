@@ -1,6 +1,8 @@
 # Local work files
 .jpulse/
+site/webapp/app.conf
 commit-message*.txt
+test-w014-phase1.js
 tt-*
 *.save[0-9]
 *.save[0-9][0-9]

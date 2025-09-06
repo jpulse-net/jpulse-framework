@@ -604,6 +604,19 @@ Requirements Doc of jPulse Framework
 -------------------------------------------------------------------------
 # 🚧 IN_PROGRESS Work Items
 
+## **W-014**: app: strategy for seamless update of site-specific jPulse deployments
+- status: 🕑 PENDING
+- type: Feature
+- objective: clean separation of jpulse code/data, and site/deployment specific code/data
+- author: site administrator/developer
+- audience: site users
+- working document: tt-w-014-w-045-mvc-site-plugins-architecture.md
+- jPulse will be the base framework for multiple web apps
+- define a clean structure of two sets:
+  - jPulse framework directories and files
+  - site specific directories and files
+- automatic way to override/extend jPulse config, models, controllers, views with site-specific settings
+- create a demo model/view/controller (possibly as plugin), ship with jpulse-framework
 
 
 
@@ -614,9 +627,10 @@ Requirements Doc of jPulse Framework
 
 
 ## Potential next items:
-**W-015**: deployment: strategy for clean onboarding
-**W-037**: view: create themes
+**W-0**: create plugin infrastructure
 **W-014**: app: strategy for seamless update of site-specific jPulse deployments
+**W-040**: view: create view logs page for site admins
+**W-015**: deployment: strategy for clean onboarding
 
 ## Chat instructions
 
@@ -663,10 +677,37 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 -------------------------------------------------------------------------
 # TO-DO Work Items
 
-## **W-040**: view: create view logs page for site admins
+## **W-045**: architecture: create plugin infrastructure
 - status: 🕑 PENDING
 - type: Feature
-- create webapp/view/admin/logs.shtml -- search logs
+- objective: extensible framework that is easy to understand & easy to maintain
+- author: 3rd party developers
+- audience: site administrator
+- working document: tt-w-014-w-045-mvc-site-plugins-architecture.md
+- strategy: drop a plugin in specific directory, with auto discovery
+- plugins for:
+  - additional models
+  - additional controllers
+  - additional views
+  - wrapper for additional view packages
+  - themes
+- create a hello-world-plugin, ship with jpulse-framework
+
+
+
+
+## **W-015**: deployment: strategy for clean onboarding
+- status: 🕑 PENDING
+- type: Feature
+- define an clean out of box experience when deploying a jPulse based webserver for the first time
+- sensible defaults
+- easy onboarding for:
+  - dev and prod deployments
+  - nginx setup
+  - single app server, or multiple app servers with load balancer setup
+  - pm2 setup with single jPulse instance (fork), or multiple instances (cluster)
+  - mongddb deployment with standalone, or replicaset config
+  - mongodb setup with sysdba admin, dev data user, prod data user
 
 ## **W-037**: view: create themes
 - status: 🕑 PENDING
@@ -676,29 +717,12 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - way to define new themes
   - drop in a directory, with auto discovery
 
-## **W-014**: app: strategy for seamless update of site-specific jPulse deployments
+## **W-040**: view: create view logs page for site admins
 - status: 🕑 PENDING
 - type: Feature
-- jPulse will be the base framework for multiple web apps
-- define a clean structure of two sets:
-  - jPulse framework directories and files
-  - site specific directories and files
-- automatic way to override/extend jPulse config, models, controllers, views with site-specific settings
+- create webapp/view/admin/logs.shtml -- search logs
 
-## **W-015**: deployment: strategy for clean onboarding
-- status: 🕑 PENDING
-- type: Feature
-- define an clean out of box experience when deploying a jPulse based webserver for the first time
-- sensible defaults
-- handholding for:
-  - dev and prod deployments
-  - nginx setup
-  - single app server, or multiple app servers with load balancer setup
-  - pm2 setup with single jPulse instance (fork), or multiple instances (cluster)
-  - mongddb deployment with standalone, or replicaset config
-  - mongodb setup with sysdba admin, dev data user, prod data user
-
-## **W-0**: docs: restructure user facing and developer facing documentation
+## **W-046**: docs: restructure user facing and developer facing documentation
 - status: 🕑 PENDING
 - type: Feature
 - recommendation in tt-dev-doc-structure.md (to be reviewed)
@@ -711,6 +735,12 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - this: array element value
 - use kay path in case the array elements are objects, such as:
   - {{#each users}} {{this.firstName}} {{this.lastName}} {{/each}}
+
+## **W-0**: log controller: convert log to TSV
+- status: 🕑 PENDING
+- type: Feature
+- objective: make it easy to parse by analytics tools
+
 
 ## **W-0**: broadcast message
 - status: 🕑 PENDING
@@ -727,16 +757,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - status: 🕑 PENDING
 - type: Idea
 - new jpulse-docker project?
-
-## **W-0**: create plugin infrastructure
-- status: 🕑 PENDING
-- type: Feature
-- objective: extensible framework that is easy to understand & easy to maintain
-- strategy: drop a plugin in specific directory, with auto discovery
-- plugins for:
-  - themes
-  - additional models, controllers, views
-- create a hello-world-plugin, ship with jpulse-framework
 
 ## **W-0**: create a jpulse-ui-plugin
 - status: 🕑 PENDING
@@ -838,90 +858,6 @@ status codes:
 
 ------------------------
 
-# Detail on **W-014**: app: Strategy for Seamless Update of Custom jPulse Deployments
-
-## Architectural Decision: Override Directory Pattern
-
-**Selected Approach**: Option B - Override Directory Pattern with site/ separation
-
-### Directory Structure:
-```
-jpulse-framework/               # Main project
-├── webapp/                     # Framework core (updatable)
-│   ├── app.js                  # Framework bootstrap
-│   ├── controller/             # Base controllers
-│   ├── model/                  # Base models
-│   └── view/                   # Base templates
-├── site/                       # Site customizations (update-safe)
-│   ├── webapp/                 # Site-specific overrides
-│   │   ├── controller/         # Custom/extended controllers
-│   │   ├── model/              # Custom/extended models
-│   │   ├── view/               # Custom templates
-│   │   └── static/             # Site-specific assets
-│   ├── app.conf                # Site configuration
-│   └── site.json               # Site metadata
-├── plugins/                    # Plugin infrastructure
-│   ├── auth-ldap/
-│   │   ├── plugin.json         # Plugin metadata
-│   │   ├── config.conf         # Plugin config defaults
-│   │   └── webapp/             # Plugin MVC components
-│   └── dashboard-analytics/
-└── .jpulse/                    # Framework metadata
-    ├── app.json                # Consolidated runtime configuration
-    ├── config-sources.json     # Source file tracking
-    ├── plugins.json            # Plugin registry and status
-    ├── framework-version.json  # Version tracking
-    └── update-history.json     # Update log
-```
-
-### Key Principles:
-1. **File Resolution Priority**:
-   - `site/webapp/[type]/[file]` (Site override - highest priority)
-   - `webapp/[type]/[file]` (Framework default - fallback)
-   - Error if neither found
-
-2. **Protected Paths** (never overwritten by framework updates):
-   - `site/` directory (all site customizations)
-   - `app.conf` (site configuration)
-   - `.jpulse/site-*` (site metadata)
-
-3. **Dynamic Module Resolution**:
-   ```javascript
-   // Try site override first, fall back to framework
-   const sitePath = `./site/webapp/${modulePath}`;
-   const frameworkPath = `./webapp/${modulePath}`;
-   ```
-
-## Implementation Strategy
-
-### Phase 1: Foundation (W-013a)
-- Create directory structure utilities
-- Implement path resolution system
-- Design configuration merging strategy (details deferred)
-
-### Phase 2: Incremental Migration (W-013b)
-- Apply to new components (W-009, W-010, W-011, W-012)
-- Migrate existing components gradually
-- Maintain backward compatibility
-
-### Phase 3: Enhanced Features (W-013c)
-- Foundation for plugin infrastructure (W-016)
-- Theme system support (W-037)
-- Advanced customization tools
-
-### Deferred Decisions:
-- **Configuration Merging**: Deep merge strategy details to be decided during implementation
-- **Update Tooling**: Framework update utilities deferred to W-015 (onboarding strategy)
-
-### Benefits:
-- ✅ Clean separation of framework vs. site-specific code
-- ✅ Update-safe customizations
-- ✅ Foundation for plugin architecture (W-016)
-- ✅ Scalable for multiple site deployments
-- ✅ Backward compatibility maintained
-
------------
-
-Conversation with Grok on view strategy, e.g. buld your own or use vue:
+Conversation with Grok on view strategy, e.g. build your own or use vue:
 https://grok.com/share/c2hhcmQtNA%3D%3D_5c4f68c9-f2ae-46d2-aa33-3f6975601839
 

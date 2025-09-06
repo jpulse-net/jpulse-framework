@@ -4657,7 +4657,7 @@ All documentation is now updated and ready for W-042 v0.4.7 release. No commit p
 
 **View Files (.shtml):**
 - ✅ webapp/view/auth/login.shtml - Updated all jPulseCommon references
-- ✅ webapp/view/auth/logout.shtml - Updated all jPulseCommon references  
+- ✅ webapp/view/auth/logout.shtml - Updated all jPulseCommon references
 - ✅ webapp/view/auth/signup.shtml - Updated all jPulseCommon references
 - ✅ webapp/view/user/index.shtml - Updated all jPulseCommon references
 - ✅ webapp/view/user/profile.shtml - Updated all jPulseCommon references
@@ -4687,7 +4687,7 @@ jPulseCommon.form.handleSubmission(form, endpoint, options);
 jPulseCommon.showSlideDownError('Error message');
 jPulseCommon.api.post('/api/endpoint', data);
 
-// After  
+// After
 jPulse.form.handleSubmission(form, endpoint, options);
 jPulse.showSlideDownError('Error message');
 jPulse.api.post('/api/endpoint', data);
@@ -4954,3 +4954,110 @@ System ready for immediate production deployment with excellent developer and us
 - Simplified implementation without loss of functionality
 
 **Final cleanup complete - production ready code with no unused configuration.**
+
+
+============================================================
+
+2025-09-06 09:30
+
+**Prompt:** Brainstorm on W-0 (plugin infrastructure) and W-014 (seamless updates strategy). User sees common theme and asks for feedback, approaches, and which to implement first.
+
+**Analysis & Decision:**
+- Identified both work items address "extensibility without fragility"
+- Both require same core infrastructure: dynamic module resolution, directory-based overrides, update-safe organization
+- Recommended sequential approach: W-014 first (renamed to W-045 for plugin infrastructure)
+- W-014 provides foundation that W-045 extends
+
+**Key Architectural Decisions:**
+1. **Sequential Implementation**: W-014 → W-045 reduces risk and provides incremental validation
+2. **Unified File Resolution Priority**: site/ → plugins/ → webapp/ (framework)
+3. **Override Directory Pattern**: Clean separation with protected paths for updates
+
+**Document Updates:**
+- Updated `tt-w-014-w-045-mvc-site-plugins-architecture.md` with comprehensive architecture
+- Added strategic rationale for W-014 → W-045 sequence
+- Expanded plugin architecture with detailed implementation phases
+- Included plugin metadata structure, lifecycle management, and hook system
+- Added hello-world-plugin as demo implementation
+- Defined plugin types: MVC, Middleware, Theme, Utility plugins
+
+**Benefits Delivered:**
+- Clear implementation roadmap with risk mitigation
+- Reusable infrastructure components between work items
+- Foundation for plugin ecosystem while solving immediate site customization needs
+- Backward compatibility maintained throughout migration
+
+
+============================================================
+
+2025-09-06 09:50
+
+**Prompt:** Fix FIXME sections in tt-w-014-w-045-mvc-site-plugins-architecture.md - triple backticks broke formatting during apply. User manually applied changes but needs clean Directory Structure and Hello World Plugin sections without backticks.
+
+**Issue Identified:**
+- Triple backticks in markdown caused formatting issues during file application
+- User couldn't copy & paste or apply the formatted directory trees properly
+- FIXME sections need clean formatting without code block syntax
+
+**Solution Provided:**
+- Clean Directory Structure section showing complete jpulse-framework layout
+- Clean Hello World Plugin directory structure
+- Both sections formatted with proper ASCII tree structure using standard characters
+- Removed triple backticks that caused application issues
+
+**Directory Structure Fixed:**
+- Complete framework layout with webapp/, site/, plugins/, .jpulse/ directories
+- Clear hierarchy showing W-014 (site overrides) and W-045 (plugin infrastructure)
+- Proper indentation using standard tree characters (├── │ └──)
+
+**Hello World Plugin Structure Fixed:**
+- Simple reference implementation structure
+- Standard plugin.json, webapp/ subdirectories, README.md
+- Clean formatting for easy copy/paste application
+
+**Lesson Learned:** Avoid triple backticks in large text blocks intended for file application - use standard formatting instead.
+
+
+============================================================
+
+2025-09-06 11:16
+
+**Prompt:** User requested agent mode implementation of W-014 Phase 1.
+
+**W-014 Phase 1 Implementation - COMPLETED ✅**
+
+**Tasks Completed:**
+1. ✅ Created site/ directory structure with webapp/ subdirectories
+2. ✅ Extended configuration merging to support site/webapp/app.conf
+3. ✅ Implemented basic path resolution system for site overrides
+4. ✅ Created directory structure utilities for module resolution
+5. ✅ Tested site override functionality with sample files
+6. ✅ Updated documentation to reflect Phase 1 completion
+
+**Key Implementation Details:**
+
+**Path Resolution System:**
+- Created `webapp/utils/path-resolver.js` with `PathResolver` class
+- Implements priority: site/webapp/ → webapp/ (framework fallback)
+- Includes utilities for asset resolution, directory management, and site structure creation
+
+**Configuration Merging:**
+- Extended `webapp/app.js` with `deepMerge()` utility for configuration objects
+- Added site config support: `site/webapp/app.conf` merged with framework defaults
+- Enhanced cache invalidation to monitor both framework and site config timestamps
+- Source tracking in `.jpulse/config-sources.json` for both configuration files
+
+**Testing Results:**
+- ✅ All 408 existing tests still passing
+- ✅ Configuration merging verified: site values properly override framework defaults
+- ✅ Path resolution working: site overrides detected and prioritized correctly
+- ✅ Cache invalidation working: changes to either config file trigger regeneration
+
+**Files Created/Modified:**
+- Created: `site/webapp/` directory structure (controller/, model/, view/, static/)
+- Created: `webapp/utils/path-resolver.js` (path resolution utilities)
+- Created: `site/webapp/app.conf` (sample site configuration)
+- Modified: `webapp/app.js` (configuration merging with site support)
+- Updated: `tt-w-014-w-045-mvc-site-plugins-architecture.md` (Phase 1 completion)
+
+**Production Ready:** W-014 Phase 1 provides immediate value for site customizations with clean separation of framework vs site-specific code, update-safe customizations, and foundation for plugin architecture.

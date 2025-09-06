@@ -51,12 +51,13 @@ async function loadAppConfig() {
             console.log(CommonUtils.formatLogMessage('app: Configuration changed, regenerating .jpulse/app.json...'));
             const config = await generateConsolidatedConfig(fs, confPath);
 
-            // Save consolidated config
-            fs.writeFileSync(jsonPath, JSON.stringify(config, null, 2));
+            // Save consolidated config (remove internal _sources before saving)
+            const configToSave = { ...config };
+            delete configToSave._sources;
+            fs.writeFileSync(jsonPath, JSON.stringify(configToSave, null, 2));
 
-            // Save source metadata
-            const sources = [{ path: confPath, type: 'framework', timestamp: fs.statSync(confPath).mtime }];
-            fs.writeFileSync(sourcesPath, JSON.stringify(sources, null, 2));
+            // Save source metadata from config
+            fs.writeFileSync(sourcesPath, JSON.stringify(config._sources, null, 2));
 
             console.log(CommonUtils.formatLogMessage('app: Generated consolidated configuration in .jpulse/app.json'));
             return config;
@@ -79,23 +80,79 @@ function shouldRegenerateConfig(fs, confPath, jsonPath) {
         return true;
     }
 
-    // If source .conf is newer than cached JSON, regenerate
-    const confStat = fs.statSync(confPath);
     const jsonStat = fs.statSync(jsonPath);
 
-    return confStat.mtime > jsonStat.mtime;
+    // Check framework config timestamp
+    const confStat = fs.statSync(confPath);
+    if (confStat.mtime > jsonStat.mtime) {
+        return true;
+    }
+
+    // W-014: Check site config timestamp if it exists
+    const siteConfigPath = path.join(projectRoot, 'site/webapp/app.conf');
+    if (fs.existsSync(siteConfigPath)) {
+        const siteConfStat = fs.statSync(siteConfigPath);
+        if (siteConfStat.mtime > jsonStat.mtime) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
-// Generate consolidated configuration (Phase 1: single source)
-async function generateConsolidatedConfig(fs, confPath) {
-    // Phase 1: Load framework config only
-    const content = fs.readFileSync(confPath, 'utf8');
-    const config = new Function(`return (${content})`)();
+// Deep merge utility for configuration objects
+function deepMerge(target, source) {
+    const result = { ...target };
 
-    // Set dirName just like the main app logic does
+    for (const key in source) {
+        if (source.hasOwnProperty(key)) {
+            if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                // Recursively merge objects
+                result[key] = deepMerge(target[key] || {}, source[key]);
+            } else {
+                // Override primitive values and arrays
+                result[key] = source[key];
+            }
+        }
+    }
+
+    return result;
+}
+
+// Load configuration file with error handling
+function loadConfigFile(fs, configPath) {
+    try {
+        const content = fs.readFileSync(configPath, 'utf8');
+        return new Function(`return (${content})`)();
+    } catch (error) {
+        throw new Error(`Failed to load config from ${configPath}: ${error.message}`);
+    }
+}
+
+// Generate consolidated configuration with site override support
+async function generateConsolidatedConfig(fs, confPath) {
+    // Phase 1: Load framework config
+    const frameworkConfig = loadConfigFile(fs, confPath);
+
+    // W-014: Add site config merging
+    const siteConfigPath = path.join(projectRoot, 'site/webapp/app.conf');
+    let config = frameworkConfig;
+    const sources = [{ path: confPath, type: 'framework', timestamp: fs.statSync(confPath).mtime }];
+
+    if (fs.existsSync(siteConfigPath)) {
+        const siteConfig = loadConfigFile(fs, siteConfigPath);
+        config = deepMerge(frameworkConfig, siteConfig);
+        sources.push({ path: siteConfigPath, type: 'site', timestamp: fs.statSync(siteConfigPath).mtime });
+        console.log(CommonUtils.formatLogMessage('app: Merged site configuration from site/webapp/app.conf'));
+    }
+
+    // Set dirName for path resolution
     config.app.dirName = __dirname;
 
-    // Future phases will add plugin and site config merging here
+    // Store source information for cache invalidation
+    config._sources = sources;
+
+    // FIXME: W-045 plugin config merging will go here
 
     return config;
 }

@@ -6,6 +6,44 @@ ________________________________________________
 ## 🚀 Version History
 
 ________________________________________________
+### v0.4.10 (2025-09-06)
+**Commit:** `W-041, v0.4.10: Complete site configuration management system with intuitive admin interface and comprehensive validation`
+
+Implemented comprehensive site configuration management system for administrators.
+
+Major Features:
+- **Site Configuration Management (W-041)**: Complete admin configuration system
+  - Intuitive admin interface at `/admin/config.shtml` for site configuration
+  - Email settings management (SMTP server, port, user, password, TLS)
+  - Site message management (broadcast messages)
+  - Smart default "site" config creation with localhost-friendly defaults
+  - Password visibility toggle with eye icon for better UX
+  - Form dirty detection with save/cancel functionality
+  - Comprehensive validation with admin email requirement
+  - Full i18n support (English/German) following project patterns
+
+- **Enhanced ConfigModel**: Added smtpPort field with proper validation (1-65535 range)
+  - Updated schema, validation, and default values
+  - Maintains backward compatibility with existing configs
+  - Comprehensive email format validation
+
+- **ConfigController Enhancements**: Smart default config handling
+  - Auto-creates default "site" config when accessed
+  - Clean API design using `/api/1/config/site` endpoint
+  - Proper error handling and logging throughout
+
+- **Comprehensive Testing**: Production-ready test coverage
+  - 10 comprehensive config model tests covering validation logic
+  - Schema validation, default values, and email validation tests
+  - Clean test architecture without database dependencies
+  - All 408 tests passing with seamless integration
+
+- **Code Quality**: Clean, maintainable implementation
+  - Removed unused configuration complexity
+  - YAGNI principle applied for simpler codebase
+  - Production-ready with excellent developer experience
+
+________________________________________________
 ### v0.4.9 (2025-09-05)
 **Commit:** `W-044, v0.4.9: CSS prefix convention for clean "don't make me think" style organization with zero cognitive load`
 

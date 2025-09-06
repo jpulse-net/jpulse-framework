@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / Admin / Config
+ * @tagline         Site configuration management interface
+ * @description     Edit site configuration, for administrators
+ * @file            webapp/view/admin/config.shtml
+ * @version         0.4.10
+ * @release         2025-09-06
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         GPL v3, see LICENSE file
+ * @genai           99%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{app.version}} - {{i18n.view.admin.config.title}}</title>
+
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        /* Page-specific styles only - common styles are in jpulse-common.css */
+        .local-config-form {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .local-config-section {
+            margin-bottom: 30px;
+        }
+
+        .local-config-section .jp-card-header {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            margin: -20px -20px 20px -20px;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .local-config-section .jp-card-header h3 {
+            margin: 0;
+            color: #007acc;
+            font-size: 1.2em;
+        }
+
+        .local-config-section .jp-card-header p {
+            margin: 5px 0 0 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .local-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .local-form-row.local-full-width {
+            grid-template-columns: 1fr;
+        }
+
+        .local-checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 25px;
+        }
+
+        .local-checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .local-checkbox-group label {
+            margin: 0;
+            font-weight: normal;
+        }
+
+        .local-password-field {
+            position: relative;
+        }
+
+        .local-password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            font-size: 14px;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .local-password-toggle:hover {
+            color: #007acc;
+        }
+
+        .local-form-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .local-form-actions .jp-btn {
+            min-width: 120px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .local-form-row {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .local-form-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .local-form-actions .jp-btn {
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-container-800">
+          {{#if user.authenticated}}
+            <div class="jp-page-header">
+                <h1>{{i18n.view.admin.config.title}}</h1>
+                <p class="jp-subtitle">{{i18n.view.admin.config.subtitle}}</p>
+            </div>
+
+            <form id="configForm" class="local-config-form">
+                <!-- Email Settings Section -->
+                <div class="jp-card local-config-section">
+                    <div class="jp-card-header">
+                        <h3>{{i18n.view.admin.config.emailSettings}}</h3>
+                        <p>{{i18n.view.admin.config.emailSettingsDesc}}</p>
+                    </div>
+                    <div class="jp-card-body">
+                        <div class="local-form-row">
+                            <div class="jp-form-group">
+                                <label for="adminEmail" class="jp-form-label">{{i18n.view.admin.config.adminEmail}}</label>
+                                <input type="email" id="adminEmail" name="adminEmail" class="jp-form-input" placeholder="admin@example.com">
+                            </div>
+                            <div class="jp-form-group">
+                                <label for="adminName" class="jp-form-label">{{i18n.view.admin.config.adminName}}</label>
+                                <input type="text" id="adminName" name="adminName" class="jp-form-input" placeholder="Site Administrator">
+                            </div>
+                        </div>
+
+                        <div class="local-form-row">
+                            <div class="jp-form-group">
+                                <label for="smtpServer" class="jp-form-label">{{i18n.view.admin.config.smtpServer}}</label>
+                                <input type="text" id="smtpServer" name="smtpServer" class="jp-form-input" placeholder="localhost">
+                            </div>
+                            <div class="jp-form-group">
+                                <label for="smtpPort" class="jp-form-label">{{i18n.view.admin.config.smtpPort}}</label>
+                                <input type="number" id="smtpPort" name="smtpPort" class="jp-form-input" placeholder="25" min="1" max="65535">
+                            </div>
+                        </div>
+
+                        <div class="local-form-row">
+                            <div class="jp-form-group">
+                                <label for="smtpUser" class="jp-form-label">{{i18n.view.admin.config.smtpUser}}</label>
+                                <input type="text" id="smtpUser" name="smtpUser" class="jp-form-input" placeholder="username">
+                            </div>
+                            <div class="jp-form-group">
+                                <label for="smtpPass" class="jp-form-label">{{i18n.view.admin.config.smtpPass}}</label>
+                                <div class="local-password-field">
+                                    <input type="password" id="smtpPass" name="smtpPass" class="jp-form-input" placeholder="password">
+                                    <button type="button" class="local-password-toggle" onclick="togglePasswordVisibility('smtpPass')" title="Show/hide password">
+                                        👁️
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="local-checkbox-group">
+                            <input type="checkbox" id="useTls" name="useTls" value="true">
+                            <label for="useTls">{{i18n.view.admin.config.useTls}}</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages Section -->
+                <div class="jp-card local-config-section">
+                    <div class="jp-card-header">
+                        <h3>{{i18n.view.admin.config.messageSettings}}</h3>
+                        <p>{{i18n.view.admin.config.messageSettingsDesc}}</p>
+                    </div>
+                    <div class="jp-card-body">
+                        <div class="local-form-row local-full-width">
+                            <div class="jp-form-group">
+                                <label for="broadcast" class="jp-form-label">{{i18n.view.admin.config.broadcast}}</label>
+                                <textarea id="broadcast" name="broadcast" class="jp-form-textarea" rows="3" placeholder="{{i18n.view.admin.config.broadcastPlaceholder}}"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Future sections note -->
+                <div class="jp-info-box">
+                    <p><strong>{{i18n.view.admin.config.futureNote}}:</strong> {{i18n.view.admin.config.futureNoteDesc}}</p>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="local-form-actions">
+                    <button type="button" id="cancelBtn" class="jp-btn jp-btn-secondary">{{i18n.view.admin.config.cancel}}</button>
+                    <button type="submit" id="saveBtn" class="jp-btn jp-btn-primary">{{i18n.view.admin.config.saveChanges}}</button>
+                </div>
+            </form>
+
+          {{else}}
+            <div class="jp-error-box">
+                <p>{{i18n.view.admin.config.accessDenied}}</p>
+            </div>
+          {{/if}}
+        </div>
+    </div>
+
+    <script>
+        // Password visibility toggle function
+        function togglePasswordVisibility(fieldId) {
+            const field = document.getElementById(fieldId);
+            const button = field.nextElementSibling;
+            
+            if (field.type === 'password') {
+                field.type = 'text';
+                button.textContent = '🙈';
+                button.title = 'Hide password';
+            } else {
+                field.type = 'password';
+                button.textContent = '👁️';
+                button.title = 'Show password';
+            }
+        }
+
+        // Site configuration management
+        jPulse.dom.ready(() => {
+            const configForm = document.getElementById('configForm');
+            const saveBtn = document.getElementById('saveBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            let originalData = {};
+            let isDirty = false;
+
+            // Load current configuration
+            loadConfig();
+
+            async function loadConfig() {
+                try {
+                    const result = await jPulse.apiCall('/api/1/config/site');
+                    if (result.success && result.data) {
+                        populateForm(result.data);
+                        originalData = getFormData();
+                        isDirty = false;
+                        updateButtonStates();
+                    } else {
+                        jPulse.showSlideDownError('{{i18n.view.admin.config.loadFailed}}');
+                    }
+                } catch (error) {
+                    jPulse.showSlideDownError('{{i18n.view.admin.config.loadError}}');
+                }
+            }
+
+            function populateForm(config) {
+                const data = config.data || {};
+                const email = data.email || {};
+                const messages = data.messages || {};
+
+                // Populate email fields
+                document.getElementById('adminEmail').value = email.adminEmail || '';
+                document.getElementById('adminName').value = email.adminName || '';
+                document.getElementById('smtpServer').value = email.smtpServer || 'localhost';
+                document.getElementById('smtpPort').value = email.smtpPort || 25;
+                document.getElementById('smtpUser').value = email.smtpUser || '';
+                document.getElementById('smtpPass').value = email.smtpPass || '';
+                document.getElementById('useTls').checked = email.useTls || false;
+
+                // Populate message fields
+                document.getElementById('broadcast').value = messages.broadcast || '';
+            }
+
+            function getFormData() {
+                return {
+                    data: {
+                        email: {
+                            adminEmail: document.getElementById('adminEmail').value,
+                            adminName: document.getElementById('adminName').value,
+                            smtpServer: document.getElementById('smtpServer').value,
+                            smtpPort: parseInt(document.getElementById('smtpPort').value) || 25,
+                            smtpUser: document.getElementById('smtpUser').value,
+                            smtpPass: document.getElementById('smtpPass').value,
+                            useTls: document.getElementById('useTls').checked
+                        },
+                        messages: {
+                            broadcast: document.getElementById('broadcast').value
+                        }
+                    }
+                };
+            }
+
+            function checkDirty() {
+                const currentData = getFormData();
+                isDirty = JSON.stringify(currentData) !== JSON.stringify(originalData);
+                updateButtonStates();
+            }
+
+            function updateButtonStates() {
+                saveBtn.disabled = !isDirty;
+                // Cancel button should always be enabled to allow navigation back to admin
+            }
+
+            // Form change detection
+            configForm.addEventListener('input', checkDirty);
+            configForm.addEventListener('change', checkDirty);
+
+            // Save configuration
+            configForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                if (!isDirty) return;
+
+                // Validate required fields
+                const adminEmail = document.getElementById('adminEmail').value.trim();
+                if (!adminEmail) {
+                    jPulse.showSlideDownError('{{i18n.view.admin.config.adminEmailRequired}}');
+                    document.getElementById('adminEmail').focus();
+                    return;
+                }
+
+                const formData = getFormData();
+                const defaultId = 'site'; // Use the default config ID
+
+                try {
+                    saveBtn.classList.add('jp-btn-loading');
+                    saveBtn.disabled = true;
+
+                    const result = await jPulse.apiCall(`/api/1/config/${defaultId}/upsert`, {
+                        method: 'PUT',
+                        body: formData
+                    });
+
+                    if (result.success) {
+                        originalData = getFormData();
+                        isDirty = false;
+                        updateButtonStates();
+                        
+                        // Show success message and redirect
+                        jPulse.showSlideDownSuccess('{{i18n.view.admin.config.saveSuccess}}');
+                        setTimeout(() => {
+                            window.location.href = '/admin/';
+                        }, 2000);
+                    } else {
+                        jPulse.showSlideDownError(result.error || '{{i18n.view.admin.config.saveFailed}}');
+                    }
+                } catch (error) {
+                    jPulse.showSlideDownError('{{i18n.view.admin.config.saveError}}');
+                } finally {
+                    saveBtn.classList.remove('jp-btn-loading');
+                    saveBtn.disabled = false;
+                }
+            });
+
+            // Cancel changes
+            cancelBtn.addEventListener('click', () => {
+                if (isDirty) {
+                    jPulse.showSlideDownWarning('{{i18n.view.admin.config.unsavedChanges}}');
+                } else {
+                    window.location.href = '/admin/';
+                }
+            });
+
+            // Clear error states on input
+            document.querySelectorAll('.jp-form-input, .jp-form-textarea').forEach(input => {
+                input.addEventListener('input', function() {
+                    this.classList.remove('jp-field-error');
+                });
+            });
+        });
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

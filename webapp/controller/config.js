@@ -3,7 +3,7 @@
  * @tagline         Config Controller for jPulse Framework WebApp
  * @description     This is the config controller for the jPulse Framework WebApp
  * @file            webapp/controller/config.js
- * @version         0.4.9
+ * @version         0.4.10
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -39,7 +39,39 @@ class ConfigController {
                     code: 'MISSING_ID'
                 });
             }
-            const config = await ConfigModel.findById(id);
+
+            let config = await ConfigModel.findById(id);
+
+            // If config not found and this is the default site config, create it
+            const defaultId = 'site';
+            if (!config && id === defaultId) {
+                const defaultConfig = {
+                    _id: defaultId,
+                    parent: null,
+                    data: {
+                        email: {
+                            adminEmail: '',
+                            adminName: '',
+                            smtpServer: 'localhost',
+                            smtpPort: 25,
+                            smtpUser: '',
+                            smtpPass: '',
+                            useTls: false
+                        },
+                        messages: {
+                            broadcast: ''
+                        }
+                    }
+                };
+
+                if (req.session && req.session.user) {
+                    defaultConfig.updatedBy = req.session.user.id || req.session.user.loginId || '';
+                }
+
+                config = await ConfigModel.create(defaultConfig);
+                LogController.logInfo(req, `config.get: created default config for id: ${defaultId}`);
+            }
+
             if (!config) {
                 LogController.logError(req, `config.get: error: config not found for id: ${id}`);
                 const message = global.i18n.translate(req, 'controller.config.configNotFound', { id });
@@ -49,6 +81,7 @@ class ConfigController {
                     code: 'CONFIG_NOT_FOUND'
                 });
             }
+
             LogController.logInfo(req, `config.get: success: config retrieved for id: ${id}`);
             const message = global.i18n.translate(req, 'controller.config.configGetDone', { id });
             res.json({

@@ -3,7 +3,7 @@
  * @tagline         Config Model for jPulse Framework WebApp
  * @description     This is the config model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/config.js
- * @version         0.4.9
+ * @version         0.4.10
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -32,6 +32,7 @@ class ConfigModel {
                 adminEmail: { type: 'string', default: '', validate: 'email' },
                 adminName: { type: 'string', default: '' },
                 smtpServer: { type: 'string', default: 'localhost' },
+                smtpPort: { type: 'number', default: 25 },
                 smtpUser: { type: 'string', default: '' },
                 smtpPass: { type: 'string', default: '' },
                 useTls: { type: 'boolean', default: false }
@@ -106,6 +107,9 @@ class ConfigModel {
                 if (email.smtpServer !== undefined && typeof email.smtpServer !== 'string') {
                     errors.push('data.email.smtpServer must be a string');
                 }
+                if (email.smtpPort !== undefined && (typeof email.smtpPort !== 'number' || email.smtpPort < 1 || email.smtpPort > 65535)) {
+                    errors.push('data.email.smtpPort must be a number between 1 and 65535');
+                }
                 if (email.smtpUser !== undefined && typeof email.smtpUser !== 'string') {
                     errors.push('data.email.smtpUser must be a string');
                 }
@@ -154,6 +158,7 @@ class ConfigModel {
         if (result.data.email.adminEmail === undefined) result.data.email.adminEmail = '';
         if (result.data.email.adminName === undefined) result.data.email.adminName = '';
         if (result.data.email.smtpServer === undefined) result.data.email.smtpServer = 'localhost';
+        if (result.data.email.smtpPort === undefined) result.data.email.smtpPort = 25;
         if (result.data.email.smtpUser === undefined) result.data.email.smtpUser = '';
         if (result.data.email.smtpPass === undefined) result.data.email.smtpPass = '';
         if (result.data.email.useTls === undefined) result.data.email.useTls = false;

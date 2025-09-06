@@ -4772,3 +4772,185 @@ Fixed remaining page-specific overrides of common CSS classes:
 
 **W-044 COMPLETE:**
 Successfully delivered revolutionary CSS organization system with perfect "don't make me think" prefix convention, zero cognitive load for developers, and seamless style location identification. Framework ready for scalable development with clean CSS architecture.
+
+
+==============================================================
+
+2025-09-05 23:44
+
+W-041: view: create edit site config page for admins - Implementation Started
+
+## Implementation Details Confirmed
+
+**Answers to clarification questions:**
+1. Ignore existing "global"/"sales" docs (can be deleted)
+2. Controller handles default "site" config creation when no doc name specified
+3. Simple form dirty flag for pending changes detection
+4. Success message stays visible during redirect delay
+5. Add smtpPort field (yes), skip fromEmail/replyTo (page-specific)
+6. Slide-down messages already exist in common.js
+
+**Technical Approach:**
+- Enhance ConfigController for default config handling
+- Create clean admin config page following W-013 patterns
+- Use existing jPulse.showSlideDownSuccess/Error
+- Implement form dirty detection
+- Full i18n support with proper message structure
+- Add smtpPort to schema and validation
+
+**Current Status:** Starting implementation with todo tracking
+
+## Implementation Completed Successfully
+
+**✅ Enhanced ConfigModel:**
+- Added smtpPort field with validation (1-65535 range)
+- Updated schema, validation, and default values
+- Maintains backward compatibility
+
+**✅ Enhanced ConfigController:**
+- Modified get() method to auto-create default "site" config
+- Removed separate getDefault method for cleaner API
+- Uses /api/1/config/site endpoint (avoiding route conflicts)
+
+**✅ Created Admin Config Page:**
+- Clean, intuitive UI following W-013 admin dashboard patterns
+- Two-section layout: Email Settings and Message Settings
+- Form dirty detection with save/cancel functionality
+- Proper validation and error handling
+- Success message with redirect to admin dashboard
+
+**✅ Full i18n Support:**
+- Added comprehensive English translations
+- Added comprehensive German translations
+- All user-facing messages properly internationalized
+
+**✅ Testing Results:**
+- All 398 tests passing
+- API endpoints working correctly
+- Auto-creation of default config verified
+- CRUD operations tested and functional
+- Authentication middleware protecting admin routes
+
+**Technical Highlights:**
+- Smart route design using /api/1/config/site (no conflicts)
+- Auto-creation only for default "site" config ID
+- Clean separation of email and message settings
+- Future-ready architecture for additional sections
+- Follows project patterns and "don't make me think" UX principles
+
+2025-09-05 23:54
+
+**W-041 COMPLETE:**
+Successfully delivered clean, intuitive site configuration management system with automatic default config creation, comprehensive validation, full i18n support, and seamless integration with existing admin infrastructure. Ready for production use.
+
+2025-09-06 00:12
+
+## User Feedback Improvements Applied
+
+**✅ Fixed Default Values:**
+- Changed default SMTP port from 587 to 25 (localhost standard)
+- SMTP user/password remain empty by default (many localhost setups don't require auth)
+- Updated schema, controller, and model defaults consistently
+
+**✅ Improved UX:**
+- Updated adminName placeholder to "Site Administrator" (no i18n needed)
+- Fixed cancel button bug - now always enabled for navigation
+- Added admin email required validation on save with proper error message
+
+**✅ Enhanced Validation:**
+- Admin email is now required on save (not on load)
+- Clear error message with focus on email field
+- Maintains empty defaults but enforces completion on save
+
+**✅ Testing Results:**
+- All 398 tests still passing
+- API endpoints working with new defaults
+- New default config creates with port 25
+- Validation working correctly
+
+**Technical Improvements:**
+- Consistent default values across model, controller, and view
+- Better UX with always-enabled cancel button
+- Smart validation (required on save, not on load)
+- Proper error handling and user feedback
+
+**W-041 REFINEMENTS COMPLETE:**
+All user feedback addressed with improved defaults, better UX, and proper validation. System ready for production with localhost-friendly defaults and intuitive user experience.
+
+2025-09-06 00:17
+
+## Password Field UX Enhancement
+
+**✅ Added Password Visibility Toggle:**
+- SMTP password field now has eye icon toggle (👁️/🙈)
+- Click to show/hide password for better usability
+- Maintains security while allowing verification of entered password
+- Clean styling with hover effects
+- Proper accessibility with title attributes
+
+**✅ Implementation Details:**
+- Added CSS styling for password field container and toggle button
+- JavaScript function `togglePasswordVisibility()` handles the toggle
+- Eye emoji changes to see-no-evil when password is visible
+- Positioned absolutely within the password field for clean layout
+
+**✅ Testing Results:**
+- All 398 tests still passing
+- No breaking changes to existing functionality
+- Clean, intuitive password field UX
+
+**Password Field Enhancement Complete:**
+SMTP password field now provides excellent user experience with secure-by-default hidden password and easy toggle to verify input when needed.
+
+2025-09-06 00:27
+
+## Comprehensive Testing Added
+
+**✅ Created Config Model Tests:**
+- Schema validation tests for all field types and constraints
+- Default value application and preservation tests
+- Email validation with proper regex behavior testing
+- Comprehensive validation error handling
+- All 10 tests passing successfully
+
+**✅ Test Quality:**
+- Focused on validation logic without database dependencies
+- Clean, maintainable test structure
+- Proper edge case coverage
+- Integration with existing test infrastructure
+
+**✅ Full Test Suite Status:**
+- All 408 tests passing (24 test suites)
+- New config tests integrated seamlessly
+- No regressions introduced
+- Production-ready code quality
+
+**W-041 FINAL STATUS: COMPLETE ✅**
+
+Successfully delivered comprehensive site configuration management system with:
+- Clean, intuitive admin interface with password visibility toggle
+- Robust validation and error handling
+- Smart default config creation
+- Full i18n support (English/German)
+- Comprehensive test coverage
+- Production-ready implementation
+
+System ready for immediate production deployment with excellent developer and user experience.
+
+2025-09-06 00:32
+
+## Code Cleanup - Removed Unused Configuration
+
+**✅ Removed Unused Config:**
+- Removed `appConfig.model.config` section from webapp/app.conf
+- Removed unused reference in ConfigController
+- Simplified code to use hardcoded 'site' as default config ID
+- All 408 tests still passing after cleanup
+
+**✅ Benefits:**
+- Cleaner, more maintainable code
+- Removed unnecessary configuration complexity
+- YAGNI principle applied (You Aren't Gonna Need It)
+- Simplified implementation without loss of functionality
+
+**Final cleanup complete - production ready code with no unused configuration.**

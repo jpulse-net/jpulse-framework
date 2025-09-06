@@ -587,6 +587,12 @@ Requirements Doc of jPulse Framework
 - `jp-*` prefix for common framework styles (always in `jpulse-common.css`)
 - `local-*` prefix for page-specific styles (always in current page's `<style>` section)
 
+## **W-041**: view: create edit site config page for admins
+- status: ✅ COMPLETED (v0.4.10)
+- type: Feature
+- create webapp/view/admin/config.shtml -- edit site config
+- **DELIVERED**: Complete site configuration management system with intuitive admin interface, email settings (SMTP server, port, credentials, TLS), site messages, password visibility toggle, smart default creation, comprehensive validation, full i18n support, and extensive test coverage
+
 
 
 
@@ -617,8 +623,7 @@ Requirements Doc of jPulse Framework
 next work item: **W-036**: view: migrate existing views to use jpulse-common.js and jpulse-common.css
 - review task, ask questions
 - suggest change of spec if it helps with usability (for users and developers)
-- plan how to implement
-- wait for my go ahead to implement
+- plan how to implement (wait for my go ahead)
 
 Almost ready for W-042 release (this chat refers to W-021, my mistake)
 
@@ -626,8 +631,7 @@ Almost ready for W-042 release (this chat refers to W-021, my mistake)
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-04 02:12
 - update *.md docs in project root
-- update commit-message.txt, following the same format, specify: W-044, v0.4.9
-- don't commit
+- update commit-message.txt, following the same format, specify: W-041, v0.4.10 (don't commit)
 
 
 
@@ -663,11 +667,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - status: 🕑 PENDING
 - type: Feature
 - create webapp/view/admin/logs.shtml -- search logs
-
-## **W-041**: view: create edit site config page for admins
-- status: 🕑 PENDING
-- type: Feature
-- create webapp/view/admin/config.shtml -- edit site config
 
 ## **W-037**: view: create themes
 - status: 🕑 PENDING

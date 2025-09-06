@@ -3,7 +3,7 @@
  * @tagline         Integration tests for authentication middleware
  * @description     Tests authentication middleware behavior in realistic scenarios
  * @file            webapp/tests/integration/auth-middleware.test.js
- * @version         0.4.9
+ * @version         0.4.10
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -324,3 +324,5 @@ describe('Auth Middleware Integration', () => {
         });
     });
 });
+
+// EOF webapp/tests/integration/auth-middleware.test.js

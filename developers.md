@@ -1,8 +1,11 @@
-# jPulse Framework / Developer Documentation v0.4.9
+# jPulse Framework / Developer Documentation v0.4.10
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.4.8):**
+**Latest Updates (v0.4.10):**
+- ⚙️ **Site Configuration Management (W-041)**: Complete admin configuration system with intuitive interface for email settings (SMTP server, port, credentials, TLS) and site messages. Features password visibility toggle, smart default creation, comprehensive validation, full i18n support, and production-ready implementation with extensive test coverage. Includes ConfigModel enhancements, ConfigController smart defaults, and 10 comprehensive tests covering validation logic.
+
+**Previous Updates (v0.4.8):**
 - 🚀 **Global Object Rename for Developer Productivity (W-043)**: Renamed jPulseCommon to jPulse across entire codebase for 33% reduction in typing overhead while maintaining brand clarity and framework extensibility. Features include comprehensive global search & replace across 15 files with 299+ references updated, preserved namespace for future framework objects (jPulseAdmin, jPulseAuth), and enhanced developer experience with shorter, cleaner API calls. Includes full test validation and documentation synchronization.
 
 **Previous Updates (v0.4.7):**

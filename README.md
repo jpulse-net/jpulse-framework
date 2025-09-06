@@ -1,9 +1,10 @@
-# jPulse Framework v0.4.9
+# jPulse Framework v0.4.10
 
 A modern, lightweight, and extensible web application framework using the MVC (model, view, controller) pattern. jPulse is built with Node.js, Express, and MongoDB, and combines the simplicity of traditional server-side rendering with modern development practices, offering a clean separation between static and dynamic content. It is extensible, where multiple teams can work independently to build large and scalable applications targeting midsize to large organizations in the government and private sector.
 
 **Latest Releases Highlights:**
 
+- ✅ **Site Configuration Management (W-041, v0.4.10)**: Complete admin configuration system with intuitive interface for email settings (SMTP server, port, credentials, TLS) and site messages. Features password visibility toggle, smart default creation, comprehensive validation, full i18n support, and production-ready implementation with extensive test coverage.
 - ✅ **CSS Prefix Convention (W-044, v0.4.9)**: Implemented clear CSS prefix convention eliminating cognitive load - `jp-*` for common framework styles, `local-*` for page-specific styles. Perfect "don't make me think" CSS organization with zero naming conflicts and immediate style location identification.
 - ✅ **Global rename jPulseCommon to jPulse (W-043, v0.4.8)**: Renamed for improved developer productivity and framework extensibility
 - ✅ **Enhanced Form Submission & Bug Fixes (W-042, v0.4.8)**: Fixed critical slide-down message accumulation bug and enhanced jPulse form submission system. Features include improved form handling with `bindSubmission` and `handleSubmission` functions, automatic error message clearing, comprehensive test coverage, and better developer experience with "don't make me think" API design.

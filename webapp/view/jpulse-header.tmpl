@@ -9,7 +9,9 @@
 <link rel="stylesheet" href="/jpulse-common.css?t={{file.timestamp "jpulse-common.css"}}">
 
 <!-- Site-Specific Styles (W-047) -->
+{{#if file.exists "site-common.css"}}
 <link rel="stylesheet" href="/site-common.css?t={{file.timestamp "site-common.css"}}">
+{{/if}}
 
 <!-- jPulse Framework JavaScript -->
 <script>
@@ -36,4 +38,6 @@
 <script src="/jpulse-common.js?t={{file.timestamp "jpulse-common.js"}}"></script>
 
 <!-- Site-Specific JavaScript (W-047) -->
+{{#if file.exists "site-common.js"}}
 <script src="/site-common.js?t={{file.timestamp "site-common.js"}}"></script>
+{{/if}}

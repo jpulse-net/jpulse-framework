@@ -4,7 +4,7 @@
  * @tagline         Home page of jPulse Framework
  * @description     This is the home page of jPulse Framework
  * @file            webapp/view/home/index.shtml
- * @version         0.5.1
+ * @version         0.5.2
  * @release         2025-09-07
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,6 +21,14 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         /* Page-specific demo content styles only */
+        .local-demo-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #dee2e6;
+        }
+
         .demo-spacer {
             height: 200px;
             margin: 20px 0;
@@ -157,6 +165,102 @@
         </div>
 
         <p><em>File timestamp: {{file.timestamp "jpulse-footer.tmpl"}}</em></p>
+
+        <!-- W-048 Dialog Demo -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>jPulse.UI Dialog Demo (W-048)</h3>
+            </div>
+            <div class="jp-card-body">
+                <p>Test the new jPulse.UI dialog widgets:</p>
+                <div class="jp-btn-group">
+                    <button id="testAlertBtn" class="jp-btn jp-btn-danger">Test Alert Dialog</button>
+                    <button id="testInfoBtn" class="jp-btn jp-btn-primary">Test Info Dialog</button>
+                    <button id="testHtmlBtn" class="jp-btn jp-btn-secondary">Test HTML Content</button>
+                    <button id="testCustomBtn" class="jp-btn jp-btn-success">Test Custom Options</button>
+                    <button id="testConfirmBtn" class="jp-btn jp-btn-warning">Test Complex Confirm Dialog</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- W-048 Accordion Demo -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>jPulse.UI Accordion Demo (W-048)</h3>
+            </div>
+            <div class="jp-card-body">
+                <p>Test accordion with flexible decoration detection:</p>
+
+                <h4>Standalone Accordion (Full Decoration)</h4>
+                <div id="standaloneAccordion" class="jp-accordion">
+                    <div class="jp-accordion-section">
+                        <h3>Getting Started</h3>
+                        <div class="jp-accordion-content">
+                            <p>This is a standalone accordion with full section-like decoration. It has its own background, border, and padding.</p>
+                            <ul>
+                                <li>Automatic decoration detection</li>
+                                <li>Mutual exclusion (only one open at a time)</li>
+                                <li>Smooth animations</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="jp-accordion-section">
+                        <h3>Advanced Features</h3>
+                        <div class="jp-accordion-content">
+                            <p>Advanced accordion features include:</p>
+                            <ul>
+                                <li>Programmatic control via handle object</li>
+                                <li>Custom event dispatching</li>
+                                <li>Flexible configuration options</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="jp-accordion-section">
+                        <h3>API Reference</h3>
+                        <div class="jp-accordion-content">
+                            <p>Use the accordion API:</p>
+                            <pre><code>const accordion = jPulse.UI.accordion.register('myAccordion', {
+    exclusive: true,
+    initOpen: 0
+});
+
+accordion.openSection(1);
+accordion.closeAll();</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <h4>Nested Accordion (Inside Section)</h4>
+                <div class="local-demo-section">
+                    <p>This accordion is nested inside a section container, so it gets minimal internal styling:</p>
+
+                    <div id="nestedAccordion" class="jp-accordion">
+                        <div class="jp-accordion-section">
+                            <h3>FAQ: How does it work?</h3>
+                            <div class="jp-accordion-content">
+                                <p>The accordion automatically detects if it's inside a section container and applies appropriate styling.</p>
+                            </div>
+                        </div>
+                        <div class="jp-accordion-section">
+                            <h3>FAQ: Can I customize it?</h3>
+                            <div class="jp-accordion-content">
+                                <p>Yes! You can configure exclusive behavior, initial open section, and event callbacks.</p>
+                            </div>
+                        </div>
+                        <div class="jp-accordion-section">
+                            <h3>FAQ: Is it accessible?</h3>
+                            <div class="jp-accordion-content">
+                                <p>The accordion includes keyboard navigation support and custom events for screen readers.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="jp-btn-group">
+                    <button id="testAccordionBtn" class="jp-btn jp-btn-primary">Test Programmatic Control</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -187,6 +291,174 @@
 
                     testBtn.disabled = false;
                     testBtn.textContent = 'Test Site Override API';
+                });
+            }
+
+            // W-048 Dialog Demo Event Handlers
+            const testAlertBtn = document.getElementById('testAlertBtn');
+            const testInfoBtn = document.getElementById('testInfoBtn');
+            const testHtmlBtn = document.getElementById('testHtmlBtn');
+            const testCustomBtn = document.getElementById('testCustomBtn');
+
+            if (testAlertBtn) {
+                testAlertBtn.addEventListener('click', async function() {
+                    await jPulse.UI.alertDialog('This is a test alert dialog with red header styling!');
+                });
+            }
+
+            if (testInfoBtn) {
+                testInfoBtn.addEventListener('click', async function() {
+                    await jPulse.UI.infoDialog('This is a test info dialog with blue header styling.');
+                });
+            }
+
+            if (testHtmlBtn) {
+                testHtmlBtn.addEventListener('click', async function() {
+                    await jPulse.UI.infoDialog('<p>This dialog supports <b>basic HTML</b> formatting:</p><p>• <i>Italic text</i><br>• <b>Bold text</b><br>• Line breaks and paragraphs</p>');
+                });
+            }
+
+            if (testCustomBtn) {
+                testCustomBtn.addEventListener('click', async function() {
+                    await jPulse.UI.alertDialog('Custom sized dialog with minimum dimensions.', {
+                        title: 'Custom Alert',
+                        minWidth: 500,
+                        minHeight: 200
+                    });
+                });
+            }
+
+            // Complex confirm dialog test
+            const testConfirmBtn = document.getElementById('testConfirmBtn');
+            if (testConfirmBtn) {
+                testConfirmBtn.addEventListener('click', async function() {
+                    // Create file list with checkboxes
+                    const fileListHtml = `
+                        <p>Select files to delete:</p>
+                        <div style="text-align: left; margin: 15px 0; line-height: 1.8;">
+                            <div style="margin: 8px 0;">
+                                <input type="checkbox" id="file1" checked style="margin-right: 8px;">
+                                <label for="file1">document1.pdf</label>
+                            </div>
+                            <div style="margin: 8px 0;">
+                                <input type="checkbox" id="file2" checked style="margin-right: 8px;">
+                                <label for="file2">image.jpg</label>
+                            </div>
+                            <div style="margin: 8px 0;">
+                                <input type="checkbox" id="file3" style="margin-right: 8px;">
+                                <label for="file3">backup.zip</label>
+                            </div>
+                            <div style="margin: 8px 0;">
+                                <input type="checkbox" id="file4" checked style="margin-right: 8px;">
+                                <label for="file4">notes.txt</label>
+                            </div>
+                        </div>
+                    `;
+
+                    const result = await jPulse.UI.confirmDialog({
+                        title: 'Delete Files',
+                        message: fileListHtml,
+                        buttons: {
+                            'Cancel': (dialog) => {
+                                // Close dialog (default behavior)
+                                return false;
+                            },
+                            'Delete Selected Files': async (dialog) => {
+                                // Get selected files
+                                const checkboxes = dialog.querySelectorAll('input[type="checkbox"]:checked');
+                                const selectedFiles = Array.from(checkboxes).map(cb => {
+                                    const label = dialog.querySelector(`label[for="${cb.id}"]`);
+                                    return label ? label.textContent.trim() : cb.id;
+                                });
+
+                                if (selectedFiles.length === 0) {
+                                    await jPulse.UI.alertDialog('Please select at least one file to delete.');
+                                    return true; // dontClose - keep first dialog open
+                                }
+
+                                // Show second confirmation dialog
+                                const confirmResult = await jPulse.UI.confirmDialog({
+                                    title: 'Confirm Deletion',
+                                    message: `<p>Do you want to delete the selected files?</p><ul>${selectedFiles.map(file => `<li>${file}</li>`).join('')}</ul>`,
+                                    buttons: {
+                                        'Cancel': () => {
+                                            // Close second dialog, keep first open
+                                            return false;
+                                        },
+                                        'Yes, Delete': () => {
+                                            // Simulate file deletion
+                                            console.log('Deleting files:', selectedFiles);
+                                            jPulse.showSlideDownSuccess(`Deleted ${selectedFiles.length} file(s) successfully!`);
+                                            return false; // Close second dialog
+                                        }
+                                    }
+                                });
+
+                                // If user confirmed deletion, close first dialog too
+                                if (confirmResult.button === 'Yes, Delete') {
+                                    return false; // Close first dialog
+                                } else {
+                                    return true; // Keep first dialog open
+                                }
+                            }
+                        }
+                    });
+
+                    console.log('First dialog result:', result);
+                });
+            }
+
+            // W-048 Accordion Demo Initialization
+            let standaloneAccordion = null;
+            let nestedAccordion = null;
+
+            // Initialize accordions
+            standaloneAccordion = jPulse.UI.accordion.register('standaloneAccordion', {
+                exclusive: true,
+                initOpen: 0, // First section open initially
+                onSectionChange: (openIndex, clickedIndex) => {
+                    console.log(`Standalone accordion: section ${clickedIndex} clicked, now open: ${openIndex}`);
+                }
+            });
+
+            nestedAccordion = jPulse.UI.accordion.register('nestedAccordion', {
+                exclusive: true,
+                initOpen: null, // All closed initially
+                onSectionChange: (openIndex, clickedIndex) => {
+                    console.log(`Nested accordion: section ${clickedIndex} clicked, now open: ${openIndex}`);
+                }
+            });
+
+            // Test programmatic control
+            const testAccordionBtn = document.getElementById('testAccordionBtn');
+            if (testAccordionBtn) {
+                let testStep = 0;
+                testAccordionBtn.addEventListener('click', function() {
+                    switch (testStep) {
+                        case 0:
+                            // Open second section of standalone accordion
+                            standaloneAccordion.openSection(1);
+                            testAccordionBtn.textContent = 'Step 2: Open Nested FAQ';
+                            break;
+                        case 1:
+                            // Open first section of nested accordion
+                            nestedAccordion.openSection(0);
+                            testAccordionBtn.textContent = 'Step 3: Close All';
+                            break;
+                        case 2:
+                            // Close all sections
+                            standaloneAccordion.closeAll();
+                            nestedAccordion.closeAll();
+                            testAccordionBtn.textContent = 'Step 4: Reset Demo';
+                            break;
+                        case 3:
+                            // Reset to initial state
+                            standaloneAccordion.openSection(0);
+                            testStep = -1; // Will be incremented to 0
+                            testAccordionBtn.textContent = 'Test Programmatic Control';
+                            break;
+                    }
+                    testStep++;
                 });
             }
         });

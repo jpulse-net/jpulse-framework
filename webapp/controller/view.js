@@ -3,7 +3,7 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.5.1
+ * @version         0.5.2
  * @release         2025-09-07
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -297,6 +297,9 @@ function evaluateHandlebar(expression, context, viewDir, req, depth = 0) {
         case 'file.timestamp':
             // server side timestamp, use to avoid browser caching
             return handleFileTimestamp(args[0], viewDir, req);
+        case 'file.exists':
+            // server side file existence check
+            return handleFileExists(args[0], viewDir, req);
         default:
             // Handle property access (no spaces, contains dots)
             if (!helper.includes(' ') && helper.includes('.')) {
@@ -461,6 +464,56 @@ function handleFileTimestamp(filePath, viewDir, req) {
         //LogController.logInfo(req, `view.load: Loaded timestamp ${timestamp} of ${includePath} (include caching disabled)`);
     }
     return timestamp;
+}
+
+/**
+ * Handle file.exists helper - W-048: Check if file exists with site override support
+ * @param {string} filePath - Path to file (with quotes)
+ * @param {string} viewDir - View base directory for file operations
+ * @param {Object} req - Express request object for logging
+ * @returns {string} 'true' or 'false' as string (for handlebars boolean evaluation)
+ */
+function handleFileExists(filePath, viewDir, req) {
+    const includePath = filePath.replace(/^["']|["']$/g, '');
+
+    // Check cache first for file existence
+    const cacheKey = `exists_${includePath}`;
+    if (global.appConfig.controller.view.cacheIncludeFiles && cache.fileTimestamp[cacheKey] !== undefined) {
+        //LogController.logInfo(req, `view.load: File exists cache hit for ${includePath}`);
+        return cache.fileTimestamp[cacheKey] ? 'true' : 'false';
+    }
+
+    let fileExists = false;
+    try {
+        // W-048: Use PathResolver to support site overrides for file existence check
+        const webappDir = global.appConfig?.app?.dirName || path.join(process.cwd(), 'webapp');
+        const projectRoot = path.dirname(webappDir);
+        const relativePath = `view/${includePath}`;
+
+        // 1. Check site override first (highest priority)
+        const sitePath = path.join(projectRoot, 'site/webapp', relativePath);
+        if (fs.existsSync(sitePath)) {
+            fileExists = true;
+        } else {
+            // 2. Check framework default
+            const frameworkPath = path.join(webappDir, relativePath);
+            if (fs.existsSync(frameworkPath)) {
+                fileExists = true;
+            }
+        }
+    } catch (error) {
+        // Final fallback to original behavior
+        const fullPath = path.resolve(viewDir, includePath);
+        fileExists = fs.existsSync(fullPath);
+    }
+
+    // Cache the result, if caching is enabled
+    if (global.appConfig.controller.view.cacheIncludeFiles) {
+        cache.fileTimestamp[cacheKey] = fileExists;
+        //LogController.logInfo(req, `view.load: Cached file exists result for ${includePath}: ${fileExists}`);
+    }
+
+    return fileExists ? 'true' : 'false';
 }
 
 /**

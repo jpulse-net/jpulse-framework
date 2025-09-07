@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-014 PathResolver utility
  * @description     Tests path resolution for site overrides functionality
  * @file            webapp/tests/unit/utils/path-resolver.test.js
- * @version         0.5.1
+ * @version         0.5.2
  * @release         2025-09-07
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

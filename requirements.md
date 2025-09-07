@@ -644,8 +644,37 @@ Requirements Doc of jPulse Framework
 
 
 
+
+
+
+
+
 -------------------------------------------------------------------------
 # 🚧 IN_PROGRESS Work Items
+
+## **W-048**: create jPulse.UI dialog widgets - v0.5.2
+- status: ✅ COMPLETED
+- type: Feature
+- objective: offer common UI widgets used by front-end developers
+- implementation: native JavaScript (dependency-free)
+- widgets implemented:
+  - jPulse.UI.alertDialog(message, options) - red header, always on top
+  - jPulse.UI.infoDialog(message, options) - blue header, always on top  
+  - jPulse.UI.confirmDialog(options) - enterprise-grade with custom callbacks
+  - jPulse.UI.accordion.register(elementId, options) - flexible decoration detection
+  - jPulse.UI.collapsible (moved from root namespace)
+- enterprise features:
+  - Draggable dialogs by header with viewport bounds
+  - Complex confirm dialogs with nested workflows and dontClose flag
+  - Raw HTML support (no sanitization for site owner controlled content)
+  - Dialog stacking with automatic z-index management
+  - Conditional file includes with file.exists helper
+  - Promise-based APIs with comprehensive callback support
+- technical implementation:
+  - 22 UI widget tests + 18 collapsible tests (100% passing)
+  - Mobile-responsive design with touch support
+  - i18n integration for default titles and buttons
+  - Comprehensive demos on home page with complex examples
 
 
 
@@ -655,7 +684,8 @@ Requirements Doc of jPulse Framework
 
 
 ## Potential next items:
-**W-0**: create plugin infrastructure
+**W-045**: architecture: create plugin infrastructure
+**W-048**: create a jpulse-ui-plugin
 **W-014**: app: strategy for seamless update of site-specific jPulse deployments
 **W-040**: view: create view logs page for site admins
 **W-015**: deployment: strategy for clean onboarding
@@ -666,6 +696,7 @@ next work item: **W-036**: view: migrate existing views to use jpulse-common.js 
 - review task, ask questions
 - suggest change of spec, goal is better usability for site developers
 - plan how to implement (wait for my go ahead)
+- current timestamp: 2025-09-06 23:10
 
 Almost ready for W-042 release (this chat refers to W-021, my mistake)
 
@@ -673,14 +704,23 @@ Almost ready for W-042 release (this chat refers to W-021, my mistake)
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-04 02:12
 - update *.md docs in project root
-- update commit-message.txt, following the same format, specify: W-014, v0.5.0 (don't commit)
+- update commit-message.txt, following the same format, specify: W-048, v0.5.2 (don't commit)
+
+
+
+
+- need conditioal if file exists, then include
+- likely needs enhanceded handlebar
+home/:32  GET http://localhost:8080/site-common.css?t=%3C!--%20Error:%20File%20not%20found:%20site-common.css%20(resolved%20to:%20/Users/peterthoeny/Dev/jpulse-framework/webapp/view/site-common.css)%20--%3E net::ERR_ABORTED 404 (Not Found)Understand this error
+home/:59  GET http://localhost:8080/site-common.js?t=%3C!--%20Error:%20File%20not%20found:%20site-common.js%20(resolved%20to:%20/Users/peterthoeny/Dev/jpulse-framework/webapp/view/site-common.js)%20--%3E net::ERR_ABORTED 404 (Not Found)
+
 
 
 
 
 - enhance === view.load( /error/index.shtml ) log to show additional details on what is wrong, likely in followup log entry
 - ptester8 -- duplicate username
-
+- how to i18n site specific messages?
 
 
 
@@ -784,17 +824,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - status: 🕑 PENDING
 - type: Idea
 - new jpulse-docker project?
-
-## **W-0**: create a jpulse-ui-plugin
-- status: 🕑 PENDING
-- type: Feature
-- objective: offer common UI widgets used by front-end developers
-- inspired by jQuery UI
-  - base on jQuery UI?
-- widgets:
-  - jPulse.UI.alertDialog(msg, title = 'Alert', width, height)
-  - jPulse.UI.confirmDialog(options)
-    - options: title, message, buttons, onOpen, onClose, width, minWidth, maxWidth, height, minHeight, maxHeight, zIndex (with defaults)
 
 ## **W-0**: view controller: strategy for cache invalidation
 - status: 🕑 PENDING

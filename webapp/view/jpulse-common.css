@@ -3,7 +3,7 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         0.5.1
+ * @version         0.5.2
  * @release         2025-09-07
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1463,6 +1463,232 @@ Example site customizations:
 
 .jp-edit-mode .jp-edit-mode-only {
     display: block;
+}
+
+/* ========================================
+ * DIALOG COMPONENTS (W-048)
+ * ======================================== */
+
+/* Dialog Overlay */
+.jp-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    z-index: 2000; /* Base z-index, will be overridden */
+}
+
+.jp-dialog-overlay.jp-dialog-show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Dialog Container */
+.jp-dialog {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 90vw;
+    max-height: 80vh;
+    width: 400px;
+    min-width: 300px;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.7) translateY(-50px);
+    transition: transform 0.3s ease;
+    overflow: hidden;
+}
+
+.jp-dialog.jp-dialog-show {
+    transform: scale(1) translateY(0);
+}
+
+/* Dialog Header */
+.jp-dialog-header {
+    padding: 12px 25px 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.jp-dialog-header-alert {
+    background: #dc3545;
+    color: white;
+}
+
+.jp-dialog-header-info {
+    background: #007acc;
+    color: white;
+}
+
+.jp-dialog-header-confirm {
+    background: #6c757d;
+    color: white;
+}
+
+/* Draggable dialog styles */
+.jp-dialog-dragging {
+    opacity: 0.9;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.jp-dialog-title {
+    margin: 0;
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+/* Dialog Content */
+.jp-dialog-content {
+    padding: 20px 25px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.jp-dialog-message {
+    line-height: 1.5;
+    color: #333;
+}
+
+.jp-dialog-message p {
+    margin: 0 0 10px 0;
+}
+
+.jp-dialog-message p:last-child {
+    margin-bottom: 0;
+}
+
+/* Dialog Buttons */
+.jp-dialog-buttons {
+    padding: 15px 25px 20px;
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.jp-dialog-btn {
+    min-width: 80px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .jp-dialog {
+        width: 95vw;
+        max-width: none;
+        margin: 10px;
+    }
+
+    .jp-dialog-header,
+    .jp-dialog-content,
+    .jp-dialog-buttons {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+}
+
+/* ========================================
+ * ACCORDION COMPONENTS (W-048)
+ * ======================================== */
+
+/* Standalone Accordion - Full decoration */
+.jp-accordion-standalone {
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+/* Nested Accordion - Minimal styling */
+.jp-accordion-nested {
+    background: transparent;
+    border: none;
+    margin: 10px 0;
+}
+
+/* Accordion Section */
+.jp-accordion-section {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.jp-accordion-section:last-child {
+    border-bottom: none;
+}
+
+.jp-accordion-nested .jp-accordion-section {
+    border-bottom: 1px solid #e9ecef;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+.jp-accordion-nested .jp-accordion-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Accordion Headers */
+.jp-accordion-section h3 {
+    margin: 0;
+    padding: 15px 20px;
+    color: #007acc;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.jp-accordion-section h3:hover {
+    background-color: #e9ecef;
+}
+
+.jp-accordion-expanded h3 {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.jp-accordion-nested .jp-accordion-section h3 {
+    padding: 12px 16px;
+    font-size: 1.0em;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* Accordion Arrows */
+.jp-accordion-arrow {
+    font-size: 14px;
+    color: #007acc;
+    font-weight: bold;
+    user-select: none;
+    margin-left: 8px;
+    display: inline;
+}
+
+/* Accordion Content */
+.jp-accordion-content {
+    padding: 0 20px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.jp-accordion-expanded .jp-accordion-content {
+    max-height: 1000px;
+    padding: 15px 20px 20px;
+}
+
+.jp-accordion-nested .jp-accordion-content {
+    padding: 0 16px;
+}
+
+.jp-accordion-nested .jp-accordion-expanded .jp-accordion-content {
+    padding: 12px 16px 16px;
 }
 
 /* EOF webapp/view/jpulse-common.css */

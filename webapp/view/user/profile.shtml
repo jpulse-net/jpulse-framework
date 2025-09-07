@@ -4,7 +4,7 @@
  * @tagline         User profile view with edit capabilities
  * @description     User profile management with view and edit modes
  * @file            webapp/view/user/profile.shtml
- * @version         0.5.1
+ * @version         0.5.2
  * @release         2025-09-07
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -186,7 +186,7 @@
             loadThemes();
 
             // Register the collapsible security section with handle
-            securityCollapsible = jPulse.collapsible.register('securitySection', {
+            securityCollapsible = jPulse.UI.collapsible.register('securitySection', {
                 initOpen: false,
                 onOpen: () => {
                     // Show password fields when opened

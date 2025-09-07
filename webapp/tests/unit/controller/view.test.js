@@ -3,7 +3,7 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         0.5.1
+ * @version         0.5.2
  * @release         2025-09-07
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -3,8 +3,8 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         0.5.0
- * @release         2025-09-06
+ * @version         0.5.1
+ * @release         2025-09-07
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -39,7 +39,7 @@ describe('View Controller Handlebars Processing', () => {
     beforeEach(() => {
         // Use consolidated configuration
         TestUtils.setupGlobalMocksWithConsolidatedConfig();
-        
+
         // Or if you need specific overrides for testing:
         global.appConfig = {
             ...TestUtils.getConsolidatedConfig(),
@@ -471,6 +471,7 @@ describe('View Controller Handlebars Processing', () => {
             expect(result).toBe(longString);
         });
     });
+
 });
 
 

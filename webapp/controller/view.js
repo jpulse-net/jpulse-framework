@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.5.0
- * @release         2025-09-06
+ * @version         0.5.1
+ * @release         2025-09-07
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -408,7 +408,7 @@ function handleFileInclude(filePath, context, viewDir, req, depth = 0) {
 }
 
 /**
- * Handle file.timestamp helper
+ * Handle file.timestamp helper - W-047: Updated to support site overrides
  * @param {string} filePath - Path to file (with quotes)
  * @param {string} viewDir - View base directory for file operations
  * @param {Object} req - Express request object for logging
@@ -416,7 +416,6 @@ function handleFileInclude(filePath, context, viewDir, req, depth = 0) {
  */
 function handleFileTimestamp(filePath, viewDir, req) {
     const includePath = filePath.replace(/^["']|["']$/g, '');
-    const fullPath = path.resolve(viewDir, includePath);
 
     // Check cache first for file timestamp
     if (global.appConfig.controller.view.cacheIncludeFiles && cache.fileTimestamp[includePath]) {
@@ -424,9 +423,34 @@ function handleFileTimestamp(filePath, viewDir, req) {
         return cache.fileTimestamp[includePath];
     }
 
-    if (!fs.existsSync(fullPath)) {
-        throw new Error(`File not found: ${includePath} (resolved to: ${fullPath})`);
+    let fullPath;
+    try {
+        // W-047: Use PathResolver to support site overrides for timestamp files (synchronous)
+        const webappDir = global.appConfig?.app?.dirName || path.join(process.cwd(), 'webapp');
+        const projectRoot = path.dirname(webappDir);
+        const relativePath = `view/${includePath}`;
+
+        // 1. Check site override first (highest priority)
+        const sitePath = path.join(projectRoot, 'site/webapp', relativePath);
+        if (fs.existsSync(sitePath)) {
+            fullPath = sitePath;
+        } else {
+            // 2. Fall back to framework default
+            const frameworkPath = path.join(webappDir, relativePath);
+            if (fs.existsSync(frameworkPath)) {
+                fullPath = frameworkPath;
+            } else {
+                throw new Error(`File not found: ${includePath} (checked site and framework paths)`);
+            }
+        }
+    } catch (error) {
+        // Final fallback to original behavior
+        fullPath = path.resolve(viewDir, includePath);
+        if (!fs.existsSync(fullPath)) {
+            throw new Error(`File not found: ${includePath} (resolved to: ${fullPath})`);
+        }
     }
+
     const stats = fs.statSync(fullPath);
     const timestamp = stats.mtime.valueOf();
     // Cache the timestamp, if caching is enabled

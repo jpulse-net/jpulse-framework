@@ -5245,3 +5245,135 @@ LogController methods require a request object as first parameter to extract log
 - Follows established project format with detailed feature descriptions
 
 **Status:** ✅ COMPLETED - All documentation updated, commit message ready (not committed per request)
+
+
+============================================================
+
+2025-09-06 20:16: W-047: site: define guidelines for site specific coding and styles; document it
+
+User provided clarifications on key design decisions:
+
+**JavaScript Namespace Strategy:**
+- Agreed to extend jPulse object rather than separate window.Site
+- Proposed solution: site/webapp/view/site-common.js.tmpl template that extends jPulse
+- Example: define jPulse.myDialog in site override file
+- Leverages file-level override system while achieving logical extension
+
+**CSS Prefix Decision:**
+- User torn between site-* and jp-* prefixes
+- site-* advantage: clear location identification when editing pages
+- jp-* advantage: less cognitive load but unclear definition location
+- **DECISION**: Use site-* prefix for clear source identification
+
+**File Naming Strategy:**
+- site-* prefix → site-common.css and site-common.js
+- Clear distinction from framework files
+
+**Documentation Location:**
+- Confirmed: enhance site/README.md rather than creating separate docs
+- Keep site-specific documentation within site directory structure
+
+**Implementation Plan:**
+1. Create template files with extension patterns
+2. Update site/README.md with comprehensive guidelines
+3. Enhance demo with practical examples
+4. Update framework header to load site files
+5. Document best practices and common patterns
+
+**Implementation Summary:**
+- ✅ Created comprehensive site-common.css.tmpl and site-common.js.tmpl template files
+- ✅ Implemented site-* CSS prefix convention for clear source identification
+- ✅ JavaScript extension pattern extending jPulse.site namespace with dialogs, utilities, analytics
+- ✅ Updated jpulse-header.tmpl to automatically load site-common files when present
+- ✅ Enhanced /hello/ demo view with comprehensive site functionality showcase
+- ✅ Comprehensive site/README.md with 300+ lines of development guidelines, best practices, examples
+- ✅ Complete CSS and JavaScript component systems (dialogs, tooltips, accordions, analytics)
+- ✅ Responsive design patterns and framework integration guidelines
+- ✅ "Don't make me think" principle - automatic file detection and loading, zero configuration
+
+**Key Design Decisions Implemented:**
+- CSS: site-* prefix for clear source identification (when you see site-header, you know it's in site-common.css)
+- JavaScript: Extends jPulse.site namespace maintaining framework consistency
+- Files: site-common.css and site-common.js automatically loaded when present
+- Documentation: Enhanced site/README.md with comprehensive guidelines
+
+**Demo Features:**
+- Interactive site dialog system with custom styling
+- Site-specific CSS components (feature cards, buttons, animations)
+- JavaScript utilities (currency formatting, date formatting, unique ID generation)
+- Analytics tracking system with console logging
+- Tooltip and accordion components with data attributes
+- Responsive design patterns
+
+**Status:** ✅ COMPLETED - All W-047 objectives achieved with comprehensive implementation
+
+**Post-Implementation Refinements (2025-09-06 21:00):**
+
+**Issues Identified and Resolved:**
+1. **Dialog Styling Problems**: Site dialog buttons had styling issues visible in browser
+2. **Redundant Functionality**: Site-specific dialog system was overkill since jPulse will get proper modal dialogs
+3. **Complex Demo Page**: Hello page became too complex with too many features in one place
+
+**Refinements Applied:**
+- ✅ **Removed Redundant Dialog System**: Eliminated site-specific dialog/confirm functionality
+- ✅ **Simplified Site JavaScript**: Replaced complex dialog system with lightweight `jPulse.site.ui.notify()` helper
+- ✅ **Split Demo Pages**: 
+  - `index.shtml`: Clean, minimal demo showing basic site override concept + API demo
+  - `site-demo.shtml`: Comprehensive W-047 demonstration with organized sections
+- ✅ **Cleaned Up CSS**: Removed dialog-related styles, kept essential site components
+- ✅ **Updated Templates**: Synchronized template files with cleaned implementations
+
+**Final Architecture:**
+- **Minimal Hello Page**: Clean demonstration of site override system with link to comprehensive demo
+- **Comprehensive Demo Page**: Detailed showcase organized into 4 clear sections (CSS, JS, Components, Documentation)
+- **Lightweight Extensions**: Site JavaScript focuses on utilities, analytics, and component auto-initialization
+- **Future-Proof**: Ready for jPulse framework modal dialogs without conflicts
+
+**User Experience Improvements:**
+- Cleaner, more focused hello page
+- Better organized comprehensive demo
+- No styling conflicts or broken buttons
+- Clear separation of concerns
+- Easier to understand and maintain
+
+**Status:** ✅ COMPLETED - W-047 refined and production-ready
+
+
+====================================================================
+
+2025-09-06 21:24:06 - W-047 Testing Strategy Discussion
+
+User asked: "does it make sense to add tests for W-047"
+
+Analyzing what aspects of W-047 would benefit from testing and considering the testing strategy for site-specific coding guidelines implementation.
+
+**Essential W-047 Tests Implemented:**
+
+Created focused integration tests covering the most critical aspects:
+
+1. **Site File Management Tests** (`webapp/tests/integration/w047-site-files.test.js`):
+   - ✅ Template file creation (site-common.css.tmpl → site-common.css)
+   - ✅ JavaScript template creation (site-common.js.tmpl → site-common.js)
+   - ✅ Demo page existence and content verification
+   - ✅ Route configuration verification (site-common route pattern)
+   - ✅ Documentation completeness (site/README.md W-047 section)
+   - ✅ Requirements tracking (W-047 marked as completed)
+
+2. **Test Results:** 6/6 tests passing
+   - Validates core W-047 infrastructure is in place
+   - Ensures templates contain expected site-* prefixes and jPulse.site extensions
+   - Verifies route handling for site-common files
+   - Confirms documentation and requirements are up-to-date
+
+**Cancelled Tests:**
+- Handlebars timestamp helper tests (complex test helper integration issues)
+- JavaScript extension pattern tests (covered by file content verification)
+- Demo functionality tests (covered by content verification)
+
+**Value Delivered:**
+- Essential regression protection for W-047 infrastructure
+- Lightweight tests that don't over-engineer
+- Focus on high-impact areas that could break with future changes
+- Validates the "don't make me think" implementation works as documented
+
+**Status:** ✅ COMPLETED - Essential W-047 tests implemented and passing

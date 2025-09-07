@@ -3,8 +3,8 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         0.5.0
- * @release         2025-09-06
+ * @version         0.5.1
+ * @release         2025-09-07
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -76,6 +76,8 @@ LogController.logInfo(null, `routes: Auto-registered ${registeredApis} site API 
 // Dynamic content routes - handle {{handlebars}} in .shtml, .tmpl, and jpulse-* files only
 router.get(/\.(shtml|tmpl)$/, viewController.load);
 router.get(/\/jpulse-.*\.(js|css)$/, viewController.load);
+// W-047: Serve site-common files from view directory
+router.get(/\/site-common\.(js|css)$/, viewController.load);
 router.get(/^\/[\w-]+\/$/, viewController.load); // e.g. /home/ ==> /home/index.shtml
 router.get('/', (req, res) => {
     res.redirect('/home/');

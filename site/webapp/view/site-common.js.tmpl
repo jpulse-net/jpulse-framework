@@ -1,0 +1,369 @@
+/*
+ * @name            jPulse Framework / Site / WebApp / View / Site Common JavaScript Template
+ * @tagline         Template for site-specific JavaScript customizations
+ * @description     Template for site-specific JS - copy to site-common.js and customize
+ * @file            site/webapp/view/site-common.js.tmpl
+ * @version         0.5.1
+ * @release         2025-09-07
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Site Developer
+ * @copyright       2025 Site Owner
+ * @license         GPL v3, see LICENSE file
+ * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ */
+
+// ========================================
+// SITE-SPECIFIC EXTENSIONS TO jPulse
+// Extend the jPulse framework with site-specific functionality
+// ========================================
+
+// Extend jPulse with site-specific namespace
+window.jPulse = window.jPulse || {};
+
+// Site-specific functionality namespace
+jPulse.site = {
+    // Site configuration
+    config: {
+        name: 'My Custom Site',
+        version: '1.0.0',
+        features: {
+            analytics: true,
+            chatbot: false,
+            newsletter: true
+        }
+    },
+
+    // ========================================
+    // SITE-SPECIFIC UI COMPONENTS
+    // ========================================
+
+    /**
+     * Site-specific UI helpers (lightweight utilities)
+     * Note: jPulse framework will provide comprehensive modal dialogs
+     */
+    ui: {
+        /**
+         * Simple notification using framework's slide-down messages
+         * @param {string} message - Notification message
+         * @param {string} type - Message type: 'info', 'success', 'warning', 'error'
+         */
+        notify: (message, type = 'info') => {
+            if (typeof jPulse.showSlideDownMessage === 'function') {
+                jPulse.showSlideDownMessage(message, type);
+            } else {
+                console.log(`Site notification [${type}]:`, message);
+            }
+        }
+    },
+
+    // ========================================
+    // SITE-SPECIFIC UTILITIES
+    // ========================================
+
+    /**
+     * Site-specific utility functions
+     */
+    utils: {
+        /**
+         * Format currency for site-specific locale
+         * @param {number} amount - Amount to format
+         * @param {string} currency - Currency code (default: USD)
+         */
+        formatCurrency: (amount, currency = 'USD') => {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: currency
+            }).format(amount);
+        },
+
+        /**
+         * Format date for site-specific locale
+         * @param {Date|string} date - Date to format
+         * @param {Object} options - Formatting options
+         */
+        formatDate: (date, options = {}) => {
+            const defaults = {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            };
+            const config = { ...defaults, ...options };
+
+            return new Intl.DateTimeFormat('en-US', config).format(new Date(date));
+        },
+
+        /**
+         * Debounce function for site-specific use cases
+         * @param {Function} func - Function to debounce
+         * @param {number} wait - Wait time in milliseconds
+         */
+        debounce: (func, wait) => {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        },
+
+        /**
+         * Generate unique ID for site elements
+         * @param {string} prefix - ID prefix
+         */
+        generateId: (prefix = 'site') => {
+            return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        },
+
+        /**
+         * Smooth scroll to element
+         * @param {string|Element} target - Target element or selector
+         * @param {Object} options - Scroll options
+         */
+        scrollTo: (target, options = {}) => {
+            const element = typeof target === 'string' ? document.querySelector(target) : target;
+            if (!element) return;
+
+            const defaults = {
+                behavior: 'smooth',
+                block: 'start',
+                inline: 'nearest'
+            };
+            const config = { ...defaults, ...options };
+
+            element.scrollIntoView(config);
+        }
+    },
+
+    // ========================================
+    // SITE-SPECIFIC ANALYTICS
+    // ========================================
+
+    /**
+     * Site analytics integration
+     */
+    analytics: {
+        /**
+         * Track custom site events
+         * @param {string} event - Event name
+         * @param {Object} data - Event data
+         */
+        track: (event, data = {}) => {
+            if (!jPulse.site.config.features.analytics) return;
+
+            // Example integration with Google Analytics
+            if (typeof gtag !== 'undefined') {
+                gtag('event', event, data);
+            }
+
+            // Example integration with custom analytics
+            console.log('Site Analytics:', event, data);
+        },
+
+        /**
+         * Track page views
+         * @param {string} page - Page identifier
+         */
+        pageView: (page) => {
+            jPulse.site.analytics.track('page_view', {
+                page: page,
+                timestamp: new Date().toISOString()
+            });
+        },
+
+        /**
+         * Track user interactions
+         * @param {string} action - Action type
+         * @param {string} element - Element identifier
+         */
+        interaction: (action, element) => {
+            jPulse.site.analytics.track('user_interaction', {
+                action: action,
+                element: element,
+                timestamp: new Date().toISOString()
+            });
+        }
+    },
+
+    // ========================================
+    // SITE-SPECIFIC INITIALIZATION
+    // ========================================
+
+    /**
+     * Initialize site-specific functionality
+     */
+    init: () => {
+        console.log(`Initializing ${jPulse.site.config.name} v${jPulse.site.config.version}`);
+
+        // Initialize analytics if enabled
+        if (jPulse.site.config.features.analytics) {
+            jPulse.site.analytics.pageView(window.location.pathname);
+        }
+
+        // Initialize site-specific event listeners
+        jPulse.site._initEventListeners();
+
+        // Initialize site-specific components
+        jPulse.site._initComponents();
+
+        console.log('Site initialization complete');
+    },
+
+    /**
+     * Private: Initialize event listeners
+     */
+    _initEventListeners: () => {
+        // Track clicks on site-specific elements
+        document.addEventListener('click', (event) => {
+            if (event.target.matches('[data-site-track]')) {
+                const action = event.target.dataset.siteTrack;
+                const element = event.target.tagName.toLowerCase() + (event.target.id ? `#${event.target.id}` : '');
+                jPulse.site.analytics.interaction(action, element);
+            }
+        });
+
+        // Handle site-specific keyboard shortcuts
+        document.addEventListener('keydown', (event) => {
+            // Example: Ctrl+Shift+H to show help dialog
+            if (event.ctrlKey && event.shiftKey && event.key === 'H') {
+                event.preventDefault();
+                jPulse.site.dialog.show('Site-specific help content here', 'info', {
+                    title: 'Site Help'
+                });
+            }
+        });
+    },
+
+    /**
+     * Private: Initialize site components
+     */
+    _initComponents: () => {
+        // Initialize any site-specific components
+        // Example: Custom tooltips, modals, etc.
+
+        // Auto-initialize elements with data-site-component attribute
+        document.querySelectorAll('[data-site-component]').forEach(element => {
+            const componentType = element.dataset.siteComponent;
+
+            switch (componentType) {
+                case 'tooltip':
+                    jPulse.site._initTooltip(element);
+                    break;
+                case 'accordion':
+                    jPulse.site._initAccordion(element);
+                    break;
+                // Add more component types as needed
+            }
+        });
+    },
+
+    /**
+     * Private: Initialize tooltip component
+     */
+    _initTooltip: (element) => {
+        const tooltip = element.dataset.siteTooltip;
+        if (!tooltip) return;
+
+        element.addEventListener('mouseenter', () => {
+            // Create and show tooltip
+            const tooltipEl = document.createElement('div');
+            tooltipEl.className = 'site-tooltip';
+            tooltipEl.textContent = tooltip;
+            document.body.appendChild(tooltipEl);
+
+            // Position tooltip
+            const rect = element.getBoundingClientRect();
+            tooltipEl.style.left = rect.left + (rect.width / 2) - (tooltipEl.offsetWidth / 2) + 'px';
+            tooltipEl.style.top = rect.top - tooltipEl.offsetHeight - 8 + 'px';
+
+            element._tooltip = tooltipEl;
+        });
+
+        element.addEventListener('mouseleave', () => {
+            if (element._tooltip) {
+                element._tooltip.remove();
+                element._tooltip = null;
+            }
+        });
+    },
+
+    /**
+     * Private: Initialize accordion component
+     */
+    _initAccordion: (element) => {
+        const headers = element.querySelectorAll('[data-accordion-header]');
+
+        headers.forEach(header => {
+            header.addEventListener('click', () => {
+                const content = header.nextElementSibling;
+                const isOpen = header.classList.contains('site-accordion-open');
+
+                // Close all other accordions in this group
+                headers.forEach(h => {
+                    h.classList.remove('site-accordion-open');
+                    if (h.nextElementSibling) {
+                        h.nextElementSibling.style.display = 'none';
+                    }
+                });
+
+                // Toggle current accordion
+                if (!isOpen) {
+                    header.classList.add('site-accordion-open');
+                    if (content) {
+                        content.style.display = 'block';
+                    }
+                }
+            });
+        });
+    }
+};
+
+// ========================================
+// EXTEND EXISTING jPULSE FUNCTIONALITY
+// Add site-specific methods to existing jPulse namespaces
+// ========================================
+
+// Extend jPulse.form with site-specific validation
+if (jPulse.form) {
+    jPulse.form.site = {
+        /**
+         * Site-specific form validation rules
+         */
+        validate: {
+            phoneNumber: (phone) => /^\(\d{3}\)\s\d{3}-\d{4}$/.test(phone),
+            zipCode: (zip) => /^\d{5}(-\d{4})?$/.test(zip),
+            creditCard: (cc) => /^\d{4}\s\d{4}\s\d{4}\s\d{4}$/.test(cc)
+        },
+
+        /**
+         * Format form fields according to site standards
+         */
+        format: {
+            phoneNumber: (input) => {
+                let value = input.value.replace(/\D/g, '');
+                if (value.length >= 6) {
+                    value = `(${value.slice(0,3)}) ${value.slice(3,6)}-${value.slice(6,10)}`;
+                } else if (value.length >= 3) {
+                    value = `(${value.slice(0,3)}) ${value.slice(3)}`;
+                }
+                input.value = value;
+            }
+        }
+    };
+}
+
+// ========================================
+// AUTO-INITIALIZATION
+// Initialize site functionality when DOM is ready
+// ========================================
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', jPulse.site.init);
+} else {
+    jPulse.site.init();
+}
+
+// EOF site/webapp/view/site-common.js.tmpl

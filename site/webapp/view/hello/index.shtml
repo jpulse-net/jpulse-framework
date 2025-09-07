@@ -4,8 +4,8 @@
  * @tagline         Demo Site View Override
  * @description     Example of how to override framework views
  * @file            site/webapp/view/hello/index.shtml
- * @version         0.5.0
- * @release         2025-09-06
+ * @version         0.5.1
+ * @release         2025-09-07
  * @author          Site Developer
  * @license         GPL v3, see LICENSE file
  * @genai           99%, Cursor 1.2, Claude Sonnet 4
@@ -75,6 +75,27 @@
             </div>
         </div>
 
+        <!-- W-047: Site-Specific Development Demo -->
+        <div class="jp-card">
+            <h3>🎨 W-047: Site-Specific Development</h3>
+            <p>This page demonstrates the site override system with clean separation between framework and site code.</p>
+
+            <div class="jp-info-box">
+                <h4>Site Customization Features:</h4>
+                <ul>
+                    <li><strong>CSS Styling:</strong> Site-specific styles with <code>site-*</code> prefix</li>
+                    <li><strong>JavaScript Extensions:</strong> Extends <code>jPulse</code> framework object</li>
+                    <li><strong>Automatic Loading:</strong> No configuration required</li>
+                    <li><strong>Template System:</strong> Copy templates and customize</li>
+                </ul>
+            </div>
+
+            <div class="jp-actions">
+                <a href="/hello/site-demo.shtml" class="jp-btn jp-btn-primary">🚀 View Comprehensive Site Demo</a>
+                <a href="https://github.com/peterthoeny/jpulse-framework/blob/main/site/README.md" class="jp-btn jp-btn-outline" target="_blank">📖 Read Documentation</a>
+            </div>
+        </div>
+
         <div class="jp-actions">
             <a href="/" class="jp-btn jp-btn-primary">← Back to Home</a>
             <a href="/api/1/hello" class="jp-btn jp-btn-outline" target="_blank">View Raw API Response</a>
@@ -82,6 +103,7 @@
 
         <script>
             document.addEventListener('DOMContentLoaded', function() {
+                // Original API test functionality
                 const testBtn = document.getElementById('testApiBtn');
                 const responseDiv = document.getElementById('apiResponse');
                 const responseContent = document.getElementById('apiResponseContent');
@@ -108,6 +130,15 @@
                     testBtn.disabled = false;
                     testBtn.textContent = 'Test Site API';
                 });
+
+                // Simple demonstration that site JavaScript is loaded
+                setTimeout(() => {
+                    if (typeof jPulse.site !== 'undefined') {
+                        console.log('✅ Site JavaScript loaded successfully:', jPulse.site.config.name);
+                    } else {
+                        console.warn('⚠️ Site JavaScript not loaded');
+                    }
+                }, 100);
             });
         </script>
     </div>

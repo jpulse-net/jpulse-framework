@@ -1,8 +1,11 @@
-# jPulse Framework / Developer Documentation v0.5.0
+# jPulse Framework / Developer Documentation v0.5.1
 
 Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
 
-**Latest Updates (v0.4.10):**
+**Latest Updates (v0.5.1):**
+- 🎨 **Site-Specific Coding & Styling Guidelines (W-047)**: Complete site development framework with comprehensive documentation, template system, and interactive demo implementation. Features include `site-*` CSS prefix convention for clear source identification, JavaScript extension pattern via `jPulse.site` namespace, template-based file generation system, automatic framework integration, comprehensive demo pages showcasing all features, and essential test coverage. Implements "don't make me think" principle for site developers with zero configuration required and seamless framework updates.
+
+**Previous Updates (v0.4.10):**
 - ⚙️ **Site Configuration Management (W-041)**: Complete admin configuration system with intuitive interface for email settings (SMTP server, port, credentials, TLS) and site messages. Features password visibility toggle, smart default creation, comprehensive validation, full i18n support, and production-ready implementation with extensive test coverage. Includes ConfigModel enhancements, ConfigController smart defaults, and 10 comprehensive tests covering validation logic.
 
 **Previous Updates (v0.4.8):**

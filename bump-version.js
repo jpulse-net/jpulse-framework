@@ -5,8 +5,8 @@
  * @tagline         Version bump script for jPulse Framework
  * @description     Updates version numbers and release dates across all source files
  * @file            bump-version.js
- * @version         0.5.0
- * @release         2025-09-06
+ * @version         0.5.1
+ * @release         2025-09-07
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -44,8 +44,7 @@ const conf = {
         'site/webapp/controller/*.js',
         'site/webapp/model/*.js',
         'site/webapp/translations/*.conf',
-        'site/webapp/view/*.js',
-        'site/webapp/view/*.css',
+        'site/webapp/view/*.tmpl',
         'site/webapp/view/*/*.shtml',
 
         // Test files

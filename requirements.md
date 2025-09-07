@@ -593,17 +593,6 @@ Requirements Doc of jPulse Framework
 - create webapp/view/admin/config.shtml -- edit site config
 - **DELIVERED**: Complete site configuration management system with intuitive admin interface, email settings (SMTP server, port, credentials, TLS), site messages, password visibility toggle, smart default creation, comprehensive validation, full i18n support, and extensive test coverage
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-# 🚧 IN_PROGRESS Work Items
-
 ## **W-014**: architecture: strategy for seamless update of site-specific jPulse deployments
 - status: ✅ COMPLETED (v0.5.0)
 - type: Feature
@@ -628,6 +617,35 @@ Requirements Doc of jPulse Framework
 - ✅ Comprehensive test coverage (28 new tests, 416 existing tests passing)
 - ✅ "Don't make me think" principle - zero manual configuration required
 
+## **W-047**: site: define gudelines for site specific coding and styles; document it
+- status: ✅ COMPLETED (v0.5.0)
+- type: Feature
+- objective: document how to get started with side specific coding, with guidelines; follow the don't nake me think principle
+- common JavaScript code in site/webapp/view/site-common.js extends window.jPulse object
+- common styles in site/webapp/view/site-common.css with site-* prefix for clear source identification
+- documented in enhanced site/README.md with comprehensive development guidelines
+
+**IMPLEMENTATION COMPLETED:**
+- ✅ Created site-common.css.tmpl and site-common.js.tmpl template files
+- ✅ Implemented site-* CSS prefix convention for clear source identification
+- ✅ JavaScript extension pattern extending jPulse.site namespace
+- ✅ Updated jpulse-header.tmpl to automatically load site-common files
+- ✅ Enhanced demo view with comprehensive site functionality showcase
+- ✅ Comprehensive site/README.md with development guidelines, best practices, and examples
+- ✅ "Don't make me think" principle - automatic file detection and loading
+- ✅ Complete CSS and JavaScript component systems with dialogs, tooltips, analytics
+- ✅ Responsive design patterns and framework integration guidelines
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+# 🚧 IN_PROGRESS Work Items
 
 
 
@@ -646,7 +664,7 @@ Requirements Doc of jPulse Framework
 
 next work item: **W-036**: view: migrate existing views to use jpulse-common.js and jpulse-common.css
 - review task, ask questions
-- suggest change of spec if it helps with usability (for users and developers)
+- suggest change of spec, goal is better usability for site developers
 - plan how to implement (wait for my go ahead)
 
 Almost ready for W-042 release (this chat refers to W-021, my mistake)
@@ -750,7 +768,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - status: 🕑 PENDING
 - type: Feature
 - objective: make it easy to parse by analytics tools
-
 
 ## **W-0**: broadcast message
 - status: 🕑 PENDING

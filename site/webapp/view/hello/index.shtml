@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <!--
- * @name            jPulse Framework / Site Override Demo View
+ * @name            jPulse Framework / Site / WebApp / View / Hello World Override Demo
  * @tagline         Demo Site View Override
  * @description     Example of how to override framework views
  * @file            site/webapp/view/hello/index.shtml
- * @version         0.4.10
+ * @version         0.5.0
  * @release         2025-09-06
  * @author          Site Developer
  * @license         GPL v3, see LICENSE file
- * @genai           Demo for W-014 site overrides
+ * @genai           99%, Cursor 1.2, Claude Sonnet 4
 -->
 <html lang="en">
 <head>

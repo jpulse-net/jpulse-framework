@@ -4,7 +4,7 @@
  * @tagline         User profile view with edit capabilities
  * @description     User profile management with view and edit modes
  * @file            webapp/view/user/profile.shtml
- * @version         0.4.10
+ * @version         0.5.0
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -79,7 +79,7 @@
                     <h1>{{user.firstName}} {{user.lastName}}</h1>
                     <div class="jp-user-details">@{{user.username}} • {{user.email}}</div>
                     <div class="jp-user-details">
-                        <span class="jp-status-badge jp-status-active">{{i18n.view.user.profile.statusActive}}</span>
+                        <span class="jp-status-badge jp-status-{{user.status}}">{{user.status}}</span>
                     </div>
                 </div>
             </div>

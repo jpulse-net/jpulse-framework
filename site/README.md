@@ -13,7 +13,7 @@ site/
 ├── README.md                    # This file
 └── webapp/                      # Site-specific overrides
     ├── app.conf                 # Site configuration (gitignored)
-    ├── app.conf.example         # Configuration template
+    ├── app.conf.tmpl            # Configuration template
     ├── controller/              # Site controller overrides
     │   └── hello.js             # Demo controller override
     ├── model/                   # Site model overrides
@@ -39,7 +39,7 @@ site/
 
 1. **Copy the configuration template:**
    ```bash
-   cp site/webapp/app.conf.example site/webapp/app.conf
+   cp site/webapp/app.conf.tmpl site/webapp/app.conf
    ```
 
 2. **Customize your configuration:**

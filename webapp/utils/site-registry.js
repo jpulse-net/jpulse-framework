@@ -1,9 +1,9 @@
 /**
- * @name            jPulse Framework / Site Registry
+ * @name            jPulse Framework / WebApp / Utils / Site Registry
  * @tagline         Site Override Registry and Auto-Discovery
  * @description     Discovers and registers site controllers/APIs at startup (W-014)
  * @file            webapp/utils/site-registry.js
- * @version         0.4.10
+ * @version         0.5.0
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -14,13 +14,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-// Get current directory for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const webappDir = path.dirname(__dirname); // Parent of utils/
-const projectRoot = path.dirname(webappDir); // Parent of webapp/
+import LogController from '../controller/log.js';
 
 /**
  * Site Registry for Auto-Discovery (W-014)
@@ -42,11 +36,14 @@ class SiteRegistry {
      */
     static async initialize() {
         try {
+            // Use appConfig.app.dirName as the base directory (follows established pattern)
+            const webappDir = global.appConfig?.app?.dirName || path.join(process.cwd(), 'webapp');
+            const projectRoot = path.dirname(webappDir);
             const siteControllerDir = path.join(projectRoot, 'site/webapp/controller');
             this.registry.scanPath = siteControllerDir;
 
             if (!fs.existsSync(siteControllerDir)) {
-                console.log('Site controller directory not found - no site overrides to register');
+                LogController.logInfo(null, 'site-registry: Site controller directory not found - no site overrides to register');
                 return { controllers: 0, apis: 0 };
             }
 
@@ -56,17 +53,12 @@ class SiteRegistry {
             const apiCount = Array.from(this.registry.controllers.values())
                 .filter(controller => controller.hasApi).length;
 
-            const LogController = global.LogController || console;
-            if (LogController.logInfo) {
-                LogController.logInfo(null, `site-registry: Discovered ${controllerCount} controllers, ${apiCount} with APIs`);
-            } else {
-                console.log(`Site Registry: Discovered ${controllerCount} controllers, ${apiCount} with APIs`);
-            }
+            LogController.logInfo(null, `site-registry: Discovered ${controllerCount} controllers, ${apiCount} with APIs`);
 
             return { controllers: controllerCount, apis: apiCount };
 
         } catch (error) {
-            console.error(`Site Registry initialization failed: ${error.message}`);
+            LogController.logError(null, `site-registry: Site Registry initialization failed: ${error.message}`);
             return { controllers: 0, apis: 0, error: error.message };
         }
     }
@@ -97,12 +89,7 @@ class SiteRegistry {
                     });
 
                 } catch (error) {
-                    const LogController = global.LogController || console;
-                    if (LogController.logError) {
-                        LogController.logError(null, `site-registry: Failed to analyze controller ${file}: ${error.message}`);
-                    } else {
-                        console.warn(`Site Registry: Failed to analyze controller ${file}: ${error.message}`);
-                    }
+                    LogController.logError(null, `site-registry: Failed to analyze controller ${file}: ${error.message}`);
                 }
             }
         }
@@ -195,15 +182,10 @@ class SiteRegistry {
                     const ControllerClass = await this.loadController(controller.name);
                     await ControllerClass.api(req, res);
                 } catch (error) {
-                    const LogController = global.LogController || console;
-                    if (LogController.logError) {
-                        LogController.logError(req, `site-api.${controller.name}: error: ${error.message}`);
-                    } else {
-                        console.error(`Site API error (${controller.name}):`, error.message);
-                    }
+                    LogController.logError(`site-api.${controller.name}`, `error: ${error.message}`);
 
                     const CommonUtils = global.CommonUtils;
-                    if (CommonUtils && CommonUtils.sendError) {
+                    if (CommonUtils && CommonUtils.sendError && req.originalUrl) {
                         return CommonUtils.sendError(req, res, 500, 'Site API error');
                     } else {
                         return res.status(500).json({ error: 'Site API error' });
@@ -211,12 +193,7 @@ class SiteRegistry {
                 }
             });
 
-            const LogController = global.LogController || console;
-            if (LogController.logInfo) {
-                LogController.logInfo(null, `site-registry: Registered API route ${apiPath} → ${controller.name}`);
-            } else {
-                console.log(`Site Registry: Registered API route ${apiPath} → ${controller.name}`);
-            }
+            LogController.logInfo(null, `site-registry: Registered API route ${apiPath} → ${controller.name}`);
         }
 
         return apiControllers.length;

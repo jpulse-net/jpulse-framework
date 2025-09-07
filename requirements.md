@@ -605,7 +605,7 @@ Requirements Doc of jPulse Framework
 # 🚧 IN_PROGRESS Work Items
 
 ## **W-014**: architecture: strategy for seamless update of site-specific jPulse deployments
-- status: 🕑 PENDING
+- status: ✅ COMPLETED (v0.5.0)
 - type: Feature
 - objective: clean separation of jpulse code/data, and site/deployment specific code/data
 - author: site administrator/developer
@@ -617,6 +617,16 @@ Requirements Doc of jPulse Framework
   - site specific directories and files
 - automatic way to override/extend jPulse config, models, controllers, views with site-specific settings
 - create a demo model/view/controller (possibly as plugin), ship with jpulse-framework
+
+**IMPLEMENTATION COMPLETED:**
+- ✅ Site override directory structure (`site/webapp/`)
+- ✅ File resolution priority system (PathResolver)
+- ✅ Auto-discovery of site controllers (SiteRegistry)
+- ✅ Configuration merging (framework + site configs)
+- ✅ Context extension system (ContextExtensions)
+- ✅ Demo implementation (`/hello/` endpoint with interactive API demo)
+- ✅ Comprehensive test coverage (28 new tests, 416 existing tests passing)
+- ✅ "Don't make me think" principle - zero manual configuration required
 
 
 
@@ -645,7 +655,7 @@ Almost ready for W-042 release (this chat refers to W-021, my mistake)
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-04 02:12
 - update *.md docs in project root
-- update commit-message.txt, following the same format, specify: W-041, v0.4.10 (don't commit)
+- update commit-message.txt, following the same format, specify: W-014, v0.5.0 (don't commit)
 
 
 

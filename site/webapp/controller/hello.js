@@ -1,13 +1,13 @@
 /**
- * @name            jPulse Framework / Site Override Demo
+ * @name            jPulse Framework / Site / WebApp / Controller / Hello World Override Demo
  * @tagline         Demo Site Controller Override
  * @description     Example of how to override framework controllers
  * @file            site/webapp/controller/hello.js
- * @version         0.4.10
+ * @version         0.5.0
  * @release         2025-09-06
  * @author          Site Developer
  * @license         GPL v3, see LICENSE file
- * @genai           Demo for W-014 site overrides
+ * @genai           99%, Cursor 1.2, Claude Sonnet 4
  */
 
 /**

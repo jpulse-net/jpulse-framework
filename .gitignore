@@ -1,15 +1,14 @@
 # Local work files
 .jpulse/
 commit-message*.txt
-test-w014-phase1.js
 tt-*
 *.save[0-9]
 *.save[0-9][0-9]
 
 # Site-specific configuration (each deployment customizes)
 site/webapp/app.conf
-# But keep demo/example files for reference
-!site/webapp/app.conf.example
+# But keep template files for reference
+!site/webapp/app.conf.tmpl
 
 # Dependencies
 node_modules/

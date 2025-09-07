@@ -3,7 +3,7 @@
  * @tagline         Jest Global Setup
  * @description     Global setup for Jest tests runs once before all tests start
  * @file            webapp/tests/setup/global-setup.js
- * @version         0.4.10
+ * @version         0.5.0
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

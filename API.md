@@ -1,4 +1,4 @@
-# jPulse Framework / API Documentation v0.4.10
+# jPulse Framework / API Documentation v0.5.0
 
 Comprehensive API reference for the jPulse Framework RESTful endpoints and template system.
 
@@ -17,7 +17,14 @@ jPulse provides a comprehensive RESTful API under the `/api/1/` prefix with the 
 - **Dynamic Schema-Aware Frontend**: API-driven dropdown population with backend schema synchronization
 - **Logging**: All API calls automatically logged with user context
 
-### Recent API Additions (v0.4.7)
+### Recent API Additions (v0.5.0)
+- **Site Override Architecture (W-014)**: Complete site customization system with automatic API discovery
+- **Auto-Discovery APIs**: Site controllers automatically registered under `/api/1/[controller-name]` pattern
+- **Configuration Merging**: Framework and site configurations automatically merged with site overrides taking priority
+- **Context Extensions**: Template data can be extended by site controllers through provider-based system
+- **Zero Configuration**: Site APIs work out of the box with no manual route registration required
+
+### Previous API Additions (v0.4.7)
 - **Enhanced Form Submission System**: New `bindSubmission` and `handleSubmission` functions with improved developer experience
 - **Automatic Error Message Management**: Fixed slide-down message accumulation bug with smart error clearing
 - **Comprehensive Form Testing**: Complete test coverage for form submission logic with proper mocking
@@ -354,6 +361,101 @@ document.addEventListener('DOMContentLoaded', () => {
 ```
 
 ________________________________________________
+## 🏗️ Site Override Architecture (W-014, v0.5.0)
+
+The Site Override Architecture enables seamless framework updates while preserving site-specific customizations through automatic file resolution and API discovery.
+
+### Site Override System
+
+#### File Resolution Priority
+The framework automatically resolves files using this priority order:
+1. **Site Override**: `site/webapp/[type]/[file]` (highest priority)
+2. **Framework Default**: `webapp/[type]/[file]` (fallback)
+
+This applies to:
+- **Views**: `.shtml` template files
+- **Controllers**: JavaScript controller files  
+- **Static Assets**: CSS, JS, images, etc.
+- **Configuration**: `app.conf` files
+
+#### Auto-Discovery APIs
+Site controllers are automatically discovered and registered:
+
+```javascript
+// site/webapp/controller/hello.js
+class HelloController {
+    static async api(req, res) {
+        return res.json({
+            message: 'Hello from site override!',
+            timestamp: new Date().toISOString()
+        });
+    }
+}
+export default HelloController;
+```
+
+**Automatic Registration**: Creates `/api/1/hello` endpoint with zero configuration.
+
+#### Configuration Merging
+Framework and site configurations are automatically merged:
+
+```javascript
+// webapp/app.conf (framework defaults)
+app: {
+    name: 'jPulse Framework',
+    version: '0.5.0'
+}
+
+// site/webapp/app.conf (site overrides)  
+app: {
+    name: 'My Custom Site',
+    customFeature: 'enabled'
+}
+
+// Result: Merged configuration
+app: {
+    name: 'My Custom Site',        // Site override
+    version: '0.5.0',              // Framework default
+    customFeature: 'enabled'       // Site addition
+}
+```
+
+#### Context Extensions
+Site controllers can extend template data:
+
+```javascript
+// site/webapp/controller/custom.js
+class CustomController {
+    static extendContext(baseContext, req) {
+        return {
+            ...baseContext,
+            customData: 'Site-specific data',
+            siteFeatures: ['feature1', 'feature2']
+        };
+    }
+}
+```
+
+### Protected Paths
+These paths are safe from framework updates:
+- `site/` - All site customizations
+- `plugins/` - Plugin installations  
+- `.jpulse/site-*` - Site-specific cache files
+- `.jpulse/plugins-*` - Plugin cache files
+
+### Demo Implementation
+Visit `/hello/` for a working demonstration of:
+- Site view override
+- Site controller with API
+- Interactive API call using `jPulse.apiCall()`
+- Real-time JSON response display
+
+### Developer Experience
+- ✅ **Zero Configuration**: Works out of the box
+- ✅ **Auto-Discovery**: No manual route registration
+- ✅ **"Don't Make Me Think"**: Intuitive file organization
+- ✅ **Update Safe**: Site customizations preserved during framework updates
+
 ## 🎨 Component Library (jp-* CSS Classes)
 
 The jPulse Framework provides a comprehensive component library with consistent `jp-` prefixed classes for rapid development.

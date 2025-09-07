@@ -3,7 +3,7 @@
  * @tagline         Unit tests for responsive layout and appConfig integration
  * @description     Tests for the new responsive layout features and appConfig context
  * @file            webapp/tests/unit/controller/responsive-layout.test.js
- * @version         0.4.10
+ * @version         0.5.0
  * @release         2025-09-06
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -228,7 +228,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
 
             expect(simulatedContext.appConfig).toBe(mockAppConfig);
             expect(simulatedContext.appConfig.view.mainContainer.maxWidth).toBe(1200);
-            expect(simulatedContext.app.name).toBe('jPulse Framework');
+            expect(simulatedContext.app.name).toBe('jPulse Framework - Custom Site');
         });
 
         test('should support handlebars template expressions', () => {

@@ -428,7 +428,7 @@ webapp/view/
 
 2025-08-28 21:03: User requested assessment of Vue.js integration proposal for jPulse Framework
 
-I provided a comprehensive assessment of the Vue.js integration proposal from tt-vue-integration.md:
+I provided a comprehensive assessment of the Vue.js integration proposal from docs/dev/W-023-view-migrate-views-to-vue.md:
 
 ASSESSMENT SUMMARY:
 
@@ -475,7 +475,7 @@ The user accepted the assessment and recommendation to proceed with Vue.js integ
 
 Task overview:
 - Previous Gemini session messed up app.js and routes.js (see .save1 files)
-- Need to implement Vue.js integration per tt-vue-integration.md
+- Need to implement Vue.js integration per docs/dev/W-023-view-migrate-views-to-vue.md
 - Preserve MVC mental model and framework/site separation
 - Clean up and enhance app.js and routes.js properly
 
@@ -876,7 +876,7 @@ W-023 IMPLEMENTATION: ABSOLUTELY PERFECT AND COMPLETE! 🚀🎯
 **IMPLEMENTATION PROCESS OVERVIEW**:
 
 **Phase 1: Assessment & Restoration** 🔧
-- Analyzed tt-vue-integration.md implementation guide
+- Analyzed docs/dev/W-023-view-migrate-views-to-vue.md implementation guide
 - Restored clean app.js and routes.js from .save1 versions
 - Verified app.js was correct and required no Vue-specific changes
 - Identified previous agent's architectural mistakes and circular reference issues
@@ -4974,7 +4974,7 @@ System ready for immediate production deployment with excellent developer and us
 3. **Override Directory Pattern**: Clean separation with protected paths for updates
 
 **Document Updates:**
-- Updated `tt-w-014-w-045-mvc-site-plugins-architecture.md` with comprehensive architecture
+- Updated `docs/dev/W-014-W-045-mvc-site-plugins-architecture.md` with comprehensive architecture
 - Added strategic rationale for W-014 → W-045 sequence
 - Expanded plugin architecture with detailed implementation phases
 - Included plugin metadata structure, lifecycle management, and hook system
@@ -4992,7 +4992,7 @@ System ready for immediate production deployment with excellent developer and us
 
 2025-09-06 09:50
 
-**Prompt:** Fix FIXME sections in tt-w-014-w-045-mvc-site-plugins-architecture.md - triple backticks broke formatting during apply. User manually applied changes but needs clean Directory Structure and Hello World Plugin sections without backticks.
+**Prompt:** Fix FIXME sections in docs/dev/W-014-W-045-mvc-site-plugins-architecture.md - triple backticks broke formatting during apply. User manually applied changes but needs clean Directory Structure and Hello World Plugin sections without backticks.
 
 **Issue Identified:**
 - Triple backticks in markdown caused formatting issues during file application
@@ -5058,7 +5058,7 @@ System ready for immediate production deployment with excellent developer and us
 - Created: `webapp/utils/path-resolver.js` (path resolution utilities)
 - Created: `site/webapp/app.conf` (sample site configuration)
 - Modified: `webapp/app.js` (configuration merging with site support)
-- Updated: `tt-w-014-w-045-mvc-site-plugins-architecture.md` (Phase 1 completion)
+- Updated: `docs/dev/W-014-W-045-mvc-site-plugins-architecture.md` (Phase 1 completion)
 
 **Production Ready:** W-014 Phase 1 provides immediate value for site customizations with clean separation of framework vs site-specific code, update-safe customizations, and foundation for plugin architecture.
 

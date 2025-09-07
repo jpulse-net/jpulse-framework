@@ -1,4 +1,4 @@
-# W-025 Migration Guide: Component-Based Styling
+# W-025: View: Migration Guide: Component-Based Styling
 
 ## Overview
 This guide documents the migration from inline styles to the `jp-` component system, providing patterns for W-036 view migrations.

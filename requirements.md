@@ -599,7 +599,7 @@ Requirements Doc of jPulse Framework
 - objective: clean separation of jpulse code/data, and site/deployment specific code/data
 - author: site administrator/developer
 - audience: site users
-- working document: tt-w-014-w-045-mvc-site-plugins-architecture.md
+- working doc: docs/dev/W-014-W-045-mvc-site-plugins-architecture.md
 - jPulse will be the base framework for multiple web apps
 - define a clean structure of two sets:
   - jPulse framework directories and files
@@ -636,22 +636,6 @@ Requirements Doc of jPulse Framework
 - ✅ Complete CSS and JavaScript component systems with dialogs, tooltips, analytics
 - ✅ Responsive design patterns and framework integration guidelines
 
-
-
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-# 🚧 IN_PROGRESS Work Items
-
 ## **W-048**: create jPulse.UI dialog widgets - v0.5.2
 - status: ✅ COMPLETED
 - type: Feature
@@ -683,9 +667,24 @@ Requirements Doc of jPulse Framework
 
 
 
+
+
+
+
+
+
+-------------------------------------------------------------------------
+# 🚧 IN_PROGRESS Work Items
+
+
+
+
+
+
+
+
 ## Potential next items:
 **W-045**: architecture: create plugin infrastructure
-**W-048**: create a jpulse-ui-plugin
 **W-014**: app: strategy for seamless update of site-specific jPulse deployments
 **W-040**: view: create view logs page for site admins
 **W-015**: deployment: strategy for clean onboarding
@@ -709,11 +708,6 @@ Almost ready for W-042 release (this chat refers to W-021, my mistake)
 
 
 
-- need conditioal if file exists, then include
-- likely needs enhanceded handlebar
-home/:32  GET http://localhost:8080/site-common.css?t=%3C!--%20Error:%20File%20not%20found:%20site-common.css%20(resolved%20to:%20/Users/peterthoeny/Dev/jpulse-framework/webapp/view/site-common.css)%20--%3E net::ERR_ABORTED 404 (Not Found)Understand this error
-home/:59  GET http://localhost:8080/site-common.js?t=%3C!--%20Error:%20File%20not%20found:%20site-common.js%20(resolved%20to:%20/Users/peterthoeny/Dev/jpulse-framework/webapp/view/site-common.js)%20--%3E net::ERR_ABORTED 404 (Not Found)
-
 
 
 
@@ -721,8 +715,6 @@ home/:59  GET http://localhost:8080/site-common.js?t=%3C!--%20Error:%20File%20no
 - enhance === view.load( /error/index.shtml ) log to show additional details on what is wrong, likely in followup log entry
 - ptester8 -- duplicate username
 - how to i18n site specific messages?
-
-
 
 
 Misc:
@@ -751,7 +743,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - objective: extensible framework that is easy to understand & easy to maintain
 - author: 3rd party developers
 - audience: site administrator
-- working document: tt-w-014-w-045-mvc-site-plugins-architecture.md
+- working doc: docs/dev/W-014-W-045-mvc-site-plugins-architecture.md
 - strategy: drop a plugin in specific directory, with auto discovery
 - plugins for:
   - additional models
@@ -760,9 +752,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - wrapper for additional view packages
   - themes
 - create a hello-world-plugin, ship with jpulse-framework
-
-
-
 
 ## **W-015**: deployment: strategy for clean onboarding
 - status: 🕑 PENDING
@@ -793,7 +782,32 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 ## **W-046**: docs: restructure user facing and developer facing documentation
 - status: 🕑 PENDING
 - type: Feature
-- recommendation in tt-dev-doc-structure.md (to be reviewed)
+- recommendation in docs/dev/W-046-dev-doc-structure.md (to be reviewed)
+
+## **W-049**: docs: markdown strategy for jPulse and site docs
+- status: 🕑 PENDING
+- type: Feature
+- objective: standardize on .md format for website docs (jPulse internal docs and site specific docs)
+- working doc: docs/dev/W-049-docs-marktown-strategy.md
+- provide an API to get .md docs in a tree
+  - or simply load from view assets?
+  - jpulse docs:
+    - doc root: docs/
+      - symlink to webapp/static/assets/jpulse/ to docs/ (also in git)
+    - view: webapp/view/jpulse/index.shtml
+    - URI: /jpulse/
+  - site docs in assets, such as:
+    - doc root: site/webapp/static/assets/docs/
+    - view: site/webapp/view/docs/index.shtml
+    - URI: /docs/
+- use md to html rendering library in browser
+  - fix relative links within doc tree
+- question:
+  - if in assets, how to offer shareable links without page reload? URI options:
+    - /docs/                   -- README.md
+    - /docs/about#team         -- about.md, with deep link
+    - /docs/?doc=about.md#team -- about.md, with deep link
+    - /docs/#about.md          -- about.md, no deep link
 
 ## **W-0**: controller.view: create {{#each}} handlebar
 - status: 🕑 PENDING

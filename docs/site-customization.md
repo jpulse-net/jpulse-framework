@@ -2,6 +2,7 @@
 
 This guide covers the W-014 Site Override Architecture - jPulse's powerful system for creating custom sites while maintaining clean framework updates.
 
+________________________________________________
 ## Overview
 
 The W-014 override system enables:
@@ -10,6 +11,7 @@ The W-014 override system enables:
 - **Automatic file resolution** with site priority
 - **Clean separation** between framework and site code
 
+________________________________________________
 ## Architecture Principles
 
 ### File Resolution Priority
@@ -38,6 +40,7 @@ jpulse-framework/
         └── static/           # Site assets
 ```
 
+________________________________________________
 ## Configuration System
 
 ### Site Configuration
@@ -90,6 +93,7 @@ jPulse automatically merges configurations:
 2. Site overrides (`site/webapp/app.conf`)
 3. Environment variables
 
+________________________________________________
 ## Controller Customization
 
 ### Creating Custom Controllers
@@ -155,6 +159,7 @@ jPulse automatically:
 - **Creates API endpoints** from `api()` method
 - **No manual configuration** required
 
+________________________________________________
 ## View Customization
 
 ### Template Override
@@ -228,6 +233,271 @@ Create `site/webapp/view/home/index.shtml` to override the framework home page:
 {{file.include webapp/view/jpulse-footer.tmpl}}
 ```
 
+________________________________________________
+## Site Documentation System (W-049)
+
+jPulse includes a powerful markdown-based documentation system that allows sites to create multiple documentation namespaces for different audiences.
+
+### Quick Start: Adding Site Documentation
+
+The namespace of the documentation can be anything, such as `docs`, `manual`, `faq`. The following uses the `docs` namespace.
+
+#### 1. Create Documentation Directory
+
+```bash
+# Create your primary documentation namespace
+mkdir -p site/webapp/static/assets/docs
+```
+
+#### 2. Add Your First Document
+
+```bash
+# Create a welcome document
+cat > site/webapp/static/assets/docs/README.md << 'EOF'
+# Welcome to Our Documentation
+
+This is your site's documentation system. You can organize content using markdown files.
+
+## Getting Started
+
+- [User Guide](user-guide.md)
+- [FAQ](../faq/README.md)
+- [Help Center](../help/README.md)
+
+## Features
+
+- **Markdown Support**: Write documentation in markdown
+- **Multiple Namespaces**: Organize docs by audience or topic
+- **Auto-Discovery**: Files are automatically available via API
+- **Clean URLs**: `/docs/user-guide` loads `user-guide.md`
+EOF
+
+# Add a user guide
+cat > site/webapp/static/assets/docs/user-guide.md << 'EOF'
+# User Guide
+
+## Overview
+
+This guide helps users understand how to use our system.
+
+## Basic Operations
+
+### Getting Started
+1. Log in to your account
+2. Navigate to the dashboard
+3. Follow the on-screen instructions
+
+### Advanced Features
+- Feature A: Description and usage
+- Feature B: Description and usage
+EOF
+```
+
+#### 3. Create Documentation Viewer
+
+Copy and customize the jPulse documentation template:
+
+```bash
+# Create the view directory
+mkdir -p site/webapp/view/docs
+
+# Copy the jPulse template as a starting point
+cp webapp/view/jpulse/index.shtml site/webapp/view/docs/index.shtml
+```
+
+#### 4. Customize the Template
+
+Edit `site/webapp/view/docs/index.shtml` to match your site's branding:
+
+```html
+<!-- Update the title and branding -->
+<title>{{#if docTitle}}{{docTitle}} - {{/if}}{{app.siteName}} Documentation</title>
+
+<!-- Update the navigation header -->
+<nav class="jp-docs-nav">
+    <h3>{{app.siteName}} Docs</h3>
+    <ul id="docs-navigation">
+        <!-- Populated by JavaScript -->
+    </ul>
+</nav>
+
+<!-- Update the JavaScript namespace -->
+<script>
+    class SiteDocsViewer {
+        constructor() {
+            this.namespace = 'docs'; // Change from 'jpulse' to 'docs'
+            this.currentPath = this.getPathFromUrl();
+            this.init();
+        }
+
+        // ... rest of the implementation stays the same
+        // but update API calls to use this.namespace
+    }
+</script>
+```
+
+#### 5. Access Your Documentation
+
+Your documentation is now available at:
+- `/docs/` → loads `README.md`
+- `/docs/user-guide` → loads `user-guide.md`
+
+### Multiple Documentation Namespaces
+
+Create different documentation sets for different audiences:
+
+```bash
+# Help system for end users
+mkdir -p site/webapp/static/assets/help
+mkdir -p site/webapp/view/help
+
+# Technical manual for administrators
+mkdir -p site/webapp/static/assets/manual
+mkdir -p site/webapp/view/manual
+
+# FAQ system
+mkdir -p site/webapp/static/assets/faq
+mkdir -p site/webapp/view/faq
+```
+
+Each namespace needs:
+1. **Asset directory**: `site/webapp/static/assets/{namespace}/`
+2. **View template**: `site/webapp/view/{namespace}/index.shtml`
+3. **README.md**: Default document for the namespace
+
+### API Usage
+
+The markdown system provides REST API endpoints:
+
+```javascript
+// List all documents in a namespace
+GET /api/1/markdown/docs/
+// Returns: { files: [{ path: "README.md", name: "README.md", title: "README" }, ...] }
+
+// Get specific document content
+GET /api/1/markdown/docs/user-guide.md
+// Returns: { content: "# User Guide\n...", path: "user-guide.md" }
+
+// Access subdirectories
+GET /api/1/markdown/docs/admin/setup.md
+// Returns content from site/webapp/static/assets/docs/admin/setup.md
+```
+
+### Advanced Features
+
+#### Organizing Content with Subdirectories
+
+```bash
+# Create organized structure
+mkdir -p site/webapp/static/assets/docs/{admin,user,developer}
+
+# Admin documentation
+echo "# Admin Guide" > site/webapp/static/assets/docs/admin/README.md
+echo "# User Management" > site/webapp/static/assets/docs/admin/users.md
+
+# User documentation
+echo "# User Guide" > site/webapp/static/assets/docs/user/README.md
+echo "# Getting Started" > site/webapp/static/assets/docs/user/getting-started.md
+
+# Developer documentation
+echo "# API Documentation" > site/webapp/static/assets/docs/developer/README.md
+echo "# Integration Guide" > site/webapp/static/assets/docs/developer/integration.md
+```
+
+#### Custom Styling
+
+Add site-specific styling to your documentation viewer:
+
+```css
+/* In site/webapp/view/docs/index.shtml */
+<style>
+    .jp-docs-container {
+        /* Override framework styles */
+        max-width: 1400px;
+        grid-template-columns: 300px 1fr;
+    }
+
+    .site-docs-header {
+        background: var(--site-primary-color);
+        color: white;
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .site-docs-nav a.active {
+        background: var(--site-accent-color);
+    }
+</style>
+```
+
+#### Performance and Caching
+
+The markdown system includes built-in caching controlled by configuration:
+
+```javascript
+// In site/webapp/app.conf
+{
+    controller: {
+        markdown: {
+            cache: true  // Enable file caching for better performance
+        }
+    }
+}
+```
+
+### Best Practices
+
+#### Content Organization
+
+1. **Use clear filenames**: `user-guide.md`, `admin-setup.md`, `api-reference.md`
+2. **Create logical hierarchies**: Group related content in subdirectories
+3. **Include navigation**: Link between related documents
+4. **Maintain README files**: Each directory should have a README.md
+
+#### Writing Guidelines
+
+1. **Use descriptive headings**: Help users scan content quickly
+2. **Include code examples**: Show practical usage where applicable
+3. **Link between documents**: Create a connected documentation experience
+4. **Keep it current**: Regular review and updates
+
+#### Multiple Audiences
+
+Consider creating separate namespaces for different user types:
+
+- **`/docs/`**: General site documentation
+- **`/help/`**: End-user help and support
+- **`/manual/`**: Detailed operational procedures
+- **`/faq/`**: Frequently asked questions
+- **`/api/`**: Developer API documentation
+
+### Troubleshooting
+
+**Documentation not loading:**
+- Verify directory structure: `site/webapp/static/assets/{namespace}/`
+- Check file permissions and markdown file extensions (`.md`)
+- Ensure view template exists: `site/webapp/view/{namespace}/index.shtml`
+
+**API endpoints not working:**
+- Restart server after adding new namespaces
+- Check browser console for JavaScript errors
+- Verify API calls use correct namespace
+
+**Styling issues:**
+- Check CSS conflicts between framework and site styles
+- Use browser developer tools to debug styling
+- Ensure proper CSS class prefixes (`jp-*` for framework, `site-*` for local)
+
+### Integration with jPulse Framework Docs
+
+Your site documentation works alongside the built-in jPulse framework documentation:
+
+- **Framework docs**: `/jpulse/` (for developers and site administrators)
+- **Site docs**: `/docs/`, `/help/`, etc. (for your site's users)
+
+This separation ensures framework updates don't affect your site-specific documentation.
+
+________________________________________________
 ## Best Practices
 
 ### 1. Minimal Overrides
@@ -245,6 +515,7 @@ Create `site/webapp/view/home/index.shtml` to override the framework home page:
 - Include both unit and integration tests
 - Verify framework updates don't break customizations
 
+________________________________________________
 ## Troubleshooting
 
 ### Common Issues

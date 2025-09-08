@@ -25,39 +25,39 @@ const cache = {
 };
 
 class MarkdownController {
-    
+
     /**
      * API endpoint: /api/1/markdown/namespace/path/to/file.md
      * Lists directory or serves specific markdown file
      */
     static async api(req, res) {
         const startTime = Date.now();
-        
+
         try {
             // Parse path: /api/1/markdown/jpulse/dev/README.md
             const pathParts = req.path.replace('/api/1/markdown/', '').split('/');
             const namespace = pathParts[0];
             const filePath = pathParts.slice(1).join('/');
-            
+
             if (!namespace) {
                 return CommonUtils.sendError(req, res, 400, 'Namespace required');
             }
-            
+
             // Determine base directory
-            const baseDir = await this._getNamespaceDirectory(namespace);
+            const baseDir = await MarkdownController._getNamespaceDirectory(namespace);
             if (!baseDir) {
                 return CommonUtils.sendError(req, res, 404, 'Namespace not found');
             }
-            
+
             // List directory or serve file
             if (!filePath || filePath === '') {
-                const listing = await this._getDirectoryListing(namespace, baseDir);
+                const listing = await MarkdownController._getDirectoryListing(namespace, baseDir);
                 return res.json({ files: listing });
             } else {
-                const content = await this._getMarkdownFile(namespace, filePath, baseDir);
+                const content = await MarkdownController._getMarkdownFile(namespace, filePath, baseDir);
                 return res.json({ content, path: filePath });
             }
-            
+
         } catch (error) {
             LogController.logError(req, `markdown.api: ${error.message}`);
             return CommonUtils.sendError(req, res, 500, 'Markdown service error');
@@ -66,7 +66,7 @@ class MarkdownController {
             LogController.logInfo(req, `markdown.api: Completed in ${duration}ms`);
         }
     }
-    
+
     /**
      * Get namespace directory with jpulse special handling
      */
@@ -79,7 +79,7 @@ class MarkdownController {
             const webappDir = global.appConfig.app.dirName;
             const projectRoot = path.dirname(webappDir);
             const siteDir = path.join(projectRoot, 'site/webapp/static/assets', namespace);
-            
+
             // Verify directory exists
             try {
                 await fs.access(siteDir);
@@ -89,87 +89,87 @@ class MarkdownController {
             }
         }
     }
-    
+
     /**
      * Get directory listing with caching
      */
     static async _getDirectoryListing(namespace, baseDir) {
         const cacheKey = `listing_${namespace}`;
-        
+
         // Check cache if enabled
-        if (global.appConfig.controller?.markdown?.cacheFiles && cache.directoryListing[cacheKey]) {
+        if (global.appConfig.controller?.markdown?.cache && cache.directoryListing[cacheKey]) {
             return cache.directoryListing[cacheKey];
         }
-        
-        const files = await this._scanMarkdownFiles(baseDir);
-        
+
+        const files = await MarkdownController._scanMarkdownFiles(baseDir);
+
         // Cache if enabled
-        if (global.appConfig.controller?.markdown?.cacheFiles) {
+        if (global.appConfig.controller?.markdown?.cache) {
             cache.directoryListing[cacheKey] = files;
         }
-        
+
         return files;
     }
-    
+
     /**
      * Get markdown file content with caching
      */
     static async _getMarkdownFile(namespace, filePath, baseDir) {
         const cacheKey = `${namespace}/${filePath}`;
-        
+
         // Security: prevent path traversal
         if (filePath.includes('..') || filePath.startsWith('/')) {
             throw new Error('Invalid file path');
         }
-        
+
         const fullPath = path.join(baseDir, filePath);
-        
+
         // Check cache if enabled
-        if (global.appConfig.controller?.markdown?.cacheFiles && cache.markdownFiles[cacheKey]) {
+        if (global.appConfig.controller?.markdown?.cache && cache.markdownFiles[cacheKey]) {
             return cache.markdownFiles[cacheKey];
         }
-        
+
         // Read file
         const content = await fs.readFile(fullPath, 'utf8');
-        
+
         // Cache if enabled
-        if (global.appConfig.controller?.markdown?.cacheFiles) {
+        if (global.appConfig.controller?.markdown?.cache) {
             cache.markdownFiles[cacheKey] = content;
-            
+
             // Cache timestamp for potential invalidation
             const stats = await fs.stat(fullPath);
             cache.fileTimestamp[cacheKey] = stats.mtime.valueOf();
         }
-        
+
         return content;
     }
-    
+
     /**
      * Recursively scan directory for .md files
      */
     static async _scanMarkdownFiles(dir, relativePath = '') {
         const files = [];
         const entries = await fs.readdir(dir, { withFileTypes: true });
-        
+
         for (const entry of entries) {
             const fullPath = path.join(dir, entry.name);
             const relPath = path.join(relativePath, entry.name);
-            
+
             if (entry.isDirectory()) {
-                const subFiles = await this._scanMarkdownFiles(fullPath, relPath);
+                const subFiles = await MarkdownController._scanMarkdownFiles(fullPath, relPath);
                 files.push(...subFiles);
             } else if (entry.name.endsWith('.md')) {
                 files.push({
                     path: relPath,
                     name: entry.name,
-                    title: this._extractTitle(entry.name)
+                    title: MarkdownController._extractTitle(entry.name)
                 });
             }
         }
-        
+
         return files.sort((a, b) => a.path.localeCompare(b.path));
     }
-    
+
     /**
      * Extract readable title from filename
      */

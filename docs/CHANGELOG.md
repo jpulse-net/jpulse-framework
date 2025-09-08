@@ -1,4 +1,4 @@
-# jPulse Framework /Docs / Version History
+# jPulse Framework / Docs / Version History
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
 
@@ -117,7 +117,7 @@ Major Features:
 
 - **Complete Style Refactoring**: All page-specific styles converted to `local-*` prefix
   - Auth pages (login, signup, logout) - All `jp-auth-*`, `jp-signup-*` styles converted
-  - Admin pages - All `jp-users-*`, `jp-edit-btn` styles converted  
+  - Admin pages - All `jp-users-*`, `jp-edit-btn` styles converted
   - User profile - All `jp-profile-*` styles converted
   - Proper scoping of page-specific overrides within `local-*` containers
 
@@ -140,7 +140,7 @@ Global rename from jPulseCommon to jPulse for improved developer productivity.
 
 Major Features:
 - **Global Object Rename (W-043)**: Renamed `jPulseCommon` to `jPulse` across entire framework
-  - 33% reduction in typing (jPulse vs jPulseCommon) 
+  - 33% reduction in typing (jPulse vs jPulseCommon)
   - Improved developer ergonomics and productivity
   - Cleaner, more concise API calls throughout codebase
   - Enhanced framework extensibility for future jPulseAdmin, jPulseAuth objects

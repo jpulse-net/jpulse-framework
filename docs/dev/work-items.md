@@ -1,4 +1,4 @@
-## jPulse Framework /Docs / Work Items
+# jPulse Framework / Docs / Dev / Work Items
 
 This is the doc to track work items, arranged in three sections:
 
@@ -566,7 +566,7 @@ This is the doc to track work items, arranged in three sections:
 - implementation: native JavaScript (dependency-free)
 - widgets implemented:
   - jPulse.UI.alertDialog(message, options) - red header, always on top
-  - jPulse.UI.infoDialog(message, options) - blue header, always on top  
+  - jPulse.UI.infoDialog(message, options) - blue header, always on top
   - jPulse.UI.confirmDialog(options) - enterprise-grade with custom callbacks
   - jPulse.UI.accordion.register(elementId, options) - flexible decoration detection
   - jPulse.UI.collapsible (moved from root namespace)

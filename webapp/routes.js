@@ -18,6 +18,7 @@ const router = express.Router();
 
 // Load controllers
 import AuthController from './controller/auth.js';
+import MarkdownController from './controller/markdown.js';
 import UserController from './controller/user.js';
 import ConfigController from './controller/config.js';
 import logController from './controller/log.js';
@@ -50,6 +51,9 @@ router.post('/api/1/auth/logout', AuthController.logout);
 router.get('/api/1/auth/roles', AuthController.getRoles);
 router.get('/api/1/auth/languages', AuthController.getLanguages);
 router.get('/api/1/auth/themes', AuthController.getThemes);
+
+// Markdown API routes
+router.get('/api/1/markdown/*', MarkdownController.api);
 
 // User API routes (with authentication middleware where needed)
 router.post('/api/1/user/signup', UserController.signup);

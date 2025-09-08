@@ -2,6 +2,92 @@
 
 A comprehensive reference for rendering Markdown to HTML in the browser using open-source MIT-licensed packages.
 
+## jPulse Framework Markdown Strategy
+
+### Overview
+Browser-based Markdown rendering to HTML using open-source libraries, designed for the jPulse Framework's documentation system with two distinct buckets: jPulse docs and site docs.
+
+### Documentation Architecture
+
+#### Two Separate Documentation Systems
+1. **jPulse Framework Docs** (`/jpulse/`)
+   - Used by site admins/developers to help them create their own site based on jPulse
+   - Can be updated cleanly with framework updates
+   - Base URI: `/jpulse/` (framework documentation)
+   - Controlled by jPulse development team
+
+2. **Site-Specific Docs** (site-controlled)
+   - Created by site admins/developers for their end users
+   - Multiple base URIs as needed by site owner (e.g., `/docs/`, `/help/`, `/manual/`, `/guide/`)
+   - Each with its own view namespace
+   - Controlled by site owners/development teams
+
+### Implementation Strategy (Simplified)
+
+#### Static File Serving Approach
+- **No dedicated controller**: Avoid `webapp/controller/jpulse.js`
+- **Single viewer template**: Only an `index.shtml` that reads `.md` files from static assets
+- **Symlink integration**: Make `/docs/` accessible via `webapp/static/assets/jpulse/`
+- **Client-side rendering**: JavaScript loads and renders Markdown files in browser
+
+#### File Structure
+
+```
+webapp/static/assets/jpulse/    # Symlinked to /docs/
+├── index.shtml                 # Markdown viewer template
+├── README.md                   # Framework overview
+├── api-reference.md            # REST API documentation
+├── front-end-development.md    # JavaScript framework guide
+├── style-reference.md          # CSS framework reference
+├── template-reference.md       # Handlebars template reference
+└── ...                         # Other framework docs
+
+site/webapp/view/help/          # Site-specific docs (example)
+├── index.shtml                 # Site's help viewer
+├── user-guide.md               # Site-specific user documentation
+└── ...                         # Site-controlled content
+```
+
+### Technical Implementation
+
+#### Markdown Rendering
+- **Library**: Marked.js (lightweight, ~9KB) or Markdown-it (feature-rich, ~46KB)
+- **Security**: DOMPurify for XSS protection when rendering user content
+  - likely not needed, since assets can only be updated by site admins
+- **Performance**: Debounced rendering for live preview, caching for static content
+  - overkill, likely not needed
+
+#### URL Strategy
+- Clean, shareable URLs: `/docs/api-reference` → loads `api-reference.md`
+- SEO-friendly structure with proper meta tags and navigation
+- Framework docs: `/jpulse/[document-name]`
+- Site docs: `/[site-namespace]/[document-name]` (site-controlled)
+
+#### Asset Management
+- Images and assets stored alongside Markdown files
+- Relative linking within documentation
+- Framework assets in `webapp/static/assets/jpulse/`
+- Site assets in site-controlled directories
+
+### Enterprise Features (Future)
+- **Search**: Delegated to existing enterprise search systems (let docs get crawled)
+- **Versioning**: Automatic in git for jPulse docs, site-controlled for site docs
+- **Access Control**: Handled by existing enterprise authentication systems
+- **PDF Export**: Can be added later via browser print-to-PDF or dedicated tools
+
+### Benefits
+- **KISS Principle**: Simple, don't make me think approach
+- **Update Safety**: Framework docs update cleanly, site docs remain under site control
+- **Flexibility**: Sites can have multiple documentation namespaces as needed
+- **Performance**: Client-side rendering with caching, no server-side processing overhead
+- **Maintainability**: Clear separation of concerns, easy to understand and modify
+
+### Integration with W-014 Site Override Architecture
+- Framework documentation updates automatically with framework updates
+- Site documentation remains in site-controlled directories
+- No conflicts between framework and site documentation systems
+- Clean separation following the established override pattern
+
 ## Quick Start with Marked
 
 The most popular and lightweight option for browser-based Markdown rendering.

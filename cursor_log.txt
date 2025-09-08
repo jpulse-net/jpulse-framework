@@ -6136,3 +6136,45 @@ const result = await jPulse.UI.confirmDialog({
 - All references updated in docs/README.md and docs/front-end-development.md
 
 **Final Status:** ✅ DOCUMENTATION RENAMING COMPLETE - More specific, professional file names with all references updated
+
+
+============================================================
+2025-09-07 23:31
+
+**User Request:** Review W-049 markdown strategy task, suggest spec changes for "don't make me think" approach, and plan implementation
+
+**Analysis Summary:**
+
+**Current Specification Review:**
+- Two-tier documentation system: jPulse framework docs (/jpulse/) and site-specific docs (/docs/, /help/, etc.)
+- Client-side markdown rendering using marked.js
+- Symlink strategy: docs/ → webapp/static/assets/jpulse/
+- Unresolved questions about .md file fetching and document listing
+
+**Identified Complexity Issues:**
+1. **Symlink Management**: Requires site developers to understand and maintain symlinks
+2. **Multiple Configuration Points**: Different setups for framework vs site docs
+3. **Asset Path Complexity**: Multiple directory structures to understand
+4. **Unclear Data Fetching**: Two options presented without clear recommendation
+
+**Suggested Specification Changes:**
+1. **Eliminate Symlinks**: Use direct file serving from docs/ directory
+2. **Unified Controller Approach**: Single markdown controller handles both framework and site docs
+3. **Convention Over Configuration**: Automatic discovery of .md files
+4. **Simplified URL Structure**: Consistent pattern for all documentation
+
+**Recommended Implementation Plan:**
+1. Create single MarkdownController with auto-discovery
+2. Implement framework docs first (/jpulse/ namespace)
+3. Extend to site docs with configurable namespaces
+4. Add marked.js to webapp/static/common/
+5. Create reusable markdown viewer template
+
+**Benefits of Simplified Approach:**
+- Zero configuration for basic use cases
+- No symlink maintenance required
+- Consistent developer experience
+- Easier to understand and debug
+- Follows existing jPulse patterns
+
+**Status:** Awaiting user approval to proceed with simplified implementation plan

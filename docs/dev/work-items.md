@@ -583,7 +583,38 @@ This is the doc to track work items, arranged in three sections:
   - i18n integration for default titles and buttons
   - Comprehensive demos on home page with complex examples
 
-
+### **W-046**: docs: restructure user facing and developer facing documentation
+- status: ✅ COMPLETED
+- type: Feature
+- working doc: docs/dev/W-046-dev-doc-structure.md
+- changes:
+  - implemented comprehensive documentation split separating user-facing (docs/) and developer-facing (docs/dev/) documentation
+  - created focused API reference (794 lines) exclusively for /api/1/* REST endpoints with routing and middleware information for API consumers
+  - built complete front-end development guide (741 lines) covering jPulse JavaScript framework, utilities, and client-side best practices
+  - delivered comprehensive style reference (1,290 lines) documenting complete jp-* CSS framework with components, layouts, and responsive design
+  - established template reference (776 lines) covering server-side Handlebars system with security features and integration patterns
+- docs:
+  - docs/README.md
+  - docs/CHANGELOG.md
+  - docs/api-reference.md
+  - docs/deployment.md
+  - docs/examples.md
+  - docs/front-end-development.md
+  - docs/getting-started.md
+  - docs/installation.md
+  - docs/site-customization.md
+  - docs/style-reference.md
+  - docs/template-reference.md
+  - docs/dev/README.md
+  - docs/dev/architecture.md
+  - docs/dev/requirements.md
+  - docs/dev/roadmap.md
+  - docs/dev/work-items.md
+  - docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md
+  - docs/dev/working/W-023-view-migrate-views-to-vue.md
+  - docs/dev/working/W-025-view-component-styling.md
+  - docs/dev/working/W-046-dev-doc-structure.md
+  - docs/dev/working/W-049-docs-marktown-strategy.md
 
 
 
@@ -599,10 +630,39 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### **W-046**: docs: restructure user facing and developer facing documentation
+### **W-049**: docs: markdown strategy for jPulse and site docs
 - status: 🚧 IN_PROGRESS
 - type: Feature
-- working doc: docs/dev/W-046-dev-doc-structure.md (to be reviewed)
+- objective: standardize on .md format for website docs (jPulse internal docs and site specific docs)
+- working doc: docs/dev/W-049-docs-marktown-strategy.md
+- two sets of documents:
+  - jpulse docs -- jPulse Framework docs
+    - doc root: docs/
+      - symlink docs/ to webapp/static/assets/jpulse/ (also in git)
+    - view: webapp/view/jpulse/index.shtml
+    - URI: /jpulse/
+  - site docs -- site-specific docs
+    - one or more doc sets, such as: docs, help, faq
+    - example for "docs":
+      - doc root: site/webapp/static/assets/docs/
+      - view: site/webapp/view/docs/index.shtml
+      - URI: /docs/
+- page loads a .md doc
+  - Q1: how to get the .md:
+    - option 1: via new view controller API endpoint
+    - option 2: via REST call directly to the assets directory
+  - home doc in each directory is assumed to be README.md
+  - Q2: how to get the complete list of docs?
+- page renders markdown as HTML, and inserts it to the DOM
+  - use marked to render markdown to HTML
+    - fix relative links within doc tree
+- provide clean, shareable URLs, such as:
+  - `/jpulse/` → loads `README.md`
+  - `/jpulse/api-reference` → loads `api-reference.md`
+  - `/docs/about#team` → loads `about.md`, with deep link
+- constraint:
+  - store marked and other libraries in webapp/static/common
+    - no external links to libraries (deployment might be air-gapped)
 
 
 
@@ -612,8 +672,6 @@ This is the doc to track work items, arranged in three sections:
 
 
 ### Potential next items:
-**W-046**: docs: restructure user facing and developer facing documentation
-**W-049**: docs: markdown strategy for jPulse and site docs
 **W-015**: deployment: strategy for clean onboarding
 **W-045**: architecture: create plugin infrastructure
 **W-040**: view: create view logs page for site admins
@@ -626,7 +684,7 @@ next work item: **W-036**: view: migrate existing views to use jpulse-common.js 
 - review task, ask questions
 - suggest change of spec, goal is better usability for site developers
 - plan how to implement (wait for my go ahead)
-- current timestamp: 2025-09-06 23:10
+- current timestamp: 2025-09-07 23:31
 
 Almost ready for W-042 release (this chat refers to W-021, my mistake)
 
@@ -707,32 +765,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - status: 🕑 PENDING
 - type: Feature
 - create webapp/view/admin/logs.shtml -- search logs
-
-### **W-049**: docs: markdown strategy for jPulse and site docs
-- status: 🕑 PENDING
-- type: Feature
-- objective: standardize on .md format for website docs (jPulse internal docs and site specific docs)
-- working doc: docs/dev/W-049-docs-marktown-strategy.md
-- provide an API to get .md docs in a tree
-  - or simply load from view assets?
-  - jpulse docs:
-    - doc root: docs/
-      - symlink to webapp/static/assets/jpulse/ to docs/ (also in git)
-    - view: webapp/view/jpulse/index.shtml
-    - URI: /jpulse/
-  - site docs in assets, such as:
-    - doc root: site/webapp/static/assets/docs/
-    - view: site/webapp/view/docs/index.shtml
-    - URI: /docs/
-- use md to html rendering library in browser
-  - fix relative links within doc tree
-- question:
-  - if in assets, how to offer shareable links without page reload? URI options:
-    - /docs/                   -- README.md
-    - /docs/about#team         -- about.md, with deep link
-    - /docs/?doc=about.md#team -- about.md, with deep link
-    - /docs/#about.md          -- about.md, no deep link
-  - where to store image assets?
 
 ### **W-0**: view controller: create {{#each}} handlebar
 - status: 🕑 PENDING

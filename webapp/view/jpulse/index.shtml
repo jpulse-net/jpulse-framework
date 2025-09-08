@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / JPulse
+ * @tagline         JPulse Framework documentation page
+ * @description     JPulse Framework documentation, page loads markdown via markdown API, and renders it as HTML
+ * @file            webapp/view/jpulse/index.shtml
+ * @version         0.5.3
+ * @release         2025-09-08
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         GPL v3, see LICENSE file
+ * @genai           99%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="{{app.lang}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{#if docTitle}}{{docTitle}} - {{/if}}jPulse Framework Documentation</title>
+    <link rel="stylesheet" href="/jpulse-common.css">
+    <style>
+        .jp-docs-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 2rem;
+        }
+        .jp-docs-nav {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            height: fit-content;
+        }
+        .jp-docs-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .jp-docs-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .jp-docs-nav li {
+            margin: 0.5rem 0;
+        }
+        .jp-docs-nav a {
+            text-decoration: none;
+            color: #495057;
+            padding: 0.25rem 0.5rem;
+            display: block;
+            border-radius: 4px;
+        }
+        .jp-docs-nav a:hover,
+        .jp-docs-nav a.active {
+            background: #007bff;
+            color: white;
+        }
+        .jp-markdown-content {
+            line-height: 1.6;
+        }
+        .jp-markdown-content h1,
+        .jp-markdown-content h2,
+        .jp-markdown-content h3 {
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: #212529;
+        }
+        .jp-markdown-content pre {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            border-left: 4px solid #007bff;
+        }
+        .jp-markdown-content code {
+            background: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    {{>jpulse-header}}
+    
+    <div class="jp-docs-container">
+        <nav class="jp-docs-nav">
+            <h3>jPulse Framework</h3>
+            <ul id="docs-navigation">
+                <!-- Populated by JavaScript -->
+            </ul>
+        </nav>
+        
+        <main class="jp-docs-content">
+            <div id="markdown-content" class="jp-markdown-content">
+                <div class="jp-loading">Loading documentation...</div>
+            </div>
+        </main>
+    </div>
+    
+    {{>jpulse-footer}}
+    
+    <script src="/common/marked/marked.min.js"></script>
+    <script>
+        class jPulseDocsViewer {
+            constructor() {
+                this.currentPath = this.getPathFromUrl();
+                this.init();
+            }
+            
+            async init() {
+                await this.loadNavigation();
+                await this.loadDocument();
+                this.setupNavigation();
+            }
+            
+            getPathFromUrl() {
+                const path = window.location.pathname.replace('/jpulse/', '') || 'README.md';
+                return path.endsWith('.md') ? path : `${path}.md`;
+            }
+            
+            async loadNavigation() {
+                try {
+                    const response = await fetch('/api/1/markdown/jpulse/');
+                    const data = await response.json();
+                    this.renderNavigation(data.files);
+                } catch (error) {
+                    console.error('Failed to load navigation:', error);
+                }
+            }
+            
+            renderNavigation(files) {
+                const nav = document.getElementById('docs-navigation');
+                nav.innerHTML = files.map(file => `
+                    <li>
+                        <a href="/jpulse/${file.path.replace('.md', '')}" 
+                           class="${file.path === this.currentPath ? 'active' : ''}"
+                           data-path="${file.path}">
+                            ${file.title}
+                        </a>
+                    </li>
+                `).join('');
+            }
+            
+            async loadDocument() {
+                try {
+                    const response = await fetch(`/api/1/markdown/jpulse/${this.currentPath}`);
+                    const data = await response.json();
+                    this.renderMarkdown(data.content);
+                } catch (error) {
+                    document.getElementById('markdown-content').innerHTML = 
+                        '<div class="jp-error">Failed to load documentation</div>';
+                }
+            }
+            
+            renderMarkdown(content) {
+                const html = marked.parse(content);
+                document.getElementById('markdown-content').innerHTML = html;
+                
+                // Update page title
+                const firstHeading = document.querySelector('#markdown-content h1');
+                if (firstHeading) {
+                    document.title = `${firstHeading.textContent} - jPulse Framework Documentation`;
+                }
+            }
+            
+            setupNavigation() {
+                // Handle navigation clicks
+                document.addEventListener('click', (e) => {
+                    if (e.target.matches('.jp-docs-nav a')) {
+                        e.preventDefault();
+                        const path = e.target.getAttribute('data-path');
+                        const url = `/jpulse/${path.replace('.md', '')}`;
+                        history.pushState({ path }, '', url);
+                        this.currentPath = path;
+                        this.loadDocument();
+                        this.updateActiveNav();
+                    }
+                });
+                
+                // Handle browser back/forward
+                window.addEventListener('popstate', (e) => {
+                    this.currentPath = this.getPathFromUrl();
+                    this.loadDocument();
+                    this.updateActiveNav();
+                });
+            }
+            
+            updateActiveNav() {
+                document.querySelectorAll('.jp-docs-nav a').forEach(link => {
+                    link.classList.toggle('active', 
+                        link.getAttribute('data-path') === this.currentPath);
+                });
+            }
+        }
+        
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            new jPulseDocsViewer();
+        });
+    </script>
+</body>
+</html>

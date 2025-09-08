@@ -5,36 +5,37 @@ Based on jPulse Framework being a web application framework targeting midsize to
 ## Proposed Directory Structure (Option 1: Flattened Public Docs)
 
 ```
-README.md                  # Project overview (stays at root)
+README.md                  # Project overview, short "why" doc (stays at root)
 LICENSE
 CONTRIBUTING.md
 /docs/
+├── README.md              # Overview for users (site woners/developers)
 ├── installation.md        # User installation guide
 ├── getting-started.md     # Quick start tutorial
 ├── api-reference.md       # API documentation
-├── configuration.md       # Framework configuration options
+├── site-customization.md  # Framework configuration (W-014 override guide)
 ├── examples.md            # Code examples and use cases
-├── deployment.md          # Production deployment guide
-├── troubleshooting.md     # Common issues and solutions
+├── deployment.md          # Production deployment guide (nginx, mongodb replica set, ...)
 ├── CHANGELOG.md           # Version history
-└── dev/                   # Development documentation
+└── dev/                   # Developers documentation
     ├── README.md          # Index of all development docs
+    ├── architecture.md    # System architecture, MVC, extensibility, scalability
+    ├── requirements.md    # Feature requirements
     ├── roadmap.md         # High-level objectives & milestones
-    ├── architecture/
-    │   ├── overview.md    # System architecture decisions
-    │   ├── mvc-implementation.md
-    │   ├── extensibility-design.md
-    │   └── scalability-notes.md
+    ├── work-items.md      # Work items (COMPLETED, CANCELED, IN_PROGRESS, TO_DO)
+    └── working/           # working documents, referencing work items
+        ├── W-046-dev-doc-structure.md
+        └── W-023-foo.md   # working documents as needed
+
+For later:
+└── dev/                   # Developers documentation
     ├── planning/
-    │   ├── requirements.md     # Feature requirements
     │   ├── team-structure.md   # Multi-team development strategy
     │   └── todo.md             # Current development tasks
     ├── decisions/              # Architecture Decision Records (ADRs)
     │   ├── 001-mongodb-choice.md
     │   ├── 002-mvc-pattern.md
     │   └── 003-extensibility-approach.md
-    ├── working/                # working documents
-    │   └── W-046-dev-doc-structure.md
     └── research/
         ├── competitor-analysis.md
         └── enterprise-requirements.md

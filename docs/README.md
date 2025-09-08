@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Framework Overview
+# jPulse Framework / Docs / Framework Overview v0.5.3
 
 Welcome to the jPulse Framework - a modern, lightweight web application framework designed for midsize to large organizations in government and private sectors.
 
@@ -46,14 +46,42 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis
 
-## Getting Started
+## 📚 Documentation Guide
 
-1. **[Installation](installation.md)** - Set up jPulse in your environment
-2. **[Getting Started](getting-started.md)** - Build your first jPulse site
-3. **[Site Customization](site-customization.md)** - Learn the W-014 override system
-4. **[Examples](examples.md)** - Real-world usage scenarios
-5. **[API Reference](api-reference.md)** - Complete API documentation
-6. **[Deployment](deployment.md)** - Production deployment guide
+### 🚀 **Getting Started**
+- **[Installation Guide](installation.md)** - Setup for development and production environments
+- **[Getting Started Tutorial](getting-started.md)** - Build your first jPulse application
+- **[Examples](examples.md)** - Real-world implementation patterns and use cases
+
+### 👨‍💻 **For Developers**
+- **[Front-End Development](front-end-development.md)** - Complete jPulse JavaScript framework guide
+- **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation
+- **[Template Reference](template-reference.md)** - Server-side Handlebars system
+- **[Style Reference](style-reference.md)** - Complete `jp-*` CSS framework and components
+
+### 🏗️ **Site Building**
+- **[Site Customization](site-customization.md)** - W-014 override system for update-safe customizations
+- **[Deployment Guide](deployment.md)** - Production deployment strategies and best practices
+
+### 📋 **Reference**
+- **[Version History](CHANGELOG.md)** - Complete changelog and release notes
+- **[Developer Documentation](dev/README.md)** - Framework architecture and development
+- **[Requirements](dev/requirements.md)** - Technical specifications and objectives
+
+## Quick Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/peterthoeny/jpulse-framework.git
+cd jpulse-framework
+
+# Install dependencies
+npm install
+
+# Start development server
+npm start
+# Visit http://localhost:8080
+```
 
 ## Architecture Overview
 
@@ -90,10 +118,16 @@ jPulse is designed for:
 
 ## Support & Community
 
-- **Documentation**: Complete guides in this `/docs/` directory
-- **API Reference**: [api-reference.md](api-reference.md)
-- **Developer Docs**: [dev/README.md](dev/README.md)
-- **Change Log**: [CHANGELOG.md](CHANGELOG.md)
+### Documentation Resources
+- **[Front-End Development](front-end-development.md)** - Primary entry point for client-side developers
+- **[REST API Reference](api-reference.md)** - Complete endpoint documentation
+- **[Style Reference](style-reference.md)** - Complete CSS framework and components
+- **[Template Reference](template-reference.md)** - Server-side integration guide
+
+### Framework Resources  
+- **[Developer Documentation](dev/README.md)** - Framework architecture and development
+- **[Version History](CHANGELOG.md)** - Complete changelog and release notes
+- **[Technical Requirements](dev/requirements.md)** - Specifications and objectives
 
 ---
 

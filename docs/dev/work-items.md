@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items
+# jPulse Framework / Docs / Dev / Work Items v0.5.3
 
 This is the doc to track work items, arranged in three sections:
 
@@ -634,7 +634,7 @@ Almost ready for W-042 release (this chat refers to W-021, my mistake)
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-04 02:12
 - update *.md docs in project root
-- update commit-message.txt, following the same format, specify: W-048, v0.5.2 (don't commit)
+- update commit-message.txt, following the same format, specify: W-046, v0.5.3 (don't commit)
 
 
 

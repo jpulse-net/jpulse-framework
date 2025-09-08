@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Architecture
+# jPulse Framework / Docs / Dev / Architecture v0.5.3
 
 Comprehensive overview of the jPulse Framework's system architecture, design decisions, and extensibility patterns.
 
@@ -17,7 +17,7 @@ webapp/
 
 **Controllers** handle HTTP requests, coordinate with models, and render views
 **Models** manage data persistence, validation, and business logic
-**Views** web browser manages the presentation, assisted by client side JavaScript and SSI pages with handlebars
+**Views** primarily client-side JavaScript with API calls, with minimal server-side Handlebars for initial page structure
 **Utils** offer shared functionality across the application
 
 ### 2. Site Override Architecture (W-014)

@@ -1,15 +1,37 @@
-# jPulse Framework / Docs / Dev / Roadmap
+# jPulse Framework / Docs / Dev / Roadmap v0.5.3
 
 Strategic roadmap for jPulse Framework development, targeting enterprise and government organizations with a focus on maintainability, scalability, and developer productivity.
 
 ## Current Status (v0.5.2)
 
-### Recently Completed
-- ✅ **Enterprise UI Widgets & Dialog System (W-048)** - Complete UI widget system
-- ✅ **Site-Specific Coding & Styling Guidelines (W-047)** - Development framework
-- ✅ **Site Override Architecture (W-014)** - Seamless framework updates
-- ✅ **Site Configuration Management (W-041)** - Admin configuration system
-- ✅ **CSS Prefix Convention (W-044)** - Clean style organization
+### Recently Completed (v0.5.x)
+- ✅ **Enterprise UI Widgets & Dialog System (W-048, v0.5.2)** - Complete UI widget system with draggable dialogs
+- ✅ **Site-Specific Coding & Styling Guidelines (W-047, v0.5.1)** - Development framework with template system
+- ✅ **Site Override Architecture (W-014, v0.5.0)** - Seamless framework updates with site customization
+- ✅ **Site Configuration Management (W-041, v0.4.10)** - Admin configuration system with intuitive interface
+- ✅ **CSS Prefix Convention (W-044, v0.4.9)** - Clean style organization with jp-/local- prefixes
+
+### Recently Completed (v0.4.x)
+- ✅ **Global Object Rename (W-043, v0.4.8)** - jPulseCommon → jPulse for improved productivity
+- ✅ **Enhanced Form Submission (W-042, v0.4.7)** - Fixed slide-down message bugs, improved API
+- ✅ **User Management System (W-039, v0.4.6)** - Admin users page, dashboard, collapsible components
+- ✅ **Admin Dashboard (W-013, v0.4.5)** - Role-based authentication, user-aware i18n
+- ✅ **View Consolidation (W-038, v0.4.4)** - Common/page-specific code separation
+- ✅ **Slide-Down Message System (W-019, v0.4.3)** - Non-blocking user feedback with animations
+- ✅ **View Migration & API Simplification (W-036, v0.4.2)** - jpulse-common utilities migration
+- ✅ **Component-Based Styling (W-025, v0.4.1)** - CSS architecture with jp- component library
+- ✅ **Enhanced JavaScript Utilities (W-035, v0.4.0)** - Complete jpulse-common.js framework
+
+### Recently Completed (v0.3.x)
+- ✅ **Error Reporting Without Redirect (W-034, v0.3.9)** - Direct error page rendering
+- ✅ **ESM Testing Infrastructure (W-033, v0.3.8)** - Fixed ES modules, config consolidation
+- ✅ **User ID Consolidation (W-032, v0.3.7)** - Unified username field, added UUID
+- ✅ **I18n Module Restructuring (W-031, v0.3.6)** - Moved to utils/, simplified file names
+- ✅ **Log Method Renaming (W-030, v0.3.5)** - Consistent LogController method names
+- ✅ **I18n & Logging Consistency (W-029, v0.3.4)** - Internationalized messages, standardized logs
+- ✅ **Template Caching (W-028, v0.3.3)** - Configurable template and include file caching
+- ✅ **I18n Structure Alignment (W-027, v0.3.2)** - Language files match MVC architecture
+- ✅ **API-Driven Profile Management (W-021, W-022, v0.3.0)** - Fresh API data, language preferences
 
 ### In Progress
 - 🔄 **Documentation Restructure (W-046)** - User/developer doc separation

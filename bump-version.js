@@ -5,8 +5,8 @@
  * @tagline         Version bump script for jPulse Framework
  * @description     Updates version numbers and release dates across all source files
  * @file            bump-version.js
- * @version         0.5.2
- * @release         2025-09-07
+ * @version         0.5.3
+ * @release         2025-09-08
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,10 +21,12 @@ const conf = {
         'package.json',
         'package-lock.json',
         'README.md',
-        'API.md',
-        'developers.md',
         'bump-version.js',
         'babel.config.cjs',
+
+        // Docs directory
+        'docs/*.md',
+        'docs/dev/*.md',
 
         // WebApp directory
         'webapp/*.conf',
@@ -81,13 +83,13 @@ const conf = {
             ]
         },
         {
-            pattern: 'API.md',
+            pattern: 'docs/*.md',
             replacements: [
                 { from: /^(# jPulse Framework.* v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
-            pattern: 'developers.md',
+            pattern: 'docs/**/*.md',
             replacements: [
                 { from: /^(# jPulse Framework.* v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` }
             ]

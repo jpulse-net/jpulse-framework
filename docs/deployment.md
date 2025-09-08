@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Production Deployment Guide
+# jPulse Framework / Docs / Production Deployment Guide v0.5.3
 
 This guide covers deploying jPulse Framework applications to production environments, including nginx configuration, MongoDB setup, and security considerations.
 
@@ -21,6 +21,31 @@ This guide covers deploying jPulse Framework applications to production environm
 ## MongoDB Production Setup
 
 ### Single Instance (Development/Small Production)
+
+**Red Hat/CentOS/Fedora:**
+```bash
+# Add MongoDB repository
+sudo tee /etc/yum.repos.d/mongodb-org-4.4.repo << EOF
+[mongodb-org-4.4]
+name=MongoDB Repository
+baseurl=https://repo.mongodb.org/yum/redhat/8/mongodb-org/4.4/x86_64/
+gpgcheck=1
+enabled=1
+gpgkey=https://www.mongodb.org/static/pgp/server-4.4.asc
+EOF
+
+# Install MongoDB
+sudo dnf install -y mongodb-org
+
+# Configure MongoDB
+sudo systemctl start mongod
+sudo systemctl enable mongod
+
+# Secure MongoDB
+mongo --eval "db.createUser({user: 'admin', pwd: 'secure_password', roles: ['userAdminAnyDatabase']})"
+```
+
+**Ubuntu/Debian:**
 ```bash
 # Install MongoDB
 wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
@@ -111,6 +136,15 @@ Create `/opt/jpulse-app/webapp/app.conf`:
 ## nginx Configuration
 
 ### Install nginx
+
+**Red Hat/CentOS/Fedora:**
+```bash
+sudo dnf install -y nginx
+sudo systemctl start nginx
+sudo systemctl enable nginx
+```
+
+**Ubuntu/Debian:**
 ```bash
 sudo apt update
 sudo apt install nginx
@@ -225,6 +259,20 @@ pm2 startup
 
 ## SSL Certificate (Let's Encrypt)
 
+**Red Hat/CentOS/Fedora:**
+```bash
+# Install Certbot
+sudo dnf install -y certbot python3-certbot-nginx
+
+# Obtain certificate
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+
+# Auto-renewal
+sudo crontab -e
+# Add: 0 12 * * * /usr/bin/certbot renew --quiet
+```
+
+**Ubuntu/Debian:**
 ```bash
 # Install Certbot
 sudo apt install certbot python3-certbot-nginx

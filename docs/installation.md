@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Installation Guide
+# jPulse Framework / Docs / Installation Guide v0.5.3
 
 This guide covers installing and setting up the jPulse Framework for development and production environments.
 
@@ -8,9 +8,9 @@ This guide covers installing and setting up the jPulse Framework for development
 - **Node.js 18+** - JavaScript runtime
 - **npm or yarn** - Package manager
 - **Git** - Version control (for cloning repository)
+- **MongoDB 4.4+** - Database (required for user management, configuration, and logging)
 
 ### Optional
-- **MongoDB 4.4+** - Database (framework runs without database)
 - **nginx** - Web server (for production deployment)
 
 ## Development Installation
@@ -50,9 +50,29 @@ npm test
 # Check for 337+ tests passing
 ```
 
-## Database Setup (Optional)
+## Database Setup (Required)
 
 ### MongoDB Installation
+
+**Red Hat/CentOS/Fedora:**
+```bash
+# Add MongoDB repository
+sudo tee /etc/yum.repos.d/mongodb-org-4.4.repo << EOF
+[mongodb-org-4.4]
+name=MongoDB Repository
+baseurl=https://repo.mongodb.org/yum/redhat/8/mongodb-org/4.4/x86_64/
+gpgcheck=1
+enabled=1
+gpgkey=https://www.mongodb.org/static/pgp/server-4.4.asc
+EOF
+
+# Install MongoDB
+sudo dnf install -y mongodb-org
+
+# Start MongoDB service
+sudo systemctl start mongod
+sudo systemctl enable mongod
+```
 
 **Ubuntu/Debian:**
 ```bash
@@ -111,7 +131,10 @@ The framework uses `webapp/app.conf` for development configuration:
         sessionSecret: 'your-dev-secret-key'
     },
     database: {
-        enabled: false  // Set to true if using MongoDB
+        enabled: true,
+        host: 'localhost',
+        port: 27017,
+        name: 'jpulse_dev'
     }
 }
 ```
@@ -179,9 +202,10 @@ lsof -i :8080
 ```
 
 **MongoDB connection failed:**
-- Verify MongoDB is running: `sudo systemctl status mongodb`
+- Verify MongoDB is running: `sudo systemctl status mongod`
 - Check connection settings in `app.conf`
 - Ensure database name doesn't contain invalid characters
+- Check MongoDB logs: `sudo journalctl -u mongod`
 
 **Permission errors:**
 ```bash

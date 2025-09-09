@@ -1784,6 +1784,10 @@ Example site customizations:
     overflow: auto;
     border-left: 4px solid #007bff;
     max-height: 400px;
+    max-width: 100%;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    box-sizing: border-box;
 }
 
 .jp-markdown-content code {

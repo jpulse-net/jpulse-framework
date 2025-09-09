@@ -72,7 +72,7 @@ class MarkdownController {
      */
     static async _getNamespaceDirectory(namespace) {
         if (namespace === 'jpulse') {
-            // Special case: jpulse maps to webapp/static/assets/jpulse/
+            // Special case: jpulse maps to webapp/static/assets/jpulse/ (symlinked to docs/)
             return path.join(global.appConfig.app.dirName, 'static/assets/jpulse');
         } else {
             // Site namespaces: site/webapp/static/assets/{namespace}/

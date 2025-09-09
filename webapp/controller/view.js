@@ -102,26 +102,45 @@ async function load(req, res) {
             const relativePath = `view${filePath}`;
             fullPath = PathResolver.resolveModule(relativePath);
         } catch (error) {
-            // File not found in either site or framework
-            const originalPath = req.path;
-            res.statusCode = 404; // Set 404 status code
-            LogController.logError(req, `view.load: error: File not found: ${filePath}`);
-            const message = global.i18n.translate(req, 'controller.view.pageNotFoundError', { path: originalPath });
+            // W-049: Special handling for documentation pages without extensions
+            // Check if this is a documentation namespace that should use index.shtml
+            const pathParts = filePath.split('/');
+            const namespace = pathParts[1]; // e.g., 'jpulse' from '/jpulse/deployment'
 
-            // Override filePath to error page and try to resolve it
-            filePath = '/error/index.shtml';
-            try {
-                fullPath = PathResolver.resolveModule(`view${filePath}`);
-            } catch (errorPageError) {
-                // Fallback to framework error page if site override doesn't exist
-                const viewDir = path.join(global.appConfig.app.dirName, 'view');
-                fullPath = path.join(viewDir, filePath.substring(1));
+            if (global.viewRegistry && global.viewRegistry.viewList.includes(namespace) && pathParts.length > 2) {
+                // This is a doc page like /jpulse/deployment, try /jpulse/index.shtml
+                const docIndexPath = `/${namespace}/index.shtml`;
+                try {
+                    const docRelativePath = `view${docIndexPath}`;
+                    fullPath = PathResolver.resolveModule(docRelativePath);
+                    // Don't throw error, continue with doc index template
+                } catch (docError) {
+                    // Doc index doesn't exist, continue with original error handling
+                }
             }
-            req.query = { // Create a new query object for the context
-                code: '404',
-                msg: message
-            };
-            // No 'return' here, let the rest of the function execute to render the error page
+
+            if (!fullPath) {
+                // File not found in either site or framework
+                const originalPath = req.path;
+                res.statusCode = 404; // Set 404 status code
+                LogController.logError(req, `view.load: error: File not found: ${filePath}`);
+                const message = global.i18n.translate(req, 'controller.view.pageNotFoundError', { path: originalPath });
+
+                // Override filePath to error page and try to resolve it
+                filePath = '/error/index.shtml';
+                try {
+                    fullPath = PathResolver.resolveModule(`view${filePath}`);
+                } catch (errorPageError) {
+                    // Fallback to framework error page if site override doesn't exist
+                    const viewDir = path.join(global.appConfig.app.dirName, 'view');
+                    fullPath = path.join(viewDir, filePath.substring(1));
+                }
+                req.query = { // Create a new query object for the context
+                    code: '404',
+                    msg: message
+                };
+                // No 'return' here, let the rest of the function execute to render the error page
+            }
         }
 
         // Read the file asynchronously, utilizing cache.templateFiles

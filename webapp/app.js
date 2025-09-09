@@ -20,6 +20,7 @@ import session from 'express-session';
 import MongoStore from 'connect-mongo';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import CommonUtils from './utils/common.js';
 
 // Get current directory for ES modules
@@ -79,15 +80,12 @@ function shouldRegenerateConfig(fs, confPath, jsonPath) {
     if (!fs.existsSync(jsonPath)) {
         return true;
     }
-
     const jsonStat = fs.statSync(jsonPath);
-
     // Check framework config timestamp
     const confStat = fs.statSync(confPath);
     if (confStat.mtime > jsonStat.mtime) {
         return true;
     }
-
     // W-014: Check site config timestamp if it exists
     const siteConfigPath = path.join(projectRoot, 'site/webapp/app.conf');
     if (fs.existsSync(siteConfigPath)) {
@@ -96,14 +94,12 @@ function shouldRegenerateConfig(fs, confPath, jsonPath) {
             return true;
         }
     }
-
     return false;
 }
 
 // Deep merge utility for configuration objects
 function deepMerge(target, source) {
     const result = { ...target };
-
     for (const key in source) {
         if (source.hasOwnProperty(key)) {
             if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
@@ -115,7 +111,6 @@ function deepMerge(target, source) {
             }
         }
     }
-
     return result;
 }
 
@@ -178,6 +173,42 @@ console.log(CommonUtils.formatLogMessage(`app: Site registry initialized - ${reg
 const ContextExtensions = (await import('./utils/context-extensions.js')).default;
 await ContextExtensions.initialize();
 console.log(CommonUtils.formatLogMessage('app: Context extensions initialized'));
+
+// W-049: Build view registry for optimized routing
+function buildViewRegistry() {
+
+    // Scan framework view directories
+    const frameworkViewPath = path.join(appConfig.app.dirName, 'view');
+    let frameworkDirs = [];
+    try {
+        frameworkDirs = fs.readdirSync(frameworkViewPath, { withFileTypes: true })
+            .filter(entry => entry.isDirectory())
+            .map(entry => entry.name);
+    } catch (error) {
+        // Framework view directory doesn't exist
+    }
+
+    // Scan site view directories (takes precedence)
+    const siteViewPath = path.join(path.dirname(appConfig.app.dirName), 'site/webapp/view');
+    let siteDirs = [];
+    try {
+        siteDirs = fs.readdirSync(siteViewPath, { withFileTypes: true })
+            .filter(entry => entry.isDirectory())
+            .map(entry => entry.name);
+    } catch (error) {
+        // Site view directory doesn't exist
+    }
+
+    // Combine with site precedence
+    const viewSet = new Set([...siteDirs, ...frameworkDirs]);
+    const viewList = Array.from(viewSet).sort();
+    const viewRouteRE = new RegExp('^/(' + viewList.join('|') + ')(/|$)');
+
+    return { viewList, viewRouteRE };
+}
+
+global.viewRegistry = buildViewRegistry();
+console.log(CommonUtils.formatLogMessage(`app: View registry built - [${global.viewRegistry.viewList.map(v => `'${v}'`).join(', ')}]`));
 
 // Load routing
 const routes = await import('./routes.js').then(m => m.default);

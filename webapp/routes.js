@@ -82,7 +82,8 @@ router.get(/\.(shtml|tmpl)$/, viewController.load);
 router.get(/\/jpulse-.*\.(js|css)$/, viewController.load);
 // W-047: Serve site-common files from view directory
 router.get(/\/site-common\.(js|css)$/, viewController.load);
-router.get(/^\/[\w-]+\/$/, viewController.load); // e.g. /home/ ==> /home/index.shtml
+// W-049: Use view registry for optimized routing to view directories
+router.get(global.viewRegistry.viewRouteRE, viewController.load);
 router.get('/', (req, res) => {
     res.redirect('/home/');
 });

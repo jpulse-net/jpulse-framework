@@ -659,7 +659,7 @@ This is the doc to track work items, arranged in three sections:
 - provide clean, shareable URLs, such as:
   - `/jpulse/` → loads `README.md`
   - `/jpulse/api-reference` → loads `api-reference.md`
-  - `/docs/about#team` → loads `about.md`, with deep link
+  - `/docs/about#team` → loads `about.md`, with #anchor link
 - constraint:
   - store marked and other libraries in webapp/static/common
     - no external links to libraries (deployment might be air-gapped)

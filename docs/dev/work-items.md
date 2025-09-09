@@ -630,7 +630,7 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### **W-049**: docs: markdown strategy for jPulse and site docs
+### **W-049**: docs: views render markdown docs for jPulse docs and site docs
 - status: 🚧 IN_PROGRESS
 - type: Feature
 - objective: standardize on .md format for website docs (jPulse internal docs and site specific docs)

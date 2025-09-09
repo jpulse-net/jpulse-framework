@@ -497,6 +497,47 @@ Your site documentation works alongside the built-in jPulse framework documentat
 
 This separation ensures framework updates don't affect your site-specific documentation.
 
+### Image Assets Organization
+
+#### Recommended Strategy: Co-located Images
+
+Organize images alongside your markdown files:
+
+```bash
+site/webapp/static/assets/docs/
+├── README.md
+├── user-guide.md
+├── images/                    # Shared images
+│   ├── logo.png
+│   └── screenshot-login.png
+├── admin/
+│   ├── setup.md
+│   └── images/               # Admin-specific images
+│       └── admin-dashboard.png
+└── developer/
+    ├── api-guide.md
+    └── images/               # Developer-specific images
+        └── api-flow.svg
+```
+
+#### Markdown Image References
+
+```markdown
+![Login Screenshot](images/screenshot-login.png)
+![Admin Dashboard](images/admin-dashboard.png)
+![Company Logo](../images/logo.png)
+```
+
+#### Automatic Image Serving
+
+Images are automatically served by the static file system:
+- `/docs/images/logo.png` → `site/webapp/static/assets/docs/images/logo.png`
+- `/help/images/screenshot.png` → `site/webapp/static/assets/help/images/screenshot.png`
+
+**No code changes needed** - existing static file serving handles images!
+
+
+
 ________________________________________________
 ## Best Practices
 

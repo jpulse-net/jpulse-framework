@@ -6224,3 +6224,166 @@ const result = await jPulse.UI.confirmDialog({
 3. Update implementation for proper static method usage
 
 **Status:** 🔧 FIXING JAVASCRIPT ERROR AND PROVIDING IMAGE STRATEGY
+
+
+============================================================
+2025-09-08 12:58
+
+**Checkpoint 2 Complete:** W-049 Core Implementation Working
+
+**User Feedback Analysis:**
+1. ✅ Images strategy: One 'images' directory per doc directory confirmed
+2. ❓ Clarification needed: Code changes vs automatic support for images
+3. 🎨 UI Enhancement: Add consistent page decoration (header/footer)
+4. 📋 Sidebar improvements: Hierarchy display, title fixes, navigation
+5. 🖼️ Image issue: Broken image link needs investigation
+
+**Implementation Status:**
+- Core markdown system functional with good visual results
+- Need UI consistency improvements and navigation enhancements
+- Image serving requires investigation and potential fixes
+
+**Next Actions:**
+1. Update site-customization.md for images strategy
+2. Clarify image serving approach (no code changes needed)
+3. Enhance jpulse view template with proper decoration
+4. Improve sidebar navigation and title handling
+5. Debug image serving issue
+
+**Status:** 🔧 REFINING UI AND FIXING IMAGE SERVING
+
+
+============================================================
+2025-09-08 13:11
+
+**Issue Resolution:** W-049 Sidebar and Documentation Fixes
+
+**Problems Identified:**
+1. Site-customization.md corrupted with odd text during update
+2. Sidebar navigation issues:
+   - README/Overview not listed first per directory
+   - Hierarchy display needs consistent formatting
+   - Need either indented bullets OR block lines (├─) for all items
+
+**Solutions:**
+1. Clean update to site-customization.md with proper images strategy
+2. Fix sidebar JavaScript to sort README first and use consistent hierarchy
+
+**Status:** 🔧 FIXING DOCUMENTATION AND SIDEBAR NAVIGATION
+
+
+============================================================
+2025-09-08 13:24
+
+**Critical Issues:** W-049 Multiple System Failures
+
+**Problems Identified:**
+1. Site-customization.md corrupted with strange text fragments
+2. CSS naming violation: Using jp-* instead of local-* for page-specific styles
+3. Missing content, header, and footer - only sidebar visible
+4. 404 errors on direct doc page access (routing issue)
+5. Missing indentation for subdirectory items in sidebar
+
+**Root Causes:**
+- Template structure broken during updates
+- CSS specificity conflicts
+- Missing route handling for direct doc access
+- JavaScript navigation issues
+
+**Status:** 🚨 CRITICAL FIXES NEEDED - SYSTEM PARTIALLY BROKEN
+
+
+============================================================
+2025-09-08 13:37
+
+**Course Correction:** W-049 Following jPulse Patterns
+
+**User Feedback - Critical Points:**
+1. Site-customization.md still corrupted - need clean approach
+2. Routing should use existing view.load controller, not custom routes
+3. Header/footer missing - should follow standard jPulse view patterns
+4. Sidebar indentation issues - need proper spacing and text wrapping
+
+**Root Issue:** Trying to reinvent instead of following established jPulse patterns
+- view.load controller handles all page routing
+- Standard template includes for header/footer
+- Consistent CSS spacing and text handling
+
+**Status:** 🔧 FIXING BY FOLLOWING ESTABLISHED PATTERNS
+
+
+============================================================
+2025-09-08 13:43
+
+**Mode Switch:** Ask Mode → Agent Mode
+
+**Issue:** Ask mode responses corrupted with commentary mixed into code blocks
+- User unable to apply suggested changes cleanly
+- Code snippets contained explanatory text instead of clean code
+- Only common CSS changes were applicable
+
+**Agent Mode Actions:**
+1. Fix site-customization.md with clean images section
+2. Update jpulse view template to follow jPulse patterns
+3. Ensure proper header/footer includes and routing
+
+**Status:** 🔧 SWITCHING TO DIRECT IMPLEMENTATION
+
+**Completed Actions:**
+1. ✅ Fixed site-customization.md with clean images organization section
+2. ✅ Updated jpulse view template to follow proper jPulse patterns:
+   - Added {{file.include "jpulse-header.tmpl"}} in head
+   - Added {{file.include "jpulse-footer.tmpl"}} before closing body
+   - Fixed title to use {{app.version}} pattern
+   - Added local CSS classes for documentation-specific styling
+3. ✅ Enhanced sidebar navigation:
+   - Added proper indentation using &nbsp; for nested items
+   - Added CSS classes for text wrapping (local-wrapped)
+   - Improved tree structure display with proper spacing
+4. ✅ Applied documentation CSS to jpulse-common.css (user completed)
+
+**Ready for Testing:** Documentation system should now have proper header, footer, navigation, and content display following jPulse patterns
+
+**Status:** ✅ IMPLEMENTATION COMPLETE - READY FOR VALIDATION
+
+2025-09-08 13:45
+
+============================================================
+
+**Testing Results & New Issues:**
+
+**✅ Working:**
+- Header and footer display correctly
+- Sidebar navigation with proper indentation
+- Content loads and displays properly
+- Documentation system functional
+
+**🔧 Issues Found:**
+1. Image reference broken in README.md - needs path fix
+2. Text disappears on Deployment doc - needs scroll fix for pre elements
+3. 404 errors on doc links - needs generic routing solution for all doc namespaces
+
+**Status:** 🔧 FIXING POST-IMPLEMENTATION ISSUES
+
+**Issues Fixed:**
+1. ✅ **Image Reference**: Fixed broken image path in README.md
+   - Changed JavaScript conversion from `/jpulse/images/` to `/assets/jpulse/images/`
+   - Images now load correctly through static file serving
+
+2. ✅ **Text Overflow**: Fixed text disappearing on Deployment doc
+   - Added `overflow: auto` and `max-height: 400px` to `.jp-markdown-content pre`
+   - Long code blocks now scroll instead of disappearing
+
+3. ✅ **404 Routing**: Fixed 404 errors on doc links with generic solution
+   - Added dynamic route handler that checks filesystem for documentation namespaces
+   - Works for `/jpulse/*`, `/docs/*`, `/help/*`, `/faq/*`, etc.
+   - Automatically serves appropriate documentation template for valid namespaces
+   - Falls through to 404 for invalid namespaces
+
+**Generic Solution Benefits:**
+- No manual route registration needed for new documentation namespaces
+- Automatically works when sites add new doc sets like `/manual/` or `/guide/`
+- Maintains clean separation between framework and site documentation
+- Follows existing jPulse patterns for file resolution
+
+**Status:** ✅ ALL ISSUES RESOLVED - DOCUMENTATION SYSTEM FULLY FUNCTIONAL

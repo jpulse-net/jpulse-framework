@@ -9,7 +9,7 @@
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           90%, Cursor 1.2, Claude Sonnet 4
  */
 
 import fs from 'fs/promises';
@@ -68,22 +68,23 @@ class MarkdownController {
     }
 
     /**
-     * Get namespace directory with jpulse special handling
+     * Get namespace directory following site override pattern
      */
     static async _getNamespaceDirectory(namespace) {
-        if (namespace === 'jpulse') {
-            // Special case: jpulse maps to webapp/static/assets/jpulse/ (symlinked to docs/)
-            return path.join(global.appConfig.app.dirName, 'static/assets/jpulse');
-        } else {
-            // Site namespaces: site/webapp/static/assets/{namespace}/
-            const webappDir = global.appConfig.app.dirName;
-            const projectRoot = path.dirname(webappDir);
-            const siteDir = path.join(projectRoot, 'site/webapp/static/assets', namespace);
+        const webappDir = global.appConfig.app.dirName;
+        const projectRoot = path.dirname(webappDir);
 
-            // Verify directory exists
+        // Try site directory first (site override pattern)
+        const siteDir = path.join(projectRoot, 'site/webapp/static/assets', namespace);
+        try {
+            await fs.access(siteDir);
+            return siteDir;
+        } catch {
+            // Fall back to framework directory
+            const frameworkDir = path.join(webappDir, 'static/assets', namespace);
             try {
-                await fs.access(siteDir);
-                return siteDir;
+                await fs.access(frameworkDir);
+                return frameworkDir;
             } catch {
                 return null;
             }
@@ -148,26 +149,149 @@ class MarkdownController {
      * Recursively scan directory for .md files
      */
     static async _scanMarkdownFiles(dir, relativePath = '') {
-        const files = [];
         const entries = await fs.readdir(dir, { withFileTypes: true });
+        let allFiles = [];
 
+        // Handle root README specially - it becomes the root container
+        if (relativePath === '') {
+            const rootReadme = entries.find(entry => entry.isFile() && entry.name === 'README.md');
+            if (rootReadme) {
+                // Get all other files and directories
+                const otherFiles = [];
+
+                // Process regular files (excluding root README)
+                for (const entry of entries) {
+                    if (entry.isFile() && entry.name.endsWith('.md') && entry.name !== 'README.md') {
+                        otherFiles.push({
+                            path: entry.name,
+                            name: entry.name,
+                            title: MarkdownController._extractTitle(entry.name),
+                            isDirectory: false
+                        });
+                    }
+                }
+
+                // Process directories
+                const dirEntries = entries
+                    .filter(entry => entry.isDirectory())
+                    .map(entry => entry.name)
+                    .sort((a, b) => a.localeCompare(b));
+
+                for (const dirName of dirEntries) {
+                    const fullPath = path.join(dir, dirName);
+                    const relPath = dirName;
+                    const dirContents = await MarkdownController._scanMarkdownFiles(fullPath, relPath);
+
+                    // Skip empty directories (no .md files)
+                    if (dirContents.length === 0) {
+                        continue;
+                    }
+
+                    // Find README in this directory's contents
+                    const readmeIndex = dirContents.findIndex(f => f.name === 'README.md' && !f.isDirectory);
+                    let readmePath = null;
+
+                    if (readmeIndex !== -1) {
+                        readmePath = dirContents[readmeIndex].path;
+                        // Remove README from the directory contents since we're merging it up
+                        dirContents.splice(readmeIndex, 1);
+                    }
+
+                    // Create directory entry with README merged up
+                    otherFiles.push({
+                        path: readmePath || path.join(relPath, 'README.md'),
+                        name: readmePath ? 'README.md' : '',
+                        title: MarkdownController._extractTitle(dirName),
+                        isDirectory: true,
+                        files: dirContents // All contents of the directory (excluding README)
+                    });
+                }
+
+                // Sort other files: regular files first, then directories
+                otherFiles.sort((a, b) => {
+                    if (a.isDirectory !== b.isDirectory) {
+                        return a.isDirectory ? 1 : -1;
+                    }
+                    return a.title.localeCompare(b.title);
+                });
+
+                // Return root README as container with all other files
+                return [{
+                    path: 'README.md',
+                    name: 'README.md',
+                    title: 'jPulse',
+                    isDirectory: true,
+                    files: otherFiles
+                }];
+            }
+        }
+
+        // Non-root directory processing (original logic)
+        // Process regular files first
         for (const entry of entries) {
-            const fullPath = path.join(dir, entry.name);
             const relPath = path.join(relativePath, entry.name);
-
-            if (entry.isDirectory()) {
-                const subFiles = await MarkdownController._scanMarkdownFiles(fullPath, relPath);
-                files.push(...subFiles);
-            } else if (entry.name.endsWith('.md')) {
-                files.push({
+            if (entry.isFile() && entry.name.endsWith('.md')) {
+                allFiles.push({
                     path: relPath,
                     name: entry.name,
-                    title: MarkdownController._extractTitle(entry.name)
+                    title: MarkdownController._extractTitle(entry.name),
+                    isDirectory: false
                 });
             }
         }
 
-        return files.sort((a, b) => a.path.localeCompare(b.path));
+        // Process directories
+        const dirEntries = entries
+            .filter(entry => entry.isDirectory())
+            .map(entry => entry.name)
+            .sort((a, b) => a.localeCompare(b));
+
+        for (const dirName of dirEntries) {
+            const fullPath = path.join(dir, dirName);
+            const relPath = path.join(relativePath, dirName);
+            const dirContents = await MarkdownController._scanMarkdownFiles(fullPath, relPath);
+
+            // Skip empty directories (no .md files)
+            if (dirContents.length === 0) {
+                continue;
+            }
+
+            // Find README in this directory's contents
+            const readmeIndex = dirContents.findIndex(f => f.name === 'README.md' && !f.isDirectory);
+            let readmePath = null;
+
+            if (readmeIndex !== -1) {
+                readmePath = dirContents[readmeIndex].path;
+                // Remove README from the directory contents since we're merging it up
+                dirContents.splice(readmeIndex, 1);
+            }
+
+            // Create directory entry with README merged up
+            allFiles.push({
+                path: readmePath || path.join(relPath, 'README.md'),
+                name: readmePath ? 'README.md' : '',
+                title: MarkdownController._extractTitle(dirName),
+                isDirectory: true,
+                files: dirContents // All contents of the directory (excluding README)
+            });
+        }
+
+        // Sort: regular files first (isDirectory: false), then directories (isDirectory: true)
+        allFiles.sort((a, b) => {
+            if (a.isDirectory !== b.isDirectory) {
+                return a.isDirectory ? 1 : -1;
+            }
+
+            // Within same type, README first
+            if (!a.isDirectory && !b.isDirectory) {
+                if (a.name === 'README.md') return -1;
+                if (b.name === 'README.md') return 1;
+            }
+
+            return a.title.localeCompare(b.title);
+        });
+
+        return allFiles;
     }
 
     /**

@@ -24,6 +24,12 @@
         .local-docs-nav a.local-wrapped {
             line-height: 1.3;
         }
+
+        /* Remove default list margins/padding to align with h3 */
+        .jp-docs-nav ul {
+            margin: 0;
+            padding: 0;
+        }
     </style>
 </head>
 <body>
@@ -31,7 +37,7 @@
     <div class="jp-main">
         <div class="jp-docs-container">
             <nav class="jp-docs-nav local-docs-nav">
-                <h3>jPulse Framework</h3>
+                <h3>Documentation</h3>
                 <ul id="docs-navigation">
                     <!-- Populated by JavaScript -->
                 </ul>
@@ -53,7 +59,7 @@
                 this.namespace = this.getNamespaceFromUrl();
                 this.currentPath = this.getPathFromUrl();
                 this.titleSubstitutions = {
-                    'README': 'Overview',
+                    'Jpulse': 'jPulse',
                     'Api': 'API',
                     'CHANGELOG': 'Version History',
                     'Faq': 'FAQ',
@@ -87,6 +93,7 @@
                 try {
                     const response = await fetch(`/api/1/markdown/${this.namespace}/`);
                     const data = await response.json();
+                    console.log('data.files:', JSON.stringify(data.files, null, 2));
                     this.renderNavigation(data.files);
                 } catch (error) {
                     console.error('Failed to load navigation:', error);
@@ -95,86 +102,58 @@
 
             renderNavigation(files) {
                 const nav = document.getElementById('docs-navigation');
-                const tree = this.buildFileTree(files);
-                nav.innerHTML = this.renderFileTree(tree, '', 0);
+                nav.innerHTML = this.renderFileList(files, 0);
             }
 
-            buildFileTree(files) {
-                const tree = { files: [], directories: {} };
-
-                files.forEach(file => {
-                    const parts = file.path.split('/');
-                    let current = tree;
-
-                    // Navigate/create directory structure
-                    for (let i = 0; i < parts.length - 1; i++) {
-                        const dirName = parts[i];
-                        if (!current.directories[dirName]) {
-                            current.directories[dirName] = { files: [], directories: {} };
-                        }
-                        current = current.directories[dirName];
-                    }
-
-                    // Add file to current directory
-                    current.files.push(file);
-                });
-
-                // Sort files and directories recursively
-                this.sortTreeRecursively(tree);
-                return tree;
-            }
-
-            sortTreeRecursively(node) {
-                // Sort files: README first, then alphabetical
-                node.files.sort((a, b) => {
-                    if (a.name === 'README.md') return -1;
-                    if (b.name === 'README.md') return 1;
-                    return a.path.localeCompare(b.path);
-                });
-
-                // Sort directories alphabetically and recursively sort their contents
-                Object.keys(node.directories).sort().forEach(dirName => {
-                    this.sortTreeRecursively(node.directories[dirName]);
-                });
-            }
-
-            renderFileTree(node, prefix, level = 0) {
+            renderFileList(files, level = 0, parentPrefixes = []) {
                 let html = '';
-                const files = node.files || [];
-                const directories = node.directories || {};
-                const dirNames = Object.keys(directories).sort();
 
-                // Render files first
-                files.forEach((file, fileIndex) => {
-                    const title = this.enhanceTitle(file.title);
-                    const isActive = file.path === this.currentPath;
-                    const isLastFile = fileIndex === files.length - 1 && dirNames.length === 0;
-                    const filePrefix = prefix + (isLastFile ? '└─ ' : '├─ ');
-                    const cssClass = title.length > 15 ? 'local-wrapped' : '';
-                    const levelClass = `local-level-${level}`;
+                files.forEach((file, index) => {
+                    const isLast = (index === files.length - 1);
+                    html += this.renderFileItem(file, level, isLast, parentPrefixes);
 
-                    html += `
-                        <li>
-                            <a href="/${this.namespace}/${file.path.replace('.md', '')}"
-                               class="${isActive ? 'active' : ''} ${cssClass} ${levelClass}"
-                               data-path="${file.path}">
-                                ${filePrefix}${title}
-                            </a>
-                        </li>
-                    `;
-                });
-
-                // Render directories
-                dirNames.forEach((dirName, dirIndex) => {
-                    const isLastDir = dirIndex === dirNames.length - 1;
-                    const dirPrefix = prefix + (isLastDir ? '└─ ' : '├─ ');
-                    const nextPrefix = prefix + (isLastDir ? '&nbsp;&nbsp;&nbsp;&nbsp;' : '│&nbsp;&nbsp;&nbsp;');
-
-                    html += `<li><strong class="local-level-${level}">${dirPrefix}${this.enhanceTitle(dirName)}</strong></li>`;
-                    html += this.renderFileTree(directories[dirName], nextPrefix, level + 1);
+                    // If this is a directory with files, render its contents recursively
+                    if (file.isDirectory && file.files && file.files.length > 0) {
+                        const newParentPrefixes = [...parentPrefixes];
+                        newParentPrefixes.push(isLast ? '&nbsp;&nbsp;&nbsp;&nbsp;' : '│&nbsp;&nbsp;&nbsp;');
+                        html += this.renderFileList(file.files, level + 1, newParentPrefixes);
+                    }
                 });
 
                 return html;
+            }
+
+            renderFileItem(item, level, isLast, parentPrefixes) {
+                // Build prefix from parent prefixes plus current level indicator
+                let prefix = '';
+
+                // Add parent prefixes
+                parentPrefixes.forEach(p => {
+                    prefix += p;
+                });
+
+                // Add current level tree character (only if not root level)
+                if (level > 0) {
+                    prefix += isLast ? '└─ ' : '├─ ';
+                }
+
+                const title = this.enhanceTitle(item.title);
+                const cssClass = title.length > 15 ? 'local-wrapped' : '';
+                const levelClass = `local-level-${level}`;
+                const isActive = item.path === this.currentPath;
+
+                if (item.isDirectory) {
+                    if (item.name) {
+                        // Directory with README - clickable
+                        return `<li><a href="/${this.namespace}/${item.path.replace('.md', '')}" class="${isActive ? 'active' : ''} ${cssClass} ${levelClass}" data-path="${item.path}"><strong>${prefix}${title}</strong></a></li>`;
+                    } else {
+                        // Directory without README - just label
+                        return `<li><strong class="${levelClass}">${prefix}${title}</strong></li>`;
+                    }
+                } else {
+                    // Regular file
+                    return `<li><a href="/${this.namespace}/${item.path.replace('.md', '')}" class="${isActive ? 'active' : ''} ${cssClass} ${levelClass}" data-path="${item.path}">${prefix}${title}</a></li>`;
+                }
             }
 
             enhanceTitle(title) {

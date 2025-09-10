@@ -21,14 +21,7 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         /* Local documentation-specific styles */
-        .local-docs-nav a {
-            text-indent: -1em;
-            padding-left: 1em;
-        }
-
         .local-docs-nav a.local-wrapped {
-            text-indent: -1em;
-            padding-left: 1em;
             line-height: 1.3;
         }
     </style>
@@ -52,12 +45,12 @@
         </div>
     </div>
 
-    {{>jpulse-footer}}
-
     <script src="/common/marked/marked.min.js"></script>
     <script>
         class jPulseDocsViewer {
             constructor() {
+                // Auto-detect namespace from URL path
+                this.namespace = this.getNamespaceFromUrl();
                 this.currentPath = this.getPathFromUrl();
                 this.titleSubstitutions = {
                     'README': 'Overview',
@@ -74,6 +67,11 @@
                 this.init();
             }
 
+            getNamespaceFromUrl() {
+                const pathParts = window.location.pathname.split('/').filter(p => p);
+                return pathParts[0] || 'jpulse'; // Default to jpulse if no namespace found
+            }
+
             async init() {
                 await this.loadNavigation();
                 await this.loadDocument();
@@ -81,13 +79,13 @@
             }
 
             getPathFromUrl() {
-                const path = window.location.pathname.replace('/jpulse/', '') || 'README.md';
+                const path = window.location.pathname.replace(`/${this.namespace}/`, '') || 'README.md';
                 return path.endsWith('.md') ? path : `${path}.md`;
             }
 
             async loadNavigation() {
                 try {
-                    const response = await fetch('/api/1/markdown/jpulse/');
+                    const response = await fetch(`/api/1/markdown/${this.namespace}/`);
                     const data = await response.json();
                     this.renderNavigation(data.files);
                 } catch (error) {
@@ -97,94 +95,83 @@
 
             renderNavigation(files) {
                 const nav = document.getElementById('docs-navigation');
-
-                // Group files by directory
-                const grouped = this.groupFilesByDirectory(files);
-
-                nav.innerHTML = this.renderNavigationGroup(grouped);
+                const tree = this.buildFileTree(files);
+                nav.innerHTML = this.renderFileTree(tree, '', 0);
             }
 
-            groupFilesByDirectory(files) {
-                const groups = { root: [] };
+            buildFileTree(files) {
+                const tree = { files: [], directories: {} };
 
                 files.forEach(file => {
                     const parts = file.path.split('/');
-                    if (parts.length === 1) {
-                        groups.root.push(file);
-                    } else {
-                        const dir = parts[0];
-                        if (!groups[dir]) groups[dir] = [];
-                        groups[dir].push(file);
+                    let current = tree;
+
+                    // Navigate/create directory structure
+                    for (let i = 0; i < parts.length - 1; i++) {
+                        const dirName = parts[i];
+                        if (!current.directories[dirName]) {
+                            current.directories[dirName] = { files: [], directories: {} };
+                        }
+                        current = current.directories[dirName];
                     }
+
+                    // Add file to current directory
+                    current.files.push(file);
                 });
 
-                // Sort files within each group, README first
-                Object.keys(groups).forEach(key => {
-                    groups[key].sort((a, b) => {
-                        // README always comes first
-                        if (a.name === 'README.md') return -1;
-                        if (b.name === 'README.md') return 1;
-                        // Then alphabetical
-                        return a.path.localeCompare(b.path);
-                    });
-                });
-
-                return groups;
+                // Sort files and directories recursively
+                this.sortTreeRecursively(tree);
+                return tree;
             }
 
-            renderNavigationGroup(groups) {
+            sortTreeRecursively(node) {
+                // Sort files: README first, then alphabetical
+                node.files.sort((a, b) => {
+                    if (a.name === 'README.md') return -1;
+                    if (b.name === 'README.md') return 1;
+                    return a.path.localeCompare(b.path);
+                });
+
+                // Sort directories alphabetically and recursively sort their contents
+                Object.keys(node.directories).sort().forEach(dirName => {
+                    this.sortTreeRecursively(node.directories[dirName]);
+                });
+            }
+
+            renderFileTree(node, prefix, level = 0) {
                 let html = '';
+                const files = node.files || [];
+                const directories = node.directories || {};
+                const dirNames = Object.keys(directories).sort();
 
-                // Root files first
-                if (groups.root && groups.root.length > 0) {
-                    groups.root.forEach((file, index) => {
-                        const title = this.enhanceTitle(file.title);
-                        const isActive = file.path === this.currentPath;
-                        const isLast = index === groups.root.length - 1 && Object.keys(groups).length === 1;
-                        const prefix = isLast ? '└─ ' : '├─ ';
-                        const cssClass = title.length > 15 ? 'local-wrapped' : '';
+                // Render files first
+                files.forEach((file, fileIndex) => {
+                    const title = this.enhanceTitle(file.title);
+                    const isActive = file.path === this.currentPath;
+                    const isLastFile = fileIndex === files.length - 1 && dirNames.length === 0;
+                    const filePrefix = prefix + (isLastFile ? '└─ ' : '├─ ');
+                    const cssClass = title.length > 15 ? 'local-wrapped' : '';
+                    const levelClass = `local-level-${level}`;
 
-                        html += `
-                            <li>
-                                <a href="/jpulse/${file.path.replace('.md', '')}"
-                                   class="${isActive ? 'active' : ''} ${cssClass}"
-                                   data-path="${file.path}">
-                                    ${prefix}${title}
-                                </a>
-                            </li>
-                        `;
-                    });
-                }
+                    html += `
+                        <li>
+                            <a href="/${this.namespace}/${file.path.replace('.md', '')}"
+                               class="${isActive ? 'active' : ''} ${cssClass} ${levelClass}"
+                               data-path="${file.path}">
+                                ${filePrefix}${title}
+                            </a>
+                        </li>
+                    `;
+                });
 
-                // Directory groups
-                const dirKeys = Object.keys(groups).filter(key => key !== 'root').sort();
-                dirKeys.forEach((dir, dirIndex) => {
-                    const isLastDir = dirIndex === dirKeys.length - 1;
-                    const dirPrefix = isLastDir ? '└─ ' : '├─ ';
+                // Render directories
+                dirNames.forEach((dirName, dirIndex) => {
+                    const isLastDir = dirIndex === dirNames.length - 1;
+                    const dirPrefix = prefix + (isLastDir ? '└─ ' : '├─ ');
+                    const nextPrefix = prefix + (isLastDir ? '&nbsp;&nbsp;&nbsp;&nbsp;' : '│&nbsp;&nbsp;&nbsp;');
 
-                    html += `<li><strong>${dirPrefix}${this.enhanceTitle(dir)}</strong></li>`;
-
-                    groups[dir].forEach((file, fileIndex) => {
-                        const title = this.enhanceTitle(file.title);
-                        const isActive = file.path === this.currentPath;
-                        const isLastFile = fileIndex === groups[dir].length - 1;
-                        const cssClass = title.length > 15 ? 'local-wrapped' : '';
-
-                        // Use proper tree characters for nested items with non-breaking spaces
-                        const nestedPrefix = isLastDir
-                            ? (isLastFile ? '&nbsp;&nbsp;&nbsp;&nbsp;└─ ' : '&nbsp;&nbsp;&nbsp;&nbsp;├─ ')
-                            : (isLastFile ? '│&nbsp;&nbsp;&nbsp;└─ ' : '│&nbsp;&nbsp;&nbsp;├─ ');
-
-                        html += `
-                            <li>
-                                <a href="/jpulse/${file.path.replace('.md', '')}"
-                                   class="${isActive ? 'active' : ''} ${cssClass}"
-                                   data-path="${file.path}">
-                                    ${nestedPrefix}${title}
-                                </a>
-                            </li>
-                        `;
-                    });
+                    html += `<li><strong class="local-level-${level}">${dirPrefix}${this.enhanceTitle(dirName)}</strong></li>`;
+                    html += this.renderFileTree(directories[dirName], nextPrefix, level + 1);
                 });
 
                 return html;
@@ -210,7 +197,7 @@
 
             async loadDocument() {
                 try {
-                    const response = await fetch(`/api/1/markdown/jpulse/${this.currentPath}`);
+                    const response = await fetch(`/api/1/markdown/${this.namespace}/${this.currentPath}`);
                     const data = await response.json();
                     this.renderMarkdown(data.content);
                 } catch (error) {
@@ -220,19 +207,41 @@
             }
 
             renderMarkdown(content) {
-                // Fix relative image paths for jpulse namespace
-                const fixedContent = content.replace(
-                    /!\[([^\]]*)\]\(\.\/images\/([^)]+)\)/g,
-                    '![$1](/assets/jpulse/images/$2)'
+                let fixedContent = content;
+
+                // Fix relative image paths (namespace-aware)
+                if (this.namespace === 'jpulse') {
+                    fixedContent = fixedContent.replace(
+                        /!\[([^\]]*)\]\(\.\/images\/([^)]+)\)/g,
+                        '![$1](/assets/jpulse/images/$2)'
+                    );
+                } else {
+                    fixedContent = fixedContent.replace(
+                        /!\[([^\]]*)\]\(\.\/images\/([^)]+)\)/g,
+                        `![$1](/assets/${this.namespace}/images/$2)`
+                    );
+                }
+
+                // Fix internal .md links to clean URLs
+                fixedContent = fixedContent.replace(
+                    /\[([^\]]+)\]\(([^)]+)\.md\)/g,
+                    `[$1](/${this.namespace}/$2)`
+                );
+
+                // Fix relative .md links (starting with ./)
+                fixedContent = fixedContent.replace(
+                    /\[([^\]]+)\]\(\.\/([^)]+)\.md\)/g,
+                    `[$1](/${this.namespace}/$2)`
                 );
 
                 const html = marked.parse(fixedContent);
                 document.getElementById('markdown-content').innerHTML = html;
 
-                // Update page title
+                // Update page title (namespace-aware)
                 const firstHeading = document.querySelector('#markdown-content h1');
                 if (firstHeading) {
-                    document.title = `${firstHeading.textContent} - jPulse Framework Documentation`;
+                    const namespaceTitle = this.namespace === 'jpulse' ? 'jPulse Framework' : this.enhanceTitle(this.namespace);
+                    document.title = `${firstHeading.textContent} - ${namespaceTitle} Documentation`;
                 }
             }
 
@@ -242,7 +251,7 @@
                     if (e.target.matches('.jp-docs-nav a')) {
                         e.preventDefault();
                         const path = e.target.getAttribute('data-path');
-                        const url = `/jpulse/${path.replace('.md', '')}`;
+                        const url = `/${this.namespace}/${path.replace('.md', '')}`;
                         history.pushState({ path }, '', url);
                         this.currentPath = path;
                         this.loadDocument();
@@ -267,7 +276,7 @@
         }
 
         // Initialize when DOM is ready
-        document.addEventListener('DOMContentLoaded', () => {
+        jPulse.dom.ready(() => {
             new jPulseDocsViewer();
         });
     </script>

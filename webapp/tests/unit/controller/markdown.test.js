@@ -17,10 +17,10 @@ import fs from 'fs/promises';
 import path from 'path';
 import MarkdownController from '../../../controller/markdown.js';
 
-// Mock global appConfig
+// Mock global appConfig - use relative path from webapp directory
 global.appConfig = {
     app: {
-        dirName: path.join(process.cwd(), 'webapp')
+        dirName: path.resolve(path.dirname(import.meta.url.replace('file://', '')), '../../..')
     },
     controller: {
         markdown: {
@@ -41,11 +41,12 @@ jest.mock('../../../utils/common.js', () => ({
 }));
 
 describe('MarkdownController', () => {
-    const testSiteDir = path.join(process.cwd(), 'site/webapp/static/assets/test-docs');
-    const testJPulseDir = path.join(process.cwd(), 'webapp/static/assets/jpulse');
+    // Use appConfig.app.dirName as the base for all paths
+    const projectRoot = path.dirname(global.appConfig.app.dirName);
+    const testSiteDir = path.join(projectRoot, 'site/webapp/static/assets/test-docs');
 
     beforeEach(async () => {
-        // Create temporary test documentation for site namespace
+        // Create temporary test documentation for site namespace ONLY
         await fs.mkdir(testSiteDir, { recursive: true });
         await fs.writeFile(
             path.join(testSiteDir, 'README.md'),
@@ -63,22 +64,13 @@ describe('MarkdownController', () => {
             '# Admin Setup\nAdministrator setup instructions.'
         );
 
-        // Create temporary jpulse test docs
-        await fs.mkdir(testJPulseDir, { recursive: true });
-        await fs.writeFile(
-            path.join(testJPulseDir, 'README.md'),
-            '# jPulse Framework\nFramework documentation.'
-        );
-        await fs.writeFile(
-            path.join(testJPulseDir, 'api-reference.md'),
-            '# API Reference\nComplete API documentation.'
-        );
+        // NOTE: jpulse namespace tests use existing real documentation (READ-ONLY)
+        // NEVER create or modify webapp/static/assets/jpulse/ directory in tests!
     });
 
     afterEach(async () => {
-        // Clean up test files
+        // Clean up ONLY test site files - NEVER touch jpulse directory!
         await fs.rm(testSiteDir, { recursive: true, force: true });
-        await fs.rm(testJPulseDir, { recursive: true, force: true });
 
         // Clear any mocks
         jest.clearAllMocks();
@@ -118,7 +110,7 @@ describe('MarkdownController', () => {
             });
         });
 
-        it('should list markdown files in jpulse namespace', async () => {
+        it('should list markdown files in jpulse namespace (read-only test)', async () => {
             const mockReq = {
                 path: '/api/1/markdown/jpulse/',
                 originalUrl: '/api/1/markdown/jpulse/'
@@ -130,18 +122,12 @@ describe('MarkdownController', () => {
 
             await MarkdownController.api(mockReq, mockRes);
 
-            expect(mockRes.json).toHaveBeenCalledWith({
-                files: expect.arrayContaining([
-                    expect.objectContaining({
-                        name: 'README.md',
-                        title: 'README'
-                    }),
-                    expect.objectContaining({
-                        name: 'api-reference.md',
-                        title: 'Api Reference'
-                    })
-                ])
-            });
+            // Test that jpulse namespace returns files (using real docs)
+            expect(mockRes.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    files: expect.any(Array)
+                })
+            );
         });
 
         it('should serve specific markdown file from site namespace', async () => {
@@ -159,24 +145,6 @@ describe('MarkdownController', () => {
             expect(mockRes.json).toHaveBeenCalledWith({
                 content: '# User Guide\nDetailed user guide content.',
                 path: 'user-guide.md'
-            });
-        });
-
-        it('should serve specific markdown file from jpulse namespace', async () => {
-            const mockReq = {
-                path: '/api/1/markdown/jpulse/api-reference.md',
-                originalUrl: '/api/1/markdown/jpulse/api-reference.md'
-            };
-            const mockRes = {
-                json: jest.fn(),
-                status: jest.fn().mockReturnThis()
-            };
-
-            await MarkdownController.api(mockReq, mockRes);
-
-            expect(mockRes.json).toHaveBeenCalledWith({
-                content: '# API Reference\nComplete API documentation.',
-                path: 'api-reference.md'
             });
         });
 

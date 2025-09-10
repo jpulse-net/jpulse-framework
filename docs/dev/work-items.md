@@ -700,6 +700,35 @@ Almost ready for W-042 release (this chat refers to W-021, my mistake)
 
 
 
+2. it would be useful to have an exclude directory directive
+- for example, dev/working could be excluded.
+- directive could be added to the docs? in what form?
+- Several options for excluding directories:
+  - Option A: .jpulse-ignore file in docs root (like .gitignore)
+  - Option B: _config.json in docs root with exclude patterns
+  - Option C: Special comment in markdown files: <!-- jpulse:exclude -->
+  - Option D: Directory naming convention: prefix with _ (e.g., _working/)
+
+4. sidebar hidden in mobile
+- only main content shown
+- this is a nice to have fix (but see #5 below)
+
+6. it would be useful to have anchor links.
+- for example, each heading would have an paragraph symbol appear on the left of heading on hover
+- when clicking on the symbol, copy the anchor link to the clipboard
+- send the deep link with anchor by email
+- for example, http://localhost:8080/jpulse/front-end-development#css-integration would be an anchor to the heading named "CSS Integration"
+- this looks like more work, possibly another work item
+
+
+6. it would be useful to have anchor links.
+- for example, each heading would have an paragraph symbol appear on the left of heading on hover
+- when clicking on the symbol, copy the anchor link to the clipboard
+- send the deep link with anchor by email
+- for example, http://localhost:8080/jpulse/front-end-development#css-integration would be an anchor to the heading named "CSS Integration"
+- this looks like more work, possibly another work item
+
+
 
 - enhance === view.load( /error/index.shtml ) log to show additional details on what is wrong, likely in followup log entry
 

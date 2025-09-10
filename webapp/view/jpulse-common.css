@@ -1720,21 +1720,20 @@ Example site customizations:
 }
 
 .jp-docs-nav li {
-    margin: 0.25rem 0;
+    margin: 0.1rem 0;
 }
 
 .jp-docs-nav a {
     text-decoration: none;
     color: #495057;
-    padding: 0.25rem 0.5rem;
+    padding: 0.12rem 0.5rem;
     display: block;
     border-radius: 4px;
-    font-family: 'Courier New', Consolas, monospace;
     font-size: 0.9em;
     line-height: 1.4;
-    /* Support for hanging indent on wrapped text */
-    text-indent: -1em;
-    padding-left: 1em;
+    /* Default hanging indent - overridden by level classes */
+    text-indent: -1.2em;
+    padding-left: 1.2em;
     word-wrap: break-word;
     hyphens: auto;
 }
@@ -1747,13 +1746,55 @@ Example site customizations:
 
 /* Ensure proper spacing for tree characters */
 .jp-docs-nav strong {
-    font-family: 'Courier New', Consolas, monospace;
     font-size: 0.9em;
     color: #343a40;
-    padding: 0.25rem 0.5rem;
+    padding: 0.12rem 0.5rem;
     display: block;
-    text-indent: -1em;
-    padding-left: 1em;
+    /* Default hanging indent - overridden by level classes */
+    text-indent: -1.2em;
+    padding-left: 1.2em;
+}
+
+/* Level-specific indentation for hanging text */
+.jp-docs-nav .local-level-0 {
+    text-indent: -1.2em;
+    padding-left: 1.2em;
+}
+
+.jp-docs-nav .local-level-1 {
+    text-indent: -1.2em;
+    padding-left: 1.6em; /* Small indent for first level */
+}
+
+.jp-docs-nav .local-level-2 {
+    text-indent: -1.2em;
+    padding-left: 2.0em; /* Small increment for second level */
+}
+
+.jp-docs-nav .local-level-3 {
+    text-indent: -1.2em;
+    padding-left: 2.4em; /* Small increment for third level */
+}
+
+/* Apply same level-specific indentation to strong elements */
+.jp-docs-nav strong.local-level-0 {
+    text-indent: -1.2em;
+    padding-left: 1.2em;
+}
+
+.jp-docs-nav strong.local-level-1 {
+    text-indent: -1.2em;
+    padding-left: 1.6em;
+}
+
+.jp-docs-nav strong.local-level-2 {
+    text-indent: -1.2em;
+    padding-left: 2.0em;
+}
+
+.jp-docs-nav strong.local-level-3 {
+    text-indent: -1.2em;
+    padding-left: 2.4em;
 }
 
 /* Documentation Content */
@@ -1769,7 +1810,12 @@ Example site customizations:
     line-height: 1.6;
 }
 
-.jp-markdown-content h1,
+.jp-markdown-content h1 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #212529;
+}
+
 .jp-markdown-content h2,
 .jp-markdown-content h3 {
     margin-top: 2rem;

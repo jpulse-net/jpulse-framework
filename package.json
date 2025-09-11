@@ -1,6 +1,6 @@
 {
     "name": "jpulse-framework",
-    "version": "0.5.3",
+    "version": "0.5.4",
     "description": "Generic web application framework using MongoDB, Node.js, Express",
     "type": "module",
     "main": "webapp/app.js",
@@ -49,7 +49,12 @@
     },
     "jest": {
         "transform": {
-            "^.+\\.js$": ["babel-jest", { "configFile": "./babel.config.cjs" }]
+            "^.+\\.js$": [
+                "babel-jest",
+                {
+                    "configFile": "./babel.config.cjs"
+                }
+            ]
         },
         "testMatch": [
             "**/tests/**/*.test.js"

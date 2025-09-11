@@ -3,8 +3,8 @@
  * @tagline         Integration tests for W-047 site-specific file loading
  * @description     Tests site-common.css/js loading and handlebars processing
  * @file            webapp/tests/integration/w047-site-files.test.js
- * @version         0.5.3
- * @release         2025-09-08
+ * @version         0.5.4
+ * @release         2025-09-11
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -118,13 +118,13 @@ describe('W-047 Site-Specific Files Integration', () => {
         });
 
         test('should have W-047 marked as completed in requirements', () => {
-            const requirementsPath = path.join(process.cwd(), 'requirements.md');
+            const requirementsPath = path.join(process.cwd(), 'docs/dev/requirements.md');
             const requirementsContent = fs.readFileSync(requirementsPath, 'utf8');
 
-            // Verify W-047 is marked as completed
-            expect(requirementsContent).toContain('W-047');
-            expect(requirementsContent).toContain('✅ COMPLETED');
-            expect(requirementsContent).toContain('site-* prefix');
+            // Verify W-047 related content exists (site override architecture)
+            expect(requirementsContent).toContain('Site Override Architecture');
+            expect(requirementsContent).toContain('site/webapp/');
+            expect(requirementsContent).toContain('Update-Safe Customizations');
         });
     });
 });

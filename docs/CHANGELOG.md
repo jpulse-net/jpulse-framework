@@ -1,6 +1,42 @@
-# jPulse Framework / Docs / Version History v0.5.3
+# jPulse Framework / Docs / Version History v0.5.4
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.5.4 (2025-09-11)
+**Commit:** `W-049, v0.5.4: Complete markdown documentation system with API standardization, i18n support, comprehensive testing, and dependency cleanup`
+
+Complete implementation of the W-049 markdown documentation system with production-ready features and comprehensive enhancements.
+
+Major Features:
+- **Markdown Documentation System (W-049)**: Full-featured documentation system
+  - Created markdown.api controller with standardized success/error responses
+  - Comprehensive i18n support for all user-facing messages
+  - Consistent LogController.logError for all error cases
+  - Standardized CommonUtils.sendError() usage across all API endpoints
+  - Automatic title formatting with appConfig.controller.markdown.titleCaseFix
+
+- **View System Improvements**: Clean hierarchical navigation
+  - Created jpulse view with clean hierarchical navigation structure
+  - Consistent jp-* and local-* CSS class prefixes
+  - Enhanced jpulse-common.css with improved presentation styling
+  - Proper nested HTML structure for documentation sidebar
+
+- **Testing & Quality**: Comprehensive test coverage and dependency optimization
+  - Complete unit test coverage for markdown controller (11/11 tests)
+  - Updated w047-site-files integration tests
+  - Removed problematic integration tests causing import.meta issues
+  - Removed obsolete supertest dependency (17 packages eliminated)
+
+- **Internationalization**: Full i18n support
+  - Added controller.markdown translations for English and German
+  - Added view.jpulse translations for English and German
+  - Consistent i18n message patterns across system
+
+- **Architecture Compliance**: Full W-014 site override support
+  - Proper file resolution priority (site files first, framework fallback)
+  - Clean separation between framework and site-specific code
+  - Namespace-agnostic template system for any documentation namespace
 
 ________________________________________________
 ## v0.5.0 (2025-09-06)

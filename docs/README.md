@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Framework Overview v0.5.3
+# jPulse Framework / Docs / Framework Overview v0.5.4
 
 Welcome to the ![Logo](./images/favicon-16x16.png) jPulse Framework - a modern, lightweight web application framework designed for midsize to large organizations in government and private sectors.
 
@@ -8,6 +8,7 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 
 ## Latest Release Highlights
 
+- ✅ **Markdown Documentation System (v0.5.4)**: Complete documentation system with API standardization, i18n support, hierarchical navigation, and comprehensive testing
 - ✅ **Enterprise UI Widgets & Dialog System (v0.5.2)**: Complete UI widget system with draggable dialogs, complex form interactions, and accordion components
 - ✅ **Site-Specific Coding & Styling Guidelines (v0.5.1)**: Complete site development framework with comprehensive documentation and template system
 - ✅ **Site Override Architecture (v0.5.0)**: Complete site customization system enabling seamless framework updates while preserving site modifications

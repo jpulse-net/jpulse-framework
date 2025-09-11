@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Production Deployment Guide v0.5.3
+# jPulse Framework / Docs / Production Deployment Guide v0.5.4
 
 This guide covers deploying jPulse Framework applications to production environments, including nginx configuration, MongoDB setup, and security considerations.
 

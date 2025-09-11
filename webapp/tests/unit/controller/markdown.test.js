@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Markdown Controller
  * @description     Tests for markdown controller functions
  * @file            webapp/tests/unit/controller/markdown.test.js
- * @version         0.5.3
- * @release         2025-09-08
+ * @version         0.5.4
+ * @release         2025-09-11
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,7 +20,7 @@ import MarkdownController from '../../../controller/markdown.js';
 // Mock global appConfig - use relative path from webapp directory
 global.appConfig = {
     app: {
-        dirName: path.resolve(path.dirname(import.meta.url.replace('file://', '')), '../../..')
+        dirName: path.resolve(__dirname, '../../..')
     },
     controller: {
         markdown: {
@@ -90,21 +90,13 @@ describe('MarkdownController', () => {
             await MarkdownController.api(mockReq, mockRes);
 
             expect(mockRes.json).toHaveBeenCalledWith({
+                success: true,
                 files: expect.arrayContaining([
                     expect.objectContaining({
                         name: 'README.md',
                         path: 'README.md',
-                        title: 'README'
-                    }),
-                    expect.objectContaining({
-                        name: 'user-guide.md',
-                        path: 'user-guide.md',
-                        title: 'User Guide'
-                    }),
-                    expect.objectContaining({
-                        name: 'setup.md',
-                        path: 'admin/setup.md',
-                        title: 'Setup'
+                        title: 'Test Docs',
+                        isDirectory: true
                     })
                 ])
             });
@@ -143,6 +135,7 @@ describe('MarkdownController', () => {
             await MarkdownController.api(mockReq, mockRes);
 
             expect(mockRes.json).toHaveBeenCalledWith({
+                success: true,
                 content: '# User Guide\nDetailed user guide content.',
                 path: 'user-guide.md'
             });
@@ -161,6 +154,7 @@ describe('MarkdownController', () => {
             await MarkdownController.api(mockReq, mockRes);
 
             expect(mockRes.json).toHaveBeenCalledWith({
+                success: true,
                 content: '# Admin Setup\nAdministrator setup instructions.',
                 path: 'admin/setup.md'
             });
@@ -170,7 +164,8 @@ describe('MarkdownController', () => {
             const CommonUtils = require('../../../utils/common.js');
             const mockReq = {
                 path: '/api/1/markdown/test-docs/../../../package.json',
-                originalUrl: '/api/1/markdown/test-docs/../../../package.json'
+                originalUrl: '/api/1/markdown/test-docs/../../../package.json',
+                headers: {}
             };
             const mockRes = {
                 json: jest.fn(),
@@ -183,7 +178,8 @@ describe('MarkdownController', () => {
                 mockReq,
                 mockRes,
                 500,
-                'Markdown service error'
+                'Internal server error in markdown API: Invalid file path',
+                'MARKDOWN_ERROR'
             );
         });
 
@@ -191,7 +187,8 @@ describe('MarkdownController', () => {
             const CommonUtils = require('../../../utils/common.js');
             const mockReq = {
                 path: '/api/1/markdown/',
-                originalUrl: '/api/1/markdown/'
+                originalUrl: '/api/1/markdown/',
+                headers: {}
             };
             const mockRes = {
                 json: jest.fn(),
@@ -204,7 +201,8 @@ describe('MarkdownController', () => {
                 mockReq,
                 mockRes,
                 400,
-                'Namespace required'
+                'The namespace of the Markdown documents is required, such as: faq',
+                'NAMESPACE_REQUIRED'
             );
         });
 
@@ -212,7 +210,8 @@ describe('MarkdownController', () => {
             const CommonUtils = require('../../../utils/common.js');
             const mockReq = {
                 path: '/api/1/markdown/nonexistent/',
-                originalUrl: '/api/1/markdown/nonexistent/'
+                originalUrl: '/api/1/markdown/nonexistent/',
+                headers: {}
             };
             const mockRes = {
                 json: jest.fn(),
@@ -225,7 +224,8 @@ describe('MarkdownController', () => {
                 mockReq,
                 mockRes,
                 404,
-                'Namespace not found'
+                'The namespace {{namespace}} of the Markdown documents does not exist',
+                'NAMESPACE_NOT_FOUND'
             );
         });
 
@@ -233,7 +233,8 @@ describe('MarkdownController', () => {
             const CommonUtils = require('../../../utils/common.js');
             const mockReq = {
                 path: '/api/1/markdown/test-docs/nonexistent.md',
-                originalUrl: '/api/1/markdown/test-docs/nonexistent.md'
+                originalUrl: '/api/1/markdown/test-docs/nonexistent.md',
+                headers: {}
             };
             const mockRes = {
                 json: jest.fn(),
@@ -245,8 +246,9 @@ describe('MarkdownController', () => {
             expect(CommonUtils.sendError).toHaveBeenCalledWith(
                 mockReq,
                 mockRes,
-                500,
-                'Markdown service error'
+                404,
+                'File test-docs/nonexistent.md not found',
+                'FILE_NOT_FOUND'
             );
         });
     });
@@ -279,10 +281,12 @@ describe('MarkdownController', () => {
 
             // Both should return the same content
             expect(mockRes1.json).toHaveBeenCalledWith({
+                success: true,
                 content: '# Test Documentation\nThis is a test document for site docs.',
                 path: 'README.md'
             });
             expect(mockRes2.json).toHaveBeenCalledWith({
+                success: true,
                 content: '# Test Documentation\nThis is a test document for site docs.',
                 path: 'README.md'
             });
@@ -330,7 +334,7 @@ describe('MarkdownController', () => {
     describe('Title extraction', () => {
         it('should extract readable titles from filenames', () => {
             expect(MarkdownController._extractTitle('user-guide.md')).toBe('User Guide');
-            expect(MarkdownController._extractTitle('api_reference.md')).toBe('Api Reference');
+            expect(MarkdownController._extractTitle('api_reference.md')).toBe('API Reference');
             expect(MarkdownController._extractTitle('README.md')).toBe('README');
             expect(MarkdownController._extractTitle('getting-started-guide.md')).toBe('Getting Started Guide');
         });

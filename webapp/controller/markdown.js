@@ -3,8 +3,8 @@
  * @tagline         Markdown controller for the jPulse Framework
  * @description     Markdown document serving with caching support, part of jPulse Framework
  * @file            webapp/controller/markdown.js
- * @version         0.5.3
- * @release         2025-09-08
+ * @version         0.5.4
+ * @release         2025-09-11
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -42,10 +42,10 @@ class MarkdownController {
         const filePath = pathParts.slice(1).join('/');
 
         try {
-            if (!namespace) {
+            if (!namespace || namespace.trim() === '') {
                 global.LogController.logError(req, 'markdown.api: error: Namespace required');
                 const message = global.i18n.translate(req, 'controller.markdown.namespaceRequired');
-                return global.CommonUtils.sendError(req, res, 400, message, 'NAMESPACE_REQUIRED');
+                return CommonUtils.sendError(req, res, 400, message, 'NAMESPACE_REQUIRED');
             }
 
             // Determine base directory

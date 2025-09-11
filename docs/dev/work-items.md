@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.5.3
+# jPulse Framework / Docs / Dev / Work Items v0.5.4
 
 This is the doc to track work items, arranged in three sections:
 
@@ -616,22 +616,8 @@ This is the doc to track work items, arranged in three sections:
   - docs/dev/working/W-046-dev-doc-structure.md
   - docs/dev/working/W-049-docs-marktown-strategy.md
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### **W-049**: docs: views render markdown docs for jPulse docs and site docs
-- status: 🚧 IN_PROGRESS
+- status: ✅ COMPLETED
 - type: Feature
 - objective: standardize on .md format for website docs (jPulse internal docs and site specific docs)
 - working doc: docs/dev/W-049-docs-marktown-strategy.md
@@ -671,6 +657,22 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
+
+
+
+
 ### Potential next items:
 **W-015**: deployment: strategy for clean onboarding
 **W-045**: architecture: create plugin infrastructure
@@ -692,30 +694,8 @@ Almost ready for W-042 release (this chat refers to W-021, my mistake)
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-04 02:12
 - update *.md docs in project root
-- update commit-message.txt, following the same format, specify: W-046, v0.5.3 (don't commit)
+- update commit-message.txt, following the same format, specify: W-046, v0.5.4 (don't commit)
 
-
-
-I did a number of improvements:
-
-- markdown.api controller:
-  - always return success: true or false
-    - APIs should ALWAYS return success: true/false (make a memory of that!)
-  - fix the title names in controller instead of the view
-    - now with new appConfig.controller.markdown.titleCaseFix setting
-      - using regex to replace only on word boundaries
-    - replaces the this.titleSubstitutions setting in view
-  - i18nized all user facing messages
-  - add a LogController.logError for all errors (make a memory of that!)
-  - consistenly use CommonUtils.sendError() instead on all API errors (make a memory of that!)
-  - return a special 404 in case of file not found, for better user awareness
-
-- jpulse view:
-
-- i18n:
-  - added controller.markdown translations for en and de
-  - added view.jpulse translations for en and de
-  
 
 
 
@@ -743,13 +723,6 @@ I did a number of improvements:
 - for example, http://localhost:8080/jpulse/front-end-development#css-integration would be an anchor to the heading named "CSS Integration"
 - this looks like more work, possibly another work item
 
-
-6. it would be useful to have anchor links.
-- for example, each heading would have an paragraph symbol appear on the left of heading on hover
-- when clicking on the symbol, copy the anchor link to the clipboard
-- send the deep link with anchor by email
-- for example, http://localhost:8080/jpulse/front-end-development#css-integration would be an anchor to the heading named "CSS Integration"
-- this looks like more work, possibly another work item
 
 
 

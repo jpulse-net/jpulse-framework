@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Template Reference v0.5.3
+# jPulse Framework / Docs / Template Reference v0.5.4
 
 Complete reference for server-side template development with the jPulse Handlebars system, covering template variables, file operations, security features, and best practices for building dynamic web pages.
 
@@ -76,7 +76,7 @@ Templates have access to a rich context object with application data, user infor
 <span class="version">Version {{app.version}} ({{app.release}})</span>
 
 <!-- Example output -->
-<title>jPulse Framework v0.5.2</title>
+<title>jPulse Framework v0.5.4</title>
 <span class="version">Version 0.5.2 (2025-09-07)</span>
 ```
 

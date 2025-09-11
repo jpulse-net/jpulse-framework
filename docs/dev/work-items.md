@@ -668,6 +668,31 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### **W-051**: infrastructure: framework package distribution
+- status: 🚧 IN_PROGRESS
+- type: Infrastructure
+- objective: enable framework distribution via private npm package, so that a site owner can maintain their own site-specific reporsitory
+- base for:
+  - W-015: deployment: strategy for clean onboarding
+  - W-050: deployment: strategy for separate repositories, one for jpulse, and one for site
+- scope:
+  - Restructure framework for npm publishing
+  - Set up GitHub Packages for @jpulse/framework
+  - Update PathResolver for node_modules resolution
+  - Create framework package.json and publishing workflow
+  - Test private package installation and usage
+- deliverables:
+  - @jpulse/framework package on GitHub Packages
+  - Updated PathResolver for npm resolution
+  - Package publishing workflow
+  - Documentation for site teams
+
+
+
+
+
+
+
 
 
 
@@ -675,6 +700,7 @@ This is the doc to track work items, arranged in three sections:
 
 ### Potential next items:
 **W-015**: deployment: strategy for clean onboarding
+**W-050**: deployment: strategy for separate repositories, one for jpulse, and one for site
 **W-045**: architecture: create plugin infrastructure
 **W-040**: view: create view logs page for site admins
 **W-0**: view controller: create {{#each}} handlebar
@@ -703,26 +729,21 @@ Almost ready for W-042 release (this chat refers to W-021, my mistake)
 
 - use global.CommonUtils.sendError in config, log, user, view controllers with i18n
 
-2. it would be useful to have an exclude directory directive
-- for example, dev/working could be excluded.
-- directive could be added to the docs? in what form?
-- Several options for excluding directories:
-  - Option A: .jpulse-ignore file in docs root (like .gitignore)
-  - Option B: _config.json in docs root with exclude patterns
-  - Option C: Special comment in markdown files: <!-- jpulse:exclude -->
-  - Option D: Directory naming convention: prefix with _ (e.g., _working/)
+- markdown controller: it would be useful to have an exclude directory directive
+  - for example, dev/working could be excluded.
+  - directive could be added to the docs? in what form?
+  - Several options for excluding directories:
+    - Option A: .jpulse-ignore file in docs root (like .gitignore)
+    - Option B: _config.json in docs root with exclude patterns
+    - Option C: Special comment in markdown files: <!-- jpulse:exclude -->
+    - Option D: Directory naming convention: prefix with _ (e.g., _working/)
 
-4. sidebar hidden in mobile
-- only main content shown
-- this is a nice to have fix (but see #5 below)
-
-6. it would be useful to have anchor links.
-- for example, each heading would have an paragraph symbol appear on the left of heading on hover
-- when clicking on the symbol, copy the anchor link to the clipboard
-- send the deep link with anchor by email
-- for example, http://localhost:8080/jpulse/front-end-development#css-integration would be an anchor to the heading named "CSS Integration"
-- this looks like more work, possibly another work item
-
+- markdown view: it would be useful to have anchor links.
+  - for example, each heading would have an paragraph symbol appear on the left of heading on hover
+  - when clicking on the symbol, copy the anchor link to the clipboard
+  - send the deep link with anchor by email
+  - for example, http://localhost:8080/jpulse/front-end-development#css-integration would be an anchor to the heading named "CSS Integration"
+  - this looks like more work, possibly another work item
 
 
 
@@ -749,6 +770,30 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
 
+### **W-050**: deployment: strategy for separate repositories for jpulse and site
+- status: 🕑 PENDING
+- type: Feature
+- objective: clean separation of code and data, so that a site owner can maintain their own reporsitory for site/*
+- question: what to do with the sample site files?
+  site/webapp/controller/hello.js
+  site/webapp/view/hello/site-demo.shtml
+  site/webapp/view/hello/index.shtml
+  site/webapp/app.conf.tmpl
+  site/README.md
+
+### **W-015**: deployment: strategy for clean onboarding
+- status: 🕑 PENDING
+- type: Feature
+- objective: clean out of box experience when deploying a jPulse based webserver for the first time
+- sensible defaults
+- easy onboarding for:
+  - dev and prod deployments
+  - nginx setup
+  - single app server, or multiple app servers with load balancer setup
+  - pm2 setup with single jPulse instance (fork), or multiple instances (cluster)
+  - mongddb deployment with standalone, or replicaset config
+  - mongodb setup with sysdba admin, dev data user, prod data user
+
 ### **W-045**: architecture: create plugin infrastructure
 - status: 🕑 PENDING
 - type: Feature
@@ -764,19 +809,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - wrapper for additional view packages
   - themes
 - create a hello-world-plugin, ship with jpulse-framework
-
-### **W-015**: deployment: strategy for clean onboarding
-- status: 🕑 PENDING
-- type: Feature
-- objective: clean out of box experience when deploying a jPulse based webserver for the first time
-- sensible defaults
-- easy onboarding for:
-  - dev and prod deployments
-  - nginx setup
-  - single app server, or multiple app servers with load balancer setup
-  - pm2 setup with single jPulse instance (fork), or multiple instances (cluster)
-  - mongddb deployment with standalone, or replicaset config
-  - mongodb setup with sysdba admin, dev data user, prod data user
 
 ### **W-037**: view: create themes
 - status: 🕑 PENDING
@@ -800,6 +832,36 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - use key path in case the array elements are objects, such as:
     - {{#each users}} {{this.profile.firstName}} {{this.profile.lastName}} {{/each}}
     - stringify object if last item in key path is object
+
+### **W-0**: view: create site navigation pulldown and hamburger
+- status: 🕑 PENDING
+- type: Feature
+- objective: configurable site navigaton for quick access that works on desktop and mobile
+- define site menu in appConfig.view.siteMenu
+  - or define in i18n?
+  - nesting possible
+  - i18n (how?)
+- on desktop:
+  - on hover over site logo and site name,
+  - show pulldown with nested pages
+- on mobile:
+  - show hamburger menu (where? to the left of app icon?)
+
+### **W-0**: view: create responsive sidebar
+- status: 🕑 PENDING
+- type: Feature
+- objective: define common sidebar, make it useful on mobile and desktop
+- only left sidebar?
+  - also right sidebar?
+- on desktop:
+  - show options:
+    - fixed (default)
+    - toggle: ▶ / ◀ clickable buttons
+    - auto-hide: show when mouse is on left page padding (open close with delay)
+- on mobile:
+  - closed by default
+  - open on command (hamburger menu?)
+- fix /jpulse/ markdown page to be based on common sidebar
 
 ### **W-0**: log controller: convert log to TSV
 - status: 🕑 PENDING
@@ -890,6 +952,13 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - type: Feature
 - possiby as plugin once W-045 is implemented
 - strategy to splice LDAP attributes into user doc
+
+### **W-0**: auth controller: MFA (multi-factor authentication)
+- status: 🕑 PENDING
+- type: Feature
+- objective: offer increased security
+- possiby as plugin once W-045 is implemented
+- choice of SMS, authentication app
 
 ### **W-0**: controller & view: websocket strategy
 - status: 🕑 PENDING

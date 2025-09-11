@@ -6917,3 +6917,105 @@ FINAL STATUS:
 - Version consistency: ✅ ALL DOCUMENTATION UPDATED to v0.5.4
 - Release documentation: ✅ COMPREHENSIVE changelog entry
 - System ready: ✅ FOR COMMIT with updated version references
+
+
+============================================================
+
+2025-09-11 13:21 - W-050 Repository Separation Strategy Analysis
+
+PROMPT: Brainstorming on W-015 (deployment clean onboarding) and W-050 (separate repositories for jpulse framework and site). Focus on W-050 strategy and relationship between the two work items.
+
+ANALYSIS SUMMARY:
+Provided comprehensive 10-paragraph chain of thought analysis covering:
+- Current W-014 site override system architecture
+- Repository separation challenges and opportunities
+- Sample files strategy (starter templates, CLI tooling)
+- Technical implementation using existing PathResolver
+- Strategic 3-phase approach: Package → Tooling → Full Separation
+- Relationship to W-015 clean onboarding requirements
+
+KEY RECOMMENDATIONS:
+1. Phase 1: Publish framework as npm package while maintaining current site override system
+2. Sample Files: Create jpulse-site-starter repository + CLI integration
+3. Prioritization: Address W-015 clean onboarding first, then W-050 as advanced option
+4. Architecture: Leverage existing PathResolver system for seamless transition
+5. Developer Experience: Maintain "don't make me think" principle throughout separation
+
+STRATEGIC INSIGHT:
+Current architecture already provides logical separation W-050 aims for. Challenge is maintaining simplicity while adding repository flexibility. Recommend evolutionary approach rather than revolutionary change.
+
+USER FEEDBACK:
+- Prefers NOT to create publicly available npm package at this time
+- Requests alternative approaches for repository separation
+
+REVISED STRATEGY:
+Alternative to public npm package for W-050 implementation:
+1. Private npm registry (npm Enterprise, Verdaccio, or GitHub Packages)
+2. Git submodules approach (framework as submodule in site repos)
+3. Monorepo with workspace separation (Lerna, Nx, or npm workspaces)
+4. Custom framework distribution system (zip/tar releases)
+5. Docker-based deployment with framework as base image
+
+STATUS: ✅ COMPREHENSIVE ANALYSIS PROVIDED + PRIVATE ALTERNATIVES IDENTIFIED
+NEXT: Await user direction on preferred private distribution approach
+
+
+============================================================
+
+2025-09-11 14:35 - W-050 Repository Separation Strategy Analysis & W-051 Creation
+
+PROMPT: Brainstorming on W-015 (deployment clean onboarding) and W-050 (separate repositories for jpulse framework and site). Focus on W-050 strategy and relationship between the two work items.
+
+ANALYSIS SUMMARY:
+Provided comprehensive 10-paragraph chain of thought analysis covering:
+- Current W-014 site override system architecture
+- Repository separation challenges and opportunities
+- Sample files strategy (starter templates, CLI tooling)
+- Technical implementation using existing PathResolver
+- Strategic 3-phase approach: Package → Tooling → Full Separation
+- Relationship to W-015 clean onboarding requirements
+
+KEY RECOMMENDATIONS:
+1. Phase 1: Publish framework as npm package while maintaining current site override system
+2. Sample Files: Create jpulse-site-starter repository + CLI integration
+3. Prioritization: Address W-015 clean onboarding first, then W-050 as advanced option
+4. Architecture: Leverage existing PathResolver system for seamless transition
+5. Developer Experience: Maintain "don't make me think" principle throughout separation
+
+STRATEGIC INSIGHT:
+Current architecture already provides logical separation W-050 aims for. Challenge is maintaining simplicity while adding repository flexibility. Recommend evolutionary approach rather than revolutionary change.
+
+USER FEEDBACK:
+- Prefers NOT to create publicly available npm package at this time
+- Requests alternative approaches for repository separation
+- Separate teams: jpulse developers vs site developers
+- Early stage: breaking changes encouraged for KISS & "don't make me think"
+
+REVISED STRATEGY:
+Alternative to public npm package for W-050 implementation:
+1. Private npm registry (GitHub Packages) - RECOMMENDED
+2. Git submodules approach
+3. Monorepo with workspace separation
+4. Custom framework distribution system
+5. Docker-based deployment (on roadmap, too early)
+
+WORK ITEM CREATION:
+Created W-051: Framework Package Distribution (Infrastructure)
+- Status: 🚧 IN_PROGRESS
+- Prerequisite for both W-015 and W-050
+- Scope: Private npm package setup, PathResolver updates, GitHub Packages
+- Enables clean team separation with standard npm tooling
+
+DOCUMENTATION UPDATES:
+✅ Created W-051-W-015-W050-onboarding-with-repositories.md
+✅ Comprehensive strategy document with dependencies and timeline
+✅ Technical implementation details for PathResolver updates
+✅ Success metrics and risk mitigation strategies
+
+SITE/README.md STRATEGY:
+1. Framework docs: Move to docs/site-development.md
+2. Site template: Quick-start in jpulse-site-starter/README.md
+3. Generated sites: Minimal site-specific README
+
+STATUS: ✅ COMPREHENSIVE STRATEGY DOCUMENTED
+NEXT: Begin W-051 implementation - framework restructuring for private npm package

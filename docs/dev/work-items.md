@@ -696,9 +696,32 @@ Almost ready for W-042 release (this chat refers to W-021, my mistake)
 
 
 
+I did a number of improvements:
+
+- markdown.api controller:
+  - always return success: true or false
+    - APIs should ALWAYS return success: true/false (make a memory of that!)
+  - fix the title names in controller instead of the view
+    - now with new appConfig.controller.markdown.titleCaseFix setting
+      - using regex to replace only on word boundaries
+    - replaces the this.titleSubstitutions setting in view
+  - i18nized all user facing messages
+  - add a LogController.logError for all errors (make a memory of that!)
+  - consistenly use CommonUtils.sendError() instead on all API errors (make a memory of that!)
+  - return a special 404 in case of file not found, for better user awareness
+
+- jpulse view:
+
+- i18n:
+  - added controller.markdown translations for en and de
+  - added view.jpulse translations for en and de
+  
 
 
 
+
+
+- use global.CommonUtils.sendError in config, log, user, view controllers with i18n
 
 2. it would be useful to have an exclude directory directive
 - for example, dev/working could be excluded.

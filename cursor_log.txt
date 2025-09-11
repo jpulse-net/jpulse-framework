@@ -6682,3 +6682,43 @@ Reverted webapp/controller/markdown.js _scanMarkdownFiles method to restore:
 - Directory READMEs merged up as clickable directory entries
 
 This restores the data structure that the user confirmed was 'almost correct' logically.
+
+
+==============================================================
+
+Fixed two controller issues as requested:
+
+1. _getNamespaceDirectory() now follows proper site override pattern:
+   - First checks site/webapp/static/assets/{namespace}/
+   - Falls back to webapp/static/assets/{namespace}/
+   - No special cases or hardcoded paths
+
+2. Replaced hardcoded 'jPulse' title with dynamic titleized namespace:
+   - Uses MarkdownController._extractTitle(namespace)
+   - namespace 'jpulse' becomes 'Jpulse'
+   - namespace 'help' becomes 'Help'
+   - Works for any namespace
+
+Changes applied without breaking the working hierarchical data structure.
+
+
+==============================================================
+
+Completely rewrote sidebar rendering to use proper nested HTML structure:
+
+JavaScript Changes (webapp/view/jpulse/index.shtml):
+- renderNavigation() now wraps content in <ul class='jp-docs-nav'>
+- renderFileList() simplified - no more level/prefix parameters
+- renderFileItem() creates proper nested <li> and <ul> structure
+- Removed all fake indentation with &nbsp; and tree characters
+- Each directory with files creates a nested <ul> inside its <li>
+- One-to-one mapping between tree data structure and HTML structure
+
+CSS Changes (webapp/view/jpulse-common.css):
+- Removed all level-specific indentation classes (local-level-0, etc.)
+- Removed fake text-indent and padding-left calculations
+- Added proper nested list styling with ul ul selector
+- Nested lists get 1.5rem left padding for natural indentation
+- Clean, semantic HTML structure that matches the data hierarchy
+
+The sidebar now uses proper semantic HTML with nested lists instead of faking hierarchy with spacing characters.

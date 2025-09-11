@@ -1706,6 +1706,10 @@ Example site customizations:
 }
 
 /* Documentation Navigation */
+.jp-docs-nav-wrapper {
+    margin: 0 0 0 -1rem;
+}
+
 .jp-docs-nav {
     background: #f8f9fa;
     padding: 1rem;
@@ -1713,17 +1717,11 @@ Example site customizations:
     height: fit-content;
 }
 
-.jp-docs-nav ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
 .jp-docs-nav li {
     margin: 0.1rem 0;
 }
 
-.jp-docs-nav a {
+.jp-docs-nav li > a {
     text-decoration: none;
     color: #495057;
     padding: 0.12rem 0.5rem;
@@ -1731,70 +1729,42 @@ Example site customizations:
     border-radius: 4px;
     font-size: 0.9em;
     line-height: 1.4;
-    /* Default hanging indent - overridden by level classes */
-    text-indent: -1.2em;
-    padding-left: 1.2em;
     word-wrap: break-word;
     hyphens: auto;
 }
 
-.jp-docs-nav a:hover,
-.jp-docs-nav a.active {
-    background: #007bff;
+.jp-docs-nav a.jp-docs-nav-active {
+    background: #007acc;
     color: white;
 }
 
-/* Ensure proper spacing for tree characters */
-.jp-docs-nav strong {
+.jp-docs-nav strong.jp-docs-nav-directory,
+.jp-docs-nav a.jp-docs-nav-directory {
+        border-bottom: solid 1px gray;
+}
+
+.jp-docs-nav a:hover {
+    background: #1d92e0;
+    color: white;
+}
+
+/* Nested list structure for proper hierarchy */
+.jp-docs-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.jp-docs-nav ul ul {
+    padding-left: 1rem; /* Indent nested lists */
+    margin-top: 0.2rem;
+}
+
+.jp-docs-nav li > strong {
     font-size: 0.9em;
     color: #343a40;
     padding: 0.12rem 0.5rem;
     display: block;
-    /* Default hanging indent - overridden by level classes */
-    text-indent: -1.2em;
-    padding-left: 1.2em;
-}
-
-/* Level-specific indentation for hanging text */
-.jp-docs-nav .local-level-0 {
-    text-indent: -1.2em;
-    padding-left: 1.2em;
-}
-
-.jp-docs-nav .local-level-1 {
-    text-indent: -1.2em;
-    padding-left: 1.6em; /* Small indent for first level */
-}
-
-.jp-docs-nav .local-level-2 {
-    text-indent: -1.2em;
-    padding-left: 2.0em; /* Small increment for second level */
-}
-
-.jp-docs-nav .local-level-3 {
-    text-indent: -1.2em;
-    padding-left: 2.4em; /* Small increment for third level */
-}
-
-/* Apply same level-specific indentation to strong elements */
-.jp-docs-nav strong.local-level-0 {
-    text-indent: -1.2em;
-    padding-left: 1.2em;
-}
-
-.jp-docs-nav strong.local-level-1 {
-    text-indent: -1.2em;
-    padding-left: 1.6em;
-}
-
-.jp-docs-nav strong.local-level-2 {
-    text-indent: -1.2em;
-    padding-left: 2.0em;
-}
-
-.jp-docs-nav strong.local-level-3 {
-    text-indent: -1.2em;
-    padding-left: 2.4em;
 }
 
 /* Documentation Content */

@@ -9,7 +9,7 @@
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         GPL v3, see LICENSE file
- * @genai           90%, Cursor 1.2, Claude Sonnet 4
+ * @genai           80%, Cursor 1.2, Claude Sonnet 4
  */
 
 import fs from 'fs/promises';
@@ -24,6 +24,10 @@ const cache = {
     directoryListing: {}
 };
 
+// _extractTitle() substitution
+const titleCaseFix = global.appConfig.controller?.markdown?.titleCaseFix || { 'Jpulse': 'jPulse' };
+const titleCaseFixRegex = new RegExp(`\\b(${Object.keys(titleCaseFix).join('|')})\\b`, 'g');
+
 class MarkdownController {
 
     /**
@@ -32,35 +36,44 @@ class MarkdownController {
      */
     static async api(req, res) {
         const startTime = Date.now();
+        // Parse path: /api/1/markdown/jpulse/dev/README.md
+        const pathParts = req.path.replace('/api/1/markdown/', '').split('/');
+        const namespace = pathParts[0];
+        const filePath = pathParts.slice(1).join('/');
 
         try {
-            // Parse path: /api/1/markdown/jpulse/dev/README.md
-            const pathParts = req.path.replace('/api/1/markdown/', '').split('/');
-            const namespace = pathParts[0];
-            const filePath = pathParts.slice(1).join('/');
-
             if (!namespace) {
-                return CommonUtils.sendError(req, res, 400, 'Namespace required');
+                global.LogController.logError(req, 'markdown.api: error: Namespace required');
+                const message = global.i18n.translate(req, 'controller.markdown.namespaceRequired');
+                return global.CommonUtils.sendError(req, res, 400, message, 'NAMESPACE_REQUIRED');
             }
 
             // Determine base directory
             const baseDir = await MarkdownController._getNamespaceDirectory(namespace);
             if (!baseDir) {
-                return CommonUtils.sendError(req, res, 404, 'Namespace not found');
+                global.LogController.logError(req, `markdown.api: error: Namespace ${baseDir} not found`);
+                const message = global.i18n.translate(req, 'controller.markdown.namespaceNotFound', { namespace: baseDir });
+                return CommonUtils.sendError(req, res, 404, message, 'NAMESPACE_NOT_FOUND');
             }
 
             // List directory or serve file
             if (!filePath || filePath === '') {
                 const listing = await MarkdownController._getDirectoryListing(namespace, baseDir);
-                return res.json({ files: listing });
+                return res.json({ success: true, files: listing });
             } else {
                 const content = await MarkdownController._getMarkdownFile(namespace, filePath, baseDir);
-                return res.json({ content, path: filePath });
+                return res.json({ success: true, content, path: filePath });
             }
 
         } catch (error) {
-            LogController.logError(req, `markdown.api: ${error.message}`);
-            return CommonUtils.sendError(req, res, 500, 'Markdown service error');
+            if(error.code === 'ENOENT') {
+                global.LogController.logError(req, `markdown.api: error: ${error.message}`);
+                const message = global.i18n.translate(req, 'controller.markdown.fileNotFound', { file: `${namespace}/${filePath}` });
+                return CommonUtils.sendError(req, res, 404, message, 'FILE_NOT_FOUND');
+            }
+            global.LogController.logError(req, `markdown.api: error: ${error.message}`);
+            const message = global.i18n.translate(req, 'controller.markdown.internalError', { details: error.message });
+            return CommonUtils.sendError(req, res, 500, message, 'MARKDOWN_ERROR');
         } finally {
             const duration = Date.now() - startTime;
             LogController.logInfo(req, `markdown.api: Completed in ${duration}ms`);
@@ -102,7 +115,7 @@ class MarkdownController {
             return cache.directoryListing[cacheKey];
         }
 
-        const files = await MarkdownController._scanMarkdownFiles(baseDir);
+        const files = await MarkdownController._scanMarkdownFiles(baseDir, '', namespace);
 
         // Cache if enabled
         if (global.appConfig.controller?.markdown?.cache) {
@@ -148,7 +161,7 @@ class MarkdownController {
     /**
      * Recursively scan directory for .md files
      */
-    static async _scanMarkdownFiles(dir, relativePath = '') {
+    static async _scanMarkdownFiles(dir, relativePath = '', namespace = '') {
         const entries = await fs.readdir(dir, { withFileTypes: true });
         let allFiles = [];
 
@@ -180,7 +193,7 @@ class MarkdownController {
                 for (const dirName of dirEntries) {
                     const fullPath = path.join(dir, dirName);
                     const relPath = dirName;
-                    const dirContents = await MarkdownController._scanMarkdownFiles(fullPath, relPath);
+                    const dirContents = await MarkdownController._scanMarkdownFiles(fullPath, relPath, namespace);
 
                     // Skip empty directories (no .md files)
                     if (dirContents.length === 0) {
@@ -219,7 +232,7 @@ class MarkdownController {
                 return [{
                     path: 'README.md',
                     name: 'README.md',
-                    title: 'jPulse',
+                    title: MarkdownController._extractTitle(namespace),
                     isDirectory: true,
                     files: otherFiles
                 }];
@@ -249,7 +262,7 @@ class MarkdownController {
         for (const dirName of dirEntries) {
             const fullPath = path.join(dir, dirName);
             const relPath = path.join(relativePath, dirName);
-            const dirContents = await MarkdownController._scanMarkdownFiles(fullPath, relPath);
+            const dirContents = await MarkdownController._scanMarkdownFiles(fullPath, relPath, namespace);
 
             // Skip empty directories (no .md files)
             if (dirContents.length === 0) {
@@ -301,7 +314,9 @@ class MarkdownController {
         return filename
             .replace(/\.md$/, '')
             .replace(/[-_]/g, ' ')
-            .replace(/\b\w/g, l => l.toUpperCase());
+            .replace(/  +/g, ' ')
+            .replace(/\b\w/g, l => l.toUpperCase())
+            .replace(titleCaseFixRegex, (match) => titleCaseFix[match]).trim();
     }
 }
 

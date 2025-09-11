@@ -240,7 +240,7 @@ jPulse includes a powerful markdown-based documentation system that allows sites
 
 ### Quick Start: Adding Site Documentation
 
-The namespace of the documentation can be anything, such as `docs`, `manual`, `faq`. The following uses the `docs` namespace.
+The namespace of the documentation can be anything, such as `docs`, `faq`, `manual`. The namespace can also be language specific, such as `manual-de`, `manual-fr`. The following uses the `docs` namespace.
 
 #### 1. Create Documentation Directory
 
@@ -302,7 +302,7 @@ Copy and customize the jPulse documentation template:
 mkdir -p site/webapp/view/docs
 
 # Copy the jPulse template as a starting point
-cp webapp/view/jpulse/index.shtml site/webapp/view/docs/index.shtml
+cp -p webapp/view/jpulse/index.shtml site/webapp/view/docs/index.shtml
 ```
 
 #### 4. Customize the Template
@@ -312,29 +312,6 @@ Edit `site/webapp/view/docs/index.shtml` to match your site's branding:
 ```html
 <!-- Update the title and branding -->
 <title>{{#if docTitle}}{{docTitle}} - {{/if}}{{app.siteName}} Documentation</title>
-
-<!-- Update the navigation header -->
-<nav class="jp-docs-nav">
-    <h3>{{app.siteName}} Docs</h3>
-    <ul id="docs-navigation">
-        <!-- Populated by JavaScript -->
-    </ul>
-</nav>
-
-<!-- Update the JavaScript namespace -->
-<script>
-    class SiteDocsViewer {
-        constructor() {
-            this.namespace = 'docs'; // Change from 'jpulse' to 'docs'
-            this.currentPath = this.getPathFromUrl();
-            this.init();
-        }
-
-        // ... rest of the implementation stays the same
-        // but update API calls to use this.namespace
-    }
-</script>
-```
 
 #### 5. Access Your Documentation
 
@@ -362,7 +339,10 @@ mkdir -p site/webapp/view/faq
 
 Each namespace needs:
 1. **Asset directory**: `site/webapp/static/assets/{namespace}/`
+  - The namespace may have a hierarchy of directories
+  - Each directory needs a README.md
 2. **View template**: `site/webapp/view/{namespace}/index.shtml`
+  - Only one view tempalte per namespace is needed, regardless of directory hierarchy
 3. **README.md**: Default document for the namespace
 
 ### API Usage
@@ -372,11 +352,11 @@ The markdown system provides REST API endpoints:
 ```javascript
 // List all documents in a namespace
 GET /api/1/markdown/docs/
-// Returns: { files: [{ path: "README.md", name: "README.md", title: "README" }, ...] }
+// Returns: { success: true, files: [{ path: "README.md", name: "README.md", title: "README" }, ...] }
 
 // Get specific document content
 GET /api/1/markdown/docs/user-guide.md
-// Returns: { content: "# User Guide\n...", path: "user-guide.md" }
+// Returns: { success: true, content: "# User Guide\n...", path: "user-guide.md" }
 
 // Access subdirectories
 GET /api/1/markdown/docs/admin/setup.md
@@ -417,14 +397,7 @@ Add site-specific styling to your documentation viewer:
         grid-template-columns: 300px 1fr;
     }
 
-    .site-docs-header {
-        background: var(--site-primary-color);
-        color: white;
-        padding: 1rem;
-        margin-bottom: 2rem;
-    }
-
-    .site-docs-nav a.active {
+    .local-docs-nav a.active {
         background: var(--site-accent-color);
     }
 </style>
@@ -470,6 +443,12 @@ Consider creating separate namespaces for different user types:
 - **`/manual/`**: Detailed operational procedures
 - **`/faq/`**: Frequently asked questions
 - **`/api/`**: Developer API documentation
+
+Translations: Use one namespace per language
+
+- **`/api-de/`**: Developer API documentation in German
+- **`/api-fr/`**: Developer API documentation in French
+
 
 ### Troubleshooting
 

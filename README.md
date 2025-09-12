@@ -87,13 +87,16 @@ npm update @jpulse/framework && npx jpulse-sync
 
 ## Documentation
 
+### For Site Administrators & Site Developers
 - **[Getting Started](docs/getting-started.md)** - Build your first jPulse site
 - **[Installation Guide](docs/installation.md)** - Setup for all environments
-- **[Site Customization](docs/site-customization.md)** - Master the W-014 override system
+- **[Site Customization](docs/site-customization.md)** - Master the override system
 - **[API Reference](docs/api-reference.md)** - Complete framework API
 - **[Examples](docs/examples.md)** - Real-world enterprise scenarios
 - **[Deployment Guide](docs/deployment.md)** - Production deployment
-- **[Developer Documentation](docs/dev/README.md)** - Architecture and development
+
+### For jPulse Framework Developers
+- **[Framework Development](docs/dev/README.md)** - Architecture and contribution guide
 
 ## Target Organizations
 
@@ -105,11 +108,11 @@ npm update @jpulse/framework && npx jpulse-sync
 
 ## Latest Release Highlights
 
+- ✅ **Package Distribution (v0.5.5)** - npm-based site creation with `npx jpulse-setup`
 - ✅ **Enterprise UI Widgets (v0.5.2)** - Complete dialog system with draggable windows
 - ✅ **Site Development Guidelines (v0.5.1)** - Comprehensive development framework
 - ✅ **Site Override Architecture (v0.5.0)** - Seamless framework updates
 - ✅ **Admin Configuration System (v0.4.10)** - Intuitive settings management
-- ✅ **CSS Prefix Convention (v0.4.9)** - Clean style organization
 
 ## Community & Support
 

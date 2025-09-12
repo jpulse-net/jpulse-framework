@@ -301,6 +301,130 @@ class HelloModel {
 export { HelloModel };
 ```
 
+## Step 4: Set Up Your Site Repository
+
+### Initialize Git Repository
+```bash
+# Initialize git repository for your site
+git init
+git add .
+git commit -m "Initial site setup with jPulse Framework v0.5.5"
+```
+
+### Add Remote Repository (Optional)
+```bash
+# If you have a remote repository
+git remote add origin https://github.com/your-org/your-site.git
+git branch -M main
+git push -u origin main
+```
+
+## Step 5: Add Custom Content
+
+### Create a Custom Controller
+```bash
+# Create a custom API controller
+cat > site/webapp/controller/welcome.js << 'EOF'
+/**
+ * Welcome Controller - Custom Site Example
+ */
+class WelcomeController {
+
+    /**
+     * API endpoint - accessible via /api/1/welcome
+     */
+    static async api(req, res) {
+        try {
+            LogController.logInfo(req, 'welcome.api: Custom API accessed');
+
+            res.json({
+                message: 'Welcome to your custom jPulse site!',
+                site: appConfig.app.name,
+                timestamp: new Date().toISOString(),
+                customData: {
+                    feature: 'Custom API endpoint',
+                    location: 'site/webapp/controller/welcome.js'
+                }
+            });
+
+        } catch (error) {
+            LogController.logError(req, `welcome.api: error: ${error.message}`);
+            CommonUtils.sendError(res, 500, 'API error');
+        }
+    }
+}
+
+export default WelcomeController;
+EOF
+```
+
+### Create a Custom View
+```bash
+# Create a custom page
+mkdir -p site/webapp/view/welcome
+cat > site/webapp/view/welcome/index.shtml << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{app.name}} - Welcome</title>
+    {{file.include "jpulse-header.tmpl"}}
+</head>
+<body>
+    <div class="jp-main">
+        <h1 class="jp-title">Welcome to {{app.name}}!</h1>
+
+        <div class="jp-card">
+            <h2>Your Custom Site</h2>
+            <p>This is your custom jPulse site with override capabilities.</p>
+
+            <button class="jp-btn jp-btn-primary" onclick="testCustomAPI()">
+                Test Custom API
+            </button>
+
+            <div id="api-result" class="jp-info-box" style="display: none; margin-top: 1rem;">
+                <h3>API Response:</h3>
+                <pre id="api-content"></pre>
+            </div>
+        </div>
+
+        <div class="jp-card">
+            <h3>Next Steps</h3>
+            <ul>
+                <li>Customize your site configuration in <code>site/webapp/app.conf</code></li>
+                <li>Add more controllers in <code>site/webapp/controller/</code></li>
+                <li>Create custom views in <code>site/webapp/view/</code></li>
+                <li>Add site-specific assets in <code>site/webapp/static/</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+    function testCustomAPI() {
+        jPulse.apiCall('/api/1/welcome', {}, function(data) {
+            document.getElementById('api-content').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('api-result').style.display = 'block';
+        }, function(error) {
+            document.getElementById('api-content').textContent = 'Error: ' + error.message;
+            document.getElementById('api-result').style.display = 'block';
+        });
+    }
+    </script>
+</body>
+</html>
+EOF
+```
+
+### Test Your Custom Content
+```bash
+# Restart the server to load your custom controller
+npm start
+
+# Visit your custom page: http://localhost:8080/welcome/
+# Test your custom API: Click "Test Custom API" button
+```
+
 ## Framework Updates
 
 Keep your framework up to date with the latest features and fixes:

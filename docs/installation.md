@@ -1,19 +1,20 @@
-# jPulse Framework / Docs / Installation Guide v0.5.5
+# jPulse Framework / Docs / Site Installation Guide v0.5.5
 
-This guide covers installing and setting up the jPulse Framework for development and production environments.
+This guide covers creating and setting up jPulse sites for development and production environments.
+
+> **Framework Development**: See [Framework Development Installation](dev/installation.md) for contributing to jPulse itself.
 
 ## Prerequisites
 
 ### Required
 - **Node.js 18+** - JavaScript runtime
-- **npm or yarn** - Package manager
-- **Git** - Version control (for cloning repository)
+- **npm** - Package manager
 - **MongoDB 4.4+** - Database (required for user management, configuration, and logging)
 
 ### Optional
 - **nginx** - Web server (for production deployment)
 
-## Site Development Installation (Recommended)
+## Site Installation
 
 ### 1. Create New Site
 ```bash
@@ -38,35 +39,14 @@ npm start
 
 The application will be available at `http://localhost:8080`
 
-## Framework Development Installation
-
-### 1. Clone Repository
+### 4. Update Framework (When Needed)
 ```bash
-# Clone the jPulse Framework (for framework development)
-git clone https://github.com/peterthoeny/jpulse-framework.git
-cd jpulse-framework
-```
+# Update to latest framework version
+npm run update
 
-### 2. Install Dependencies
-```bash
-# Install Node.js dependencies
-npm install
-```
-
-### 3. Start Development Server
-```bash
-# Start the development server
-npm start
-```
-
-The application will be available at `http://localhost:8080`
-
-### 4. Verify Installation
-```bash
-# Run the test suite
-npm test
-
-# Check for 337+ tests passing
+# Or manually:
+npm update @jpulse/framework
+npx jpulse-sync
 ```
 
 ## Database Setup (Required)
@@ -121,7 +101,7 @@ brew services start mongodb/brew/mongodb-community
 
 ### Database Configuration
 
-Edit `webapp/app.conf` to configure database connection:
+Edit `site/webapp/app.conf` to configure database connection:
 
 ```javascript
 {
@@ -140,7 +120,7 @@ Edit `webapp/app.conf` to configure database connection:
 ## Environment Configuration
 
 ### Development Environment
-The framework uses `webapp/app.conf` for development configuration:
+Your site uses `site/webapp/app.conf` for development configuration:
 
 ```javascript
 {
@@ -177,35 +157,36 @@ For production, create environment-specific configuration:
 }
 ```
 
-## Site Customization Setup
+## Site Customization
 
-To create a custom site using the W-014 override system:
+Your site structure is automatically created by `npx jpulse-setup`. To customize your site:
 
-### 1. Create Site Structure
-```bash
-# Create site directory structure
-mkdir -p site/webapp/{controller,model,view,static}
-```
-
-### 2. Site Configuration
-Create `site/webapp/app.conf` for site-specific settings:
+### 1. Site Configuration
+Edit `site/webapp/app.conf` for site-specific settings:
 
 ```javascript
 {
     app: {
-        siteName: 'My Organization',
-        siteDescription: 'Internal web application'
+        name: 'My Organization',
+        shortName: 'My Org',
+        siteId: 'my-org-001'
     },
     // Override framework defaults as needed
 }
 ```
 
-### 3. Verify Site Override
-Restart the server and check that site customizations are loaded:
+### 2. Add Custom Content
+- **Controllers**: Create `site/webapp/controller/[name].js`
+- **Views**: Create `site/webapp/view/[path]/[name].shtml`
+- **Models**: Create `site/webapp/model/[name].js`
+- **Assets**: Place in `site/webapp/static/[path]/`
+
+### 3. Verify Customizations
+Restart the server and check that your customizations are loaded:
 
 ```bash
 npm start
-# Check console for "Site overrides detected" message
+# Your site overrides will automatically take priority
 ```
 
 ## Troubleshooting

@@ -1,6 +1,10 @@
-# jPulse Framework / Docs / Dev / Developer Documentation v0.5.5
+# jPulse Framework / Docs / Dev / Development Guide v0.5.5
 
-Technical documentation for developers working on the jPulse Framework. This document covers architecture decisions, implementation details, and development workflows.
+**For Framework Contributors & Core Developers**
+
+Technical documentation for developers working on the jPulse Framework itself. This covers architecture decisions, implementation details, and contribution workflows.
+
+> **Site Development**: For building sites with jPulse, see the [main documentation](../README.md).
 
 ## 🏗️ Architecture Overview
 
@@ -19,7 +23,15 @@ Technical documentation for developers working on the jPulse Framework. This doc
 - **Utilities**: CommonUtils framework for data processing and schema-based queries
 - **Testing**: Jest with automated cleanup, global setup/teardown, and 337+ tests
 - **Build Tools**: npm scripts, native ES modules, version management
+- **Distribution**: npm package (@jpulse/framework) with CLI tools (W-051)
 - **Production**: nginx reverse proxy + PM2 process management
+
+### Package Distribution (W-051)
+- **Framework Package**: `@jpulse/framework` published to GitHub Packages
+- **CLI Tools**: `jpulse-setup` (site creation), `jpulse-sync` (framework updates)
+- **Site Structure**: Independent repositories with committed framework files
+- **Update Workflow**: `npm update @jpulse/framework && npx jpulse-sync`
+- **Publishing Guide**: See [Package Publishing Guide](publishing.md) for release process
 
 ## 🎨 View Architecture (Client-Side Focus)
 
@@ -243,4 +255,27 @@ The original dev/README.md (2180 lines) should be broken into focused documents:
 2. Extract detailed implementation guides → `implementation-guides/`
 3. Move performance and troubleshooting content to dedicated files
 4. Keep only essential architecture overview in main README
-5. Update cross-references and navigation links
+
+---
+
+## Framework Development Setup
+
+> **Detailed Setup**: See [Framework Development Installation](installation.md) for complete setup instructions.
+
+### Quick Start
+```bash
+# Clone the framework repository
+git clone https://github.com/peterthoeny/jpulse-framework.git
+cd jpulse-framework
+npm install && npm test && npm start
+```
+
+### Contributing
+1. **Issues**: Report bugs and feature requests on GitHub
+2. **Pull Requests**: Follow existing code style and include tests
+3. **Documentation**: Update relevant docs with changes
+4. **Testing**: Ensure all tests pass before submitting
+
+---
+
+> **Building Sites with jPulse?** See the [Site Development Documentation](../README.md)

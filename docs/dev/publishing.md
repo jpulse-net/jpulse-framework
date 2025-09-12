@@ -1,0 +1,280 @@
+# jPulse Framework / Docs / Dev / Package Publishing Guide v0.5.5
+
+This guide covers publishing the jPulse Framework to GitHub Packages for framework maintainers and core developers.
+
+> **Site Development**: For using published packages to create sites, see [Site Installation Guide](../installation.md).
+
+## Prerequisites
+
+### Required
+- **Maintainer access** to the jpulse-framework repository
+- **GitHub Personal Access Token** with packages scope
+- **npm CLI** configured for GitHub Packages
+- **Git** with push access to main branch
+
+### Permissions Needed
+- **write:packages** - Publish packages to GitHub Packages
+- **read:packages** - Read packages from GitHub Packages
+- **repo** - Access to repository for automated workflows
+
+## GitHub Packages Setup
+
+### 1. Create Personal Access Token
+```bash
+# Visit: https://github.com/settings/tokens
+# Click "Generate new token (classic)"
+# Select scopes:
+#   - repo (Full control of private repositories)
+#   - write:packages (Upload packages to GitHub Package Registry)
+#   - read:packages (Download packages from GitHub Package Registry)
+#   - delete:packages (Delete packages from GitHub Package Registry)
+
+# Copy the token - you'll need it for authentication
+```
+
+### 2. Configure npm for GitHub Packages
+```bash
+# Login to GitHub Packages registry
+npm login --registry=https://npm.pkg.github.com
+
+# When prompted:
+# Username: your-github-username
+# Password: your-personal-access-token (not your GitHub password!)
+# Email: your-email@example.com
+```
+
+### 3. Verify Authentication
+```bash
+# Test authentication
+npm whoami --registry=https://npm.pkg.github.com
+
+# Should return your GitHub username
+```
+
+## Publishing Workflow
+
+### Method 1: Automated Publishing (Recommended)
+
+The framework includes GitHub Actions for automated publishing:
+
+```bash
+# 1. Ensure all changes are committed
+git add .
+git commit -m "W-051: Ready for release v0.5.6"
+git push origin main
+
+# 2. Create and push version tag
+npm version patch  # or minor/major
+git push origin main --tags
+
+# 3. GitHub Actions will automatically:
+#    - Run all tests
+#    - Publish to GitHub Packages
+#    - Create GitHub release
+```
+
+**GitHub Actions Workflow:**
+- Triggered by version tags (`v*`)
+- Runs complete test suite
+- Publishes to `@jpulse/framework`
+- Creates GitHub release with installation instructions
+
+### Method 2: Manual Publishing
+
+For manual control or testing:
+
+```bash
+# 1. Ensure tests pass
+npm test
+
+# 2. Update version
+npm version patch  # or minor/major
+
+# 3. Publish to GitHub Packages
+npm publish --registry=https://npm.pkg.github.com
+
+# 4. Push version tag
+git push origin main --tags
+```
+
+### Method 3: Manual Workflow Dispatch
+
+Trigger automated publishing without creating a tag:
+
+```bash
+# 1. Go to GitHub Actions tab in repository
+# 2. Select "Publish to GitHub Packages" workflow
+# 3. Click "Run workflow"
+# 4. Select version bump type (patch/minor/major)
+# 5. Click "Run workflow"
+```
+
+## Version Management
+
+### Semantic Versioning
+Follow semantic versioning (semver) for releases:
+
+- **Patch** (0.5.5 → 0.5.6): Bug fixes, documentation updates
+- **Minor** (0.5.5 → 0.6.0): New features, non-breaking changes
+- **Major** (0.5.5 → 1.0.0): Breaking changes, API changes
+
+### Version Commands
+```bash
+# Patch version (bug fixes)
+npm version patch
+
+# Minor version (new features)
+npm version minor
+
+# Major version (breaking changes)
+npm version major
+
+# Specific version
+npm version 1.0.0
+
+# Pre-release versions
+npm version prerelease --preid=beta  # 0.5.6-beta.0
+```
+
+## Package Validation
+
+### Pre-Publishing Checks
+```bash
+# 1. Run complete test suite
+npm test
+
+# 2. Test CLI tools
+npm run test:cli
+
+# 3. Verify package contents
+npm pack --dry-run
+
+# 4. Check package size
+npm pack
+ls -la *.tgz
+```
+
+### Post-Publishing Validation
+```bash
+# 1. Verify package is available
+npm view @jpulse/framework --registry=https://npm.pkg.github.com
+
+# 2. Test installation in clean directory
+mkdir test-install && cd test-install
+npm install @jpulse/framework --registry=https://npm.pkg.github.com
+npx jpulse-setup
+
+# 3. Verify CLI tools work
+npm start
+```
+
+## Package Configuration
+
+### Files Included in Package
+The `package.json` `files` array controls what gets published:
+
+```json
+{
+  "files": [
+    "webapp/",
+    "bin/",
+    "templates/",
+    "docs/",
+    "README.md",
+    "LICENSE"
+  ]
+}
+```
+
+### Files Excluded from Package
+Automatically excluded (via `.gitignore` and npm defaults):
+- `site/` - Framework's test site
+- `coverage/` - Test coverage reports
+- `node_modules/` - Dependencies
+- `.git/` - Git repository data
+- `cursor_log.txt` - Development logs
+- `*.save*` - Backup files
+
+## Troubleshooting
+
+### Authentication Issues
+```bash
+# Clear npm cache
+npm cache clean --force
+
+# Re-login to GitHub Packages
+npm logout --registry=https://npm.pkg.github.com
+npm login --registry=https://npm.pkg.github.com
+
+# Verify .npmrc configuration
+cat ~/.npmrc
+# Should contain: //npm.pkg.github.com/:_authToken=YOUR_TOKEN
+```
+
+### Publishing Failures
+```bash
+# Check package name and scope
+npm view @jpulse/framework --registry=https://npm.pkg.github.com
+
+# Verify version doesn't already exist
+npm view @jpulse/framework versions --json --registry=https://npm.pkg.github.com
+
+# Check GitHub Packages permissions
+# Visit: https://github.com/peterthoeny/jpulse-framework/packages
+```
+
+### GitHub Actions Issues
+```bash
+# Check workflow status
+# Visit: https://github.com/peterthoeny/jpulse-framework/actions
+
+# Common issues:
+# - GITHUB_TOKEN permissions
+# - Test failures blocking publish
+# - Version tag format (must be v*.*.*)
+```
+
+## Security Considerations
+
+### Token Management
+- **Never commit** personal access tokens to repository
+- **Use repository secrets** for GitHub Actions
+- **Rotate tokens** regularly (every 6-12 months)
+- **Limit token scope** to minimum required permissions
+
+### Package Security
+- **Review dependencies** before publishing
+- **Run security audit**: `npm audit`
+- **Check for vulnerabilities**: `npm audit fix`
+- **Verify package contents**: `npm pack --dry-run`
+
+## Release Process
+
+### Complete Release Checklist
+1. ✅ **Update documentation** for new features
+2. ✅ **Run full test suite**: `npm test`
+3. ✅ **Test CLI tools**: `npm run test:cli`
+4. ✅ **Update version**: `npm version patch|minor|major`
+5. ✅ **Push changes**: `git push origin main --tags`
+6. ✅ **Verify GitHub Actions** complete successfully
+7. ✅ **Test published package** in clean environment
+8. ✅ **Update release notes** on GitHub
+9. ✅ **Announce release** to users/team
+
+### Post-Release Tasks
+- Monitor for issues with new release
+- Update documentation if needed
+- Respond to user feedback
+- Plan next release cycle
+
+---
+
+## Related Documentation
+
+- **[Framework Development Installation](installation.md)** - Development environment setup
+- **[Framework Architecture](README.md)** - Technical architecture guide
+- **[Site Installation Guide](../installation.md)** - Using published packages
+
+---
+
+*For questions about publishing, create an issue with the "publishing" label.*

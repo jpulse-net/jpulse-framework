@@ -1,6 +1,8 @@
-# jPulse Framework / Docs / Framework Overview v0.5.5
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.5.5
 
-Welcome to the ![Logo](./images/favicon-16x16.png) jPulse Framework - a modern, lightweight web application framework designed for midsize to large organizations in government and private sectors.
+**For Site Administrators & Site Developers**
+
+Welcome to the ![Logo](./images/favicon-16x16.png) jPulse Framework documentation - your complete guide to building enterprise-grade web applications.
 
 ## What is jPulse?
 
@@ -8,12 +10,11 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 
 ## Latest Release Highlights
 
-- ✅ **Markdown Documentation System (v0.5.4)**: Complete documentation system with API standardization, i18n support, hierarchical navigation, and comprehensive testing
-- ✅ **Enterprise UI Widgets & Dialog System (v0.5.2)**: Complete UI widget system with draggable dialogs, complex form interactions, and accordion components
-- ✅ **Site-Specific Coding & Styling Guidelines (v0.5.1)**: Complete site development framework with comprehensive documentation and template system
-- ✅ **Site Override Architecture (v0.5.0)**: Complete site customization system enabling seamless framework updates while preserving site modifications
-- ✅ **Site Configuration Management (v0.4.10)**: Complete admin configuration system with intuitive interface for email settings and site messages
-- ✅ **CSS Prefix Convention (v0.4.9)**: Clear CSS organization with `jp-*` framework styles and `local-*` page-specific styles
+- ✅ **Package Distribution (v0.5.5)**: Create new sites with `npx jpulse-setup` - clean repository separation
+- ✅ **Markdown Documentation System (v0.5.4)**: Complete documentation system with API standardization and i18n support
+- ✅ **Enterprise UI Widgets (v0.5.2)**: Complete UI widget system with draggable dialogs and form interactions
+- ✅ **Site Override Architecture (v0.5.0)**: Seamless framework updates while preserving site modifications
+- ✅ **Admin Configuration System (v0.4.10)**: Intuitive interface for email settings and site messages
 
 ## Key Features
 
@@ -54,56 +55,60 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 - **[Getting Started Tutorial](getting-started.md)** - Build your first jPulse application
 - **[Examples](examples.md)** - Real-world implementation patterns and use cases
 
-### 👨‍💻 **For Developers**
+### 👨‍💻 **Site Development**
+- **[Site Customization](site-customization.md)** - Override system for update-safe customizations
 - **[Front-End Development](front-end-development.md)** - Complete jPulse JavaScript framework guide
 - **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation
 - **[Template Reference](template-reference.md)** - Server-side Handlebars system
 - **[Style Reference](style-reference.md)** - Complete `jp-*` CSS framework and components
 
-### 🏗️ **Site Building**
-- **[Site Customization](site-customization.md)** - W-014 override system for update-safe customizations
+### 🚀 **Deployment**
 - **[Deployment Guide](deployment.md)** - Production deployment strategies and best practices
 
 ### 📋 **Reference**
 - **[Version History](CHANGELOG.md)** - Complete changelog and release notes
-- **[Developer Documentation](dev/README.md)** - Framework architecture and development
-- **[Requirements](dev/requirements.md)** - Technical specifications and objectives
 
-## Quick Installation
+---
+
+### 🔧 **Framework Development**
+> **Contributing to jPulse Framework itself?** See [Framework Development Guide](dev/README.md) and [Framework Installation](dev/installation.md)
+
+## Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/peterthoeny/jpulse-framework.git
-cd jpulse-framework
+# Create a new jPulse site
+mkdir my-jpulse-site && cd my-jpulse-site
+npm install @jpulse/framework
+npx jpulse-setup
 
-# Install dependencies
-npm install
-
-# Start development server
+# Configure and start
+cp site/webapp/app.conf.tmpl site/webapp/app.conf
 npm start
 # Visit http://localhost:8080
 ```
 
-## Architecture Overview
+> **Framework Development**: See [Framework Development Guide](dev/README.md) for contributing to jPulse itself.
 
-jPulse follows a clean MVC pattern with extensible site customization:
+## Site Architecture
+
+Your jPulse site follows a clean MVC pattern with update-safe customizations:
 
 ```
-jpulse-framework/
-├── webapp/                 # Framework core (updatable)
+my-jpulse-site/
+├── webapp/                 # Framework files (managed by jpulse-sync)
 │   ├── app.js              # Framework bootstrap
 │   ├── app.conf            # Framework configuration defaults
 │   ├── controller/         # Base controllers
 │   ├── model/              # Data models
 │   ├── view/               # Base pages and templates
 │   └── static/             # Framework assets
-├── site/                   # Site customizations (update-safe)
-│   └── webapp/             # Site-specific overrides
-│      ├── app.conf         # Site configuration
-│      ├── controller/      # Site controllers
-│      ├── model/           # Site data models
-│      ├── view/            # Site pages and templates
-│      └── static/          # Site-specific assets
+├── site/webapp/            # Your customizations (update-safe)
+│   ├── app.conf            # Site configuration
+│   ├── controller/         # Site controllers
+│   ├── model/              # Site data models
+│   ├── view/               # Site pages and templates
+│   └── static/             # Site-specific assets
+├── package.json            # Dependencies (@jpulse/framework)
 └── .jpulse/                # Framework metadata
     ├── app.json            # Consolidated runtime configuration
     └── config-sources.json # Source file tracking
@@ -125,10 +130,9 @@ jPulse is designed for:
 - **[Style Reference](style-reference.md)** - Complete CSS framework and components
 - **[Template Reference](template-reference.md)** - Server-side integration guide
 
-### Framework Resources  
-- **[Developer Documentation](dev/README.md)** - Framework architecture and development
+### Framework Development
+- **[Framework Development Guide](dev/README.md)** - Architecture and contribution guide
 - **[Version History](CHANGELOG.md)** - Complete changelog and release notes
-- **[Technical Requirements](dev/requirements.md)** - Specifications and objectives
 
 ---
 

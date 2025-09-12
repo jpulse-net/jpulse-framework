@@ -24,8 +24,8 @@ This means you only override what you need to customize.
 
 ### Directory Structure
 ```
-jpulse-framework/
-├── webapp/                   # Framework core (updatable)
+my-jpulse-site/
+├── webapp/                   # Framework files (managed by jpulse-sync)
 │   ├── controller/           # Base controllers
 │   ├── model/                # Data models
 │   ├── view/                 # Base templates

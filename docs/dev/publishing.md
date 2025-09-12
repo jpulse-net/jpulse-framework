@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Package Publishing Guide v0.5.5
+# jPulse Framework / Docs / Dev / Package Publishing Guide v0.5.6
 
 This guide covers publishing the jPulse Framework to GitHub Packages for framework maintainers and core developers.
 
@@ -23,6 +23,7 @@ This guide covers publishing the jPulse Framework to GitHub Packages for framewo
 ```bash
 # Visit: https://github.com/settings/tokens
 # Click "Generate new token (classic)"
+# Add note: jPulse Framework package management
 # Select scopes:
 #   - repo (Full control of private repositories)
 #   - write:packages (Upload packages to GitHub Package Registry)
@@ -39,8 +40,18 @@ npm login --registry=https://npm.pkg.github.com
 
 # When prompted:
 # Username: your-github-username
-# Password: your-personal-access-token (not your GitHub password!)
-# Email: your-email@example.com
+# Password: your-personal-access-token (NOT your GitHub password!)
+# You should see: Logged in on https://npm.pkg.github.com/.
+
+# IMPORTANT: The "Password" field requires your Personal Access Token,
+# not your GitHub account password, even if you use passwordless login
+```
+
+**Alternative Method (if login fails):**
+```bash
+# Create/edit ~/.npmrc file directly
+echo "//npm.pkg.github.com/:_authToken=YOUR_PERSONAL_ACCESS_TOKEN" >> ~/.npmrc
+echo "@jpulse:registry=https://npm.pkg.github.com" >> ~/.npmrc
 ```
 
 ### 3. Verify Authentication

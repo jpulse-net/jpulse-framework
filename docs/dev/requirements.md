@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Requirements Document v0.5.4
+# jPulse Framework / Docs / Dev / Requirements Document v0.5.5
 
 Strategic requirements and specifications for the jPulse Framework, targeting enterprise and government organizations with focus on security, scalability, and maintainability.
 
@@ -13,7 +13,7 @@ Strategic requirements and specifications for the jPulse Framework, targeting en
 - **Client-Side Heavy Views**: Primary view logic in browser JavaScript with API calls, minimal server-side Handlebars
 - **Schema-Enforced Models**: NoSQL database with enforced data schemas and validation
 - **RESTful Controllers**: API-first design interfacing between models and views
-- **Open Source**: GPL v3 license for government and enterprise adoption
+- **Open Source**: AGPL v3 license with commercial licensing for government and enterprise adoption
 
 ### Target Audience
 - **Government Agencies**: Federal, state, and local government applications

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Framework Overview v0.5.4
+# jPulse Framework / Docs / Framework Overview v0.5.5
 
 Welcome to the ![Logo](./images/favicon-16x16.png) jPulse Framework - a modern, lightweight web application framework designed for midsize to large organizations in government and private sectors.
 

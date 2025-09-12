@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.5.4
+# jPulse Framework / Docs / Dev / Work Items v0.5.5
 
 This is the doc to track work items, arranged in three sections:
 
@@ -668,24 +668,11 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### **W-051**: infrastructure: framework package distribution
+### **W-052**: business: dual licensing with AGPL and commercial license
 - status: 🚧 IN_PROGRESS
-- type: Infrastructure
-- objective: enable framework distribution via private npm package, so that a site owner can maintain their own site-specific reporsitory
-- base for:
-  - W-015: deployment: strategy for clean onboarding
-  - W-050: deployment: strategy for separate repositories, one for jpulse, and one for site
-- scope:
-  - Restructure framework for npm publishing
-  - Set up GitHub Packages for @jpulse/framework
-  - Update PathResolver for node_modules resolution
-  - Create framework package.json and publishing workflow
-  - Test private package installation and usage
-- deliverables:
-  - @jpulse/framework package on GitHub Packages
-  - Updated PathResolver for npm resolution
-  - Package publishing workflow
-  - Documentation for site teams
+- type: Business
+- objective: nurture business and community goals
+- see W-052-business-dual-licensing-agpl-and-commercial.md
 
 
 
@@ -699,6 +686,7 @@ This is the doc to track work items, arranged in three sections:
 
 
 ### Potential next items:
+**W-051**: infrastructure: framework package distribution
 **W-015**: deployment: strategy for clean onboarding
 **W-050**: deployment: strategy for separate repositories, one for jpulse, and one for site
 **W-045**: architecture: create plugin infrastructure
@@ -770,6 +758,25 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
 
+### **W-051**: infrastructure: framework package distribution
+- status: 🕑 PENDING
+- type: Infrastructure
+- objective: enable framework distribution via private npm package, so that a site owner can maintain their own site-specific reporsitory
+- base for:
+  - W-015: deployment: strategy for clean onboarding
+  - W-050: deployment: strategy for separate repositories, one for jpulse, and one for site
+- scope:
+  - Restructure framework for npm publishing
+  - Set up GitHub Packages for @jpulse/framework
+  - Update PathResolver for node_modules resolution
+  - Create framework package.json and publishing workflow
+  - Test private package installation and usage
+- deliverables:
+  - @jpulse/framework package on GitHub Packages
+  - Updated PathResolver for npm resolution
+  - Package publishing workflow
+  - Documentation for site teams
+
 ### **W-050**: deployment: strategy for separate repositories for jpulse and site
 - status: 🕑 PENDING
 - type: Feature
@@ -793,12 +800,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - pm2 setup with single jPulse instance (fork), or multiple instances (cluster)
   - mongddb deployment with standalone, or replicaset config
   - mongodb setup with sysdba admin, dev data user, prod data user
-
-### **W-052**: business: dual licensing with AGPL and commercial license
-- status: 🕑 PENDING
-- type: Business
-- objective: nurture business and community goals
-- see W-052-business-dual-licensing-AGPL-and-commercial
 
 ### **W-045**: architecture: create plugin infrastructure
 - status: 🕑 PENDING

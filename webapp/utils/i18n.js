@@ -3,12 +3,12 @@
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/utils/i18n.js
- * @version         0.5.4
- * @release         2025-09-11
+ * @version         0.5.5
+ * @release         2025-09-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @license         GPL v3, see LICENSE file
+ * @license         AGPL v3, see LICENSE file
  * @genai           70%, Cursor 1.2, Claude Sonnet 4
  */
 

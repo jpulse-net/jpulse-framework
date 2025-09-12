@@ -75,6 +75,7 @@ jPulse Framework Contributor License Agreement
 5. Commercial Use Authorization
 
 ### License Compatibility Analysis
+
 **AGPL v3 Compatibility**:
 - ✅ Compatible: MIT, BSD, Apache 2.0 (can be included in AGPL projects)
 - ❌ Incompatible: GPL v2 (version mismatch), proprietary licenses
@@ -87,6 +88,7 @@ jPulse Framework Contributor License Agreement
 - Export control and regulatory compliance provisions
 
 ### Legal Risk Mitigation
+
 **Potential Legal Issues**:
 1. **Contributor disputes**: CLA enforcement and retroactive licensing
 2. **License violations**: AGPL compliance monitoring and enforcement

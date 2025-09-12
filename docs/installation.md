@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Installation Guide v0.5.4
+# jPulse Framework / Docs / Installation Guide v0.5.5
 
 This guide covers installing and setting up the jPulse Framework for development and production environments.
 

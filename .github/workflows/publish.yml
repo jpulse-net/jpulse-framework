@@ -20,7 +20,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
@@ -32,7 +32,7 @@ jobs:
         with:
           node-version: '18'
           registry-url: 'https://npm.pkg.github.com'
-          scope: '@jpulse'
+          scope: '@peterthoeny'
 
       - name: Install dependencies
         run: npm ci
@@ -66,7 +66,7 @@ jobs:
 
             ## Installation
             ```bash
-            npm install @jpulse/framework@${{ github.ref }}
+            npm install @peterthoeny/jpulse-framework@${{ github.ref }} --registry=https://npm.pkg.github.com
             npx jpulse-setup
             ```
 

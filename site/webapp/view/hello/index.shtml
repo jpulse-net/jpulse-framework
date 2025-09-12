@@ -4,7 +4,7 @@
  * @tagline         Demo Site View Override
  * @description     Example of how to override framework views
  * @file            site/webapp/view/hello/index.shtml
- * @version         0.6.4
+ * @version         0.6.5
  * @release         2025-09-12
  * @author          Site Developer
  * @license         AGPL v3, see LICENSE file

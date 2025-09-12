@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Package Publishing Guide v0.5.6
+# jPulse Framework / Docs / Dev / Package Publishing Guide v0.6.0
 
 This guide covers publishing the jPulse Framework to GitHub Packages for framework maintainers and core developers.
 
@@ -69,16 +69,18 @@ npm whoami --registry=https://npm.pkg.github.com
 The framework includes GitHub Actions for automated publishing:
 
 ```bash
-# 1. Ensure all changes are committed
+# 1. Bump version across all files:
+node bump-version.js 0.5.6
+# 2. Verify if correct:
+git status
+git diff
+# 3. Add and commit if OK:
 git add .
-git commit -m "W-051: Ready for release v0.5.6"
-git push origin main
-
-# 2. Create and push version tag
-npm version patch  # or minor/major
+git commit -m "W-051, v0.5.6: Feature: ..."
+git tag v0.5.6
 git push origin main --tags
 
-# 3. GitHub Actions will automatically:
+# 4. GitHub Actions will automatically:
 #    - Run all tests
 #    - Publish to GitHub Packages
 #    - Create GitHub release

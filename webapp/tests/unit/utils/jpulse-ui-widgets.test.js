@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for jPulse.UI Dialog and Accordion Widgets (W-048)
  * @description     Tests for client-side UI widgets: alertDialog, infoDialog, accordion
  * @file            webapp/tests/unit/utils/jpulse-ui-widgets.test.js
- * @version         0.5.6
+ * @version         0.6.0
  * @release         2025-09-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

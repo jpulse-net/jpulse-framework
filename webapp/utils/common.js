@@ -3,7 +3,7 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         0.5.6
+ * @version         0.6.0
  * @release         2025-09-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

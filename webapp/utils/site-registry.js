@@ -3,7 +3,7 @@
  * @tagline         Site Override Registry and Auto-Discovery
  * @description     Discovers and registers site controllers/APIs at startup (W-014)
  * @file            webapp/utils/site-registry.js
- * @version         0.5.6
+ * @version         0.6.0
  * @release         2025-09-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

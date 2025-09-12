@@ -18,6 +18,22 @@ Clean separation of concerns with automatic controller discovery, flexible templ
 
 ## Quick Start
 
+### For Site Development (Recommended)
+
+```bash
+# Create a new jPulse site
+npm install -g @jpulse/framework
+mkdir my-jpulse-site && cd my-jpulse-site
+npx jpulse-setup
+
+# Configure and start
+cp site/webapp/app.conf.tmpl site/webapp/app.conf
+npm start
+# Visit http://localhost:8080
+```
+
+### For Framework Development
+
 ```bash
 # Clone and install
 git clone https://github.com/peterthoeny/jpulse-framework.git
@@ -40,20 +56,34 @@ npm start
 
 ## Architecture Overview
 
+### Site Structure (After `npx jpulse-setup`)
+
 ```
-jpulse-framework/
-├── webapp/               # Framework core (updatable)
+my-jpulse-site/
+├── webapp/               # Framework files (managed by jpulse-sync)
 │   ├── controller/       # Base controllers
 │   ├── model/            # Data models
 │   ├── view/             # Base templates
 │   └── static/           # Framework assets
-└── site/                 # Your customizations (update-safe)
-    └── webapp/           # Site-specific overrides
+├── site/webapp/          # Your customizations (update-safe)
+│   ├── app.conf          # Site configuration
+│   ├── controller/       # Custom controllers
+│   ├── model/            # Custom models
+│   ├── view/             # Custom views
+│   └── static/           # Custom assets
+└── package.json          # Dependencies (@jpulse/framework)
 ```
 
 **File Resolution Priority:**
 1. `site/webapp/[path]` (your customizations)
 2. `webapp/[path]` (framework defaults)
+
+**Framework Updates:**
+```bash
+npm run update  # Updates framework to latest version
+# or manually:
+npm update @jpulse/framework && npx jpulse-sync
+```
 
 ## Documentation
 

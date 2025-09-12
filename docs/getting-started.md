@@ -10,14 +10,25 @@ Before starting, ensure you have:
 - Basic knowledge of HTML, CSS, and JavaScript
 - Text editor or IDE
 
-## Step 1: Verify Framework Installation
+## Step 1: Create Your First Site
 
-First, let's make sure jPulse is working:
-
+### Setup New Site
 ```bash
-# Navigate to your jPulse installation
-cd jpulse-framework
+# Create a new jPulse site
+mkdir my-first-site && cd my-first-site
+npm install @jpulse/framework
+npx jpulse-setup
+```
 
+### Configure Your Site
+```bash
+# Copy and customize site configuration
+cp site/webapp/app.conf.tmpl site/webapp/app.conf
+# Edit site/webapp/app.conf with your settings
+```
+
+### Start Development Server
+```bash
 # Start the development server
 npm start
 ```
@@ -29,25 +40,26 @@ Visit `http://localhost:8080` - you should see the jPulse welcome page.
 jPulse uses a clean separation between framework code and site customizations:
 
 ```
-jpulse-framework/
-├── webapp/               # Framework core (don't modify)
+my-first-site/
+├── webapp/               # Framework files (managed by jpulse-sync)
 │   ├── controller/       # Base controllers
 │   ├── model/            # Data models
 │   ├── view/             # Base templates
 │   └── static/           # Framework assets
-└── site/                 # Your customizations (safe from updates)
-    └── webapp/           # Site-specific overrides
-        ├── controller/   # Custom controllers
-        ├── model/        # Custom models
-        ├── view/         # Custom templates
-        └── static/       # Site assets
+├── site/webapp/          # Your customizations (update-safe)
+│   ├── app.conf          # Site configuration
+│   ├── controller/       # Custom controllers
+│   ├── model/            # Custom models
+│   ├── view/             # Custom templates
+│   └── static/           # Site assets
+└── package.json          # Dependencies (@jpulse/framework)
 ```
 
-## Step 3: Create Your First Site
+## Step 3: Create Your First Custom Page
 
 ### Create Site Structure
 ```bash
-# Create the site directory structure
+# Site structure is already created by jpulse-setup
 mkdir -p site/webapp/{controller,model,view,static}
 ```
 
@@ -287,6 +299,23 @@ class HelloModel {
 }
 
 export { HelloModel };
+```
+
+## Framework Updates
+
+Keep your framework up to date with the latest features and fixes:
+
+```bash
+# Update framework to latest version
+npm run update
+
+# Or manually:
+npm update @jpulse/framework
+npx jpulse-sync
+
+# Review changes
+git diff webapp/
+git commit -am "Update framework to v0.5.6"
 ```
 
 ## Next Steps

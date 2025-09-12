@@ -650,6 +650,12 @@ This is the doc to track work items, arranged in three sections:
   - store marked and other libraries in webapp/static/common
     - no external links to libraries (deployment might be air-gapped)
 
+### **W-052**: business: dual licensing with AGPL and commercial license
+- status: ✅ COMPLETED
+- type: Business
+- objective: nurture business and community goals
+- see W-052-business-dual-licensing-agpl-and-commercial.md
+
 
 
 
@@ -668,13 +674,26 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### **W-052**: business: dual licensing with AGPL and commercial license
-- status: 🚧 IN_PROGRESS
-- type: Business
-- objective: nurture business and community goals
-- see W-052-business-dual-licensing-agpl-and-commercial.md
-
-
+### **W-051**: infrastructure: framework package distribution
+- status: ✅ COMPLETE
+- type: Infrastructure
+- objective: enable framework distribution via private npm package, so that a site owner can maintain their own site-specific repository
+- see working/W-051-W-015-W050-onboarding-with-repositories
+- base for:
+  - W-015: deployment: strategy for clean onboarding
+  - W-050: deployment: strategy for separate repositories, one for jpulse, and one for site
+- scope:
+  - ✅ Restructure framework for npm publishing with KISS approach
+  - ✅ Set up GitHub Packages for @jpulse/framework
+  - ✅ Create CLI tools (setup, sync) for simple site management
+  - ✅ Create framework package.json and publishing workflow
+  - ✅ Test private package installation and copy-based workflow
+- deliverables:
+  - ✅ @jpulse/framework package ready for GitHub Packages
+  - ✅ CLI tools for site setup and framework updates (jpulse-setup, jpulse-sync)
+  - ✅ Package publishing workflow (.github/workflows/publish.yml)
+  - ✅ Documentation for site teams (migration guide, updated README)
+  - ✅ Air-gapped deployment support via committed webapp/ files
 
 
 
@@ -700,7 +719,7 @@ next work item: **W-036**: view: migrate existing views to use jpulse-common.js 
 - review task, ask questions
 - suggest change of spec, goal is better usability for site developers
 - plan how to implement (wait for my go ahead)
-- current timestamp: 2025-09-07 23:31
+- current timestamp: 2025-09-11 21:56
 
 Almost ready for W-042 release (this chat refers to W-021, my mistake)
 
@@ -708,7 +727,7 @@ Almost ready for W-042 release (this chat refers to W-021, my mistake)
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-04 02:12
 - update *.md docs in project root
-- update commit-message.txt, following the same format, specify: W-046, v0.5.4 (don't commit)
+- update commit-message.txt, following the same format, specify: W-052, v0.5.5 (don't commit)
 
 
 
@@ -757,25 +776,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
-
-### **W-051**: infrastructure: framework package distribution
-- status: 🕑 PENDING
-- type: Infrastructure
-- objective: enable framework distribution via private npm package, so that a site owner can maintain their own site-specific reporsitory
-- base for:
-  - W-015: deployment: strategy for clean onboarding
-  - W-050: deployment: strategy for separate repositories, one for jpulse, and one for site
-- scope:
-  - Restructure framework for npm publishing
-  - Set up GitHub Packages for @jpulse/framework
-  - Update PathResolver for node_modules resolution
-  - Create framework package.json and publishing workflow
-  - Test private package installation and usage
-- deliverables:
-  - @jpulse/framework package on GitHub Packages
-  - Updated PathResolver for npm resolution
-  - Package publishing workflow
-  - Documentation for site teams
 
 ### **W-050**: deployment: strategy for separate repositories for jpulse and site
 - status: 🕑 PENDING

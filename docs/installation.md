@@ -13,11 +13,36 @@ This guide covers installing and setting up the jPulse Framework for development
 ### Optional
 - **nginx** - Web server (for production deployment)
 
-## Development Installation
+## Site Development Installation (Recommended)
+
+### 1. Create New Site
+```bash
+# Create a new jPulse site
+mkdir my-jpulse-site && cd my-jpulse-site
+npm install @jpulse/framework
+npx jpulse-setup
+```
+
+### 2. Configure Site
+```bash
+# Copy and customize site configuration
+cp site/webapp/app.conf.tmpl site/webapp/app.conf
+# Edit site/webapp/app.conf with your settings
+```
+
+### 3. Start Development Server
+```bash
+# Start the development server
+npm start
+```
+
+The application will be available at `http://localhost:8080`
+
+## Framework Development Installation
 
 ### 1. Clone Repository
 ```bash
-# Clone the jPulse Framework
+# Clone the jPulse Framework (for framework development)
 git clone https://github.com/peterthoeny/jpulse-framework.git
 cd jpulse-framework
 ```
@@ -26,18 +51,12 @@ cd jpulse-framework
 ```bash
 # Install Node.js dependencies
 npm install
-
-# Or using yarn
-yarn install
 ```
 
 ### 3. Start Development Server
 ```bash
 # Start the development server
 npm start
-
-# Or using yarn
-yarn start
 ```
 
 The application will be available at `http://localhost:8080`

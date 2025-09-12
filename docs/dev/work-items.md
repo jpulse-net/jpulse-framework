@@ -794,6 +794,12 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - mongddb deployment with standalone, or replicaset config
   - mongodb setup with sysdba admin, dev data user, prod data user
 
+### **W-052**: business: dual licensing with AGPL and commercial license
+- status: 🕑 PENDING
+- type: Business
+- objective: nurture business and community goals
+- see W-052-business-dual-licensing-AGPL-and-commercial
+
 ### **W-045**: architecture: create plugin infrastructure
 - status: 🕑 PENDING
 - type: Feature

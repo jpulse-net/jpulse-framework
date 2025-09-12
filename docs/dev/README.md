@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Development Guide v0.6.3
+# jPulse Framework / Docs / Dev / Development Guide v0.6.4
 
 **For Framework Contributors & Core Developers**
 
@@ -23,14 +23,14 @@ Technical documentation for developers working on the jPulse Framework itself. T
 - **Utilities**: CommonUtils framework for data processing and schema-based queries
 - **Testing**: Jest with automated cleanup, global setup/teardown, and 337+ tests
 - **Build Tools**: npm scripts, native ES modules, version management
-- **Distribution**: npm package (@jpulse/framework) with CLI tools (W-051)
+- **Distribution**: npm package (@peterthoeny/jpulse-framework) with CLI tools (W-051)
 - **Production**: nginx reverse proxy + PM2 process management
 
 ### Package Distribution (W-051)
-- **Framework Package**: `@jpulse/framework` published to GitHub Packages
+- **Framework Package**: `@peterthoeny/jpulse-framework` published to GitHub Packages
 - **CLI Tools**: `jpulse-setup` (site creation), `jpulse-sync` (framework updates)
 - **Site Structure**: Independent repositories with committed framework files
-- **Update Workflow**: `npm update @jpulse/framework && npx jpulse-sync`
+- **Update Workflow**: `npm update @peterthoeny/jpulse-framework && npx jpulse-sync`
 - **Publishing Guide**: See [Package Publishing Guide](publishing.md) for release process
 
 ## 🎨 View Architecture (Client-Side Focus)

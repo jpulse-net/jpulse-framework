@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Installation Guide v0.6.3
+# jPulse Framework / Docs / Site Installation Guide v0.6.4
 
 This guide covers creating and setting up jPulse sites for development and production environments.
 
@@ -20,7 +20,7 @@ This guide covers creating and setting up jPulse sites for development and produ
 ```bash
 # Create a new jPulse site
 mkdir my-jpulse-site && cd my-jpulse-site
-npm install @jpulse/framework
+npm install @peterthoeny/jpulse-framework
 npx jpulse-setup
 ```
 
@@ -45,7 +45,7 @@ The application will be available at `http://localhost:8080`
 npm run update
 
 # Or manually:
-npm update @jpulse/framework
+npm update @peterthoeny/jpulse-framework
 npx jpulse-sync
 ```
 

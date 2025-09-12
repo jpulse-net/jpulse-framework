@@ -57,10 +57,10 @@ function syncDirectory(src, dest) {
  * Find framework package location
  */
 function findFrameworkPackage() {
-    const nodeModulesPath = path.join(process.cwd(), 'node_modules/@jpulse/framework');
+    const nodeModulesPath = path.join(process.cwd(), 'node_modules/@peterthoeny/jpulse-framework');
 
     if (!fs.existsSync(nodeModulesPath)) {
-        throw new Error('@jpulse/framework package not found. Run "npm install @jpulse/framework" first.');
+        throw new Error('@peterthoeny/jpulse-framework package not found. Run "npm install @peterthoeny/jpulse-framework" first.');
     }
 
     return nodeModulesPath;

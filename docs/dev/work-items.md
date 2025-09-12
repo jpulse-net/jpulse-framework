@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.6.3
+# jPulse Framework / Docs / Dev / Work Items v0.6.4
 
 This is the doc to track work items, arranged in three sections:
 
@@ -684,12 +684,12 @@ This is the doc to track work items, arranged in three sections:
   - W-050: deployment: strategy for separate repositories, one for jpulse, and one for site
 - scope:
   - ✅ Restructure framework for npm publishing with KISS approach
-  - ✅ Set up GitHub Packages for @jpulse/framework
+  - ✅ Set up GitHub Packages for @peterthoeny/jpulse-framework
   - ✅ Create CLI tools (setup, sync) for simple site management
   - ✅ Create framework package.json and publishing workflow
   - ✅ Test private package installation and copy-based workflow
 - deliverables:
-  - ✅ @jpulse/framework package ready for GitHub Packages
+  - ✅ @peterthoeny/jpulse-framework package ready for GitHub Packages
   - ✅ CLI tools for site setup and framework updates (jpulse-setup, jpulse-sync)
   - ✅ Package publishing workflow (.github/workflows/publish.yml)
   - ✅ Documentation for site teams (migration guide, updated README)

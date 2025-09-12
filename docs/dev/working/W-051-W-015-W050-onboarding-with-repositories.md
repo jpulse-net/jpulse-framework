@@ -15,7 +15,7 @@ Implement repository separation using private npm packages (GitHub Packages) to 
 ### Phase 1: Foundation Infrastructure (W-051)
 
 **Framework Team Actions (W-051 deliverables):**
-- Restructure jpulse-framework for npm publishing to @jpulse/framework
+- Restructure jpulse-framework for npm publishing to @peterthoeny/jpulse-framework
 - Set up GitHub Packages for private distribution
 - Update PathResolver for node_modules resolution
 - Create framework package.json and publishing workflow
@@ -25,7 +25,7 @@ Implement repository separation using private npm packages (GitHub Packages) to 
 
 **Site Team Benefits:**
 - Work in completely separate repositories
-- Standard npm dependency management: npm install @jpulse/framework
+- Standard npm dependency management: npm install @peterthoeny/jpulse-framework
 - Read-only access prevents accidental framework modifications
 - Pin to specific framework versions for stability
 
@@ -61,7 +61,7 @@ my-jpulse-site/
 │   ├── controller/     # Only overridden controllers
 │   ├── view/          # Only overridden views
 │   └── app.conf       # Site configuration
-├── package.json       # Includes @jpulse/framework dependency
+├── package.json       # Includes @peterthoeny/jpulse-framework dependency
 └── README.md          # Site-specific documentation
 ```
 
@@ -77,7 +77,7 @@ static resolveModule(modulePath) {
     }
     
     // 2. Framework fallback (from node_modules)
-    const frameworkPath = path.join(process.cwd(), 'node_modules/@jpulse/framework/webapp', modulePath);
+    const frameworkPath = path.join(process.cwd(), 'node_modules/@peterthoeny/jpulse-framework/webapp', modulePath);
     if (fs.existsSync(frameworkPath)) {
         return frameworkPath;
     }
@@ -133,7 +133,7 @@ static resolveModule(modulePath) {
 ## Success Metrics
 
 ### W-051 Success Criteria:
-- @jpulse/framework package successfully published to GitHub Packages
+- @peterthoeny/jpulse-framework package successfully published to GitHub Packages
 - PathResolver correctly resolves from node_modules
 - Framework can be installed and used as npm dependency
 

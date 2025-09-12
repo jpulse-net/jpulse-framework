@@ -65,10 +65,10 @@ function createSitePackageJson() {
             start: "node webapp/app.js",
             dev: "node webapp/app.js",
             prod: "NODE_ENV=production node webapp/app.js",
-            update: "npm update @jpulse/framework && npx jpulse-sync"
+            update: "npm update @peterthoeny/jpulse-framework && npx jpulse-sync"
         },
         dependencies: {
-            "@jpulse/framework": `^${frameworkPackage.version}`
+            "@peterthoeny/jpulse-framework": `^${frameworkPackage.version}`
         },
         engines: {
             node: ">=16.0.0"

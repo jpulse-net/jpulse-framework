@@ -1,4 +1,4 @@
-# jPulse Framework v0.6.3
+# jPulse Framework v0.6.4
 
 A modern, lightweight web application framework designed for enterprise and government organizations. Built with Node.js, Express, and MongoDB, jPulse combines the simplicity of traditional server-side rendering with modern development practices.
 
@@ -22,7 +22,7 @@ Clean separation of concerns with automatic controller discovery, flexible templ
 
 ```bash
 # Create a new jPulse site
-npm install -g @jpulse/framework
+npm install -g @peterthoeny/jpulse-framework
 mkdir my-jpulse-site && cd my-jpulse-site
 npx jpulse-setup
 
@@ -71,7 +71,7 @@ my-jpulse-site/
 │   ├── model/            # Custom models
 │   ├── view/             # Custom views
 │   └── static/           # Custom assets
-└── package.json          # Dependencies (@jpulse/framework)
+└── package.json          # Dependencies (@peterthoeny/jpulse-framework)
 ```
 
 **File Resolution Priority:**
@@ -82,7 +82,7 @@ my-jpulse-site/
 ```bash
 npm run update  # Updates framework to latest version
 # or manually:
-npm update @jpulse/framework && npx jpulse-sync
+npm update @peterthoeny/jpulse-framework && npx jpulse-sync
 ```
 
 ## Documentation

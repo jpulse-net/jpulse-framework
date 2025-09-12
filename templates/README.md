@@ -47,7 +47,7 @@ my-site/
 ```bash
 npm run update
 # or manually:
-npm update @jpulse/framework
+npm update @peterthoeny/jpulse-framework
 npx jpulse-sync
 ```
 

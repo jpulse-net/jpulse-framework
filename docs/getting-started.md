@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Getting Started with jPulse v0.6.3
+# jPulse Framework / Docs / Getting Started with jPulse v0.6.4
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the W-014 override system.
 
@@ -16,7 +16,7 @@ Before starting, ensure you have:
 ```bash
 # Create a new jPulse site
 mkdir my-first-site && cd my-first-site
-npm install @jpulse/framework
+npm install @peterthoeny/jpulse-framework
 npx jpulse-setup
 ```
 
@@ -52,7 +52,7 @@ my-first-site/
 │   ├── model/            # Custom models
 │   ├── view/             # Custom templates
 │   └── static/           # Site assets
-└── package.json          # Dependencies (@jpulse/framework)
+└── package.json          # Dependencies (@peterthoeny/jpulse-framework)
 ```
 
 ## Step 3: Create Your First Custom Page
@@ -434,7 +434,7 @@ Keep your framework up to date with the latest features and fixes:
 npm run update
 
 # Or manually:
-npm update @jpulse/framework
+npm update @peterthoeny/jpulse-framework
 npx jpulse-sync
 
 # Review changes

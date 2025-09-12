@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Package Publishing Guide v0.6.3
+# jPulse Framework / Docs / Dev / Package Publishing Guide v0.6.4
 
 This guide covers publishing the jPulse Framework to GitHub Packages for framework maintainers and core developers.
 
@@ -107,7 +107,7 @@ git push origin main --tags
 **GitHub Actions Workflow:**
 - Triggered by version tags (`v*`)
 - Runs complete test suite
-- Publishes to `@jpulse/framework`
+- Publishes to `@peterthoeny/jpulse-framework`
 - Creates GitHub release with installation instructions
 
 ### Method 2: Manual Publishing
@@ -168,11 +168,11 @@ git push origin main --tags
 ### Post-Publishing Validation
 ```bash
 # 1. Verify package is available
-npm view @jpulse/framework --registry=https://npm.pkg.github.com
+npm view @peterthoeny/jpulse-framework --registry=https://npm.pkg.github.com
 
 # 2. Test installation in clean directory
 mkdir test-install && cd test-install
-npm install @jpulse/framework --registry=https://npm.pkg.github.com
+npm install @peterthoeny/jpulse-framework --registry=https://npm.pkg.github.com
 npx jpulse-setup
 
 # 3. Verify CLI tools work
@@ -225,10 +225,10 @@ cat ~/.npmrc
 ### Publishing Failures
 ```bash
 # Check package name and scope
-npm view @jpulse/framework --registry=https://npm.pkg.github.com
+npm view @peterthoeny/jpulse-framework --registry=https://npm.pkg.github.com
 
 # Verify version doesn't already exist
-npm view @jpulse/framework versions --json --registry=https://npm.pkg.github.com
+npm view @peterthoeny/jpulse-framework versions --json --registry=https://npm.pkg.github.com
 
 # Check GitHub Packages permissions
 # Visit: https://github.com/peterthoeny/jpulse-framework/packages

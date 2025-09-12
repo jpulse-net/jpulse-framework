@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Getting Started with jPulse v0.6.0
+# jPulse Framework / Docs / Getting Started with jPulse v0.6.1
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the W-014 override system.
 

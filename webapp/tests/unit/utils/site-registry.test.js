@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-014 SiteRegistry auto-discovery utility
  * @description     Tests site controller auto-discovery and API registration functionality
  * @file            webapp/tests/unit/utils/site-registry.test.js
- * @version         0.6.0
+ * @version         0.6.1
  * @release         2025-09-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,8 +16,13 @@ import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globa
 import fs from 'fs';
 import path from 'path';
 
-// Mock dependencies
-jest.mock('fs');
+// Mock dependencies before importing modules that use them
+jest.mock('fs', () => ({
+    existsSync: jest.fn(),
+    readdirSync: jest.fn(),
+    readFileSync: jest.fn()
+}));
+
 jest.mock('../../../controller/log.js', () => ({
     logInfo: jest.fn(),
     logError: jest.fn()
@@ -28,7 +33,7 @@ describe('SiteRegistry (W-014)', () => {
     let LogController;
     const mockProjectRoot = '/Users/test/jpulse-framework';
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // Clear all mocks
         jest.clearAllMocks();
 
@@ -39,9 +44,15 @@ describe('SiteRegistry (W-014)', () => {
             }
         };
 
-        // Import the modules (now works without ES module issues)
-        SiteRegistry = require('../../../utils/site-registry.js').default;
-        LogController = require('../../../controller/log.js');
+        // Import the modules - they will use the mocked fs
+        const { default: SiteRegistryModule } = await import('../../../utils/site-registry.js');
+        SiteRegistry = SiteRegistryModule;
+        LogController = await import('../../../controller/log.js');
+
+        // Clear the registry to ensure clean state
+        SiteRegistry.registry.controllers.clear();
+        SiteRegistry.registry.scanPath = null;
+        SiteRegistry.registry.lastScan = null;
     });
 
     afterEach(() => {
@@ -127,23 +138,22 @@ describe('SiteRegistry (W-014)', () => {
                 'test.js'
             ]);
 
-            // Mock controller files
-            const mockHelloController = { api: jest.fn() };
-            const mockTestController = { api: jest.fn() };
-
-            jest.doMock(path.join(controllerDir, 'hello.js'), () => ({
-                default: mockHelloController
-            }), { virtual: true });
-
-            jest.doMock(path.join(controllerDir, 'test.js'), () => ({
-                default: mockTestController
-            }), { virtual: true });
+            // Mock file contents for API detection
+            fs.readFileSync.mockImplementation((filePath) => {
+                if (filePath.endsWith('hello.js')) {
+                    return 'export default class HelloController { static async api(req, res) {} }';
+                }
+                if (filePath.endsWith('test.js')) {
+                    return 'export default class TestController { static async api(req, res) {} }';
+                }
+                return '';
+            });
 
             await SiteRegistry.initialize();
 
             expect(LogController.logInfo).toHaveBeenCalledWith(
-                'site-registry',
-                'Discovered 2 controllers, 2 with APIs'
+                null,
+                'site-registry: Discovered 2 controllers, 2 with APIs'
             );
         });
 
@@ -153,26 +163,26 @@ describe('SiteRegistry (W-014)', () => {
             fs.existsSync.mockReturnValue(true);
             fs.readdirSync.mockReturnValue(['broken.js', 'working.js']);
 
-            // Mock working controller
-            const mockWorkingController = { api: jest.fn() };
-            jest.doMock(path.join(controllerDir, 'working.js'), () => ({
-                default: mockWorkingController
-            }), { virtual: true });
-
-            // Mock broken controller that throws on import
-            jest.doMock(path.join(controllerDir, 'broken.js'), () => {
-                throw new Error('Syntax error in controller');
-            }, { virtual: true });
+            // Mock file contents - broken.js should throw error, working.js should have API
+            fs.readFileSync.mockImplementation((filePath) => {
+                if (filePath.endsWith('broken.js')) {
+                    throw new Error('ENOENT: no such file or directory');
+                }
+                if (filePath.endsWith('working.js')) {
+                    return 'export default class WorkingController { static async api(req, res) {} }';
+                }
+                return '';
+            });
 
             await SiteRegistry.initialize();
 
             expect(LogController.logError).toHaveBeenCalledWith(
-                'site-registry',
-                expect.stringContaining('Failed to load controller broken.js')
+                null,
+                expect.stringContaining('site-registry: Failed to analyze controller broken.js')
             );
             expect(LogController.logInfo).toHaveBeenCalledWith(
-                'site-registry',
-                'Discovered 1 controllers, 1 with APIs'
+                null,
+                'site-registry: Discovered 1 controllers, 1 with APIs'
             );
         });
     });
@@ -186,37 +196,54 @@ describe('SiteRegistry (W-014)', () => {
                 delete: jest.fn()
             };
 
-            // Mock discovered controllers
-            SiteRegistry.discoveredControllers = new Map([
-                ['hello', { api: jest.fn() }],
-                ['admin', { api: jest.fn() }]
-            ]);
+            // Mock discovered controllers in the registry
+            SiteRegistry.registry.controllers.set('hello', {
+                name: 'hello',
+                hasApi: true,
+                path: '/mock/path/hello.js',
+                relativePath: 'controller/hello.js'
+            });
+            SiteRegistry.registry.controllers.set('admin', {
+                name: 'admin',
+                hasApi: true,
+                path: '/mock/path/admin.js',
+                relativePath: 'controller/admin.js'
+            });
 
             SiteRegistry.registerApiRoutes(mockRouter);
 
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/admin', expect.any(Function));
             expect(LogController.logInfo).toHaveBeenCalledWith(
-                'site-registry',
-                'Registered API route /api/1/hello → hello'
+                null,
+                'site-registry: Registered API route /api/1/hello → hello'
             );
             expect(LogController.logInfo).toHaveBeenCalledWith(
-                'site-registry',
-                'Registered API route /api/1/admin → admin'
+                null,
+                'site-registry: Registered API route /api/1/admin → admin'
             );
         });
 
-        test('should handle API route execution', () => {
+        test('should handle API route execution', async () => {
             const mockRouter = {
                 get: jest.fn()
             };
             const mockController = {
-                api: jest.fn().mockReturnValue({ success: true, data: 'test' })
+                api: jest.fn().mockImplementation((req, res) => {
+                    res.json({ success: true, data: 'test' });
+                })
             };
 
-            SiteRegistry.discoveredControllers = new Map([
-                ['hello', mockController]
-            ]);
+            // Mock discovered controller in the registry
+            SiteRegistry.registry.controllers.set('hello', {
+                name: 'hello',
+                hasApi: true,
+                path: '/mock/path/hello.js',
+                relativePath: 'controller/hello.js'
+            });
+
+            // Mock loadController to return the mock controller
+            jest.spyOn(SiteRegistry, 'loadController').mockResolvedValue(mockController);
 
             SiteRegistry.registerApiRoutes(mockRouter);
 
@@ -231,13 +258,13 @@ describe('SiteRegistry (W-014)', () => {
             };
 
             // Execute the route handler
-            routeHandler(mockReq, mockRes);
+            await routeHandler(mockReq, mockRes);
 
             expect(mockController.api).toHaveBeenCalledWith(mockReq, mockRes);
             expect(mockRes.json).toHaveBeenCalledWith({ success: true, data: 'test' });
         });
 
-        test('should handle API route errors', () => {
+        test('should handle API route errors', async () => {
             const mockRouter = {
                 get: jest.fn()
             };
@@ -247,25 +274,35 @@ describe('SiteRegistry (W-014)', () => {
                 })
             };
 
-            SiteRegistry.discoveredControllers = new Map([
-                ['hello', mockController]
-            ]);
+            // Mock discovered controller in the registry
+            SiteRegistry.registry.controllers.set('hello', {
+                name: 'hello',
+                hasApi: true,
+                path: '/mock/path/hello.js',
+                relativePath: 'controller/hello.js'
+            });
+
+            // Mock loadController to return the mock controller
+            jest.spyOn(SiteRegistry, 'loadController').mockResolvedValue(mockController);
+
+            // Don't mock CommonUtils so it falls back to direct res.status/res.json
 
             SiteRegistry.registerApiRoutes(mockRouter);
 
             const routeHandler = mockRouter.get.mock.calls[0][1];
-            const mockReq = { method: 'GET', url: '/api/1/hello' };
+            const mockReq = { method: 'GET', url: '/api/1/hello', originalUrl: '/api/1/hello' };
             const mockRes = {
                 json: jest.fn(),
                 status: jest.fn().mockReturnThis()
             };
 
-            routeHandler(mockReq, mockRes);
+            await routeHandler(mockReq, mockRes);
 
             expect(mockRes.status).toHaveBeenCalledWith(500);
             expect(mockRes.json).toHaveBeenCalledWith({
-                error: 'Internal server error',
-                message: 'Controller error'
+                error: 'Site API error',
+                path: '/api/1/hello',
+                success: false
             });
         });
 
@@ -275,10 +312,18 @@ describe('SiteRegistry (W-014)', () => {
             };
 
             // Mock controllers - one with API, one without
-            SiteRegistry.discoveredControllers = new Map([
-                ['hello', { api: jest.fn() }],
-                ['admin', { index: jest.fn() }] // No API method
-            ]);
+            SiteRegistry.registry.controllers.set('hello', {
+                name: 'hello',
+                hasApi: true,
+                path: '/mock/path/hello.js',
+                relativePath: 'controller/hello.js'
+            });
+            SiteRegistry.registry.controllers.set('admin', {
+                name: 'admin',
+                hasApi: false, // No API method
+                path: '/mock/path/admin.js',
+                relativePath: 'controller/admin.js'
+            });
 
             SiteRegistry.registerApiRoutes(mockRouter);
 
@@ -294,10 +339,13 @@ describe('SiteRegistry (W-014)', () => {
             fs.existsSync.mockReturnValue(true);
             fs.readdirSync.mockReturnValue(['hello.js']);
 
-            const mockController = { api: jest.fn() };
-            jest.doMock(path.join(controllerDir, 'hello.js'), () => ({
-                default: mockController
-            }), { virtual: true });
+            // Mock file contents for API detection
+            fs.readFileSync.mockImplementation((filePath) => {
+                if (filePath.endsWith('hello.js')) {
+                    return 'export default class HelloController { static async api(req, res) {} }';
+                }
+                return '';
+            });
 
             await SiteRegistry.initialize();
 
@@ -307,19 +355,33 @@ describe('SiteRegistry (W-014)', () => {
             // Should auto-discover and register without manual configuration
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
             expect(LogController.logInfo).toHaveBeenCalledWith(
-                'site-registry',
-                'Discovered 1 controllers, 1 with APIs'
+                null,
+                'site-registry: Discovered 1 controllers, 1 with APIs'
             );
         });
 
         test('should support consistent API endpoint pattern', () => {
             const mockRouter = { get: jest.fn() };
 
-            SiteRegistry.discoveredControllers = new Map([
-                ['hello', { api: jest.fn() }],
-                ['user-profile', { api: jest.fn() }],
-                ['admin-dashboard', { api: jest.fn() }]
-            ]);
+            // Mock multiple controllers with APIs
+            SiteRegistry.registry.controllers.set('hello', {
+                name: 'hello',
+                hasApi: true,
+                path: '/mock/path/hello.js',
+                relativePath: 'controller/hello.js'
+            });
+            SiteRegistry.registry.controllers.set('user-profile', {
+                name: 'user-profile',
+                hasApi: true,
+                path: '/mock/path/user-profile.js',
+                relativePath: 'controller/user-profile.js'
+            });
+            SiteRegistry.registry.controllers.set('admin-dashboard', {
+                name: 'admin-dashboard',
+                hasApi: true,
+                path: '/mock/path/admin-dashboard.js',
+                relativePath: 'controller/admin-dashboard.js'
+            });
 
             SiteRegistry.registerApiRoutes(mockRouter);
 
@@ -362,8 +424,8 @@ describe('SiteRegistry (W-014)', () => {
             await SiteRegistry.initialize();
 
             expect(LogController.logInfo).toHaveBeenCalledWith(
-                'site-registry',
-                'Discovered 0 controllers, 0 with APIs'
+                null,
+                'site-registry: Discovered 0 controllers, 0 with APIs'
             );
         });
 
@@ -378,8 +440,8 @@ describe('SiteRegistry (W-014)', () => {
             await SiteRegistry.initialize();
 
             expect(LogController.logError).toHaveBeenCalledWith(
-                'site-registry',
-                expect.stringContaining('Error scanning site controllers')
+                null,
+                expect.stringContaining('site-registry: Site Registry initialization failed:')
             );
         });
 
@@ -398,8 +460,8 @@ describe('SiteRegistry (W-014)', () => {
             await SiteRegistry.initialize();
 
             expect(LogController.logInfo).toHaveBeenCalledWith(
-                'site-registry',
-                'Discovered 1 controllers, 0 with APIs'
+                null,
+                'site-registry: Discovered 1 controllers, 0 with APIs'
             );
         });
     });

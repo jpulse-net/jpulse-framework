@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Package Publishing Guide v0.6.0
+# jPulse Framework / Docs / Dev / Package Publishing Guide v0.6.1
 
 This guide covers publishing the jPulse Framework to GitHub Packages for framework maintainers and core developers.
 
@@ -64,20 +64,38 @@ npm whoami --registry=https://npm.pkg.github.com
 
 ## Publishing Workflow
 
+### Pre-Publishing Checks
+Before publishing, always run these validation steps:
+
+```bash
+# 1. Run complete test suite
+npm test
+
+# 2. Test CLI tools
+npm run test:cli
+
+# 3. Verify package contents
+npm pack --dry-run
+
+# 4. Check package size
+npm pack
+ls -la *.tgz
+```
+
 ### Method 1: Automated Publishing (Recommended)
 
 The framework includes GitHub Actions for automated publishing:
 
 ```bash
 # 1. Bump version across all files:
-node bump-version.js 0.5.6
+node bump-version.js 0.6.0
 # 2. Verify if correct:
 git status
 git diff
 # 3. Add and commit if OK:
 git add .
-git commit -m "W-051, v0.5.6: Feature: ..."
-git tag v0.5.6
+git commit -m "W-051, v0.6.0: Feature: ..."
+git tag v0.6.0
 git push origin main --tags
 
 # 4. GitHub Actions will automatically:
@@ -133,39 +151,19 @@ Follow semantic versioning (semver) for releases:
 
 ### Version Commands
 ```bash
-# Patch version (bug fixes)
-npm version patch
+# Use the project's bump script to update all ~100 files consistently
+node bump-version.js 0.6.1    # Patch version (bug fixes)
+node bump-version.js 0.7.0    # Minor version (new features)
+node bump-version.js 1.0.0    # Major version (breaking changes)
 
-# Minor version (new features)
-npm version minor
-
-# Major version (breaking changes)
-npm version major
-
-# Specific version
-npm version 1.0.0
-
-# Pre-release versions
-npm version prerelease --preid=beta  # 0.5.6-beta.0
+# Always follow with git operations:
+git add .
+git commit -m "W-051, v0.6.1: Description of changes"
+git tag v0.6.1
+git push origin main --tags
 ```
 
 ## Package Validation
-
-### Pre-Publishing Checks
-```bash
-# 1. Run complete test suite
-npm test
-
-# 2. Test CLI tools
-npm run test:cli
-
-# 3. Verify package contents
-npm pack --dry-run
-
-# 4. Check package size
-npm pack
-ls -la *.tgz
-```
 
 ### Post-Publishing Validation
 ```bash

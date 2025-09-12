@@ -4,7 +4,7 @@
  * @tagline         Site configuration management interface
  * @description     Edit site configuration, for administrators
  * @file            webapp/view/admin/config.shtml
- * @version         0.6.0
+ * @version         0.6.1
  * @release         2025-09-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

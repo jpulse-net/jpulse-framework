@@ -3,7 +3,7 @@
  * @tagline         Unit tests for i18n user language functionality (W-013)
  * @description     Tests for new translate(req, keyPath, context) method with user language detection
  * @file            webapp/tests/unit/translations/i18n-user-language.test.js
- * @version         0.6.0
+ * @version         0.6.1
  * @release         2025-09-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

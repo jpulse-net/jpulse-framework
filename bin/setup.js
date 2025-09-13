@@ -4,7 +4,7 @@
  * @tagline         Interactive site setup and deployment configuration CLI tool
  * @description     Creates jPulse sites with deployment automation (W-015)
  * @file            bin/setup.js
- * @version         0.6.7
+ * @version         0.6.8
  * @release         2025-09-13
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -234,7 +234,7 @@ function copyDirectory(src, dest) {
 /**
  * Replace template placeholders
  */
-function replaceTemplatePlaceholders(content, config, frameworkVersion) {
+function replaceTemplatePlaceholders(content, config, frameworkVersion, deploymentType) {
     const now = new Date();
     const replacements = {
         '%SITE_NAME%': config.siteName,
@@ -243,10 +243,13 @@ function replaceTemplatePlaceholders(content, config, frameworkVersion) {
         '%APP_PORT%': config.appPort.toString(),
         '%DB_NAME%': config.dbName,
         '%DB_USER%': config.dbUser,
+        '%DB_PASS%': config.dbPass,
         '%DB_ADMIN_USER%': config.dbAdminUser,
+        '%DB_ADMIN_PASS%': config.dbAdminPass,
         '%DB_USER_HINT%': `your-${config.dbUser}-password`,
         '%DB_ADMIN_USER_HINT%': `your-${config.dbAdminUser}-password`,
         '%SESSION_SECRET%': config.sessionSecret,
+        '%NODE_ENV%': deploymentType === 'dev' ? 'development' : 'production',
         '%PM2_INSTANCES%': config.pm2Instances.toString(),
         '%DOMAIN_NAME%': config.domainName || 'localhost',
         '%SSL_CERT_PATH%': config.sslCertPath || '/etc/ssl/certs/server.crt',
@@ -275,7 +278,7 @@ function createSiteConfiguration(deploymentType, config, frameworkVersion) {
     }
 
     const templateContent = fs.readFileSync(templatePath, 'utf8');
-    const configContent = replaceTemplatePlaceholders(templateContent, config, frameworkVersion);
+    const configContent = replaceTemplatePlaceholders(templateContent, config, frameworkVersion, deploymentType);
 
     // Ensure site/webapp directory exists
     if (!fs.existsSync('site/webapp')) {
@@ -288,7 +291,7 @@ function createSiteConfiguration(deploymentType, config, frameworkVersion) {
 /**
  * Generate deployment files
  */
-function generateDeploymentFiles(config, frameworkVersion) {
+function generateDeploymentFiles(config, frameworkVersion, deploymentType) {
     console.log('📋 Generating deployment files...');
 
     // Create deploy directory
@@ -306,7 +309,7 @@ function generateDeploymentFiles(config, frameworkVersion) {
 
         if (fs.statSync(srcPath).isFile()) {
             const content = fs.readFileSync(srcPath, 'utf8');
-            const processedContent = replaceTemplatePlaceholders(content, config, frameworkVersion);
+            const processedContent = replaceTemplatePlaceholders(content, config, frameworkVersion, deploymentType);
             fs.writeFileSync(destPath, processedContent);
 
             // Make shell scripts executable
@@ -374,11 +377,11 @@ function createSiteStructure() {
 /**
  * Copy site templates (README, etc.)
  */
-function copySiteTemplates(config, frameworkVersion) {
+function copySiteTemplates(config, frameworkVersion, deploymentType) {
     const readmePath = path.join(packageRoot, 'templates/README.md');
     if (fs.existsSync(readmePath)) {
         const templateContent = fs.readFileSync(readmePath, 'utf8');
-        const processedContent = replaceTemplatePlaceholders(templateContent, config, frameworkVersion);
+        const processedContent = replaceTemplatePlaceholders(templateContent, config, frameworkVersion, deploymentType);
         fs.writeFileSync('README.md', processedContent);
     }
 }
@@ -466,7 +469,7 @@ async function setup() {
 
             // Copy site templates
             console.log('📋 Copying site templates...');
-            copySiteTemplates(config, frameworkPackage.version);
+            copySiteTemplates(config, frameworkPackage.version, deploymentType);
 
             // Create package.json
             console.log('📦 Creating package.json...');
@@ -479,7 +482,7 @@ async function setup() {
 
         // Generate deployment files if requested
         if (config.generateDeployment) {
-            generateDeploymentFiles(config, frameworkPackage.version);
+            generateDeploymentFiles(config, frameworkPackage.version, deploymentType);
         }
 
         console.log('\n✅ jPulse site setup complete!\n');

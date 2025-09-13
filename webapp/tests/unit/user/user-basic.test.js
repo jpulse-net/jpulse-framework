@@ -3,7 +3,7 @@
  * @tagline         Basic tests for User Model and Controller
  * @description     Unit tests for User Model validation and basic functionality
  * @file            webapp/tests/unit/user/user-basic.test.js
- * @version         0.6.7
+ * @version         0.6.8
  * @release         2025-09-13
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

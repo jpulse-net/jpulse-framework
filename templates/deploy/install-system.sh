@@ -8,7 +8,7 @@
  # @site            %SITE_NAME%
  # @generated       %GENERATION_DATE%
  # @file            templates/deploy/install-system.sh
- # @version         0.6.7
+ # @version         0.6.8
  # @release         2025-09-13
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -102,20 +102,45 @@ else
     echo "✅ PM2 already installed: $(pm2 --version)"
 fi
 
-# Create application user
-echo "👤 Creating application user..."
-if ! id "jpulse" &>/dev/null; then
-    useradd -r -s /bin/bash -d /opt/jpulse -m jpulse
-    echo "✅ Application user 'jpulse' created"
+# Application user setup
+echo "👤 Setting up application user..."
+echo ""
+echo "You can either:"
+echo "  1) Use existing user (admin/service account)"
+echo "  2) Create new dedicated 'jpulse' user"
+echo ""
+read -p "? Create new 'jpulse' user? (y/N): " CREATE_USER
+CREATE_USER=${CREATE_USER:-n}
+
+if [[ "$CREATE_USER" =~ ^[Yy] ]]; then
+    if ! id "jpulse" &>/dev/null; then
+        useradd -r -s /bin/bash -d /opt/jpulse -m jpulse
+        echo "✅ Application user 'jpulse' created"
+        APP_USER="jpulse"
+    else
+        echo "✅ Application user 'jpulse' already exists"
+        APP_USER="jpulse"
+    fi
 else
-    echo "✅ Application user 'jpulse' already exists"
+    echo "ℹ️  Using existing user for application deployment"
+    echo "💡 Ensure your user has access to:"
+    echo "   - /opt/ directory (for application files)"
+    echo "   - /var/log/ directory (for log files)"
+    echo "   - PM2 and MongoDB commands"
+    APP_USER=$(whoami)
+    echo "✅ Will use current user for deployment guidance"
 fi
 
 # Create log directory
 echo "📁 Creating log directories..."
 mkdir -p /var/log/jpulse
-chown jpulse:jpulse /var/log/jpulse
-chmod 755 /var/log/jpulse
+if [[ "$APP_USER" == "jpulse" ]]; then
+    chown jpulse:jpulse /var/log/jpulse
+else
+    # For existing users, make logs writable by the user's group
+    chown root:$(id -gn $APP_USER) /var/log/jpulse
+    chmod 775 /var/log/jpulse
+fi
 echo "✅ Log directory created: /var/log/jpulse"
 
 # Configure firewall
@@ -143,12 +168,17 @@ echo "   Node.js: $(node --version)"
 echo "   MongoDB: Installed and running"
 echo "   nginx: Installed and running"
 echo "   PM2: $(pm2 --version)"
-echo "   Application user: jpulse"
+echo "   Application user: $APP_USER"
 echo "   Log directory: /var/log/jpulse"
 echo ""
 echo "💡 Next steps:"
-echo "   1. Switch to application user: sudo -u jpulse -i"
-echo "   2. Deploy application to /opt/jpulse/"
+if [[ "$APP_USER" == "jpulse" ]]; then
+    echo "   1. Switch to application user: sudo -u jpulse -i"
+    echo "   2. Deploy application to /opt/jpulse/"
+else
+    echo "   1. Deploy application to your preferred directory"
+    echo "   2. Ensure $APP_USER has access to /var/log/jpulse/"
+fi
 echo "   3. Run database setup: ./deploy/mongodb-setup.sh"
 echo "   4. Configure nginx: ./deploy/setup-nginx.sh"
 echo "   5. Start application: pm2 start deploy/ecosystem.prod.config.js"

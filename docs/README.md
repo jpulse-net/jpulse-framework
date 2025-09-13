@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.6.7
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.6.8
 
 **For Site Administrators & Site Developers**
 
@@ -77,12 +77,13 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 
 ```bash
 # Create a new jPulse site
+npm install -g @peterthoeny/jpulse-framework
 mkdir my-jpulse-site && cd my-jpulse-site
-npm install @peterthoeny/jpulse-framework
+# Configure site
 npx jpulse-setup
-
-# Configure and start
-cp site/webapp/app.conf.tmpl site/webapp/app.conf
+# Install dependencies
+npm install
+# Start the server app
 npm start
 # Visit http://localhost:8080
 ```

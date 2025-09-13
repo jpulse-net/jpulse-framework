@@ -1,4 +1,4 @@
-# jPulse Framework v0.6.7
+# jPulse Framework v0.6.8
 
 A modern, lightweight web application framework designed for enterprise and government organizations. Built with Node.js, Express, and MongoDB, jPulse combines the simplicity of traditional server-side rendering with modern development practices.
 
@@ -26,14 +26,17 @@ Clean separation of concerns with automatic controller discovery, flexible templ
 export GITHUB_TOKEN=your_github_token
 echo "@peterthoeny:registry=https://npm.pkg.github.com" >> ~/.npmrc
 echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc
-npm install -g @peterthoeny/jpulse-framework
+# For production servers, use sudo:
+sudo npm install -g @peterthoeny/jpulse-framework
+# else for service account/sysadmin user account:
+#    npm install -g @peterthoeny/jpulse-framework
 
 # Create a new jPulse site
 mkdir my-jpulse-site && cd my-jpulse-site
 npx jpulse-setup
 
-# Configure and start
-cp site/webapp/app.conf.tmpl site/webapp/app.conf
+# Install dependencies and start
+npm install
 npm start
 # Visit http://localhost:8080
 ```

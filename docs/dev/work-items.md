@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.6.7
+# jPulse Framework / Docs / Dev / Work Items v0.6.8
 
 This is the doc to track work items, arranged in three sections:
 
@@ -744,7 +744,7 @@ next work item: **W-036**: view: migrate existing views to use jpulse-common.js 
 - review task, ask questions
 - suggest change of spec, goal is better usability for site developers
 - plan how to implement (wait for my go ahead)
-- current timestamp: 2025-09-12 22:09
+- current timestamp: 2025-09-13 14:08
 
 Almost ready for W-042 release (this chat refers to W-021, my mistake)
 

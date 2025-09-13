@@ -41,6 +41,14 @@ Implement repository separation using private npm packages (GitHub Packages) to 
 - Framework version management utilities
 - Migration tools for existing sites
 
+**Note**: Phase 3 is split up into multiple work items:
+- W-015: deployment: strategy for clean onboarding
+- W-053: deployment: configuration templates and validation
+- W-054: deployment: documentation simplification and troubleshooting
+- W-055: deployment: multiple app servers with load balancer setup
+- W-056: deployment: advanced database configurations
+- W-057: deployment: production monitoring and alerting
+
 ## Technical Implementation
 
 ### Repository Structure After W-050

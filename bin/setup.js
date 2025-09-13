@@ -4,7 +4,7 @@
  * @tagline         Interactive site setup and deployment configuration CLI tool
  * @description     Creates jPulse sites with deployment automation (W-015)
  * @file            bin/setup.js
- * @version         0.6.6
+ * @version         0.6.7
  * @release         2025-09-13
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -87,9 +87,38 @@ function generateSessionSecret() {
 }
 
 /**
+ * Get test configuration when in test mode
+ */
+function getTestConfiguration(deploymentType) {
+    const siteName = process.env.JPULSE_TEST_SITE_NAME || 'Test Site';
+    return {
+        siteName,
+        siteShortName: 'Test Site',
+        siteId: siteName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'test-site',
+        appPort: deploymentType === 'dev' ? 8080 : 8081,
+        dbAdminUser: 'admin',
+        dbAdminPass: 'test-admin-pass',
+        dbUser: 'jpapp',
+        dbPass: 'test-app-pass',
+        dbName: deploymentType === 'dev' ? 'jp-dev' : 'jp-prod',
+        sessionSecret: 'test-session-secret-123',
+        pm2Instances: deploymentType === 'dev' ? 1 : 'max',
+        domainName: 'localhost',
+        sslType: 'none',
+        generateDeployment: process.env.JPULSE_TEST_GENERATE_DEPLOY === 'true'
+    };
+}
+
+/**
  * Interactive configuration prompting
  */
 async function promptConfiguration(deploymentType) {
+    // Check if we're in test mode
+    if (process.env.JPULSE_TEST_MODE === 'true') {
+        console.log('🧪 Running in test mode with default configuration');
+        return getTestConfiguration(deploymentType);
+    }
+
     console.log('📋 Configuration Settings:\n');
 
     const config = {};
@@ -345,10 +374,12 @@ function createSiteStructure() {
 /**
  * Copy site templates (README, etc.)
  */
-function copySiteTemplates() {
+function copySiteTemplates(config, frameworkVersion) {
     const readmePath = path.join(packageRoot, 'templates/README.md');
     if (fs.existsSync(readmePath)) {
-        fs.copyFileSync(readmePath, 'README.md');
+        const templateContent = fs.readFileSync(readmePath, 'utf8');
+        const processedContent = replaceTemplatePlaceholders(templateContent, config, frameworkVersion);
+        fs.writeFileSync('README.md', processedContent);
     }
 }
 
@@ -366,15 +397,20 @@ async function setup() {
         let setupType = 'new-site';
         let deploymentType = 'dev';
 
-        switch (state) {
-            case 'empty':
-                console.log('📁 Empty directory detected\n');
-                console.log('? What would you like to set up?');
-                console.log('  1) New jPulse site (development)');
-                console.log('  2) New jPulse site (production ready)');
-                const choice = await question('? Choose (1-2): (1) ');
-                deploymentType = choice === '2' ? 'prod' : 'dev';
-                break;
+        // Handle test mode
+        if (process.env.JPULSE_TEST_MODE === 'true') {
+            deploymentType = process.env.JPULSE_TEST_DEPLOYMENT || 'dev';
+            console.log(`🧪 Test mode: Using ${deploymentType} deployment`);
+        } else {
+            switch (state) {
+                case 'empty':
+                    console.log('📁 Empty directory detected\n');
+                    console.log('? What would you like to set up?');
+                    console.log('  1) New jPulse site (development)');
+                    console.log('  2) New jPulse site (production ready)');
+                    const choice = await question('? Choose (1-2): (1) ');
+                    deploymentType = choice === '2' ? 'prod' : 'dev';
+                    break;
 
             case 'jpulse-site':
             case 'jpulse-partial':
@@ -403,12 +439,13 @@ async function setup() {
                 deploymentType = 'prod';
                 break;
 
-            default:
-                console.log('❌ Unknown directory state');
-                console.log('💡 This directory contains files that might conflict with jPulse setup');
-                console.log('🔍 Found files:', fs.readdirSync('.').filter(f => !f.startsWith('.')).join(', '));
-                console.log('\n💡 Please run jpulse-setup in an empty directory or existing jPulse site');
-                process.exit(1);
+                default:
+                    console.log('❌ Unknown directory state');
+                    console.log('💡 This directory contains files that might conflict with jPulse setup');
+                    console.log('🔍 Found files:', fs.readdirSync('.').filter(f => !f.startsWith('.')).join(', '));
+                    console.log('\n💡 Please run jpulse-setup in an empty directory or existing jPulse site');
+                    process.exit(1);
+            }
         }
 
         // Get configuration
@@ -429,7 +466,7 @@ async function setup() {
 
             // Copy site templates
             console.log('📋 Copying site templates...');
-            copySiteTemplates();
+            copySiteTemplates(config, frameworkPackage.version);
 
             // Create package.json
             console.log('📦 Creating package.json...');
@@ -456,7 +493,7 @@ async function setup() {
         if (config.generateDeployment) {
             console.log('3. Review deployment guide: cat deploy/README.md');
             if (deploymentType === 'prod') {
-                console.log('4. Configure environment: cp deploy/env.template .env');
+                console.log('4. Configure environment: cp deploy/env.tmpl .env');
                 console.log('5. Setup database: source .env && ./deploy/mongodb-setup.sh');
             }
         }

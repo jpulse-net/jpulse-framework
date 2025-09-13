@@ -4,8 +4,8 @@
  * @name            jPulse Framework / Build
  * @tagline         Version bump script for jPulse Framework
  * @description     Updates version numbers and release dates across all source files
- * @file            bump-version.js
- * @version         0.6.6
+ * @file            bin/bump-version.js
+ * @version         0.6.7
  * @release         2025-09-13
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,8 +21,10 @@ const conf = {
         'package.json',
         'package-lock.json',
         'README.md',
-        'bump-version.js',
         'babel.config.cjs',
+
+        // Bin directory
+        'bin/*.js',
 
         // Docs directory
         'docs/*.md',
@@ -49,6 +51,15 @@ const conf = {
         'site/webapp/view/*.tmpl',
         'site/webapp/view/*/*.shtml',
 
+        // Template files
+        'templates/README.md',
+        'templates/**/*.md',
+        'templates/**/*.sh',
+        'templates/**/*.js',
+        'templates/**/*.conf',
+        'templates/**/*.tmpl',
+        'templates/**/*.shtml',
+
         // Test files
         'webapp/tests/**/*.js',
         'webapp/tests/**/*.conf',
@@ -56,7 +67,6 @@ const conf = {
 
     // Specific file update patterns for version/content replacement
     fileUpdateRules: [
-        // Root level files
         {
             pattern: 'package.json',
             replacements: [
@@ -94,6 +104,18 @@ const conf = {
                 { from: /^(# jPulse Framework.* v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` }
             ]
         },
+        {
+            pattern: 'templates/*.md',
+            replacements: [
+                { from: /^(# .* jPulse Framework v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` }
+            ]
+        },
+        {
+            pattern: 'templates/**/*.md',
+            replacements: [
+                { from: /^(# .* jPulse Framework v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` }
+            ]
+        },
     ],
 
     // Header update patterns for source files
@@ -112,9 +134,9 @@ const newDate = providedDate || new Date().toISOString().split('T')[0]; // YYYY-
 
 if (!newVersion) {
   console.error('❌ Please provide a new version number');
-  console.error('Usage: node bump-version.js <new-version> [new-date]');
-  console.error('Example: node bump-version.js 1.0.1');
-  console.error('Example: node bump-version.js 1.0.1 2025-01-27');
+  console.error('Usage: node bin/bump-version.js <new-version> [new-date]');
+  console.error('Example: node bin/bump-version.js 1.0.1');
+  console.error('Example: node bin/bump-version.js 1.0.1 2025-01-27');
   console.error('Note: If no date is provided, today\'s date will be used automatically');
   process.exit(1);
 }
@@ -288,4 +310,4 @@ if (errors === 0) {
   process.exit(1);
 }
 
-// EOF bump-version.js
+// EOF bin/bump-version.js

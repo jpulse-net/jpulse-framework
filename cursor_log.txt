@@ -7685,7 +7685,7 @@ GENERATED DEPLOYMENT PACKAGE:
 - deploy/ecosystem.dev.config.js (development PM2)
 - deploy/ecosystem.prod.config.js (production PM2 with configurable instances)
 - deploy/nginx.prod.conf (production nginx with SSL)
-- deploy/.env.template (environment variables)
+- deploy/.env.tmpl (environment variables)
 
 SECURITY FEATURES:
 - All scripts check user privileges (EUID validation)
@@ -7711,7 +7711,7 @@ IMPLEMENTATION PROGRESS:
 - templates/deploy/ecosystem.dev.config.js (development PM2)
 - templates/deploy/ecosystem.prod.config.js (production PM2 with configurable instances)
 - templates/deploy/nginx.prod.conf (production nginx with SSL and security)
-- templates/deploy/env.template (environment variables template)
+- templates/deploy/env.tmpl (environment variables template)
 - templates/deploy/README.md (comprehensive deployment guide)
 
 ✅ FRAMEWORK ENHANCEMENTS:
@@ -7752,6 +7752,42 @@ CONSISTENCY IMPROVEMENTS:
 - siteId field now available in framework config for template replacement
 - All deployment scripts follow established header pattern
 - Template placeholders properly integrated (%SITE_NAME%, %GENERATION_DATE%)
+
+✅ CLI TEST FIXES COMPLETED:
+- Updated bin/test-cli.js to match enhanced setup structure
+- Added test mode support to setup.js (JPULSE_TEST_MODE environment variable)
+- Fixed expected file paths (README.md now at root, not in site/)
+- Added deployment file verification for generated templates
+- Updated existing site detection test for new interactive behavior
+- All CLI tests now passing successfully
+
+TEST MODE FEATURES:
+- Non-interactive testing via environment variables
+- Automated configuration with sensible test defaults
+- Proper cleanup and validation of generated files
+- Support for both development and production test scenarios
+
+✅ UNIFIED TEST EXPERIENCE IMPLEMENTED:
+- Created bin/test-all.js - "Don't make me think" test runner
+- Single command: npm test (runs all test suites)
+- Unified output format with clear section headers
+- Comprehensive summary with pass/fail counts
+- Helpful error guidance and individual test commands
+- Graceful interruption handling (SIGINT/SIGTERM)
+
+TEST SUITE ORGANIZATION:
+- npm test → All tests (CLI + webapp unit + webapp integration)
+- npm run test:cli → CLI tools only
+- npm run test:webapp → All webapp tests (unit + integration)
+- npm run test:unit → Unit tests only
+- npm run test:integration → Integration tests only
+
+BENEFITS DELIVERED:
+- Eliminates cognitive overhead of remembering multiple test commands
+- Provides complete validation in single command
+- Clear visual separation between test suites
+- Actionable feedback on failures with specific guidance
+- Maintains granular testing options for debugging
 
 READY FOR TESTING...
 

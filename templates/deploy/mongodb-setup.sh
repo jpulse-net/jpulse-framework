@@ -1,6 +1,6 @@
 #!/bin/bash
 ##
- # @name            jPulse Framework / Templates / MongoDB Setup
+ # @name            jPulse Framework / Deploy / MongoDB Setup
  # @tagline         MongoDB setup for jPulse site
  # @description     This script will setup MongoDB for jPulse site
  #                  - Run as application user: ./deploy/mongodb-setup.sh
@@ -8,13 +8,13 @@
  # @site            %SITE_NAME%
  # @generated       %GENERATION_DATE%
  # @file            templates/deploy/mongodb-setup.sh
- # @version         0.6.6
+ # @version         0.6.7
  # @release         2025-09-13
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @license         AGPL v3, see LICENSE file
- # @genai           99%, Cursor 1.2, Claude Sonnet 4
+ # @genai           95%, Cursor 1.2, Claude Sonnet 4
 ##
 
 set -e
@@ -148,4 +148,4 @@ echo "   1. Verify .env file contains correct credentials"
 echo "   2. Start jPulse application: npm start"
 echo "   3. Check application logs for database connection"
 
-# EOF templates/deploy/mongodb-setup.sh
+# EOF deploy/mongodb-setup.sh

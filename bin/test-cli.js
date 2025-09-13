@@ -4,8 +4,8 @@
  * @tagline         Test script for CLI tools validation
  * @description     Tests setup and sync CLI tools in isolated environment
  * @file            bin/test-cli.js
- * @version         0.5.5
- * @release         2025-09-12
+ * @version         0.6.7
+ * @release         2025-09-13
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,7 +15,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 
 const testDir = path.join(process.cwd(), 'test-site-temp');
 
@@ -31,7 +31,7 @@ function cleanup() {
 /**
  * Test CLI tools
  */
-function testCLI() {
+async function testCLI() {
     console.log('🧪 Testing jPulse CLI tools...');
 
     try {
@@ -44,17 +44,37 @@ function testCLI() {
 
         console.log('📁 Created test directory:', testDir);
 
-        // Test setup command
+        // Test setup command with environment variables for non-interactive testing
         console.log('🚀 Testing jpulse-setup...');
-        execSync('node ../bin/setup.js', { stdio: 'inherit' });
+
+        // Set environment variables for automated testing
+        process.env.JPULSE_TEST_MODE = 'true';
+        process.env.JPULSE_TEST_DEPLOYMENT = 'dev';
+        process.env.JPULSE_TEST_SITE_NAME = 'Test Site';
+        process.env.JPULSE_TEST_GENERATE_DEPLOY = 'true';
+
+        try {
+            execSync('node ../bin/setup.js', {
+                stdio: 'inherit',
+                env: { ...process.env }
+            });
+        } finally {
+            // Clean up test environment variables
+            delete process.env.JPULSE_TEST_MODE;
+            delete process.env.JPULSE_TEST_DEPLOYMENT;
+            delete process.env.JPULSE_TEST_SITE_NAME;
+            delete process.env.JPULSE_TEST_GENERATE_DEPLOY;
+        }
 
         // Verify setup results
         const expectedFiles = [
             'package.json',
+            'README.md',
             'webapp/app.js',
             'webapp/controller',
             'site/webapp',
-            'site/README.md'
+            'site/webapp/app.conf',
+            'logs'
         ];
 
         for (const file of expectedFiles) {
@@ -63,19 +83,40 @@ function testCLI() {
             }
         }
 
+        // Verify deployment files were generated (since we chose option 1)
+        const expectedDeployFiles = [
+            'deploy/README.md',
+            'deploy/mongodb-setup.sh',
+            'deploy/install-system.sh',
+            'deploy/ecosystem.dev.config.js',
+            'deploy/ecosystem.prod.config.js',
+            'deploy/nginx.prod.conf',
+            'deploy/env.tmpl'
+        ];
+
+        for (const file of expectedDeployFiles) {
+            if (!fs.existsSync(file)) {
+                throw new Error(`Expected deployment file not found: ${file}`);
+            }
+        }
+
         console.log('✅ Setup test passed');
 
-        // Test that setup prevents double initialization
-        console.log('🔒 Testing setup prevention...');
+        // Test that setup detects existing site
+        console.log('🔒 Testing setup detection...');
         try {
-            execSync('node ../bin/setup.js', { stdio: 'pipe' });
-            throw new Error('Setup should have failed on existing site');
+            execSync('node ../bin/setup.js', {
+                stdio: ['pipe', 'pipe', 'pipe'],
+                input: '2\n' // Choose "Update framework files" option
+            });
+            // This should exit with code 0 and suggest using jpulse-sync
         } catch (error) {
             const errorOutput = error.stderr?.toString() || error.stdout?.toString() || '';
-            if (!errorOutput.includes('Site already exists')) {
+            if (errorOutput.includes('Use "npx jpulse-sync"')) {
+                console.log('✅ Setup detection test passed');
+            } else {
                 throw new Error(`Unexpected error: ${errorOutput}`);
             }
-            console.log('✅ Setup prevention test passed');
         }
 
         console.log('🎉 All CLI tests passed!');
@@ -91,6 +132,6 @@ function testCLI() {
     }
 }
 
-testCLI();
+testCLI().catch(console.error);
 
 // EOF bin/test-cli.js

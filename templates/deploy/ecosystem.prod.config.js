@@ -1,8 +1,20 @@
-// Production PM2 Configuration for jPulse Framework
-// Site: %SITE_NAME%
-// Generated: %GENERATION_DATE%
-//
-// Usage: pm2 start deploy/ecosystem.prod.config.js
+/**
+ * @name            jPulse Framework / Deploy / Production PM2 Configuration
+ * @tagline         Production PM2 Configuration for jPulse Framework
+ * @description     Defines the production PM2 configuration for site-specific
+ *                  jPulse Framework deployment
+ * @usage           pm2 start deploy/ecosystem.prod.config.js
+ * @site            %SITE_NAME%
+ * @generated       %GENERATION_DATE%
+ * @file            templates/deploy/ecosystem.prod.config.js
+ * @version         0.6.7
+ * @release         2025-09-13
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           95%, Cursor 1.2, Claude Sonnet 4
+ */
 
 module.exports = {
     apps: [{

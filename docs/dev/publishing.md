@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Package Publishing Guide v0.6.6
+# jPulse Framework / Docs / Dev / Package Publishing Guide v0.6.7
 
 This guide covers publishing the jPulse Framework to GitHub Packages for framework maintainers and core developers.
 
@@ -88,7 +88,7 @@ The framework includes GitHub Actions for automated publishing:
 
 ```bash
 # 1. Bump version across all files:
-node bump-version.js 0.6.0
+node bin/bump-version.js 0.6.0
 # 2. Verify if correct:
 git status
 git diff
@@ -152,9 +152,9 @@ Follow semantic versioning (semver) for releases:
 ### Version Commands
 ```bash
 # Use the project's bump script to update all ~100 files consistently
-node bump-version.js 0.6.1    # Patch version (bug fixes)
-node bump-version.js 0.7.0    # Minor version (new features)
-node bump-version.js 1.0.0    # Major version (breaking changes)
+node bin/bump-version.js 0.6.1    # Patch version (bug fixes)
+node bin/bump-version.js 0.7.0    # Minor version (new features)
+node bin/bump-version.js 1.0.0    # Major version (breaking changes)
 
 # Always follow with git operations:
 git add .

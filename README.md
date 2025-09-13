@@ -1,4 +1,4 @@
-# jPulse Framework v0.6.5
+# jPulse Framework v0.6.6
 
 A modern, lightweight web application framework designed for enterprise and government organizations. Built with Node.js, Express, and MongoDB, jPulse combines the simplicity of traditional server-side rendering with modern development practices.
 
@@ -21,8 +21,14 @@ Clean separation of concerns with automatic controller discovery, flexible templ
 ### For Site Development (Recommended)
 
 ```bash
-# Create a new jPulse site
+# Install jpulse-framework (currently a private repo - requires GitHub token)
+# (once public, omit export and ~/.npmrc creation)
+export GITHUB_TOKEN=your_github_token
+echo "@peterthoeny:registry=https://npm.pkg.github.com" >> ~/.npmrc
+echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc
 npm install -g @peterthoeny/jpulse-framework
+
+# Create a new jPulse site
 mkdir my-jpulse-site && cd my-jpulse-site
 npx jpulse-setup
 

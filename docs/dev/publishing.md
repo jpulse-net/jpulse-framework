@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Package Publishing Guide v0.6.5
+# jPulse Framework / Docs / Dev / Package Publishing Guide v0.6.6
 
 This guide covers publishing the jPulse Framework to GitHub Packages for framework maintainers and core developers.
 
@@ -51,7 +51,7 @@ npm login --registry=https://npm.pkg.github.com
 ```bash
 # Create/edit ~/.npmrc file directly
 echo "//npm.pkg.github.com/:_authToken=YOUR_PERSONAL_ACCESS_TOKEN" >> ~/.npmrc
-echo "@jpulse:registry=https://npm.pkg.github.com" >> ~/.npmrc
+echo "@peterthoeny:registry=https://npm.pkg.github.com" >> ~/.npmrc
 ```
 
 ### 3. Verify Authentication
@@ -166,18 +166,24 @@ git push origin main --tags
 ## Package Validation
 
 ### Post-Publishing Validation
+
 ```bash
 # 1. Verify package is available
 npm view @peterthoeny/jpulse-framework --registry=https://npm.pkg.github.com
 
-# 2. Test installation in clean directory
+# 2. Test installation in clean directory (requires auth for private repo)
 mkdir test-install && cd test-install
-npm install @peterthoeny/jpulse-framework --registry=https://npm.pkg.github.com
+export GITHUB_TOKEN=your_github_token
+echo "@peterthoeny:registry=https://npm.pkg.github.com" >> .npmrc
+echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> .npmrc
+npm install @peterthoeny/jpulse-framework
 npx jpulse-setup
 
 # 3. Verify CLI tools work
 npm start
 ```
+
+> **Note**: Once repository is public, steps 2-3 will simplify to just: `npm install @peterthoeny/jpulse-framework && npx jpulse-setup`
 
 ## Package Configuration
 

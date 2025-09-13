@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Getting Started with jPulse v0.6.5
+# jPulse Framework / Docs / Getting Started with jPulse v0.6.6
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the W-014 override system.
 
@@ -12,11 +12,24 @@ Before starting, ensure you have:
 
 ## Step 1: Create Your First Site
 
+### Install jPulse Framework
+
+```bash
+# Setup GitHub Packages authentication (private repo)
+export GITHUB_TOKEN=your_github_token
+echo "@peterthoeny:registry=https://npm.pkg.github.com" >> ~/.npmrc
+echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc
+
+# Install framework
+npm install @peterthoeny/jpulse-framework
+```
+
+> **Future**: Once the repository is public, this will simplify to just: `npm install @peterthoeny/jpulse-framework`
+
 ### Setup New Site
 ```bash
 # Create a new jPulse site
 mkdir my-first-site && cd my-first-site
-npm install @peterthoeny/jpulse-framework
 npx jpulse-setup
 ```
 

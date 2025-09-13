@@ -37,7 +37,7 @@ Implement repository separation using private npm packages (GitHub Packages) to 
 - Provide clean starting point for new sites
 
 **CLI Tooling (Future):**
-- npx @jpulse/create-site my-site for automated setup
+- npx @peterthoeny/jpulse-framework my-site for automated setup
 - Framework version management utilities
 - Migration tools for existing sites
 

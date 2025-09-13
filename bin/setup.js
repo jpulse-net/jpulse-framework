@@ -117,7 +117,7 @@ function setup() {
     console.log('🚀 Setting up jPulse Framework site...');
 
     // Check if already initialized
-    if (fs.existsSync('webapp') || fs.existsSync('package.json')) {
+    if (fs.existsSync('webapp') || (fs.existsSync('package.json') && fs.existsSync('site'))) {
         console.error('❌ Site already exists (webapp/ or package.json found)');
         console.log('💡 Use "npx jpulse-sync" to update framework files');
         process.exit(1);

@@ -42,14 +42,17 @@ my-site/
 **Views:** Create `site/webapp/view/[path]/[name].shtml`
 **Assets:** Place in `site/webapp/static/[path]/`
 
-### Updating Framework
+## Updating Framework
 
 ```bash
-npm run update
-# or manually:
+# Current (private repo)
 npm update @peterthoeny/jpulse-framework
 npx jpulse-sync
+
+# Once public: npm update @peterthoeny/jpulse-framework && npx jpulse-sync
 ```
+
+> **Note**: Authentication setup is only required during initial installation while the repository is private.
 
 ## Documentation
 

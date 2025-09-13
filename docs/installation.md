@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Installation Guide v0.6.5
+# jPulse Framework / Docs / Site Installation Guide v0.6.6
 
 This guide covers creating and setting up jPulse sites for development and production environments.
 
@@ -16,7 +16,23 @@ This guide covers creating and setting up jPulse sites for development and produ
 
 ## Site Installation
 
-### 1. Create New Site
+### 1. Authentication Setup (Private Repository)
+
+Currently, the jPulse Framework is in a private repository. You'll need a GitHub Personal Access Token:
+
+1. Create a GitHub Personal Access Token with `read:packages` scope
+2. Configure npm for GitHub Packages:
+
+```bash
+export GITHUB_TOKEN=your_github_token
+echo "@peterthoeny:registry=https://npm.pkg.github.com" >> ~/.npmrc
+echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc
+```
+
+> **Note**: Once the repository becomes public, authentication will not be required and installation will be simplified to: `npm install @peterthoeny/jpulse-framework`
+
+
+### 2. Create New Site
 ```bash
 # Create a new jPulse site
 mkdir my-jpulse-site && cd my-jpulse-site
@@ -24,14 +40,14 @@ npm install @peterthoeny/jpulse-framework
 npx jpulse-setup
 ```
 
-### 2. Configure Site
+### 3. Configure Site
 ```bash
 # Copy and customize site configuration
 cp site/webapp/app.conf.tmpl site/webapp/app.conf
 # Edit site/webapp/app.conf with your settings
 ```
 
-### 3. Start Development Server
+### 4. Start Development Server
 ```bash
 # Start the development server
 npm start
@@ -39,7 +55,7 @@ npm start
 
 The application will be available at `http://localhost:8080`
 
-### 4. Update Framework (When Needed)
+### 5. Update Framework (When Needed)
 ```bash
 # Update to latest framework version
 npm run update

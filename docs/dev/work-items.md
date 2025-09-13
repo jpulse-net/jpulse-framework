@@ -715,10 +715,11 @@ This is the doc to track work items, arranged in three sections:
   - basic single-server deployment automation
   - MongoDB installation with basic authentication (admin + app users)
 - deliverables:
-  - npx jpulse-deploy init - Interactive deployment configuration wizard
-  - npx jpulse-deploy generate - Generate production configuration files
-  - npx jpulse-deploy install - Automated server setup script
-  - MongoDB basic security setup (admin user, app user, authentication enabled)
+  - interactive deployment configuration wizard (enhanced setup.js)
+  - production configuration file generation (app.conf templates)
+  - automated server setup scripts (install-system.sh, mongodb-setup.sh)
+  - mongoDB basic security setup with safety checks
+  - complete deployment package with Red Hat Enterprise Linux focus
 - benefits: foundation CLI tools for automated deployment with secure defaults
 
 

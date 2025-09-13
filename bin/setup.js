@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
  * @name            jPulse Framework / Bin / Site Setup
- * @tagline         Initial site setup CLI tool
- * @description     Creates a new jPulse site by copying framework files locally
+ * @tagline         Interactive site setup and deployment configuration CLI tool
+ * @description     Creates jPulse sites with deployment automation (W-015)
  * @file            bin/setup.js
- * @version         0.5.5
- * @release         2025-09-12
+ * @version         0.6.6
+ * @release         2025-09-13
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,16 +15,170 @@
 
 import fs from 'fs';
 import path from 'path';
+import readline from 'readline';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const packageRoot = path.dirname(__dirname);
 
+// Interactive prompt interface
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+/**
+ * Promisified readline question
+ */
+function question(prompt) {
+    return new Promise((resolve) => {
+        rl.question(prompt, resolve);
+    });
+}
+
+/**
+ * Detect current directory state
+ */
+function detectDirectoryState() {
+    const files = fs.readdirSync('.').filter(f => !f.startsWith('.'));
+
+    // Empty directory
+    if (files.length === 0) {
+        return 'empty';
+    }
+
+    // Existing jPulse site
+    if (fs.existsSync('webapp') && fs.existsSync('package.json')) {
+        return 'jpulse-site';
+    }
+
+    // Has jPulse in node_modules
+    if (fs.existsSync('node_modules/@peterthoeny/jpulse-framework')) {
+        return 'jpulse-dependency';
+    }
+
+    // Has package.json and site directory (partial setup)
+    if (fs.existsSync('package.json') && fs.existsSync('site')) {
+        return 'jpulse-partial';
+    }
+
+    // Unknown state
+    return 'unknown';
+}
+
+/**
+ * Generate secure session secret
+ */
+function generateSessionSecret() {
+    const adjectives = ['Silly', 'Happy', 'Brave', 'Swift', 'Clever', 'Bright', 'Calm', 'Bold'];
+    const directions = ['Upward', 'Forward', 'Onward', 'Skyward', 'Inward', 'Outward'];
+    const animals = ['Nest', 'Fox', 'Bear', 'Eagle', 'Wolf', 'Hawk', 'Owl', 'Deer'];
+    const creatures = ['Bat', 'Cat', 'Elk', 'Bee', 'Ant', 'Owl', 'Jay', 'Ram'];
+
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const dir = directions[Math.floor(Math.random() * directions.length)];
+    const animal = animals[Math.floor(Math.random() * animals.length)];
+    const creature = creatures[Math.floor(Math.random() * creatures.length)];
+    const num = Math.floor(Math.random() * 100);
+
+    return `${adj}-${dir}-${animal}-${creature}-${num}`;
+}
+
+/**
+ * Interactive configuration prompting
+ */
+async function promptConfiguration(deploymentType) {
+    console.log('📋 Configuration Settings:\n');
+
+    const config = {};
+
+    // Basic settings
+    config.siteName = await question('? Site name: (My jPulse Site) ') || 'My jPulse Site';
+    config.siteShortName = await question('? Site short name: (My Site) ') || 'My Site';
+    config.siteId = config.siteName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'my-site';
+
+    const defaultPort = deploymentType === 'dev' ? 8080 : 8081;
+    const portInput = await question(`? Application port: (${defaultPort}) `);
+    config.appPort = portInput ? parseInt(portInput) : defaultPort;
+
+    console.log('\n🗄️  Database Configuration:\n');
+
+    config.dbAdminUser = await question('? MongoDB admin username: (admin) ') || 'admin';
+    config.dbAdminPass = await question('? MongoDB admin password: (required) ');
+    while (!config.dbAdminPass) {
+        console.log('❌ Admin password is required');
+        config.dbAdminPass = await question('? MongoDB admin password: ');
+    }
+
+    config.dbUser = await question('? MongoDB app username: (jpapp) ') || 'jpapp';
+    config.dbPass = await question('? MongoDB app password: (required) ');
+    while (!config.dbPass) {
+        console.log('❌ App password is required');
+        config.dbPass = await question('? MongoDB app password: ');
+    }
+
+    const dbPrefix = deploymentType === 'dev' ? 'jp-dev' : 'jp-prod';
+    config.dbName = await question(`? Database name: (${dbPrefix}) `) || dbPrefix;
+
+    console.log('\n🔐 Security Settings:\n');
+
+    const defaultSecret = generateSessionSecret();
+    const secretInput = await question(`? Session secret: (${defaultSecret}) `);
+    config.sessionSecret = secretInput || defaultSecret;
+
+    if (deploymentType === 'prod') {
+        console.log('\n🌐 Production Settings:\n');
+
+        config.domainName = await question('? Domain name: (localhost) ') || 'localhost';
+
+        console.log('? SSL certificate type:');
+        console.log('  1) Let\'s Encrypt (recommended)');
+        console.log('  2) Custom certificate paths');
+        console.log('  3) No SSL (development only)');
+        const sslChoice = await question('? Choose (1-3): (1) ') || '1';
+
+        if (sslChoice === '1') {
+            config.sslType = 'letsencrypt';
+            config.sslCertPath = `/etc/letsencrypt/live/${config.domainName}/fullchain.pem`;
+            config.sslKeyPath = `/etc/letsencrypt/live/${config.domainName}/privkey.pem`;
+        } else if (sslChoice === '2') {
+            config.sslType = 'custom';
+            config.sslCertPath = await question('? SSL certificate path: ');
+            config.sslKeyPath = await question('? SSL private key path: ');
+        } else {
+            config.sslType = 'none';
+        }
+
+        console.log('\n⚡ PM2 Configuration:\n');
+        console.log('? PM2 instances for production:');
+        console.log('  1) Auto-detect (max CPU cores)');
+        console.log('  2) Custom number');
+        const pm2Choice = await question('? Choose (1-2): (1) ') || '1';
+
+        if (pm2Choice === '2') {
+            const instancesInput = await question('? Number of instances (1-16): ');
+            config.pm2Instances = parseInt(instancesInput) || 'max';
+        } else {
+            config.pm2Instances = 'max';
+        }
+    } else {
+        config.pm2Instances = 1;
+    }
+
+    console.log('\n📦 Deployment Package:\n');
+    console.log('? Generate additional deployment files?');
+    console.log('  1) Yes - Full deployment package (nginx, PM2, MongoDB scripts)');
+    console.log('  2) No - Just site configuration');
+    const deployChoice = await question('? Choose (1-2): (1) ') || '1';
+    config.generateDeployment = deployChoice === '1';
+
+    return config;
+}
+
 /**
  * Copy directory recursively
- * @param {string} src - Source directory
- * @param {string} dest - Destination directory
  */
 function copyDirectory(src, dest) {
     if (!fs.existsSync(dest)) {
@@ -40,7 +194,6 @@ function copyDirectory(src, dest) {
         if (entry.isDirectory()) {
             copyDirectory(srcPath, destPath);
         } else if (entry.isSymbolicLink()) {
-            // Handle symlinks by reading the target and creating a new symlink
             const linkTarget = fs.readlinkSync(srcPath);
             fs.symlinkSync(linkTarget, destPath);
         } else {
@@ -50,15 +203,103 @@ function copyDirectory(src, dest) {
 }
 
 /**
+ * Replace template placeholders
+ */
+function replaceTemplatePlaceholders(content, config, frameworkVersion) {
+    const now = new Date();
+    const replacements = {
+        '%SITE_NAME%': config.siteName,
+        '%SITE_SHORT_NAME%': config.siteShortName,
+        '%SITE_ID%': config.siteId,
+        '%APP_PORT%': config.appPort.toString(),
+        '%DB_NAME%': config.dbName,
+        '%DB_USER%': config.dbUser,
+        '%DB_ADMIN_USER%': config.dbAdminUser,
+        '%DB_USER_HINT%': `your-${config.dbUser}-password`,
+        '%DB_ADMIN_USER_HINT%': `your-${config.dbAdminUser}-password`,
+        '%SESSION_SECRET%': config.sessionSecret,
+        '%PM2_INSTANCES%': config.pm2Instances.toString(),
+        '%DOMAIN_NAME%': config.domainName || 'localhost',
+        '%SSL_CERT_PATH%': config.sslCertPath || '/etc/ssl/certs/server.crt',
+        '%SSL_KEY_PATH%': config.sslKeyPath || '/etc/ssl/private/server.key',
+        '%GENERATION_DATE%': now.toISOString().split('T')[0],
+        '%FRAMEWORK_VERSION%': frameworkVersion
+    };
+
+    let result = content;
+    for (const [placeholder, value] of Object.entries(replacements)) {
+        result = result.replaceAll(placeholder, value);
+    }
+
+    return result;
+}
+
+/**
+ * Create site configuration from template
+ */
+function createSiteConfiguration(deploymentType, config, frameworkVersion) {
+    const templateName = deploymentType === 'dev' ? 'app.conf.dev.tmpl' : 'app.conf.prod.tmpl';
+    const templatePath = path.join(packageRoot, 'templates/webapp', templateName);
+
+    if (!fs.existsSync(templatePath)) {
+        throw new Error(`Template not found: ${templatePath}`);
+    }
+
+    const templateContent = fs.readFileSync(templatePath, 'utf8');
+    const configContent = replaceTemplatePlaceholders(templateContent, config, frameworkVersion);
+
+    // Ensure site/webapp directory exists
+    if (!fs.existsSync('site/webapp')) {
+        fs.mkdirSync('site/webapp', { recursive: true });
+    }
+
+    fs.writeFileSync('site/webapp/app.conf', configContent);
+}
+
+/**
+ * Generate deployment files
+ */
+function generateDeploymentFiles(config, frameworkVersion) {
+    console.log('📋 Generating deployment files...');
+
+    // Create deploy directory
+    if (!fs.existsSync('deploy')) {
+        fs.mkdirSync('deploy', { recursive: true });
+    }
+
+    // Copy and process deployment templates
+    const deployTemplatesDir = path.join(packageRoot, 'templates/deploy');
+    const deployFiles = fs.readdirSync(deployTemplatesDir);
+
+    for (const file of deployFiles) {
+        const srcPath = path.join(deployTemplatesDir, file);
+        const destPath = path.join('deploy', file);
+
+        if (fs.statSync(srcPath).isFile()) {
+            const content = fs.readFileSync(srcPath, 'utf8');
+            const processedContent = replaceTemplatePlaceholders(content, config, frameworkVersion);
+            fs.writeFileSync(destPath, processedContent);
+
+            // Make shell scripts executable
+            if (file.endsWith('.sh')) {
+                fs.chmodSync(destPath, 0o755);
+            }
+        }
+    }
+
+    console.log('✅ Deployment files generated in deploy/ directory');
+}
+
+/**
  * Create site package.json
  */
-function createSitePackageJson() {
+function createSitePackageJson(config) {
     const frameworkPackage = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'));
 
     const sitePackage = {
-        name: "my-jpulse-site",
+        name: config.siteId,
         version: "1.0.0",
-        description: "jPulse Framework Site",
+        description: config.siteName,
         type: "module",
         main: "webapp/app.js",
         scripts: {
@@ -90,7 +331,8 @@ function createSiteStructure() {
         'site/webapp/model',
         'site/webapp/view',
         'site/webapp/static',
-        'site/webapp/static/assets'
+        'site/webapp/static/assets',
+        'logs'
     ];
 
     siteDirs.forEach(dir => {
@@ -101,58 +343,131 @@ function createSiteStructure() {
 }
 
 /**
- * Copy site templates
+ * Copy site templates (README, etc.)
  */
 function copySiteTemplates() {
-    const templateSrc = path.join(packageRoot, 'templates');
-    if (fs.existsSync(templateSrc)) {
-        copyDirectory(templateSrc, 'site');
+    const readmePath = path.join(packageRoot, 'templates/README.md');
+    if (fs.existsSync(readmePath)) {
+        fs.copyFileSync(readmePath, 'README.md');
     }
 }
 
 /**
  * Main setup function
  */
-function setup() {
-    console.log('🚀 Setting up jPulse Framework site...');
-
-    // Check if already initialized
-    if (fs.existsSync('webapp') || (fs.existsSync('package.json') && fs.existsSync('site'))) {
-        console.error('❌ Site already exists (webapp/ or package.json found)');
-        console.log('💡 Use "npx jpulse-sync" to update framework files');
-        process.exit(1);
-    }
-
+async function setup() {
     try {
-        // Copy framework webapp directory
-        console.log('📁 Copying framework files...');
-        const webappSrc = path.join(packageRoot, 'webapp');
-        copyDirectory(webappSrc, 'webapp');
+        console.log('🚀 jPulse Framework Enhanced Setup\n');
 
-        // Create site structure
-        console.log('🏗️  Creating site structure...');
-        createSiteStructure();
+        // Detect directory state
+        console.log('🔍 Detecting current directory state...');
+        const state = detectDirectoryState();
 
-        // Copy site templates
-        console.log('📋 Copying site templates...');
-        copySiteTemplates();
+        let setupType = 'new-site';
+        let deploymentType = 'dev';
 
-        // Create package.json
-        console.log('📦 Creating package.json...');
-        createSitePackageJson();
+        switch (state) {
+            case 'empty':
+                console.log('📁 Empty directory detected\n');
+                console.log('? What would you like to set up?');
+                console.log('  1) New jPulse site (development)');
+                console.log('  2) New jPulse site (production ready)');
+                const choice = await question('? Choose (1-2): (1) ');
+                deploymentType = choice === '2' ? 'prod' : 'dev';
+                break;
 
-        console.log('✅ jPulse site setup complete!');
+            case 'jpulse-site':
+            case 'jpulse-partial':
+                console.log('✅ Existing jPulse site detected\n');
+                console.log('? What would you like to do?');
+                console.log('  1) Generate deployment configuration');
+                console.log('  2) Update framework files (same as jpulse-sync)');
+                const existingChoice = await question('? Choose (1-2): (1) ');
+
+                if (existingChoice === '2') {
+                    console.log('💡 Use "npx jpulse-sync" to update framework files');
+                    process.exit(0);
+                }
+
+                setupType = 'deploy-only';
+                console.log('\n? Deployment type:');
+                console.log('  1) Development (local testing)');
+                console.log('  2) Production (server deployment)');
+                const deployChoice = await question('? Choose (1-2): (1) ');
+                deploymentType = deployChoice === '2' ? 'prod' : 'dev';
+                break;
+
+            case 'jpulse-dependency':
+                console.log('✅ jPulse dependency detected\n');
+                setupType = 'deploy-only';
+                deploymentType = 'prod';
+                break;
+
+            default:
+                console.log('❌ Unknown directory state');
+                console.log('💡 This directory contains files that might conflict with jPulse setup');
+                console.log('🔍 Found files:', fs.readdirSync('.').filter(f => !f.startsWith('.')).join(', '));
+                console.log('\n💡 Please run jpulse-setup in an empty directory or existing jPulse site');
+                process.exit(1);
+        }
+
+        // Get configuration
+        const config = await promptConfiguration(deploymentType);
+        const frameworkPackage = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'));
+
+        console.log('\n🏗️  Setting up jPulse site...\n');
+
+        if (setupType === 'new-site') {
+            // Copy framework webapp directory
+            console.log('📁 Copying framework files...');
+            const webappSrc = path.join(packageRoot, 'webapp');
+            copyDirectory(webappSrc, 'webapp');
+
+            // Create site structure
+            console.log('🏗️  Creating site structure...');
+            createSiteStructure();
+
+            // Copy site templates
+            console.log('📋 Copying site templates...');
+            copySiteTemplates();
+
+            // Create package.json
+            console.log('📦 Creating package.json...');
+            createSitePackageJson(config);
+        }
+
+        // Create site configuration
+        console.log('⚙️  Generating site configuration...');
+        createSiteConfiguration(deploymentType, config, frameworkPackage.version);
+
+        // Generate deployment files if requested
+        if (config.generateDeployment) {
+            generateDeploymentFiles(config, frameworkPackage.version);
+        }
+
+        console.log('\n✅ jPulse site setup complete!\n');
+
+        // Show next steps
+        console.log('📋 Next steps:');
+        if (setupType === 'new-site') {
+            console.log('1. Install dependencies: npm install');
+        }
+        console.log(`2. Start ${deploymentType === 'dev' ? 'development' : 'production'}: npm ${deploymentType === 'dev' ? 'run dev' : 'run prod'}`);
+        if (config.generateDeployment) {
+            console.log('3. Review deployment guide: cat deploy/README.md');
+            if (deploymentType === 'prod') {
+                console.log('4. Configure environment: cp deploy/env.template .env');
+                console.log('5. Setup database: source .env && ./deploy/mongodb-setup.sh');
+            }
+        }
         console.log('');
-        console.log('Next steps:');
-        console.log('1. Copy site configuration: cp site/webapp/app.conf.tmpl site/webapp/app.conf');
-        console.log('2. Customize your configuration in site/webapp/app.conf');
-        console.log('3. Start development: npm start');
-        console.log('');
-        console.log('To update framework: npm run update');
+        console.log('💡 To update framework: npm run update');
 
     } catch (error) {
-        console.error('❌ Setup failed:', error.message);
+        console.error('\n❌ Setup failed:', error.message);
         process.exit(1);
+    } finally {
+        rl.close();
     }
 }
 

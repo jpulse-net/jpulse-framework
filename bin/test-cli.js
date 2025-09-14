@@ -4,7 +4,7 @@
  * @tagline         Test script for CLI tools validation
  * @description     Tests setup and sync CLI tools in isolated environment
  * @file            bin/test-cli.js
- * @version         0.7.0
+ * @version         0.7.1
  * @release         2025-09-14
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -88,8 +88,9 @@ async function testCLI() {
             'deploy/README.md',
             'deploy/mongodb-setup.sh',
             'deploy/install-system.sh',
-            'deploy/ecosystem.dev.config.js',
-            'deploy/ecosystem.prod.config.js',
+            'deploy/install-test.sh',
+            'deploy/ecosystem.dev.config.cjs',
+            'deploy/ecosystem.prod.config.cjs',
             'deploy/nginx.prod.conf',
             'deploy/env.tmpl'
         ];

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.7.0
+# jPulse Framework / Docs / Dev / Work Items v0.7.1
 
 This is the doc to track work items, arranged in three sections:
 
@@ -688,23 +688,6 @@ This is the doc to track work items, arranged in three sections:
   site/webapp/app.conf.tmpl
   site/README.md
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-015: deployment: strategy for clean onboarding
 - status: ✅ COMPLETE
 - type: Feature
@@ -730,9 +713,38 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-053: deployment: configuration templates and validation
+- status:🚧 IN_PROGRESS
+- type: Feature
+- objective: production-ready configuration templates with validation and testing
+- depends on: W-015 (deployment CLI foundation)
+- deliverables:
+  - ✅ production nginx configuration templates with security hardening (already in W-015)
+  - ✅ PM2 ecosystem templates with clustering and monitoring (already in W-015)
+  - ✅ SSL certificate automation with Let's Encrypt integration (already in W-015)
+  - ✅ deployment configuration validation and testing (install-test.sh)
+  - ✅ context-aware testing (respects dev vs prod deployment settings)
+  - ✅ enhanced environment variable management with deployment context
+  - ✅ comprehensive unit and integration tests for deployment validation
+- benefits: standardized, secure, tested configuration templates that eliminate manual setup errors
+
+
+
+
+
+
+
+
+
 ### Potential next items:
-**W-015**: deployment: strategy for clean onboarding
-**W-050**: deployment: strategy for separate repositories, one for jpulse, and one for site
 **W-045**: architecture: create plugin infrastructure
 **W-040**: view: create view logs page for site admins
 **W-0**: view controller: create {{#each}} handlebar
@@ -744,7 +756,7 @@ next work item: **W-036**: view: migrate existing views to use jpulse-common.js 
 - review task, ask questions
 - suggest change of spec, goal is better usability for site developers
 - plan how to implement (wait for my go ahead)
-- current timestamp: 2025-09-13 14:08
+- current timestamp: 2025-09-14 11:14
 
 Almost ready for W-042 release (this chat refers to W-021, my mistake)
 
@@ -802,18 +814,18 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
 
-### W-053: deployment: configuration templates and validation
+### W-054: deployment: documentation simplification and troubleshooting
 - status: 🕑 PENDING
-- type: Feature
-- objective: production-ready configuration templates with validation and testing
-- depends on: W-015 (deployment CLI foundation)
+- type: Documentation
+- objective: streamline deployment documentation to focus on automated approach with comprehensive troubleshooting
+- depends on: W-015, W-053 (deployment automation and templates)
 - deliverables:
-  - production nginx configuration templates with security hardening
-  - PM2 ecosystem templates with clustering and monitoring
-  - pm2 setup with single jPulse instance (fork), or multiple instances (cluster)
-  - SSL certificate automation with Let's Encrypt integration
-  - deployment configuration validation and testing
-- benefits: standardized, secure, tested configuration templates that eliminate manual setup errors
+  - simplified deployment.md focusing on CLI-driven workflow
+  - comprehensive troubleshooting guide for common deployment issues
+  - manual configuration reference moved to appendix
+  - deployment best practices and security guidelines
+  - production monitoring and maintenance procedures
+- benefits: clear, actionable deployment documentation that matches the "don't make me think" site creation experience
 
 ### W-054: deployment: documentation simplification and troubleshooting
 - status: 🕑 PENDING

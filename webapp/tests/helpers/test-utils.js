@@ -3,7 +3,7 @@
  * @tagline         Test utilities for the jPulse Framework WebApp
  * @description     Common utilities and helpers for testing
  * @file            webapp/tests/helpers/test-utils.js
- * @version         0.7.0
+ * @version         0.7.1
  * @release         2025-09-14
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -233,6 +233,30 @@ export class TestUtils {
         try {
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
+            }
+        } catch (error) {
+            // Ignore cleanup errors in tests
+        }
+    }
+
+    /**
+     * Create a temporary directory for testing
+     * @returns {string} Path to temporary directory
+     */
+    static createTempDir() {
+        const tempDir = path.join('./webapp/tests/fixtures', `temp-dir-${Date.now()}`);
+        fs.mkdirSync(tempDir, { recursive: true });
+        return tempDir;
+    }
+
+    /**
+     * Remove temporary directory and all its contents
+     * @param {string} dirPath - Path to directory to remove
+     */
+    static removeTempDir(dirPath) {
+        try {
+            if (fs.existsSync(dirPath)) {
+                fs.rmSync(dirPath, { recursive: true, force: true });
             }
         } catch (error) {
             // Ignore cleanup errors in tests

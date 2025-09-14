@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Installation Guide v0.7.0
+# jPulse Framework / Docs / Site Installation Guide v0.7.1
 
 This guide covers creating and setting up jPulse sites for development and production environments.
 
@@ -212,7 +212,7 @@ npm start
 **Option 2: PM2 with file watching (Recommended for active development)**
 ```bash
 # Start with PM2 development configuration
-pm2 start deploy/ecosystem.dev.config.js
+pm2 start deploy/ecosystem.dev.config.cjs
 
 # View logs
 pm2 logs
@@ -233,7 +233,7 @@ For production deployment, use the PM2 production configuration:
 
 ```bash
 # After setting up environment and database
-pm2 start deploy/ecosystem.prod.config.js
+pm2 start deploy/ecosystem.prod.config.cjs
 
 # Save PM2 configuration for auto-restart
 pm2 save
@@ -250,7 +250,7 @@ The PM2 production configuration includes:
 
 > **Application User**: The deployment scripts support both creating a new dedicated `jpulse` user or using an existing admin/service account user. The `install-system.sh` script will prompt you to choose.
 
-> **Note**: The number of PM2 instances is configured during `jpulse-setup` and can be adjusted in `deploy/ecosystem.prod.config.js`
+> **Note**: The number of PM2 instances is configured during `jpulse-setup` and can be adjusted in `deploy/ecosystem.prod.config.cjs`
 
 ## Web Server Configuration
 

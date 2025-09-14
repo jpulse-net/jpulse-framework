@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Production Deployment Guide v0.7.0
+# jPulse Framework / Docs / Production Deployment Guide v0.7.1
 
 This guide covers deploying jPulse Framework applications to production environments using the automated deployment strategy introduced in v0.7.0.
 
@@ -30,7 +30,7 @@ nano .env  # Review and customize settings
 source .env && ./deploy/mongodb-setup.sh
 
 # 7. Start production application with PM2
-pm2 start deploy/ecosystem.prod.config.js
+pm2 start deploy/ecosystem.prod.config.cjs
 
 # 8. Save PM2 configuration for auto-restart on boot
 pm2 save

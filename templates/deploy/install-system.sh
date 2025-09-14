@@ -8,7 +8,7 @@
  # @site            %SITE_NAME%
  # @generated       %GENERATION_DATE%
  # @file            templates/deploy/install-system.sh
- # @version         0.7.0
+ # @version         0.7.1
  # @release         2025-09-14
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -131,17 +131,23 @@ else
     echo "✅ Will use current user for deployment guidance"
 fi
 
-# Create log directory
-echo "📁 Creating log directories..."
+# Create log directory and PID directory
+echo "📁 Creating log and runtime directories..."
 mkdir -p %LOG_DIR%
+mkdir -p /var/run/jpulse
+
 if [[ "$APP_USER" == "jpulse" ]]; then
     chown jpulse:jpulse %LOG_DIR%
+    chown jpulse:jpulse /var/run/jpulse
 else
     # For existing users, make logs writable by the user's group
     chown root:$(id -gn $APP_USER) %LOG_DIR%
     chmod 775 %LOG_DIR%
+    chown root:$(id -gn $APP_USER) /var/run/jpulse
+    chmod 775 /var/run/jpulse
 fi
 echo "✅ Log directory created: %LOG_DIR%"
+echo "✅ PID directory created: /var/run/jpulse"
 
 # Configure firewall
 echo "🔥 Configuring firewall..."
@@ -173,6 +179,22 @@ fi
 echo "🚀 Starting services..."
 systemctl enable --now mongod
 systemctl enable --now nginx
+
+# Post-installation validation
+echo ""
+echo "🧪 Running post-installation validation..."
+if [[ -f "deploy/install-test.sh" ]]; then
+    chmod +x deploy/install-test.sh
+    if ./deploy/install-test.sh; then
+        echo "✅ Post-installation validation passed"
+    else
+        echo "⚠️  Post-installation validation found issues"
+        echo "💡 Review the test results above and fix any critical errors"
+        echo "💡 You can re-run validation anytime with: ./deploy/install-test.sh"
+    fi
+else
+    echo "⚠️  Post-installation test script not found"
+fi
 
 echo ""
 echo "✅ System installation complete!"

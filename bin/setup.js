@@ -4,7 +4,7 @@
  * @tagline         Interactive site setup and deployment configuration CLI tool
  * @description     Creates jPulse sites with deployment automation (W-015)
  * @file            bin/setup.js
- * @version         0.7.0
+ * @version         0.7.1
  * @release         2025-09-14
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -265,6 +265,8 @@ function replaceTemplatePlaceholders(content, config, frameworkVersion, deployme
         '%LOG_FILE%': config.logFile || './logs/access.log',
         '%SSL_CERT_PATH%': config.sslCertPath || '/etc/ssl/certs/server.crt',
         '%SSL_KEY_PATH%': config.sslKeyPath || '/etc/ssl/private/server.key',
+        '%DEPLOYMENT_TYPE%': deploymentType,
+        '%SSL_TYPE%': config.sslType || 'none',
         '%GENERATION_DATE%': now.toISOString().split('T')[0],
         '%FRAMEWORK_VERSION%': frameworkVersion
     };

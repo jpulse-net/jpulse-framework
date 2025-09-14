@@ -181,6 +181,10 @@ done
 # Generate UUID for the user (simple timestamp-based)
 ADMIN_UUID="admin-$(date +%s)-$(whoami)"
 
+# Escape special characters in password for safe JavaScript usage
+# Replace single quotes with escaped single quotes and wrap in single quotes
+ADMIN_PASSWORD_ESCAPED=$(printf '%s\n' "$ADMIN_PASSWORD" | sed "s/'/'\\\\''/g")
+
 # Create the admin user document
 echo "🔐 Creating admin user in database..."
 mongosh "$DB_NAME" -u "$DB_USER" -p "$DB_PASS" --eval "
@@ -188,7 +192,8 @@ mongosh "$DB_NAME" -u "$DB_USER" -p "$DB_PASS" --eval "
 const crypto = require('crypto');
 const saltRounds = 10;
 const salt = crypto.randomBytes(16).toString('hex');
-const hash = crypto.pbkdf2Sync('$ADMIN_PASSWORD', salt, 1000, 64, 'sha512').toString('hex');
+const adminPassword = '$ADMIN_PASSWORD_ESCAPED';
+const hash = crypto.pbkdf2Sync(adminPassword, salt, 1000, 64, 'sha512').toString('hex');
 const passwordHash = salt + ':' + hash;
 
 const adminUser = {

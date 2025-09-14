@@ -8216,3 +8216,41 @@ COMPREHENSIVE ONBOARDING FLOW:
 
 RESULT: W-015 "don't make me think" deployment automation is now complete
 with comprehensive onboarding, error handling, and admin user creation.
+
+
+================================================================================
+
+2025-09-13 22:06
+
+W-015 FINAL CLEANUP - DOCUMENTATION AND PASSWORD HANDLING
+
+COMPLETED REFINEMENTS:
+
+DOCUMENTATION CLEANUP:
+✅ Removed nginx + Apache coexistence documentation from docs/installation.md
+✅ Simplified web server configuration section
+✅ Focus on clean enterprise deployments (single nginx setup)
+
+PASSWORD SPECIAL CHARACTER HANDLING:
+✅ Fixed admin password escaping in MongoDB setup script
+✅ Added proper JavaScript string escaping for passwords with special characters
+✅ Enhanced .env template with single quotes around password placeholders
+✅ Added warning comment about special characters in .env file
+✅ Prevents bash interpretation issues with characters like ! $ ` \
+
+TECHNICAL FIXES:
+✅ ADMIN_PASSWORD_ESCAPED variable with sed-based escaping
+✅ Proper JavaScript string handling in mongosh eval
+✅ Single-quoted password values in .env template
+✅ Clear documentation about special character handling
+
+FINAL STATUS:
+✅ Permission handling with clear error messages
+✅ Domain name integration throughout system
+✅ Configurable log file locations with PM2 integration
+✅ Initial admin user creation with secure password handling
+✅ Special character escaping for robust password support
+✅ Clean documentation focused on enterprise deployments
+
+W-015 DEPLOYMENT AUTOMATION: COMPLETE
+All onboarding issues resolved, robust password handling implemented.

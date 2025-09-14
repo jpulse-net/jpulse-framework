@@ -254,73 +254,7 @@ The PM2 production configuration includes:
 
 ## Web Server Configuration
 
-### nginx + Apache Coexistence
-
-For servers already running Apache, jPulse can be configured to run nginx alongside Apache using domain-based routing:
-
-#### Architecture
-- **Apache**: Handles existing domains on ports 80/443
-- **nginx**: Runs on alternative ports (8080/8443) for jPulse
-- **Apache Proxy**: Routes jPulse domain requests to nginx
-
-#### Setup Process
-
-1. **Configure nginx for alternative ports:**
-   ```bash
-   # nginx listens on 8080/8443 instead of 80/443
-   # This is automatically configured by jpulse-setup
-   ```
-
-2. **Create Apache virtual host for your jPulse domain:**
-   ```bash
-   # Example for jpulse.net domain
-   sudo cat > /etc/httpd/conf.d/jpulse-net.conf << 'EOF'
-   <VirtualHost *:80>
-       ServerName jpulse.net
-       ServerAlias www.jpulse.net
-       RewriteEngine On
-       RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
-   </VirtualHost>
-
-   <VirtualHost *:443>
-       ServerName jpulse.net
-       ServerAlias www.jpulse.net
-
-       SSLEngine on
-       SSLCertificateFile /etc/letsencrypt/live/jpulse.net/fullchain.pem
-       SSLCertificateKeyFile /etc/letsencrypt/live/jpulse.net/privkey.pem
-
-       ProxyPreserveHost On
-       ProxyPass / http://127.0.0.1:8080/
-       ProxyPassReverse / http://127.0.0.1:8080/
-
-       ProxyAddHeaders On
-       RequestHeader set X-Forwarded-Proto "https"
-       RequestHeader set X-Real-IP %{REMOTE_ADDR}s
-   </VirtualHost>
-   EOF
-
-   # Test and restart Apache
-   sudo httpd -t
-   sudo systemctl restart httpd
-   ```
-
-3. **SSL Certificate Setup:**
-   ```bash
-   # Get SSL certificates using Apache (since it's already on ports 80/443)
-   sudo certbot --apache -d jpulse.net -d www.jpulse.net
-   ```
-
-#### Benefits
-- ✅ **No port conflicts**: Both services coexist peacefully
-- ✅ **Standard ports**: jPulse accessible on standard 80/443
-- ✅ **Existing sites unaffected**: Apache continues serving other domains
-- ✅ **Performance**: nginx optimized for Node.js proxying
-
-#### Request Flow
-```
-Internet → Apache (80/443) → nginx (8080/8443) → jPulse App (8081) → MongoDB
-```
+For production deployments, jPulse uses nginx as a reverse proxy. The `jpulse-setup` command automatically generates nginx configuration files for your deployment.
 
 ## Site Configuration
 

@@ -8,7 +8,7 @@
  # @site            %SITE_NAME%
  # @generated       %GENERATION_DATE%
  # @file            templates/deploy/mongodb-setup.sh
- # @version         0.6.9
+ # @version         0.7.0
  # @release         2025-09-14
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -106,7 +106,7 @@ if [ "$SKIP_ADMIN" = false ]; then
     echo "👤 Creating MongoDB admin user..."
     mongosh admin --eval "
         db.createUser({
-            user: '%DB_ADMIN_USER%',
+            user: '$DB_ADMIN_USER',
             pwd: '$DB_ADMIN_PASS',
             roles: ['userAdminAnyDatabase', 'dbAdminAnyDatabase']
         })
@@ -116,7 +116,7 @@ fi
 
 # Setup app user and database
 echo "🗄️  Creating application database '$DB_NAME' and user '$DB_USER'..."
-mongosh admin -u %DB_ADMIN_USER% -p "$DB_ADMIN_PASS" --eval "
+mongosh admin -u "$DB_ADMIN_USER" -p "$DB_ADMIN_PASS" --eval "
     use $DB_NAME;
     db.createUser({
         user: '$DB_USER',
@@ -187,54 +187,12 @@ ADMIN_PASSWORD_ESCAPED=$(printf '%s\n' "$ADMIN_PASSWORD" | sed "s/'/'\\\\''/g")
 
 # Create the admin user document
 echo "🔐 Creating admin user in database..."
-mongosh "$DB_NAME" -u "$DB_USER" -p "$DB_PASS" --eval "
-// Hash the password using a simple method (in production, jPulse will use bcrypt)
-const crypto = require('crypto');
-const saltRounds = 10;
-const salt = crypto.randomBytes(16).toString('hex');
-const adminPassword = '$ADMIN_PASSWORD_ESCAPED';
-const hash = crypto.pbkdf2Sync(adminPassword, salt, 1000, 64, 'sha512').toString('hex');
-const passwordHash = salt + ':' + hash;
-
-const adminUser = {
-    username: '$ADMIN_USERNAME',
-    uuid: '$ADMIN_UUID',
-    email: '$ADMIN_EMAIL',
-    passwordHash: passwordHash,
-    profile: {
-        firstName: '$ADMIN_FIRST_NAME',
-        lastName: '$ADMIN_LAST_NAME',
-        nickName: '',
-        avatar: ''
-    },
-    roles: ['admin'],
-    preferences: {
-        language: 'en',
-        theme: 'light'
-    },
-    status: 'active',
-    lastLogin: null,
-    loginCount: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    updatedBy: 'mongodb-setup',
-    docVersion: 1,
-    saveCount: 1
-};
-
-// Check if user already exists
-const existingUser = db.users.findOne({username: '$ADMIN_USERNAME'});
-if (existingUser) {
-    print('⚠️  Admin user already exists: $ADMIN_USERNAME');
-} else {
-    const result = db.users.insertOne(adminUser);
-    if (result.acknowledged) {
-        print('✅ Admin user created: $ADMIN_USERNAME');
-    } else {
-        print('❌ Failed to create admin user');
-    }
-}
-" --quiet
+mongosh admin -u "$DB_ADMIN_USER" -p "$DB_ADMIN_PASS" \
+  --eval "use $DB_NAME" \
+  --eval "const bcrypt = require('bcrypt'); const saltRounds = 10; const adminPassword = '$ADMIN_PASSWORD_ESCAPED'; const passwordHash = bcrypt.hashSync(adminPassword, saltRounds);" \
+  --eval "const adminUser = { username: '$ADMIN_USERNAME', uuid: '$ADMIN_UUID', email: '$ADMIN_EMAIL', passwordHash: passwordHash, profile: { firstName: '$ADMIN_FIRST_NAME', lastName: '$ADMIN_LAST_NAME', nickName: '', avatar: '' }, roles: ['admin'], preferences: { language: 'en', theme: 'light' }, status: 'active', lastLogin: null, loginCount: 0, createdAt: new Date(), updatedAt: new Date(), updatedBy: 'mongodb-setup', docVersion: 1, saveCount: 1 };" \
+  --eval "const existingUser = db.users.findOne({username: '$ADMIN_USERNAME'}); if (existingUser) { print('⚠️  Admin user already exists: $ADMIN_USERNAME'); } else { const result = db.users.insertOne(adminUser); if (result.acknowledged) { print('✅ Admin user created: $ADMIN_USERNAME'); } else { print('❌ Failed to create admin user'); } }" \
+  --quiet
 
 echo "✅ MongoDB setup complete!"
 echo ""

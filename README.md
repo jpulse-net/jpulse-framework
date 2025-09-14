@@ -1,4 +1,4 @@
-# jPulse Framework v0.6.9
+# jPulse Framework v0.7.0
 
 A modern, lightweight web application framework designed for enterprise and government organizations. Built with Node.js, Express, and MongoDB, jPulse combines the simplicity of traditional server-side rendering with modern development practices.
 
@@ -35,10 +35,12 @@ sudo npm install -g @peterthoeny/jpulse-framework
 mkdir my-jpulse-site && cd my-jpulse-site
 npx jpulse-setup
 
-# Install dependencies and start
+# Install dependencies and start development
 npm install
-npm start
+npm run dev
 # Visit http://localhost:8080
+
+# For production deployment, see the generated deploy/ directory
 ```
 
 ### For Framework Development

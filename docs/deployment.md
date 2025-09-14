@@ -1,6 +1,50 @@
-# jPulse Framework / Docs / Production Deployment Guide v0.6.9
+# jPulse Framework / Docs / Production Deployment Guide v0.7.0
 
-This guide covers deploying jPulse Framework applications to production environments, including nginx configuration, MongoDB setup, and security considerations.
+This guide covers deploying jPulse Framework applications to production environments using the automated deployment strategy introduced in v0.7.0.
+
+> **New in v0.7.0**: Complete deployment automation with `jpulse-setup` - includes interactive configuration, production templates, and security setup scripts.
+
+## Quick Deployment (Recommended)
+
+For new deployments, use the automated deployment strategy:
+
+```bash
+# 1. Install jPulse Framework globally
+npm install -g @peterthoeny/jpulse-framework
+
+# 2. Create and setup site with deployment package
+mkdir my-site && cd my-site
+npx jpulse-setup
+# Choose "production" when prompted for deployment type
+
+# 3. Install dependencies
+npm install
+
+# 4. Setup system dependencies (as root)
+sudo ./deploy/install-system.sh
+
+# 5. Configure environment variables
+nano .env  # Review and customize settings
+
+# 6. Setup database (as application user)
+source .env && ./deploy/mongodb-setup.sh
+
+# 7. Start production application with PM2
+pm2 start deploy/ecosystem.prod.config.js
+
+# 8. Save PM2 configuration for auto-restart on boot
+pm2 save
+```
+
+The automated setup generates:
+- **Complete deployment package** in `deploy/` directory
+- **Production configuration** in `site/webapp/app.conf`
+- **Environment variables** in `.env` file
+- **nginx configuration** for reverse proxy and SSL
+- **PM2 configuration** for process management with auto-startup on boot
+- **MongoDB setup scripts** with security and admin user creation
+
+For detailed manual setup or customization, see the sections below.
 
 ## Prerequisites
 

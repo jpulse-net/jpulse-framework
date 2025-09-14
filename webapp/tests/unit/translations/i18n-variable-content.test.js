@@ -3,7 +3,7 @@
  * @tagline         Test variable content support in i18n translations
  * @description     Tests the new handlebars-style variable substitution in i18n translations
  * @file            webapp/tests/unit/translations/i18n-variable-content.test.js
- * @version         0.6.9
+ * @version         0.7.0
  * @release         2025-09-14
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

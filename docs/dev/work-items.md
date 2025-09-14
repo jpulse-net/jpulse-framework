@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.6.9
+# jPulse Framework / Docs / Dev / Work Items v0.7.0
 
 This is the doc to track work items, arranged in three sections:
 
@@ -706,7 +706,7 @@ This is the doc to track work items, arranged in three sections:
 ## 🚧 IN_PROGRESS Work Items
 
 ### W-015: deployment: strategy for clean onboarding
-- status: 🚧 IN_PROGRESS
+- status: ✅ COMPLETE
 - type: Feature
 - objective: clean out of box experience when deploying a jPulse based webserver for the first time
 - sensible defaults

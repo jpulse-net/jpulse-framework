@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Customization Guide v0.6.9
+# jPulse Framework / Docs / Site Customization Guide v0.7.0
 
 This guide covers the W-014 Site Override Architecture - jPulse's powerful system for creating custom sites while maintaining clean framework updates.
 

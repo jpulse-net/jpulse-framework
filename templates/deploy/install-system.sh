@@ -8,7 +8,7 @@
  # @site            %SITE_NAME%
  # @generated       %GENERATION_DATE%
  # @file            templates/deploy/install-system.sh
- # @version         0.6.9
+ # @version         0.7.0
  # @release         2025-09-14
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -155,6 +155,20 @@ else
     echo "⚠️  Firewall not active - manual configuration required"
 fi
 
+# Configure PM2 startup
+echo "🔧 Configuring PM2 startup..."
+if [[ "$APP_USER" == "jpulse" ]]; then
+    # Configure PM2 startup for jpulse user
+    sudo -u jpulse pm2 startup systemd -u jpulse --hp /home/jpulse
+    echo "✅ PM2 startup configured for user: jpulse"
+    echo "💡 After deploying your app, run: sudo -u jpulse pm2 save"
+else
+    # Configure PM2 startup for current user
+    sudo -u $APP_USER pm2 startup systemd -u $APP_USER --hp $(eval echo ~$APP_USER)
+    echo "✅ PM2 startup configured for user: $APP_USER"
+    echo "💡 After deploying your app, run: sudo -u $APP_USER pm2 save"
+fi
+
 # Start and enable services
 echo "🚀 Starting services..."
 systemctl enable --now mongod
@@ -182,5 +196,6 @@ fi
 echo "   3. Run database setup: ./deploy/mongodb-setup.sh"
 echo "   4. Configure nginx: ./deploy/setup-nginx.sh"
 echo "   5. Start application: pm2 start deploy/ecosystem.prod.config.js"
+echo "   6. Save PM2 configuration: pm2 save"
 
 # EOF deploy/install-system.sh

@@ -3,7 +3,7 @@
  * @tagline         Unit tests for admin dashboard view rendering (W-013)
  * @description     Tests admin dashboard view controller functionality and template rendering
  * @file            webapp/tests/unit/controller/admin-view.test.js
- * @version         0.6.9
+ * @version         0.7.0
  * @release         2025-09-14
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

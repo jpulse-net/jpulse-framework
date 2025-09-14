@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Installation Guide v0.6.8
+# jPulse Framework / Docs / Site Installation Guide v0.6.9
 
 This guide covers creating and setting up jPulse sites for development and production environments.
 
@@ -13,6 +13,57 @@ This guide covers creating and setting up jPulse sites for development and produ
 
 ### Optional
 - **nginx** - Web server (for production deployment)
+
+## System Setup
+
+### Node.js Installation (Red Hat Ecosystem)
+
+For Red Hat Enterprise Linux, CentOS Stream, Rocky Linux, and Fedora systems:
+
+```bash
+# Install curl if not already installed
+sudo dnf install -y curl
+
+# Add NodeSource repository for Node.js 20.x LTS
+curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+
+# Install Node.js and npm
+sudo dnf install -y nodejs
+
+# Verify installation
+node --version  # Should show v20.x.x
+npm --version   # Should show 10.x.x or higher
+```
+
+> **Why NodeSource?** The NodeSource repository provides the latest LTS versions with security updates and integrates well with Red Hat package management for production environments.
+
+### MongoDB Installation (Red Hat Ecosystem)
+
+MongoDB is required for user management, configuration, and logging:
+
+```bash
+# Create MongoDB repository file
+sudo cat > /etc/yum.repos.d/mongodb-org-7.0.repo << 'EOF'
+[mongodb-org-7.0]
+name=MongoDB Repository
+baseurl=https://repo.mongodb.org/yum/redhat/9/mongodb-org/7.0/x86_64/
+gpgcheck=1
+enabled=1
+gpgkey=https://www.mongodb.org/static/pgp/server-7.0.asc
+EOF
+
+# Install MongoDB
+sudo dnf install -y mongodb-org
+
+# Start and enable MongoDB
+sudo systemctl start mongod
+sudo systemctl enable mongod
+
+# Verify MongoDB is running
+sudo systemctl status mongod
+```
+
+> **Note**: For production deployments, the `jpulse-setup` process will generate automated MongoDB setup scripts that create the necessary users and databases.
 
 ## Site Installation
 
@@ -29,8 +80,7 @@ echo "@peterthoeny:registry=https://npm.pkg.github.com" >> ~/.npmrc
 echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc
 ```
 
-> **Note**: Once the repository becomes public, authentication will not be required and installation will be simplified to: `sudo npm install -g @peterthoeny/jpulse-framework`
-
+> **Note**: Once the repository becomes public, authentication will not be required and you can omit this step 1.
 
 ### 2. Create New Site and Configure Site
 ```bash
@@ -201,6 +251,76 @@ The PM2 production configuration includes:
 > **Application User**: The deployment scripts support both creating a new dedicated `jpulse` user or using an existing admin/service account user. The `install-system.sh` script will prompt you to choose.
 
 > **Note**: The number of PM2 instances is configured during `jpulse-setup` and can be adjusted in `deploy/ecosystem.prod.config.js`
+
+## Web Server Configuration
+
+### nginx + Apache Coexistence
+
+For servers already running Apache, jPulse can be configured to run nginx alongside Apache using domain-based routing:
+
+#### Architecture
+- **Apache**: Handles existing domains on ports 80/443
+- **nginx**: Runs on alternative ports (8080/8443) for jPulse
+- **Apache Proxy**: Routes jPulse domain requests to nginx
+
+#### Setup Process
+
+1. **Configure nginx for alternative ports:**
+   ```bash
+   # nginx listens on 8080/8443 instead of 80/443
+   # This is automatically configured by jpulse-setup
+   ```
+
+2. **Create Apache virtual host for your jPulse domain:**
+   ```bash
+   # Example for jpulse.net domain
+   sudo cat > /etc/httpd/conf.d/jpulse-net.conf << 'EOF'
+   <VirtualHost *:80>
+       ServerName jpulse.net
+       ServerAlias www.jpulse.net
+       RewriteEngine On
+       RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+   </VirtualHost>
+
+   <VirtualHost *:443>
+       ServerName jpulse.net
+       ServerAlias www.jpulse.net
+
+       SSLEngine on
+       SSLCertificateFile /etc/letsencrypt/live/jpulse.net/fullchain.pem
+       SSLCertificateKeyFile /etc/letsencrypt/live/jpulse.net/privkey.pem
+
+       ProxyPreserveHost On
+       ProxyPass / http://127.0.0.1:8080/
+       ProxyPassReverse / http://127.0.0.1:8080/
+
+       ProxyAddHeaders On
+       RequestHeader set X-Forwarded-Proto "https"
+       RequestHeader set X-Real-IP %{REMOTE_ADDR}s
+   </VirtualHost>
+   EOF
+
+   # Test and restart Apache
+   sudo httpd -t
+   sudo systemctl restart httpd
+   ```
+
+3. **SSL Certificate Setup:**
+   ```bash
+   # Get SSL certificates using Apache (since it's already on ports 80/443)
+   sudo certbot --apache -d jpulse.net -d www.jpulse.net
+   ```
+
+#### Benefits
+- ✅ **No port conflicts**: Both services coexist peacefully
+- ✅ **Standard ports**: jPulse accessible on standard 80/443
+- ✅ **Existing sites unaffected**: Apache continues serving other domains
+- ✅ **Performance**: nginx optimized for Node.js proxying
+
+#### Request Flow
+```
+Internet → Apache (80/443) → nginx (8080/8443) → jPulse App (8081) → MongoDB
+```
 
 ## Site Configuration
 

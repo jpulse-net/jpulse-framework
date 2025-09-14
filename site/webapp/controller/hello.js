@@ -3,8 +3,8 @@
  * @tagline         Demo Site Controller Override
  * @description     Example of how to override framework controllers
  * @file            site/webapp/controller/hello.js
- * @version         0.6.8
- * @release         2025-09-13
+ * @version         0.6.9
+ * @release         2025-09-14
  * @author          Site Developer
  * @license         AGPL v3, see LICENSE file
  * @genai           99%, Cursor 1.2, Claude Sonnet 4

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Package Publishing Guide v0.6.8
+# jPulse Framework / Docs / Dev / Package Publishing Guide v0.6.9
 
 This guide covers publishing the jPulse Framework to GitHub Packages for framework maintainers and core developers.
 
@@ -71,13 +71,10 @@ Before publishing, always run these validation steps:
 # 1. Run complete test suite
 npm test
 
-# 2. Test CLI tools
-npm run test:cli
-
-# 3. Verify package contents
+# 2. Verify package contents
 npm pack --dry-run
 
-# 4. Check package size
+# 3. Check package size
 npm pack
 ls -la *.tgz
 ```

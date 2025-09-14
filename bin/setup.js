@@ -4,8 +4,8 @@
  * @tagline         Interactive site setup and deployment configuration CLI tool
  * @description     Creates jPulse sites with deployment automation (W-015)
  * @file            bin/setup.js
- * @version         0.6.8
- * @release         2025-09-13
+ * @version         0.6.9
+ * @release         2025-09-14
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -192,8 +192,16 @@ async function promptConfiguration(deploymentType) {
         } else {
             config.pm2Instances = 'max';
         }
+
+        console.log('\n📋 Logging Configuration:\n');
+        const defaultLogDir = '/var/log/jpulse';
+        const logDirInput = await question(`? Log file directory: (${defaultLogDir}) `);
+        config.logDir = logDirInput || defaultLogDir;
+        config.logFile = `${config.logDir}/access.log`;
     } else {
         config.pm2Instances = 1;
+        config.logDir = './logs';
+        config.logFile = `${config.logDir}/access.log`;
     }
 
     console.log('\n📦 Deployment Package:\n');
@@ -240,6 +248,7 @@ function replaceTemplatePlaceholders(content, config, frameworkVersion, deployme
         '%SITE_NAME%': config.siteName,
         '%SITE_SHORT_NAME%': config.siteShortName,
         '%SITE_ID%': config.siteId,
+        '%DOMAIN_NAME%': config.domainName,
         '%APP_PORT%': config.appPort.toString(),
         '%DB_NAME%': config.dbName,
         '%DB_USER%': config.dbUser,
@@ -252,6 +261,8 @@ function replaceTemplatePlaceholders(content, config, frameworkVersion, deployme
         '%NODE_ENV%': deploymentType === 'dev' ? 'development' : 'production',
         '%PM2_INSTANCES%': config.pm2Instances.toString(),
         '%DOMAIN_NAME%': config.domainName || 'localhost',
+        '%LOG_DIR%': config.logDir || './logs',
+        '%LOG_FILE%': config.logFile || './logs/access.log',
         '%SSL_CERT_PATH%': config.sslCertPath || '/etc/ssl/certs/server.crt',
         '%SSL_KEY_PATH%': config.sslKeyPath || '/etc/ssl/private/server.key',
         '%GENERATION_DATE%': now.toISOString().split('T')[0],
@@ -387,11 +398,66 @@ function copySiteTemplates(config, frameworkVersion, deploymentType) {
 }
 
 /**
+ * Check if current directory has permission issues
+ */
+function checkPermissions() {
+    try {
+        // Check if we can write to current directory
+        const testFile = '.jpulse-setup-test';
+        fs.writeFileSync(testFile, 'test');
+        fs.unlinkSync(testFile);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+/**
+ * Check if files are owned by root
+ */
+function checkRootOwnership() {
+    const filesToCheck = ['site/webapp/app.conf', 'webapp/app.conf', 'package.json'];
+
+    for (const file of filesToCheck) {
+        if (fs.existsSync(file)) {
+            try {
+                const stats = fs.statSync(file);
+                if (stats.uid === 0) { // root user ID is 0
+                    return file;
+                }
+            } catch (error) {
+                // Ignore errors, continue checking
+            }
+        }
+    }
+    return null;
+}
+
+/**
  * Main setup function
  */
 async function setup() {
     try {
         console.log('🚀 jPulse Framework Enhanced Setup\n');
+
+        // Check permissions first
+        if (!checkPermissions()) {
+            console.log('❌ PERMISSION ERROR: Cannot write to current directory');
+            console.log('💡 Solution: Run setup from a directory you own, or fix permissions');
+            process.exit(1);
+        }
+
+        // Check for root-owned files
+        const rootOwnedFile = checkRootOwnership();
+        if (rootOwnedFile) {
+            console.log('❌ PERMISSION ERROR: Files are owned by root');
+            console.log(`📁 Root-owned file detected: ${rootOwnedFile}`);
+            console.log('');
+            console.log('💡 Solution: Fix file ownership first:');
+            console.log(`   sudo chown -R $(whoami):$(whoami) .`);
+            console.log('   Then re-run: npx jpulse-setup');
+            process.exit(1);
+        }
 
         // Detect directory state
         console.log('🔍 Detecting current directory state...');

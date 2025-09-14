@@ -8076,3 +8076,143 @@ TECHNICAL DETAILS:
 
 RESULT: W-015 deployment automation is now fully functional with all tests passing ✅
 Framework is ready for checkpoint commit and production deployment testing.
+
+
+================================================================================
+
+2025-09-13 17:06
+
+W-015 PRODUCTION DEPLOYMENT DOCUMENTATION UPDATE
+
+USER PRODUCTION ENVIRONMENT:
+✅ CentOS Stream release 9 (Red Hat ecosystem)
+✅ New package release created and published
+✅ Ready for production deployment testing
+
+DOCUMENTATION ENHANCEMENT:
+✅ Updated docs/installation.md with Node.js installation section
+✅ Added "System Setup" section before "Site Installation"
+✅ Included NodeSource repository method for Red Hat ecosystem
+✅ Covers RHEL, CentOS Stream, Rocky Linux, and Fedora
+✅ Provides clear rationale for NodeSource choice
+
+NODE.JS INSTALLATION STEPS ADDED:
+1. Install curl dependency: sudo dnf install -y curl
+2. Add NodeSource repository: curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+3. Install Node.js and npm: sudo dnf install -y nodejs
+4. Verification commands with expected output versions
+
+BENEFITS OF NODESOURCE APPROACH:
+- Latest LTS versions (Node.js 20.x) with security updates
+- Integrates with Red Hat package management (dnf)
+- Production-ready and well-supported on RHEL systems
+- Consistent with W-015 deployment automation expectations
+
+NEXT STEP: User can now follow updated installation.md for complete production setup
+including Node.js installation → jPulse Framework installation → npx jpulse-setup
+
+
+================================================================================
+
+2025-09-14 01:30
+
+W-015 PRODUCTION DEPLOYMENT FIXES AND ENHANCEMENTS
+
+PRODUCTION DEPLOYMENT SUCCESS:
+✅ jpulse.net successfully deployed and running
+✅ Complete stack working: Internet → Apache → nginx → jPulse → MongoDB
+✅ SSL certificates configured via Let's Encrypt
+✅ nginx+Apache coexistence working perfectly
+
+ISSUES IDENTIFIED AND FIXED:
+
+DOCUMENTATION ENHANCEMENTS:
+✅ Added MongoDB installation documentation for Red Hat systems
+✅ Added comprehensive nginx+Apache coexistence guide
+✅ Documented SSL certificate workflow with existing Apache
+✅ Added architecture diagrams and request flow documentation
+
+TEMPLATE FIXES:
+✅ Fixed .env template to use export statements (export VAR=value)
+✅ Fixed mongodb-setup.sh error messages to show clear guidance
+✅ Improved error message clarity for environment variable issues
+
+ONBOARDING IMPROVEMENTS IDENTIFIED:
+🔄 Fix special character handling in passwords (! character issue)
+🔄 Improve jpulse-setup permission handling for root-owned files
+🔄 Add initial admin user creation to MongoDB setup script
+
+ADMIN USER CREATION SPEC (NEW FEATURE):
+- Prompt for admin username (default: system username)
+- Prompt for admin password (separate from DB passwords)
+- Create user document following UserModel schema
+- Set role to 'admin' with proper password hashing
+- Verify login functionality after creation
+
+TECHNICAL INSIGHTS:
+- Environment variable export issue was root cause of MongoDB setup failures
+- Template placeholder processing worked correctly, error messages were misleading
+- nginx+Apache coexistence requires domain-based routing, not port conflicts
+- SSL certificate management easier with Apache handling domain validation
+
+STATUS: Major deployment issues resolved, remaining items are UX improvements
+
+
+================================================================================
+
+2025-09-14 01:45
+
+W-015 FINAL IMPLEMENTATION - ONBOARDING ENHANCEMENTS COMPLETE
+
+ADDITIONAL FEATURES IMPLEMENTED:
+
+PERMISSION HANDLING:
+✅ Added permission checks to jpulse-setup
+✅ Detects root-owned files and provides clear fix instructions
+✅ Prevents setup failures with helpful error messages
+✅ Command: sudo chown -R $(whoami):$(whoami) .
+
+CONFIGURATION ENHANCEMENTS:
+✅ Added domainName to app.conf and site configuration templates
+✅ Enhanced setup prompts to capture domain information
+✅ Integrated domainName into template placeholder system
+
+LOG FILE CONFIGURATION:
+✅ Added log file location prompt in production setup
+✅ Default: /var/log/jpulse with configurable override
+✅ Integrated with PM2 ecosystem configuration
+✅ Automatic log directory creation with proper ownership
+✅ Support for both dedicated jpulse user and existing users
+
+ADMIN USER CREATION:
+✅ Added initial admin user creation to MongoDB setup
+✅ Prompts for username (default: system user), first/last name
+✅ Email default: username@domainName from configuration
+✅ Secure password prompting with confirmation
+✅ Creates user document following UserModel schema
+✅ Sets admin role with proper password hashing
+✅ Checks for existing users to prevent duplicates
+
+TEMPLATE SYSTEM ENHANCEMENTS:
+✅ Added %DOMAIN_NAME%, %LOG_DIR%, %LOG_FILE% placeholders
+✅ Updated all configuration templates with new placeholders
+✅ Enhanced PM2 ecosystem config with configurable logging
+✅ Updated install-system.sh for flexible log directory creation
+
+REMAINING ITEM:
+🔄 Special character handling in passwords (! character issue)
+   - This is a bash/environment variable escaping issue
+   - Affects .env file sourcing when passwords contain special chars
+   - Workaround: Use simpler passwords or manual export commands
+
+COMPREHENSIVE ONBOARDING FLOW:
+1. System Setup: Node.js + MongoDB installation (documented)
+2. Framework Install: sudo npm install -g @peterthoeny/jpulse-framework
+3. Site Creation: npx jpulse-setup (with permission checks)
+4. Configuration: Interactive prompts for all settings
+5. Database Setup: ./deploy/mongodb-setup.sh (with admin user creation)
+6. Application Start: npm run prod
+7. Admin Login: Use created admin credentials
+
+RESULT: W-015 "don't make me think" deployment automation is now complete
+with comprehensive onboarding, error handling, and admin user creation.

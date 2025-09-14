@@ -7,8 +7,8 @@
  * @site            %SITE_NAME%
  * @generated       %GENERATION_DATE%
  * @file            templates/deploy/ecosystem.prod.config.js
- * @version         0.6.8
- * @release         2025-09-13
+ * @version         0.6.9
+ * @release         2025-09-14
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -32,10 +32,10 @@ module.exports = {
             PORT: %APP_PORT%
         },
 
-        // Logging (Red Hat standard paths)
-        error_file: '/var/log/jpulse/error.log',
-        out_file: '/var/log/jpulse/out.log',
-        log_file: '/var/log/jpulse/combined.log',
+        // Logging (configurable paths)
+        error_file: '%LOG_DIR%/error.log',
+        out_file: '%LOG_DIR%/out.log',
+        log_file: '%LOG_FILE%',
 
         // Performance and reliability
         max_memory_restart: '1G',

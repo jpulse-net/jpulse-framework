@@ -3,8 +3,8 @@
  * @tagline         Template for development deployment configuration
  * @description     Minimal configuration for local development deployment
  * @file            templates/webapp/app.conf.dev.tmpl
- * @version         0.6.8
- * @release         2025-09-13
+ * @version         0.6.9
+ * @release         2025-09-14
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Site Administrator
  * @copyright       2025 Site Administrator
@@ -18,7 +18,8 @@
     app: {
         name: '%SITE_NAME%',
         shortName: '%SITE_SHORT_NAME%',
-        siteId: '%SITE_ID%'
+        siteId: '%SITE_ID%',
+        domainName: '%DOMAIN_NAME%'
     },
 
     deployment: {

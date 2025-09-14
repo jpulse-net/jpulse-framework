@@ -8,8 +8,8 @@
  # @site            %SITE_NAME%
  # @generated       %GENERATION_DATE%
  # @file            templates/deploy/mongodb-setup.sh
- # @version         0.6.8
- # @release         2025-09-13
+ # @version         0.6.9
+ # @release         2025-09-14
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -57,12 +57,13 @@ fi
 if [ -z "$DB_ADMIN_PASS" ] || [ -z "$DB_PASS" ]; then
     echo "❌ Required environment variables not set:"
     echo ""
-    echo "   export DB_ADMIN_PASS='%DB_ADMIN_USER_HINT%'"
+    echo "   export DB_ADMIN_PASS='<your-admin-password>'"
     echo "   export DB_USER='%DB_USER%'"
-    echo "   export DB_PASS='%DB_USER_HINT%'"
+    echo "   export DB_PASS='<your-app-password>'"
     echo "   export DB_NAME='%DB_NAME%'"
     echo ""
     echo "💡 Copy from .env file: source .env"
+    echo "💡 Or set variables: export DB_ADMIN_PASS='your-password'"
     exit 1
 fi
 
@@ -136,16 +137,112 @@ mongosh admin -u %DB_ADMIN_USER% -p "$DB_ADMIN_PASS" --eval "
 "
 
 echo ""
+# Create initial admin user for jPulse application
+echo ""
+echo "👤 Creating initial admin user for jPulse application..."
+echo ""
+
+# Prompt for admin user details
+read -p "? Admin username ($(whoami)): " ADMIN_USERNAME
+ADMIN_USERNAME=${ADMIN_USERNAME:-$(whoami)}
+
+read -p "? Admin first name: " ADMIN_FIRST_NAME
+while [ -z "$ADMIN_FIRST_NAME" ]; do
+    read -p "? Admin first name (required): " ADMIN_FIRST_NAME
+done
+
+read -p "? Admin last name: " ADMIN_LAST_NAME
+while [ -z "$ADMIN_LAST_NAME" ]; do
+    read -p "? Admin last name (required): " ADMIN_LAST_NAME
+done
+
+read -p "? Admin email ($ADMIN_USERNAME@%DOMAIN_NAME%): " ADMIN_EMAIL
+ADMIN_EMAIL=${ADMIN_EMAIL:-$ADMIN_USERNAME@%DOMAIN_NAME%}
+
+# Prompt for admin password
+echo ""
+read -s -p "? Admin password: " ADMIN_PASSWORD
+echo ""
+while [ -z "$ADMIN_PASSWORD" ]; do
+    read -s -p "? Admin password (required): " ADMIN_PASSWORD
+    echo ""
+done
+
+read -s -p "? Confirm admin password: " ADMIN_PASSWORD_CONFIRM
+echo ""
+while [ "$ADMIN_PASSWORD" != "$ADMIN_PASSWORD_CONFIRM" ]; do
+    echo "❌ Passwords do not match"
+    read -s -p "? Admin password: " ADMIN_PASSWORD
+    echo ""
+    read -s -p "? Confirm admin password: " ADMIN_PASSWORD_CONFIRM
+    echo ""
+done
+
+# Generate UUID for the user (simple timestamp-based)
+ADMIN_UUID="admin-$(date +%s)-$(whoami)"
+
+# Create the admin user document
+echo "🔐 Creating admin user in database..."
+mongosh "$DB_NAME" -u "$DB_USER" -p "$DB_PASS" --eval "
+// Hash the password using a simple method (in production, jPulse will use bcrypt)
+const crypto = require('crypto');
+const saltRounds = 10;
+const salt = crypto.randomBytes(16).toString('hex');
+const hash = crypto.pbkdf2Sync('$ADMIN_PASSWORD', salt, 1000, 64, 'sha512').toString('hex');
+const passwordHash = salt + ':' + hash;
+
+const adminUser = {
+    username: '$ADMIN_USERNAME',
+    uuid: '$ADMIN_UUID',
+    email: '$ADMIN_EMAIL',
+    passwordHash: passwordHash,
+    profile: {
+        firstName: '$ADMIN_FIRST_NAME',
+        lastName: '$ADMIN_LAST_NAME',
+        nickName: '',
+        avatar: ''
+    },
+    roles: ['admin'],
+    preferences: {
+        language: 'en',
+        theme: 'light'
+    },
+    status: 'active',
+    lastLogin: null,
+    loginCount: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    updatedBy: 'mongodb-setup',
+    docVersion: 1,
+    saveCount: 1
+};
+
+// Check if user already exists
+const existingUser = db.users.findOne({username: '$ADMIN_USERNAME'});
+if (existingUser) {
+    print('⚠️  Admin user already exists: $ADMIN_USERNAME');
+} else {
+    const result = db.users.insertOne(adminUser);
+    if (result.acknowledged) {
+        print('✅ Admin user created: $ADMIN_USERNAME');
+    } else {
+        print('❌ Failed to create admin user');
+    }
+}
+" --quiet
+
 echo "✅ MongoDB setup complete!"
 echo ""
 echo "📋 Configuration Summary:"
 echo "   Database: $DB_NAME"
 echo "   App User: $DB_USER"
 echo "   Admin User: %DB_ADMIN_USER%"
+echo "   jPulse Admin: $ADMIN_USERNAME ($ADMIN_EMAIL)"
 echo ""
 echo "💡 Next steps:"
 echo "   1. Verify .env file contains correct credentials"
 echo "   2. Start jPulse application: npm start"
-echo "   3. Check application logs for database connection"
+echo "   3. Login with admin user: $ADMIN_USERNAME"
+echo "   4. Check application logs for database connection"
 
 # EOF deploy/mongodb-setup.sh

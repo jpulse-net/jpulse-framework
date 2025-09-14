@@ -3,8 +3,8 @@
  * @tagline         Handlebars Context Extension System
  * @description     Allows site controllers to extend handlebars context (W-014)
  * @file            webapp/utils/context-extensions.js
- * @version         0.6.8
- * @release         2025-09-13
+ * @version         0.6.9
+ * @release         2025-09-14
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

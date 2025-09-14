@@ -1,4 +1,4 @@
-# %SITE_NAME%, based on jPulse Framework v0.6.8
+# %SITE_NAME%, based on jPulse Framework v0.6.9
 
 This is a jPulse Framework site created with `npx jpulse-setup`.
 

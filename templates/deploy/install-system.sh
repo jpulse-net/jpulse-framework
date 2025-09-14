@@ -8,8 +8,8 @@
  # @site            %SITE_NAME%
  # @generated       %GENERATION_DATE%
  # @file            templates/deploy/install-system.sh
- # @version         0.6.8
- # @release         2025-09-13
+ # @version         0.6.9
+ # @release         2025-09-14
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -133,15 +133,15 @@ fi
 
 # Create log directory
 echo "📁 Creating log directories..."
-mkdir -p /var/log/jpulse
+mkdir -p %LOG_DIR%
 if [[ "$APP_USER" == "jpulse" ]]; then
-    chown jpulse:jpulse /var/log/jpulse
+    chown jpulse:jpulse %LOG_DIR%
 else
     # For existing users, make logs writable by the user's group
-    chown root:$(id -gn $APP_USER) /var/log/jpulse
-    chmod 775 /var/log/jpulse
+    chown root:$(id -gn $APP_USER) %LOG_DIR%
+    chmod 775 %LOG_DIR%
 fi
-echo "✅ Log directory created: /var/log/jpulse"
+echo "✅ Log directory created: %LOG_DIR%"
 
 # Configure firewall
 echo "🔥 Configuring firewall..."

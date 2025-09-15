@@ -3,8 +3,8 @@
  * @tagline         Unit tests for application configuration loading
  * @description     Tests for app.conf configuration loading functionality
  * @file            webapp/tests/unit/config/app-config.test.js
- * @version         0.7.1
- * @release         2025-09-14
+ * @version         0.7.2
+ * @release         2025-09-15
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

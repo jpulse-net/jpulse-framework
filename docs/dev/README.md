@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Development Guide v0.7.1
+# jPulse Framework / Docs / Dev / Development Guide v0.7.2
 
 **For Framework Contributors & Core Developers**
 
@@ -30,7 +30,7 @@ Technical documentation for developers working on the jPulse Framework itself. T
 - **Framework Package**: `@peterthoeny/jpulse-framework` published to GitHub Packages
 - **CLI Tools**: `jpulse-setup` (site creation), `jpulse-sync` (framework updates)
 - **Site Structure**: Independent repositories with committed framework files
-- **Update Workflow**: `npm update @peterthoeny/jpulse-framework && npx jpulse-sync`
+- **Update Workflow**: `npm update @peterthoeny/jpulse-framework` (package) + `npx jpulse-sync` (files)
 - **Publishing Guide**: See [Package Publishing Guide](publishing.md) for release process
 
 ## 🎨 View Architecture (Client-Side Focus)

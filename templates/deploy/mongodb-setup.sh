@@ -8,8 +8,8 @@
  # @site            %SITE_NAME%
  # @generated       %GENERATION_DATE%
  # @file            templates/deploy/mongodb-setup.sh
- # @version         0.7.1
- # @release         2025-09-14
+ # @version         0.7.2
+ # @release         2025-09-15
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -181,18 +181,40 @@ done
 # Generate UUID for the user (simple timestamp-based)
 ADMIN_UUID="admin-$(date +%s)-$(whoami)"
 
+# Validate password strength
+if [[ ${#ADMIN_PASSWORD} -lt 8 ]]; then
+    echo "❌ Password must be at least 8 characters long"
+    exit 1
+fi
+
 # Escape special characters in password for safe JavaScript usage
 # Replace single quotes with escaped single quotes and wrap in single quotes
 ADMIN_PASSWORD_ESCAPED=$(printf '%s\n' "$ADMIN_PASSWORD" | sed "s/'/'\\\\''/g")
 
-# Create the admin user document
+# Create the admin user document with enhanced error handling
 echo "🔐 Creating admin user in database..."
-mongosh admin -u "$DB_ADMIN_USER" -p "$DB_ADMIN_PASS" \
+ADMIN_RESULT=$(mongosh admin -u "$DB_ADMIN_USER" -p "$DB_ADMIN_PASS" \
   --eval "use $DB_NAME" \
-  --eval "const bcrypt = require('bcrypt'); const saltRounds = 10; const adminPassword = '$ADMIN_PASSWORD_ESCAPED'; const passwordHash = bcrypt.hashSync(adminPassword, saltRounds);" \
-  --eval "const adminUser = { username: '$ADMIN_USERNAME', uuid: '$ADMIN_UUID', email: '$ADMIN_EMAIL', passwordHash: passwordHash, profile: { firstName: '$ADMIN_FIRST_NAME', lastName: '$ADMIN_LAST_NAME', nickName: '', avatar: '' }, roles: ['admin'], preferences: { language: 'en', theme: 'light' }, status: 'active', lastLogin: null, loginCount: 0, createdAt: new Date(), updatedAt: new Date(), updatedBy: 'mongodb-setup', docVersion: 1, saveCount: 1 };" \
-  --eval "const existingUser = db.users.findOne({username: '$ADMIN_USERNAME'}); if (existingUser) { print('⚠️  Admin user already exists: $ADMIN_USERNAME'); } else { const result = db.users.insertOne(adminUser); if (result.acknowledged) { print('✅ Admin user created: $ADMIN_USERNAME'); } else { print('❌ Failed to create admin user'); } }" \
-  --quiet
+  --eval "try { const bcrypt = require('bcrypt'); const saltRounds = 10; const adminPassword = '$ADMIN_PASSWORD_ESCAPED'; const passwordHash = bcrypt.hashSync(adminPassword, saltRounds); const adminUser = { username: '$ADMIN_USERNAME', uuid: '$ADMIN_UUID', email: '$ADMIN_EMAIL', passwordHash: passwordHash, profile: { firstName: '$ADMIN_FIRST_NAME', lastName: '$ADMIN_LAST_NAME', nickName: '', avatar: '' }, roles: ['admin', 'user'], preferences: { language: 'en', theme: 'light' }, status: 'active', lastLogin: null, loginCount: 0, createdAt: new Date(), updatedAt: new Date(), updatedBy: 'mongodb-setup', docVersion: 1, saveCount: 1 }; const existingUser = db.users.findOne({username: '$ADMIN_USERNAME'}); if (existingUser) { print('EXISTS:$ADMIN_USERNAME'); } else { const result = db.users.insertOne(adminUser); if (result.acknowledged) { print('SUCCESS:$ADMIN_USERNAME'); } else { print('FAILED:Insert failed'); } } } catch(error) { print('ERROR:' + error.message); }" \
+  --quiet 2>&1)
+
+# Parse the result and provide appropriate feedback
+if echo "$ADMIN_RESULT" | grep -q "SUCCESS:"; then
+    echo "✅ Admin user created: $ADMIN_USERNAME"
+elif echo "$ADMIN_RESULT" | grep -q "EXISTS:"; then
+    echo "⚠️  Admin user already exists: $ADMIN_USERNAME"
+elif echo "$ADMIN_RESULT" | grep -q "ERROR:"; then
+    ERROR_MSG=$(echo "$ADMIN_RESULT" | grep "ERROR:" | sed 's/ERROR://')
+    echo "❌ Failed to create admin user: $ERROR_MSG"
+    exit 1
+elif echo "$ADMIN_RESULT" | grep -q "FAILED:"; then
+    echo "❌ Failed to create admin user: Database insert operation failed"
+    exit 1
+else
+    echo "❌ Unexpected error during admin user creation"
+    echo "Debug output: $ADMIN_RESULT"
+    exit 1
+fi
 
 echo "✅ MongoDB setup complete!"
 echo ""

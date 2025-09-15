@@ -4,8 +4,8 @@
  * @tagline         Framework update synchronization CLI tool
  * @description     Updates local framework files from installed package
  * @file            bin/sync.js
- * @version         0.7.1
- * @release         2025-09-14
+ * @version         0.7.2
+ * @release         2025-09-15
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -35,17 +35,40 @@ function syncDirectory(src, dest) {
         if (entry.isDirectory()) {
             syncDirectory(srcPath, destPath);
         } else if (entry.isSymbolicLink()) {
-            // Handle symlinks by reading the target and creating a new symlink
-            const linkTarget = fs.readlinkSync(srcPath);
-            // Remove existing symlink if it exists
-            try {
-                if (fs.lstatSync(destPath).isSymbolicLink()) {
-                    fs.unlinkSync(destPath);
+            // Special handling for jpulse docs symlink - copy actual docs instead
+            if (entry.name === 'jpulse' && srcPath.includes('webapp/static/assets/jpulse')) {
+                const linkTarget = fs.readlinkSync(srcPath);
+                const actualDocsPath = path.resolve(path.dirname(srcPath), linkTarget);
+
+                // Remove existing symlink/directory if it exists
+                try {
+                    if (fs.existsSync(destPath)) {
+                        fs.rmSync(destPath, { recursive: true, force: true });
+                    }
+                } catch (err) {
+                    // Ignore errors
                 }
-            } catch (err) {
-                // File doesn't exist, which is fine
+
+                // Copy docs directory instead of creating symlink
+                if (fs.existsSync(actualDocsPath)) {
+                    console.log(`📚 Copying documentation from ${actualDocsPath} to ${destPath}`);
+                    syncDirectory(actualDocsPath, destPath);
+                } else {
+                    console.warn(`⚠️  Documentation source not found: ${actualDocsPath}`);
+                }
+            } else {
+                // Handle other symlinks normally
+                const linkTarget = fs.readlinkSync(srcPath);
+                // Remove existing symlink if it exists
+                try {
+                    if (fs.lstatSync(destPath).isSymbolicLink()) {
+                        fs.unlinkSync(destPath);
+                    }
+                } catch (err) {
+                    // File doesn't exist, which is fine
+                }
+                fs.symlinkSync(linkTarget, destPath);
             }
-            fs.symlinkSync(linkTarget, destPath);
         } else {
             // Always overwrite framework files
             fs.copyFileSync(srcPath, destPath);

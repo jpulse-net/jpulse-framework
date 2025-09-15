@@ -3,12 +3,12 @@
  * @tagline         Production PM2 Configuration for jPulse Framework
  * @description     Defines the production PM2 configuration for site-specific
  *                  jPulse Framework deployment
- * @usage           pm2 start deploy/ecosystem.prod.config.js
+ * @usage           pm2 start deploy/ecosystem.prod.config.cjs
  * @site            %SITE_NAME%
  * @generated       %GENERATION_DATE%
- * @file            templates/deploy/ecosystem.prod.config.js
- * @version         0.7.1
- * @release         2025-09-14
+ * @file            templates/deploy/ecosystem.prod.config.cjs
+ * @version         0.7.2
+ * @release         2025-09-15
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -32,10 +32,10 @@ module.exports = {
             PORT: %APP_PORT%
         },
 
-        // Logging (configurable paths)
-        error_file: '%LOG_DIR%/error.log',
-        out_file: '%LOG_DIR%/out.log',
+        // Logging (single combined log file)
         log_file: '%LOG_FILE%',
+        error_file: '%LOG_DIR%/pm2-errors.log',
+        out_file: '/dev/null',
 
         // Performance and reliability
         max_memory_restart: '1G',
@@ -54,7 +54,8 @@ module.exports = {
         // Production optimizations
         merge_logs: true,
         combine_logs: true,
-        time: true,
+        time: false,
+        log_date_format: '',
 
         // Graceful shutdown
         kill_retry_time: 100,
@@ -68,4 +69,4 @@ module.exports = {
     }]
 };
 
-// EOF deploy/ecosystem.prod.config.js
+// EOF deploy/ecosystem.prod.config.cjs

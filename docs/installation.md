@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Installation Guide v0.7.1
+# jPulse Framework / Docs / Site Installation Guide v0.7.2
 
 This guide covers creating and setting up jPulse sites for development and production environments.
 
@@ -104,13 +104,15 @@ The application will be available at `http://localhost:8080`
 
 ### 4. Update Framework (When Needed)
 ```bash
-# Update to latest framework version
+# Update to latest framework version (recommended)
 npm run update
 
-# Or manually:
-npm update @peterthoeny/jpulse-framework
-npx jpulse-sync
+# Or manually (2-step process):
+npm update @peterthoeny/jpulse-framework  # Updates npm package
+npx jpulse-sync                           # Updates framework files
 ```
+
+**Important**: jPulse uses a hybrid approach where `npm update` only updates the package dependency. You must run `jpulse-sync` to copy the updated framework files to your site. The `npm run update` script does both steps automatically.
 
 ## Database Setup
 

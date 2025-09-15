@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Production Deployment Guide v0.7.1
+# jPulse Framework / Docs / Production Deployment Guide v0.7.2
 
 This guide covers deploying jPulse Framework applications to production environments using the automated deployment strategy introduced in v0.7.0.
 

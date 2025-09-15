@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Getting Started with jPulse v0.7.1
+# jPulse Framework / Docs / Getting Started with jPulse v0.7.2
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the W-014 override system.
 
@@ -440,17 +440,29 @@ npm start
 Keep your framework up to date with the latest features and fixes:
 
 ```bash
-# Update framework to latest version
+# Update framework to latest version (recommended)
 npm run update
 
-# Or manually:
-npm update @peterthoeny/jpulse-framework
-npx jpulse-sync
+# Or manually (2-step process):
+npm update @peterthoeny/jpulse-framework  # Updates npm package
+npx jpulse-sync                           # Updates framework files
 
 # Review changes
 git diff webapp/
-git commit -am "Update framework to v0.5.6"
+git commit -am "Update framework to v0.7.1"
 ```
+
+**Important**: Understanding the update process:
+
+- **`npm run update`** - Recommended: Runs both steps automatically
+- **Manual process** requires two steps:
+  1. `npm update @peterthoeny/jpulse-framework` - Downloads the latest framework package
+  2. `npx jpulse-sync` - Copies the updated framework files to your site
+
+**Why two steps?** jPulse uses a hybrid approach:
+- **npm package** - Contains the framework source and CLI tools
+- **Site files** - Generated templates copied to your site for customization
+- Running `npm update` alone only updates the package, not your site's files!
 
 ## Next Steps
 

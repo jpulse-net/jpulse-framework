@@ -8723,3 +8723,171 @@ W-053 deployment configuration validation has been successfully implemented with
 - **Comprehensive test coverage** for deployment scenarios
 
 W-053 successfully builds upon W-015's foundation to provide robust validation and testing infrastructure, ensuring reliable deployments across development and production environments.
+
+
+============================================================
+2025-09-14 15:12 - PM2 Logging Configuration Fix
+============================================================
+
+**Issue**: PM2 was creating duplicate log files on production server:
+- access.log (combined log file)
+- out.log (stdout capture) - DUPLICATE of access.log
+- error.log (stderr capture) - mostly empty
+
+**Root Cause**:
+PM2 was configured with three separate log files:
+- `log_file: '%LOG_FILE%'` (access.log) - combined logs
+- `out_file: '%LOG_DIR%/out.log'` - stdout capture
+- `error_file: '%LOG_DIR%/error.log'` - stderr capture
+
+Since jPulse writes access logs to stdout, PM2 captured the same content in both `access.log` and `out.log`.
+
+**Solution Applied**:
+Modified both PM2 configurations to use only the combined log file:
+- `log_file: '%LOG_FILE%'` (access.log) - keeps all application output
+- `out_file: '/dev/null'` - disables separate stdout capture
+- `error_file: '/dev/null'` - disables separate stderr capture
+
+**Files Modified**:
+- templates/deploy/ecosystem.prod.config.cjs
+- templates/deploy/ecosystem.dev.config.cjs
+
+**Result**:
+- Production: Only `/var/log/jpulse/access.log` will be created
+- Development: Only `./logs/dev-combined.log` will be created
+- Eliminates duplicate log files and reduces disk usage
+- Maintains all logging functionality in single file
+
+**Testing**: PM2 configuration validation tests pass
+
+============================================================
+2025-09-14 15:30 - Production Deployment Issues Fixed
+============================================================
+
+**Issue 1: PM2 Timestamp Duplication**
+- **Problem**: PM2 was adding timestamps to logs when jPulse already includes them
+- **Solution**: Set `time: false` in `ecosystem.prod.config.cjs`
+- **Result**: Eliminates duplicate timestamps in log files
+
+**Issue 2: Framework Update Mechanism**
+- **Problem**: `npm update` doesn't update site files (they're generated templates, not npm deps)
+- **Solution**: User needs to run `npx jpulse-sync` to update framework files
+- **Note**: This is the correct workflow - `npm update` updates dependencies, `jpulse-sync` updates framework templates
+
+**Issue 3: Documentation Symlink Problem**
+- **Problem**: Framework uses symlink `webapp/static/assets/jpulse -> ../../../docs` which breaks in deployed sites
+- **Root Cause**: Symlinks don't work when site is deployed separately from framework source
+- **Solution**: Modified `bin/sync.js` to detect jpulse docs symlink and copy actual docs directory instead
+- **Implementation**:
+  - Detects `jpulse` symlink in `webapp/static/assets/`
+  - Resolves symlink target to actual docs directory
+  - Recursively copies docs content instead of creating symlink
+  - Maintains normal symlink behavior for other cases
+
+**Issue 4: Missing Documentation on Production**
+- **Problem**: https://jpulse.net/jpulse/ shows "Namespace null not found" error
+- **Root Cause**: Same as Issue 3 - symlink doesn't resolve in production
+- **Solution**: Same fix as Issue 3 - docs will be copied during sync
+
+**Files Modified**:
+- `templates/deploy/ecosystem.prod.config.cjs` - Disabled PM2 timestamps
+- `bin/sync.js` - Enhanced symlink handling for docs
+
+**Next Steps for Production**:
+1. Run `npx jpulse-sync` to update framework files and copy docs
+2. Restart PM2 with new configuration
+3. Verify documentation loads at https://jpulse.net/jpulse/
+
+**Testing**: CLI tools pass, sync functionality enhanced
+
+============================================================
+2025-09-14 15:33 - Documentation Update: Framework Update Process
+============================================================
+
+**Issue**: Documentation was unclear about the framework update mechanism, leading to confusion about why `npm update` alone doesn't update site files.
+
+**Problem**: Users expected `npm update @peterthoeny/jpulse-framework` to update their site's framework files, but it only updates the npm package dependency.
+
+**Root Cause**: jPulse uses a hybrid architecture:
+- **npm package** - Contains framework source and CLI tools
+- **Site files** - Generated templates copied to site for customization
+- Two separate update steps required
+
+**Documentation Updates**:
+
+1. **docs/installation.md**:
+   - Clarified that `npm run update` is recommended (does both steps)
+   - Explained manual 2-step process with clear comments
+   - Added explanation of hybrid architecture
+
+2. **docs/getting-started.md**:
+   - Enhanced framework update section with detailed explanation
+   - Added "Why two steps?" section explaining the architecture
+   - Clarified difference between package updates and file updates
+   - Updated version example to 0.7.1
+
+3. **docs/dev/README.md**:
+   - Updated workflow description to be more concise and clear
+
+**Key Clarifications Added**:
+- `npm run update` - Recommended approach (automated)
+- `npm update @peterthoeny/jpulse-framework` - Only updates package
+- `npx jpulse-sync` - Required to copy framework files to site
+- Explanation of why both steps are necessary
+
+**Result**:
+- Clear documentation prevents user confusion
+- Users understand the hybrid architecture
+- Proper workflow guidance for framework updates
+- Reduced support burden from update-related issues
+
+============================================================
+2025-09-14 15:41 - Framework Version Constraint: "Don't Make Me Think" Updates
+============================================================
+
+**Issue**: Production server couldn't update from 0.6.9 to 0.7.1 due to restrictive version constraint `^0.6.9` in package.json.
+
+**Root Cause**: The setup script was using `^${frameworkPackage.version}` which creates restrictive constraints like:
+- `^0.6.9` - Only allows 0.6.x updates, blocks 0.7.x
+- `^0.7.1` - Only allows 0.7.x updates, blocks 0.8.x
+
+**Problem**: This violates "don't make me think" principle by requiring manual intervention for minor version updates.
+
+**Solution**: Changed setup script to use smart version constraints based on development phase.
+
+**Changes Made**:
+- **bin/setup.js**: Implemented smart constraint logic:
+  - Pre-1.0 (0.x.x): Use `~0` (allows all 0.x.x updates)
+  - Post-1.0 (1.x.x+): Use `^${version}` (allows minor/patch, blocks major)
+- **Result**: Balances "don't make me think" with prudent major version control
+
+**Benefits**:
+- **Development Phase (0.x.x)**: Automatic updates across all pre-1.0 versions
+- **Stable Phase (1.x.x+)**: Conservative updates (minor/patch only, manual major)
+- **Eliminates Manual Intervention**: During development phase
+- **Prudent Major Version Control**: Prevents breaking changes in stable releases
+- **Reduced Support Issues**: Users don't get stuck on old 0.x versions
+
+**Production Server Fix**:
+```bash
+npm install @peterthoeny/jpulse-framework@~0
+npx jpulse-sync
+```
+
+**Future Behavior**:
+- **Pre-1.0 sites**: Use `~0` constraint (all 0.x.x updates automatic)
+- **Post-1.0 sites**: Use `^${version}` constraint (minor/patch automatic, major manual)
+- **Current sites**: Need one-time manual update to `~0` for 0.x.x updates
+
+2025-09-14 15:43 - Refined Approach: Smart Version Constraints
+============================================================
+
+**Refinement**: Changed from `"*"` to smart constraint logic for better balance of convenience and safety.
+
+**Smart Logic**:
+- **0.x.x versions**: `~0` allows all pre-1.0 updates (0.6.9 → 0.7.1 → 0.8.0 → 0.9.9)
+- **1.x.x+ versions**: `^${version}` allows minor/patch only (1.2.3 → 1.9.9, but not 2.0.0)
+
+**Rationale**:
+- Pre-1.0 is development phase - "don't make me think" for rapid iteration
+- Post-1.0 is stable phase - prudent control for production stability

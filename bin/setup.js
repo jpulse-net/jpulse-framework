@@ -4,8 +4,8 @@
  * @tagline         Interactive site setup and deployment configuration CLI tool
  * @description     Creates jPulse sites with deployment automation (W-015)
  * @file            bin/setup.js
- * @version         0.7.1
- * @release         2025-09-14
+ * @version         0.7.2
+ * @release         2025-09-15
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -354,7 +354,7 @@ function createSitePackageJson(config) {
             update: "npm update @peterthoeny/jpulse-framework && npx jpulse-sync"
         },
         dependencies: {
-            "@peterthoeny/jpulse-framework": `^${frameworkPackage.version}`
+            "@peterthoeny/jpulse-framework": frameworkPackage.version.startsWith('0.') ? `~0` : `^${frameworkPackage.version}`
         },
         engines: {
             node: ">=16.0.0"

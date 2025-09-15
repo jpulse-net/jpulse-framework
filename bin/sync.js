@@ -4,7 +4,7 @@
  * @tagline         Framework update synchronization CLI tool
  * @description     Updates local framework files from installed package
  * @file            bin/sync.js
- * @version         0.7.2
+ * @version         0.7.3
  * @release         2025-09-15
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -35,40 +35,8 @@ function syncDirectory(src, dest) {
         if (entry.isDirectory()) {
             syncDirectory(srcPath, destPath);
         } else if (entry.isSymbolicLink()) {
-            // Special handling for jpulse docs symlink - copy actual docs instead
-            if (entry.name === 'jpulse' && srcPath.includes('webapp/static/assets/jpulse')) {
-                const linkTarget = fs.readlinkSync(srcPath);
-                const actualDocsPath = path.resolve(path.dirname(srcPath), linkTarget);
-
-                // Remove existing symlink/directory if it exists
-                try {
-                    if (fs.existsSync(destPath)) {
-                        fs.rmSync(destPath, { recursive: true, force: true });
-                    }
-                } catch (err) {
-                    // Ignore errors
-                }
-
-                // Copy docs directory instead of creating symlink
-                if (fs.existsSync(actualDocsPath)) {
-                    console.log(`📚 Copying documentation from ${actualDocsPath} to ${destPath}`);
-                    syncDirectory(actualDocsPath, destPath);
-                } else {
-                    console.warn(`⚠️  Documentation source not found: ${actualDocsPath}`);
-                }
-            } else {
-                // Handle other symlinks normally
-                const linkTarget = fs.readlinkSync(srcPath);
-                // Remove existing symlink if it exists
-                try {
-                    if (fs.lstatSync(destPath).isSymbolicLink()) {
-                        fs.unlinkSync(destPath);
-                    }
-                } catch (err) {
-                    // File doesn't exist, which is fine
-                }
-                fs.symlinkSync(linkTarget, destPath);
-            }
+            // Skip symlinks - we handle jpulse docs separately
+            console.log(`⏭️  Skipping symlink: ${entry.name}`);
         } else {
             // Always overwrite framework files
             fs.copyFileSync(srcPath, destPath);
@@ -131,6 +99,26 @@ function sync() {
             console.log('📁 Updating framework files...');
             const webappSrc = path.join(frameworkPath, 'webapp');
             syncDirectory(webappSrc, 'webapp');
+
+            // Copy documentation to webapp/static/assets/jpulse/
+            console.log('📚 Copying documentation...');
+            const docsSource = path.join(frameworkPath, 'docs');
+            const docsDestination = path.join('webapp', 'static', 'assets', 'jpulse');
+
+            if (fs.existsSync(docsSource)) {
+                // Ensure parent directory exists
+                fs.mkdirSync(path.dirname(docsDestination), { recursive: true });
+
+                // Remove existing docs and copy fresh
+                if (fs.existsSync(docsDestination)) {
+                    fs.rmSync(docsDestination, { recursive: true, force: true });
+                }
+
+                syncDirectory(docsSource, docsDestination);
+                console.log('✅ Documentation copied successfully');
+            } else {
+                console.warn('⚠️  Documentation source not found');
+            }
 
             // Remove backup on success
             if (fs.existsSync(backupPath)) {

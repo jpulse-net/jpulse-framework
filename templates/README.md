@@ -1,4 +1,4 @@
-# %SITE_NAME%, based on jPulse Framework v0.7.2
+# %SITE_NAME%, based on jPulse Framework v0.7.3
 
 This is a jPulse Framework site created with `npx jpulse-setup`.
 
@@ -106,7 +106,7 @@ For framework issues, see: https://github.com/peterthoeny/jpulse-framework/issue
  * @site            %SITE_NAME%
  * @generated       %GENERATION_DATE%
  * @file            templates/README.md
- * @version         0.7.2
+ * @version         0.7.3
  * @release         2025-09-15
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

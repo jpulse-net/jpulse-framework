@@ -3,7 +3,7 @@
  * @tagline         Markdown controller for the jPulse Framework
  * @description     Markdown document serving with caching support, part of jPulse Framework
  * @file            webapp/controller/markdown.js
- * @version         0.7.2
+ * @version         0.7.3
  * @release         2025-09-15
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

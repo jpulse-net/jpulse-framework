@@ -756,13 +756,13 @@ next work item: **W-036**: view: migrate existing views to use jpulse-common.js 
 - review task, ask questions
 - suggest change of spec, goal is better usability for site developers
 - plan how to implement (wait for my go ahead)
-- current timestamp: 2025-09-14 11:14
+- current timestamp: 2025-09-14 18:25
 
 Almost ready for W-042 release (this chat refers to W-021, my mistake)
 
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
-  - current date: 2025-09-04 02:12
+  - current date: 2025-09-15 12:12
 - update *.md docs in project root
 - update commit-message.txt, following the same format, specify: W-052, v0.5.5 (don't commit)
 

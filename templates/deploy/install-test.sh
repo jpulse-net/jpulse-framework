@@ -9,7 +9,7 @@
  # @site            %SITE_NAME%
  # @generated       %GENERATION_DATE%
  # @file            templates/deploy/install-test.sh
- # @version         0.7.2
+ # @version         0.7.3
  # @release         2025-09-15
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -40,18 +40,18 @@ log_info() {
 
 log_success() {
     echo -e "${GREEN}✅ $1${NC}"
-    ((TESTS_PASSED++))
+    TESTS_PASSED=$((TESTS_PASSED + 1))
 }
 
 log_warning() {
     echo -e "${YELLOW}⚠️  $1${NC}"
-    ((WARNINGS++))
+    WARNINGS=$((WARNINGS + 1))
 }
 
 log_error() {
     echo -e "${RED}❌ $1${NC}"
     ERRORS+=("$1")
-    ((TESTS_FAILED++))
+    TESTS_FAILED=$((TESTS_FAILED + 1))
 }
 
 # Load deployment configuration
@@ -82,6 +82,9 @@ load_deployment_config() {
         fi
         if [[ -n "$JPULSE_PM2_INSTANCES" ]]; then
             PM2_INSTANCES="$JPULSE_PM2_INSTANCES"
+        fi
+        if [[ -z "$LOG_DIR" ]]; then
+            LOG_DIR="/var/log/jpulse"
         fi
         log_success "Configuration loaded from .env"
     else
@@ -185,7 +188,7 @@ test_nginx() {
     fi
 
     # Test nginx configuration syntax
-    if nginx -t >/dev/null 2>&1; then
+    if sudo nginx -t >/dev/null 2>&1; then
         log_success "nginx configuration syntax is valid"
     else
         log_error "nginx configuration syntax error"
@@ -299,7 +302,7 @@ test_file_permissions() {
 
     # Test log directory
     if [[ "$DEPLOYMENT_TYPE" == "prod" ]]; then
-        LOG_DIR="/var/log/jpulse"
+        LOG_DIR="${LOG_DIR:-/var/log/jpulse}"
         if [[ -d "$LOG_DIR" ]]; then
             if [[ -w "$LOG_DIR" ]]; then
                 log_success "Log directory is writable: $LOG_DIR"
@@ -341,7 +344,7 @@ test_configuration_files() {
 
     # Test main app configuration
     if [[ -f "site/webapp/app.conf" ]]; then
-        if node -e "JSON.parse(require('fs').readFileSync('site/webapp/app.conf', 'utf8'))" 2>/dev/null; then
+        if node -e "require('fs').readFileSync('site/webapp/app.conf', 'utf8')" 2>/dev/null; then
             log_success "Site configuration syntax is valid"
         else
             log_error "Site configuration syntax error"
@@ -364,7 +367,7 @@ test_configuration_files() {
     # Test environment file
     if [[ -f ".env" ]]; then
         # Basic syntax check for .env file
-        if grep -q "^export " .env && ! grep -q "^export.*=" .env | grep -q "^export.*=.*="; then
+        if grep -q "^export " .env && ! grep -q "^export.*=.*=" .env; then
             log_success "Environment file syntax appears valid"
         else
             log_warning "Environment file may have syntax issues"

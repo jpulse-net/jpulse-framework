@@ -3,7 +3,7 @@
  * @tagline         Babel configuration for jPulse Framework
  * @description     Babel configuration for jPulse Framework
  * @file            babel.config.cjs
- * @version         0.7.5
+ * @version         0.7.6
  * @release         2025-09-16
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

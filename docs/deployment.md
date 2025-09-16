@@ -1,4 +1,4 @@
-# jPulse Framework / Production Deployment Guide v0.7.5
+# jPulse Framework / Production Deployment Guide v0.7.6
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse/deployment`.
 

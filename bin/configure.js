@@ -4,7 +4,7 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         0.7.5
+ * @version         0.7.6
  * @release         2025-09-16
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -397,14 +397,22 @@ const CONFIG_DEFINITIONS = {
         prompt: async (config, deploymentType) => {
             if (deploymentType === 'prod') {
                 console.log('? Log configuration:');
-                console.log('  1) Log to STDOUT (app logs to console, PM2 uses default paths)');
+                console.log('  1) Log to STDOUT (app logs to console, PM2 logs to /dev/null)');
                 console.log('  2) Log to custom directory (app and PM2 use specified directory)');
                 const logChoice = await question('? Choose (1-2): (1) ') || '1';
 
                 if (logChoice === '2') {
                     const defaultLogDir = '/var/log/jpulse';
-                    const logDirInput = await question(`? Log directory: (${defaultLogDir}) `);
-                    config.LOG_DIR = logDirInput || defaultLogDir;
+                    let logDirInput = await question(`? Log directory: (${defaultLogDir}) `);
+                    logDirInput = logDirInput || defaultLogDir;
+
+                    // Validate log directory path
+                    if (!logDirInput.startsWith('/') && logDirInput !== '') {
+                        console.log(`⚠️  Warning: '${logDirInput}' is not an absolute path. Using default: ${defaultLogDir}`);
+                        logDirInput = defaultLogDir;
+                    }
+
+                    config.LOG_DIR = logDirInput;
                 } else {
                     config.LOG_DIR = ''; // Empty means STDOUT for app, PM2 uses defaults
                 }
@@ -554,13 +562,15 @@ async function generateIncrementalEnv(existingVars, config, templateSections, mi
         envContent += '\n';
     }
 
-    // Add new sections for missing variables
+    // Add new sections for missing variables (avoid duplicates)
+    const addedSections = new Set();
     for (const varName of missingVars) {
         const section = templateSections[varName];
-        if (section) {
+        if (section && !addedSections.has(section)) {
             // Expand placeholders in the section
             const expandedSection = expandTemplatePlaceholders(section, config);
             envContent += '\n' + expandedSection + '\n';
+            addedSections.add(section);
         }
     }
 
@@ -863,11 +873,11 @@ function createSitePackageJson(config) {
             start: "node webapp/app.js",
             dev: "node webapp/app.js",
             prod: "NODE_ENV=production node webapp/app.js",
-            update: "npx update",
-            "jpulse-install": "npx jpulse-framework install",
-            "jpulse-mongodb-setup": "bash -c 'source .env && npx jpulse-framework mongodb-setup'",
-            "jpulse-validate": "bash -c 'source .env && npx jpulse-framework validate'",
-            "jpulse-update": "npx jpulse-update"
+            "jpulse-configure": "npx jpulse-framework jpulse-configure",
+            "jpulse-install": "npx jpulse-framework jpulse-install",
+            "jpulse-mongodb-setup": "bash -c 'source .env && npx jpulse-framework jpulse-mongodb-setup'",
+            "jpulse-validate": "bash -c 'source .env && npx jpulse-framework jpulse-validate'",
+            "jpulse-update": "npx jpulse-framework jpulse-update"
         },
         dependencies: {
             "@peterthoeny/jpulse-framework": frameworkPackage.version.startsWith('0.') ? `~0` : `^${frameworkPackage.version}`

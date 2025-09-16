@@ -4,8 +4,8 @@
  * @tagline         Test script for CLI tools validation
  * @description     Tests setup and sync CLI tools in isolated environment
  * @file            bin/test-cli.js
- * @version         0.7.3
- * @release         2025-09-15
+ * @version         0.7.4
+ * @release         2025-09-16
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -86,9 +86,6 @@ async function testCLI() {
         // Verify deployment files were generated (since we chose option 1)
         const expectedDeployFiles = [
             'deploy/README.md',
-            'deploy/mongodb-setup.sh',
-            'deploy/install-system.sh',
-            'deploy/install-test.sh',
             'deploy/ecosystem.dev.config.cjs',
             'deploy/ecosystem.prod.config.cjs',
             'deploy/nginx.prod.conf',
@@ -98,6 +95,16 @@ async function testCLI() {
         for (const file of expectedDeployFiles) {
             if (!fs.existsSync(file)) {
                 throw new Error(`Expected deployment file not found: ${file}`);
+            }
+        }
+
+        // Verify npm scripts were generated
+        const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+        const expectedScripts = ['jpulse-install', 'jpulse-mongodb-setup', 'jpulse-validate', 'jpulse-update'];
+
+        for (const script of expectedScripts) {
+            if (!packageJson.scripts[script]) {
+                throw new Error(`Expected npm script not found: ${script}`);
             }
         }
 

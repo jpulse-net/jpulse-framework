@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Markdown Controller
  * @description     Tests for markdown controller functions
  * @file            webapp/tests/unit/controller/markdown.test.js
- * @version         0.7.3
- * @release         2025-09-15
+ * @version         0.7.4
+ * @release         2025-09-16
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -105,7 +105,8 @@ describe('MarkdownController', () => {
         it('should list markdown files in jpulse namespace (read-only test)', async () => {
             const mockReq = {
                 path: '/api/1/markdown/jpulse/',
-                originalUrl: '/api/1/markdown/jpulse/'
+                originalUrl: '/api/1/markdown/jpulse/',
+                headers: {}
             };
             const mockRes = {
                 json: jest.fn(),

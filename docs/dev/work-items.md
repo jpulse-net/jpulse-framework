@@ -739,11 +739,13 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### 🚧 IN_PROGRESS: documentation simplification and troubleshooting
+### 🚧 IN_PROGRESS: W-054: deployment: documentation simplification and troubleshooting
 - status: 🕑 PENDING
 - type: Documentation
 - objective: streamline deployment documentation to focus on automated approach with comprehensive troubleshooting
-- depends on: W-015, W-053 (deployment automation and templates)
+- depends on:
+  - W-015: deployment: strategy for clean onboarding
+  - W-053: deployment: configuration templates and validation - v0.7.3
 - deliverables:
   - simplified deployment.md focusing on CLI-driven workflow
   - comprehensive troubleshooting guide for common deployment issues
@@ -761,7 +763,6 @@ This is the doc to track work items, arranged in three sections:
 
 
 ### Potential next items:
-W-054: deployment: documentation simplification and troubleshooting
 W-045: architecture: create plugin infrastructure
 W-040: view: create view logs page for site admins
 W-0: controllers: consistently use global.CommonUtils.sendError
@@ -772,14 +773,13 @@ W-0: controller & view: websocket strategy
 
 ### Chat instructions
 
-next work item: **W-036**: view: migrate existing views to use jpulse-common.js and jpulse-common.css
+next work item: W-0...
 - review task, ask questions
 - suggest change of spec, goal is better usability for site developers
 - plan how to implement (wait for my go ahead)
-- current timestamp: 2025-09-14 18:25
+- current timestamp: 2025-09-15 20:35
 
-Almost ready for W-042 release (this chat refers to W-021, my mistake)
-
+finishing up work item: W-0...
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-15 12:12

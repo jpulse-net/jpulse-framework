@@ -1,495 +1,363 @@
-# jPulse Framework / Docs / Production Deployment Guide v0.7.3
+# jPulse Framework / Production Deployment Guide v0.7.3
 
-This guide covers deploying jPulse Framework applications to production environments using the automated deployment strategy introduced in v0.7.0.
+A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse/deployment`.
 
-**New in v0.7.0**: Complete deployment automation with `jpulse-setup` - includes interactive configuration, production templates, and security setup scripts.
+## 🚀 Quick Start (5-Minute Deployment)
 
-**Enhanced in v0.7.3**: Comprehensive deployment validation, improved error handling, and enhanced update mechanisms with dry-run support.
-
-## Quick Deployment (Recommended)
-
-For new deployments, use the automated deployment strategy:
+The fastest way to deploy a jPulse site to production:
 
 ```bash
-# 1. Install jPulse Framework globally
-npm install -g @peterthoeny/jpulse-framework
-
-# 2. Create and setup site with deployment package
+# 1. Create site with deployment package
 mkdir my-site && cd my-site
 npx jpulse-setup
-# Choose "production" when prompted for deployment type
+# Choose "production" when prompted
 
-# 3. Install dependencies
+# 2. Install dependencies
 npm install
 
-# 4. Setup system dependencies (as root)
+# 3. System setup (run as root)
 sudo ./deploy/install-system.sh
 
-# 5. Configure environment variables
-nano .env  # Review and customize settings
+# 4. Configure environment
+nano .env  # Review generated settings
 
-# 6. Setup database (as application user)
+# 5. Database setup (run as application user)
 source .env && ./deploy/mongodb-setup.sh
 
-# 7. Validate deployment (NEW in v0.7.3)
+# 6. Validate installation
 ./deploy/install-test.sh
 
-# 7. Start production application with PM2
+# 7. Start production
 pm2 start deploy/ecosystem.prod.config.cjs
-
-# 8. Save PM2 configuration for auto-restart on boot
 pm2 save
 ```
 
-The automated setup generates:
-- **Complete deployment package** in `deploy/` directory
-- **Production configuration** in `site/webapp/app.conf`
-- **Environment variables** in `.env` file
-- **nginx configuration** for reverse proxy and SSL
-- **PM2 configuration** for process management with auto-startup on boot
-- **MongoDB setup scripts** with security and admin user creation
+**Expected Time**: 5-10 minutes for standard single-server deployment.
 
-For detailed manual setup or customization, see the sections below.
+**Success Indicators**:
+- ✅ All validation tests pass
+- ✅ Site responds at configured domain
+- ✅ Admin login works
+- ✅ PM2 shows running processes
 
-## Prerequisites
+## 📋 Deployment Overview
+
+### What jpulse-setup Creates
+
+When you run `npx jpulse-setup` with production deployment:
+
+```
+my-site/
+├── deploy/                    # Complete deployment package
+│   ├── README.md             # Framework deployment guide
+│   ├── install-system.sh     # System dependencies installer
+│   ├── install-test.sh       # Deployment validator
+│   ├── mongodb-setup.sh      # Database setup script
+│   ├── nginx.prod.conf       # Web server configuration
+│   ├── ecosystem.prod.config.cjs  # Process manager config
+│   └── env.tmpl              # Environment template
+├── .env                      # Environment variables (generated)
+├── site/webapp/app.conf      # Site configuration
+└── README.md                 # Site-specific deployment guide
+```
+
+### Deployment Architecture
+
+**Single-Server Setup** (current focus):
+- **nginx**: Web server, SSL termination, static file serving
+- **Node.js**: Application server (managed by PM2)
+- **MongoDB**: Database (local instance)
+- **PM2**: Process manager with auto-restart
+
+**Multi-Server Setup**: Planned for future work items.
+
+## 🔧 Prerequisites
 
 ### Server Requirements
-- **Red Hat Enterprise Linux 8+, Rocky Linux 8+, Ubuntu 20.04+** (recommended)
-- **Node.js 18+** with npm
-- **MongoDB 4.4+** (standalone or replica set)
-- **nginx 1.18+** (web server and reverse proxy)
-- **SSL certificate** (such as Let's Encrypt)
-- **Minimum 2GB RAM, 2 CPU cores**
+- **OS**: Red Hat Enterprise Linux 8+, Rocky Linux 8+, Ubuntu 20.04+
+- **Resources**: Minimum 2GB RAM, 2 CPU cores
+- **Network**: Domain name with DNS configured
+- **Access**: Root access for system installation
 
-### Security Requirements
-- **Firewall configured** (iptables or ufw)
-- **SSH key authentication** (disable password auth)
-- **Regular security updates** automated
-- **Backup strategy** implemented
+### Before You Start
+1. **Domain Setup**: Ensure DNS points to your server
+2. **SSL Planning**: Decide on Let's Encrypt vs custom certificates
+3. **Security Review**: Firewall rules, SSH key authentication
+4. **Backup Strategy**: Plan for database and application backups
 
-## MongoDB Production Setup
+## 🛠️ Manual Configuration (Special Cases)
 
-### Single Instance (Development/Small Production)
+For deployments requiring custom configuration (e.g., behind existing reverse proxies):
 
-**Red Hat/CentOS/Fedora:**
+### Custom Web Server Setup
+
+If you need to integrate with existing infrastructure (like httpd proxy):
+
+1. **Skip nginx installation**:
+   ```bash
+   # Edit deploy/install-system.sh to comment out nginx installation
+   # Or install nginx but don't enable it
+   ```
+
+2. **Configure your existing proxy**:
+   ```apache
+   # Example httpd configuration
+   ProxyPass /static/ !
+   ProxyPass / http://localhost:8081/
+   ProxyPassReverse / http://localhost:8081/
+   ```
+
+3. **Update jPulse configuration**:
+   ```javascript
+   // site/webapp/app.conf
+   {
+       app: {
+           trustProxy: true,  // Important for proxy setups
+           port: 8081
+       }
+   }
+   ```
+
+### Custom Database Configuration
+
+For external MongoDB or replica sets:
+
+1. **Skip local MongoDB setup**:
+   ```bash
+   # Don't run ./deploy/mongodb-setup.sh
+   ```
+
+2. **Configure external database**:
+   ```bash
+   # In .env file
+   export DB_HOST=your-mongodb-server
+   export DB_PORT=27017
+   export DB_REPLICA_SET=your-replica-set
+   ```
+
+### Environment-Specific Customizations
+
+Edit `.env` file for your specific requirements:
+- Custom ports and domains
+- External service integrations
+- Logging configurations
+- SSL certificate paths
+
+## 🚨 Troubleshooting Guide
+
+### Quick Diagnostics
+
+**Health Check Command**:
 ```bash
-# Add MongoDB repository
-sudo tee /etc/yum.repos.d/mongodb-org-4.4.repo << EOF
-[mongodb-org-4.4]
-name=MongoDB Repository
-baseurl=https://repo.mongodb.org/yum/redhat/8/mongodb-org/4.4/x86_64/
-gpgcheck=1
-enabled=1
-gpgkey=https://www.mongodb.org/static/pgp/server-4.4.asc
-EOF
-
-# Install MongoDB
-sudo dnf install -y mongodb-org
-
-# Configure MongoDB
-sudo systemctl start mongod
-sudo systemctl enable mongod
-
-# Secure MongoDB
-mongo --eval "db.createUser({user: 'admin', pwd: 'secure_password', roles: ['userAdminAnyDatabase']})"
-```
-
-**Ubuntu/Debian:**
-```bash
-# Install MongoDB
-wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
-echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
-sudo apt update
-sudo apt install -y mongodb-org
-
-# Configure MongoDB
-sudo systemctl start mongod
-sudo systemctl enable mongod
-
-# Secure MongoDB
-mongo --eval "db.createUser({user: 'admin', pwd: 'secure_password', roles: ['userAdminAnyDatabase']})"
-```
-
-### Replica Set (High Availability)
-```bash
-# Edit /etc/mongod.conf on each server
-replication:
-  replSetName: "jpulse-rs"
-
-net:
-  bindIp: 0.0.0.0
-  port: 27017
-
-security:
-  authorization: enabled
-  keyFile: /etc/mongodb-keyfile
-
-# Create keyfile (same on all servers)
-sudo openssl rand -base64 756 > /etc/mongodb-keyfile
-sudo chmod 400 /etc/mongodb-keyfile
-sudo chown mongodb:mongodb /etc/mongodb-keyfile
-```
-
-## Application Deployment
-
-### Directory Structure
-```bash
-# Create application directory
-sudo mkdir -p /opt/jpulse-app
-sudo chown $USER:$USER /opt/jpulse-app
-cd /opt/jpulse-app
-
-# Clone your application
-git clone https://github.com/yourorg/your-jpulse-app.git .
-
-# Install dependencies
-npm ci --production
-```
-
-### Production Configuration
-Create `/opt/jpulse-app/webapp/app.conf`:
-
-```javascript
-{
-    app: {
-        environment: 'production',
-        port: 8081,
-        sessionSecret: process.env.SESSION_SECRET,
-
-        // Security settings
-        trustProxy: true,
-        secureCookies: true,
-        sessionTimeout: 3600
-    },
-
-    // Database configuration
-    database: {
-        enabled: true,
-        host: 'localhost',
-        port: 27017,
-        name: 'jpulse_prod',
-        username: process.env.DB_USER,
-        password: process.env.DB_PASS
-    },
-
-    // Logging
-    logging: {
-        level: 'info',
-        file: '/var/log/jpulse/app.log',
-        maxSize: '100MB',
-        maxFiles: 10
-    }
-}
-```
-
-## nginx Configuration
-
-### Install nginx
-
-**Red Hat/CentOS/Fedora:**
-```bash
-sudo dnf install -y nginx
-sudo systemctl start nginx
-sudo systemctl enable nginx
-```
-
-**Ubuntu/Debian:**
-```bash
-sudo apt update
-sudo apt install nginx
-sudo systemctl start nginx
-sudo systemctl enable nginx
-```
-
-### Site Configuration
-Create `/etc/nginx/sites-available/jpulse-app`:
-
-```nginx
-# Rate limiting
-limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
-limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
-
-server {
-    listen 80;
-    server_name yourdomain.com www.yourdomain.com;
-
-    # Redirect HTTP to HTTPS
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name yourdomain.com www.yourdomain.com;
-
-    # SSL Configuration
-    ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-
-    # Security headers
-    add_header X-Frame-Options DENY;
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-
-    # Static files (served directly by nginx)
-    location /static/ {
-        alias /opt/jpulse-app/webapp/static/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # API rate limiting
-    location /api/ {
-        limit_req zone=api burst=20 nodelay;
-        proxy_pass http://127.0.0.1:8081;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # All other requests to Node.js
-    location / {
-        proxy_pass http://127.0.0.1:8081;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-## Process Management (PM2)
-
-### Install PM2
-```bash
-npm install -g pm2
-```
-
-### PM2 Configuration
-Create `/opt/jpulse-app/ecosystem.config.js`:
-
-```javascript
-module.exports = {
-    apps: [{
-        name: 'jpulse-app',
-        script: 'webapp/app.js',
-        cwd: '/opt/jpulse-app',
-        instances: 'max',
-        exec_mode: 'cluster',
-        env: {
-            NODE_ENV: 'production',
-            PORT: 8081
-        },
-        error_file: '/var/log/jpulse/error.log',
-        out_file: '/var/log/jpulse/out.log',
-        max_memory_restart: '1G'
-    }]
-};
-```
-
-### Start Application
-```bash
-# Create log directory
-sudo mkdir -p /var/log/jpulse
-sudo chown $USER:$USER /var/log/jpulse
-
-# Start with PM2
-cd /opt/jpulse-app
-pm2 start ecosystem.config.js
-
-# Save PM2 configuration
-pm2 save
-
-# Setup PM2 startup
-pm2 startup
-```
-
-## SSL Certificate (Let's Encrypt)
-
-**Red Hat/CentOS/Fedora:**
-```bash
-# Install Certbot
-sudo dnf install -y certbot python3-certbot-nginx
-
-# Obtain certificate
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
-
-# Auto-renewal
-sudo crontab -e
-# Add: 0 12 * * * /usr/bin/certbot renew --quiet
-```
-
-**Ubuntu/Debian:**
-```bash
-# Install Certbot
-sudo apt install certbot python3-certbot-nginx
-
-# Obtain certificate
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
-
-# Auto-renewal
-sudo crontab -e
-# Add: 0 12 * * * /usr/bin/certbot renew --quiet
-```
-
-## Security Hardening
-
-### Firewall Configuration
-```bash
-# Enable UFW
-sudo ufw enable
-
-# Allow SSH
-sudo ufw allow 22/tcp
-
-# Allow HTTP/HTTPS
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-
-# Deny all other traffic
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-```
-
-## Monitoring & Backup
-
-### Database Backup
-Create `/opt/scripts/backup-mongodb.sh`:
-
-```bash
-#!/bin/bash
-BACKUP_DIR="/backup/mongodb"
-DATE=$(date +%Y%m%d_%H%M%S)
-DB_NAME="jpulse_prod"
-
-# Create backup directory
-mkdir -p $BACKUP_DIR
-
-# Backup database
-mongodump --host localhost --port 27017 --db $DB_NAME --out $BACKUP_DIR/$DATE
-
-# Compress backup
-tar -czf $BACKUP_DIR/jpulse_backup_$DATE.tar.gz -C $BACKUP_DIR $DATE
-rm -rf $BACKUP_DIR/$DATE
-
-# Keep only last 7 days
-find $BACKUP_DIR -name "jpulse_backup_*.tar.gz" -mtime +7 -delete
-
-echo "Backup completed: jpulse_backup_$DATE.tar.gz"
-```
-
-### Automated Backups
-```bash
-# Make script executable
-chmod +x /opt/scripts/backup-mongodb.sh
-
-# Add to crontab
-crontab -e
-# Add: 0 2 * * * /opt/scripts/backup-mongodb.sh
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**Application won't start:**
-```bash
-# Check PM2 logs
-pm2 logs jpulse-app
-
-# Check system logs
-sudo journalctl -u nginx
-sudo tail -f /var/log/nginx/error.log
-```
-
-**Database connection issues:**
-```bash
-# Check MongoDB status
-sudo systemctl status mongod
-
-# Check MongoDB logs
-sudo tail -f /var/log/mongodb/mongod.log
-```
-
-**SSL certificate issues:**
-```bash
-# Check certificate status
-sudo certbot certificates
-
-# Renew certificates manually
-sudo certbot renew
-```
-
-## Deployment Validation & Troubleshooting (v0.7.3)
-
-### Comprehensive Validation
-
-The deployment validation suite automatically tests your installation:
-
-```bash
-# Run complete validation suite
-./deploy/install-test.sh
-
-# Expected output:
-# ✅ Tests passed: 10+
-# ⚠️  Warnings: 0-5 (usually acceptable)
-# ❌ Tests failed: 0 (should be zero for healthy deployment)
-```
-
-### Common Issues & Solutions
-
-**Permission Issues:**
-```bash
-# Fix log directory permissions
-sudo chown -R $USER:$USER /var/log/jpulse
-
-# Fix PID directory permissions
-sudo chown -R $USER:$USER /var/run/jpulse
-```
-
-**nginx Configuration Issues:**
-```bash
-# Test nginx config (requires sudo for SSL cert access)
-sudo nginx -t
-
-# Reload nginx after config changes
-sudo systemctl reload nginx
-```
-
-**MongoDB Connection Issues:**
-```bash
-# Test MongoDB connectivity
-mongosh --eval "db.runCommand('ping')"
-
-# Check MongoDB service status
-sudo systemctl status mongod
-```
-
-**Framework Update Issues:**
-```bash
-# Safe update with preview
-npm run update --dry-run
-
-# If update fails, try manual approach
-npm update @peterthoeny/jpulse-framework
-npx jpulse-sync
-```
-
-### Deployment Health Check
-
-```bash
-# Quick health check script
+# Run this to get deployment status overview
 echo "🔍 jPulse Deployment Health Check"
 echo "================================="
 echo "Framework Version: $(grep '@version' webapp/app.js | head -1)"
 echo "PM2 Status: $(pm2 list | grep jpulse || echo 'Not running')"
-echo "nginx Status: $(sudo systemctl is-active nginx)"
-echo "MongoDB Status: $(sudo systemctl is-active mongod)"
-echo "Site Response: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/)"
+echo "nginx Status: $(sudo systemctl is-active nginx 2>/dev/null || echo 'Not installed/running')"
+echo "MongoDB Status: $(sudo systemctl is-active mongod 2>/dev/null || echo 'Not installed/running')"
+echo "Site Response: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/ || echo 'No response')"
 ```
+
+### Common jPulse Issues
+
+#### 1. Application Won't Start
+
+**Symptoms**: PM2 shows stopped/errored processes
+```bash
+# Diagnose
+pm2 logs jpulse-app
+pm2 describe jpulse-app
+
+# Common causes and fixes:
+# - Port already in use: Change PORT in .env
+# - Database connection: Check DB_* variables in .env
+# - Permission issues: Check file ownership and log directories
+```
+
+#### 2. Database Connection Failures
+
+**Symptoms**: "MongoNetworkError" or "Authentication failed"
+```bash
+# Test MongoDB connectivity
+mongosh --eval "db.runCommand('ping')"
+
+# Check MongoDB service
+sudo systemctl status mongod
+
+# Verify credentials
+source .env && echo "Connecting as: $DB_USER to $DB_NAME"
+
+# Common fixes:
+# - Restart MongoDB: sudo systemctl restart mongod
+# - Check .env credentials match database users
+# - Verify MongoDB is listening on correct port
+```
+
+#### 3. Framework Update Issues
+
+**Symptoms**: Site breaks after `npm update` or `jpulse-sync`
+```bash
+# Safe update process
+npm run update --dry-run  # Preview changes
+npm update @peterthoeny/jpulse-framework
+npx jpulse-sync  # Sync framework files
+
+# If update fails:
+# 1. Check site/webapp/app.conf for compatibility
+# 2. Review CHANGELOG.md for breaking changes
+# 3. Test with ./deploy/install-test.sh
+```
+
+#### 4. SSL/HTTPS Issues
+
+**Symptoms**: Certificate errors, mixed content warnings
+```bash
+# Check certificate status
+sudo certbot certificates
+
+# Test SSL configuration
+sudo nginx -t
+
+# Renew certificates
+sudo certbot renew
+
+# Common fixes:
+# - Update nginx configuration for new certificates
+# - Check firewall allows ports 80/443
+# - Verify domain DNS points to server
+```
+
+#### 5. Static File Issues
+
+**Symptoms**: CSS/JS not loading, 404 errors for assets
+```bash
+# Check nginx static file configuration
+sudo nginx -t
+sudo systemctl reload nginx
+
+# Verify file permissions
+ls -la webapp/static/
+ls -la site/webapp/static/
+
+# Common fixes:
+# - Check nginx.prod.conf static file paths
+# - Verify file ownership (should be readable by nginx)
+# - Clear browser cache
+```
+
+### Validation and Recovery
+
+**Run Full Validation**:
+```bash
+./deploy/install-test.sh
+# This will identify most configuration issues
+```
+
+**Recovery Procedures**:
+1. **Configuration Reset**: Regenerate configs with `npx jpulse-setup --deploy`
+2. **Database Reset**: Re-run `./deploy/mongodb-setup.sh` (will preserve existing data)
+3. **Process Reset**: `pm2 delete all && pm2 start deploy/ecosystem.prod.config.cjs`
+4. **Full Reinstall**: Re-run `sudo ./deploy/install-system.sh`
+
+### Getting Help
+
+1. **Check site documentation**: Visit `/jpulse/` on your running site
+2. **Review deployment logs**: Check PM2 logs and system logs
+3. **Validate configuration**: Run `./deploy/install-test.sh`
+4. **Framework documentation**: Available at `/jpulse/docs/`
+
+## 📚 Reference Documentation
+
+### Generated Documentation
+- **Site README.md**: Site-specific deployment information
+- **deploy/README.md**: Framework deployment concepts and procedures
+- **deploy/install-test.sh**: Comprehensive validation suite
+
+### Framework Documentation
+Available on all jPulse sites at `/jpulse/`:
+- **Installation Guide**: `/jpulse/installation`
+- **Getting Started**: `/jpulse/getting-started`
+- **API Reference**: `/jpulse/api-reference`
+- **Site Customization**: `/jpulse/site-customization`
+
+### Configuration Files
+
+**Environment Variables** (`.env`):
+- Generated from `deploy/env.tmpl`
+- Contains all deployment-specific settings
+- Source before running deployment scripts
+
+**Application Configuration** (`site/webapp/app.conf`):
+- jPulse application settings
+- Generated by `jpulse-setup` based on deployment type
+- Override framework defaults
+
+**Process Management** (`deploy/ecosystem.prod.config.cjs`):
+- PM2 configuration for production
+- Cluster mode, auto-restart, logging
+- Generated based on server specifications
+
+## 🔒 Security Considerations
+
+### Automated Security Setup
+The deployment scripts handle:
+- MongoDB authentication and user creation
+- nginx security headers and SSL configuration
+- PM2 process isolation and restart policies
+- Firewall configuration (basic rules)
+
+### Manual Security Review
+After deployment, review:
+- **SSH Configuration**: Disable password authentication
+- **Firewall Rules**: Restrict access to necessary ports only
+- **SSL Certificates**: Ensure auto-renewal is configured
+- **Database Access**: Verify MongoDB is not publicly accessible
+- **Application Logs**: Monitor for security events
+
+### Security Updates
+- **System Updates**: Configure automatic security updates
+- **Framework Updates**: Monitor for jPulse security releases
+- **Dependency Updates**: Regular `npm audit` and updates
+- **Certificate Renewal**: Verify Let's Encrypt auto-renewal
+
+## 📊 Monitoring and Maintenance
+
+### Health Monitoring
+```bash
+# Daily health check
+./deploy/install-test.sh
+
+# Process monitoring
+pm2 monit
+
+# Resource monitoring
+htop
+df -h
+```
+
+### Backup Procedures
+```bash
+# Database backup (automated via cron)
+mongodump --host localhost --port 27017 --db your_db_name --out /backup/$(date +%Y%m%d)
+
+# Application backup
+tar -czf /backup/app-$(date +%Y%m%d).tar.gz /opt/jpulse/
+```
+
+### Log Management
+- **Application Logs**: PM2 handles log rotation
+- **System Logs**: Standard systemd journal
+- **nginx Logs**: `/var/log/nginx/`
+- **MongoDB Logs**: `/var/log/mongodb/`
 
 ---
 
-*This deployment guide provides a production-ready setup for jPulse Framework applications with security, monitoring, and backup considerations.*
+**Next Steps After Deployment**:
+1. **Test Your Site**: Verify all functionality works
+2. **Configure Monitoring**: Set up health checks and alerts
+3. **Plan Backups**: Implement regular backup procedures
+4. **Review Security**: Complete security hardening checklist
+5. **Document Customizations**: Record any manual configuration changes
+
+*This deployment guide focuses on single-server deployments. Multi-server deployment documentation is planned for future releases.*

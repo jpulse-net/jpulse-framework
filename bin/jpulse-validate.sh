@@ -1,14 +1,12 @@
 #!/bin/bash
 ##
- # @name            jPulse Framework / Deploy / Installation Test
- # @tagline         Test and validate jPulse deployment installation
+ # @name            jPulse Framework / Bin / Deployment Validation
+ # @tagline         Validate jPulse deployment installation
  # @description     This script validates system installation and configuration
- #                  - Can run standalone: ./deploy/install-test.sh
- #                  - Auto-run by install-system.sh
+ #                  - Run with: npm run jpulse-validate
+ #                  - Auto-run by jpulse-validate.sh
  #                  - Context-aware: respects dev vs prod deployment settings
- # @site            %SITE_NAME%
- # @generated       %GENERATION_DATE%
- # @file            templates/deploy/install-test.sh
+ # @file            bin/jpulse-validate.sh
  # @version         0.7.3
  # @release         2025-09-15
  # @repository      https://github.com/peterthoeny/jpulse-framework
@@ -19,6 +17,13 @@
 ##
 
 set -e
+
+# Require environment variables to be loaded
+if [[ -z "$JPULSE_SITE_ID" || -z "$JPULSE_DOMAIN_NAME" ]]; then
+    echo "❌ Environment not loaded. Run: npm run jpulse-validate"
+    echo "💡 Or with environment: source .env && npx jpulse-framework validate"
+    exit 1
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -415,7 +420,8 @@ main() {
     echo "🧪 jPulse Installation Test Suite"
     echo "================================="
     echo ""
-    echo "Site: %SITE_NAME%"
+    echo "Site: ${JPULSE_SITE_ID:-Unknown}"
+    echo "Domain: ${JPULSE_DOMAIN_NAME:-localhost}"
     echo "Platform: $(uname -s) $(uname -r)"
     echo "User: $(whoami)"
     echo ""
@@ -482,4 +488,4 @@ main() {
 # Run main function
 main "$@"
 
-# EOF deploy/install-test.sh
+# EOF bin/jpulse-validate.sh

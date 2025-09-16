@@ -6,8 +6,8 @@
     "main": "webapp/app.js",
     "bin": {
         "jpulse-setup": "./bin/setup.js",
-        "jpulse-sync": "./bin/sync.js",
-        "jpulse-update": "./bin/update.js"
+        "jpulse-update": "./bin/jpulse-update.js",
+        "jpulse-framework": "./bin/jpulse-framework.js"
     },
     "files": [
         "webapp/",

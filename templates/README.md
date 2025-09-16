@@ -56,10 +56,10 @@ open http://localhost:8080/
 
 ### Production Deployment
 ```bash
-sudo ./deploy/install-system.sh    # System setup (as root)
-nano .env                          # Configure environment
-source .env && ./deploy/mongodb-setup.sh  # Database setup
-./deploy/install-test.sh           # Validate installation
+sudo npm run jpulse-install     # System setup (as root)
+nano .env                       # Configure environment
+npm run jpulse-mongodb-setup    # Database setup
+npm run jpulse-validate         # Validate installation
 pm2 start deploy/ecosystem.prod.config.cjs && pm2 save  # Start production
 ```
 
@@ -81,7 +81,7 @@ pm2 start deploy/ecosystem.prod.config.cjs && pm2 save  # Start production
 
 ### Deployment Guides
 - **Site Integration**: `deploy/README.md` (comprehensive deployment procedures)
-- **Quick Troubleshooting**: Run `./deploy/install-test.sh` for diagnostics
+- **Quick Troubleshooting**: Run `npm run jpulse-validate` for diagnostics
 
 ### Framework Support
 - [GitHub Repository](https://github.com/peterthoeny/jpulse-framework)

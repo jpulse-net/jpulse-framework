@@ -351,7 +351,11 @@ function createSitePackageJson(config) {
             start: "node webapp/app.js",
             dev: "node webapp/app.js",
             prod: "NODE_ENV=production node webapp/app.js",
-            update: "npx update"
+            update: "npx update",
+            "jpulse-install": "npx jpulse-framework install",
+            "jpulse-mongodb-setup": "source .env && npx jpulse-framework mongodb-setup",
+            "jpulse-validate": "source .env && npx jpulse-framework validate",
+            "jpulse-update": "npx jpulse-update"
         },
         dependencies: {
             "@peterthoeny/jpulse-framework": frameworkPackage.version.startsWith('0.') ? `~0` : `^${frameworkPackage.version}`

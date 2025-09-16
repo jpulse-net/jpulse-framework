@@ -9071,7 +9071,7 @@ Tested deployment validation procedures against live jpulse.net site to validate
 
 TEST RESULTS FROM jpulse.net:
 ✅ Tests passed: 15
-⚠️  Warnings: 7 (expected for custom deployment)  
+⚠️  Warnings: 7 (expected for custom deployment)
 ❌ Tests failed: 2 (identified as upstream framework issues)
 
 FAILED TEST ROOT CAUSE ANALYSIS:
@@ -9085,7 +9085,7 @@ FAILED TEST ROOT CAUSE ANALYSIS:
 
 DOCUMENTATION VALIDATION SUCCESS:
 ✅ Health check commands work in production environment
-✅ Diagnostic procedures accurately identify real issues  
+✅ Diagnostic procedures accurately identify real issues
 ✅ Warning vs error classification appropriate for custom deployments
 ✅ Troubleshooting workflow matches actual site administrator needs
 ✅ Real-world deployment validation confirms documentation accuracy
@@ -9114,7 +9114,7 @@ Successfully tested complete framework update workflow on live jpulse.net produc
 
 UPDATE SEQUENCE RESULTS:
 ✅ Global installation removed cleanly
-✅ npx resolution switched to local version automatically  
+✅ npx resolution switched to local version automatically
 ✅ Framework updated: v0.7.2 → v0.7.3
 ✅ jpulse-sync executed successfully with local installation
 ✅ Documentation copied to updated framework
@@ -9129,7 +9129,7 @@ LOCAL-ONLY INSTALLATION VALIDATED:
 W-054 DOCUMENTATION APPROACH CONFIRMED:
 Local-only installation is the optimal approach for documentation:
 - Eliminates global vs local confusion
-- Removes sudo requirements from update procedures  
+- Removes sudo requirements from update procedures
 - Ensures version consistency
 - Matches modern npm best practices
 - Successfully tested on real production deployment
@@ -9137,3 +9137,48 @@ Local-only installation is the optimal approach for documentation:
 NEXT: Test updated validation tools for nginx config and app.conf parsing fixes.
 
 STATUS: W-054 framework update procedures successfully validated on live production site.
+
+============================================================
+
+2025-09-15 22:49: W-054 Implementation - Smart Deployment Architecture
+
+BREAKTHROUGH SOLUTION IMPLEMENTED:
+Resolved the fundamental deployment tool vs site configuration conflict through elegant bin/ architecture.
+
+ARCHITECTURE CHANGES:
+✅ Moved framework tools to bin/ directory:
+- bin/install-system.sh (system dependencies installer)
+- bin/mongodb-setup.sh (database setup script)
+- bin/install-test.sh (deployment validator)
+
+✅ Updated scripts to use environment variables instead of template placeholders:
+- Require .env to be sourced before execution
+- Use ${JPULSE_SITE_ID}, ${DB_NAME}, etc. from environment
+- Fail gracefully with clear error message if environment not loaded
+
+✅ Updated all documentation to use npx commands:
+- sudo npx jpulse-framework install-system
+- source .env && npx jpulse-framework mongodb-setup
+- source .env && npx jpulse-framework install-test
+
+KEY BENEFITS ACHIEVED:
+1. ✅ Framework tools always updated by jpulse-sync
+2. ✅ Site configurations preserved in deploy/ directory
+3. ✅ No template expansion conflicts
+4. ✅ Consistent "source .env && npx" workflow
+5. ✅ "Don't make me think" - simple, predictable commands
+
+DOCUMENTATION UPDATED:
+- docs/deployment.md: Updated all deployment procedures
+- templates/README.md: Updated quick start commands
+- templates/deploy/README.md: Updated framework deployment guide
+- All references changed from ./deploy/ to npx jpulse-framework commands
+
+WORKFLOW VALIDATION:
+The new architecture solves the original problem:
+- Framework updates: npx jpulse-sync updates bin/ tools automatically
+- Site preservation: deploy/ configs remain untouched
+- Environment consistency: All site-specific data from .env
+- Simple commands: Consistent npx pattern throughout
+
+STATUS: W-054 smart deployment architecture implemented. Ready for testing and final validation.

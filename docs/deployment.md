@@ -16,16 +16,16 @@ npx jpulse-setup
 npm install
 
 # 3. System setup (run as root)
-sudo ./deploy/install-system.sh
+sudo npm run jpulse-install
 
 # 4. Configure environment
 nano .env  # Review generated settings
 
 # 5. Database setup (run as application user)
-source .env && ./deploy/mongodb-setup.sh
+npm run jpulse-mongodb-setup
 
 # 6. Validate installation
-./deploy/install-test.sh
+npm run jpulse-validate
 
 # 7. Start production
 pm2 start deploy/ecosystem.prod.config.cjs
@@ -201,7 +201,7 @@ source .env && echo "Connecting as: $DB_USER to $DB_NAME"
 # Safe update process
 npm run update --dry-run  # Preview changes
 npm update @peterthoeny/jpulse-framework
-npx jpulse-sync  # Sync framework files
+npm run jpulse-update  # Sync framework files
 
 # If update fails:
 # 1. Check site/webapp/app.conf for compatibility
@@ -250,15 +250,15 @@ ls -la site/webapp/static/
 
 **Run Full Validation**:
 ```bash
-./deploy/install-test.sh
+npm run jpulse-validate
 # This will identify most configuration issues
 ```
 
 **Recovery Procedures**:
-1. **Configuration Reset**: Regenerate configs with `npx jpulse-setup --deploy`
-2. **Database Reset**: Re-run `./deploy/mongodb-setup.sh` (will preserve existing data)
+1. **Configuration Reset**: Regenerate configs with `npx jpulse-setup`
+2. **Database Reset**: Re-run `npm run jpulse-mongodb-setup` (will preserve existing data)
 3. **Process Reset**: `pm2 delete all && pm2 start deploy/ecosystem.prod.config.cjs`
-4. **Full Reinstall**: Re-run `sudo ./deploy/install-system.sh`
+4. **Full Reinstall**: Re-run `sudo npm run jpulse-install`
 
 ### Getting Help
 

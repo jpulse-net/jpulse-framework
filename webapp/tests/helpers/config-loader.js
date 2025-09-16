@@ -3,7 +3,7 @@
  * @tagline         Jest-independent configuration loader for tests
  * @description     Loads consolidated configuration without Jest dependencies
  * @file            webapp/tests/helpers/config-loader.js
- * @version         0.7.4
+ * @version         0.7.5
  * @release         2025-09-16
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

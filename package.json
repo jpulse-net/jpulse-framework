@@ -1,11 +1,11 @@
 {
     "name": "@peterthoeny/jpulse-framework",
-    "version": "0.7.4",
+    "version": "0.7.5",
     "description": "Generic web application framework using MongoDB, Node.js, Express",
     "type": "module",
     "main": "webapp/app.js",
     "bin": {
-        "jpulse-setup": "./bin/setup.js",
+        "jpulse-configure": "./bin/configure.js",
         "jpulse-update": "./bin/jpulse-update.js",
         "jpulse-framework": "./bin/jpulse-framework.js"
     },

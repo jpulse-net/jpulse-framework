@@ -3,7 +3,7 @@
  * @tagline         Unit tests for responsive layout and appConfig integration
  * @description     Tests for the new responsive layout features and appConfig context
  * @file            webapp/tests/unit/controller/responsive-layout.test.js
- * @version         0.7.4
+ * @version         0.7.5
  * @release         2025-09-16
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

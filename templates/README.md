@@ -1,4 +1,4 @@
-# %SITE_NAME% - Site based on jPulse Framework v0.7.4
+# %SITE_NAME% - Site based on jPulse Framework v0.7.5
 
 A production-ready jPulse Framework site created with `npx jpulse-setup`.
 
@@ -67,7 +67,7 @@ pm2 start deploy/ecosystem.prod.config.cjs && pm2 save  # Start production
 
 ## 📁 Site Information
 
-- **Site ID**: %SITE_ID%
+- **Site ID**: %JPULSE_SITE_ID%
 - **Generated**: %GENERATION_DATE%
 - **Deployment**: %DEPLOYMENT_TYPE%
 - **Domain**: %DOMAIN_NAME%

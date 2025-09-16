@@ -7,7 +7,7 @@
  * @site            %SITE_NAME%
  * @generated       %GENERATION_DATE%
  * @file            templates/deploy/ecosystem.prod.config.cjs
- * @version         0.7.4
+ * @version         0.7.5
  * @release         2025-09-16
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,7 +18,7 @@
 
 module.exports = {
     apps: [{
-        name: '%SITE_ID%-prod',
+        name: '%JPULSE_SITE_ID%-prod',
         script: 'webapp/app.js',
         cwd: process.cwd(),
 
@@ -29,12 +29,12 @@ module.exports = {
         // Environment
         env: {
             NODE_ENV: 'production',
-            PORT: %APP_PORT%
+            PORT: %PORT%
         },
 
-        // Logging (single combined log file)
-        log_file: '%LOG_FILE%',
-        error_file: '%LOG_DIR%/pm2-errors.log',
+        // Logging (resolved at template time - no runtime dependencies)
+        log_file: '%PM2_LOG_FILE%',
+        error_file: '%PM2_ERROR_FILE%',
         out_file: '/dev/null',
 
         // Performance and reliability
@@ -65,7 +65,7 @@ module.exports = {
         autorestart: true,
 
         // Red Hat systemd integration
-        pid_file: '/var/run/jpulse/%SITE_ID%.pid'
+        pid_file: '/var/run/jpulse/%JPULSE_SITE_ID%.pid'
     }]
 };
 

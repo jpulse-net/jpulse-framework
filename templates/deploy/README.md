@@ -1,4 +1,4 @@
-# jPulse Framework v0.7.4 Deployment Guide for %SITE_NAME%
+# jPulse Framework v0.7.5 Deployment Guide for %SITE_NAME%
 
 **Site Generated**: %GENERATION_DATE%
 **Deployment Type**: %DEPLOYMENT_TYPE%
@@ -49,7 +49,7 @@ pm2 save
           │
 ┌─────────▼───────┐
 │   Node.js App   │  ← jPulse application server
-│   (Port %APP_PORT%)    │     (PM2 cluster mode)
+│   (Port %PORT%)    │     (PM2 cluster mode)
 └─────────┬───────┘
           │
 ┌─────────▼───────┐
@@ -66,7 +66,7 @@ Key settings for your deployment:
 ```bash
 ## Application
 NODE_ENV=%NODE_ENV%
-PORT=%APP_PORT%
+PORT=%PORT%
 
 ## Database
 DB_NAME=%DB_NAME%
@@ -77,7 +77,7 @@ DB_PASS='%DB_PASS%'
 SESSION_SECRET=%SESSION_SECRET%
 
 ## Site Metadata
-JPULSE_SITE_ID=%SITE_ID%
+JPULSE_SITE_ID=%JPULSE_SITE_ID%
 JPULSE_DOMAIN_NAME=%DOMAIN_NAME%
 ```
 
@@ -85,7 +85,7 @@ JPULSE_DOMAIN_NAME=%DOMAIN_NAME%
 
 **Existing Reverse Proxy (e.g., Apache httpd)**:
 1. Skip nginx installation in `install-system.sh`
-2. Configure your proxy to forward to `http://localhost:%APP_PORT%/`
+2. Configure your proxy to forward to `http://localhost:%PORT%/`
 3. Set `trustProxy: true` in `site/webapp/app.conf`
 
 **External Database**:
@@ -101,10 +101,10 @@ npm run jpulse-validate
 
 ## Check application status
 pm2 status
-pm2 logs %SITE_ID%-prod
+pm2 logs %JPULSE_SITE_ID%-prod
 
 ## Test site response
-curl -I http://localhost:%APP_PORT%/
+curl -I http://localhost:%PORT%/
 ```
 
 #### Backup Procedures
@@ -248,7 +248,7 @@ All available on your running site:
 {
     app: {
         environment: '%NODE_ENV%',
-        port: %APP_PORT%,
+        port: %PORT%,
         // Your custom app settings here
     },
     database: {

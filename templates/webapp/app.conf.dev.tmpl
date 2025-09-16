@@ -3,7 +3,7 @@
  * @tagline         Template for development deployment configuration
  * @description     Minimal configuration for local development deployment
  * @file            templates/webapp/app.conf.dev.tmpl
- * @version         0.7.4
+ * @version         0.7.5
  * @release         2025-09-16
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Site Administrator
@@ -18,12 +18,18 @@
     app: {
         name: '%SITE_NAME%',
         shortName: '%SITE_SHORT_NAME%',
-        siteId: '%SITE_ID%',
-        domainName: '%DOMAIN_NAME%'
+        siteId: '%JPULSE_SITE_ID%',
+        domainName: '%JPULSE_DOMAIN_NAME%',
+        port: %PORT%
     },
 
     deployment: {
-        mode: 'dev'
+        mode: 'dev',
+        dev: {
+            name:       'development',
+            db:         '%DB_NAME%',
+            port:       %PORT%
+        }
     },
 
     middleware: {
@@ -33,9 +39,17 @@
                 secure: false  // HTTP OK for development
             }
         }
+    },
+
+    database: {
+        mode: 'standalone',
+        standalone: {
+            // Uses framework defaults with deployment.dev.db name
+            // No authentication needed for development
+        }
     }
 
-    // Uses framework defaults for database, logging, etc.
+    // Uses framework defaults for logging, etc.
 }
 
 // EOF webapp/app.conf.dev.tmpl

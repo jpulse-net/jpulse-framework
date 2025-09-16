@@ -4,7 +4,7 @@
  * @tagline         Test script for CLI tools validation
  * @description     Tests setup and sync CLI tools in isolated environment
  * @file            bin/test-cli.js
- * @version         0.7.4
+ * @version         0.7.5
  * @release         2025-09-16
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -45,7 +45,7 @@ async function testCLI() {
         console.log('📁 Created test directory:', testDir);
 
         // Test setup command with environment variables for non-interactive testing
-        console.log('🚀 Testing jpulse-setup...');
+        console.log('🚀 Testing jpulse-configure...');
 
         // Set environment variables for automated testing
         process.env.JPULSE_TEST_MODE = 'true';
@@ -54,7 +54,7 @@ async function testCLI() {
         process.env.JPULSE_TEST_GENERATE_DEPLOY = 'true';
 
         try {
-            execSync('node ../bin/setup.js', {
+            execSync('node ../bin/configure.js', {
                 stdio: 'inherit',
                 env: { ...process.env }
             });
@@ -88,9 +88,13 @@ async function testCLI() {
             'deploy/README.md',
             'deploy/ecosystem.dev.config.cjs',
             'deploy/ecosystem.prod.config.cjs',
-            'deploy/nginx.prod.conf',
-            'deploy/env.tmpl'
+            'deploy/nginx.prod.conf'
         ];
+
+        // Verify .env file was generated directly
+        if (!fs.existsSync('.env')) {
+            throw new Error('Expected .env file not found');
+        }
 
         for (const file of expectedDeployFiles) {
             if (!fs.existsSync(file)) {
@@ -113,7 +117,7 @@ async function testCLI() {
         // Test that setup detects existing site
         console.log('🔒 Testing setup detection...');
         try {
-            execSync('node ../bin/setup.js', {
+            execSync('node ../bin/configure.js', {
                 stdio: ['pipe', 'pipe', 'pipe'],
                 input: '2\n' // Choose "Update framework files" option
             });

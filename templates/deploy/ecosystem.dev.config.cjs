@@ -7,7 +7,7 @@
  * @site            %SITE_NAME%
  * @generated       %GENERATION_DATE%
  * @file            templates/deploy/ecosystem.dev.config.cjs
- * @version         0.7.4
+ * @version         0.7.5
  * @release         2025-09-16
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,7 +18,7 @@
 
 module.exports = {
     apps: [{
-        name: '%SITE_ID%-dev',
+        name: '%JPULSE_SITE_ID%-dev',
         script: 'webapp/app.js',
         cwd: process.cwd(),
 
@@ -37,12 +37,12 @@ module.exports = {
         // Environment
         env: {
             NODE_ENV: 'development',
-            PORT: %APP_PORT%
+            PORT: %PORT%
         },
 
-        // Logging (single combined log file)
-        log_file: './logs/dev-combined.log',
-        error_file: './logs/pm2-dev-errors.log',
+        // Logging (resolved at template time - no runtime dependencies)
+        log_file: '%PM2_LOG_FILE%',
+        error_file: '%PM2_ERROR_FILE%',
         out_file: '/dev/null',
 
         // Development optimizations

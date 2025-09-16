@@ -4,7 +4,7 @@
  * @tagline         Command dispatcher for jPulse Framework tools
  * @description     Dispatches commands to appropriate shell scripts
  * @file            bin/jpulse-framework.js
- * @version         0.7.4
+ * @version         0.7.5
  * @release         2025-09-16
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

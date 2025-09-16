@@ -10,27 +10,27 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## ✅ COMPLETED & ❌ CANCELED Work Items
 
-### W-001: create hello world app
+### W-001: create hello world app - v0.1.0
 - status: ✅ COMPLETED
 - type: Feature
 - create logic in webapp/app.js
 - use appConfig.deployment[mode].port in webapp/app.conf
 - create package.json, package-lock.json
 
-### W-002: create internationalization framework
+### W-002: create internationalization framework - v0.1.0
 - status: ✅ COMPLETED
 - type: Feature
 - all user facing text can be translated
 - translations: one file per language
 
-### W-003: create test framework
+### W-003: create test framework - v0.1.1
 - status: ✅ COMPLETED
 - type: Feature
 - create webapp/tests/
 - create test hierarchy using subdirectories
 - implement first tests for translations/i18n.js
 
-### W-004: create site admin config model & controller
+### W-004: create site admin config model & controller - v0.1.2
 - status: ✅ COMPLETED
 - type: Feature
 - create webapp/model/config.js -- model
@@ -61,7 +61,7 @@ This is the doc to track work items, arranged in three sections:
   }```
 - create tests, and test
 
-### W-005: create log infrastructure
+### W-005: create log infrastructure - v0.1.3
 - status: ✅ COMPLETED
 - type: Feature
 - create webapp/model/log.js -- model
@@ -92,7 +92,7 @@ This is the doc to track work items, arranged in three sections:
   }```
 - create tests, and test
 
-### W-006: create server sice include function
+### W-006: create server sice include function - v0.1.4
 - status: ✅ COMPLETED
 - type: Feature
 - create webapp/controller/view.js
@@ -119,13 +119,13 @@ This is the doc to track work items, arranged in three sections:
     - {{url.param.foo}} // 'bar'
     - {{i18n.login.notAuthenticated}}
 
-### W-007: rename project from Bubble Framework to jPulse Framework
+### W-007: rename project from Bubble Framework to jPulse Framework - v0.1.5
 - status: ✅ COMPLETED
 - type: Feature
 - rename git repo to /peterthoeny/jpulse-framework
 - rename any text references to project name
 
-### W-008: strategy for view content and static content; HTML header & footer strategy
+### W-008: strategy for view content and static content; HTML header & footer strategy - v0.2.0
 - status: ✅ COMPLETED
 - type: Feature
 - objective: clean separation using routing precedence
@@ -159,13 +159,13 @@ This is the doc to track work items, arranged in three sections:
 - add footer:
   - responsive design matching main app window
 
-### W-009: common utilities infrastructure; flexible shema-based query
+### W-009: common utilities infrastructure; flexible shema-based query - v0.2.1
 - status: ✅ COMPLETED
 - type: Feature
 - create a common utilities infrastructure
 - add schemaBasedQuery() from logs so that it can be used by all controllers (see log.schemaBasedQuery)
 
-### W-010: doc improvements
+### W-010: doc improvements - v0.2.2
 - status: ✅ COMPLETED
 - type: Feature
 - update README.md, developers.md based on requirements.md doc
@@ -175,7 +175,7 @@ This is the doc to track work items, arranged in three sections:
 - create a API.md doc
 - remove legacy {{i18n "app.name"}} notation, replaced by {{i18n.app.name}} dot notation
 
-### W-011: create user model & controller
+### W-011: create user model & controller - v0.2.3
 - status: ✅ COMPLETED
 - type: Feature
 - create webapp/model/user.js
@@ -190,7 +190,7 @@ This is the doc to track work items, arranged in three sections:
 - create tests
 - document in README, API, changes, developers
 
-### W-012: create user views
+### W-012: create user views - v0.2.4
 - status: ✅ COMPLETED
 - type: Feature
 - create webapp/view/user/profile.shtml
@@ -206,20 +206,20 @@ This is the doc to track work items, arranged in three sections:
   - for /api/... return a JSON with "success": false
   - else show formatted error page as in view/error/index.shtml
 
-### W-016: create auth controller
+### W-016: create auth controller - v0.2.5
 - status: ✅ COMPLETED
 - type: Feature
 - handles login, logout
 - handles auth.isAuthenticated and auth.isAuthorized for middleware
 - use as needed in routing
 
-### W-017: i18n with variable content
+### W-017: i18n with variable content - v0.2.6
 - status: ✅ COMPLETED
 - type: Feature
 - handlebar based, example:
   - signOut: 'Sign out {{user.id}}' // ==> 'Sign out jsmith'
 
-### W-018: create {{#if}} handlebar for simple nesting
+### W-018: create {{#if}} handlebar for simple nesting - v0.2.7
 - status: ✅ COMPLETED
 - type: Feature
 - syntax: {{#if some.condition}} show this with {{other.handlebars}} {{/if}}
@@ -228,7 +228,7 @@ This is the doc to track work items, arranged in three sections:
 - remove existing {{if some.condition "text for true" "text for false"}} syntax
 - replace all existing {{if}} with the new {{#if}} syntax
 
-### W-020: i18n with fallback
+### W-020: i18n with fallback - v0.2.8
 - status: ✅ COMPLETED
 - type: Feature
 - audit language:
@@ -236,14 +236,14 @@ This is the doc to track work items, arranged in three sections:
   - report missing and extra fields
   - patch other language with missing fields from default language
 
-### W-021: fix user profile view to read from API
+### W-021: fix user profile view to read from API - v0.3.0
 - status: ✅ COMPLETED
 - type: Bug
 - user profile view now loads fresh data from /api/1/user/profile API endpoint
 - profile updates work correctly and increment saveCount properly
 - UserModel.updateById() now increments saveCount like ConfigModel
 
-### W-022: user preferred language
+### W-022: user preferred language - v0.3.0
 - status: ✅ COMPLETED
 - type: Feature
 - centralized language preference handling in AuthController
@@ -259,13 +259,13 @@ This is the doc to track work items, arranged in three sections:
   - SPA is fragile: if one "page" has a runtime error the whole site is down
   - SPA is heavy: if you have 100 "pages", all content is in browser memory
 
-### W-026: config: appConfig structure should match model, controller, and view structure
+### W-026: config: appConfig structure should match model, controller, and view structure - v0.3.9
 - status: ✅ COMPLETED
 - type: Feature
 - restructure webapp/app.conf to match the file structure with controllers, views, etc.
 - example: appConfig.controller.view.maxIncludeDepth
 
-### W-027: i18n: language files structure should match controller and view structure
+### W-027: i18n: language files structure should match controller and view structure - v0.3.2
 - status: ✅ COMPLETED
 - type: Feature
 - restructure the language files to match the file structure with controllers and views
@@ -273,14 +273,14 @@ This is the doc to track work items, arranged in three sections:
 - prepare for controllers with i18n
   - example: i18n.controller.auth.unauthorizedByRole
 
-### W-028: view controller: cache template and include files
+### W-028: view controller: cache template and include files - v0.3.3
 - status: ✅ COMPLETED
 - type: Feature
 - remove async in view.processHandlebars()
 - cache template files based on appConfig.controller.view.cacheTemplateFiles flag
 - cache include files and file timestamps based on appConfig.controller.view.cacheIncludeFiles flag
 
-### W-029: i18n: internationalize user facing controller messages; add consistent controller logs
+### W-029: i18n: internationalize user facing controller messages; add consistent controller logs - v0.3.4
 - status: ✅ COMPLETED
 - type: Feature
 - rename i18n.translate() to i18n._translate()
@@ -291,14 +291,14 @@ This is the doc to track work items, arranged in three sections:
 - internationalize user facing controller messages, e.g. no hard-coded messages
 - add consitent log entries in controller APIs
 
-### W-030: rename LogController log methods for consistency
+### W-030: rename LogController log methods for consistency - v0.3.5
 - status: ✅ COMPLETED
 - type: Feature
 - LogController.consoleApi() ==> LogController.logRequest()
 - LogController.console()    ==> LogController.logInfo()
 - LogController.error()      ==> LogController.logError()
 
-### W-031: i18n: move i18n.js script to webapp/utils/ & rename translation files
+### W-031: i18n: move i18n.js script to webapp/utils/ & rename translation files - v0.3.6
 - status: ✅ COMPLETED
 - type: Feature
 - objective: clean dir structure where all MVC utilities reside in webapp/utils/
@@ -307,7 +307,7 @@ This is the doc to track work items, arranged in three sections:
 - rename webapp/translations/lang-de.conf to just webapp/translations/de.conf
 - fix all references to i18n.js and language files
 
-### W-032: user: fix username vs userId vs loginId inconsistencies; add uuid field
+### W-032: user: fix username vs userId vs loginId inconsistencies; add uuid field - v0.3.7
 - status: ✅ COMPLETED
 - type: Feature
 - some code refers to username, some to userId, some to loginId:
@@ -322,7 +322,7 @@ This is the doc to track work items, arranged in three sections:
 - fix user tests
 - no need to patch existing docs in users collection
 
-### W-033: tests: fix ECMAScript Modules infrastructure; consolidate configuration
+### W-033: tests: fix ECMAScript Modules infrastructure; consolidate configuration - v0.3.8
 - status: ✅ COMPLETED
 - type: Feature
 - issue with tests clean, it does not work
@@ -332,13 +332,13 @@ This is the doc to track work items, arranged in three sections:
 - add jpulse/config-sources.json with timestamp of app.conf for auto-update of app.json
 - add webapp/utils/bootstrap.js - architecture to created centralized dependency initialization system for consistent module loading order
 
-### W-034: error reporting without redirect
+### W-034: error reporting without redirect - v0.3.9
 - status: ✅ COMPLETED
 - type: Feature
 - view controller: for 404 and other errors do not redirect to /error/index.shtml, but show error message with same style and content like webapp/view/error/index.shtml
 - keep webapp/view/error/index.shtml for client side redirects that need a 404 page
 
-### W-035: view: script separation with enhanced jpulse-common.js utilities
+### W-035: view: script separation with enhanced jpulse-common.js utilities - v0.4.0
 - status: ✅ COMPLETED
 - type: Feature
 - objective: avoid duplicate code in browser; spend less time to create a new view and to maintain existing views
@@ -360,7 +360,7 @@ This is the doc to track work items, arranged in three sections:
 - use library like bootstrap, or continue native?
   - at a later point offer vue.js as an option for more dynamic content per page (e.g. not SPA) (via plugin once plugin infrastructure is available?)
 
-### W-025: view: component-based styling with framework/site separation
+### W-025: view: component-based styling with framework/site separation - v0.4.1
 - status: ✅ COMPLETED
 - type: Feature
 - objective:
@@ -383,7 +383,7 @@ This is the doc to track work items, arranged in three sections:
   - Prepare override-friendly structure for W-014
   - Performance testing and cross-browser validation
 
-### W-036: view: migrate existing views to use jpulse-common.js and jpulse-common.css
+### W-036: view: migrate existing views to use jpulse-common.js and jpulse-common.css - v0.4.2
 - status: ✅ COMPLETED
 - type: Feature
 - objective:
@@ -410,7 +410,7 @@ This is the doc to track work items, arranged in three sections:
 - make sure to not use hard-coded user facing messages that could be translated
 - make sure to update the two existing language files webapp/translations/en.conf and webapp/translations/de.conf
 
-### W-019: view: create non-blocking slide-down info/alert/warning/success message
+### W-019: view: create non-blocking slide-down info/alert/warning/success message - v0.4.3
 - status: ✅ COMPLETED
 - type: Feature
 - pupose: non-blocking error or info message, such after signin
@@ -429,7 +429,7 @@ This is the doc to track work items, arranged in three sections:
   - duration defined by type in appConfig.view.slideDownMessage.duration.*
   - keep current background colors based on type (defined in css)
 
-### W-038: view: cleaner separation of common code/style and page specific code/style
+### W-038: view: cleaner separation of common code/style and page specific code/style - v0.4.4
 
 - status: ✅ COMPLETED
 - type: Feature
@@ -470,7 +470,7 @@ This is the doc to track work items, arranged in three sections:
     - they have different form validation and submit handling,
     - better to consolidate using one approach?
 
-### W-013: view: define standard for page assets, create site admin index page
+### W-013: view: define standard for page assets, create site admin index page - v0.4.5
 - status: ✅ COMPLETED
 - type: Feature
 - define standard for page assets:
@@ -480,7 +480,7 @@ This is the doc to track work items, arranged in three sections:
   - with square icon buttons linking to config.shtml, logs.shtml, users.shtml
 - require root or admin role for /admin/ pages
 
-### W-039: view: create manage users page and user home page; create iPulseCommon.collapsible function
+### W-039: view: create manage users page and user home page; create iPulseCommon.collapsible function - v0.4.6
 - status: ✅ COMPLETED
 - type: Feature
 - move webapp/view/user/index.shtml to webapp/view/admin/users.shtml -- manage users
@@ -488,7 +488,7 @@ This is the doc to track work items, arranged in three sections:
   - square icon buttons
 - add new iPulseCommon.collapsible function to toggle a section open and close
 
-### W-042: view: fix slide down message is not cleared bug
+### W-042: view: fix slide down message is not cleared bug - v0.4.7
 - status: ✅ COMPLETED
 - type: Bug
 - in the signup page, error messages in the slide down are never cleared
@@ -498,26 +498,26 @@ This is the doc to track work items, arranged in three sections:
   - use jPulsCommon.bindSubmission() for simple forms like login
   - use jPulsCommon.handleSubmission() for complex forms like signup
 
-### W-043: view: rename jPulseCommon object to jPulse
+### W-043: view: rename jPulseCommon object to jPulse - v0.4.8
 - status: ✅ COMPLETED
 - type: Feature
 - objective: don't make me think, maintain brand, extensible
 
-### W-044: view: use jp-* prefix for common styles, local-* prefix for local styles
-- status: ✅ COMPLETED (v0.4.9)
+### W-044: view: use jp-* prefix for common styles, local-* prefix for local styles - v0.4.9
+- status: ✅ COMPLETED
 - type: Feature
 - objective: don't make me think
 - `jp-*` prefix for common framework styles (always in `jpulse-common.css`)
 - `local-*` prefix for page-specific styles (always in current page's `<style>` section)
 
-### W-041: view: create edit site config page for admins
-- status: ✅ COMPLETED (v0.4.10)
+### W-041: view: create edit site config page for admins - v0.4.10
+- status: ✅ COMPLETED
 - type: Feature
 - create webapp/view/admin/config.shtml -- edit site config
 - **DELIVERED**: Complete site configuration management system with intuitive admin interface, email settings (SMTP server, port, credentials, TLS), site messages, password visibility toggle, smart default creation, comprehensive validation, full i18n support, and extensive test coverage
 
-### W-014: architecture: strategy for seamless update of site-specific jPulse deployments
-- status: ✅ COMPLETED (v0.5.0)
+### W-014: architecture: strategy for seamless update of site-specific jPulse deployments - v0.5.0
+- status: ✅ COMPLETED
 - type: Feature
 - objective: clean separation of jpulse code/data, and site/deployment specific code/data
 - author: site administrator/developer
@@ -529,35 +529,33 @@ This is the doc to track work items, arranged in three sections:
   - site specific directories and files
 - automatic way to override/extend jPulse config, models, controllers, views with site-specific settings
 - create a demo model/view/controller (possibly as plugin), ship with jpulse-framework
+- IMPLEMENTATION COMPLETED:
+  - ✅ Site override directory structure (`site/webapp/`)
+  - ✅ File resolution priority system (PathResolver)
+  - ✅ Auto-discovery of site controllers (SiteRegistry)
+  - ✅ Configuration merging (framework + site configs)
+  - ✅ Context extension system (ContextExtensions)
+  - ✅ Demo implementation (`/hello/` endpoint with interactive API demo)
+  - ✅ Comprehensive test coverage (28 new tests, 416 existing tests passing)
+  - ✅ "Don't make me think" principle - zero manual configuration required
 
-**IMPLEMENTATION COMPLETED:**
-- ✅ Site override directory structure (`site/webapp/`)
-- ✅ File resolution priority system (PathResolver)
-- ✅ Auto-discovery of site controllers (SiteRegistry)
-- ✅ Configuration merging (framework + site configs)
-- ✅ Context extension system (ContextExtensions)
-- ✅ Demo implementation (`/hello/` endpoint with interactive API demo)
-- ✅ Comprehensive test coverage (28 new tests, 416 existing tests passing)
-- ✅ "Don't make me think" principle - zero manual configuration required
-
-### W-047: site: define gudelines for site specific coding and styles; document it
-- status: ✅ COMPLETED (v0.5.0)
+### W-047: site: define gudelines for site specific coding and styles; document it - v0.5.1
+- status: ✅ COMPLETED
 - type: Feature
 - objective: document how to get started with side specific coding, with guidelines; follow the don't nake me think principle
 - common JavaScript code in site/webapp/view/site-common.js extends window.jPulse object
 - common styles in site/webapp/view/site-common.css with site-* prefix for clear source identification
 - documented in enhanced site/README.md with comprehensive development guidelines
-
-**IMPLEMENTATION COMPLETED:**
-- ✅ Created site-common.css.tmpl and site-common.js.tmpl template files
-- ✅ Implemented site-* CSS prefix convention for clear source identification
-- ✅ JavaScript extension pattern extending jPulse.site namespace
-- ✅ Updated jpulse-header.tmpl to automatically load site-common files
-- ✅ Enhanced demo view with comprehensive site functionality showcase
-- ✅ Comprehensive site/README.md with development guidelines, best practices, and examples
-- ✅ "Don't make me think" principle - automatic file detection and loading
-- ✅ Complete CSS and JavaScript component systems with dialogs, tooltips, analytics
-- ✅ Responsive design patterns and framework integration guidelines
+- IMPLEMENTATION COMPLETED:
+  - ✅ Created site-common.css.tmpl and site-common.js.tmpl template files
+  - ✅ Implemented site-* CSS prefix convention for clear source identification
+  - ✅ JavaScript extension pattern extending jPulse.site namespace
+  - ✅ Updated jpulse-header.tmpl to automatically load site-common files
+  - ✅ Enhanced demo view with comprehensive site functionality showcase
+  - ✅ Comprehensive site/README.md with development guidelines, best practices, and examples
+  - ✅ "Don't make me think" principle - automatic file detection and loading
+  - ✅ Complete CSS and JavaScript component systems with dialogs, tooltips, analytics
+  - ✅ Responsive design patterns and framework integration guidelines
 
 ### W-048: create jPulse.UI dialog widgets - v0.5.2
 - status: ✅ COMPLETED
@@ -583,7 +581,7 @@ This is the doc to track work items, arranged in three sections:
   - i18n integration for default titles and buttons
   - Comprehensive demos on home page with complex examples
 
-### W-046: docs: restructure user facing and developer facing documentation
+### W-046: docs: restructure user facing and developer facing documentation - v0.5.3
 - status: ✅ COMPLETED
 - type: Feature
 - working doc: docs/dev/W-046-dev-doc-structure.md
@@ -616,7 +614,7 @@ This is the doc to track work items, arranged in three sections:
   - docs/dev/working/W-046-dev-doc-structure.md
   - docs/dev/working/W-049-docs-marktown-strategy.md
 
-### W-049: docs: views render markdown docs for jPulse docs and site docs
+### W-049: docs: views render markdown docs for jPulse docs and site docs - v0.5.4
 - status: ✅ COMPLETED
 - type: Feature
 - objective: standardize on .md format for website docs (jPulse internal docs and site specific docs)
@@ -650,13 +648,13 @@ This is the doc to track work items, arranged in three sections:
   - store marked and other libraries in webapp/static/common
     - no external links to libraries (deployment might be air-gapped)
 
-### W-052: business: dual licensing with AGPL and commercial license
+### W-052: business: dual licensing with AGPL and commercial license - v0.5.5
 - status: ✅ COMPLETED
 - type: Business
 - objective: nurture business and community goals
 - see W-052-business-dual-licensing-agpl-and-commercial.md
 
-### W-051: infrastructure: framework package distribution
+### W-051: infrastructure: framework package distribution - v0.6.6
 - status: ✅ COMPLETE
 - type: Infrastructure
 - objective: enable framework distribution via private npm package, so that a site owner can maintain their own site-specific repository
@@ -677,7 +675,7 @@ This is the doc to track work items, arranged in three sections:
   - ✅ Documentation for site teams (migration guide, updated README)
   - ✅ Air-gapped deployment support via committed webapp/ files
 
-### W-050: deployment: strategy for separate repositories for jpulse and site
+### W-050: deployment: strategy for separate repositories for jpulse and site - v0.6.7
 - status: ✅ COMPLETE
 - type: Feature
 - objective: clean separation of code and data, so that a site owner can maintain their own reporsitory for site/*
@@ -688,7 +686,7 @@ This is the doc to track work items, arranged in three sections:
   site/webapp/app.conf.tmpl
   site/README.md
 
-### W-015: deployment: strategy for clean onboarding
+### W-015: deployment: strategy for clean onboarding - v0.7.0
 - status: ✅ COMPLETE
 - type: Feature
 - objective: clean out of box experience when deploying a jPulse based webserver for the first time
@@ -704,6 +702,26 @@ This is the doc to track work items, arranged in three sections:
   - mongoDB basic security setup with safety checks
   - complete deployment package with Red Hat Enterprise Linux focus
 - benefits: foundation CLI tools for automated deployment with secure defaults
+
+### W-053: deployment: configuration templates and validation - v0.7.3
+- status: ✅ COMPLETE
+- type: Feature
+- objective: production-ready configuration templates with validation and testing
+- depends on: W-015 (deployment CLI foundation)
+- deliverables:
+  - ✅ production nginx configuration templates with security hardening (already in W-015)
+  - ✅ PM2 ecosystem templates with clustering and monitoring (already in W-015)
+  - ✅ SSL certificate automation with Let's Encrypt integration (already in W-015)
+  - ✅ deployment configuration validation and testing (install-test.sh)
+  - ✅ context-aware testing (respects dev vs prod deployment settings)
+  - ✅ enhanced environment variable management with deployment context
+  - ✅ comprehensive unit and integration tests for deployment validation
+  - ✅ jpulse-update CLI tool with dry-run support (prevents data loss)
+  - ✅ enhanced MongoDB error handling with password validation
+  - ✅ PM2 configuration consistency improvements (dev/prod)
+  - ✅ log directory ownership fixes for proper user permissions
+  - ✅ comprehensive deployment troubleshooting documentation
+- benefits: standardized, secure, tested configuration templates that eliminate manual setup errors and provide production-grade deployment validation
 
 
 
@@ -721,20 +739,18 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-053: deployment: configuration templates and validation
-- status:🚧 IN_PROGRESS
-- type: Feature
-- objective: production-ready configuration templates with validation and testing
-- depends on: W-015 (deployment CLI foundation)
+### 🚧 IN_PROGRESS: documentation simplification and troubleshooting
+- status: 🕑 PENDING
+- type: Documentation
+- objective: streamline deployment documentation to focus on automated approach with comprehensive troubleshooting
+- depends on: W-015, W-053 (deployment automation and templates)
 - deliverables:
-  - ✅ production nginx configuration templates with security hardening (already in W-015)
-  - ✅ PM2 ecosystem templates with clustering and monitoring (already in W-015)
-  - ✅ SSL certificate automation with Let's Encrypt integration (already in W-015)
-  - ✅ deployment configuration validation and testing (install-test.sh)
-  - ✅ context-aware testing (respects dev vs prod deployment settings)
-  - ✅ enhanced environment variable management with deployment context
-  - ✅ comprehensive unit and integration tests for deployment validation
-- benefits: standardized, secure, tested configuration templates that eliminate manual setup errors
+  - simplified deployment.md focusing on CLI-driven workflow
+  - comprehensive troubleshooting guide for common deployment issues
+  - manual configuration reference moved to appendix
+  - deployment best practices and security guidelines
+  - production monitoring and maintenance procedures
+- benefits: clear, actionable deployment documentation that matches the "don't make me think" site creation experience
 
 
 
@@ -745,10 +761,14 @@ This is the doc to track work items, arranged in three sections:
 
 
 ### Potential next items:
-**W-045**: architecture: create plugin infrastructure
-**W-040**: view: create view logs page for site admins
-**W-0**: view controller: create {{#each}} handlebar
-**W-0**: controller & view: websocket strategy
+W-054: deployment: documentation simplification and troubleshooting
+W-045: architecture: create plugin infrastructure
+W-040: view: create view logs page for site admins
+W-0: controllers: consistently use global.CommonUtils.sendError
+W-0: docs: add exclude directory directive
+W-0: view: page headers with anchor links for copy & paste
+W-0: view controller: create {{#each}} handlebar
+W-0: controller & view: websocket strategy
 
 ### Chat instructions
 
@@ -767,27 +787,6 @@ Almost ready for W-042 release (this chat refers to W-021, my mistake)
 - update commit-message.txt, following the same format, specify: W-052, v0.5.5 (don't commit)
 
 
-
-
-
-
-- use global.CommonUtils.sendError in config, log, user, view controllers with i18n
-
-- markdown controller: it would be useful to have an exclude directory directive
-  - for example, dev/working could be excluded.
-  - directive could be added to the docs? in what form?
-  - Several options for excluding directories:
-    - Option A: .jpulse-ignore file in docs root (like .gitignore)
-    - Option B: _config.json in docs root with exclude patterns
-    - Option C: Special comment in markdown files: <!-- jpulse:exclude -->
-    - Option D: Directory naming convention: prefix with _ (e.g., _working/)
-
-- markdown view: it would be useful to have anchor links.
-  - for example, each heading would have an paragraph symbol appear on the left of heading on hover
-  - when clicking on the symbol, copy the anchor link to the clipboard
-  - send the deep link with anchor by email
-  - for example, http://localhost:8080/jpulse/front-end-development#css-integration would be an anchor to the heading named "CSS Integration"
-  - this looks like more work, possibly another work item
 
 
 
@@ -813,32 +812,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
-
-### W-054: deployment: documentation simplification and troubleshooting
-- status: 🕑 PENDING
-- type: Documentation
-- objective: streamline deployment documentation to focus on automated approach with comprehensive troubleshooting
-- depends on: W-015, W-053 (deployment automation and templates)
-- deliverables:
-  - simplified deployment.md focusing on CLI-driven workflow
-  - comprehensive troubleshooting guide for common deployment issues
-  - manual configuration reference moved to appendix
-  - deployment best practices and security guidelines
-  - production monitoring and maintenance procedures
-- benefits: clear, actionable deployment documentation that matches the "don't make me think" site creation experience
-
-### W-054: deployment: documentation simplification and troubleshooting
-- status: 🕑 PENDING
-- type: Documentation
-- objective: streamline deployment documentation to focus on automated approach with comprehensive troubleshooting
-- depends on: W-015, W-053 (deployment automation and templates)
-- deliverables:
-  - simplified deployment.md focusing on CLI-driven workflow
-  - comprehensive troubleshooting guide for common deployment issues
-  - manual configuration reference moved to appendix
-  - deployment best practices and security guidelines
-  - production monitoring and maintenance procedures
-- benefits: clear, actionable deployment documentation that matches the "don't make me think" site creation experience
 
 ### W-055: deployment: load balancer and multi-server setup
 - status: 🕑 PENDING
@@ -907,6 +880,67 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - status: 🕑 PENDING
 - type: Feature
 - create webapp/view/admin/logs.shtml -- search logs
+
+### W-0: controllers: consistently use global.CommonUtils.sendError
+- status: 🕑 PENDING
+- type: Feature
+- objectives: clean & consistent code to reduce likelyhood of bugs
+- deliverables: fix controllers with i18n
+  - config
+  - log
+  - user
+  - view controllers
+- already done:
+  - auth
+  - markdown
+
+### W-0: docs: add exclude directory directive
+- status: 🕑 PENDING
+- type: Feature
+- objectives: hide markdown docs not relevant to be published
+- depends on: W-049: docs: views render markdown docs for jPulse docs and site docs
+- example: dev/working should be excluded from official /jpulse/ docs
+- exclude docs and directories defined in .jpulse-ignore file in docs root
+- deliverables
+  - docs/.jpulse-ignore:
+    - syntax like .gitignore
+    - file content:
+      # Ignore markdown files and directories once published to webapp/static/assets/jpulse/
+      dev/work-items.md
+      dev/working/
+  - webapp/controller/markdown.js:
+    - _getDirectoryListing() should exclude
+
+### W-0: view: page headers with anchor links for copy & paste
+- status: 🕑 PENDING
+- type: Feature
+- objectives: shared content with deep links, should work on any jpulse rendered page, not just markdown docs
+- depends on: W-049: docs: views render markdown docs for jPulse docs and site docs
+- feature:
+  - on hover on any page heading, show a '#' on the left of the heading
+  - click on '#':
+    - the URI has an #anchor-link appended/replaced
+    - the clipboard is updated with anchor link
+    - user can share deep link with anchor
+- anchor name based on heading name:
+    - option 1:
+      - lowercased heading name, special chars replaced by _, max length 36 chars
+      - exmaple: #framework_architecture
+    - option 2:
+      - hash of heading name
+      - exmaple: #e15a52f75b23c8c9
+- open question:
+  - support duplicate heading names, or pick first one?
+    - example: each feature section in a page could have an "Objective" heading
+    - could be #objective, #objective-2, #objective-3, ...
+- example:
+  - click on '#' of ## Troubleshooting header in /jpulse/dev/installation.md:
+  - sharable link:
+    - option 1: http://localhost:8080/jpulse/dev/installation#troublshooting
+    - option 2: http://localhost:8080/jpulse/dev/installation#e15a52f75b23c8c9
+- deliverables:
+  - webapp/view/jpulse-common.js, webapp/view/jpulse-footer.tmpl:
+    - add logic for hover, copy to clipboard, URI change with anchor
 
 ### W-0: view controller: create {{#each}} handlebar
 - status: 🕑 PENDING

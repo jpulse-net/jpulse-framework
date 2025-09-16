@@ -28,9 +28,10 @@ Technical documentation for developers working on the jPulse Framework itself. T
 
 ### Package Distribution (W-051)
 - **Framework Package**: `@peterthoeny/jpulse-framework` published to GitHub Packages
-- **CLI Tools**: `jpulse-setup` (site creation), `jpulse-sync` (framework updates)
+- **CLI Tools**: `jpulse-setup` (site creation), `jpulse-sync` (framework updates), `jpulse-update` (safe updates with dry-run)
 - **Site Structure**: Independent repositories with committed framework files
-- **Update Workflow**: `npm update @peterthoeny/jpulse-framework` (package) + `npx jpulse-sync` (files)
+- **Update Workflow**: `npm run update` (recommended) or `jpulse-update` with dry-run support
+- **Deployment Validation**: Comprehensive test suite with `install-test.sh` for production readiness
 - **Publishing Guide**: See [Package Publishing Guide](publishing.md) for release process
 
 ## 🎨 View Architecture (Client-Side Focus)

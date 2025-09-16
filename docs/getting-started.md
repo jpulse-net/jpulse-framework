@@ -443,18 +443,32 @@ Keep your framework up to date with the latest features and fixes:
 # Update framework to latest version (recommended)
 npm run update
 
+# Preview update without making changes (NEW in v0.7.3)
+npm run update --dry-run
+
+# Or use the new update command directly:
+npx jpulse-update                        # Same as npm run update
+npx jpulse-update --dry-run              # Safe preview mode
+
 # Or manually (2-step process):
 npm update @peterthoeny/jpulse-framework  # Updates npm package
 npx jpulse-sync                           # Updates framework files
 
 # Review changes
 git diff webapp/
-git commit -am "Update framework to v0.7.1"
+git commit -am "Update framework to v0.7.3"
 ```
+
+**New in v0.7.3**: Enhanced update safety and reliability:
+
+- **`--dry-run` support** - Preview changes before applying them
+- **`jpulse-update` command** - Direct CLI tool for framework updates
+- **Improved error handling** - Better feedback and troubleshooting
+- **Smart version constraints** - Seamless updates within 0.x.x versions
 
 **Important**: Understanding the update process:
 
-- **`npm run update`** - Recommended: Runs both steps automatically
+- **`npm run update`** - Recommended: Runs both steps automatically with enhanced safety
 - **Manual process** requires two steps:
   1. `npm update @peterthoeny/jpulse-framework` - Downloads the latest framework package
   2. `npx jpulse-sync` - Copies the updated framework files to your site

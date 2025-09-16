@@ -107,12 +107,37 @@ The application will be available at `http://localhost:8080`
 # Update to latest framework version (recommended)
 npm run update
 
+# Test update without making changes (safe)
+npm run update --dry-run
+
 # Or manually (2-step process):
 npm update @peterthoeny/jpulse-framework  # Updates npm package
 npx jpulse-sync                           # Updates framework files
+
+# Or use the new update command directly:
+npx jpulse-update                        # Same as npm run update
+npx jpulse-update --dry-run              # Safe preview mode
 ```
 
 **Important**: jPulse uses a hybrid approach where `npm update` only updates the package dependency. You must run `jpulse-sync` to copy the updated framework files to your site. The `npm run update` script does both steps automatically.
+
+**New in v0.7.3**: Enhanced update safety with `--dry-run` support to preview changes before applying them.
+
+### 5. Validate Installation (Optional)
+```bash
+# Run comprehensive deployment validation
+./deploy/install-test.sh
+
+# This will test:
+# - System requirements (Node.js, npm)
+# - Database connectivity (if production)
+# - Web server configuration (if production)
+# - Process manager setup
+# - File permissions and SSL certificates
+# - Configuration file syntax
+```
+
+**New in v0.7.3**: Comprehensive deployment validation suite that automatically detects your deployment type (development vs production) and runs appropriate tests.
 
 ## Database Setup
 

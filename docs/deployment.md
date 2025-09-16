@@ -2,7 +2,9 @@
 
 This guide covers deploying jPulse Framework applications to production environments using the automated deployment strategy introduced in v0.7.0.
 
-> **New in v0.7.0**: Complete deployment automation with `jpulse-setup` - includes interactive configuration, production templates, and security setup scripts.
+**New in v0.7.0**: Complete deployment automation with `jpulse-setup` - includes interactive configuration, production templates, and security setup scripts.
+
+**Enhanced in v0.7.3**: Comprehensive deployment validation, improved error handling, and enhanced update mechanisms with dry-run support.
 
 ## Quick Deployment (Recommended)
 
@@ -28,6 +30,9 @@ nano .env  # Review and customize settings
 
 # 6. Setup database (as application user)
 source .env && ./deploy/mongodb-setup.sh
+
+# 7. Validate deployment (NEW in v0.7.3)
+./deploy/install-test.sh
 
 # 7. Start production application with PM2
 pm2 start deploy/ecosystem.prod.config.cjs
@@ -415,6 +420,74 @@ sudo certbot certificates
 
 # Renew certificates manually
 sudo certbot renew
+```
+
+## Deployment Validation & Troubleshooting (v0.7.3)
+
+### Comprehensive Validation
+
+The deployment validation suite automatically tests your installation:
+
+```bash
+# Run complete validation suite
+./deploy/install-test.sh
+
+# Expected output:
+# ✅ Tests passed: 10+
+# ⚠️  Warnings: 0-5 (usually acceptable)
+# ❌ Tests failed: 0 (should be zero for healthy deployment)
+```
+
+### Common Issues & Solutions
+
+**Permission Issues:**
+```bash
+# Fix log directory permissions
+sudo chown -R $USER:$USER /var/log/jpulse
+
+# Fix PID directory permissions
+sudo chown -R $USER:$USER /var/run/jpulse
+```
+
+**nginx Configuration Issues:**
+```bash
+# Test nginx config (requires sudo for SSL cert access)
+sudo nginx -t
+
+# Reload nginx after config changes
+sudo systemctl reload nginx
+```
+
+**MongoDB Connection Issues:**
+```bash
+# Test MongoDB connectivity
+mongosh --eval "db.runCommand('ping')"
+
+# Check MongoDB service status
+sudo systemctl status mongod
+```
+
+**Framework Update Issues:**
+```bash
+# Safe update with preview
+npm run update --dry-run
+
+# If update fails, try manual approach
+npm update @peterthoeny/jpulse-framework
+npx jpulse-sync
+```
+
+### Deployment Health Check
+
+```bash
+# Quick health check script
+echo "🔍 jPulse Deployment Health Check"
+echo "================================="
+echo "Framework Version: $(grep '@version' webapp/app.js | head -1)"
+echo "PM2 Status: $(pm2 list | grep jpulse || echo 'Not running')"
+echo "nginx Status: $(sudo systemctl is-active nginx)"
+echo "MongoDB Status: $(sudo systemctl is-active mongod)"
+echo "Site Response: $(curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/)"
 ```
 
 ---

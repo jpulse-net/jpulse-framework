@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.7.11
+# jPulse Framework / Docs / Dev / Work Items v0.7.12
 
 This is the doc to track work items, arranged in three sections:
 
@@ -759,7 +759,6 @@ This is the doc to track work items, arranged in three sections:
 
 
 - mongod: require auth
-- webapp dir in site: ATTENTION_README.txt
 
 
 

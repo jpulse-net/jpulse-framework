@@ -1,4 +1,4 @@
-# jPulse Framework / Production Deployment Guide v0.7.11
+# jPulse Framework / Production Deployment Guide v0.7.12
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse/deployment`.
 
@@ -9,7 +9,7 @@ The fastest way to deploy a jPulse site to production:
 ```bash
 # 1. Create site with deployment package
 mkdir my-site && cd my-site
-npx jpulse-setup
+npx jpulse-configure
 # Choose "production" when prompted
 
 # 2. Install dependencies
@@ -44,7 +44,7 @@ pm2 save
 
 ### What jpulse-setup Creates
 
-When you run `npx jpulse-setup` with production deployment:
+When you run `npx jpulse-configure` with production deployment:
 
 ```
 my-site/
@@ -257,7 +257,7 @@ npm run jpulse-validate
 ```
 
 **Recovery Procedures**:
-1. **Configuration Reset**: Regenerate configs with `npx jpulse-setup`
+1. **Configuration Reset**: Regenerate configs with `npx jpulse-configure`
 2. **Database Reset**: Re-run `npm run jpulse-mongodb-setup` (will preserve existing data)
 3. **Process Reset**: `pm2 delete all && pm2 start deploy/ecosystem.prod.config.cjs`
 4. **Full Reinstall**: Re-run `sudo npm run jpulse-install`

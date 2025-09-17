@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.7.11
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.7.12
 
 **For Site Administrators & Site Developers**
 
@@ -12,7 +12,7 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 
 - ✅ **Enhanced Deployment Validation (v0.7.3)**: Comprehensive deployment testing suite with `install-test.sh`, enhanced update safety with dry-run support, and production-grade troubleshooting capabilities
 - ✅ **Clean Deployment Strategy (v0.7.0)**: Complete "don't make me think" deployment automation with interactive setup, production templates, and MongoDB security
-- ✅ **Package Distribution (v0.5.5)**: Create new sites with `npx jpulse-setup` - clean repository separation
+- ✅ **Package Distribution (v0.5.5)**: Create new sites with `npx jpulse-configure` - clean repository separation
 - ✅ **Markdown Documentation System (v0.5.4)**: Complete documentation system with API standardization and i18n support
 - ✅ **Enterprise UI Widgets (v0.5.2)**: Complete UI widget system with draggable dialogs and form interactions
 - ✅ **Site Override Architecture (v0.5.0)**: Seamless framework updates while preserving site modifications
@@ -81,7 +81,7 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 npm install -g @peterthoeny/jpulse-framework
 mkdir my-jpulse-site && cd my-jpulse-site
 # Configure site
-npx jpulse-setup
+npx jpulse-configure
 # Install dependencies
 npm install
 # Start the server app
@@ -97,7 +97,7 @@ Your jPulse site follows a clean MVC pattern with update-safe customizations:
 
 ```
 my-jpulse-site/
-├── webapp/                 # Framework files (managed by jpulse-sync)
+├── webapp/                 # Framework files (managed by jpulse-update)
 │   ├── app.js              # Framework bootstrap
 │   ├── app.conf            # Framework configuration defaults
 │   ├── controller/         # Base controllers

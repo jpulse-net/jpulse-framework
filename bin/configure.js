@@ -4,7 +4,7 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         0.7.11
+ * @version         0.7.12
  * @release         2025-09-17
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -383,7 +383,7 @@ function getTestConfiguration(deploymentType) {
 /**
  * Unified configuration prompting - eliminates duplication
  */
-async function promptConfiguration(deploymentType, existingVars = {}) {
+async function promptConfiguration(deploymentType, existingVars = {}, forceFullConfig = false) {
     // Check if we're in test mode
     if (process.env.JPULSE_TEST_MODE === 'true') {
         console.log('🧪 Running in test mode with default configuration');
@@ -395,8 +395,8 @@ async function promptConfiguration(deploymentType, existingVars = {}) {
     // Start with existing variables (for incremental updates)
     const config = { ...existingVars };
 
-    // Determine if this is first time setup
-    const firstTime = Object.keys(existingVars).length === 0;
+    // Determine if this is first time setup or forced full config
+    const firstTime = Object.keys(existingVars).length === 0 || forceFullConfig;
 
     // Get all possible variables from template to determine what's new
     const templatePath = path.join(packageRoot, 'templates/deploy/env.tmpl');
@@ -435,7 +435,20 @@ async function promptConfiguration(deploymentType, existingVars = {}) {
         }
 
         // Execute the prompt
-        await definition.prompt(config, deploymentType, question);
+        if (definition.prompt) {
+            await definition.prompt(config, deploymentType, question);
+        } else {
+            // Handle variables without prompts (auto-generated like SESSION_SECRET)
+            let defaultValue = definition.default;
+            if (typeof defaultValue === 'function') {
+                try {
+                    defaultValue = defaultValue(deploymentType, config);
+                } catch (error) {
+                    defaultValue = '';
+                }
+            }
+            config[varName] = defaultValue;
+        }
     }
 
     // Deployment package choice
@@ -736,6 +749,7 @@ async function setup() {
 
         let setupType = 'new-site';
         let deploymentType = 'dev';
+        let forceFullConfig = false;
 
         // Handle test mode
         if (process.env.JPULSE_TEST_MODE === 'true') {
@@ -791,6 +805,7 @@ async function setup() {
 
                 // Force full configuration for "reconfigure from scratch"
                 setupType = 'new-site';
+                forceFullConfig = true;
                 console.log('\n? Deployment type:');
                 console.log('  1) Development (local testing)');
                 console.log('  2) Production (server deployment)');
@@ -819,7 +834,7 @@ async function setup() {
         const existingVars = fs.existsSync('.env') ? parseEnvFile('.env') : {};
 
         // Get configuration
-        const config = await promptConfiguration(deploymentType, existingVars);
+        const config = await promptConfiguration(deploymentType, existingVars, forceFullConfig);
         const frameworkPackage = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'));
 
         console.log('\n🏗️  Setting up jPulse site...\n');

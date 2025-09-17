@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Package Publishing Guide v0.7.11
+# jPulse Framework / Docs / Dev / Package Publishing Guide v0.7.12
 
 This guide covers publishing the jPulse Framework to GitHub Packages for framework maintainers and core developers.
 

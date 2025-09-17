@@ -1,4 +1,4 @@
-# jPulse Framework v0.7.11
+# jPulse Framework v0.7.12
 
 A modern, lightweight web application framework designed for enterprise and government organizations. Built with Node.js, Express, and MongoDB, jPulse combines the simplicity of traditional server-side rendering with modern development practices.
 

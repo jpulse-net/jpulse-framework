@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Getting Started with jPulse v0.7.11
+# jPulse Framework / Docs / Getting Started with jPulse v0.7.12
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the W-014 override system.
 
@@ -12,27 +12,16 @@ Before starting, ensure you have:
 
 ## Step 1: Create Your First Site
 
-### Install jPulse Framework
-
-```bash
-# Setup GitHub Packages authentication (private repo)
-export GITHUB_TOKEN=your_github_token
-echo "@peterthoeny:registry=https://npm.pkg.github.com" >> ~/.npmrc
-echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc
-
-# Install framework globally (use sudo for production servers)
-npm install @peterthoeny/jpulse-framework
-```
-
-> **Production**: For production servers, use `sudo npm install -g @peterthoeny/jpulse-framework` to install system-wide.
-
-> **Future**: Once the repository is public, this will simplify to just: `npm install @peterthoeny/jpulse-framework`
-
 ### Setup New Site
 ```bash
-# Create a new jPulse site
+# Create a new jPulse site directory
 mkdir my-first-site && cd my-first-site
-npx jpulse-setup
+
+# Install framework locally in your site
+npm install @peterthoeny/jpulse-framework
+
+# Configure your site
+npx jpulse-configure
 ```
 
 ### Install Dependencies, and Start Server
@@ -51,7 +40,7 @@ jPulse uses a clean separation between framework code and site customizations:
 
 ```
 my-first-site/
-├── webapp/               # Framework files (managed by jpulse-sync)
+├── webapp/               # Framework files (managed by jpulse-update)
 │   ├── controller/       # Base controllers
 │   ├── model/            # Data models
 │   ├── view/             # Base templates
@@ -69,7 +58,7 @@ my-first-site/
 
 ### Create Site Structure
 ```bash
-# Site structure is already created by jpulse-setup
+# Site structure is already created by jpulse-configure
 mkdir -p site/webapp/{controller,model,view,static}
 ```
 
@@ -318,7 +307,7 @@ export { HelloModel };
 # Initialize git repository for your site
 git init
 git add .
-git commit -m "Initial site setup with jPulse Framework v0.5.5"
+git commit -m "Initial site setup with jPulse Framework v0.7.12"
 ```
 
 ### Add Remote Repository (Optional)
@@ -441,25 +430,25 @@ Keep your framework up to date with the latest features and fixes:
 
 ```bash
 # Update framework to latest version (recommended)
-npm run update
+npm run jpulse-update
 
 # Preview update without making changes (NEW in v0.7.3)
-npm run update --dry-run
+npm run jpulse-update --dry-run
 
 # Or use the new update command directly:
-npx jpulse-update                        # Same as npm run update
-npx jpulse-update --dry-run              # Safe preview mode
+npm run jpulse-update                    # Update framework files
+npm run jpulse-update --dry-run          # Safe preview mode
 
 # Or manually (2-step process):
 npm update @peterthoeny/jpulse-framework  # Updates npm package
-npx jpulse-sync                           # Updates framework files
+npm run jpulse-update                    # Updates framework files
 
 # Review changes
 git diff webapp/
-git commit -am "Update framework to v0.7.3"
+git commit -am "Update framework to v0.7.12"
 ```
 
-**New in v0.7.3**: Enhanced update safety and reliability:
+**Enhanced update features**: Update safety and reliability:
 
 - **`--dry-run` support** - Preview changes before applying them
 - **`jpulse-update` command** - Direct CLI tool for framework updates
@@ -468,10 +457,10 @@ git commit -am "Update framework to v0.7.3"
 
 **Important**: Understanding the update process:
 
-- **`npm run update`** - Recommended: Runs both steps automatically with enhanced safety
+- **`npm run jpulse-update`** - Recommended: Runs both steps automatically with enhanced safety
 - **Manual process** requires two steps:
   1. `npm update @peterthoeny/jpulse-framework` - Downloads the latest framework package
-  2. `npx jpulse-sync` - Copies the updated framework files to your site
+  2. `npm run jpulse-update` - Copies the updated framework files to your site
 
 **Why two steps?** jPulse uses a hybrid approach:
 - **npm package** - Contains the framework source and CLI tools

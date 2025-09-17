@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Customization Guide v0.7.11
+# jPulse Framework / Docs / Site Customization Guide v0.7.12
 
 This guide covers the W-014 Site Override Architecture - jPulse's powerful system for creating custom sites while maintaining clean framework updates.
 
@@ -25,7 +25,7 @@ This means you only override what you need to customize.
 ### Directory Structure
 ```
 my-jpulse-site/
-├── webapp/                   # Framework files (managed by jpulse-sync)
+├── webapp/                   # Framework files (managed by jpulse-update)
 │   ├── controller/           # Base controllers
 │   ├── model/                # Data models
 │   ├── view/                 # Base templates

@@ -4,7 +4,7 @@
  * @tagline         Unified configuration registry for all jPulse tools
  * @description     Single source of truth for variable definitions, defaults, and template expansion
  * @file            bin/config-registry.js
- * @version         0.7.11
+ * @version         0.7.12
  * @release         2025-09-17
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -468,7 +468,7 @@ export function expandAllVariables(content, userConfig = {}, deploymentType = 'p
     const completeConfig = buildCompleteConfig(userConfig, deploymentType);
 
     // Single expansion logic for ALL variables
-    let result = content.replace(/%([A-Z_]+)%/g, (match, varName) => {
+    let result = content.replace(/%([A-Z0-9_]+)%/g, (match, varName) => {
         // Check if it's a legacy mapping
         const definition = CONFIG_REGISTRY[varName];
         if (definition && definition.maps_to) {

@@ -6,7 +6,7 @@
  #                  - Run with environment: source .env && ./bin/mongodb-setup.sh
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/mongodb-setup.sh
- # @version         0.7.8
+ # @version         0.7.9
  # @release         2025-09-17
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -120,7 +120,37 @@ if [ "$SKIP_ADMIN" = false ]; then
     echo "✅ Admin user created"
 fi
 
-# Setup app user and database
+# Enable MongoDB authentication BEFORE creating app user
+echo "🔐 Enabling MongoDB authentication..."
+if grep -q "^#.*authorization: enabled" /etc/mongod.conf 2>/dev/null; then
+    # Uncomment existing authorization line
+    sudo sed -i 's/^#.*authorization: enabled/  authorization: enabled/' /etc/mongod.conf
+    echo "✅ MongoDB authentication enabled in configuration"
+elif grep -q "authorization: enabled" /etc/mongod.conf 2>/dev/null; then
+    echo "✅ MongoDB authentication already enabled"
+else
+    # Add security section if it doesn't exist
+    if ! grep -q "^security:" /etc/mongod.conf 2>/dev/null; then
+        echo "" | sudo tee -a /etc/mongod.conf
+        echo "security:" | sudo tee -a /etc/mongod.conf
+        echo "  authorization: enabled" | sudo tee -a /etc/mongod.conf
+        echo "✅ MongoDB authentication enabled in configuration"
+    else
+        # Add authorization under existing security section
+        sudo sed -i '/^security:/a\  authorization: enabled' /etc/mongod.conf
+        echo "✅ MongoDB authentication enabled in configuration"
+    fi
+fi
+
+# Restart MongoDB to apply authentication
+echo "🔄 Restarting MongoDB to apply authentication..."
+sudo systemctl restart mongod
+
+# Wait for MongoDB to be ready
+echo "⏳ Waiting for MongoDB to restart..."
+sleep 3
+
+# Setup app user and database (now with authentication enabled)
 echo "🗄️  Creating application database '$DB_NAME' and user '$DB_USER'..."
 mongosh admin -u "$DB_ADMIN_USER" -p "$DB_ADMIN_PASS" --eval "
     use $DB_NAME;
@@ -222,42 +252,22 @@ else
     exit 1
 fi
 
-# Enable MongoDB authentication
-echo "🔐 Enabling MongoDB authentication..."
-if grep -q "^#.*authorization: enabled" /etc/mongod.conf 2>/dev/null; then
-    # Uncomment existing authorization line
-    sudo sed -i 's/^#.*authorization: enabled/  authorization: enabled/' /etc/mongod.conf
-    echo "✅ MongoDB authentication enabled in configuration"
-elif grep -q "authorization: enabled" /etc/mongod.conf 2>/dev/null; then
-    echo "✅ MongoDB authentication already enabled"
-else
-    # Add security section if it doesn't exist
-    if ! grep -q "^security:" /etc/mongod.conf 2>/dev/null; then
-        echo "" | sudo tee -a /etc/mongod.conf
-        echo "security:" | sudo tee -a /etc/mongod.conf
-        echo "  authorization: enabled" | sudo tee -a /etc/mongod.conf
-        echo "✅ MongoDB authentication enabled in configuration"
-    else
-        # Add authorization under existing security section
-        sudo sed -i '/^security:/a\  authorization: enabled' /etc/mongod.conf
-        echo "✅ MongoDB authentication enabled in configuration"
-    fi
-fi
-
-# Restart MongoDB to apply authentication
-echo "🔄 Restarting MongoDB to apply authentication..."
-sudo systemctl restart mongod
-
-# Wait for MongoDB to be ready
-echo "⏳ Waiting for MongoDB to restart..."
-sleep 3
 
 # Verify authentication is working
 echo "🧪 Testing MongoDB authentication..."
 if mongosh admin -u "${DB_ADMIN_USER:-admin}" -p "$DB_ADMIN_PASS" --eval "db.runCommand({connectionStatus: 1})" --quiet >/dev/null 2>&1; then
-    echo "✅ MongoDB authentication is working correctly"
+    echo "✅ Admin user authentication working"
+
+    # Test app user authentication
+    if mongosh "$DB_NAME" -u "$DB_USER" -p "$DB_PASS" --eval "db.runCommand({connectionStatus: 1})" --quiet >/dev/null 2>&1; then
+        echo "✅ App user authentication working"
+        echo "✅ MongoDB authentication is working correctly"
+    else
+        echo "⚠️  Warning: App user authentication test failed"
+        echo "💡 You may need to manually verify app user setup"
+    fi
 else
-    echo "⚠️  Warning: MongoDB authentication test failed"
+    echo "⚠️  Warning: Admin user authentication test failed"
     echo "💡 You may need to manually verify the setup"
 fi
 

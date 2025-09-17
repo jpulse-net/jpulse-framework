@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Getting Started with jPulse v0.7.8
+# jPulse Framework / Docs / Getting Started with jPulse v0.7.9
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the W-014 override system.
 
@@ -21,12 +21,12 @@ echo "@peterthoeny:registry=https://npm.pkg.github.com" >> ~/.npmrc
 echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc
 
 # Install framework globally (use sudo for production servers)
-npm install -g @peterthoeny/jpulse-framework
+npm install @peterthoeny/jpulse-framework
 ```
 
 > **Production**: For production servers, use `sudo npm install -g @peterthoeny/jpulse-framework` to install system-wide.
 
-> **Future**: Once the repository is public, this will simplify to just: `npm install -g @peterthoeny/jpulse-framework`
+> **Future**: Once the repository is public, this will simplify to just: `npm install @peterthoeny/jpulse-framework`
 
 ### Setup New Site
 ```bash

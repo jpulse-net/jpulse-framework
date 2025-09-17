@@ -6,7 +6,7 @@
  #                  - Run as root: sudo npm run jpulse-install
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/jpulse-install.sh
- # @version         0.7.8
+ # @version         0.7.9
  # @release         2025-09-17
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -29,6 +29,17 @@ if ! command -v dnf >/dev/null 2>&1 && ! command -v yum >/dev/null 2>&1; then
     echo "❌ PLATFORM ERROR: Red Hat Enterprise Linux required"
     echo "💡 Supported: RHEL, Rocky Linux, CentOS, Fedora"
     exit 1
+fi
+
+# Load environment variables if .env exists
+if [[ -f ".env" ]]; then
+    echo "ℹ️  Loading environment from .env..."
+    set -a  # automatically export all variables
+    source .env
+    set +a  # stop automatically exporting
+    echo "✅ Environment loaded"
+else
+    echo "⚠️  No .env file found - using defaults"
 fi
 
 echo "🔧 jPulse System Installation (Red Hat Enterprise Linux)"
@@ -103,8 +114,11 @@ fi
 # Application user setup
 echo "👤 Setting up application user..."
 echo ""
+# Get the real user who ran sudo
+REAL_USER=${SUDO_USER:-$(whoami)}
+
 echo "You can either:"
-echo "  1) Use existing user (admin/service account)"
+echo "  1) Use current user $REAL_USER (existing user with sudo privileges)"
 echo "  2) Create new dedicated 'jpulse' user"
 echo ""
 read -p "? Create new 'jpulse' user? (y/N): " CREATE_USER
@@ -125,8 +139,8 @@ else
     echo "   - /opt/ directory (for application files)"
     echo "   - Log directory (for log files): ${LOG_DIR:-STDOUT}"
     echo "   - PM2 and MongoDB commands"
-    APP_USER=$(whoami)
-    echo "✅ Will use current user for deployment guidance"
+    APP_USER=$REAL_USER
+    echo "✅ Will use user '$REAL_USER' for deployment guidance"
 fi
 
 # Create log directory and PID directory
@@ -147,9 +161,10 @@ if [[ -n "$LOG_DIR" && "$LOG_DIR" != "" ]]; then
         chown jpulse:jpulse /var/run/jpulse
     else
         # For existing users, make logs and PID directory owned by the user
-        chown $APP_USER:$(id -gn $APP_USER) "$LOG_DIR"
+        USER_GROUP=$(id -gn $APP_USER)
+        chown $APP_USER:$USER_GROUP "$LOG_DIR"
         chmod 755 "$LOG_DIR"
-        chown $APP_USER:$(id -gn $APP_USER) /var/run/jpulse
+        chown $APP_USER:$USER_GROUP /var/run/jpulse
     fi
     echo "✅ Log directory created: $LOG_DIR"
 else
@@ -157,7 +172,8 @@ else
     if [[ "$APP_USER" == "jpulse" ]]; then
         chown jpulse:jpulse /var/run/jpulse
     else
-        chown $APP_USER:$(id -gn $APP_USER) /var/run/jpulse
+        USER_GROUP=$(id -gn $APP_USER)
+        chown $APP_USER:$USER_GROUP /var/run/jpulse
     fi
 fi
 echo "✅ PID directory created: /var/run/jpulse"
@@ -203,19 +219,8 @@ systemctl enable --now nginx
 
 # Post-installation validation
 echo ""
-echo "🧪 Running post-installation validation..."
-if [[ -f "deploy/install-test.sh" ]]; then
-    chmod +x deploy/install-test.sh
-    if ./deploy/install-test.sh; then
-        echo "✅ Post-installation validation passed"
-    else
-        echo "⚠️  Post-installation validation found issues"
-        echo "💡 Review the test results above and fix any critical errors"
-        echo "💡 You can re-run validation anytime with: ./deploy/install-test.sh"
-    fi
-else
-    echo "⚠️  Post-installation test script not found"
-fi
+echo "🧪 Post-installation validation available..."
+echo "💡 Run validation after deployment: npm run jpulse-validate"
 
 echo ""
 echo "✅ System installation complete!"
@@ -231,14 +236,17 @@ echo ""
 echo "💡 Next steps:"
 if [[ "$APP_USER" == "jpulse" ]]; then
     echo "   1. Switch to application user: sudo -u jpulse -i"
-    echo "   2. Deploy application to /opt/jpulse/"
+    echo "   2. Navigate to your jPulse site directory"
+    echo "   3. Setup database: npm run jpulse-mongodb-setup"
+    echo "   4. Validate installation: npm run jpulse-validate"
+    echo "   5. Start application: pm2 start deploy/ecosystem.prod.config.cjs"
+    echo "   6. Save PM2 configuration: pm2 save"
 else
-    echo "   1. Deploy application to your preferred directory"
-    echo "   2. Ensure $APP_USER has access to ${LOG_DIR:-log directory}/"
+    echo "   1. Navigate to your jPulse site directory"
+    echo "   2. Setup database: npm run jpulse-mongodb-setup"
+    echo "   3. Validate installation: npm run jpulse-validate"
+    echo "   4. Start application: pm2 start deploy/ecosystem.prod.config.cjs"
+    echo "   5. Save PM2 configuration: pm2 save"
 fi
-echo "   3. Run database setup: ./deploy/mongodb-setup.sh"
-echo "   4. Configure nginx: ./deploy/setup-nginx.sh"
-echo "   5. Start application: pm2 start deploy/ecosystem.prod.config.js"
-echo "   6. Save PM2 configuration: pm2 save"
 
 # EOF bin/jpulse-install.sh

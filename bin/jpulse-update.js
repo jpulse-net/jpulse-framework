@@ -4,7 +4,7 @@
  * @tagline         Framework update synchronization CLI tool
  * @description     Updates local framework files from installed package
  * @file            bin/sync.js
- * @version         0.7.8
+ * @version         0.7.9
  * @release         2025-09-17
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -99,6 +99,26 @@ function sync() {
             console.log('📁 Updating framework files...');
             const webappSrc = path.join(frameworkPath, 'webapp');
             syncDirectory(webappSrc, 'webapp');
+
+            // Update ATTENTION_README.txt with current framework version
+            console.log('📋 Updating webapp/ATTENTION_README.txt...');
+            const attentionTemplate = path.join(frameworkPath, 'templates', 'webapp', 'ATTENTION_README.txt.tmpl');
+            if (fs.existsSync(attentionTemplate)) {
+                const templateContent = fs.readFileSync(attentionTemplate, 'utf8');
+                // Create minimal config for template expansion
+                const config = {
+                    JPULSE_DOMAIN_NAME: 'your-domain',
+                    SITE_NAME: 'Your jPulse Site',
+                    JPULSE_FRAMEWORK_VERSION: versionInfo.version
+                };
+                const now = new Date();
+                let expandedContent = templateContent
+                    .replace(/%JPULSE_DOMAIN_NAME%/g, config.JPULSE_DOMAIN_NAME)
+                    .replace(/%SITE_NAME%/g, config.SITE_NAME)
+                    .replace(/%JPULSE_FRAMEWORK_VERSION%/g, config.JPULSE_FRAMEWORK_VERSION)
+                    .replace(/%GENERATION_DATE%/g, now.toISOString().split('T')[0]);
+                fs.writeFileSync('webapp/ATTENTION_README.txt', expandedContent);
+            }
 
             // Copy documentation to webapp/static/assets/jpulse/
             console.log('📚 Copying documentation...');

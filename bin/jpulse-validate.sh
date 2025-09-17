@@ -7,7 +7,7 @@
  #                  - Auto-run by jpulse-validate.sh
  #                  - Context-aware: respects dev vs prod deployment settings
  # @file            bin/jpulse-validate.sh
- # @version         0.7.8
+ # @version         0.7.9
  # @release         2025-09-17
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -476,7 +476,7 @@ main() {
         echo "💡 Next steps:"
         if [[ "$DEPLOYMENT_TYPE" == "prod" ]]; then
             echo "   1. Configure environment: nano .env"
-            echo "   2. Setup database: source .env && ./deploy/mongodb-setup.sh"
+            echo "   2. Setup database: npm run jpulse-mongodb-setup"
             echo "   3. Start application: pm2 start deploy/ecosystem.prod.config.cjs"
         else
             echo "   1. Install dependencies: npm install"

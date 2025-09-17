@@ -4,7 +4,7 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         0.7.8
+ * @version         0.7.9
  * @release         2025-09-17
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1131,6 +1131,15 @@ async function setup() {
             console.log('📁 Copying framework files...');
             const webappSrc = path.join(packageRoot, 'webapp');
             copyDirectory(webappSrc, 'webapp');
+
+            // Add ATTENTION_README.txt to webapp directory
+            console.log('📋 Creating webapp/ATTENTION_README.txt...');
+            const attentionTemplate = path.join(packageRoot, 'templates', 'webapp', 'ATTENTION_README.txt.tmpl');
+            if (fs.existsSync(attentionTemplate)) {
+                const templateContent = fs.readFileSync(attentionTemplate, 'utf8');
+                const expandedContent = replaceTemplatePlaceholders(templateContent, config, frameworkPackage.version, deploymentType);
+                fs.writeFileSync('webapp/ATTENTION_README.txt', expandedContent);
+            }
 
             // Create site structure
             console.log('🏗️  Creating site structure...');

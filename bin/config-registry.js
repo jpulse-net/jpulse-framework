@@ -1,0 +1,487 @@
+#!/usr/bin/env node
+/**
+ * @name            jPulse Framework / Bin / Config Registry
+ * @tagline         Unified configuration registry for all jPulse tools
+ * @description     Single source of truth for variable definitions, defaults, and template expansion
+ * @file            bin/config-registry.js
+ * @version         0.7.11
+ * @release         2025-09-17
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ */
+
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/**
+ * UNIFIED CONFIG_REGISTRY - Single Source of Truth for ALL Variable Information
+ * Used by configure.js, jpulse-update.js, and any other tools that need variable definitions
+ * Consolidates template expansion, user prompting, and metadata in one place
+ */
+export const CONFIG_REGISTRY = {
+    // === BASIC SITE VARIABLES ===
+    SITE_NAME: {
+        // Template expansion
+        default: 'My jPulse Site',
+        type: 'config',
+        description: 'Full site name',
+
+        // User prompting (used by configure.js)
+        section: 'Basic Settings',
+        prompt: async (config, deploymentType, question) => {
+            config.SITE_NAME = await question('? Site name: (My jPulse Site) ') || 'My jPulse Site';
+        }
+    },
+
+    SITE_SHORT_NAME: {
+        // Template expansion
+        default: 'My Site',
+        type: 'config',
+        description: 'Short site name for headers',
+
+        // User prompting
+        section: 'Basic Settings',
+        prompt: async (config, deploymentType, question) => {
+            config.SITE_SHORT_NAME = await question('? Site short name: (My Site) ') || 'My Site';
+        }
+    },
+
+    JPULSE_SITE_ID: {
+        // Template expansion
+        default: 'my-jpulse-site',
+        type: 'config',
+        description: 'Site identifier (lowercase, no spaces)',
+
+        // User prompting
+        section: 'Basic Settings',
+        prompt: async (config, deploymentType, question) => {
+            const defaultId = config.SITE_NAME ? config.SITE_NAME.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') : 'my-site';
+            config.JPULSE_SITE_ID = await question(`? Site ID (${defaultId}): `) || defaultId;
+        }
+    },
+
+    PORT: {
+        // Template expansion
+        default: (deploymentType) => deploymentType === 'dev' ? 8080 : 8081,
+        type: 'computed',
+        description: 'Application port',
+
+        // User prompting
+        section: 'Basic Settings',
+        prompt: async (config, deploymentType, question) => {
+            const defaultPort = deploymentType === 'dev' ? 8080 : 8081;
+            const portInput = await question(`? Application port: (${defaultPort}) `);
+            config.PORT = portInput ? parseInt(portInput) : defaultPort;
+        }
+    },
+
+    // === DATABASE VARIABLES ===
+    DB_ADMIN_USER: {
+        // Template expansion
+        default: 'admin',
+        type: 'config',
+        description: 'MongoDB admin username',
+
+        // User prompting
+        section: 'Database Configuration',
+        prompt: async (config, deploymentType, question) => {
+            config.DB_ADMIN_USER = await question('? MongoDB admin username: (admin) ') || 'admin';
+        }
+    },
+
+    DB_ADMIN_PASS: {
+        // Template expansion
+        default: '',
+        type: 'config',
+        required: true,
+        description: 'MongoDB admin password',
+
+        // User prompting
+        section: 'Database Configuration',
+        prompt: async (config, deploymentType, question) => {
+            config.DB_ADMIN_PASS = await question('? MongoDB admin password: (required) ');
+            while (!config.DB_ADMIN_PASS) {
+                console.log('❌ Admin password is required');
+                config.DB_ADMIN_PASS = await question('? MongoDB admin password: ');
+            }
+        }
+    },
+
+    DB_USER: {
+        // Template expansion
+        default: 'jpapp',
+        type: 'config',
+        description: 'MongoDB application username',
+
+        // User prompting
+        section: 'Database Configuration',
+        prompt: async (config, deploymentType, question) => {
+            config.DB_USER = await question('? MongoDB app username: (jpapp) ') || 'jpapp';
+        }
+    },
+
+    DB_PASS: {
+        // Template expansion
+        default: '',
+        type: 'config',
+        required: true,
+        description: 'MongoDB application password',
+
+        // User prompting
+        section: 'Database Configuration',
+        prompt: async (config, deploymentType, question) => {
+            config.DB_PASS = await question('? MongoDB app password: (required) ');
+            while (!config.DB_PASS) {
+                console.log('❌ App password is required');
+                config.DB_PASS = await question('? MongoDB app password: ');
+            }
+        }
+    },
+
+    DB_NAME: {
+        // Template expansion
+        default: (deploymentType) => deploymentType === 'dev' ? 'jp-dev' : 'jp-prod',
+        type: 'computed',
+        description: 'MongoDB database name',
+
+        // User prompting
+        section: 'Database Configuration',
+        prompt: async (config, deploymentType, question) => {
+            const defaultName = deploymentType === 'dev' ? 'jp-dev' : 'jp-prod';
+            config.DB_NAME = await question(`? Database name: (${defaultName}) `) || defaultName;
+        }
+    },
+
+    DB_HOST: {
+        // Template expansion
+        default: '',
+        type: 'config',
+        conditional: true,
+        description: 'MongoDB host (empty for localhost)',
+
+        // User prompting
+        section: 'Database Configuration',
+        condition: (config, deploymentType) => deploymentType === 'prod',
+        prompt: async (config, deploymentType, question) => {
+            config.DB_HOST = await question('? MongoDB host (leave empty for localhost): ') || '';
+        }
+    },
+
+    DB_PORT: {
+        // Template expansion
+        default: '',
+        type: 'config',
+        conditional: true,
+        description: 'MongoDB port (empty for default 27017)',
+
+        // User prompting
+        section: 'Database Configuration',
+        condition: (config, deploymentType) => deploymentType === 'prod',
+        prompt: async (config, deploymentType, question) => {
+            config.DB_PORT = await question('? MongoDB port (leave empty for default): ') || '';
+        }
+    },
+
+    DB_REPLICA_SET: {
+        // Template expansion
+        default: '',
+        type: 'config',
+        conditional: true,
+        description: 'MongoDB replica set name',
+
+        // User prompting
+        section: 'Database Configuration',
+        condition: (config, deploymentType) => deploymentType === 'prod',
+        prompt: async (config, deploymentType, question) => {
+            config.DB_REPLICA_SET = await question('? MongoDB replica set (leave empty if none): ') || '';
+        }
+    },
+
+    // === SECURITY VARIABLES ===
+    SESSION_SECRET: {
+        // Template expansion
+        default: () => {
+            try {
+                return require('crypto').randomBytes(32).toString('hex');
+            } catch (error) {
+                // Fallback for environments without crypto
+                return 'default-session-secret-change-in-production';
+            }
+        },
+        type: 'computed',
+        description: 'Session encryption secret'
+        // No user prompting - auto-generated
+    },
+
+    // === DEPLOYMENT VARIABLES ===
+    JPULSE_PM2_INSTANCES: {
+        // Template expansion
+        default: (deploymentType) => deploymentType === 'dev' ? 1 : 'max',
+        type: 'computed',
+        description: 'Number of PM2 instances',
+
+        // User prompting
+        section: 'Deployment Configuration',
+        condition: (config, deploymentType) => deploymentType === 'prod',
+        prompt: async (config, deploymentType, question) => {
+            const defaultInstances = deploymentType === 'dev' ? 1 : 'max';
+            const instanceInput = await question(`? PM2 instances (${defaultInstances}): `) || defaultInstances;
+            config.JPULSE_PM2_INSTANCES = instanceInput === 'max' ? 'max' : parseInt(instanceInput) || defaultInstances;
+        }
+    },
+
+    JPULSE_DOMAIN_NAME: {
+        // Template expansion
+        default: 'localhost',
+        type: 'config',
+        conditional: true,
+        description: 'Domain name for production',
+
+        // User prompting
+        section: 'Deployment Configuration',
+        condition: (config, deploymentType) => deploymentType === 'prod',
+        prompt: async (config, deploymentType, question) => {
+            config.JPULSE_DOMAIN_NAME = await question('? Domain name: (localhost) ') || 'localhost';
+        }
+    },
+
+    JPULSE_SSL_TYPE: {
+        // Template expansion
+        default: 'none',
+        type: 'config',
+        conditional: true,
+        description: 'SSL certificate type',
+
+        // User prompting
+        section: 'Deployment Configuration',
+        condition: (config, deploymentType) => deploymentType === 'prod',
+        prompt: async (config, deploymentType, question) => {
+            console.log('? SSL certificate type:');
+            console.log('  1) None (HTTP only)');
+            console.log('  2) Let\'s Encrypt');
+            console.log('  3) Custom certificate');
+            const sslChoice = await question('? Choose (1-3): (1) ') || '1';
+
+            const sslTypes = { '1': 'none', '2': 'letsencrypt', '3': 'custom' };
+            config.JPULSE_SSL_TYPE = sslTypes[sslChoice] || 'none';
+        }
+    },
+
+    SSL_CERT_PATH: {
+        // Template expansion
+        default: '',
+        type: 'config',
+        conditional: true,
+        description: 'SSL certificate file path',
+
+        // User prompting
+        section: 'Deployment Configuration',
+        condition: (config, deploymentType) => deploymentType === 'prod' && config.JPULSE_SSL_TYPE === 'custom',
+        prompt: async (config, deploymentType, question) => {
+            config.SSL_CERT_PATH = await question('? SSL certificate path: ') || '';
+        }
+    },
+
+    SSL_KEY_PATH: {
+        // Template expansion
+        default: '',
+        type: 'config',
+        conditional: true,
+        description: 'SSL private key file path',
+
+        // User prompting
+        section: 'Deployment Configuration',
+        condition: (config, deploymentType) => deploymentType === 'prod' && config.JPULSE_SSL_TYPE === 'custom',
+        prompt: async (config, deploymentType, question) => {
+            config.SSL_KEY_PATH = await question('? SSL private key path: ') || '';
+        }
+    },
+
+    JPULSE_DEPLOYMENT_TYPE: {
+        // Template expansion
+        default: (deploymentType) => deploymentType,
+        type: 'computed',
+        description: 'Deployment type (dev/prod)'
+        // No user prompting - determined by setup flow
+    },
+
+    NODE_ENV: {
+        // Template expansion
+        default: (deploymentType) => deploymentType === 'prod' ? 'production' : 'development',
+        type: 'computed',
+        description: 'Node.js environment'
+        // No user prompting - computed from deployment type
+    },
+
+    // === LOGGING VARIABLES ===
+    LOG_DIR: {
+        // Template expansion
+        default: '',
+        type: 'config',
+        conditional: true,
+        description: 'Log directory (empty for STDOUT)',
+
+        // User prompting
+        section: 'Logging Configuration',
+        condition: (config, deploymentType) => deploymentType === 'prod',
+        prompt: async (config, deploymentType, question) => {
+            console.log('? Log output:');
+            console.log('  1) STDOUT (console output)');
+            console.log('  2) File logging');
+            const logChoice = await question('? Choose (1-2): (1) ') || '1';
+
+            if (logChoice === '2') {
+                let logDirInput = await question('? Log directory: (/var/log/jpulse) ') || '/var/log/jpulse';
+
+                // Validate log directory path
+                if (!logDirInput.startsWith('/') && logDirInput !== '') {
+                    console.log(`⚠️  Warning: '${logDirInput}' is not an absolute path. Using default: /var/log/jpulse`);
+                    logDirInput = '/var/log/jpulse';
+                }
+
+                config.LOG_DIR = logDirInput;
+            } else {
+                config.LOG_DIR = '';
+            }
+        }
+    },
+
+    LOG_FILE_NAME: {
+        // Template expansion
+        default: 'access.log',
+        type: 'config',
+        description: 'Access log filename'
+        // No user prompting - uses default
+    },
+
+    ERROR_FILE_NAME: {
+        // Template expansion
+        default: 'pm2-errors.log',
+        type: 'config',
+        description: 'Error log filename'
+        // No user prompting - uses default
+    },
+
+    PM2_LOG_FILE: {
+        // Template expansion
+        default: (deploymentType, config) => config.LOG_DIR ? `${config.LOG_DIR}/${config.LOG_FILE_NAME || 'access.log'}` : '/dev/null',
+        type: 'computed',
+        description: 'PM2 log file path'
+        // No user prompting - computed from LOG_DIR
+    },
+
+    PM2_ERROR_FILE: {
+        // Template expansion
+        default: (deploymentType, config) => config.LOG_DIR ? `${config.LOG_DIR}/${config.ERROR_FILE_NAME || 'pm2-errors.log'}` : '/dev/null',
+        type: 'computed',
+        description: 'PM2 error file path'
+        // No user prompting - computed from LOG_DIR
+    },
+
+    // === FRAMEWORK METADATA ===
+    JPULSE_FRAMEWORK_VERSION: {
+        // Template expansion
+        default: () => {
+            try {
+                const packagePath = path.join(__dirname, '..', 'package.json');
+                return JSON.parse(fs.readFileSync(packagePath, 'utf8')).version;
+            } catch (error) {
+                return '0.0.0';
+            }
+        },
+        type: 'computed',
+        description: 'jPulse Framework version'
+        // No user prompting - computed from package.json
+    },
+
+    GENERATION_DATE: {
+        // Template expansion
+        default: () => new Date().toISOString().split('T')[0],
+        type: 'computed',
+        description: 'Configuration generation date'
+        // No user prompting - computed from current date
+    },
+
+    // === LEGACY MAPPINGS (for backward compatibility) ===
+    DOMAIN_NAME: {
+        maps_to: 'JPULSE_DOMAIN_NAME',
+        description: 'Legacy mapping to JPULSE_DOMAIN_NAME'
+    },
+    DEPLOYMENT_TYPE: {
+        maps_to: 'JPULSE_DEPLOYMENT_TYPE',
+        description: 'Legacy mapping to JPULSE_DEPLOYMENT_TYPE'
+    },
+    FRAMEWORK_VERSION: {
+        maps_to: 'JPULSE_FRAMEWORK_VERSION',
+        description: 'Legacy mapping to JPULSE_FRAMEWORK_VERSION'
+    }
+};
+
+/**
+ * Build complete configuration with all variables resolved
+ */
+export function buildCompleteConfig(userConfig = {}, deploymentType = 'prod') {
+    const completeConfig = { ...userConfig };
+
+    // Process all variables in CONFIG_REGISTRY
+    Object.entries(CONFIG_REGISTRY).forEach(([varName, definition]) => {
+        // Skip legacy mappings - they're handled separately
+        if (definition.maps_to) return;
+
+        // Skip if user already provided this value
+        if (completeConfig[varName] !== undefined) return;
+
+        // Resolve default value
+        let defaultValue = definition.default;
+
+        if (typeof defaultValue === 'function') {
+            // Computed values - call function with appropriate context
+            if (definition.type === 'computed') {
+                try {
+                    defaultValue = defaultValue(deploymentType, completeConfig);
+                } catch (error) {
+                    console.log(`⚠️  Warning: Could not compute ${varName}: ${error.message}`);
+                    defaultValue = '';
+                }
+            }
+        }
+
+        completeConfig[varName] = defaultValue;
+    });
+
+    return completeConfig;
+}
+
+/**
+ * UNIFIED TEMPLATE EXPANSION - Single function for ALL variable expansion
+ * Used by configure.js, jpulse-update.js, and any other tools
+ */
+export function expandAllVariables(content, userConfig = {}, deploymentType = 'prod') {
+    // Build complete configuration with all defaults
+    const completeConfig = buildCompleteConfig(userConfig, deploymentType);
+
+    // Single expansion logic for ALL variables
+    let result = content.replace(/%([A-Z_]+)%/g, (match, varName) => {
+        // Check if it's a legacy mapping
+        const definition = CONFIG_REGISTRY[varName];
+        if (definition && definition.maps_to) {
+            const mappedValue = completeConfig[definition.maps_to];
+            return mappedValue !== undefined ? mappedValue.toString() : match;
+        }
+
+        // Regular variable lookup
+        const value = completeConfig[varName];
+        return value !== undefined ? value.toString() : match;
+    });
+
+    return result;
+}
+
+// EOF bin/config-registry.js

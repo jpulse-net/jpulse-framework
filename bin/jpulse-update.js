@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * @name            jPulse Framework / Bin / Framework Sync
+ * @name            jPulse Framework / Bin / jPulse Framework Update
  * @tagline         Framework update synchronization CLI tool
  * @description     Updates local framework files from installed package
- * @file            bin/sync.js
- * @version         0.7.10
+ * @file            bin/jpulse-update.js
+ * @version         0.7.11
  * @release         2025-09-17
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,6 +15,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { CONFIG_REGISTRY, buildCompleteConfig, expandAllVariables } from './config-registry.js';
 
 /**
  * Copy directory recursively, preserving existing files
@@ -111,12 +112,8 @@ function sync() {
                     SITE_NAME: 'Your jPulse Site',
                     JPULSE_FRAMEWORK_VERSION: versionInfo.version
                 };
-                const now = new Date();
-                let expandedContent = templateContent
-                    .replace(/%JPULSE_DOMAIN_NAME%/g, config.JPULSE_DOMAIN_NAME)
-                    .replace(/%SITE_NAME%/g, config.SITE_NAME)
-                    .replace(/%JPULSE_FRAMEWORK_VERSION%/g, config.JPULSE_FRAMEWORK_VERSION)
-                    .replace(/%GENERATION_DATE%/g, now.toISOString().split('T')[0]);
+                // Use unified template expansion - no more manual .replace() chains!
+                const expandedContent = expandAllVariables(templateContent, config);
                 fs.writeFileSync('webapp/ATTENTION_README.txt', expandedContent);
             }
 
@@ -171,4 +168,4 @@ function sync() {
 
 sync();
 
-// EOF bin/sync.js
+// EOF bin/jpulse-update.js

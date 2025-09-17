@@ -4,7 +4,7 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         0.7.10
+ * @version         0.7.11
  * @release         2025-09-17
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,6 +18,7 @@ import path from 'path';
 import readline from 'readline';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import { CONFIG_REGISTRY, buildCompleteConfig, expandAllVariables } from './config-registry.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -226,298 +227,12 @@ async function configureNewFeaturesOnly() {
     }
 }
 
-/**
- * Unified configuration definitions - single source of truth
- */
-const CONFIG_DEFINITIONS = {
-    // Basic site configuration - one question per variable
-    SITE_NAME: {
-        section: 'Basic Settings',
-        prompt: async (config, deploymentType) => {
-            config.SITE_NAME = await question('? Site name: (My jPulse Site) ') || 'My jPulse Site';
-        }
-    },
-
-    SITE_SHORT_NAME: {
-        section: 'Basic Settings',
-        prompt: async (config, deploymentType) => {
-            config.SITE_SHORT_NAME = await question('? Site short name: (My Site) ') || 'My Site';
-        }
-    },
-
-    JPULSE_SITE_ID: {
-        section: 'Basic Settings',
-        prompt: async (config, deploymentType) => {
-            // Auto-generate from site name
-            const defaultId = config.SITE_NAME ? config.SITE_NAME.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') : 'my-site';
-            config.JPULSE_SITE_ID = await question(`? Site ID (${defaultId}): `) || defaultId;
-        }
-    },
-
-    PORT: {
-        section: 'Basic Settings',
-        prompt: async (config, deploymentType) => {
-    const defaultPort = deploymentType === 'dev' ? 8080 : 8081;
-    const portInput = await question(`? Application port: (${defaultPort}) `);
-            config.PORT = portInput ? parseInt(portInput) : defaultPort;
-        }
-    },
-
-    // Database configuration
-    DB_ADMIN_USER: {
-        section: 'Database Configuration',
-        prompt: async (config) => {
-            config.DB_ADMIN_USER = await question('? MongoDB admin username: (admin) ') || 'admin';
-        }
-    },
-
-    DB_ADMIN_PASS: {
-        section: 'Database Configuration',
-        prompt: async (config) => {
-            config.DB_ADMIN_PASS = await question('? MongoDB admin password: (required) ');
-            while (!config.DB_ADMIN_PASS) {
-        console.log('❌ Admin password is required');
-                config.DB_ADMIN_PASS = await question('? MongoDB admin password: ');
-            }
-        }
-    },
-
-    DB_USER: {
-        section: 'Database Configuration',
-        prompt: async (config) => {
-            config.DB_USER = await question('? MongoDB app username: (jpapp) ') || 'jpapp';
-        }
-    },
-
-    DB_PASS: {
-        section: 'Database Configuration',
-        prompt: async (config) => {
-            config.DB_PASS = await question('? MongoDB app password: (required) ');
-            while (!config.DB_PASS) {
-        console.log('❌ App password is required');
-                config.DB_PASS = await question('? MongoDB app password: ');
-    }
-        }
-    },
-
-    DB_NAME: {
-        section: 'Database Configuration',
-        prompt: async (config, deploymentType) => {
-    const dbPrefix = deploymentType === 'dev' ? 'jp-dev' : 'jp-prod';
-            config.DB_NAME = await question(`? Database name: (${dbPrefix}) `) || dbPrefix;
-        }
-    },
-
-    // Security
-    SESSION_SECRET: {
-        section: 'Security Settings',
-        prompt: async (config) => {
-    const defaultSecret = generateSessionSecret();
-    const secretInput = await question(`? Session secret: (${defaultSecret}) `);
-            config.SESSION_SECRET = secretInput || defaultSecret;
-        }
-    },
-
-    // Production settings
-    JPULSE_DOMAIN_NAME: {
-        section: 'Production Settings',
-        condition: (config, deploymentType) => deploymentType === 'prod',
-        prompt: async (config) => {
-            config.JPULSE_DOMAIN_NAME = await question('? Domain name: (localhost) ') || 'localhost';
-        }
-    },
-
-    JPULSE_SSL_TYPE: {
-        section: 'Production Settings',
-        condition: (config, deploymentType) => deploymentType === 'prod',
-        prompt: async (config) => {
-        console.log('? SSL certificate type:');
-        console.log('  1) Let\'s Encrypt (recommended)');
-        console.log('  2) Custom certificate paths');
-        console.log('  3) No SSL (development only)');
-        const sslChoice = await question('? Choose (1-3): (1) ') || '1';
-
-        if (sslChoice === '1') {
-                config.JPULSE_SSL_TYPE = 'letsencrypt';
-        } else if (sslChoice === '2') {
-                config.JPULSE_SSL_TYPE = 'custom';
-        } else {
-                config.JPULSE_SSL_TYPE = 'none';
-            }
-        }
-    },
-
-    SSL_CERT_PATH: {
-        section: 'Production Settings',
-        condition: (config, deploymentType) => deploymentType === 'prod',
-        prompt: async (config) => {
-            if (config.JPULSE_SSL_TYPE === 'custom') {
-                config.SSL_CERT_PATH = await question('? SSL certificate path: ') || '';
-            } else {
-                config.SSL_CERT_PATH = '';
-            }
-        }
-    },
-
-    SSL_KEY_PATH: {
-        section: 'Production Settings',
-        condition: (config, deploymentType) => deploymentType === 'prod',
-        prompt: async (config) => {
-            if (config.JPULSE_SSL_TYPE === 'custom') {
-                config.SSL_KEY_PATH = await question('? SSL private key path: ') || '';
-            } else {
-                config.SSL_KEY_PATH = '';
-            }
-        }
-    },
-
-    JPULSE_PM2_INSTANCES: {
-        section: 'PM2 Configuration',
-        prompt: async (config, deploymentType) => {
-            if (deploymentType === 'prod') {
-        console.log('? PM2 instances for production:');
-        console.log('  1) Auto-detect (max CPU cores)');
-        console.log('  2) Custom number');
-        const pm2Choice = await question('? Choose (1-2): (1) ') || '1';
-
-        if (pm2Choice === '2') {
-            const instancesInput = await question('? Number of instances (1-16): ');
-                    config.JPULSE_PM2_INSTANCES = parseInt(instancesInput) || 'max';
-        } else {
-                    config.JPULSE_PM2_INSTANCES = 'max';
-                }
-            } else {
-                config.JPULSE_PM2_INSTANCES = 1;
-            }
-        }
-    },
-
-    LOG_DIR: {
-        section: 'Logging Configuration',
-        prompt: async (config, deploymentType) => {
-            if (deploymentType === 'prod') {
-                console.log('? Log configuration:');
-                console.log('  1) Log to STDOUT (app logs to console, PM2 logs to /dev/null)');
-                console.log('  2) Log to custom directory (app and PM2 use specified directory)');
-                const logChoice = await question('? Choose (1-2): (1) ') || '1';
-
-                if (logChoice === '2') {
-        const defaultLogDir = '/var/log/jpulse';
-                    let logDirInput = await question(`? Log directory: (${defaultLogDir}) `);
-                    logDirInput = logDirInput || defaultLogDir;
-
-                    // Validate log directory path
-                    if (!logDirInput.startsWith('/') && logDirInput !== '') {
-                        console.log(`⚠️  Warning: '${logDirInput}' is not an absolute path. Using default: ${defaultLogDir}`);
-                        logDirInput = defaultLogDir;
-                    }
-
-                    config.LOG_DIR = logDirInput;
-    } else {
-                    config.LOG_DIR = ''; // Empty means STDOUT for app, PM2 uses defaults
-                }
-            } else {
-                config.LOG_DIR = ''; // Development always uses STDOUT
-            }
-        }
-    },
-
-    LOG_FILE_NAME: {
-        section: 'Logging Configuration',
-        prompt: async (config, deploymentType) => {
-            config.LOG_FILE_NAME = await question('? Application log file name: (access.log) ') || 'access.log';
-        }
-    },
-
-    ERROR_FILE_NAME: {
-        section: 'Logging Configuration',
-        prompt: async (config, deploymentType) => {
-            config.ERROR_FILE_NAME = await question('? PM2 error log file name: (pm2-errors.log) ') || 'pm2-errors.log';
-        }
-    },
-
-    // Calculated PM2 log paths (resolved at template time)
-    PM2_LOG_FILE: {
-        auto: true,
-        prompt: async (config, deploymentType) => {
-            // Calculate PM2 log file path based on LOG_DIR
-            if (config.LOG_DIR && config.LOG_DIR.trim() !== '') {
-                config.PM2_LOG_FILE = `${config.LOG_DIR}/${config.LOG_FILE_NAME}`;
-            } else {
-                config.PM2_LOG_FILE = '/dev/null';
-            }
-        }
-    },
-
-    PM2_ERROR_FILE: {
-        auto: true,
-        prompt: async (config, deploymentType) => {
-            // Calculate PM2 error file path based on LOG_DIR
-            if (config.LOG_DIR && config.LOG_DIR.trim() !== '') {
-                config.PM2_ERROR_FILE = `${config.LOG_DIR}/${config.ERROR_FILE_NAME}`;
-            } else {
-                config.PM2_ERROR_FILE = '/dev/null';
-            }
-        }
-    },
-
-    // Auto-set variables
-    JPULSE_DEPLOYMENT_TYPE: {
-        auto: true,
-        prompt: async (config, deploymentType) => {
-            config.JPULSE_DEPLOYMENT_TYPE = deploymentType;
-        }
-    },
-
-    NODE_ENV: {
-        auto: true,
-        prompt: async (config, deploymentType) => {
-            config.NODE_ENV = deploymentType === 'dev' ? 'development' : 'production';
-        }
-    },
-
-    // Framework version tracking
-    JPULSE_FRAMEWORK_VERSION: {
-        auto: true,
-        prompt: async (config, deploymentType) => {
-            // This gets set later with actual framework version
-        }
-    },
-
-    // Optional remote MongoDB
-    DB_HOST: {
-        section: 'Remote MongoDB Configuration (optional)',
-        prompt: async (config) => {
-            console.log('? MongoDB configuration:');
-            console.log('  1) Local MongoDB (recommended)');
-            console.log('  2) Remote MongoDB');
-            const dbChoice = await question('? Choose (1-2): (1) ') || '1';
-            config.DB_HOST = dbChoice === '2' ? (await question('? MongoDB host: ') || 'localhost') : '';
-        }
-    },
-
-    DB_PORT: {
-        section: 'Remote MongoDB Configuration (optional)',
-        condition: (config) => config.DB_HOST,
-        prompt: async (config) => {
-            config.DB_PORT = await question('? MongoDB port (27017): ') || '27017';
-        }
-    },
-
-    DB_REPLICA_SET: {
-        section: 'Remote MongoDB Configuration (optional)',
-        condition: (config) => config.DB_HOST,
-        prompt: async (config) => {
-            config.DB_REPLICA_SET = await question('? MongoDB replica set (optional): ') || '';
-        }
-    }
-};
 
 /**
  * Unified configuration prompting - works for both full and incremental setup
  */
 async function promptForVariable(varName, config, deploymentType, isIncremental = false) {
-    const definition = CONFIG_DEFINITIONS[varName];
+    const definition = CONFIG_REGISTRY[varName];
     if (!definition) {
         console.log(`⚠️  Unknown variable: ${varName}`);
         config[varName] = await question(`? ${varName}: `) || '';
@@ -528,29 +243,15 @@ async function promptForVariable(varName, config, deploymentType, isIncremental 
     if (definition.condition && !definition.condition(config, deploymentType)) {
         // Set default values for conditional variables that aren't prompted
         // This ensures template placeholders get expanded even when conditions aren't met
-        switch (varName) {
-            case 'JPULSE_DOMAIN_NAME':
-                config.JPULSE_DOMAIN_NAME = 'localhost';
-                break;
-            case 'JPULSE_SSL_TYPE':
-                config.JPULSE_SSL_TYPE = 'none';
-                break;
-            case 'SSL_CERT_PATH':
-                config.SSL_CERT_PATH = '';
-                break;
-            case 'SSL_KEY_PATH':
-                config.SSL_KEY_PATH = '';
-                break;
-            case 'DB_PORT':
-                config.DB_PORT = '';
-                break;
-            case 'DB_REPLICA_SET':
-                config.DB_REPLICA_SET = '';
-                break;
-            default:
-                // For unknown conditional variables, set empty string
-                config[varName] = '';
+        let defaultValue = definition.default;
+        if (typeof defaultValue === 'function') {
+            try {
+                defaultValue = defaultValue(deploymentType, config);
+            } catch (error) {
+                defaultValue = '';
+            }
         }
+        config[varName] = defaultValue;
         return;
     }
 
@@ -562,11 +263,25 @@ async function promptForVariable(varName, config, deploymentType, isIncremental 
                      definition.section === 'Production Settings' ? '🌐' :
                      definition.section === 'PM2 Configuration' ? '⚡' :
                      definition.section === 'Logging Configuration' ? '📋' :
+                     definition.section === 'Deployment Configuration' ? '🌐' :
                      '🔧'} ${definition.section}:\n`);
     }
 
-    // Execute the prompt
-    await definition.prompt(config, deploymentType);
+    // Execute the prompt if it exists
+    if (definition.prompt) {
+        await definition.prompt(config, deploymentType, question);
+    } else {
+        // Fallback for variables without prompts - use default value
+        let defaultValue = definition.default;
+        if (typeof defaultValue === 'function') {
+            try {
+                defaultValue = defaultValue(deploymentType, config);
+            } catch (error) {
+                defaultValue = '';
+            }
+        }
+        config[varName] = defaultValue;
+    }
 }
 
 /**
@@ -593,7 +308,7 @@ async function generateIncrementalEnv(existingVars, config, templateSections, mi
         const section = templateSections[varName];
         if (section && !addedSections.has(section)) {
             // Expand placeholders in the section
-            const expandedSection = replaceTemplatePlaceholders(section, config, config.JPULSE_FRAMEWORK_VERSION, 'prod');
+            const expandedSection = expandAllVariables(section, config, 'prod');
             envContent += '\n' + expandedSection + '\n';
             addedSections.add(section);
         }
@@ -611,32 +326,6 @@ async function generateIncrementalEnv(existingVars, config, templateSections, mi
     fs.writeFileSync('.env', envContent);
 }
 
-/**
- * Expand template placeholders with actual values - clean direct mapping
- */
-function expandTemplatePlaceholders(content, config) {
-    let expanded = content;
-
-    // Direct replacement - variable names match placeholders exactly
-    Object.entries(config).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-            const regex = new RegExp(`%${key}%`, 'g');
-            expanded = expanded.replace(regex, value.toString());
-        }
-    });
-
-    // Check for any remaining unexpanded placeholders and warn (skip in test mode)
-    if (!process.env.JPULSE_TEST_MODE) {
-        // Exclude bash date format strings like %Y%m%d
-        const remainingPlaceholders = expanded.match(/%[A-Z_]{2,}%/g);
-        if (remainingPlaceholders) {
-            console.log(`⚠️  Warning: Unexpanded template variables found: ${remainingPlaceholders.join(', ')}`);
-            console.log('💡 This may indicate missing configuration variables');
-        }
-    }
-
-    return expanded;
-}
 
 /**
  * Generate secure session secret
@@ -719,8 +408,8 @@ async function promptConfiguration(deploymentType, existingVars = {}) {
 
     // Process all variables using unified approach
     let currentSection = '';
-    for (const varName of Object.keys(CONFIG_DEFINITIONS)) {
-        const definition = CONFIG_DEFINITIONS[varName];
+    for (const varName of Object.keys(CONFIG_REGISTRY)) {
+        const definition = CONFIG_REGISTRY[varName];
 
         // Skip if not needed (conditional check)
         if (definition.condition && !definition.condition(config, deploymentType)) {
@@ -746,7 +435,7 @@ async function promptConfiguration(deploymentType, existingVars = {}) {
         }
 
         // Execute the prompt
-        await definition.prompt(config, deploymentType);
+        await definition.prompt(config, deploymentType, question);
     }
 
     // Deployment package choice
@@ -757,9 +446,9 @@ async function promptConfiguration(deploymentType, existingVars = {}) {
     const deployChoice = await question('? Choose (1-2): (1) ') || '1';
     config.generateDeployment = deployChoice === '1';
 
-    // CRITICAL FIX: Ensure ALL CONFIG_DEFINITIONS variables have default values
+    // CRITICAL FIX: Ensure ALL CONFIG_REGISTRY variables have default values
     // This prevents unexpanded template variables for conditional variables
-    Object.keys(CONFIG_DEFINITIONS).forEach(varName => {
+    Object.keys(CONFIG_REGISTRY).forEach(varName => {
         if (config[varName] === undefined) {
             // Set appropriate defaults for conditional variables
             switch (varName) {
@@ -814,27 +503,6 @@ function copyDirectory(src, dest) {
 }
 
 /**
- * Replace template placeholders - clean direct mapping
- */
-function replaceTemplatePlaceholders(content, config, frameworkVersion, deploymentType) {
-    const now = new Date();
-
-    // Use the same clean direct mapping as expandTemplatePlaceholders
-    let result = expandTemplatePlaceholders(content, config);
-
-    // Handle special template-only placeholders
-    result = result.replace(/%FRAMEWORK_VERSION%/g, frameworkVersion);
-    result = result.replace(/%JPULSE_FRAMEWORK_VERSION%/g, frameworkVersion);
-    result = result.replace(/%GENERATION_DATE%/g, now.toISOString().split('T')[0]);
-
-    // Handle legacy placeholder mappings for backward compatibility
-    result = result.replace(/%DOMAIN_NAME%/g, config.JPULSE_DOMAIN_NAME || 'localhost');
-    result = result.replace(/%DEPLOYMENT_TYPE%/g, config.JPULSE_DEPLOYMENT_TYPE || deploymentType);
-
-    return result;
-}
-
-/**
  * Create site configuration from template
  */
 function createSiteConfiguration(deploymentType, config, frameworkVersion) {
@@ -846,7 +514,7 @@ function createSiteConfiguration(deploymentType, config, frameworkVersion) {
     }
 
     const templateContent = fs.readFileSync(templatePath, 'utf8');
-    const configContent = replaceTemplatePlaceholders(templateContent, config, frameworkVersion, deploymentType);
+    const configContent = expandAllVariables(templateContent, config, deploymentType);
 
     // Ensure site/webapp directory exists
     if (!fs.existsSync('site/webapp')) {
@@ -880,7 +548,7 @@ function generateDeploymentFiles(config, frameworkVersion, deploymentType) {
 
         if (fs.statSync(srcPath).isFile()) {
             const content = fs.readFileSync(srcPath, 'utf8');
-            const processedContent = replaceTemplatePlaceholders(content, config, frameworkVersion, deploymentType);
+            const processedContent = expandAllVariables(content, config, deploymentType);
             fs.writeFileSync(destPath, processedContent);
 
             // Make shell scripts executable
@@ -906,8 +574,8 @@ function generateEnvFile(config, frameworkVersion) {
     // Update framework version in config
     config.JPULSE_FRAMEWORK_VERSION = frameworkVersion;
 
-    // Expand template with special placeholders
-    const expandedContent = replaceTemplatePlaceholders(templateContent, config, frameworkVersion, 'prod');
+    // Expand template with all variables
+    const expandedContent = expandAllVariables(templateContent, config, 'prod');
 
     // Remove header section (keep only the actual environment variables)
     const lines = expandedContent.split('\n');
@@ -995,7 +663,7 @@ function copySiteTemplates(config, frameworkVersion, deploymentType) {
     const readmePath = path.join(packageRoot, 'templates/README.md');
     if (fs.existsSync(readmePath)) {
         const templateContent = fs.readFileSync(readmePath, 'utf8');
-        const processedContent = replaceTemplatePlaceholders(templateContent, config, frameworkVersion, deploymentType);
+        const processedContent = expandAllVariables(templateContent, config, deploymentType);
         fs.writeFileSync('README.md', processedContent);
     }
 }
@@ -1167,7 +835,7 @@ async function setup() {
             const attentionTemplate = path.join(packageRoot, 'templates', 'webapp', 'ATTENTION_README.txt.tmpl');
             if (fs.existsSync(attentionTemplate)) {
                 const templateContent = fs.readFileSync(attentionTemplate, 'utf8');
-                const expandedContent = replaceTemplatePlaceholders(templateContent, config, frameworkPackage.version, deploymentType);
+                const expandedContent = expandAllVariables(templateContent, config, deploymentType);
                 fs.writeFileSync('webapp/ATTENTION_README.txt', expandedContent);
             }
 

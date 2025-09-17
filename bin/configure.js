@@ -4,7 +4,7 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         0.7.9
+ * @version         0.7.10
  * @release         2025-09-17
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -757,6 +757,34 @@ async function promptConfiguration(deploymentType, existingVars = {}) {
     const deployChoice = await question('? Choose (1-2): (1) ') || '1';
     config.generateDeployment = deployChoice === '1';
 
+    // CRITICAL FIX: Ensure ALL CONFIG_DEFINITIONS variables have default values
+    // This prevents unexpanded template variables for conditional variables
+    Object.keys(CONFIG_DEFINITIONS).forEach(varName => {
+        if (config[varName] === undefined) {
+            // Set appropriate defaults for conditional variables
+            switch (varName) {
+                case 'JPULSE_DOMAIN_NAME':
+                    config[varName] = 'localhost';
+                    break;
+                case 'JPULSE_SSL_TYPE':
+                    config[varName] = 'none';
+                    break;
+                case 'SSL_CERT_PATH':
+                case 'SSL_KEY_PATH':
+                case 'DB_HOST':
+                case 'DB_PORT':
+                case 'DB_REPLICA_SET':
+                    config[varName] = '';
+                    break;
+                default:
+                    // For other undefined variables, set empty string
+                    if (config[varName] === undefined) {
+                        config[varName] = '';
+                    }
+            }
+        }
+    });
+
     return config;
 }
 
@@ -796,6 +824,7 @@ function replaceTemplatePlaceholders(content, config, frameworkVersion, deployme
 
     // Handle special template-only placeholders
     result = result.replace(/%FRAMEWORK_VERSION%/g, frameworkVersion);
+    result = result.replace(/%JPULSE_FRAMEWORK_VERSION%/g, frameworkVersion);
     result = result.replace(/%GENERATION_DATE%/g, now.toISOString().split('T')[0]);
 
     // Handle legacy placeholder mappings for backward compatibility
@@ -1092,7 +1121,8 @@ async function setup() {
                     }
                 }
 
-                setupType = 'deploy-only';
+                // Force full configuration for "reconfigure from scratch"
+                setupType = 'new-site';
                 console.log('\n? Deployment type:');
                 console.log('  1) Development (local testing)');
                 console.log('  2) Production (server deployment)');
@@ -1170,17 +1200,22 @@ async function setup() {
 
         // Show next steps
         console.log('📋 Next steps:');
+        let stepNum = 1;
+
         if (setupType === 'new-site') {
-            console.log('1. Install dependencies: npm install');
+            console.log(`${stepNum++}. Install dependencies: npm install`);
         }
-        console.log(`2. Start ${deploymentType === 'dev' ? 'development' : 'production'}: npm ${deploymentType === 'dev' ? 'run dev' : 'run prod'}`);
-        if (config.generateDeployment) {
-            console.log('3. Review deployment guide: cat deploy/README.md');
-            if (deploymentType === 'prod') {
-                console.log('4. Review environment: cat .env');
-                console.log('5. Setup system: sudo npm run jpulse-install');
-                console.log('6. Setup database: npm run jpulse-mongodb-setup');
-            }
+
+        if (config.generateDeployment && deploymentType === 'prod') {
+            console.log(`${stepNum++}. Review deployment guide: cat deploy/README.md`);
+            console.log(`${stepNum++}. Review environment: cat .env`);
+            console.log(`${stepNum++}. Setup system: sudo npm run jpulse-install`);
+            console.log(`${stepNum++}. Setup database: npm run jpulse-mongodb-setup`);
+            console.log(`${stepNum++}. Validate installation: npm run jpulse-validate`);
+            console.log(`${stepNum++}. Start application: pm2 start deploy/ecosystem.prod.config.cjs`);
+            console.log(`${stepNum++}. Save PM2 configuration: pm2 save`);
+        } else {
+            console.log(`${stepNum++}. Start ${deploymentType === 'dev' ? 'development' : 'production'}: npm ${deploymentType === 'dev' ? 'run dev' : 'run prod'}`);
         }
         console.log('');
         console.log('💡 To update framework: npm run update');

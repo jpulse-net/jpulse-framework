@@ -1,4 +1,4 @@
-# jPulse Framework / Production Deployment Guide v0.7.9
+# jPulse Framework / Production Deployment Guide v0.7.10
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse/deployment`.
 
@@ -94,7 +94,7 @@ For deployments requiring custom configuration (e.g., behind existing reverse pr
 If you need to integrate with existing infrastructure (like httpd proxy):
 
 1. **Skip nginx installation**:
-   ```bash
+```bash
    # The system install script will detect existing web servers
    # You can choose to skip nginx installation during setup
    sudo npm run jpulse-install
@@ -109,28 +109,28 @@ If you need to integrate with existing infrastructure (like httpd proxy):
    ```
 
 3. **Update jPulse configuration**:
-   ```javascript
+```javascript
    // site/webapp/app.conf
-   {
-       app: {
+{
+    app: {
            trustProxy: true,  // Important for proxy setups
            port: 8081
-       }
-   }
-   ```
+    }
+}
+```
 
 ### Custom Database Configuration
 
 For external MongoDB or replica sets:
 
 1. **Skip local MongoDB setup**:
-   ```bash
+```bash
    # Don't run npm run jpulse-mongodb-setup
    # Configure external database instead
-   ```
+```
 
 2. **Configure external database**:
-   ```bash
+```bash
    # In .env file
    export DB_HOST=your-mongodb-server
    export DB_PORT=27017

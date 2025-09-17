@@ -6,8 +6,8 @@
  #                  - Run with environment: source .env && ./bin/mongodb-setup.sh
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/mongodb-setup.sh
- # @version         0.7.6
- # @release         2025-09-16
+ # @version         0.7.7
+ # @release         2025-09-17
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -64,9 +64,9 @@ if [ -z "$DB_ADMIN_PASS" ] || [ -z "$DB_PASS" ]; then
     echo "❌ Required environment variables not set:"
     echo ""
     echo "   export DB_ADMIN_PASS='<your-admin-password>'"
-    echo "   export DB_USER='%DB_USER%'"
+    echo "   export DB_USER='<your-db-user>'"
     echo "   export DB_PASS='<your-app-password>'"
-    echo "   export DB_NAME='%DB_NAME%'"
+    echo "   export DB_NAME='<your-db-name>'"
     echo ""
     echo "💡 Copy from .env file: source .env"
     echo "💡 Or set variables: export DB_ADMIN_PASS='your-password'"
@@ -75,7 +75,7 @@ fi
 
 # Check if admin user already exists
 echo "🔍 Checking existing MongoDB configuration..."
-if mongosh admin --eval "db.getUser('%DB_ADMIN_USER%')" --quiet 2>/dev/null | grep -q "%DB_ADMIN_USER%"; then
+if mongosh admin --eval "db.getUser('${DB_ADMIN_USER:-admin}')" --quiet 2>/dev/null | grep -q "${DB_ADMIN_USER:-admin}"; then
     echo "✅ Admin user already exists"
     SKIP_ADMIN=true
 else
@@ -84,7 +84,7 @@ else
 fi
 
 # Check if app user already exists
-if mongosh "%DB_NAME%" --eval "db.getUser('$DB_USER')" --quiet 2>/dev/null | grep -q "$DB_USER"; then
+if mongosh "${DB_NAME:-jp-prod}" --eval "db.getUser('$DB_USER')" --quiet 2>/dev/null | grep -q "$DB_USER"; then
     echo "✅ App user '$DB_USER' already exists"
     SKIP_APP=true
 else
@@ -138,7 +138,7 @@ mongosh admin -u "$DB_ADMIN_USER" -p "$DB_ADMIN_PASS" --eval "
         created: new Date(),
         version: '1.0.0',
         framework: 'jPulse',
-        site: '%SITE_NAME%'
+        site: '${SITE_NAME:-jPulse Site}'
     });
 "
 
@@ -162,8 +162,8 @@ while [ -z "$ADMIN_LAST_NAME" ]; do
     read -p "? Admin last name (required): " ADMIN_LAST_NAME
 done
 
-read -p "? Admin email ($ADMIN_USERNAME@%DOMAIN_NAME%): " ADMIN_EMAIL
-ADMIN_EMAIL=${ADMIN_EMAIL:-$ADMIN_USERNAME@%DOMAIN_NAME%}
+read -p "? Admin email ($ADMIN_USERNAME@${JPULSE_DOMAIN_NAME:-localhost}): " ADMIN_EMAIL
+ADMIN_EMAIL=${ADMIN_EMAIL:-$ADMIN_USERNAME@${JPULSE_DOMAIN_NAME:-localhost}}
 
 # Prompt for admin password
 echo ""
@@ -227,7 +227,7 @@ echo ""
 echo "📋 Configuration Summary:"
 echo "   Database: $DB_NAME"
 echo "   App User: $DB_USER"
-echo "   Admin User: %DB_ADMIN_USER%"
+echo "   Admin User: ${DB_ADMIN_USER:-admin}"
 echo "   jPulse Admin: $ADMIN_USERNAME ($ADMIN_EMAIL)"
 echo ""
 echo "💡 Next steps:"

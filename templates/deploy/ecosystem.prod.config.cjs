@@ -7,8 +7,8 @@
  * @site            %SITE_NAME%
  * @generated       %GENERATION_DATE%
  * @file            templates/deploy/ecosystem.prod.config.cjs
- * @version         0.7.6
- * @release         2025-09-16
+ * @version         0.7.7
+ * @release         2025-09-17
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -23,7 +23,7 @@ module.exports = {
         cwd: process.cwd(),
 
         // Production cluster configuration
-        instances: %PM2_INSTANCES%,
+        instances: %JPULSE_PM2_INSTANCES%,
         exec_mode: 'cluster',
 
         // Environment

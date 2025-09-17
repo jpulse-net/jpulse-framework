@@ -1,4 +1,4 @@
-# jPulse Framework / Production Deployment Guide v0.7.6
+# jPulse Framework / Production Deployment Guide v0.7.7
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse/deployment`.
 
@@ -95,8 +95,9 @@ If you need to integrate with existing infrastructure (like httpd proxy):
 
 1. **Skip nginx installation**:
    ```bash
-   # Edit deploy/install-system.sh to comment out nginx installation
-   # Or install nginx but don't enable it
+   # The system install script will detect existing web servers
+   # You can choose to skip nginx installation during setup
+   sudo npm run jpulse-install
    ```
 
 2. **Configure your existing proxy**:
@@ -124,7 +125,8 @@ For external MongoDB or replica sets:
 
 1. **Skip local MongoDB setup**:
    ```bash
-   # Don't run ./deploy/mongodb-setup.sh
+   # Don't run npm run jpulse-mongodb-setup
+   # Configure external database instead
    ```
 
 2. **Configure external database**:
@@ -206,7 +208,7 @@ npm run jpulse-update  # Sync framework files
 # If update fails:
 # 1. Check site/webapp/app.conf for compatibility
 # 2. Review CHANGELOG.md for breaking changes
-# 3. Test with ./deploy/install-test.sh
+# 3. Test with npm run jpulse-validate
 ```
 
 #### 4. SSL/HTTPS Issues
@@ -264,7 +266,7 @@ npm run jpulse-validate
 
 1. **Check site documentation**: Visit `/jpulse/` on your running site
 2. **Review deployment logs**: Check PM2 logs and system logs
-3. **Validate configuration**: Run `./deploy/install-test.sh`
+3. **Validate configuration**: Run `npm run jpulse-validate`
 4. **Framework documentation**: Available at `/jpulse/docs/`
 
 ## 📚 Reference Documentation
@@ -272,7 +274,7 @@ npm run jpulse-validate
 ### Generated Documentation
 - **Site README.md**: Site-specific deployment information
 - **deploy/README.md**: Framework deployment concepts and procedures
-- **deploy/install-test.sh**: Comprehensive validation suite
+- **npm run jpulse-validate**: Comprehensive validation suite
 
 ### Framework Documentation
 Available on all jPulse sites at `/jpulse/`:
@@ -326,7 +328,7 @@ After deployment, review:
 ### Health Monitoring
 ```bash
 # Daily health check
-./deploy/install-test.sh
+npm run jpulse-validate
 
 # Process monitoring
 pm2 monit

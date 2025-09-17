@@ -1,4 +1,4 @@
-# jPulse Framework v0.7.6
+# jPulse Framework v0.7.7
 
 A modern, lightweight web application framework designed for enterprise and government organizations. Built with Node.js, Express, and MongoDB, jPulse combines the simplicity of traditional server-side rendering with modern development practices.
 
@@ -33,14 +33,18 @@ sudo npm install -g @peterthoeny/jpulse-framework
 
 # Create a new jPulse site
 mkdir my-jpulse-site && cd my-jpulse-site
-npx jpulse-setup
+npx jpulse-configure
 
 # Install dependencies and start development
 npm install
 npm run dev
 # Visit http://localhost:8080
 
-# For production deployment, see the generated deploy/ directory
+# Production deployment commands (generated automatically)
+sudo npm run jpulse-install       # Install system dependencies
+npm run jpulse-mongodb-setup      # Setup database
+npm run jpulse-validate           # Validate installation
+npm run jpulse-update             # Update framework files
 ```
 
 ### For Framework Development
@@ -67,7 +71,7 @@ npm start
 
 ## Architecture Overview
 
-### Site Structure (After `npx jpulse-setup`)
+### Site Structure (After `npx jpulse-configure`)
 
 ```
 my-jpulse-site/
@@ -93,7 +97,7 @@ my-jpulse-site/
 ```bash
 npm run update  # Updates framework to latest version
 # or manually:
-npm update @peterthoeny/jpulse-framework && npx jpulse-sync
+npm update @peterthoeny/jpulse-framework && npm run jpulse-update
 ```
 
 ## Documentation
@@ -119,7 +123,7 @@ npm update @peterthoeny/jpulse-framework && npx jpulse-sync
 
 ## Latest Release Highlights
 
-- ✅ **Package Distribution (v0.5.5)** - npm-based site creation with `npx jpulse-setup`
+- ✅ **Package Distribution (v0.5.5)** - npm-based site creation with `npx jpulse-configure`
 - ✅ **Enterprise UI Widgets (v0.5.2)** - Complete dialog system with draggable windows
 - ✅ **Site Development Guidelines (v0.5.1)** - Comprehensive development framework
 - ✅ **Site Override Architecture (v0.5.0)** - Seamless framework updates

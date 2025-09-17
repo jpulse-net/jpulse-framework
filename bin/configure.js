@@ -4,8 +4,8 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         0.7.6
- * @release         2025-09-16
+ * @version         0.7.7
+ * @release         2025-09-17
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -526,6 +526,31 @@ async function promptForVariable(varName, config, deploymentType, isIncremental 
 
     // Check condition if specified
     if (definition.condition && !definition.condition(config, deploymentType)) {
+        // Set default values for conditional variables that aren't prompted
+        // This ensures template placeholders get expanded even when conditions aren't met
+        switch (varName) {
+            case 'JPULSE_DOMAIN_NAME':
+                config.JPULSE_DOMAIN_NAME = 'localhost';
+                break;
+            case 'JPULSE_SSL_TYPE':
+                config.JPULSE_SSL_TYPE = 'none';
+                break;
+            case 'SSL_CERT_PATH':
+                config.SSL_CERT_PATH = '';
+                break;
+            case 'SSL_KEY_PATH':
+                config.SSL_KEY_PATH = '';
+                break;
+            case 'DB_PORT':
+                config.DB_PORT = '';
+                break;
+            case 'DB_REPLICA_SET':
+                config.DB_REPLICA_SET = '';
+                break;
+            default:
+                // For unknown conditional variables, set empty string
+                config[varName] = '';
+        }
         return;
     }
 
@@ -568,7 +593,7 @@ async function generateIncrementalEnv(existingVars, config, templateSections, mi
         const section = templateSections[varName];
         if (section && !addedSections.has(section)) {
             // Expand placeholders in the section
-            const expandedSection = expandTemplatePlaceholders(section, config);
+            const expandedSection = replaceTemplatePlaceholders(section, config, config.JPULSE_FRAMEWORK_VERSION, 'prod');
             envContent += '\n' + expandedSection + '\n';
             addedSections.add(section);
         }
@@ -599,6 +624,16 @@ function expandTemplatePlaceholders(content, config) {
             expanded = expanded.replace(regex, value.toString());
         }
     });
+
+    // Check for any remaining unexpanded placeholders and warn (skip in test mode)
+    if (!process.env.JPULSE_TEST_MODE) {
+        // Exclude bash date format strings like %Y%m%d
+        const remainingPlaceholders = expanded.match(/%[A-Z_]{2,}%/g);
+        if (remainingPlaceholders) {
+            console.log(`⚠️  Warning: Unexpanded template variables found: ${remainingPlaceholders.join(', ')}`);
+            console.log('💡 This may indicate missing configuration variables');
+        }
+    }
 
     return expanded;
 }
@@ -640,6 +675,13 @@ function getTestConfiguration(deploymentType) {
         JPULSE_PM2_INSTANCES: deploymentType === 'dev' ? 1 : 'max',
         JPULSE_DOMAIN_NAME: 'localhost',
         JPULSE_SSL_TYPE: 'none',
+        JPULSE_DEPLOYMENT_TYPE: deploymentType,
+        NODE_ENV: deploymentType === 'prod' ? 'production' : 'development',
+        SSL_CERT_PATH: '',
+        SSL_KEY_PATH: '',
+        DB_HOST: '',
+        DB_PORT: '',
+        DB_REPLICA_SET: '',
         LOG_DIR: '', // Test mode uses STDOUT (empty LOG_DIR)
         LOG_FILE_NAME: 'access.log',
         ERROR_FILE_NAME: 'pm2-errors.log',
@@ -756,6 +798,10 @@ function replaceTemplatePlaceholders(content, config, frameworkVersion, deployme
     result = result.replace(/%FRAMEWORK_VERSION%/g, frameworkVersion);
     result = result.replace(/%GENERATION_DATE%/g, now.toISOString().split('T')[0]);
 
+    // Handle legacy placeholder mappings for backward compatibility
+    result = result.replace(/%DOMAIN_NAME%/g, config.JPULSE_DOMAIN_NAME || 'localhost');
+    result = result.replace(/%DEPLOYMENT_TYPE%/g, config.JPULSE_DEPLOYMENT_TYPE || deploymentType);
+
     return result;
 }
 
@@ -831,8 +877,8 @@ function generateEnvFile(config, frameworkVersion) {
     // Update framework version in config
     config.JPULSE_FRAMEWORK_VERSION = frameworkVersion;
 
-    // Expand template
-    const expandedContent = expandTemplatePlaceholders(templateContent, config);
+    // Expand template with special placeholders
+    const expandedContent = replaceTemplatePlaceholders(templateContent, config, frameworkVersion, 'prod');
 
     // Remove header section (keep only the actual environment variables)
     const lines = expandedContent.split('\n');
@@ -864,9 +910,9 @@ function createSitePackageJson(config) {
     const frameworkPackage = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'));
 
     const sitePackage = {
-        name: config.siteId,
+        name: config.JPULSE_SITE_ID,
         version: "1.0.0",
-        description: config.siteName,
+        description: config.SITE_NAME,
         type: "module",
         main: "webapp/app.js",
         scripts: {
@@ -1056,7 +1102,9 @@ async function setup() {
 
             case 'jpulse-dependency':
                 console.log('✅ jPulse dependency detected\n');
-                setupType = 'deploy-only';
+                // Always copy framework files to ensure latest versions
+                setupType = 'new-site';
+                console.log('🔄 Will copy/update framework files to ensure latest versions\n');
                 deploymentType = 'prod';
                 break;
 

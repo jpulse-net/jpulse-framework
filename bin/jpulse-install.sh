@@ -6,8 +6,8 @@
  #                  - Run as root: sudo npm run jpulse-install
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/jpulse-install.sh
- # @version         0.7.6
- # @release         2025-09-16
+ # @version         0.7.7
+ # @release         2025-09-17
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -131,20 +131,35 @@ fi
 
 # Create log directory and PID directory
 echo "📁 Creating log and runtime directories..."
-mkdir -p %LOG_DIR%
-mkdir -p /var/run/jpulse
 
-if [[ "$APP_USER" == "jpulse" ]]; then
-    chown jpulse:jpulse %LOG_DIR%
-    chown jpulse:jpulse /var/run/jpulse
+# Create PID directory (always needed)
+mkdir -p /var/run/jpulse
+chmod 755 /var/run/jpulse
+
+# Create log directory only if LOG_DIR is set and not empty
+if [[ -n "$LOG_DIR" && "$LOG_DIR" != "" ]]; then
+    echo "📁 Creating log directory: $LOG_DIR"
+    mkdir -p "$LOG_DIR"
+
+    if [[ "$APP_USER" == "jpulse" ]]; then
+        chown jpulse:jpulse "$LOG_DIR"
+        chmod 755 "$LOG_DIR"
+        chown jpulse:jpulse /var/run/jpulse
+    else
+        # For existing users, make logs and PID directory owned by the user
+        chown $APP_USER:$(id -gn $APP_USER) "$LOG_DIR"
+        chmod 755 "$LOG_DIR"
+        chown $APP_USER:$(id -gn $APP_USER) /var/run/jpulse
+    fi
+    echo "✅ Log directory created: $LOG_DIR"
 else
-    # For existing users, make logs and PID directory owned by the user
-    chown $APP_USER:$(id -gn $APP_USER) %LOG_DIR%
-    chmod 775 %LOG_DIR%
-    chown $APP_USER:$(id -gn $APP_USER) /var/run/jpulse
-    chmod 775 /var/run/jpulse
+    echo "ℹ️  LOG_DIR not set - using STDOUT logging"
+    if [[ "$APP_USER" == "jpulse" ]]; then
+        chown jpulse:jpulse /var/run/jpulse
+    else
+        chown $APP_USER:$(id -gn $APP_USER) /var/run/jpulse
+    fi
 fi
-echo "✅ Log directory created: %LOG_DIR%"
 echo "✅ PID directory created: /var/run/jpulse"
 
 # Configure firewall
@@ -152,9 +167,17 @@ echo "🔥 Configuring firewall..."
 if systemctl is-active --quiet firewalld; then
     firewall-cmd --permanent --add-service=http
     firewall-cmd --permanent --add-service=https
-    firewall-cmd --permanent --add-port=%APP_PORT%/tcp
+
+    # Add application port if PORT is set
+    if [[ -n "$PORT" && "$PORT" != "" ]]; then
+        firewall-cmd --permanent --add-port=$PORT/tcp
+        echo "✅ Firewall configured (HTTP, HTTPS, port $PORT)"
+    else
+        echo "✅ Firewall configured (HTTP, HTTPS)"
+        echo "⚠️  PORT not set - application port not configured in firewall"
+    fi
+
     firewall-cmd --reload
-    echo "✅ Firewall configured (HTTP, HTTPS, port %APP_PORT%)"
 else
     echo "⚠️  Firewall not active - manual configuration required"
 fi

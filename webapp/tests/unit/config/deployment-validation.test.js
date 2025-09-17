@@ -3,7 +3,7 @@
  * @tagline         Unit tests for deployment configuration validation
  * @description     Validates deployment configuration
  * @file            webapp/tests/unit/config/deployment-validation.test.js
- * @version         0.7.7
+ * @version         0.7.8
  * @release         2025-09-17
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -326,12 +326,11 @@ server {
     deployment: {
         mode: 'prod',
         prod: {
-            pm2Instances: 'max'
         }
     },
     middleware: {
         session: {
-            secret: '%ENV:SESSION_SECRET%'
+            secret: '%SESSION_SECRET%'
         }
     },
     cookie: {
@@ -340,9 +339,9 @@ server {
     database: {
         mode: 'standalone',
         standalone: {
-            url: 'mongodb://localhost:27017/%ENV:DB_NAME%',
-            user: '%ENV:DB_USER%',
-            pass: '%ENV:DB_PASS%'
+            url: 'mongodb://localhost:27017/%DB_NAME%',
+            user: '%DB_USER%',
+            pass: '%DB_PASS%'
         }
     }
 }`;
@@ -355,9 +354,8 @@ server {
             // Check production-specific settings
             expect(content).toContain("mode: 'prod'");
             expect(content).toContain('secure: true');
-            expect(content).toContain('%ENV:SESSION_SECRET%');
-            expect(content).toContain('%ENV:DB_NAME%');
-            expect(content).toContain('pm2Instances');
+            expect(content).toContain('%SESSION_SECRET%');
+            expect(content).toContain('%DB_NAME%');
         });
 
         test('should detect invalid JSON syntax in site config', () => {

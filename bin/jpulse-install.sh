@@ -6,7 +6,7 @@
  #                  - Run as root: sudo npm run jpulse-install
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/jpulse-install.sh
- # @version         0.7.7
+ # @version         0.7.8
  # @release         2025-09-17
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -123,7 +123,7 @@ else
     echo "ℹ️  Using existing user for application deployment"
     echo "💡 Ensure your user has access to:"
     echo "   - /opt/ directory (for application files)"
-    echo "   - /var/log/ directory (for log files)"
+    echo "   - Log directory (for log files): ${LOG_DIR:-STDOUT}"
     echo "   - PM2 and MongoDB commands"
     APP_USER=$(whoami)
     echo "✅ Will use current user for deployment guidance"
@@ -226,7 +226,7 @@ echo "   MongoDB: Installed and running"
 echo "   nginx: Installed and running"
 echo "   PM2: $(pm2 --version)"
 echo "   Application user: $APP_USER"
-echo "   Log directory: /var/log/jpulse"
+echo "   Log directory: ${LOG_DIR:-STDOUT}"
 echo ""
 echo "💡 Next steps:"
 if [[ "$APP_USER" == "jpulse" ]]; then
@@ -234,7 +234,7 @@ if [[ "$APP_USER" == "jpulse" ]]; then
     echo "   2. Deploy application to /opt/jpulse/"
 else
     echo "   1. Deploy application to your preferred directory"
-    echo "   2. Ensure $APP_USER has access to /var/log/jpulse/"
+    echo "   2. Ensure $APP_USER has access to ${LOG_DIR:-log directory}/"
 fi
 echo "   3. Run database setup: ./deploy/mongodb-setup.sh"
 echo "   4. Configure nginx: ./deploy/setup-nginx.sh"

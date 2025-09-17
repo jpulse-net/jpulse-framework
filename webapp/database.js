@@ -3,7 +3,7 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the database interface for the jPulse Framework WebApp
  * @file            webapp/database.js
- * @version         0.7.7
+ * @version         0.7.8
  * @release         2025-09-17
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -41,17 +41,12 @@ async function connect() {
             url = url.replace('%SERVERS%', config.servers.join(','));
         }
 
-        // For local development, use a simple connection without authentication
-        if (url.includes('localhost')) {
-            url = `mongodb://localhost:27017/${dbName}`;
-        }
-
-        // Create client with simplified options for local development
-        const clientOptions = url.includes('localhost') ? {
+        // Use configuration options (respects authentication settings)
+        const clientOptions = config.options || {
             serverSelectionTimeoutMS: 5000,
             connectTimeoutMS: 10000,
             socketTimeoutMS: 45000
-        } : config.options;
+        };
 
         client = new MongoClient(url, clientOptions);
 

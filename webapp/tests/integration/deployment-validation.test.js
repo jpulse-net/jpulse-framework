@@ -5,7 +5,7 @@
  *                  validates configuration of PM2 and nginx, validates deployment context,
  *                  validates environment configuration
  * @file            webapp/tests/integration/deployment-validation.test.js
- * @version         0.7.7
+ * @version         0.7.8
  * @release         2025-09-17
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -116,7 +116,7 @@ export SESSION_SECRET=prod-session-secret-very-long-and-secure
                 },
                 deployment: {
                     mode: 'prod',
-                    prod: { pm2Instances: 'max' }
+                    prod: {}
                 },
                 cookie: { secure: true }
             }, null, 2));
@@ -181,12 +181,11 @@ export SESSION_SECRET=prod-session-secret-very-long-and-secure
                 deployment: {
                     mode: 'prod',
                     prod: {
-                        pm2Instances: 'max'
                     }
                 },
                 middleware: {
                     session: {
-                        secret: '%ENV:SESSION_SECRET%'
+                        secret: '%SESSION_SECRET%'
                     }
                 },
                 cookie: {
@@ -195,9 +194,9 @@ export SESSION_SECRET=prod-session-secret-very-long-and-secure
                 database: {
                     mode: 'standalone',
                     standalone: {
-                        url: 'mongodb://localhost:27017/%ENV:DB_NAME%',
-                        user: '%ENV:DB_USER%',
-                        pass: '%ENV:DB_PASS%'
+                        url: 'mongodb://localhost:27017/%DB_NAME%',
+                        user: '%DB_USER%',
+                        pass: '%DB_PASS%'
                     }
                 }
             };
@@ -211,8 +210,7 @@ export SESSION_SECRET=prod-session-secret-very-long-and-secure
 
             expect(parsedConfig.deployment.mode).toBe('prod');
             expect(parsedConfig.cookie.secure).toBe(true);
-            expect(parsedConfig.database.standalone.user).toBe('%ENV:DB_USER%');
-            expect(parsedConfig.deployment.prod.pm2Instances).toBe('max');
+            expect(parsedConfig.database.standalone.user).toBe('%DB_USER%');
         });
     });
 

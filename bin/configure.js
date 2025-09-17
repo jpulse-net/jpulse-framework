@@ -4,7 +4,7 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         0.7.7
+ * @version         0.7.8
  * @release         2025-09-17
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -192,8 +192,8 @@ async function configureNewFeaturesOnly() {
 
         if (missingVars.length === 0) {
             console.log('✅ No new configuration needed - all variables are already set.');
-            process.exit(0);
-        }
+        process.exit(0);
+    }
 
         console.log(`📋 Found ${missingVars.length} new configuration variable(s): ${missingVars.join(', ')}\n`);
 
@@ -257,8 +257,8 @@ const CONFIG_DEFINITIONS = {
     PORT: {
         section: 'Basic Settings',
         prompt: async (config, deploymentType) => {
-            const defaultPort = deploymentType === 'dev' ? 8080 : 8081;
-            const portInput = await question(`? Application port: (${defaultPort}) `);
+    const defaultPort = deploymentType === 'dev' ? 8080 : 8081;
+    const portInput = await question(`? Application port: (${defaultPort}) `);
             config.PORT = portInput ? parseInt(portInput) : defaultPort;
         }
     },
@@ -276,7 +276,7 @@ const CONFIG_DEFINITIONS = {
         prompt: async (config) => {
             config.DB_ADMIN_PASS = await question('? MongoDB admin password: (required) ');
             while (!config.DB_ADMIN_PASS) {
-                console.log('❌ Admin password is required');
+        console.log('❌ Admin password is required');
                 config.DB_ADMIN_PASS = await question('? MongoDB admin password: ');
             }
         }
@@ -294,16 +294,16 @@ const CONFIG_DEFINITIONS = {
         prompt: async (config) => {
             config.DB_PASS = await question('? MongoDB app password: (required) ');
             while (!config.DB_PASS) {
-                console.log('❌ App password is required');
+        console.log('❌ App password is required');
                 config.DB_PASS = await question('? MongoDB app password: ');
-            }
+    }
         }
     },
 
     DB_NAME: {
         section: 'Database Configuration',
         prompt: async (config, deploymentType) => {
-            const dbPrefix = deploymentType === 'dev' ? 'jp-dev' : 'jp-prod';
+    const dbPrefix = deploymentType === 'dev' ? 'jp-dev' : 'jp-prod';
             config.DB_NAME = await question(`? Database name: (${dbPrefix}) `) || dbPrefix;
         }
     },
@@ -312,8 +312,8 @@ const CONFIG_DEFINITIONS = {
     SESSION_SECRET: {
         section: 'Security Settings',
         prompt: async (config) => {
-            const defaultSecret = generateSessionSecret();
-            const secretInput = await question(`? Session secret: (${defaultSecret}) `);
+    const defaultSecret = generateSessionSecret();
+    const secretInput = await question(`? Session secret: (${defaultSecret}) `);
             config.SESSION_SECRET = secretInput || defaultSecret;
         }
     },
@@ -331,17 +331,17 @@ const CONFIG_DEFINITIONS = {
         section: 'Production Settings',
         condition: (config, deploymentType) => deploymentType === 'prod',
         prompt: async (config) => {
-            console.log('? SSL certificate type:');
-            console.log('  1) Let\'s Encrypt (recommended)');
-            console.log('  2) Custom certificate paths');
-            console.log('  3) No SSL (development only)');
-            const sslChoice = await question('? Choose (1-3): (1) ') || '1';
+        console.log('? SSL certificate type:');
+        console.log('  1) Let\'s Encrypt (recommended)');
+        console.log('  2) Custom certificate paths');
+        console.log('  3) No SSL (development only)');
+        const sslChoice = await question('? Choose (1-3): (1) ') || '1';
 
-            if (sslChoice === '1') {
+        if (sslChoice === '1') {
                 config.JPULSE_SSL_TYPE = 'letsencrypt';
-            } else if (sslChoice === '2') {
+        } else if (sslChoice === '2') {
                 config.JPULSE_SSL_TYPE = 'custom';
-            } else {
+        } else {
                 config.JPULSE_SSL_TYPE = 'none';
             }
         }
@@ -375,15 +375,15 @@ const CONFIG_DEFINITIONS = {
         section: 'PM2 Configuration',
         prompt: async (config, deploymentType) => {
             if (deploymentType === 'prod') {
-                console.log('? PM2 instances for production:');
-                console.log('  1) Auto-detect (max CPU cores)');
-                console.log('  2) Custom number');
-                const pm2Choice = await question('? Choose (1-2): (1) ') || '1';
+        console.log('? PM2 instances for production:');
+        console.log('  1) Auto-detect (max CPU cores)');
+        console.log('  2) Custom number');
+        const pm2Choice = await question('? Choose (1-2): (1) ') || '1';
 
-                if (pm2Choice === '2') {
-                    const instancesInput = await question('? Number of instances (1-16): ');
+        if (pm2Choice === '2') {
+            const instancesInput = await question('? Number of instances (1-16): ');
                     config.JPULSE_PM2_INSTANCES = parseInt(instancesInput) || 'max';
-                } else {
+        } else {
                     config.JPULSE_PM2_INSTANCES = 'max';
                 }
             } else {
@@ -402,7 +402,7 @@ const CONFIG_DEFINITIONS = {
                 const logChoice = await question('? Choose (1-2): (1) ') || '1';
 
                 if (logChoice === '2') {
-                    const defaultLogDir = '/var/log/jpulse';
+        const defaultLogDir = '/var/log/jpulse';
                     let logDirInput = await question(`? Log directory: (${defaultLogDir}) `);
                     logDirInput = logDirInput || defaultLogDir;
 
@@ -413,7 +413,7 @@ const CONFIG_DEFINITIONS = {
                     }
 
                     config.LOG_DIR = logDirInput;
-                } else {
+    } else {
                     config.LOG_DIR = ''; // Empty means STDOUT for app, PM2 uses defaults
                 }
             } else {

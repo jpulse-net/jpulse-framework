@@ -6,8 +6,8 @@
  #                  - Run as root: sudo npm run jpulse-install
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/jpulse-install.sh
- # @version         0.7.12
- # @release         2025-09-17
+ # @version         0.7.13
+ # @release         2025-09-18
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -49,7 +49,7 @@ echo "Site: ${JPULSE_SITE_ID:-jPulse-Site}"
 echo "Platform: $(cat /etc/redhat-release)"
 echo "User: root"
 echo ""
-echo "This script will install:"
+echo "This script will install: (unless installed already)"
 echo "  1. Node.js 18 LTS"
 echo "  2. MongoDB 6.0"
 echo "  3. nginx"
@@ -112,16 +112,18 @@ else
 fi
 
 # Application user setup
-echo "👤 Setting up application user..."
+echo "👤 Application User Setup:"
 echo ""
 # Get the real user who ran sudo
 REAL_USER=${SUDO_USER:-$(whoami)}
 
-echo "You can either:"
-echo "  1) Use current user $REAL_USER (existing user with sudo privileges)"
-echo "  2) Create new dedicated 'jpulse' user"
+echo "Choose how to run the jPulse application:"
+echo "  1) Use current user '$REAL_USER' (recommended for existing servers)"
+echo "  2) Create dedicated 'jpulse' system user (recommended for new servers)"
 echo ""
-read -p "? Create new 'jpulse' user? (y/N): " CREATE_USER
+echo "Most users choose option 1 (current user) for simplicity."
+echo ""
+read -p "? Create new dedicated 'jpulse' user? (y/N): " CREATE_USER
 CREATE_USER=${CREATE_USER:-n}
 
 if [[ "$CREATE_USER" =~ ^[Yy] ]]; then

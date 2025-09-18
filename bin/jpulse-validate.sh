@@ -7,8 +7,8 @@
  #                  - Auto-run by jpulse-validate.sh
  #                  - Context-aware: respects dev vs prod deployment settings
  # @file            bin/jpulse-validate.sh
- # @version         0.7.12
- # @release         2025-09-17
+ # @version         0.7.13
+ # @release         2025-09-18
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -473,7 +473,7 @@ main() {
             echo -e "${GREEN}🎉 Installation validation passed successfully!${NC}"
         fi
         echo ""
-        echo "💡 Next steps:"
+        echo "💡 Next steps, if not done already:"
         if [[ "$DEPLOYMENT_TYPE" == "prod" ]]; then
             echo "   1. Configure environment: nano .env"
             echo "   2. Setup database: npm run jpulse-mongodb-setup"

@@ -6,8 +6,8 @@
  #                  - Run with environment: source .env && ./bin/mongodb-setup.sh
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/mongodb-setup.sh
- # @version         0.7.12
- # @release         2025-09-17
+ # @version         0.7.13
+ # @release         2025-09-18
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -227,12 +227,90 @@ fi
 # Replace single quotes with escaped single quotes and wrap in single quotes
 ADMIN_PASSWORD_ESCAPED=$(printf '%s\n' "$ADMIN_PASSWORD" | sed "s/'/'\\\\''/g")
 
-# Create the admin user document with enhanced error handling
+# Create the admin user document with enhanced error handling - FIXED: Reliable detection and single commands
 echo "🔐 Creating admin user in database..."
-ADMIN_RESULT=$(mongosh admin -u "$DB_ADMIN_USER" -p "$DB_ADMIN_PASS" \
-  --eval "use $DB_NAME" \
-  --eval "try { const bcrypt = require('bcrypt'); const saltRounds = 10; const adminPassword = '$ADMIN_PASSWORD_ESCAPED'; const passwordHash = bcrypt.hashSync(adminPassword, saltRounds); const adminUser = { username: '$ADMIN_USERNAME', uuid: '$ADMIN_UUID', email: '$ADMIN_EMAIL', passwordHash: passwordHash, profile: { firstName: '$ADMIN_FIRST_NAME', lastName: '$ADMIN_LAST_NAME', nickName: '', avatar: '' }, roles: ['admin', 'user'], preferences: { language: 'en', theme: 'light' }, status: 'active', lastLogin: null, loginCount: 0, createdAt: new Date(), updatedAt: new Date(), updatedBy: 'mongodb-setup', docVersion: 1, saveCount: 1 }; const existingUser = db.users.findOne({username: '$ADMIN_USERNAME'}); if (existingUser) { print('EXISTS:$ADMIN_USERNAME'); } else { const result = db.users.insertOne(adminUser); if (result.acknowledged) { print('SUCCESS:$ADMIN_USERNAME'); } else { print('FAILED:Insert failed'); } } } catch(error) { print('ERROR:' + error.message); }" \
-  --quiet 2>&1)
+
+# Step 1: Check if user exists (single command, reliable detection)
+echo "🔍 Checking if jPulse admin user exists..."
+USER_CHECK_RESULT=$(mongosh "$DB_NAME" -u "$DB_USER" -p "$DB_PASS" --authenticationDatabase "$DB_NAME" --eval "
+try {
+    const user = db.users.findOne({username: '$ADMIN_USERNAME'});
+    if (user) {
+        print('USER_EXISTS:' + user.username);
+    } else {
+        print('USER_NOT_FOUND');
+    }
+} catch (error) {
+    print('ERROR:' + error.message);
+}
+" --quiet 2>&1)
+
+# Parse user check result
+if echo "$USER_CHECK_RESULT" | grep -q "^USER_EXISTS:"; then
+    EXISTING_USER=$(echo "$USER_CHECK_RESULT" | grep "^USER_EXISTS:" | cut -d: -f2)
+    echo "⚠️  jPulse admin user already exists: $EXISTING_USER"
+    USER_CREATION_NEEDED=false
+elif echo "$USER_CHECK_RESULT" | grep -q "^USER_NOT_FOUND"; then
+    echo "📝 jPulse admin user needs to be created: $ADMIN_USERNAME"
+    USER_CREATION_NEEDED=true
+elif echo "$USER_CHECK_RESULT" | grep -q "^ERROR:"; then
+    ERROR_MSG=$(echo "$USER_CHECK_RESULT" | grep "^ERROR:" | cut -d: -f2-)
+    echo "❌ Failed to check for existing user: $ERROR_MSG"
+    exit 1
+else
+    echo "❌ Unexpected response from user check:"
+    echo "$USER_CHECK_RESULT"
+    exit 1
+fi
+
+# Step 2: Create user only if needed (single command)
+if [ "$USER_CREATION_NEEDED" = true ]; then
+    echo "👤 Creating jPulse admin user: $ADMIN_USERNAME"
+    ADMIN_RESULT=$(mongosh "$DB_NAME" -u "$DB_USER" -p "$DB_PASS" --authenticationDatabase "$DB_NAME" --eval "
+    try {
+        const bcrypt = require('bcrypt');
+        const saltRounds = 10;
+        const adminPassword = '$ADMIN_PASSWORD_ESCAPED';
+        const passwordHash = bcrypt.hashSync(adminPassword, saltRounds);
+        const adminUser = {
+            username: '$ADMIN_USERNAME',
+            uuid: '$ADMIN_UUID',
+            email: '$ADMIN_EMAIL',
+            passwordHash: passwordHash,
+            profile: {
+                firstName: '$ADMIN_FIRST_NAME',
+                lastName: '$ADMIN_LAST_NAME',
+                nickName: '',
+                avatar: ''
+            },
+            roles: ['admin', 'user'],
+            preferences: {
+                language: 'en',
+                theme: 'light'
+            },
+            status: 'active',
+            lastLogin: null,
+            loginCount: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            updatedBy: 'mongodb-setup',
+            docVersion: 1,
+            saveCount: 1
+        };
+        const result = db.users.insertOne(adminUser);
+        if (result.acknowledged) {
+            print('SUCCESS:$ADMIN_USERNAME');
+        } else {
+            print('FAILED:Insert failed');
+        }
+    } catch(error) {
+        print('ERROR:' + error.message);
+    }
+    " --quiet 2>&1)
+else
+    # User exists, set success result
+    ADMIN_RESULT="EXISTS:$ADMIN_USERNAME"
+fi
 
 # Parse the result and provide appropriate feedback
 if echo "$ADMIN_RESULT" | grep -q "SUCCESS:"; then

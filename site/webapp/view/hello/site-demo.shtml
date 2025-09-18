@@ -4,8 +4,8 @@
  * @tagline         Comprehensive W-047 Site Development Demo
  * @description     Detailed demonstration of site-specific CSS and JavaScript features
  * @file            site/webapp/view/hello/site-demo.shtml
- * @version         0.7.12
- * @release         2025-09-17
+ * @version         0.7.13
+ * @release         2025-09-18
  * @author          Site Developer
  * @license         AGPL v3, see LICENSE file
  * @genai           99%, Cursor 1.2, Claude Sonnet 4

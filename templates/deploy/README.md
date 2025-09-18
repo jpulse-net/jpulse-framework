@@ -1,4 +1,4 @@
-# jPulse Framework v0.7.13 Deployment Guide for %SITE_NAME%
+# jPulse Framework v0.7.14 Deployment Guide for %SITE_NAME%
 
 **Site Generated**: %GENERATION_DATE%
 **Deployment Type**: %DEPLOYMENT_TYPE%
@@ -49,7 +49,7 @@ pm2 save
           │
 ┌─────────▼───────┐
 │   Node.js App   │  ← jPulse application server
-│   (Port %PORT%)    │     (PM2 cluster mode)
+│   (Port %PORT%)   │     (PM2 cluster mode)
 └─────────┬───────┘
           │
 ┌─────────▼───────┐

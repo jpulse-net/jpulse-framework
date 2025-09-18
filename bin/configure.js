@@ -4,7 +4,7 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         0.7.13
+ * @version         0.7.14
  * @release         2025-09-18
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -670,14 +670,57 @@ function createSiteStructure() {
 }
 
 /**
- * Copy site templates (README, etc.)
+ * Copy site templates (README, hello examples, etc.)
  */
 function copySiteTemplates(config, frameworkVersion, deploymentType) {
+    // Copy README.md
     const readmePath = path.join(packageRoot, 'templates/README.md');
     if (fs.existsSync(readmePath)) {
         const templateContent = fs.readFileSync(readmePath, 'utf8');
         const processedContent = expandAllVariables(templateContent, config, deploymentType);
         fs.writeFileSync('README.md', processedContent);
+    }
+
+    // Copy hello controller example
+    const helloControllerSrc = path.join(packageRoot, 'site/webapp/controller/hello.js');
+    const helloControllerDest = 'site/webapp/controller/hello.js';
+    if (fs.existsSync(helloControllerSrc)) {
+        const templateContent = fs.readFileSync(helloControllerSrc, 'utf8');
+        const processedContent = expandAllVariables(templateContent, config, deploymentType);
+        fs.writeFileSync(helloControllerDest, processedContent);
+    }
+
+    // Copy hello view examples
+    const helloViewDir = path.join(packageRoot, 'site/webapp/view/hello');
+    if (fs.existsSync(helloViewDir)) {
+        // Ensure destination directory exists
+        fs.mkdirSync('site/webapp/view/hello', { recursive: true });
+
+        // Copy all hello view files
+        const viewFiles = fs.readdirSync(helloViewDir);
+        viewFiles.forEach(file => {
+            const srcPath = path.join(helloViewDir, file);
+            const destPath = path.join('site/webapp/view/hello', file);
+            const templateContent = fs.readFileSync(srcPath, 'utf8');
+            const processedContent = expandAllVariables(templateContent, config, deploymentType);
+            fs.writeFileSync(destPath, processedContent);
+        });
+    }
+
+    // Copy site-common templates
+    const siteCommonCssSrc = path.join(packageRoot, 'site/webapp/view/site-common.css.tmpl');
+    const siteCommonJsSrc = path.join(packageRoot, 'site/webapp/view/site-common.js.tmpl');
+
+    if (fs.existsSync(siteCommonCssSrc)) {
+        const templateContent = fs.readFileSync(siteCommonCssSrc, 'utf8');
+        const processedContent = expandAllVariables(templateContent, config, deploymentType);
+        fs.writeFileSync('site/webapp/view/site-common.css.tmpl', processedContent);
+    }
+
+    if (fs.existsSync(siteCommonJsSrc)) {
+        const templateContent = fs.readFileSync(siteCommonJsSrc, 'utf8');
+        const processedContent = expandAllVariables(templateContent, config, deploymentType);
+        fs.writeFileSync('site/webapp/view/site-common.js.tmpl', processedContent);
     }
 }
 
@@ -839,6 +882,10 @@ async function setup() {
 
         console.log('\n🏗️  Setting up jPulse site...\n');
 
+        // Always ensure site structure exists (for both new sites and upgrades)
+        console.log('🏗️  Ensuring site structure...');
+        createSiteStructure();
+
         if (setupType === 'new-site') {
             // Copy framework webapp directory
             console.log('📁 Copying framework files...');
@@ -854,11 +901,7 @@ async function setup() {
                 fs.writeFileSync('webapp/ATTENTION_README.txt', expandedContent);
             }
 
-            // Create site structure
-            console.log('🏗️  Creating site structure...');
-            createSiteStructure();
-
-            // Copy site templates
+            // Copy site templates (README, hello examples)
             console.log('📋 Copying site templates...');
             copySiteTemplates(config, frameworkPackage.version, deploymentType);
 

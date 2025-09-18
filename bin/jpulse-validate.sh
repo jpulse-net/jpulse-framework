@@ -7,7 +7,7 @@
  #                  - Auto-run by jpulse-validate.sh
  #                  - Context-aware: respects dev vs prod deployment settings
  # @file            bin/jpulse-validate.sh
- # @version         0.7.13
+ # @version         0.7.14
  # @release         2025-09-18
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -349,7 +349,7 @@ test_configuration_files() {
 
     # Test main app configuration
     if [[ -f "site/webapp/app.conf" ]]; then
-        if node -e "require('fs').readFileSync('site/webapp/app.conf', 'utf8')" 2>/dev/null; then
+        if node -e "import('fs').then(fs => fs.readFileSync('site/webapp/app.conf', 'utf8'))" 2>/dev/null; then
             log_success "Site configuration syntax is valid"
         else
             log_error "Site configuration syntax error"
@@ -360,7 +360,7 @@ test_configuration_files() {
 
     # Test package.json
     if [[ -f "package.json" ]]; then
-        if node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8'))" 2>/dev/null; then
+        if node -e "import('fs').then(fs => JSON.parse(fs.readFileSync('package.json', 'utf8')))" 2>/dev/null; then
             log_success "package.json syntax is valid"
         else
             log_error "package.json syntax error"

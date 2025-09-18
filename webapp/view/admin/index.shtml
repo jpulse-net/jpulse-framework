@@ -4,7 +4,7 @@
  * @tagline         Admin Dashboard for jPulse Framework
  * @description     This is the admin dashboard page of jPulse Framework
  * @file            webapp/view/admin/index.shtml
- * @version         0.7.13
+ * @version         0.7.14
  * @release         2025-09-18
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

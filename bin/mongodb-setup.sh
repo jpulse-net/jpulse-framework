@@ -6,7 +6,7 @@
  #                  - Run with environment: source .env && ./bin/mongodb-setup.sh
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/mongodb-setup.sh
- # @version         0.7.13
+ # @version         0.7.14
  # @release         2025-09-18
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -122,9 +122,10 @@ fi
 
 # Enable MongoDB authentication BEFORE creating app user
 echo "🔐 Enabling MongoDB authentication..."
-if grep -q "^#.*authorization: enabled" /etc/mongod.conf 2>/dev/null; then
-    # Uncomment existing authorization line
-    sudo sed -i 's/^#.*authorization: enabled/  authorization: enabled/' /etc/mongod.conf
+if grep -q "^#.*authorization: .*" /etc/mongod.conf 2>/dev/null; then
+    # Uncomment both security section and authorization line
+    sudo sed -i 's/^#security:/security:/' /etc/mongod.conf
+    sudo sed -i 's/^#.*authorization: .*/  authorization: enabled/' /etc/mongod.conf
     echo "✅ MongoDB authentication enabled in configuration"
 elif grep -q "authorization: enabled" /etc/mongod.conf 2>/dev/null; then
     echo "✅ MongoDB authentication already enabled"
@@ -152,8 +153,9 @@ sleep 3
 
 # Setup app user and database (now with authentication enabled)
 echo "🗄️  Creating application database '$DB_NAME' and user '$DB_USER'..."
-mongosh admin -u "$DB_ADMIN_USER" -p "$DB_ADMIN_PASS" --eval "
-    use $DB_NAME;
+
+# Create app user (single command per --eval)
+mongosh "$DB_NAME" -u "$DB_ADMIN_USER" -p "$DB_ADMIN_PASS" --authenticationDatabase admin --eval "
     db.createUser({
         user: '$DB_USER',
         pwd: '$DB_PASS',
@@ -161,16 +163,22 @@ mongosh admin -u "$DB_ADMIN_USER" -p "$DB_ADMIN_PASS" --eval "
             {role: 'readWrite', db: '$DB_NAME'},
             {role: 'dbAdmin', db: '$DB_NAME'}
         ]
-    });
+    })
+"
 
-    // Create initial collection to ensure database exists
+echo "✅ App user '$DB_USER' created successfully"
+
+# Create initial collection (separate command)
+mongosh "$DB_NAME" -u "$DB_USER" -p "$DB_PASS" --eval "
     db.system_info.insertOne({
         created: new Date(),
         version: '1.0.0',
         framework: 'jPulse',
         site: '${SITE_NAME:-jPulse Site}'
-    });
+    })
 "
+
+echo "✅ Initial database collection created"
 
 echo ""
 # Create initial admin user for jPulse application
@@ -266,11 +274,12 @@ fi
 # Step 2: Create user only if needed (single command)
 if [ "$USER_CREATION_NEEDED" = true ]; then
     echo "👤 Creating jPulse admin user: $ADMIN_USERNAME"
+    # Use single eval with bcrypt - matches jPulse app hashing (12 salt rounds)
     ADMIN_RESULT=$(mongosh "$DB_NAME" -u "$DB_USER" -p "$DB_PASS" --authenticationDatabase "$DB_NAME" --eval "
     try {
         const bcrypt = require('bcrypt');
-        const saltRounds = 10;
         const adminPassword = '$ADMIN_PASSWORD_ESCAPED';
+        const saltRounds = 12;
         const passwordHash = bcrypt.hashSync(adminPassword, saltRounds);
         const adminUser = {
             username: '$ADMIN_USERNAME',

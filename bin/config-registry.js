@@ -4,7 +4,7 @@
  * @tagline         Unified configuration registry for all jPulse tools
  * @description     Single source of truth for variable definitions, defaults, and template expansion
  * @file            bin/config-registry.js
- * @version         0.7.13
+ * @version         0.7.14
  * @release         2025-09-18
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,6 +15,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -209,15 +210,30 @@ export const CONFIG_REGISTRY = {
         // Template expansion
         default: () => {
             try {
-                return require('crypto').randomBytes(32).toString('hex');
+                return crypto.randomBytes(32).toString('hex');
             } catch (error) {
                 // Fallback for environments without crypto
                 return 'default-session-secret-change-in-production';
             }
         },
         type: 'computed',
-        description: 'Session encryption secret'
-        // No user prompting - auto-generated
+        description: 'Session encryption secret',
+
+        // User prompting (RESTORED)
+        section: 'Security Configuration',
+        prompt: async (config, deploymentType, question) => {
+            console.log('\n🔐 Security Configuration:\n');
+            console.log('📋 Session secret (for encrypting user sessions)...');
+            console.log('💡 Generate secure passphrase: https://www.keepersecurity.com/features/passphrase-generator/');
+            const userInput = await question('? Session secret (leave empty for auto-generation): ');
+            if (userInput.trim()) {
+                if (userInput.length < 16) {
+                    console.log('⚠️  Warning: Session secret should be at least 16 characters');
+                }
+                config.SESSION_SECRET = userInput.trim();
+            }
+            // If empty, will use auto-generated default
+        }
     },
 
     // === DEPLOYMENT VARIABLES ===

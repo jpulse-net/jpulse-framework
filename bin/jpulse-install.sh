@@ -6,7 +6,7 @@
  #                  - Run as root: sudo npm run jpulse-install
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/jpulse-install.sh
- # @version         0.7.13
+ # @version         0.7.14
  # @release         2025-09-18
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -123,10 +123,10 @@ echo "  2) Create dedicated 'jpulse' system user (recommended for new servers)"
 echo ""
 echo "Most users choose option 1 (current user) for simplicity."
 echo ""
-read -p "? Create new dedicated 'jpulse' user? (y/N): " CREATE_USER
-CREATE_USER=${CREATE_USER:-n}
+read -p "? Choose option (1-2): " USER_CHOICE
+USER_CHOICE=${USER_CHOICE:-1}
 
-if [[ "$CREATE_USER" =~ ^[Yy] ]]; then
+if [[ "$USER_CHOICE" == "2" ]]; then
     if ! id "jpulse" &>/dev/null; then
         useradd -r -s /bin/bash -d /opt/jpulse -m jpulse
         echo "✅ Application user 'jpulse' created"
@@ -203,14 +203,22 @@ fi
 # Configure PM2 startup
 echo "🔧 Configuring PM2 startup..."
 if [[ "$APP_USER" == "jpulse" ]]; then
-    # Configure PM2 startup for jpulse user
-    sudo -u jpulse pm2 startup systemd -u jpulse --hp /home/jpulse
-    echo "✅ PM2 startup configured for user: jpulse"
+    # Generate PM2 startup command for jpulse user
+    echo "📋 PM2 startup configuration for user: jpulse"
+    echo "⚠️  REQUIRED MANUAL STEP: Run the following command to get the startup script:"
+    echo ""
+    echo "    sudo -u jpulse pm2 startup systemd -u jpulse --hp /home/jpulse"
+    echo ""
+    echo "💡 Then copy and run the command that PM2 generates"
     echo "💡 After deploying your app, run: sudo -u jpulse pm2 save"
 else
-    # Configure PM2 startup for current user
-    sudo -u $APP_USER pm2 startup systemd -u $APP_USER --hp $(eval echo ~$APP_USER)
-    echo "✅ PM2 startup configured for user: $APP_USER"
+    # Generate PM2 startup command for current user
+    echo "📋 PM2 startup configuration for user: $APP_USER"
+    echo "⚠️  REQUIRED MANUAL STEP: Run the following command to get the startup script:"
+    echo ""
+    echo "    sudo -u $APP_USER pm2 startup systemd -u $APP_USER --hp $(eval echo ~$APP_USER)"
+    echo ""
+    echo "💡 Then copy and run the command that PM2 generates"
     echo "💡 After deploying your app, run: sudo -u $APP_USER pm2 save"
 fi
 

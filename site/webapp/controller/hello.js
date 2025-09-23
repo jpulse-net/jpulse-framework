@@ -3,8 +3,8 @@
  * @tagline         Demo Site Controller Override
  * @description     Example of how to override framework controllers
  * @file            site/webapp/controller/hello.js
- * @version         0.7.15
- * @release         2025-09-22
+ * @version         0.7.16
+ * @release         2025-09-23
  * @author          Site Developer
  * @license         AGPL v3, see LICENSE file
  * @genai           60%, Cursor 1.2, Claude Sonnet 4
@@ -42,7 +42,7 @@ class HelloController {
 
         } catch (error) {
             LogController.logError(req, `hello.api: error: ${error.message}`);
-            CommonUtils.sendError(res, 500, 'API error');
+            return global.CommonUtils.sendError(req, res, 500, 'API error', 'INTERNAL_ERROR');
         }
     }
 }

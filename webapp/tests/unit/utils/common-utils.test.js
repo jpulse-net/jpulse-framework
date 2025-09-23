@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for CommonUtils
  * @description     Tests for common utility functions
  * @file            webapp/tests/unit/utils/common-utils.test.js
- * @version         0.7.15
- * @release         2025-09-22
+ * @version         0.7.16
+ * @release         2025-09-23
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -283,6 +283,191 @@ describe('CommonUtils', () => {
         test('should trim whitespace', () => {
             const result = CommonUtils.sanitizeString('  test  ');
             expect(result).toBe('test');
+        });
+    });
+
+    describe('sendError', () => {
+        let mockReq, mockRes;
+
+        beforeEach(() => {
+            mockRes = {
+                status: jest.fn().mockReturnThis(),
+                json: jest.fn().mockReturnThis(),
+                redirect: jest.fn().mockReturnThis()
+            };
+        });
+
+        describe('API requests (JSON responses)', () => {
+            beforeEach(() => {
+                mockReq = {
+                    originalUrl: '/api/1/user/123'
+                };
+            });
+
+            test('should return JSON response for API requests with basic parameters', () => {
+                CommonUtils.sendError(mockReq, mockRes, 404, 'User not found', 'USER_NOT_FOUND');
+
+                expect(mockRes.status).toHaveBeenCalledWith(404);
+                expect(mockRes.json).toHaveBeenCalledWith({
+                    success: false,
+                    error: 'User not found',
+                    code: 'USER_NOT_FOUND',
+                    path: '/api/1/user/123'
+                });
+            });
+
+            test('should include details when provided', () => {
+                CommonUtils.sendError(mockReq, mockRes, 500, 'Validation failed', 'VALIDATION_ERROR', 'Password must be at least 8 characters');
+
+                expect(mockRes.status).toHaveBeenCalledWith(500);
+                expect(mockRes.json).toHaveBeenCalledWith({
+                    success: false,
+                    error: 'Validation failed',
+                    code: 'VALIDATION_ERROR',
+                    details: 'Password must be at least 8 characters',
+                    path: '/api/1/user/123'
+                });
+            });
+
+            test('should work without error code', () => {
+                CommonUtils.sendError(mockReq, mockRes, 500, 'Internal server error');
+
+                expect(mockRes.status).toHaveBeenCalledWith(500);
+                expect(mockRes.json).toHaveBeenCalledWith({
+                    success: false,
+                    error: 'Internal server error',
+                    path: '/api/1/user/123'
+                });
+            });
+
+            test('should work with null code and details', () => {
+                CommonUtils.sendError(mockReq, mockRes, 400, 'Bad request', null, null);
+
+                expect(mockRes.status).toHaveBeenCalledWith(400);
+                expect(mockRes.json).toHaveBeenCalledWith({
+                    success: false,
+                    error: 'Bad request',
+                    path: '/api/1/user/123'
+                });
+            });
+
+            test('should handle different API paths', () => {
+                mockReq.originalUrl = '/api/1/config/site';
+                CommonUtils.sendError(mockReq, mockRes, 404, 'Config not found', 'CONFIG_NOT_FOUND');
+
+                expect(mockRes.json).toHaveBeenCalledWith({
+                    success: false,
+                    error: 'Config not found',
+                    code: 'CONFIG_NOT_FOUND',
+                    path: '/api/1/config/site'
+                });
+            });
+        });
+
+        describe('Web requests (redirect responses)', () => {
+            beforeEach(() => {
+                mockReq = {
+                    originalUrl: '/user/profile'
+                };
+            });
+
+            test('should redirect to error page for web requests', () => {
+                CommonUtils.sendError(mockReq, mockRes, 404, 'Page not found');
+
+                expect(mockRes.redirect).toHaveBeenCalledWith('/error/index.shtml?msg=Page%20not%20found&code=404');
+            });
+
+            test('should encode special characters in error message', () => {
+                CommonUtils.sendError(mockReq, mockRes, 500, 'Error with & special chars');
+
+                expect(mockRes.redirect).toHaveBeenCalledWith('/error/index.shtml?msg=Error%20with%20%26%20special%20chars&code=500');
+            });
+
+            test('should ignore code and details parameters for web requests', () => {
+                CommonUtils.sendError(mockReq, mockRes, 403, 'Access denied', 'FORBIDDEN', 'User lacks required role');
+
+                expect(mockRes.redirect).toHaveBeenCalledWith('/error/index.shtml?msg=Access%20denied&code=403');
+            });
+
+            test('should handle different web paths', () => {
+                mockReq.originalUrl = '/admin/config';
+                CommonUtils.sendError(mockReq, mockRes, 401, 'Authentication required');
+
+                expect(mockRes.redirect).toHaveBeenCalledWith('/error/index.shtml?msg=Authentication%20required&code=401');
+            });
+        });
+
+        describe('Request type detection', () => {
+            test('should detect API requests correctly', () => {
+                const apiPaths = [
+                    '/api/1/user',
+                    '/api/1/config/site',
+                    '/api/1/log/search',
+                    '/api/1/markdown/jpulse/README.md'
+                ];
+
+                apiPaths.forEach(path => {
+                    mockReq = { originalUrl: path };
+                    mockRes.status.mockClear();
+                    mockRes.json.mockClear();
+                    mockRes.redirect.mockClear();
+
+                    CommonUtils.sendError(mockReq, mockRes, 500, 'Test error');
+
+                    expect(mockRes.status).toHaveBeenCalled();
+                    expect(mockRes.json).toHaveBeenCalled();
+                    expect(mockRes.redirect).not.toHaveBeenCalled();
+                });
+            });
+
+            test('should detect web requests correctly', () => {
+                const webPaths = [
+                    '/user/profile',
+                    '/admin/config',
+                    '/home/index.shtml',
+                    '/jpulse/deployment',
+                    '/'
+                ];
+
+                webPaths.forEach(path => {
+                    mockReq = { originalUrl: path };
+                    mockRes.status.mockClear();
+                    mockRes.json.mockClear();
+                    mockRes.redirect.mockClear();
+
+                    CommonUtils.sendError(mockReq, mockRes, 404, 'Test error');
+
+                    expect(mockRes.redirect).toHaveBeenCalled();
+                    expect(mockRes.status).not.toHaveBeenCalled();
+                    expect(mockRes.json).not.toHaveBeenCalled();
+                });
+            });
+        });
+
+        describe('Error response consistency', () => {
+            test('should maintain consistent JSON structure', () => {
+                mockReq = { originalUrl: '/api/1/test' };
+
+                CommonUtils.sendError(mockReq, mockRes, 400, 'Test message', 'TEST_CODE', 'Test details');
+
+                const jsonCall = mockRes.json.mock.calls[0][0];
+                expect(jsonCall).toHaveProperty('success', false);
+                expect(jsonCall).toHaveProperty('error', 'Test message');
+                expect(jsonCall).toHaveProperty('code', 'TEST_CODE');
+                expect(jsonCall).toHaveProperty('details', 'Test details');
+                expect(jsonCall).toHaveProperty('path', '/api/1/test');
+            });
+
+            test('should handle various HTTP status codes', () => {
+                mockReq = { originalUrl: '/api/1/test' };
+                const statusCodes = [400, 401, 403, 404, 409, 500];
+
+                statusCodes.forEach(statusCode => {
+                    mockRes.status.mockClear();
+                    CommonUtils.sendError(mockReq, mockRes, statusCode, 'Test error');
+                    expect(mockRes.status).toHaveBeenCalledWith(statusCode);
+                });
+            });
         });
     });
 });

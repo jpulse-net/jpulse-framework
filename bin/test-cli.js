@@ -4,8 +4,8 @@
  * @tagline         Test script for CLI tools validation
  * @description     Tests setup and sync CLI tools in isolated environment
  * @file            bin/test-cli.js
- * @version         0.7.15
- * @release         2025-09-22
+ * @version         0.7.16
+ * @release         2025-09-23
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,6 +18,28 @@ import path from 'path';
 import { execSync, spawn } from 'child_process';
 
 const testDir = path.join(process.cwd(), 'test-site-temp');
+
+// Test tracking
+let totalTests = 0;
+let passedTests = 0;
+let failedTests = 0;
+
+/**
+ * Run a test and track results
+ */
+async function runTest(testName, testFunction) {
+    totalTests++;
+    try {
+        console.log(`  🧪 ${testName}...`);
+        await testFunction();
+        console.log(`  ✅ ${testName} - PASSED`);
+        passedTests++;
+    } catch (error) {
+        console.log(`  ❌ ${testName} - FAILED: ${error.message}`);
+        failedTests++;
+        throw error; // Re-throw to maintain existing error handling
+    }
+}
 
 /**
  * Clean up test directory
@@ -125,122 +147,142 @@ async function testCLI() {
         console.log('🧪 Running deployment validation tests...');
 
         // Test 1: Verify package.json completeness
-        console.log('  📦 Validating package.json structure...');
-        const requiredPackageFields = ['name', 'version', 'description', 'type', 'main', 'engines', 'private'];
-        for (const field of requiredPackageFields) {
-            if (!packageJson[field]) {
-                throw new Error(`Missing required package.json field: ${field}`);
+        await runTest('Package.json structure validation', () => {
+            const requiredPackageFields = ['name', 'version', 'description', 'type', 'main', 'engines', 'private'];
+            for (const field of requiredPackageFields) {
+                if (!packageJson[field]) {
+                    throw new Error(`Missing required package.json field: ${field}`);
+                }
             }
-        }
+        });
 
         // Test 2: Verify no unexpanded template variables in generated files
-        console.log('  🔍 Checking for unexpanded template variables...');
-        const filesToCheck = ['.env', 'deploy/ecosystem.dev.config.cjs', 'deploy/ecosystem.prod.config.cjs'];
-        for (const file of filesToCheck) {
-            if (fs.existsSync(file)) {
-                const content = fs.readFileSync(file, 'utf8');
-                // Exclude bash date format strings like %Y%m%d
-                const unexpandedVars = content.match(/%[A-Z_]{2,}%/g);
-                if (unexpandedVars) {
-                    throw new Error(`Unexpanded template variables found in ${file}: ${unexpandedVars.join(', ')}`);
+        await runTest('Template variable expansion check', () => {
+            const filesToCheck = ['.env', 'deploy/ecosystem.dev.config.cjs', 'deploy/ecosystem.prod.config.cjs'];
+            for (const file of filesToCheck) {
+                if (fs.existsSync(file)) {
+                    const content = fs.readFileSync(file, 'utf8');
+                    // Exclude bash date format strings like %Y%m%d
+                    const unexpandedVars = content.match(/%[A-Z_]{2,}%/g);
+                    if (unexpandedVars) {
+                        throw new Error(`Unexpanded template variables found in ${file}: ${unexpandedVars.join(', ')}`);
+                    }
                 }
             }
-        }
+        });
 
         // Test 3: Verify framework files were copied
-        console.log('  📁 Validating framework file structure...');
-        const criticalFrameworkFiles = [
-            'webapp/app.js',
-            'webapp/controller/auth.js',
-            'webapp/controller/view.js',
-            'webapp/model/user.js',
-            'webapp/view/jpulse-common.css',
-            'webapp/view/jpulse-common.js'
-        ];
-        for (const file of criticalFrameworkFiles) {
-            if (!fs.existsSync(file)) {
-                throw new Error(`Critical framework file missing: ${file}`);
+        await runTest('Framework file structure validation', () => {
+            const criticalFrameworkFiles = [
+                'webapp/app.js',
+                'webapp/controller/auth.js',
+                'webapp/controller/view.js',
+                'webapp/model/user.js',
+                'webapp/view/jpulse-common.css',
+                'webapp/view/jpulse-common.js'
+            ];
+            for (const file of criticalFrameworkFiles) {
+                if (!fs.existsSync(file)) {
+                    throw new Error(`Critical framework file missing: ${file}`);
+                }
             }
-        }
+        });
 
         // Test 4: Verify configuration files are valid JSON/JS
-        console.log('  ⚙️  Validating configuration file syntax...');
-        try {
-            JSON.parse(fs.readFileSync('package.json', 'utf8'));
-        } catch (e) {
-            throw new Error(`Invalid package.json syntax: ${e.message}`);
-        }
+        await runTest('Configuration file syntax validation', () => {
+            try {
+                JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            } catch (e) {
+                throw new Error(`Invalid package.json syntax: ${e.message}`);
+            }
+        });
 
         // Test 4.5: Verify PM2 ecosystem files are valid JavaScript
-        console.log('  🔧 Validating PM2 ecosystem file syntax...');
-        const ecosystemFiles = ['deploy/ecosystem.dev.config.cjs', 'deploy/ecosystem.prod.config.cjs'];
-        for (const ecosystemFile of ecosystemFiles) {
-            if (fs.existsSync(ecosystemFile)) {
-                try {
-                    // Use dynamic import to test ES module syntax
-                    const fullPath = path.resolve(ecosystemFile);
-                    await import(`file://${fullPath}`);
-                } catch (e) {
-                    throw new Error(`Invalid ${ecosystemFile} syntax: ${e.message}`);
+        await runTest('PM2 ecosystem file syntax validation', async () => {
+            const ecosystemFiles = ['deploy/ecosystem.dev.config.cjs', 'deploy/ecosystem.prod.config.cjs'];
+            for (const ecosystemFile of ecosystemFiles) {
+                if (fs.existsSync(ecosystemFile)) {
+                    try {
+                        // Use dynamic import to test ES module syntax
+                        const fullPath = path.resolve(ecosystemFile);
+                        await import(`file://${fullPath}`);
+                    } catch (e) {
+                        throw new Error(`Invalid ${ecosystemFile} syntax: ${e.message}`);
+                    }
                 }
             }
-        }
+        });
 
         // Test 5: Verify .env file has required variables
-        console.log('  🔐 Validating .env configuration...');
-        const envContent = fs.readFileSync('.env', 'utf8');
-        const requiredEnvVars = ['SITE_NAME', 'JPULSE_SITE_ID', 'PORT', 'DB_NAME', 'SESSION_SECRET'];
-        for (const envVar of requiredEnvVars) {
-            if (!envContent.includes(`export ${envVar}=`)) {
-                throw new Error(`Missing required environment variable: ${envVar}`);
-            }
-        }
-
-        // Test 6: Verify shell scripts don't have unexpanded template variables
-        console.log('  🐚 Validating shell script integrity...');
-        const shellScripts = ['bin/jpulse-install.sh', 'bin/mongodb-setup.sh', 'bin/jpulse-validate.sh'];
-        for (const script of shellScripts) {
-            const scriptPath = path.join('..', script);
-            if (fs.existsSync(scriptPath)) {
-                const content = fs.readFileSync(scriptPath, 'utf8');
-                // Exclude bash date format strings like %Y%m%d
-                const unexpandedVars = content.match(/%[A-Z_]{2,}%/g);
-                if (unexpandedVars) {
-                    throw new Error(`Unexpanded template variables found in ${script}: ${unexpandedVars.join(', ')}`);
+        await runTest('Environment configuration validation', () => {
+            const envContent = fs.readFileSync('.env', 'utf8');
+            const requiredEnvVars = ['SITE_NAME', 'JPULSE_SITE_ID', 'PORT', 'DB_NAME', 'SESSION_SECRET'];
+            for (const envVar of requiredEnvVars) {
+                if (!envContent.includes(`export ${envVar}=`)) {
+                    throw new Error(`Missing required environment variable: ${envVar}`);
                 }
             }
-        }
+        });
 
-        console.log('✅ All deployment validation tests passed');
-        console.log('✅ Setup test passed');
+        // Test 6: Verify shell scripts don't have unexpanded template variables
+        await runTest('Shell script integrity validation', () => {
+            const shellScripts = ['bin/jpulse-install.sh', 'bin/mongodb-setup.sh', 'bin/jpulse-validate.sh'];
+            for (const script of shellScripts) {
+                const scriptPath = path.join('..', script);
+                if (fs.existsSync(scriptPath)) {
+                    const content = fs.readFileSync(scriptPath, 'utf8');
+                    // Exclude bash date format strings like %Y%m%d
+                    const unexpandedVars = content.match(/%[A-Z_]{2,}%/g);
+                    if (unexpandedVars) {
+                        throw new Error(`Unexpanded template variables found in ${script}: ${unexpandedVars.join(', ')}`);
+                    }
+                }
+            }
+        });
 
         // Test that setup detects existing site
-        console.log('🔒 Testing setup detection...');
-        try {
-            execSync('node ../bin/configure.js', {
-                stdio: ['pipe', 'pipe', 'pipe'],
-                input: '2\n' // Choose "Update framework files" option
-            });
-            // This should exit with code 0 and suggest using jpulse-sync
-        } catch (error) {
-            const errorOutput = error.stderr?.toString() || error.stdout?.toString() || '';
-            if (errorOutput.includes('Use "npx jpulse-sync"')) {
-                console.log('✅ Setup detection test passed');
-            } else {
-                throw new Error(`Unexpected error: ${errorOutput}`);
+        await runTest('Setup detection validation', () => {
+            try {
+                execSync('node ../bin/configure.js', {
+                    stdio: ['pipe', 'pipe', 'pipe'],
+                    input: '2\n' // Choose "Update framework files" option
+                });
+                // This should exit with code 0 and suggest using jpulse-sync
+            } catch (error) {
+                const errorOutput = error.stderr?.toString() || error.stdout?.toString() || '';
+                if (errorOutput.includes('Use "npx jpulse-sync"')) {
+                    // Expected behavior - setup detected existing site
+                } else {
+                    throw new Error(`Unexpected error: ${errorOutput}`);
+                }
             }
-        }
-
-        console.log('🎉 All CLI tests passed!');
+        });
 
     } catch (error) {
         console.error('❌ CLI test failed:', error.message);
-        process.exit(1);
+        failedTests++; // Count the overall failure if not already counted
+        if (totalTests === 0) totalTests = 1; // Ensure we have at least one test counted
     } finally {
         // Cleanup
         process.chdir('..');
         cleanup();
         console.log('🧹 Cleaned up test directory');
+
+        // Output standardized test statistics
+        console.log('\n================================================');
+        console.log('📊 CLI TESTING RESULTS');
+        console.log('================================================');
+        console.log(`Total Tests: ${totalTests}`);
+        console.log(`Passed: ${passedTests}`);
+        console.log(`Failed: ${failedTests}`);
+
+        if (failedTests > 0) {
+            console.log('\n❌ CLI TESTS FAILED!');
+            process.exit(1);
+        } else {
+            console.log('\n✅ ALL CLI TESTS PASSED!');
+            console.log('🎉 CLI tools validation successful!');
+        }
     }
 }
 

@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.7.15
- * @release         2025-09-22
+ * @version         0.7.16
+ * @release         2025-09-23
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -227,7 +227,7 @@ async function load(req, res) {
     } catch (error) {
         LogController.logError(req, `view.load: Error: ${error.message}`);
         const message = global.i18n.translate(req, 'controller.view.internalServerError', { error: error.message });
-        res.status(500).send(message);
+        return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR');
     }
 }
 

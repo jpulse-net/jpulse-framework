@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.7.15
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.7.16
 
 **For Site Administrators & Site Developers**
 
@@ -10,6 +10,7 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 
 ## Latest Release Highlights
 
+- ✅ **Standardized Error Handling & Testing (v0.7.16)**: Complete error handling standardization across all controllers, enhanced test framework with dynamic statistics, and comprehensive sendError functionality
 - ✅ **Enhanced Deployment & Testing (v0.7.15)**: Comprehensive deployment validation with 17 new tests, MongoDB setup fixes, symbolic logs directory, and production-ready deployment experience
 - ✅ **Clean Deployment Strategy (v0.7.0)**: Complete "don't make me think" deployment automation with interactive setup, production templates, and MongoDB security
 - ✅ **Package Distribution (v0.6.0+)**: Create new sites with `npx jpulse-configure` - clean repository separation

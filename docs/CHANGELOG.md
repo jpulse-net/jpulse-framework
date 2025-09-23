@@ -1,6 +1,54 @@
-# jPulse Framework / Docs / Version History v0.7.15
+# jPulse Framework / Docs / Version History v0.7.16
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.7.16, W-058, 2025-09-23
+
+**Commit:** `W-058, v0.7.16: Standardized error handling across all controllers with enhanced sendError functionality and dynamic test statistics framework`
+
+Complete implementation of W-058 standardized error handling with comprehensive sendError functionality, enhanced test framework with dynamic statistics parsing, and consistent output formatting across all test buckets.
+
+Major Features:
+- **Standardized Error Handling (W-058)**: Complete migration to global.CommonUtils.sendError across all controllers
+  - Updated config.js, log.js, user.js, view.js controllers to use consistent sendError function
+  - Enhanced site/webapp/controller/hello.js with standardized error handling (no i18n)
+  - Maintained existing error codes while adding new ones following UPPER_CASE format
+  - Added comprehensive i18n support for error messages in English and German translations
+
+- **Enhanced sendError Functionality**: Robust error handling with debugging support
+  - Added optional details parameter to preserve error.message for API debugging
+  - Intelligent request type detection (API vs web) for appropriate response formatting
+  - JSON responses for /api/ requests with structured error information
+  - Redirect responses for web requests to user-friendly error pages
+  - Consistent HTTP status codes and error code propagation
+
+- **Comprehensive Test Coverage**: 13 new sendError tests ensuring reliability
+  - API request testing with and without code/details parameters
+  - Web request testing with URL encoding and redirect validation
+  - Request type detection verification for various path patterns
+  - Error response structure consistency and HTTP status code validation
+  - Mocking framework integration for Express res object methods
+
+- **Dynamic Test Statistics Framework**: Complete elimination of hardcoded test statistics
+  - Enhanced all 5 test buckets (CLI Tools, Enhanced CLI, MongoDB, Unit Tests, Integration Tests) with dynamic parsing
+  - Standardized output format "Total Tests: X, Passed: Y, Failed: Z" across non-Jest test buckets
+  - Enhanced CLI Tools with 8 individual tracked tests (vs previous 1 assumed test)
+  - Verified failure statistics parsing works correctly for all test bucket types
+  - Improved test runner with comprehensive output parsing and error handling
+
+- **CLI Tools Enhancement**: Detailed test tracking and standardized reporting
+  - Converted monolithic CLI test into 8 individual tracked tests with async support
+  - Added runTest() function for consistent test execution and result tracking
+  - Enhanced validation coverage: package.json structure, template expansion, framework files, configuration syntax, PM2 ecosystem, environment variables, shell scripts, setup detection
+  - Standardized output format matching Enhanced CLI and MongoDB test buckets
+
+Framework Quality:
+- All 544 tests passing (534 passed, 10 skipped) with accurate dynamic statistics
+- Complete error handling consistency across all controllers and site overrides
+- Enhanced debugging capabilities with preserved error details in API responses
+- Verified test framework reliability with both success and failure scenarios
+- Maintained backward compatibility while improving error handling standardization
 
 ________________________________________________
 ## v0.7.15, W-054, 2025-09-18

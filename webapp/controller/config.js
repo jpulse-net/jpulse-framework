@@ -3,8 +3,8 @@
  * @tagline         Config Controller for jPulse Framework WebApp
  * @description     This is the config controller for the jPulse Framework WebApp
  * @file            webapp/controller/config.js
- * @version         0.7.15
- * @release         2025-09-22
+ * @version         0.7.16
+ * @release         2025-09-23
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -33,11 +33,7 @@ class ConfigController {
             if (!id) {
                 LogController.logError(req, `config.get: error: id is required`);
                 const message = global.i18n.translate(req, 'controller.config.configIdRequired');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'MISSING_ID'
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_ID');
             }
 
             let config = await ConfigModel.findById(id);
@@ -75,11 +71,7 @@ class ConfigController {
             if (!config) {
                 LogController.logError(req, `config.get: error: config not found for id: ${id}`);
                 const message = global.i18n.translate(req, 'controller.config.configNotFound', { id });
-                return res.status(404).json({
-                    success: false,
-                    error: message,
-                    code: 'CONFIG_NOT_FOUND'
-                });
+                return global.CommonUtils.sendError(req, res, 404, message, 'CONFIG_NOT_FOUND');
             }
 
             LogController.logInfo(req, `config.get: success: config retrieved for id: ${id}`);
@@ -93,12 +85,7 @@ class ConfigController {
         } catch (error) {
             LogController.logError(req, `config.get: error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.config.configGetFailed', { id });
-            res.status(500).json({
-                success: false,
-                error: message,
-                code: 'INTERNAL_ERROR',
-                details: error.message
-            });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -115,21 +102,13 @@ class ConfigController {
             if (!id) {
                 LogController.logError(req, `config.getEffective: error: id is required`);
                 const message = global.i18n.translate(req, 'controller.config.configIdRequired');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'MISSING_ID'
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_ID');
             }
             const config = await ConfigModel.getEffectiveConfig(id);
             if (!config) {
                 LogController.logError(req, `config.getEffective: error: config not found for id: ${id}`);
                 const message = global.i18n.translate(req, 'controller.config.configNotFound', { id });
-                return res.status(404).json({
-                    success: false,
-                    error: message,
-                    code: 'CONFIG_NOT_FOUND'
-                });
+                return global.CommonUtils.sendError(req, res, 404, message, 'CONFIG_NOT_FOUND');
             }
             LogController.logInfo(req, `config.getEffective: success: config retrieved for id: ${id}`);
             const message = global.i18n.translate(req, 'controller.config.configGetEffectiveDone', { id });
@@ -142,12 +121,7 @@ class ConfigController {
         } catch (error) {
             LogController.logError(req, `config.getEffective: error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.config.configGetEffectiveFailed', { id });
-            res.status(500).json({
-                success: false,
-                error: message,
-                code: 'INTERNAL_ERROR',
-                details: error.message
-            });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -180,12 +154,7 @@ class ConfigController {
         } catch (error) {
             LogController.logError(req, `config.list: error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.config.configListFailed');
-            res.status(500).json({
-                success: false,
-                error: message,
-                code: 'INTERNAL_ERROR',
-                details: error.message
-            });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -202,11 +171,7 @@ class ConfigController {
             if (!configData || Object.keys(configData).length === 0) {
                 LogController.logError(req, `config.create: error: config data is required`);
                 const message = global.i18n.translate(req, 'controller.config.configDataRequired');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'MISSING_DATA'
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_DATA');
             }
             // Add updatedBy from session (when authentication is implemented)
             if (req.session && req.session.user) {
@@ -225,31 +190,17 @@ class ConfigController {
             });
 
         } catch (error) {
-            LogController.logError(req, `config.create: error: ${error.message}`); // Initial log for the catch block
+            LogController.logError(req, `config.create: error: ${error.message}`);
             if (error.message.includes('Validation failed')) {
                 const message = global.i18n.translate(req, 'controller.config.configValidationFailed');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'VALIDATION_ERROR',
-                    details: error.message
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'VALIDATION_ERROR', error.message);
             }
             if (error.message.includes('duplicate key') || error.code === 11000) {
                 const message = global.i18n.translate(req, 'controller.config.configDuplicateId', { id: configData.id });
-                return res.status(409).json({
-                    success: false,
-                    error: message,
-                    code: 'DUPLICATE_ID'
-                });
+                return global.CommonUtils.sendError(req, res, 409, message, 'DUPLICATE_ID', error.message);
             }
             const message = global.i18n.translate(req, 'controller.config.configCreateFailed');
-            res.status(500).json({
-                success: false,
-                error: message,
-                code: 'INTERNAL_ERROR',
-                details: error.message
-            });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -267,20 +218,12 @@ class ConfigController {
             if (!id) {
                 LogController.logError(req, `config.update: error: id is required`);
                 const message = global.i18n.translate(req, 'controller.config.configIdRequired');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'MISSING_ID'
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_ID');
             }
             if (!updateData || Object.keys(updateData).length === 0) {
                 LogController.logError(req, `config.update: error: update data is required`);
                 const message = global.i18n.translate(req, 'controller.config.configDataRequired');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'MISSING_DATA'
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_DATA');
             }
 
             // Get old document for logging
@@ -288,11 +231,7 @@ class ConfigController {
             if (!oldConfig) {
                 LogController.logError(req, `config.update: error: config not found for id: ${id}`);
                 const message = global.i18n.translate(req, 'controller.config.configNotFound', { id });
-                return res.status(404).json({
-                    success: false,
-                    error: message,
-                    code: 'CONFIG_NOT_FOUND'
-                });
+                return global.CommonUtils.sendError(req, res, 404, message, 'CONFIG_NOT_FOUND');
             }
 
             // Add updatedBy from session (when authentication is implemented)
@@ -312,23 +251,13 @@ class ConfigController {
             });
 
         } catch (error) {
-            LogController.logError(req, `config.update: error: ${error.message}`); // Initial log for the catch block
+            LogController.logError(req, `config.update: error: ${error.message}`);
             if (error.message.includes('Validation failed')) {
                 const message = global.i18n.translate(req, 'controller.config.configValidationFailed');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'VALIDATION_ERROR',
-                    details: error.message
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'VALIDATION_ERROR', error.message);
             }
             const message = global.i18n.translate(req, 'controller.config.configUpdateFailed');
-            res.status(500).json({
-                success: false,
-                error: message,
-                code: 'INTERNAL_ERROR',
-                details: error.message
-            });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -346,20 +275,12 @@ class ConfigController {
             if (!id) {
                 LogController.logError(req, `config.upsert: error: id is required`);
                 const message = global.i18n.translate(req, 'controller.config.configIdRequired');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'MISSING_ID'
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_ID');
             }
             if (!configData || Object.keys(configData).length === 0) {
                 LogController.logError(req, `config.upsert: error: config data is required`);
                 const message = global.i18n.translate(req, 'controller.config.configDataRequired');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'MISSING_DATA'
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_DATA');
             }
             // Add updatedBy from session (when authentication is implemented)
             if (req.session && req.session.user) {
@@ -375,23 +296,13 @@ class ConfigController {
             });
 
         } catch (error) {
-            LogController.logError(req, `config.upsert: error: ${error.message}`); // Initial log for the catch block
+            LogController.logError(req, `config.upsert: error: ${error.message}`);
             if (error.message.includes('Validation failed')) {
                 const message = global.i18n.translate(req, 'controller.config.configValidationFailed');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'VALIDATION_ERROR',
-                    details: error.message
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'VALIDATION_ERROR', error.message);
             }
             const message = global.i18n.translate(req, 'controller.config.configSaveFailed');
-            res.status(500).json({
-                success: false,
-                error: message,
-                code: 'INTERNAL_ERROR',
-                details: error.message
-            });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -408,11 +319,7 @@ class ConfigController {
             if (!id) {
                 LogController.logError(req, `config.delete: error: id is required`);
                 const message = global.i18n.translate(req, 'controller.config.configIdRequired');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'MISSING_ID'
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_ID');
             }
 
             // Get document before deletion for logging
@@ -420,11 +327,7 @@ class ConfigController {
             if (!oldConfig) {
                 LogController.logError(req, `config.delete: error: config not found for id: ${id}`);
                 const message = global.i18n.translate(req, 'controller.config.configNotFound', { id });
-                return res.status(404).json({
-                    success: false,
-                    error: message,
-                    code: 'CONFIG_NOT_FOUND'
-                });
+                return global.CommonUtils.sendError(req, res, 404, message, 'CONFIG_NOT_FOUND');
             }
 
             const deleted = await ConfigModel.deleteById(id);
@@ -439,14 +342,9 @@ class ConfigController {
             });
 
         } catch (error) {
-            LogController.logError(req, `config.delete: error: ${error.message}`); // Initial log for the catch block
+            LogController.logError(req, `config.delete: error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.config.configDeleteFailed');
-            res.status(500).json({
-                success: false,
-                error: message,
-                code: 'INTERNAL_ERROR',
-                details: error.message
-            });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 }

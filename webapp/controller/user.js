@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         0.7.15
- * @release         2025-09-22
+ * @version         0.7.16
+ * @release         2025-09-23
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -39,33 +39,21 @@ class UserController {
             if (!firstName || !lastName || !username || !email || !password) {
                 LogController.logError(req, 'user.signup: error: missing required fields');
                 const message = global.i18n.translate(req, 'controller.user.signup.missingFields');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'MISSING_FIELDS'
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_FIELDS');
             }
 
             // Validate password confirmation
             if (password !== confirmPassword) {
                 LogController.logError(req, 'user.signup: error: password mismatch');
                 const message = global.i18n.translate(req, 'controller.user.signup.passwordMismatch');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'PASSWORD_MISMATCH'
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'PASSWORD_MISMATCH');
             }
 
             // Validate terms acceptance
             if (!acceptTerms) {
                 LogController.logError(req, 'user.signup: error: terms not accepted');
                 const message = global.i18n.translate(req, 'controller.user.signup.termsNotAccepted');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'TERMS_NOT_ACCEPTED'
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'TERMS_NOT_ACCEPTED');
             }
 
             // Prepare user data
@@ -112,39 +100,21 @@ class UserController {
             // Handle specific error types
             if (error.message.includes('Username already exists')) {
                 const message = global.i18n.translate(req, 'controller.user.signup.usernameExists');
-                return res.status(409).json({
-                    success: false,
-                    error: message,
-                    code: 'USERNAME_EXISTS'
-                });
+                return global.CommonUtils.sendError(req, res, 409, message, 'USERNAME_EXISTS');
             }
 
             if (error.message.includes('Email address already registered')) {
                 const message = global.i18n.translate(req, 'controller.user.signup.emailExists');
-                return res.status(409).json({
-                    success: false,
-                    error: message,
-                    code: 'EMAIL_EXISTS'
-                });
+                return global.CommonUtils.sendError(req, res, 409, message, 'EMAIL_EXISTS');
             }
 
             if (error.message.includes('Validation failed')) {
                 const message = global.i18n.translate(req, 'controller.user.signup.validationFailed', { details: error.message });
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'VALIDATION_ERROR',
-                    details: error.message
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'VALIDATION_ERROR', error.message);
             }
 
             const message = global.i18n.translate(req, 'controller.user.signup.internalError', { details: error.message });
-            res.status(500).json({
-                success: false,
-                error: message,
-                code: 'INTERNAL_ERROR',
-                details: error.message
-            });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -166,11 +136,7 @@ class UserController {
             if (!user) {
                 LogController.logError(req, `user.get: error: user not found for session ID: ${req.session.user.id}`);
                 const message = global.i18n.translate(req, 'controller.user.profile.userNotFound');
-                return res.status(404).json({
-                    success: false,
-                    error: message,
-                    code: 'USER_NOT_FOUND'
-                });
+                return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
             }
 
             // Remove sensitive data
@@ -187,12 +153,7 @@ class UserController {
         } catch (error) {
             LogController.logError(req, `user.get: error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.user.profile.internalError', { details: error.message });
-            res.status(500).json({
-                success: false,
-                error: message,
-                code: 'INTERNAL_ERROR',
-                details: error.message
-            });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -228,11 +189,7 @@ class UserController {
             if (Object.keys(filteredData).length === 0) {
                 LogController.logError(req, 'user.update: error: no valid fields to update');
                 const message = global.i18n.translate(req, 'controller.user.profile.noValidFieldsToUpdate');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'NO_UPDATE_DATA'
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'NO_UPDATE_DATA');
             }
 
             const updatedUser = await UserModel.updateById(req.session.user.id, filteredData);
@@ -240,11 +197,7 @@ class UserController {
             if (!updatedUser) {
                 LogController.logError(req, `user.update: error: user not found for session ID: ${req.session.user.id}`);
                 const message = global.i18n.translate(req, 'controller.user.profile.userNotFound');
-                return res.status(404).json({
-                    success: false,
-                    error: message,
-                    code: 'USER_NOT_FOUND'
-                });
+                return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
             }
 
             // Update session data using AuthController helper
@@ -265,20 +218,10 @@ class UserController {
             LogController.logError(req, `user.update: error: ${error.message}`);
             if (error.message.includes('Validation failed')) {
                 const message = global.i18n.translate(req, 'controller.user.profile.validationFailed', { details: error.message });
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'VALIDATION_ERROR',
-                    details: error.message
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'VALIDATION_ERROR', error.message);
             }
             const message = global.i18n.translate(req, 'controller.user.profile.updateInternalError', { details: error.message });
-            res.status(500).json({
-                success: false,
-                error: message,
-                code: 'INTERNAL_ERROR',
-                details: error.message
-            });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -299,11 +242,7 @@ class UserController {
             if (!currentPassword || !newPassword) {
                 LogController.logError(req, 'user.changePassword: error: missing current or new password');
                 const message = global.i18n.translate(req, 'controller.user.password.missingPasswords');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'MISSING_PASSWORDS'
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_PASSWORDS');
             }
 
             // Get current user
@@ -311,11 +250,7 @@ class UserController {
             if (!user) {
                 LogController.logError(req, `user.changePassword: error: user not found for session ID: ${req.session.user.id}`);
                 const message = global.i18n.translate(req, 'controller.user.password.userNotFound');
-                return res.status(404).json({
-                    success: false,
-                    error: message,
-                    code: 'USER_NOT_FOUND'
-                });
+                return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
             }
 
             // Verify current password
@@ -323,11 +258,7 @@ class UserController {
             if (!isCurrentValid) {
                 LogController.logError(req, `user.changePassword: error: invalid current password for user ${req.session.user.username}`);
                 const message = global.i18n.translate(req, 'controller.user.password.invalidCurrentPassword');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'INVALID_CURRENT_PASSWORD'
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'INVALID_CURRENT_PASSWORD');
             }
 
             // Update password
@@ -350,20 +281,10 @@ class UserController {
             LogController.logError(req, `user.changePassword: error: ${error.message}`);
             if (error.message.includes('Password must be at least')) {
                 const message = global.i18n.translate(req, 'controller.user.password.policyError', { details: error.message });
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'PASSWORD_POLICY_ERROR',
-                    details: error.message
-                });
+                return global.CommonUtils.sendError(req, res, 400, message, 'PASSWORD_POLICY_ERROR', error.message);
             }
             const message = global.i18n.translate(req, 'controller.user.password.internalError', { details: error.message });
-            res.status(500).json({
-                success: false,
-                error: message,
-                code: 'INTERNAL_ERROR',
-                details: error.message
-            });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -395,12 +316,7 @@ class UserController {
         } catch (error) {
             LogController.logError(req, `user.search: error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.user.search.internalError', { details: error.message });
-            res.status(500).json({
-                success: false,
-                error: message,
-                code: 'INTERNAL_ERROR',
-                details: error.message
-            });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 }

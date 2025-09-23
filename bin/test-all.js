@@ -4,8 +4,8 @@
  * @tagline         Runs all tests (webapp + CLI) with unified output
  * @description     "Don't make me think" test runner for complete validation
  * @file            bin/test-all.js
- * @version         0.7.15
- * @release         2025-09-22
+ * @version         0.7.16
+ * @release         2025-09-23
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -17,25 +17,146 @@ import { execSync } from 'child_process';
 import process from 'process';
 
 /**
- * Run command with proper error handling and output
+ * Run command with proper error handling and output parsing
  */
-function runCommand(command, description) {
+function runCommand(command, description, parseStats = false) {
     console.log(`\n🚀 ${description}`);
     console.log('='.repeat(60));
 
     try {
-        execSync(command, {
-            stdio: 'inherit',
-            cwd: process.cwd()
-        });
-        console.log(`✅ ${description} - PASSED`);
-        return true;
+        if (parseStats) {
+            // For Jest tests, capture both stdout and stderr since Jest outputs summary to stderr
+            const output = execSync(command + ' 2>&1', {
+                stdio: 'pipe',
+                cwd: process.cwd(),
+                encoding: 'utf8',
+                shell: true
+            });
+
+            // Show the output to user
+            console.log(output);
+            // Parse output for test statistics
+            const stats = parseTestOutput(output, description);
+            console.log(`✅ ${description} - PASSED`);
+            return { success: true, stats };
+        } else {
+            execSync(command, {
+                stdio: 'inherit',
+                cwd: process.cwd()
+            });
+            console.log(`✅ ${description} - PASSED`);
+            return { success: true };
+        }
+
     } catch (error) {
         console.error(`❌ ${description} - FAILED`);
         console.error(`   Exit code: ${error.status}`);
-        return false;
+
+        if (parseStats) {
+            // For Jest tests, combine stdout and stderr for parsing
+            let combinedOutput = '';
+            if (error.stdout) {
+                console.log(error.stdout);
+                combinedOutput += error.stdout;
+            }
+            if (error.stderr) {
+                console.error(error.stderr);
+                combinedOutput += '\n' + error.stderr;
+            }
+
+            // Even on failure, try to parse stats
+            const stats = parseTestOutput(combinedOutput, description);
+            return { success: false, stats };
+        }
+
+        return { success: false };
     }
 }
+
+/**
+ * Parse test output to extract statistics based on test type
+ */
+function parseTestOutput(output, description) {
+    const lines = output.split('\n');
+    let stats = { passed: 0, failed: 0, skipped: 0, total: 0 };
+
+    console.log(`🔍 Parsing ${description} output...`);
+
+    // Parse Jest output (Unit Tests and Integration Tests)
+    if (description.includes('Unit Tests') || description.includes('Integration Tests')) {
+        for (const line of lines) {
+            if (line.includes('Tests:') && line.includes('total')) {
+                console.log(`🎯 Found Jest summary: "${line}"`);
+                const skippedMatch = line.match(/(\d+)\s+skipped/);
+                const passedMatch = line.match(/(\d+)\s+passed/);
+                const failedMatch = line.match(/(\d+)\s+failed/);
+                const totalMatch = line.match(/(\d+)\s+total/);
+
+                if (totalMatch) {
+                    stats.skipped = skippedMatch ? parseInt(skippedMatch[1]) : 0;
+                    stats.passed = passedMatch ? parseInt(passedMatch[1]) : 0;
+                    stats.failed = failedMatch ? parseInt(failedMatch[1]) : 0;
+                    stats.total = parseInt(totalMatch[1]);
+                    break;
+                }
+            }
+        }
+    }
+
+    // Parse Enhanced CLI and MongoDB test output
+    else if (description.includes('Enhanced CLI') || description.includes('MongoDB')) {
+        for (const line of lines) {
+            // Look for "Total Tests: 11" pattern
+            const totalMatch = line.match(/Total Tests:\s*(\d+)/);
+            const passedMatch = line.match(/Passed:\s*(\d+)/);
+            const failedMatch = line.match(/Failed:\s*(\d+)/);
+
+            if (totalMatch) {
+                stats.total = parseInt(totalMatch[1]);
+            }
+            if (passedMatch) {
+                stats.passed = parseInt(passedMatch[1]);
+            }
+            if (failedMatch) {
+                stats.failed = parseInt(failedMatch[1]);
+            }
+        }
+
+        // If we found total but not passed/failed, assume all passed if no failures
+        if (stats.total > 0 && stats.passed === 0 && stats.failed === 0) {
+            stats.passed = stats.total;
+        }
+    }
+
+    // CLI Tools - now uses same format as Enhanced CLI and MongoDB
+    else if (description.includes('CLI Tools')) {
+        for (const line of lines) {
+            // Look for "Total Tests: 11" pattern (same as Enhanced CLI/MongoDB)
+            const totalMatch = line.match(/Total Tests:\s*(\d+)/);
+            const passedMatch = line.match(/Passed:\s*(\d+)/);
+            const failedMatch = line.match(/Failed:\s*(\d+)/);
+
+            if (totalMatch) {
+                stats.total = parseInt(totalMatch[1]);
+            }
+            if (passedMatch) {
+                stats.passed = parseInt(passedMatch[1]);
+            }
+            if (failedMatch) {
+                stats.failed = parseInt(failedMatch[1]);
+            }
+        }
+
+        // If we found total but not passed/failed, assume all passed if no failures
+        if (stats.total > 0 && stats.passed === 0 && stats.failed === 0) {
+            stats.passed = stats.total;
+        }
+    }
+
+    console.log(`📊 Parsed stats: ${stats.passed} passed, ${stats.failed} failed, ${stats.skipped} skipped, ${stats.total} total`);
+    return stats;
+}
+
 
 /**
  * Main test runner
@@ -50,78 +171,74 @@ async function runAllTests() {
 
     // Test 1: CLI Tools
     console.log('\n📋 Test Suite 1: CLI Tools');
-    const cliResult = runCommand('node bin/test-cli.js', 'CLI Tools (setup, sync)');
-    results.push({ name: 'CLI Tools', passed: cliResult });
-    if (cliResult) totalPassed++; else totalFailed++;
+    const cliResult = runCommand('node bin/test-cli.js', 'CLI Tools (setup, sync)', true);
+    results.push({ name: 'CLI Tools', result: cliResult, baseStats: null });
+    if (cliResult.success) totalPassed++; else totalFailed++;
 
     // Test 2: Enhanced CLI Validation
     console.log('\n📋 Test Suite 2: Enhanced CLI Validation');
-    const cliEnhancedResult = runCommand('node bin/test-cli-enhanced.js', 'Enhanced CLI (template expansion, env consistency)');
-    results.push({ name: 'Enhanced CLI Validation', passed: cliEnhancedResult });
-    if (cliEnhancedResult) totalPassed++; else totalFailed++;
+    const cliEnhancedResult = runCommand('node bin/test-cli-enhanced.js', 'Enhanced CLI (template expansion, env consistency)', true);
+    results.push({ name: 'Enhanced CLI Validation', result: cliEnhancedResult, baseStats: null });
+    if (cliEnhancedResult.success) totalPassed++; else totalFailed++;
 
     // Test 3: MongoDB & Cross-Platform Validation
     console.log('\n📋 Test Suite 3: MongoDB & Cross-Platform Validation');
-    const mongoValidationResult = runCommand('node bin/test-mongodb-validation.js', 'MongoDB Setup & Cross-Platform (password hashing, YAML, compatibility)');
-    results.push({ name: 'MongoDB & Cross-Platform Validation', passed: mongoValidationResult });
-    if (mongoValidationResult) totalPassed++; else totalFailed++;
+    const mongoValidationResult = runCommand('node bin/test-mongodb-validation.js', 'MongoDB Setup & Cross-Platform (password hashing, YAML, compatibility)', true);
+    results.push({ name: 'MongoDB & Cross-Platform Validation', result: mongoValidationResult, baseStats: null });
+    if (mongoValidationResult.success) totalPassed++; else totalFailed++;
 
     // Test 4: Unit Tests
     console.log('\n📋 Test Suite 4: Unit Tests');
-    const unitResult = runCommand('jest webapp/tests/unit --runInBand --silent', 'Unit Tests (models, controllers, utils)');
-    results.push({ name: 'Unit Tests', passed: unitResult });
-    if (unitResult) totalPassed++; else totalFailed++;
+    const unitResult = runCommand('jest webapp/tests/unit --runInBand', 'Unit Tests (models, controllers, utils)', true);
+    results.push({ name: 'Unit Tests', result: unitResult, baseStats: null });
+    if (unitResult.success) totalPassed++; else totalFailed++;
 
     // Test 5: Integration Tests
     console.log('\n📋 Test Suite 5: Integration Tests');
-    const integrationResult = runCommand('jest webapp/tests/integration --runInBand --silent', 'Integration Tests (routes, middleware, auth)');
-    results.push({ name: 'Integration Tests', passed: integrationResult });
-    if (integrationResult) totalPassed++; else totalFailed++;
+    const integrationResult = runCommand('jest webapp/tests/integration --runInBand', 'Integration Tests (routes, middleware, auth)', true);
+    results.push({ name: 'Integration Tests', result: integrationResult, baseStats: null });
+    if (integrationResult.success) totalPassed++; else totalFailed++;
 
     // Summary
     console.log('\n' + '='.repeat(60));
     console.log('📊 TEST SUMMARY');
     console.log('='.repeat(60));
 
-    // Base test statistics (when all tests pass)
-    const baseTestStats = [
-        { name: 'CLI Tools', skipped: 0, passed: 1, failed: 0, total: 1 },
-        { name: 'Enhanced CLI Validation', skipped: 0, passed: 11, failed: 0, total: 11 },
-        { name: 'MongoDB & Cross-Platform Validation', skipped: 0, passed: 10, failed: 0, total: 10 },
-        { name: 'Unit Tests', skipped: 10, passed: 434, failed: 0, total: 444 },
-        { name: 'Integration Tests', skipped: 0, passed: 58, failed: 0, total: 58 }
-    ];
-
-    // Adjust statistics based on actual test results
-    const adjustedStats = baseTestStats.map((baseStat, index) => {
-        const result = results[index];
-        if (result.passed) {
-            // Test suite passed - use base stats
-            return baseStat;
-        } else {
-            // Test suite failed - adjust the stats
+    // Calculate statistics using actual parsed results
+    const finalStats = results.map(result => {
+        if (result.result.stats) {
+            // Use actual parsed statistics (regardless of success/failure)
             return {
-                ...baseStat,
-                passed: 0,
-                failed: baseStat.total - baseStat.skipped,
-                // Keep skipped and total the same
+                name: result.name,
+                passed: result.result.stats.passed,
+                failed: result.result.stats.failed,
+                skipped: result.result.stats.skipped,
+                total: result.result.stats.total
+            };
+        } else {
+            // Fallback for tests without stats parsing
+            return {
+                name: result.name,
+                passed: result.result.success ? 1 : 0,
+                failed: result.result.success ? 0 : 1,
+                skipped: 0,
+                total: 1
             };
         }
     });
 
-    results.forEach((result, index) => {
-        const status = result.passed ? '✅ PASSED' : '❌ FAILED';
-        const stats = adjustedStats[index];
-        console.log(`${status} ${result.name}`);
+    finalStats.forEach(stats => {
+        const status = stats.passed > 0 && stats.failed === 0 ? '✅ PASSED' : '❌ FAILED';
+        console.log(`${status} ${stats.name}`);
         console.log(`  - ${stats.passed} passed, ${stats.failed} failed, ${stats.skipped} skipped, ${stats.total} total`);
     });
 
-    // Grand total calculation using adjusted stats
+    // Grand total calculation using actual stats
     const grandTotal = {
-        skipped: adjustedStats.reduce((sum, stat) => sum + stat.skipped, 0),
-        passed: adjustedStats.reduce((sum, stat) => sum + stat.passed, 0),
-        failed: adjustedStats.reduce((sum, stat) => sum + stat.failed, 0),
-        total: adjustedStats.reduce((sum, stat) => sum + stat.total, 0)
+        skipped: finalStats.reduce((sum, stat) => sum + stat.skipped, 0),
+        passed: finalStats.reduce((sum, stat) => sum + stat.passed, 0),
+        failed: finalStats.reduce((sum, stat) => sum + stat.failed, 0),
+        total: finalStats.reduce((sum, stat) => sum + stat.total, 0)
     };
 
     console.log('');

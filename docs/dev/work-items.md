@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.7.15
+# jPulse Framework / Docs / Dev / Work Items v0.7.16
 
 This is the doc to track work items, arranged in three sections:
 
@@ -723,24 +723,8 @@ This is the doc to track work items, arranged in three sections:
   - ✅ comprehensive deployment troubleshooting documentation
 - benefits: standardized, secure, tested configuration templates that eliminate manual setup errors and provide production-grade deployment validation
 
-
-
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
-### 🚧 IN_PROGRESS: W-054: deployment: documentation simplification and troubleshooting
-- status: 🕑 PENDING
+### W-054: deployment: documentation simplification and troubleshooting - v0.7.15
+- status: ✅ COMPLETE
 - type: Documentation
 - objective: streamline deployment documentation to focus on automated approach with comprehensive troubleshooting
 - depends on:
@@ -763,10 +747,35 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-058: controllers: consistently use global.CommonUtils.sendError
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives: clean & consistent code to reduce likelyhood of bugs
+- deliverables: fix controllers with i18n
+  - config
+  - log
+  - user
+  - view controllers
+- already done:
+  - auth
+  - markdown
+
+
+
+
+
+
+
 ### Potential next items:
 W-045: architecture: create plugin infrastructure
 W-040: view: create view logs page for site admins
-W-0: controllers: consistently use global.CommonUtils.sendError
 W-0: docs: add exclude directory directive
 W-0: view: page headers with anchor links for copy & paste
 W-0: view controller: create {{#each}} handlebar
@@ -778,14 +787,15 @@ next work item: W-0...
 - review task, ask questions
 - suggest change of spec, goal is better usability for site developers
 - plan how to implement (wait for my go ahead)
-- current timestamp: 2025-09-15 20:35
+- current timestamp: 2025-09-23 00:33
 
 finishing up work item: W-0...
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-15 12:12
-- update *.md docs in project root
-- update commit-message.txt, following the same format, specify: W-052, v0.5.5 (don't commit)
+- assume release: W-058, v0.7.16
+- update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed
+- update commit-message.txt, following the same format (don't commit)
 
 
 
@@ -881,19 +891,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - status: 🕑 PENDING
 - type: Feature
 - create webapp/view/admin/logs.shtml -- search logs
-
-### W-0: controllers: consistently use global.CommonUtils.sendError
-- status: 🕑 PENDING
-- type: Feature
-- objectives: clean & consistent code to reduce likelyhood of bugs
-- deliverables: fix controllers with i18n
-  - config
-  - log
-  - user
-  - view controllers
-- already done:
-  - auth
-  - markdown
 
 ### W-0: docs: add exclude directory directive
 - status: 🕑 PENDING

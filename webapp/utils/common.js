@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         0.7.15
- * @release         2025-09-22
+ * @version         0.7.16
+ * @release         2025-09-23
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -354,17 +354,22 @@ class CommonUtils {
      * @param {number} statusCode - HTTP status code (404, 500, etc.)
      * @param {string} message - Error message for user
      * @param {string} code - Application error code (NOT_FOUND, INVALID_CREDENTIALS, etc.)
+     * @param {string} details - Optional detailed error information for debugging
      *
      * @example
      * // For API requests: returns JSON with success: false
      * CommonUtils.sendError(req, res, 404, 'User not found', 'USER_NOT_FOUND');
      * // Returns: {"success": false, "error": "User not found", "code": "USER_NOT_FOUND", "path": "/api/1/user/123"}
      *
+     * // With details for debugging
+     * CommonUtils.sendError(req, res, 500, 'Validation failed', 'VALIDATION_ERROR', error.message);
+     * // Returns: {"success": false, "error": "Validation failed", "code": "VALIDATION_ERROR", "details": "...", "path": "/api/1/user"}
+     *
      * // For view requests: redirects to error page
      * CommonUtils.sendError(req, res, 404, 'Page not found');
      * // Redirects to: /error/index.shtml?msg=Page%20not%20found&code=404
      */
-    static sendError(req, res, statusCode, message, code = null) {
+    static sendError(req, res, statusCode, message, code = null, details = null) {
         if (req.originalUrl.startsWith('/api/')) {
             // API requests get JSON error response
             const response = {
@@ -374,6 +379,9 @@ class CommonUtils {
             };
             if (code) {
                 response.code = code;
+            }
+            if (details) {
+                response.details = details;
             }
             return res.status(statusCode).json(response);
         } else {

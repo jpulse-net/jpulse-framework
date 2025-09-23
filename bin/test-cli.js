@@ -171,6 +171,21 @@ async function testCLI() {
             throw new Error(`Invalid package.json syntax: ${e.message}`);
         }
 
+        // Test 4.5: Verify PM2 ecosystem files are valid JavaScript
+        console.log('  🔧 Validating PM2 ecosystem file syntax...');
+        const ecosystemFiles = ['deploy/ecosystem.dev.config.cjs', 'deploy/ecosystem.prod.config.cjs'];
+        for (const ecosystemFile of ecosystemFiles) {
+            if (fs.existsSync(ecosystemFile)) {
+                try {
+                    // Use dynamic import to test ES module syntax
+                    const fullPath = path.resolve(ecosystemFile);
+                    await import(`file://${fullPath}`);
+                } catch (e) {
+                    throw new Error(`Invalid ${ecosystemFile} syntax: ${e.message}`);
+                }
+            }
+        }
+
         // Test 5: Verify .env file has required variables
         console.log('  🔐 Validating .env configuration...');
         const envContent = fs.readFileSync('.env', 'utf8');

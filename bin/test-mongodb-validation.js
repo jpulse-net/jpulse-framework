@@ -16,6 +16,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { execSync } from 'child_process';
 
 /**
  * Test suite for MongoDB setup validation
@@ -359,12 +360,50 @@ class CrossPlatformTests {
         }
     }
 
+    /**
+     * Test 4: Shell script syntax validation using shellcheck
+     * This would have caught MongoDB YAML and require() bugs in W-054
+     */
+    async testShellScriptSyntax() {
+        const shellScripts = [
+            'bin/jpulse-install.sh',
+            'bin/mongodb-setup.sh',
+            'bin/jpulse-validate.sh'
+        ];
+
+        for (const scriptPath of shellScripts) {
+            if (fs.existsSync(scriptPath)) {
+                try {
+                    // First check basic syntax with bash
+                    execSync(`bash -n ${scriptPath}`, { stdio: 'pipe' });
+
+                    // Try shellcheck if available (optional - don't fail if not installed)
+                    try {
+                        execSync(`shellcheck ${scriptPath}`, { stdio: 'pipe' });
+                    } catch (shellcheckError) {
+                        // If shellcheck is not installed, just warn but don't fail
+                        if (shellcheckError.message.includes('command not found') ||
+                            shellcheckError.message.includes('not found')) {
+                            console.log(`  ℹ️  shellcheck not available for ${scriptPath} (install shellcheck for enhanced validation)`);
+                        } else {
+                            // shellcheck found issues
+                            throw new Error(`shellcheck found issues in ${scriptPath}: ${shellcheckError.message}`);
+                        }
+                    }
+                } catch (syntaxError) {
+                    throw new Error(`Syntax error in ${scriptPath}: ${syntaxError.message}`);
+                }
+            }
+        }
+    }
+
     async runAllTests() {
         console.log('🧪 Running Cross-Platform Compatibility Tests...\n');
 
         await this.runTest('Shell script compatibility', () => this.testShellCompatibility());
         await this.runTest('npm script environment sourcing', () => this.testNpmScriptEnvironment());
         await this.runTest('Path handling and file permissions', () => this.testPathAndPermissions());
+        await this.runTest('Shell script syntax validation', () => this.testShellScriptSyntax());
 
         return this.getResults();
     }

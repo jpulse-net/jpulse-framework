@@ -738,7 +738,7 @@ This is the doc to track work items, arranged in three sections:
   - production monitoring and maintenance procedures
 - benefits: clear, actionable deployment documentation that matches the "don't make me think" site creation experience
 
-### W-058: controllers: consistently use global.CommonUtils.sendError, add test statistics framework
+### W-058: controllers: consistently use global.CommonUtils.sendError, add test statistics framework - v0.7.16
 - status: ✅ COMPLETE
 - type: Feature
 - objectives: clean & consistent code to reduce likelyhood of bugs
@@ -755,21 +755,6 @@ This is the doc to track work items, arranged in three sections:
     - 447 passed, 0 failed, 10 skipped, 457 total
   - show grand total:
     - 534 passed, 0 failed, 10 skipped, 544 total
-
-
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
 
 ### W-059: docs: add exclude directory directive - v0.7.17
 - status: ✅ COMPLETED
@@ -795,6 +780,21 @@ This is the doc to track work items, arranged in three sections:
     - documented endpoints, namespace resolution, and ignore pattern syntax
   - ✅ docs/site-customization.md and docs/README.md:
     - updated to reference new content filtering capabilities
+
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
 
 
 

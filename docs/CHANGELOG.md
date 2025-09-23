@@ -1,9 +1,148 @@
-# jPulse Framework / Docs / Version History v0.7.14
+# jPulse Framework / Docs / Version History v0.7.15
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
 
 ________________________________________________
-## v0.5.4 (2025-09-11)
+## v0.7.15, W-054, 2025-09-18
+
+**Commit:** `W-054, v0.7.15: Deployment documentation simplification, troubleshooting enhancements, and comprehensive test framework`
+
+Complete implementation of W-054 deployment documentation simplification and troubleshooting with enhanced testing framework, critical bug fixes, and "don't make me think" deployment experience.
+
+Major Features:
+- **Enhanced CLI Testing Framework (W-054)**: 17 new deployment validation tests
+  - Template variable expansion validation preventing configuration failures
+  - MongoDB setup validation with password hashing compatibility verification
+  - Cross-platform compatibility testing for shell scripts and npm environments
+  - Environment variable consistency testing ensuring .env matches template structure
+  - Integrated into main test suite with individual test commands for targeted debugging
+
+- **Critical Bug Fixes (13 total)**: Complete resolution of deployment-blocking issues
+  - Fixed SESSION_SECRET auto-generation using proper crypto.randomBytes with ES modules
+  - Resolved MongoDB authentication setup order preventing "Command createUser requires authentication" errors
+  - Fixed MongoDB YAML configuration syntax ensuring proper security section formatting
+  - Corrected MongoDB password hashing to match jPulse application bcrypt implementation
+  - Fixed template variable expansion preventing %GENERATION_DATE%, %JPULSE_FRAMEWORK_VERSION% failures
+  - Resolved PM2 startup configuration documentation with clear manual step instructions
+  - Fixed shell script compatibility removing CommonJS require() statements in ES module context
+  - Corrected environment variable sourcing in npm scripts for proper configuration loading
+
+- **Symbolic Logs Directory**: Convenient developer access to system logs
+  - Creates symbolic link from site root `logs/` to system log directory (e.g., `/var/log/jpulse.net/`)
+  - Maintains proper system logging while providing convenient site-level access
+  - Graceful fallback if symlink creation fails due to permissions
+
+- **Unified Configuration Architecture**: Eliminated duplication and inconsistencies
+  - Consolidated CONFIG_DEFINITIONS and VARIABLE_REGISTRY into unified CONFIG_REGISTRY
+  - Implemented single expandAllVariables() function for consistent template processing
+  - Enhanced MongoDB setup with robust user detection and authentication testing
+
+Production Validation:
+- Fresh install testing on jpulse.net production server with complete success
+- MongoDB authentication setup working correctly with proper user creation
+- PM2 clustering operational with 2 instances and proper logging
+- All 519+ tests passing including new enhanced validation tests
+- Zero deployment failures during fresh install process
+
+________________________________________________
+## v0.7.3, W-053, 2025-09-15
+
+**Commit:** `W-053, v0.7.3: Enhanced deployment validation, fixed critical deployment bugs, and improved update mechanism`
+
+Complete implementation of W-053 deployment configuration templates and validation with production-ready features.
+
+Major Features:
+- **Enhanced Deployment Validation (W-053)**: Comprehensive deployment testing suite
+  - Production-grade deployment validation with `install-test.sh`
+  - Enhanced update safety with dry-run support preventing data loss
+  - Context-aware testing respecting dev vs prod deployment settings
+  - Comprehensive unit and integration tests for deployment validation
+
+- **Critical Deployment Bug Fixes**: Resolution of deployment-blocking issues
+  - Enhanced MongoDB error handling with password validation
+  - PM2 configuration consistency improvements (dev/prod)
+  - Log directory ownership fixes for proper user permissions
+  - Enhanced environment variable management with deployment context
+
+Technical Improvements:
+- Production nginx configuration templates with security hardening
+- PM2 ecosystem templates with clustering and monitoring
+- SSL certificate automation with Let's Encrypt integration
+- jpulse-update CLI tool with dry-run support
+- Comprehensive deployment troubleshooting documentation
+
+________________________________________________
+## v0.7.0, W-015, 2025-09-13
+
+**Commit:** `W-015, v0.7.0: Deployment: Clean Onboarding Strategy with Complete Automation`
+
+Complete implementation of W-015 clean deployment strategy with "don't make me think" automation.
+
+Major Features:
+- **Clean Deployment Strategy (W-015)**: Complete "don't make me think" deployment automation
+  - Interactive setup with `npx jpulse-configure` for site creation
+  - Automated system installation with `jpulse-install.sh`
+  - MongoDB setup automation with `mongodb-setup.sh`
+  - Production templates with nginx, PM2, and SSL configuration
+  - Comprehensive validation with `install-test.sh`
+
+- **Enhanced Package Distribution**: npm-based site creation workflow
+  - Sites created independently using @jpulse/framework npm package
+  - Clean separation between framework and site repositories
+  - Automated dependency management and version control
+
+Technical Improvements:
+- Production-grade deployment scripts with enhanced error handling
+- MongoDB security configuration with authentication setup
+- PM2 clustering configuration for production scalability
+- nginx integration with SSL certificate support
+- Comprehensive system validation covering all deployment components
+
+________________________________________________
+### v0.6.7, W-050, 2025-09-13
+
+**Commit:** `Checkpoint commit 5 for: W-015: deployment: strategy for clean onboarding`
+
+Objective: clean separation of code and data, so that a site owner can maintain their own reporsitory for site/*
+
+________________________________________________
+## v0.6.6, W-051, 2025-09-12
+
+**Commit:** `W-051, v0.6.6: Infrastructure: Framework Package Distribution`
+
+Enhanced framework package distribution with improved site creation workflow and deployment automation foundation.
+
+________________________________________________
+## v0.6.0, W-051, 2025-09-11
+
+**Commit:** `W-051, v0.6.0: Infrastructure: Framework Package Distribution`
+
+Complete implementation of W-051 framework package distribution system.
+
+Major Features:
+- **Framework Package Distribution (W-051)**: npm-based distribution system
+  - Sites created using `npx jpulse-configure` command
+  - Clean separation between framework and site repositories
+  - Automated framework file synchronization with `jpulse-update`
+  - Version-controlled site customizations in `site/` directory
+
+________________________________________________
+## v0.5.5, W-052, 2025-09-11
+
+**Commit:** `W-052, v0.5.5: Dual licensing implementation with AGPL v3 migration and commercial licensing foundation`
+
+Complete implementation of W-052 dual licensing system with AGPL v3 migration.
+
+Major Features:
+- **Dual Licensing System (W-052)**: AGPL v3 open source with commercial licensing options
+  - AGPL v3 license for open source projects, educational use, and government applications
+  - Commercial licensing available for proprietary applications and SaaS products
+  - Clear licensing guidelines and decision framework for users
+  - Enterprise support and commercial features available with commercial license
+
+________________________________________________
+## v0.5.4, W-049, 2025-09-11
+
 **Commit:** `W-049, v0.5.4: Complete markdown documentation system with API standardization, i18n support, comprehensive testing, and dependency cleanup`
 
 Complete implementation of the W-049 markdown documentation system with production-ready features and comprehensive enhancements.
@@ -39,7 +178,51 @@ Major Features:
   - Namespace-agnostic template system for any documentation namespace
 
 ________________________________________________
-## v0.5.0 (2025-09-06)
+## v0.5.3, W-046, 2025-09-11
+
+**Commit:** `W-046, v0.5.3: Complete documentation restructure with user/developer separation, focused reference guides, and enterprise-ready navigation system`
+
+Complete implementation of W-046 documentation restructuring with comprehensive user/developer separation.
+
+Major Features:
+- **Documentation Restructuring (W-046)**: Complete separation of user-facing and developer-facing documentation
+  - Focused API reference exclusively for /api/1/* REST endpoints with routing information
+  - Complete front-end development guide covering jPulse JavaScript framework and utilities
+  - Comprehensive style reference documenting complete jp-* CSS framework with components
+  - Template reference covering server-side Handlebars system with security features
+
+________________________________________________
+## v0.5.2, W-048, 2025-09-11
+
+**Commit:** `W-048, v0.5.2: Complete enterprise UI widget system with draggable dialogs, complex form interactions, accordion components, and comprehensive test coverage`
+
+Complete implementation of W-048 enterprise UI widget system with native JavaScript widgets.
+
+Major Features:
+- **Enterprise UI Widget System (W-048)**: Complete native JavaScript widget library
+  - jPulse.UI.alertDialog() and jPulse.UI.infoDialog() with draggable headers
+  - jPulse.UI.confirmDialog() with enterprise-grade custom callbacks and nested workflows
+  - jPulse.UI.accordion.register() with flexible decoration detection
+  - Dialog stacking with automatic z-index management and viewport bounds
+  - Promise-based APIs with comprehensive callback support and mobile-responsive design
+
+________________________________________________
+## v0.5.1, W-047, 2025-09-11
+
+**Commit:** `W-047, v0.5.1: Complete site-specific coding and styling guidelines with comprehensive documentation, template system, and interactive demo implementation`
+
+Complete implementation of W-047 site-specific development guidelines with comprehensive documentation.
+
+Major Features:
+- **Site Development Guidelines (W-047)**: Complete guidelines for site-specific coding and styling
+  - Site-common.css.tmpl and site-common.js.tmpl template files with site-* CSS prefix convention
+  - JavaScript extension pattern extending jPulse.site namespace for clear source identification
+  - Automatic file detection and loading following "don't make me think" principle
+  - Comprehensive site/README.md with development guidelines, best practices, and examples
+
+________________________________________________
+## v0.5.0, W-014, 2025-09-06
+
 **Commit:** `W-014, v0.5.0: Complete site override architecture enabling seamless framework updates with comprehensive customization system`
 
 Implemented comprehensive site customization system enabling seamless framework updates while preserving site-specific modifications.
@@ -97,7 +280,8 @@ Major Features:
   - Follows established project patterns and conventions
 
 ________________________________________________
-## v0.4.10 (2025-09-06)
+## v0.4.10, W-041, 2025-09-06
+
 **Commit:** `W-041, v0.4.10: Complete site configuration management system with intuitive admin interface and comprehensive validation`
 
 Implemented comprehensive site configuration management system for administrators.
@@ -135,7 +319,8 @@ Major Features:
   - Production-ready with excellent developer experience
 
 ________________________________________________
-## v0.4.9 (2025-09-05)
+## v0.4.9, W-044, 2025-09-05
+
 **Commit:** `W-044, v0.4.9: CSS prefix convention for clean "don't make me think" style organization with zero cognitive load`
 
 Implemented clear CSS prefix convention eliminating cognitive load when working with styles.
@@ -166,7 +351,8 @@ Technical Details:
 - Perfect adherence to "don't make me think" design principles
 
 ________________________________________________
-## v0.4.8 (2025-09-05)
+## v0.4.8, W-043, 2025-09-05
+
 **Commit:** `W-043, v0.4.8: Global rename jPulseCommon to jPulse for improved developer productivity and framework extensibility`
 
 Global rename from jPulseCommon to jPulse for improved developer productivity.
@@ -196,7 +382,8 @@ Technical Details:
 - Ready for continued development with improved productivity
 
 ________________________________________________
-## v0.4.7 (2025-09-05)
+## v0.4.7, W-042, 2025-09-05
+
 **Commit:** `W-042, v0.4.7: Enhanced form submission system with critical bug fixes, improved developer experience, and comprehensive test coverage`
 
 Enhanced form submission system with critical bug fixes and improved developer experience.
@@ -239,7 +426,8 @@ Development Impact:
 - Enhanced framework stability with proper error message management
 
 ________________________________________________
-## v0.4.6 (2025-09-05)
+## v0.4.6, W-039, 2025-09-05
+
 **Commit:** `W-039, v0.4.6: Complete user management system with admin users page, user dashboard, enhanced profile page, and production-ready collapsible component with comprehensive test coverage`
 
 Complete user management system implementation with admin users page, user dashboard, enhanced profile page, and production-ready collapsible component.
@@ -289,7 +477,8 @@ Work Items Completed:
 - W-039: Complete user management system with admin pages, user dashboard, and enhanced profile UX
 
 ________________________________________________
-## v0.4.5 (2025-09-04)
+## v0.4.5, W-013, 2025-09-04
+
 **Commit:** `W-013, v0.4.5: Complete admin dashboard implementation with role-based authentication, user language-aware internationalization system, and comprehensive test coverage`
 
 Complete admin dashboard implementation with role-based authentication, user language-aware internationalization system, and comprehensive test coverage.
@@ -329,7 +518,8 @@ Work Items Completed:
 - W-013: Admin dashboard implementation with role-based authentication and user-aware i18n
 
 ________________________________________________
-## v0.4.4 (2025-09-04)
+## v0.4.4, W-038, 2025-09-04
+
 **Commit:** `W-038, v0.4.4: Complete view consolidation with cleaner separation of common/page-specific code and style`
 
 Complete separation of common and page-specific code/style with massive CSS consolidation and mature component library establishment.
@@ -354,7 +544,8 @@ Work Items Completed:
 - W-038: View consolidation with cleaner separation of common/page-specific code/style
 
 ________________________________________________
-## v0.4.3 (2025-09-03)
+## v0.4.3, W-019, 2025-09-03
+
 **Commit:** `W-019, v0.4.3: Complete slide-down message system implementation with comprehensive API renaming and enhanced UX`
 
 Implemented professional non-blocking slide-down message system with comprehensive API renaming for clarity and enhanced user experience.
@@ -413,7 +604,9 @@ UX Improvements:
 - Consistent positioning creates predictable user experience
 - Self-documenting API names improve developer experience
 
-## v0.4.2 (2025-09-02)
+________________________________________________
+## v0.4.2, W-036, 2025-09-02
+
 **Commit:** `W-036, v0.4.2: Complete view migration to jpulse-common utilities with API response simplification and dynamic schema-aware frontend`
 
 Completed comprehensive view migration with major architectural improvements and API simplification.
@@ -449,7 +642,8 @@ Files Modified (11 total):
 - `webapp/translations/en.conf`, `de.conf` (comprehensive i18n additions)
 
 ________________________________________________
-## v0.4.1 (2025-09-02)
+## v0.4.1, W-025, 2025-09-02
+
 **Commit:** `W-025, v0.4.1: Component-based styling with framework/site separation`
 
 Implemented comprehensive CSS architecture with component library and framework/site separation preparation.
@@ -482,7 +676,8 @@ Proof-of-Concept Migrations:
 Breaking Changes: Clean break from `jpulse-*` to `jp-*` naming convention
 
 ________________________________________________
-## v0.4.0 (2025-09-02)
+## v0.4.0, W-035, 2025-09-02
+
 **Commit:** `W-035, v0.4.0: Enhanced jpulse-common.js utilities - Complete script separation framework`
 
 Implemented comprehensive client-side utility framework eliminating code duplication across all view files.
@@ -519,8 +714,9 @@ Testing Coverage:
 Breaking Changes: None - Additive enhancement maintaining full backward compatibility
 
 ________________________________________________
-## v0.3.9 (2025-09-01)
-**Commit:** `TBD` - W-034, v0.3.9: Error Reporting Without Redirect for UI Pages
+## v0.3.9, W-034, 2025-09-01
+
+**Commit:** `W-034, v0.3.9: Error Reporting Without Redirect for UI Pages`
 
 Implemented direct rendering of 404 error pages via `viewController.load` for UI requests (e.g., `.shtml` files), eliminating the need for HTTP redirects.
 
@@ -546,8 +742,9 @@ Developer Experience Improvements:
 - Clearer Separation of Concerns: Explicitly defines how API and UI errors are handled.
 
 ________________________________________________
-## v0.3.8 (2025-09-01)
-**Commit:** `TBD` - W-033, v0.3.8: ESM Testing Infrastructure and Configuration Consolidation
+## v0.3.8, W-033, 2025-09-01
+
+**Commit:** `W-033, v0.3.8: ESM Testing Infrastructure and Configuration Consolidation`
 
 ### Major Features
 - **ESM Testing Infrastructure (W-033)**: Resolved ECMAScript Modules loading issues in Jest environment, enabling proper ES module support across the test suite.
@@ -588,8 +785,9 @@ ________________________________________________
 - **Production Logging**: Enterprise-grade logging format suitable for production monitoring
 
 ________________________________________________
-## v0.3.7 (2025-09-01)
-**Commit:** `TBD` - W-032, v0.3.7: User: Consolidated user identifiers to 'username' and added 'uuid' field.
+## v0.3.7, W-032, 2025-09-01
+
+**Commit:** `W-032, v0.3.7: User: Consolidated user identifiers to 'username' and added 'uuid' field`
 
 ### Major Features
 - **User ID Consolidation (W-032)**: Standardized user identification across the application to `username`, deprecating previous `loginId` and `userId` inconsistencies.
@@ -626,8 +824,9 @@ ________________________________________________
 - **Streamlined Codebase**: Removal of redundant `loginId` and `userId` references cleans up the codebase.
 
 ________________________________________________
-## v0.3.6 (2025-08-31)
-**Commit:** `TBD` - W-031, v0.3.6: i18n: `i18n.js` moved to `webapp/utils/` and translation files renamed (e.g., `lang-en.conf` to `en.conf`).
+## v0.3.6, W-031, 2025-08-31
+
+**Commit:** `W-031, v0.3.6: i18n: i18n.js moved to webapp/utils/ and translation files renamed (e.g., lang-en.conf to en.conf)`
 
 ### Major Features
 - **I18n Module Restructuring**: The `i18n.js` module has been moved from `webapp/translations/` to `webapp/utils/`, aligning it with other shared utility components and improving project organization.
@@ -650,16 +849,17 @@ ________________________________________________
 - **Consistent Naming Conventions**: The updated file naming aligns with a more modern and streamlined approach to asset management.
 
 ________________________________________________
-## v0.3.5 (2025-08-31)
-**Commit:** `TBD` - W-030, v0.3.5: log: rename LogController log methods for consistency
+## v0.3.5, W-030, 2025-08-31
+
+**Commit:** `W-030, v0.3.5: log: rename LogController log methods for consistency`
 
 - LogController.consoleApi() ==> LogController.logRequest()
 - LogController.console()    ==> LogController.logInfo()
 - LogController.error()      ==> LogController.logError()
 
 ________________________________________________
-## v0.3.4 (2025-08-31)
-**Commit:** `TBD` - W-029, v0.3.4: I18n: Internationalized user-facing controller messages and added consistent controller logs.
+## v0.3.4, W-029, 2025-08-31
+**Commit:** `W-029, v0.3.4: I18n: Internationalized user-facing controller messages and added consistent controller logs`
 
  #### Major Features
 - **Comprehensive I18n for User Messages**: All user-facing messages across `config.js`, `view.js`, `log.js`, `auth.js`, and `user.js` controllers are now internationalized using `i18n.translate()`, ensuring multi-language support.
@@ -682,8 +882,9 @@ ________________________________________________
 - Enforced Code Quality: Standardized practices for messaging and logging promote uniformity and reduce potential for inconsistencies across the codebase.
 
 ________________________________________________
-## v0.3.3 (2025-08-30)
-**Commit:** `TBD` - W-028, v0.3.3: View controller enhanced with configurable template and include file caching for performance.
+## v0.3.3, W-028, 2025-08-30
+
+**Commit:** `W-028, v0.3.3: View controller enhanced with configurable template and include file caching for performance`
 
 ### Major Features
 - **Configurable Template Caching (W-028)**: Main `.shtml` template files are now cached based on `appConfig.controller.view.cacheTemplateFiles` for improved rendering speed.
@@ -726,18 +927,9 @@ ________________________________________________
 - Requires adding `controller.view.cacheTemplateFiles` and `controller.view.cacheIncludeFiles` flags to the application configuration (e.g., `app.conf`). Default values should be set to `true` to enable caching by default.
 
 ________________________________________________
-## v0.3.2 (2025-08-30)
+## v0.3.2, W-027, 2025-08-30
 
-### **W-028**: View controller: Cache Template and Include Files
-- **Status**: ✅ DONE
-- **Version**: v0.3.3
-- **Description**: Enhanced view controller to cache template and include files for performance.
-- **Implementation**: `webapp/controller/view.js` now uses configurable caching for `.shtml` templates and include files, with asynchronous pre-loading for common includes, and `processHandlebars` converted to a synchronous operation.
-
-________________________________________________
-## v0.3.2 (2025-08-30)
-
-**Commit:** `TBD` - W-027, v0.3.2: I18n language files structure aligned with controller and view architecture
+**Commit:** `W-027, v0.3.2: I18n language files structure aligned with controller and view architecture`
 
 ### Major Features
 - **I18n Structure Alignment (W-027)**: Language files restructured to match controller and view architecture for better maintainability
@@ -764,8 +956,37 @@ ________________________________________________
 - **Regression Testing**: No existing functionality broken
 
 ________________________________________________
-## v0.3.0 (2025-08-27)
-**Commit:** `TBD` - W-021, W-022, v0.3.0: API-driven profile management and enhanced user language preferences
+## v0.3.1, W-026, 2025-08-29
+
+**Commit:** `W-026, v0.3.1: MVC-aligned configuration structure with enhanced maintainability and developer experience`
+
+This release restructures the application configuration to match the framework's MVC architecture, improving organization, maintainability, and developer understanding of where settings belong.
+
+### Major Features
+- MVC-Aligned Configuration: Restructured webapp/app.conf to match model/controller/view directory structure
+- Enhanced Organization: Settings grouped by component type rather than functional areas
+- Better Maintainability: Developers can predict where configuration belongs based on MVC structure
+- Consistent Mental Model: Configuration structure mirrors file system organization
+- Zero Breaking Changes: Internal restructure with no API or user-facing changes
+
+### Technical Implementation
+- Configuration Restructure: Moved settings from functional groups to MVC-aligned structure
+- Model Settings: User password policies moved to model.user.passwordPolicy
+- Controller Settings: Authentication mode in controller.auth.mode, logging in controller.log
+- View Settings: Layout configuration in view.maxWidth and view.minMarginLeftRight
+- Template Settings: Include depth and defaults in controller.view section
+
+### Architectual Improvements
+- MVC Consistency: Configuration structure now matches webapp/ directory organization
+- Logical Grouping: Related settings grouped by the component that uses them
+- Predictable Location: Developers know where to find settings based on MVC principles
+- Enhanced Clarity: Clear separation between model policies, controller behavior, and view presentation
+- Future-Proof Design: Structure scales naturally as new components are added
+
+________________________________________________
+## v0.3.0, W-021/W-022, 2025-08-27
+
+**Commit:** `W-021, W-022, v0.3.0: API-driven profile management with enhanced user language preferences and data consistency`
 
 ### Major Features
 - **API-Driven Profile Management**: User profiles now load fresh data from REST API endpoints instead of session data
@@ -793,8 +1014,9 @@ ________________________________________________
 - **Performance**: Test suite execution time optimized to ~3.5 seconds
 
 ________________________________________________
-## v0.2.8 (2025-08-27)
-**Commit:** `TBD` - Enhanced i18n with dynamic discovery, translation auditing, and auto-fixing
+## v0.2.8, W-020, 2025-08-27
+
+**Commit:** `W-020, v0.2.8: Enhanced i18n with dynamic discovery, translation auditing, and auto-fixing`
 
 ### Major Features
 - **Dynamic Language Discovery**: Automatically detects all lang-*.conf files without manual configuration
@@ -809,8 +1031,9 @@ ________________________________________________
 - **ES Module Compatibility**: Fixed Node.js built-in module imports with 'node:' prefix
 
 ________________________________________________
-## v0.2.7 (2025-08-26)
-**Commit:** `c99c90a` - W-018, v0.2.7: {{#if}} block handlebars with single-pass processing
+## v0.2.7, W-018, 2025-08-26
+
+**Commit:** `W-018, v0.2.7: {{#if}} block handlebars with single-pass processing`
 
 ### Major Features
 - **{{#if}} Block Handlebars**: New block-level conditional syntax replacing old {{if}} helper
@@ -825,8 +1048,258 @@ ________________________________________________
 - **Performance Optimization**: Single-pass processing improves template rendering speed
 
 ________________________________________________
-## v0.2.1 (2025-08-25)
-**Commit:** `b317873` - W-009, v0.2.1: CommonUtils framework with schema-based queries and automated test cleanup
+## v0.2.6, W-017, 2025-08-27
+
+**Commit:** `W-017, v0.2.6: i18n variable content system with handlebars-style substitution, two-pass template processing`
+
+This release implements handlebars-style variable substitution in i18n translations, enabling dynamic personalized content like 'Welcome back, {{user.firstName}}!' with seamless integration into the existing template system.
+
+### Major Features
+- i18n Variable Content: Handlebars-style {{variable}} substitution in translation strings
+- Two-Pass Template Processing: First pass resolves i18n references, second pass resolves variables
+- Full Context Access: All template context (user, config, url, app) available in translations
+- Simplified Implementation: Clean two-pass processHandlebars() approach without additional functions
+- Backward Compatibility: Static translations continue working unchanged
+
+### Technical Implementation
+- Enhanced ViewController.load() with dual handlebars processing passes
+- Removed unused i18n.t() function and {0},{1} parameter substitution
+- Added processI18nHandlebars logic (later simplified to dual processHandlebars calls)
+- Updated translation files with variable content examples
+- Performance optimized: Second pass only runs if handlebars expressions remain
+
+________________________________________________
+## v0.2.5, W-016, 2025-08-26
+
+**Commit:** `W-016, v0.2.5: Centralized Auth Controller with middleware, utilities, comprehensive testing, and updated documentation`
+
+### Centralized Auth Controller System
+- Created webapp/controller/auth.js with middleware and utility functions
+- Moved login/logout endpoints from UserController to AuthController
+- requireAuthentication middleware for basic authentication protection
+- requireRole middleware factory for role-based authorization
+- isAuthenticated and isAuthorized utility functions for controller logic
+- Smart error handling using CommonUtils.sendError for API vs web requests
+
+### Route Protection Implementation:
+- Updated webapp/routes.js with new /api/1/auth/* endpoints
+- Applied requireAuthentication middleware to protected user endpoints
+- Applied requireRole(['admin', 'root']) middleware to admin-only endpoints
+- Refactored existing controllers to remove duplicate authentication checks
+- Clean separation of concerns between authentication and business logic
+
+### Frontend Integration Fixes
+- Fixed broken signin form API endpoint (/api/1/user/login → /api/1/auth/login)
+- Fixed broken logout form API endpoint (/api/1/user/logout → /api/1/auth/logout)
+- Verified all other API endpoints remain correct and functional
+- Authentication flows fully operational across all user interfaces
+
+### Comprehensive Test Coverage
+- Added 42 new tests for Auth Controller functionality
+- Unit tests (30): middleware, utilities, login/logout endpoints with edge cases
+- Integration tests (12): middleware chaining, real-world scenarios, error handling
+- All Auth Controller tests passing (42/42)
+- No regressions in existing functionality (331/332 tests passing)
+- Comprehensive coverage of authentication, authorization, and error scenarios
+
+### Documentation Updates
+- README.md: Added Auth Controller to release highlights and features section
+- developers.md: Replaced old auth examples with comprehensive Auth Controller patterns
+- API.md: Updated login/logout endpoints and added Auth Controller system documentation
+- Added middleware usage examples and smart error handling documentation
+- Complete integration examples for route protection and utility functions
+
+### Architecture Improvements
+- DRY principle: eliminated duplicate authentication checks across controllers
+- Centralized security: all authentication logic in single Auth Controller
+- Middleware pattern: standard Express.js middleware for cross-cutting concerns
+- Flexible authorization: support for single roles, role arrays, and custom logic
+- Smart error responses: automatic API vs web request distinction
+
+________________________________________________
+## v0.2.4, W-012, 2025-08-26
+
+**Commit:** `W-012, v0.2.4: Complete user views system with registration, authentication interface, and enhanced user experience`
+
+### Complete User Registration System
+- Full signup workflow with comprehensive validation (required fields, password confirmation, terms acceptance)
+- Duplicate username/email detection with specific error responses and HTTP status codes
+- Structured user creation with profile, roles, preferences, and status management
+- Success redirect to login page with personalized welcome message
+- API endpoint /api/1/user/signup with detailed error handling and logging
+- Form validation with client-side and server-side password matching
+
+### Enhanced Authentication Interface
+- Complete login view with success message display for new signups
+- Logout view with countdown redirect and proper session termination
+- Signup view with comprehensive form validation and error display
+- User profile and directory views with authentication state management
+- Consistent UI patterns across all authentication flows
+- Mobile-responsive design with clean, modern interface
+
+### User Avatar & Identity System
+- Fixed "meus" logo issue by implementing clean initials system (e.g., "JD" for John Doe)
+- Server-side initials calculation with fallback handling for missing names
+- Enhanced session user object with firstName, lastName, and initials
+- Template context integration making user.initials available in all views
+- Consistent avatar display across login, logout, signup, and profile pages
+
+### Comprehensive Internationalization
+- Extended i18n translations for all authentication flows (English and German)
+- Signup form labels, error messages, and success notifications
+- Login success messages with dynamic username replacement
+- Logout confirmation and redirect messaging
+- Error page translations for consistent user experience
+- Support for variable content in i18n strings (e.g., "Your {username} account...")
+
+### Robust Error Handling Strategy
+- Centralized error handling distinguishing API vs view requests
+- API requests receive JSON error responses with structured error codes
+- View requests redirect to formatted error pages with user-friendly messages
+- Specific error codes for validation, conflicts, and server errors
+- Enhanced 404 handling with proper URL parameter display
+- Consistent error logging format across all authentication endpoints
+
+### User Experience Improvements
+- Fixed broken navigation links and URL encoding issues
+- Proper redirect flows after signup (to login) and logout (with countdown)
+- Success message display with smooth user flow transitions
+- Widened dropdown menu to prevent text wrapping in user navigation
+- Enhanced form validation feedback with clear error messaging
+- Conditional template rendering using CSS display properties instead of nested handlebars
+
+### Template System Enhancements
+- Refactored conditional rendering from nested handlebars to CSS display blocks
+- Improved template maintainability and reduced complexity
+- Enhanced template context with user authentication state and initials
+- Consistent header/footer integration across all authentication pages
+- Better separation of authenticated vs unauthenticated UI states
+
+### Comprehensive Test Coverage
+- Added 10 new signup validation tests covering all scenarios
+- Request validation logic testing (required fields, password confirmation, terms acceptance)
+- User data structure validation and initials generation testing
+- Form validation testing for username, email, and password formats
+- Session data testing with proper initials handling
+- All 290 tests passing with no regressions in existing functionality
+
+### Documentation Updates
+- README.md: Updated latest release highlights and User Authentication section
+- developers.md: Added comprehensive W-012 implementation section (200+ lines)
+- API.md: Added user registration endpoint documentation with examples
+- Complete code examples for signup implementation, avatar system, and error handling
+- Architecture documentation for user views structure and i18n integration
+
+### Security & Validation Features
+- Enhanced form validation with client-side and server-side checks
+- Secure password handling with confirmation validation
+- Terms acceptance enforcement for legal compliance
+- Input sanitization and validation for all user registration fields
+- Proper session management with authentication state tracking
+- CSRF protection and secure redirect handling
+
+________________________________________________
+## v0.2.3, W-011, 2025-08-25
+
+**Commit:** `W-011, v0.2.3: User authentication and management system with MVC refactoring and comprehensive test coverage`
+
+### Complete User Authentication System:
+- Secure user authentication with bcrypt password hashing (12 salt rounds)
+- Internal authentication supporting loginId or email identification
+- Persistent MongoDB session management with connect-mongo and TTL expiration
+- Role-based access control with simple role system (guest, user, admin, root)
+- Login tracking with automatic lastLogin and loginCount updates
+- Password policy enforcement with configurable minimum length requirements
+
+### User Management Features:
+- Complete user profile management (get/update profile, change password)
+- Admin-only user search API with schema-based queries and pagination
+- User search supports wildcards, sorting, filtering by status/roles/dates
+- Comprehensive user schema with profile, preferences, roles, and metadata
+- Security-first design with password hashes never returned in API responses
+- Session user object creation with proper data sanitization
+
+### MVC Architecture Refactoring:
+- Clean separation of concerns between models and controllers
+- Removed all LogController dependencies from models (UserModel, ConfigModel)
+- Models now throw pure errors, controllers handle all logging and HTTP concerns
+- Better request context logging with proper user/IP tracking
+- Easier unit testing with models as pure functions
+- Flexible error handling allowing controllers to transform model errors
+
+### Comprehensive Test Coverage:
+- Added 42 new W-011 tests across 3 new test files
+- user-authentication.test.js: Password security, authentication logic, RBAC (15 tests)
+- user-search.test.js: Search queries, pagination, authorization, wildcards (17 tests)
+- user-controller.test.js: HTTP endpoints, error handling, logging (10 tests)
+- All 280 tests passing with robust edge case and error scenario coverage
+- Security testing with password hash exclusion and role-based access validation
+
+### Performance and Monitoring:
+- Elapsed time tracking for all search operations (user.search, log.search)
+- Performance metrics included in JSON responses and console logs
+- Consistent error logging format: <type>.<function> failed: across all controllers
+- Enhanced LogController.error() calls for early authentication/authorization failures
+- Request timing and completion logging for all API endpoints
+
+### Documentation Updates:
+- README.md: Added User Authentication & Management and enhanced Security Features
+- developers.md: Complete W-011 implementation section with code examples (150+ lines)
+- API.md: Comprehensive User Management API documentation (200+ lines)
+- All authentication endpoints, profile management, and user search documented
+- Security features, session management, and role-based access control detailed
+
+### Static File Routing Fixes:
+- Implemented proper W-008 hybrid content routing strategy
+- Fixed static file serving (site.webmanifest, robots.txt) with correct middleware order
+- Refined routes.js with specific regex patterns for dynamic vs static content
+- Express middleware properly prioritizes API, protected static, dynamic, then static fallback
+- All static files now serve correctly while maintaining template processing for dynamic content
+
+________________________________________________
+## v0.2.2, W-010, 2025-08-25
+
+**Commit:** `W-010, v0.2.2: Documentation improvements with API externalization, legacy i18n removal, and comprehensive feature documentation`
+
+### API Documentation Externalization:
+- Created comprehensive API.md with 574+ lines of complete API reference
+- Moved all API endpoints from README.md to dedicated documentation
+- Configuration Management, Logging, Template Rendering, and Health Check APIs
+- Request/response examples, authentication details, and error handling
+- Updated README.md with concise API overview and link to API.md
+
+### Legacy i18n Function Notation Removal:
+- Completely removed {{i18n "key"}} legacy function syntax from all files
+- Removed handleI18n() function and i18n case from view controller
+- Updated all documentation to use only modern {{i18n.app.name}} dot notation
+- Fixed test mock context structure for proper nested i18n objects
+- Zero legacy notation remains anywhere in codebase
+
+### Comprehensive Documentation Enhancements:
+- README.md: Added detailed sections for all completed work items W-001 to W-009
+- Enhanced with production-ready Express app, i18n system, testing framework details
+- Added configuration management, logging infrastructure, template system sections
+- developers.md: Added technical implementation details and architecture examples
+- Updated changes.md with complete version history and work item tracking
+
+### Documentation Structure Improvements:
+- Professional organization with specialized docs for different audiences
+- Cross-referenced documentation with consistent linking
+- Enhanced support section with all documentation resources
+- Better searchability and GitHub navigation with dedicated API file
+- Clean separation of user-facing vs developer-focused content
+
+### Code Quality and Testing:
+- Fixed all space-only line violations (20+ lines cleaned)
+- 227 tests passing with comprehensive coverage
+- Updated view controller tests for dot notation syntax
+- Verified no regressions from legacy i18n removal
+- All documentation follows strict formatting rules
+
+________________________________________________
+## v0.2.1, W-009, 2025-08-25
+
+**Commit:** `W-009, v0.2.1: CommonUtils framework with schema-based queries and automated test cleanup`
 
 ### Major Features
 - **CommonUtils Framework**: Centralized utility functions with 8 core utilities
@@ -841,8 +1314,9 @@ ________________________________________________
 - Performance optimizations for test execution
 
 ________________________________________________
-## v0.2.0 (2025-08-24)
-**Commit:** `2c3a054` - W-008, v0.2.0: Hybrid content strategy with comprehensive template system
+## v0.2.0, W-008, 2025-08-24
+
+**Commit:** `W-008, v0.2.0: Hybrid content strategy with comprehensive template system`
 
 ### Major Features
 - **Hybrid Content Strategy**: Sophisticated routing separating static and dynamic content
@@ -857,8 +1331,9 @@ ________________________________________________
 - Template include caching and depth limiting
 
 ________________________________________________
-## v0.1.5 (2025-08-24)
-**Commit:** `ca75556` - W-007: Rename project from Bubble Framework to jPulse Framework
+## v0.1.5, W-007, 2025-08-24
+
+**Commit:** `W-007: Rename project from Bubble Framework to jPulse Framework`
 
 ### Major Changes
 - **Project Rebranding**: Complete rename from "Bubble Framework" to "jPulse Framework"
@@ -866,8 +1341,9 @@ ________________________________________________
 - **Documentation Updates**: All references updated across codebase and documentation
 
 ________________________________________________
-## v0.1.4 (2025-08-24)
-**Commit:** `bf20146` - W-006: Server-side includes implementation
+## v0.1.4, W-006, 2025-08-24
+
+**Commit:** `W-006: Server-side includes implementation`
 
 ### Major Features
 - **Server-Side Includes**: Template system with handlebars processing
@@ -880,8 +1356,9 @@ ________________________________________________
 - Template processing optimization
 
 ________________________________________________
-## v0.1.3 (2025-08-23)
-**Commit:** `cb074b4` - Implement W-005: Complete log infrastructure with array-based changes and consistent logging
+## v0.1.3, W-005, 2025-08-23
+
+**Commit:** `Implement W-005: Complete log infrastructure with array-based changes and consistent logging`
 
 ### Major Features
 - **Logging Infrastructure**: Comprehensive log model and controller
@@ -895,8 +1372,9 @@ ________________________________________________
 - Performance optimizations for log queries
 
 ________________________________________________
-## v0.1.2 (2025-08-23)
-**Commit:** `f952ab1` - Implement W-004: Site admin config model & controller
+## v0.1.2, W-004, 2025-08-23
+
+**Commit:** `Implement W-004: Site admin config model & controller`
 
 ### Major Features
 - **Configuration Management**: Site admin config model and controller
@@ -910,8 +1388,9 @@ ________________________________________________
 - Message broadcasting configuration
 
 ________________________________________________
-## v0.1.1 (2025-08-23)
-**Commit:** `fe7935a` - Implement W-003: Comprehensive Test Framework with Jest and Enhanced Build Tools
+## v0.1.1, W-003, 2025-08-23
+
+**Commit:** `Implement W-003: Comprehensive Test Framework with Jest and Enhanced Build Tools`
 
 ### Major Features
 - **Jest Testing Framework**: Comprehensive unit and integration testing
@@ -925,8 +1404,9 @@ ________________________________________________
 - Integration test patterns
 
 ________________________________________________
-## v0.1.0 (2025-08-23)
-**Commit:** `5d50e4e` - Initial commit: Bubble Framework v0.1.0
+## v0.1.0, W-001/W-002, 2025-08-23
+
+**Commit:** `Initial commit: Bubble Framework v0.1.0`
 
 ### Foundation Features
 - **Express.js Application**: Basic web server with routing

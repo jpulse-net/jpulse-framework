@@ -4,13 +4,13 @@
  * @tagline         Unified configuration registry for all jPulse tools
  * @description     Single source of truth for variable definitions, defaults, and template expansion
  * @file            bin/config-registry.js
- * @version         0.7.14
- * @release         2025-09-18
+ * @version         0.7.15
+ * @release         2025-09-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
  */
 
 import fs from 'fs';
@@ -425,33 +425,6 @@ export const CONFIG_REGISTRY = {
         // No user prompting - computed from current date
     },
 
-    // === TESTING VARIABLES (v0.7.13 checkpoint) ===
-    DUMMY1: {
-        // Template expansion
-        default: 'test-value-1',
-        type: 'config',
-        description: 'Test variable for incremental configuration (will be removed in v0.7.14)',
-
-        // User prompting
-        section: 'Testing Configuration (v0.7.13)',
-        prompt: async (config, deploymentType, question) => {
-            console.log('📋 Testing incremental configuration system...');
-            config.DUMMY1 = await question('? Test variable 1: (test-value-1) ') || 'test-value-1';
-        }
-    },
-
-    DUMMY2: {
-        // Template expansion
-        default: 'test-value-2',
-        type: 'config',
-        description: 'Test variable for incremental configuration (will be removed in v0.7.14)',
-
-        // User prompting
-        section: 'Testing Configuration (v0.7.13)',
-        prompt: async (config, deploymentType, question) => {
-            config.DUMMY2 = await question('? Test variable 2: (test-value-2) ') || 'test-value-2';
-        }
-    },
 
     // === LEGACY MAPPINGS (for backward compatibility) ===
     DOMAIN_NAME: {

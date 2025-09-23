@@ -3,13 +3,13 @@
  * @tagline         Authentication tests for User Model and Controller
  * @description     Unit tests for user authentication, login, logout, and security features
  * @file            webapp/tests/unit/user/user-authentication.test.js
- * @version         0.7.14
- * @release         2025-09-18
+ * @version         0.7.15
+ * @release         2025-09-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           80%, Cursor 1.2, Claude Sonnet 4
  */
 
 import { jest } from '@jest/globals';
@@ -70,11 +70,11 @@ describe('User Authentication Tests', () => {
                 if (!user || user.status !== 'active') {
                     return null;
                 }
-                
+
                 // In real implementation, this would use bcrypt.compare
                 // For test, we simulate successful password verification
                 const isValidPassword = true;
-                
+
                 if (!isValidPassword) {
                     return null;
                 }
@@ -85,7 +85,7 @@ describe('User Authentication Tests', () => {
             };
 
             const result = authenticateUser(mockUser, 'correctpassword');
-            
+
             expect(result).toBeDefined();
             expect(result.passwordHash).toBeUndefined();
             expect(result._id).toBe('507f1f77bcf86cd799439011');
@@ -328,11 +328,11 @@ describe('User Authentication Tests', () => {
                     if (!identifier || !password) {
                         throw new Error('Missing credentials');
                     }
-                    
+
                     if (identifier === 'error_user') {
                         throw new Error('Database connection failed');
                     }
-                    
+
                     return null; // User not found
                 } catch (error) {
                     throw new Error(`Authentication failed: ${error.message}`);

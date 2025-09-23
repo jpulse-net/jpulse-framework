@@ -3,13 +3,13 @@
  * @tagline         Integration tests for admin route authentication (W-013)
  * @description     Tests admin route protection and authentication middleware
  * @file            webapp/tests/integration/admin-routes.test.js
- * @version         0.7.14
- * @release         2025-09-18
+ * @version         0.7.15
+ * @release         2025-09-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           80%, Cursor 1.2, Claude Sonnet 4
  */
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
@@ -194,7 +194,7 @@ describe('Admin Routes Authentication (W-013)', () => {
     describe('Admin route patterns', () => {
         test('should protect /admin/ route', () => {
             mockReq.path = '/admin/';
-            
+
             // Test that the route pattern matches
             const adminRoutePattern = /^\/admin\/.*/;
             expect(adminRoutePattern.test(mockReq.path)).toBe(true);
@@ -202,21 +202,21 @@ describe('Admin Routes Authentication (W-013)', () => {
 
         test('should protect /admin/config.shtml route', () => {
             mockReq.path = '/admin/config.shtml';
-            
+
             const adminRoutePattern = /^\/admin\/.*/;
             expect(adminRoutePattern.test(mockReq.path)).toBe(true);
         });
 
         test('should protect /admin/logs.shtml route', () => {
             mockReq.path = '/admin/logs.shtml';
-            
+
             const adminRoutePattern = /^\/admin\/.*/;
             expect(adminRoutePattern.test(mockReq.path)).toBe(true);
         });
 
         test('should protect /admin/users.shtml route', () => {
             mockReq.path = '/admin/users.shtml';
-            
+
             const adminRoutePattern = /^\/admin\/.*/;
             expect(adminRoutePattern.test(mockReq.path)).toBe(true);
         });
@@ -224,7 +224,7 @@ describe('Admin Routes Authentication (W-013)', () => {
         test('should not protect non-admin routes', () => {
             const nonAdminPaths = ['/home/', '/user/profile.shtml', '/auth/login.shtml'];
             const adminRoutePattern = /^\/admin\/.*/;
-            
+
             nonAdminPaths.forEach(path => {
                 expect(adminRoutePattern.test(path)).toBe(false);
             });

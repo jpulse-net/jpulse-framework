@@ -3,13 +3,13 @@
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/utils/i18n.js
- * @version         0.7.14
- * @release         2025-09-18
+ * @version         0.7.15
+ * @release         2025-09-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           70%, Cursor 1.2, Claude Sonnet 4
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
  */
 
 // Load required modules for path resolution and file system operations

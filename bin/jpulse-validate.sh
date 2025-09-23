@@ -7,13 +7,13 @@
  #                  - Auto-run by jpulse-validate.sh
  #                  - Context-aware: respects dev vs prod deployment settings
  # @file            bin/jpulse-validate.sh
- # @version         0.7.14
- # @release         2025-09-18
+ # @version         0.7.15
+ # @release         2025-09-22
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @license         AGPL v3, see LICENSE file
- # @genai           95%, Cursor 1.2, Claude Sonnet 4
+ # @genai           60%, Cursor 1.2, Claude Sonnet 4
 ##
 
 set -e
@@ -460,7 +460,7 @@ main() {
         done
         echo ""
         echo "💡 Run with deployment-specific guidance:"
-        echo "   - Development: Some services (nginx, MongoDB) may not be needed"
+        echo "   - Development: Some services (nginx) may not be needed"
         echo "   - Production: All services should be installed and configured"
         echo "   - Check deployment documentation for troubleshooting"
         exit 1

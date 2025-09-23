@@ -4,13 +4,13 @@
  * @tagline         Framework update wrapper with dry-run support
  * @description     Safely updates framework package and syncs files
  * @file            bin/update.js
- * @version         0.7.14
- * @release         2025-09-18
+ * @version         0.7.15
+ * @release         2025-09-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           95%, Cursor 1.2, Claude Sonnet 4
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
  */
 
 import { execSync } from 'child_process';

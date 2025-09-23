@@ -3,21 +3,21 @@
  * @tagline         Demo Site Controller Override
  * @description     Example of how to override framework controllers
  * @file            site/webapp/controller/hello.js
- * @version         0.7.14
- * @release         2025-09-18
+ * @version         0.7.15
+ * @release         2025-09-22
  * @author          Site Developer
  * @license         AGPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
  */
 
 /**
  * Demo Hello Controller - Site Override Example
- * 
+ *
  * This demonstrates how site-specific controllers can provide
  * API endpoints. Views are handled automatically by the framework.
  */
 class HelloController {
-    
+
     /**
      * API endpoint example - accessible via /api/1/hello
      * @param {Object} req - Express request object
@@ -26,7 +26,7 @@ class HelloController {
     static async api(req, res) {
         try {
             LogController.logInfo(req, 'hello.api: Site API override accessed');
-            
+
             res.json({
                 message: 'Hello from site override API!',
                 site: appConfig.app.name,
@@ -39,7 +39,7 @@ class HelloController {
                     pathResolution: 'site/webapp/ → webapp/ (framework fallback)'
                 }
             });
-            
+
         } catch (error) {
             LogController.logError(req, `hello.api: error: ${error.message}`);
             CommonUtils.sendError(res, 500, 'API error');

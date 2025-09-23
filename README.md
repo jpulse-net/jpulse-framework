@@ -1,4 +1,4 @@
-# jPulse Framework v0.7.14
+# jPulse Framework v0.7.15
 
 A modern, lightweight web application framework designed for enterprise and government organizations. Built with Node.js, Express, and MongoDB, jPulse combines the simplicity of traditional server-side rendering with modern development practices.
 
@@ -75,7 +75,7 @@ npm start
 
 ```
 my-jpulse-site/
-├── webapp/               # Framework files (managed by jpulse-sync)
+├── webapp/               # Framework files (managed by jpulse-update)
 │   ├── controller/       # Base controllers
 │   ├── model/            # Data models
 │   ├── view/             # Base templates
@@ -86,6 +86,7 @@ my-jpulse-site/
 │   ├── model/            # Custom models
 │   ├── view/             # Custom views
 │   └── static/           # Custom assets
+├── logs -> /var/log/...  # Symbolic link to system log directory
 └── package.json          # Dependencies (@peterthoeny/jpulse-framework)
 ```
 
@@ -123,11 +124,11 @@ npm update @peterthoeny/jpulse-framework && npm run jpulse-update
 
 ## Latest Release Highlights
 
-- ✅ **Package Distribution (v0.5.5)** - npm-based site creation with `npx jpulse-configure`
+- ✅ **Enhanced Deployment & Testing (v0.7.15)** - Comprehensive deployment validation with 17 new tests, MongoDB setup fixes, and symbolic logs directory
+- ✅ **Clean Deployment Strategy (v0.7.0)** - Complete "don't make me think" deployment automation with interactive setup
+- ✅ **Package Distribution (v0.6.0+)** - npm-based site creation with `npx jpulse-configure`
+- ✅ **Dual Licensing (v0.5.5)** - AGPL v3 open source with commercial licensing options
 - ✅ **Enterprise UI Widgets (v0.5.2)** - Complete dialog system with draggable windows
-- ✅ **Site Development Guidelines (v0.5.1)** - Comprehensive development framework
-- ✅ **Site Override Architecture (v0.5.0)** - Seamless framework updates
-- ✅ **Admin Configuration System (v0.4.10)** - Intuitive settings management
 
 ## Community & Support
 

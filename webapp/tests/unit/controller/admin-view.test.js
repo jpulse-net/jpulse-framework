@@ -3,13 +3,13 @@
  * @tagline         Unit tests for admin dashboard view rendering (W-013)
  * @description     Tests admin dashboard view controller functionality and template rendering
  * @file            webapp/tests/unit/controller/admin-view.test.js
- * @version         0.7.14
- * @release         2025-09-18
+ * @version         0.7.15
+ * @release         2025-09-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           80%, Cursor 1.2, Claude Sonnet 4
  */
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
@@ -188,7 +188,7 @@ describe.skip('Admin Dashboard View Rendering (W-013)', () => {
 
             expect(mockRes.send).toHaveBeenCalled();
             const renderedContent = mockRes.send.mock.calls[0][0];
-            
+
             // Check that i18n variables were processed
             expect(renderedContent).toContain('Admin Dashboard');
             expect(renderedContent).toContain('View Logs');
@@ -208,7 +208,7 @@ describe.skip('Admin Dashboard View Rendering (W-013)', () => {
 
             expect(mockRes.send).toHaveBeenCalled();
             const renderedContent = mockRes.send.mock.calls[0][0];
-            
+
             expect(renderedContent).toContain('Verwalten Sie Ihre App');
         });
 
@@ -227,7 +227,7 @@ describe.skip('Admin Dashboard View Rendering (W-013)', () => {
 
             expect(mockRes.send).toHaveBeenCalled();
             const renderedContent = mockRes.send.mock.calls[0][0];
-            
+
             expect(renderedContent).toContain('Admin');
             expect(renderedContent).toContain('admin');
             expect(renderedContent).toContain('jPulse Framework - Custom Site');
@@ -262,12 +262,12 @@ describe.skip('Admin Dashboard View Rendering (W-013)', () => {
 
             expect(mockRes.send).toHaveBeenCalled();
             const renderedContent = mockRes.send.mock.calls[0][0];
-            
+
             // Check that asset paths are correct
             expect(renderedContent).toContain('/assets/admin/icons/logs.svg');
             expect(renderedContent).toContain('/assets/admin/icons/config.svg');
             expect(renderedContent).toContain('/assets/admin/icons/users.svg');
-            
+
             // Check that CSS classes are present
             expect(renderedContent).toContain('jp-dashboard-grid');
             expect(renderedContent).toContain('jp-card-dashboard');
@@ -288,7 +288,7 @@ describe.skip('Admin Dashboard View Rendering (W-013)', () => {
 
             expect(mockRes.send).toHaveBeenCalled();
             const renderedContent = mockRes.send.mock.calls[0][0];
-            
+
             expect(renderedContent).toContain('href="/admin/logs.shtml"');
             expect(renderedContent).toContain('href="/admin/config.shtml"');
             expect(renderedContent).toContain('href="/admin/users.shtml"');
@@ -335,7 +335,7 @@ describe.skip('Admin Dashboard View Rendering (W-013)', () => {
 
             expect(mockRes.send).toHaveBeenCalled();
             const renderedContent = mockRes.send.mock.calls[0][0];
-            
+
             expect(renderedContent).toContain('Authenticated: adminuser');
             expect(renderedContent).not.toContain('Not authenticated');
         });
@@ -350,7 +350,7 @@ describe.skip('Admin Dashboard View Rendering (W-013)', () => {
 
             expect(mockRes.send).toHaveBeenCalled();
             const renderedContent = mockRes.send.mock.calls[0][0];
-            
+
             expect(renderedContent).toContain('Roles: admin');
         });
     });
@@ -373,7 +373,7 @@ describe.skip('Admin Dashboard View Rendering (W-013)', () => {
 
             expect(mockRes.send).toHaveBeenCalled();
             const renderedContent = mockRes.send.mock.calls[0][0];
-            
+
             // Check responsive container classes
             expect(renderedContent).toContain('jp-main');
             expect(renderedContent).toContain('jp-container-800');

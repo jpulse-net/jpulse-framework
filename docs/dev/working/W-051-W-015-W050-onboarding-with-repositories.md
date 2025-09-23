@@ -83,13 +83,13 @@ static resolveModule(modulePath) {
     if (fs.existsSync(siteWebappPath)) {
         return siteWebappPath;
     }
-    
+
     // 2. Framework fallback (from node_modules)
     const frameworkPath = path.join(process.cwd(), 'node_modules/@peterthoeny/jpulse-framework/webapp', modulePath);
     if (fs.existsSync(frameworkPath)) {
         return frameworkPath;
     }
-    
+
     throw new Error(`Module not found: ${modulePath}`);
 }
 ```

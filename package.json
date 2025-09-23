@@ -1,6 +1,6 @@
 {
     "name": "@peterthoeny/jpulse-framework",
-    "version": "0.7.14",
+    "version": "0.7.15",
     "description": "Generic web application framework using MongoDB, Node.js, Express",
     "type": "module",
     "main": "webapp/app.js",
@@ -26,6 +26,8 @@
         "test:unit": "jest webapp/tests/unit --runInBand",
         "test:integration": "jest webapp/tests/integration --runInBand",
         "test:cli": "node bin/test-cli.js",
+        "test:cli-enhanced": "node bin/test-cli-enhanced.js",
+        "test:mongodb-validation": "node bin/test-mongodb-validation.js",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
         "publish:github": "npm publish --registry=https://npm.pkg.github.com"

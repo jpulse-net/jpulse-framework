@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Installation Guide v0.7.14
+# jPulse Framework / Docs / Site Installation Guide v0.7.15
 
 This guide covers creating and setting up jPulse sites for development and production environments.
 
@@ -203,7 +203,7 @@ pm2 stop all
 The PM2 development configuration includes:
 - Automatic file watching and restart
 - Debug mode support (`--inspect`)
-- Local log files in `./logs/`
+- Local log files accessible via `./logs/` (symbolic link to system log directory)
 - Single instance (no clustering)
 
 ### Production Process Management
@@ -223,7 +223,7 @@ pm2 startup
 
 The PM2 production configuration includes:
 - Cluster mode with configurable instances
-- System-level logging (`/var/log/jpulse/`)
+- System-level logging (`/var/log/jpulse/`) with convenient `./logs/` symlink access
 - Memory monitoring and restart policies
 - Health checks and graceful shutdown
 

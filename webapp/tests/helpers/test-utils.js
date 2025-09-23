@@ -3,13 +3,13 @@
  * @tagline         Test utilities for the jPulse Framework WebApp
  * @description     Common utilities and helpers for testing
  * @file            webapp/tests/helpers/test-utils.js
- * @version         0.7.14
- * @release         2025-09-18
+ * @version         0.7.15
+ * @release         2025-09-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           80%, Cursor 1.2, Claude Sonnet 4
  */
 
 import fs from 'fs';
@@ -41,7 +41,7 @@ export class TestUtils {
             } else {
                 // Use consolidated configuration (same as app.js)
                 const jsonPath = path.join(projectRoot, '.jpulse', 'app.json');
-                
+
                 if (fs.existsSync(jsonPath)) {
                     // Load from consolidated JSON (preferred)
                     return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
@@ -64,7 +64,7 @@ export class TestUtils {
     static getConsolidatedConfig() {
         try {
             const jsonPath = path.join(projectRoot, '.jpulse', 'app.json');
-            
+
             if (fs.existsSync(jsonPath)) {
                 return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
             } else {
@@ -72,14 +72,14 @@ export class TestUtils {
                 const confPath = path.join(projectRoot, 'webapp', 'app.conf');
                 const content = fs.readFileSync(confPath, 'utf8');
                 const config = new Function(`return (${content})`)();
-                
+
                 // Optionally save it for future use
                 const jpulseDir = path.dirname(jsonPath);
                 if (!fs.existsSync(jpulseDir)) {
                     fs.mkdirSync(jpulseDir, { recursive: true });
                 }
                 fs.writeFileSync(jsonPath, JSON.stringify(config, null, 2));
-                
+
                 return config;
             }
         } catch (error) {
@@ -188,8 +188,8 @@ export class TestUtils {
             console.warn('Failed to setup consolidated config, using fallback:', error.message);
             // Fallback config must include all properties that modules need
             global.appConfig = {
-                app: { 
-                    name: 'Test App', 
+                app: {
+                    name: 'Test App',
                     version: '0.0.0',
                     dirName: path.join(projectRoot, 'webapp') // Critical for i18n to find translations
                 },
@@ -197,7 +197,7 @@ export class TestUtils {
                 i18n: { default: 'en' }, // Critical for i18n default language
                 // Add other critical config sections that modules might need
                 database: { mode: 'standalone' },
-                controller: { 
+                controller: {
                     view: { defaultTemplate: 'index.shtml' }
                 }
             };

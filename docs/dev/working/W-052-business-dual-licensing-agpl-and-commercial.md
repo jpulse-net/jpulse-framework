@@ -28,7 +28,7 @@ Implement dual licensing strategy using AGPL v3 for open source community and co
 
 **AGPL Solution**: Any SaaS provider using jPulse must:
 - Provide complete source code to all users
-- Include all modifications and integrations  
+- Include all modifications and integrations
 - Maintain source availability infrastructure
 - Risk competitive disadvantage from source disclosure
 
@@ -69,7 +69,7 @@ Implement dual licensing strategy using AGPL v3 for open source community and co
 jPulse Framework Contributor License Agreement
 
 1. Grant of Copyright License
-2. Grant of Patent License  
+2. Grant of Patent License
 3. Representations and Warranties
 4. Dual Licensing Rights
 5. Commercial Use Authorization
@@ -130,7 +130,7 @@ jPulse Framework Contributor License Agreement
 Core Framework: AGPL v3
 ```
 ├── webapp/controller/     (AGPL)
-├── webapp/model/         (AGPL)  
+├── webapp/model/         (AGPL)
 ├── webapp/view/          (AGPL)
 ├── webapp/utils/         (AGPL)
 ├── webapp/static/        (AGPL)

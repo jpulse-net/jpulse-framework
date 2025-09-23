@@ -177,7 +177,7 @@ webapp/static/
     ├── jpulse-common.js            # Enhanced utilities
     ├── shared/
     │   ├── JPulseLayout.vue
-    │   ├── JPulseHeader.vue  
+    │   ├── JPulseHeader.vue
     │   ├── JPulseFooter.vue
     │   ├── JPulseLiveTable.vue
     │   └── components.js           # Registers shared components
@@ -227,7 +227,7 @@ window.jPulse.registerFrameworkComponents('shared', {
   JPulseLiveTable: () => import('./JPulseLiveTable.vue')
 });
 
-// webapp/static/view/user/components.js  
+// webapp/static/view/user/components.js
 // Register framework user components
 window.jPulse.registerFrameworkComponents('user', {
   Profile: () => import('./Profile.vue'),
@@ -249,7 +249,7 @@ window.jPulse.registerFrameworkComponents('home', {
 });
 
 // webapp/static/view/error/components.js
-// Register framework error components  
+// Register framework error components
 window.jPulse.registerFrameworkComponents('error', {
   NotFound: () => import('./NotFound.vue'),
   ServerError: () => import('./ServerError.vue')
@@ -313,19 +313,19 @@ async function load(req, res) {
   const startTime = Date.now();
   const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
   const loginId = req.session?.user?.loginId || '(guest)';
-  
+
   try {
     // Log the request
     logController.consoleApi(req, `view.load( ${req.path} )`);
-    
+
     // Determine section from path (maintains MVC mental model)
     const pathParts = req.path.split('/').filter(p => p);
     const section = pathParts[0] || 'home';  // user, auth, dashboard, home, etc.
     const page = pathParts[1] || 'index';
-    
+
     // Get global config for context
     const globalConfig = await configModel.findById('global');
-    
+
     // Build context (same as before but enhanced for Vue routing)
     const context = {
       app: {
@@ -354,9 +354,9 @@ async function load(req, res) {
       },
       i18n: i18n.getLang(AuthController.getUserLanguage(req)),
       // Add routing info for Vue
-      route: { 
-        section, 
-        page, 
+      route: {
+        section,
+        page,
         path: req.path,
         fullPath: req.url
       },
@@ -365,14 +365,14 @@ async function load(req, res) {
 
     // Serve Vue app bootstrap HTML
     const html = generateVueAppHtml(context, section);
-    
+
     // Log completion time
     const duration = Date.now() - startTime;
     logController.console(req, `view.load completed in ${duration}ms`);
-    
+
     res.set('Content-Type', 'text/html');
     res.send(html);
-    
+
   } catch (error) {
     logController.error(req, `view.load error: ${error.message}`);
     res.status(500).send('Internal server error');
@@ -389,10 +389,10 @@ function generateVueAppHtml(context, section) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${context.app.version} - jPulse</title>
-  
+
   <!-- Framework styles -->
   <link rel="stylesheet" href="/static/view/jpulse-styles.css">
-  
+
   <!-- Site-specific styles if they exist -->
   <link rel="stylesheet" href="/static/site/webapp/view/site-styles.css">
 </head>
@@ -403,25 +403,25 @@ function generateVueAppHtml(context, section) {
       <p>Loading jPulse...</p>
     </div>
   </div>
-  
+
   <!-- Context data for Vue hydration -->
   <script type="application/json" id="jpulse-context">
 ${JSON.stringify(context, null, 2)}
   </script>
-  
+
   <!-- Framework dependencies -->
   <script src="/static/vue.js"></script>
   <script src="/static/view/jpulse-common.js"></script>
   <script src="/static/view/jpulse-vue-core.js"></script>
-  
+
   <!-- Load framework components for this section -->
   <script src="/static/view/shared/components.js"></script>
   <script src="/static/view/${section}/components.js"></script>
-  
+
   <!-- Load site components (overrides + custom sections) -->
   <script src="/static/site/webapp/view/${section}/components.js"></script>
   <script src="/static/site/webapp/view/site-app.js"></script>
-  
+
   <script>
     // Initialize Vue app with framework/site component resolution
     document.addEventListener('DOMContentLoaded', function() {
@@ -492,7 +492,7 @@ window.jPulseCommon = {
         <button class="jpulse-toast-close" onclick="this.closest('.jpulse-toast').remove()">×</button>
       </div>
     `;
-    
+
     // Add to toast container or create one
     let container = document.querySelector('.jpulse-toast-container');
     if (!container) {
@@ -500,9 +500,9 @@ window.jPulseCommon = {
       container.className = 'jpulse-toast-container';
       document.body.appendChild(container);
     }
-    
+
     container.appendChild(toast);
-    
+
     // Auto-remove after duration
     setTimeout(() => {
       if (toast.parentNode) {
@@ -510,8 +510,8 @@ window.jPulseCommon = {
       }
     }, duration);
   },
-  
-  // Existing Browser/Device Detection  
+
+  // Existing Browser/Device Detection
   detectOs: () => {
     const userAgent = navigator.userAgent;
     if (userAgent.indexOf('Windows') !== -1) return 'Windows';
@@ -534,7 +534,7 @@ window.jPulseCommon = {
   isMobile: () => window.innerWidth <= 768,
   isTouchDevice: () => 'ontouchstart' in window,
   windowHasFocus: () => document.hasFocus(),
-  
+
   // Existing Cookie Management
   getCookie: (name) => {
     const value = `; ${document.cookie}`;
@@ -548,7 +548,7 @@ window.jPulseCommon = {
     expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
     document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
   },
-  
+
   // Enhanced String Utilities
   entityEncode: (str) => {
     const div = document.createElement('div');
@@ -561,12 +561,12 @@ window.jPulseCommon = {
     div.innerHTML = str;
     return div.textContent;
   },
-  
+
   // Enhanced Form Utilities
   validateForm: (formElement) => {
     const inputs = formElement.querySelectorAll('input[required], select[required], textarea[required]');
     const errors = [];
-    
+
     inputs.forEach(input => {
       if (!input.value.trim()) {
         errors.push(`${input.name || input.id} is required`);
@@ -574,7 +574,7 @@ window.jPulseCommon = {
       } else {
         input.classList.remove('jpulse-input-error');
       }
-      
+
       // Email validation
       if (input.type === 'email' && input.value) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -584,7 +584,7 @@ window.jPulseCommon = {
         }
       }
     });
-    
+
     return {
       isValid: errors.length === 0,
       errors
@@ -594,7 +594,7 @@ window.jPulseCommon = {
   serializeForm: (formElement) => {
     const formData = new FormData(formElement);
     const data = {};
-    
+
     for (let [key, value] of formData.entries()) {
       // Handle multiple values (checkboxes, multi-selects)
       if (data[key]) {
@@ -607,10 +607,10 @@ window.jPulseCommon = {
         data[key] = value;
       }
     }
-    
+
     return data;
   },
-  
+
   // Enhanced API Helpers with Vue reactivity support
   apiCall: async (endpoint, options = {}) => {
     const defaultOptions = {
@@ -620,37 +620,37 @@ window.jPulseCommon = {
         'X-Requested-With': 'XMLHttpRequest'
       }
     };
-    
+
     const config = { ...defaultOptions, ...options };
-    
+
     // Add CSRF token if available
     const csrfToken = window.jPulseCommon.getCookie('csrf-token');
     if (csrfToken) {
       config.headers['X-CSRF-Token'] = csrfToken;
     }
-    
+
     try {
       const response = await fetch(endpoint, config);
-      
+
       // Handle different response types
       const contentType = response.headers.get('content-type');
       let data;
-      
+
       if (contentType && contentType.includes('application/json')) {
         data = await response.json();
       } else {
         data = await response.text();
       }
-      
+
       // Trigger Vue reactivity if components are listening
       if (window.jPulse && window.jPulse.broadcast) {
-        window.jPulse.broadcast('api-response', { 
-          endpoint, 
+        window.jPulse.broadcast('api-response', {
+          endpoint,
           response: { ...response, data },
-          success: response.ok 
+          success: response.ok
         });
       }
-      
+
       // Enhanced response object
       const enhancedResponse = {
         ...response,
@@ -658,15 +658,15 @@ window.jPulseCommon = {
         success: response.ok,
         error: response.ok ? null : new Error(`HTTP ${response.status}: ${response.statusText}`)
       };
-      
+
       return enhancedResponse;
-      
+
     } catch (error) {
       // Broadcast error to Vue components
       if (window.jPulse && window.jPulse.broadcast) {
         window.jPulse.broadcast('api-error', { endpoint, error });
       }
-      
+
       throw error;
     }
   },
@@ -678,7 +678,7 @@ window.jPulseCommon = {
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
-    
+
     return format
       .replace('YYYY', year)
       .replace('MM', month)
@@ -723,7 +723,7 @@ window.jPulseCommon = {
 
   // Utility to check if we're in development mode
   isDev: () => {
-    return window.location.hostname === 'localhost' || 
+    return window.location.hostname === 'localhost' ||
            window.location.hostname === '127.0.0.1' ||
            window.location.search.includes('debug=true');
   },
@@ -731,20 +731,20 @@ window.jPulseCommon = {
   // Simple event emitter for cross-component communication
   eventBus: {
     events: {},
-    
+
     on(event, callback) {
       if (!this.events[event]) {
         this.events[event] = [];
       }
       this.events[event].push(callback);
     },
-    
+
     off(event, callback) {
       if (this.events[event]) {
         this.events[event] = this.events[event].filter(cb => cb !== callback);
       }
     },
-    
+
     emit(event, data) {
       if (this.events[event]) {
         this.events[event].forEach(callback => callback(data));
@@ -770,7 +770,7 @@ document.addEventListener('DOMContentLoaded', () => {
         right: 20px;
         z-index: 10000;
       }
-      
+
       .jpulse-toast {
         background: white;
         border-radius: 4px;
@@ -778,21 +778,21 @@ document.addEventListener('DOMContentLoaded', () => {
         margin-bottom: 10px;
         animation: jpulse-slide-in 0.3s ease-out;
       }
-      
+
       .jpulse-toast-success { border-left: 4px solid #4CAF50; }
       .jpulse-toast-error { border-left: 4px solid #f44336; }
       .jpulse-toast-info { border-left: 4px solid #2196F3; }
-      
+
       .jpulse-input-error {
         border-color: #f44336 !important;
         background-color: #fff5f5 !important;
       }
-      
+
       @keyframes jpulse-slide-in {
         from { transform: translateX(100%); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
       }
-      
+
       .loading-spinner {
         display: flex;
         flex-direction: column;
@@ -800,7 +800,7 @@ document.addEventListener('DOMContentLoaded', () => {
         justify-content: center;
         height: 100vh;
       }
-      
+
       .spinner {
         width: 40px;
         height: 40px;
@@ -809,7 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
-      
+
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
@@ -829,36 +829,36 @@ window.jPulse = {
   frameworkComponents: {},
   siteComponents: {},
   activeApp: null,
-  
+
   // WebSocket management with Vue reactivity
   websocket: {
     connections: new Map(),
-    
+
     connect(endpoint) {
       if (this.connections.has(endpoint)) {
         return this.connections.get(endpoint);
       }
-      
+
       const ws = new WebSocket(endpoint);
-      const reactiveData = reactive({ 
-        connected: false, 
+      const reactiveData = reactive({
+        connected: false,
         data: {},
         error: null,
         reconnectAttempts: 0
       });
-      
+
       ws.onopen = () => {
         reactiveData.connected = true;
         reactiveData.error = null;
         reactiveData.reconnectAttempts = 0;
         console.log(`WebSocket connected: ${endpoint}`);
       };
-      
+
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           reactiveData.data = data;
-          
+
           // Broadcast to Vue app
           if (this.activeApp) {
             this.activeApp.config.globalProperties.$emit('websocket-message', {
@@ -870,16 +870,16 @@ window.jPulse = {
           console.error('WebSocket message parsing error:', error);
         }
       };
-      
+
       ws.onerror = (error) => {
         reactiveData.error = error;
         reactiveData.connected = false;
         console.error(`WebSocket error on ${endpoint}:`, error);
       };
-      
+
       ws.onclose = () => {
         reactiveData.connected = false;
-        
+
         // Attempt reconnection with exponential backoff
         if (reactiveData.reconnectAttempts < 5) {
           const delay = Math.pow(2, reactiveData.reconnectAttempts) * 1000;
@@ -889,12 +889,12 @@ window.jPulse = {
           }, delay);
         }
       };
-      
+
       const connection = { ws, reactive: reactiveData };
       this.connections.set(endpoint, connection);
       return connection;
     },
-    
+
     disconnect(endpoint) {
       const connection = this.connections.get(endpoint);
       if (connection) {
@@ -923,7 +923,7 @@ window.jPulse = {
   // Get component with site override priority
   getComponent(section, componentName) {
     // Site components take priority over framework
-    return this.siteComponents[section]?.[componentName] || 
+    return this.siteComponents[section]?.[componentName] ||
            this.frameworkComponents[section]?.[componentName] ||
            null;
   },
@@ -935,7 +935,7 @@ window.jPulse = {
       console.error('No context data found');
       return;
     }
-    
+
     // Create main Vue app
     const app = createApp({
       data() {
@@ -948,11 +948,11 @@ window.jPulse = {
           $route: route
         };
       },
-      
+
       methods: {
         // Expose jPulse utilities to all components
         ...window.jPulseCommon,
-        
+
         // WebSocket connection helper
         connectWebSocket(endpoint) {
           if (!this.wsConnections[endpoint]) {
@@ -960,29 +960,29 @@ window.jPulse = {
           }
           return this.wsConnections[endpoint];
         },
-        
+
         // Navigate to different section (SPA-style)
         navigateTo(path) {
           // Update browser URL without page refresh
           window.history.pushState({}, '', path);
-          
+
           // Parse new route
           const pathParts = path.split('/').filter(p => p);
           const newSection = pathParts[0] || 'home';
           const newPage = pathParts[1] || 'index';
-          
+
           this.$route = {
             section: newSection,
             page: newPage,
             path: path,
             fullPath: path
           };
-          
+
           // Load new section components if needed
           this.loadSectionComponents(newSection);
         }
       },
-      
+
       // Provide data to all child components
       provide() {
         return {
@@ -993,31 +993,31 @@ window.jPulse = {
         };
       }
     });
-    
+
     // Register shared components (available to all sections)
     const sharedComponents = {
       ...this.frameworkComponents.shared,
       ...this.siteComponents.shared
     };
-    
+
     Object.entries(sharedComponents).forEach(([name, component]) => {
       app.component(name, component);
     });
-    
+
     // Register section-specific components with site override priority
     const sectionComponents = {
       ...this.frameworkComponents[section],
       ...this.siteComponents[section] // Site components override framework
     };
-    
+
     Object.entries(sectionComponents).forEach(([name, component]) => {
       app.component(name, component);
     });
-    
+
     // Mount the app
     this.activeApp = app;
     app.mount('#app');
-    
+
     console.log(`jPulse Vue app initialized for section: ${section}`);
   },
 
@@ -1058,17 +1058,17 @@ window.addEventListener('popstate', (event) => {
 <!-- jpulse-framework/webapp/view/shared/JPulseLayout.vue -->
 <template>
   <div class="jpulse-app">
-    <JPulseHeader 
-      :user="$context.user" 
+    <JPulseHeader
+      :user="$context.user"
       :app-version="$context.app.version"
       @navigate="$parent.navigateTo" />
-    
+
     <main class="jpulse-main">
       <slot />
     </main>
-    
-    <JPulseFooter 
-      :ws-status="wsStatus" 
+
+    <JPulseFooter
+      :ws-status="wsStatus"
       :app-info="$context.app" />
   </div>
 </template>
@@ -1077,13 +1077,13 @@ window.addEventListener('popstate', (event) => {
 export default {
   name: 'JPulseLayout',
   inject: ['$context', '$jPulse'],
-  
+
   data() {
     return {
       wsStatus: { connected: false, connections: 0 }
     };
   },
-  
+
   created() {
     // Monitor WebSocket connections for footer status
     this.$watch(() => this.$jPulse.websocket.connections.size, (count) => {
@@ -1103,13 +1103,13 @@ export default {
   <JPulseLayout>
     <div class="user-profile">
       <h1>{{ $context.i18n.user.profile.title }}</h1>
-      
+
       <div v-if="$context.user.authenticated" class="profile-content">
         <!-- Interactive profile editing -->
-        <UserEditor 
-          :user="$context.user" 
+        <UserEditor
+          :user="$context.user"
           @profile-updated="handleProfileUpdate" />
-        
+
         <!-- Real-time user activity -->
         <div class="activity-panel">
           <h3>Live Activity</h3>
@@ -1119,10 +1119,10 @@ export default {
           <div v-else class="ws-status disconnected">
             ○ Connecting...
           </div>
-          
+
           <div class="activity-list">
-            <div v-for="activity in activities" 
-                 :key="activity.id" 
+            <div v-for="activity in activities"
+                 :key="activity.id"
                  class="activity-item">
               <span class="timestamp">{{ formatTime(activity.timestamp) }}</span>
               <span class="message">{{ activity.message }}</span>
@@ -1130,7 +1130,7 @@ export default {
           </div>
         </div>
       </div>
-      
+
       <div v-else class="alert alert-error">
         {{ $context.i18n.login.notAuthenticated }}
       </div>
@@ -1145,21 +1145,21 @@ export default {
   name: 'Profile',
   components: { UserEditor },
   inject: ['$context', '$jPulse'],
-  
+
   data() {
     return {
       activities: [],
       activityWs: null
     };
   },
-  
+
   created() {
     if (this.$context.user.authenticated) {
       // Connect to user activity WebSocket
       this.activityWs = this.$jPulse.connectWebSocket(
         `/ws/user/${this.$context.user.id}/activity`
       );
-      
+
       // Watch for new activity data
       this.$watch(() => this.activityWs.reactive.data, (newData) => {
         if (newData && newData.type === 'activity') {
@@ -1172,7 +1172,7 @@ export default {
       }, { deep: true });
     }
   },
-  
+
   methods: {
     async handleProfileUpdate(updatedData) {
       try {
@@ -1181,7 +1181,7 @@ export default {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedData)
         });
-        
+
         if (response.ok) {
           // Update context user data
           Object.assign(this.$context.user, updatedData);
@@ -1191,7 +1191,7 @@ export default {
         this.showMessage('Error updating profile', 'error');
       }
     },
-    
+
     formatTime(timestamp) {
       return new Date(timestamp).toLocaleTimeString();
     }
@@ -1208,20 +1208,20 @@ export default {
   <JPulseLayout>
     <div class="custom-user-profile">
       <h1>{{ $context.i18n.user.profile.title }} - Custom Site Version</h1>
-      
+
       <div v-if="$context.user.authenticated" class="profile-content">
         <!-- Use custom site components -->
         <SiteUserCard :user="$context.user" />
-        
+
         <!-- Site-specific feature: Sales performance -->
         <div class="sales-performance" v-if="salesData">
           <h3>Your Sales Performance</h3>
           <SalesChart :data="salesData" />
         </div>
-        
+
         <!-- Still use framework components where appropriate -->
-        <UserEditor 
-          :user="$context.user" 
+        <UserEditor
+          :user="$context.user"
           @profile-updated="handleProfileUpdate" />
       </div>
     </div>
@@ -1237,20 +1237,20 @@ export default {
   name: 'CustomProfile',
   components: { UserEditor, SiteUserCard, SalesChart },
   inject: ['$context', '$jPulse'],
-  
+
   data() {
     return {
       salesData: null
     };
   },
-  
+
   async created() {
     if (this.$context.user.authenticated) {
       // Load site-specific sales data
       await this.loadSalesData();
     }
   },
-  
+
   methods: {
     async loadSalesData() {
       try {
@@ -1262,7 +1262,7 @@ export default {
         console.error('Error loading sales data:', error);
       }
     },
-    
+
     async handleProfileUpdate(updatedData) {
       // Call parent logic but add site-specific handling
       // ... same as framework Profile.vue but with site-specific enhancements
@@ -1277,14 +1277,14 @@ export default {
 ### Phase 1: Infrastructure Setup
 1. Install Vue.js dependencies
 2. Create `jpulse-vue-core.js` framework integration
-3. Enhance `jpulse-common.js` utilities  
+3. Enhance `jpulse-common.js` utilities
 4. Modify `view.controller.js` for Vue app serving
 5. Create shared layout components (`JPulseLayout`, `JPulseHeader`, `JPulseFooter`)
 
 ### Phase 2: Section-by-Section Conversion
 1. **Start with home section**: Convert `home/index.shtml` → `home/Home.vue`
 2. **Convert user section**: `user/profile.shtml` → `user/Profile.vue`
-3. **Convert auth section**: `auth/login.shtml` → `auth/Login.vue` 
+3. **Convert auth section**: `auth/login.shtml` → `auth/Login.vue`
 4. **Add WebSocket integration**: Real-time features for interactive components
 5. **Test framework/site separation**: Ensure site overrides work properly
 
@@ -1302,7 +1302,7 @@ export default {
 - **Consistent Navigation**: Section-based routing matches backend controller structure
 - **Clean Updates**: Framework updates don't break site customizations
 
-### Vue.js Benefits  
+### Vue.js Benefits
 - **Modern Development**: Component-based architecture, reactive data binding
 - **Real-time Capabilities**: WebSocket integration with Vue reactivity
 - **Large Talent Pool**: Easy to hire Vue.js developers

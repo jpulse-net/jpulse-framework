@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.7.14
+# jPulse Framework / Docs / Dev / Work Items v0.7.15
 
 This is the doc to track work items, arranged in three sections:
 
@@ -259,7 +259,7 @@ This is the doc to track work items, arranged in three sections:
   - SPA is fragile: if one "page" has a runtime error the whole site is down
   - SPA is heavy: if you have 100 "pages", all content is in browser memory
 
-### W-026: config: appConfig structure should match model, controller, and view structure - v0.3.9
+### W-026: config: appConfig structure should match model, controller, and view structure - v0.3.1
 - status: ✅ COMPLETED
 - type: Feature
 - restructure webapp/app.conf to match the file structure with controllers, views, etc.
@@ -757,8 +757,6 @@ This is the doc to track work items, arranged in three sections:
 
 
 
-
-- mongod: require auth
 
 
 

@@ -144,16 +144,16 @@ Static assets follow the same resolution priority as code files, served directly
 
 ```
 location /static/ {
-    try_files /site/webapp/static$uri 
-              /webapp/static$uri 
+    try_files /site/webapp/static$uri
+              /webapp/static$uri
               =404;
 }
 
 # With plugins (W-045):
 location /static/ {
-    try_files /site/webapp/static$uri 
-              /plugins/$plugin_name/webapp/static$uri 
-              /webapp/static$uri 
+    try_files /site/webapp/static$uri
+              /plugins/$plugin_name/webapp/static$uri
+              /webapp/static$uri
               =404;
 }
 ```
@@ -259,7 +259,7 @@ URI Mapping Examples:
             "installedAt": "2025-01-15T10:30:00Z"
         },
         {
-            "name": "dashboard-analytics", 
+            "name": "dashboard-analytics",
             "version": "2.1.0",
             "enabled": true,
             "loadOrder": 2,
@@ -301,7 +301,7 @@ const hooks = {
     'beforeLogin': [],     // Pre-login validation
     'afterLogin': [],      // Post-login actions
 
-    // Request lifecycle hooks  
+    // Request lifecycle hooks
     'beforeRoute': [],     // Route preprocessing
     'afterRoute': [],      // Route postprocessing
     'beforeRender': [],    // Template preprocessing

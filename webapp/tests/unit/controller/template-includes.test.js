@@ -3,13 +3,13 @@
  * @tagline         Unit tests for template include system (header/footer)
  * @description     Tests for the new template include features and file.include helper
  * @file            webapp/tests/unit/controller/template-includes.test.js
- * @version         0.7.14
- * @release         2025-09-18
+ * @version         0.7.15
+ * @release         2025-09-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           80%, Cursor 1.2, Claude Sonnet 4
  */
 
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';

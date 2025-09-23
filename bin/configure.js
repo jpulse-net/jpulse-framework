@@ -4,13 +4,13 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         0.7.14
- * @release         2025-09-18
+ * @version         0.7.15
+ * @release         2025-09-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
  */
 
 import fs from 'fs';
@@ -658,8 +658,7 @@ function createSiteStructure() {
         'site/webapp/model',
         'site/webapp/view',
         'site/webapp/static',
-        'site/webapp/static/assets',
-        'logs'
+        'site/webapp/static/assets'
     ];
 
     siteDirs.forEach(dir => {
@@ -667,6 +666,22 @@ function createSiteStructure() {
             fs.mkdirSync(dir, { recursive: true });
         }
     });
+
+    // Create symbolic link to actual log directory for convenience
+    // This allows developers to access logs via ./logs while maintaining proper system logging
+    const logDir = process.env.LOG_DIR || '/var/log/jpulse';
+    const logsSymlink = 'logs';
+
+    if (!fs.existsSync(logsSymlink)) {
+        try {
+            fs.symlinkSync(logDir, logsSymlink, 'dir');
+            console.log(`📁 Created symbolic link: logs -> ${logDir}`);
+        } catch (error) {
+            // Symbolic link creation might fail due to permissions or if target doesn't exist yet
+            // This is not critical, so we just log it without failing the setup
+            console.log(`ℹ️  Could not create logs symlink (will be available after system setup): ${error.message}`);
+        }
+    }
 }
 
 /**

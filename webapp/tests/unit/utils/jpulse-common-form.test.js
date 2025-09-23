@@ -3,13 +3,13 @@
  * @tagline         Unit Tests for jPulse Common Client-Side Form Utilities
  * @description     Tests for client-side form submission utilities in jpulse-common.js
  * @file            webapp/tests/unit/utils/jpulse-common-form.test.js
- * @version         0.7.14
- * @release         2025-09-18
+ * @version         0.7.15
+ * @release         2025-09-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           100%, Cursor 1.2, Gemini 2.5 Pro, Claude 4 Sonnet
+ * @genai           80%, Cursor 1.2, Gemini 2.5 Pro, Claude 4 Sonnet
  */
 
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
@@ -51,14 +51,14 @@ describe('jPulse.form Submission Handling', () => {
     beforeEach(() => {
         // Clear all existing mocks first
         jest.clearAllMocks();
-        
+
         // Reset mocks before each test
         global.fetch.mockClear();
         showSuccessMock = jest.spyOn(window.jPulse, 'showSlideDownSuccess').mockImplementation(() => {});
         showErrorMock = jest.spyOn(window.jPulse, 'showSlideDownError').mockImplementation(() => {});
         clearErrorsMock = jest.spyOn(window.jPulse.form, 'clearErrors').mockImplementation(() => {});
         setLoadingStateMock = jest.spyOn(window.jPulse.form, 'setLoadingState').mockImplementation(() => {});
-        
+
         // Mock apiCall instead of fetch since handleSubmission uses apiCall
         apiCallMock = jest.spyOn(window.jPulse, 'apiCall');
 
@@ -167,7 +167,7 @@ describe('jPulse.form Submission Handling', () => {
             });
 
             const onSuccess = jest.fn();
-            
+
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
                 await window.jPulse.form.handleSubmission(form, '/api/handle', { onSuccess });
@@ -200,7 +200,7 @@ describe('jPulse.form Submission Handling', () => {
             // Crucially, the default error handler should NOT be called
             expect(showErrorMock).not.toHaveBeenCalled();
         });
-        
+
         test('should show field-specific errors if provided in the API response', async () => {
             apiCallMock.mockResolvedValueOnce({
                 success: false,
@@ -209,11 +209,11 @@ describe('jPulse.form Submission Handling', () => {
                     fieldErrors: { username: 'Already taken' }
                 }
             });
-            
+
             const showFieldErrorsMock = jest.spyOn(window.jPulse.form, 'showFieldErrors').mockImplementation(() => {});
 
             await window.jPulse.form.handleSubmission(form, '/api/handle');
-            
+
             expect(showFieldErrorsMock).toHaveBeenCalledWith(form, { username: 'Already taken' });
         });
     });

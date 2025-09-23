@@ -3,13 +3,13 @@
  * @tagline         Unit Tests for jPulse.UI Dialog and Accordion Widgets (W-048)
  * @description     Tests for client-side UI widgets: alertDialog, infoDialog, accordion
  * @file            webapp/tests/unit/utils/jpulse-ui-widgets.test.js
- * @version         0.7.14
- * @release         2025-09-18
+ * @version         0.7.15
+ * @release         2025-09-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           80%, Cursor 1.2, Claude Sonnet 4
  */
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
@@ -133,7 +133,7 @@ describe('jPulse.UI Dialog Widgets (W-048)', () => {
 
         test('should support raw HTML content', async () => {
             const dialogPromise = window.jPulse.UI.alertDialog('<script>alert("xss")</script><b>Bold</b> and <i>italic</i>');
-            
+
             const message = document.querySelector('.jp-dialog-message');
             // No sanitization - raw HTML is preserved
             expect(message.innerHTML).toBe('<script>alert("xss")</script><b>Bold</b> and <i>italic</i>');

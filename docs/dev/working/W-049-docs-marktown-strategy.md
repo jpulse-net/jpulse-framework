@@ -111,11 +111,11 @@ This is **bold** and *italic* text.
     <script>
         const input = document.getElementById('markdown-input');
         const output = document.getElementById('html-output');
-        
+
         function renderMarkdown() {
             output.innerHTML = marked.parse(input.value);
         }
-        
+
         input.addEventListener('input', renderMarkdown);
         renderMarkdown(); // Initial render
     </script>
@@ -173,7 +173,7 @@ Feature-rich option with extensive plugin ecosystem.
         linkify: true,
         typographer: true
     });
-    
+
     const result = md.render('# Hello World');
     document.getElementById('content').innerHTML = result;
 </script>
@@ -207,11 +207,11 @@ import { marked } from 'marked';
 
 function MarkdownRenderer({ markdown }) {
     const [html, setHtml] = useState('');
-    
+
     useEffect(() => {
         setHtml(marked.parse(markdown));
     }, [markdown]);
-    
+
     return <div dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
@@ -345,9 +345,9 @@ marked.setOptions({
         const validLang = Prism.languages[language] ? language : 'plaintext';
         return `<pre><code class="language-${validLang}">${code}</code></pre>`;
     };
-    
+
     marked.setOptions({ renderer });
-    
+
     // Render markdown then highlight
     const html = marked.parse(markdown);
     document.getElementById('output').innerHTML = html;

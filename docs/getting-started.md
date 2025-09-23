@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Getting Started with jPulse v0.7.14
+# jPulse Framework / Docs / Getting Started with jPulse v0.7.15
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the W-014 override system.
 
@@ -56,11 +56,19 @@ my-first-site/
 
 ## Step 3: Create Your First Custom Page
 
-### Create Site Structure
+### Understanding Site Structure
 ```bash
 # Site structure is already created by jpulse-configure
-mkdir -p site/webapp/{controller,model,view,static}
+# Your site directory includes:
+ls -la
+# webapp/           - Framework files (managed by jpulse-update)
+# site/webapp/      - Your customizations (update-safe)
+# logs -> /var/log/ - Symbolic link to system logs (convenient access)
+# package.json      - Dependencies and npm scripts
+# .env              - Environment configuration
 ```
+
+**Logs Access**: The `logs/` directory is a symbolic link to your system log directory (e.g., `/var/log/jpulse.net/`). This provides convenient access to application logs while maintaining proper system logging practices.
 
 ### Site Configuration
 Create `site/webapp/app.conf` with your site settings:
@@ -307,7 +315,7 @@ export { HelloModel };
 # Initialize git repository for your site
 git init
 git add .
-git commit -m "Initial site setup with jPulse Framework v0.7.12"
+git commit -m "Initial site setup with jPulse Framework v0.7.14"
 ```
 
 ### Add Remote Repository (Optional)
@@ -445,7 +453,7 @@ npm run jpulse-update                    # Updates framework files
 
 # Review changes
 git diff webapp/
-git commit -am "Update framework to v0.7.12"
+git commit -am "Update framework to v0.7.14"
 ```
 
 **Enhanced update features**: Update safety and reliability:

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.7.14
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.7.15
 
 **For Site Administrators & Site Developers**
 
@@ -10,12 +10,12 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 
 ## Latest Release Highlights
 
-- ✅ **Enhanced Deployment Validation (v0.7.3)**: Comprehensive deployment testing suite with `install-test.sh`, enhanced update safety with dry-run support, and production-grade troubleshooting capabilities
+- ✅ **Enhanced Deployment & Testing (v0.7.15)**: Comprehensive deployment validation with 17 new tests, MongoDB setup fixes, symbolic logs directory, and production-ready deployment experience
 - ✅ **Clean Deployment Strategy (v0.7.0)**: Complete "don't make me think" deployment automation with interactive setup, production templates, and MongoDB security
-- ✅ **Package Distribution (v0.5.5)**: Create new sites with `npx jpulse-configure` - clean repository separation
+- ✅ **Package Distribution (v0.6.0+)**: Create new sites with `npx jpulse-configure` - clean repository separation
+- ✅ **Dual Licensing (v0.5.5)**: AGPL v3 open source with commercial licensing options for enterprise use
 - ✅ **Markdown Documentation System (v0.5.4)**: Complete documentation system with API standardization and i18n support
 - ✅ **Enterprise UI Widgets (v0.5.2)**: Complete UI widget system with draggable dialogs and form interactions
-- ✅ **Site Override Architecture (v0.5.0)**: Seamless framework updates while preserving site modifications
 
 ## Key Features
 
@@ -110,6 +110,7 @@ my-jpulse-site/
 │   ├── model/              # Site data models
 │   ├── view/               # Site pages and templates
 │   └── static/             # Site-specific assets
+├── logs -> /var/log/...    # Symbolic link to system log directory
 ├── package.json            # Dependencies (@peterthoeny/jpulse-framework)
 └── .jpulse/                # Framework metadata
     ├── app.json            # Consolidated runtime configuration

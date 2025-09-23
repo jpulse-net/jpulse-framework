@@ -4,13 +4,13 @@
  * @tagline         Site configuration management interface
  * @description     Edit site configuration, for administrators
  * @file            webapp/view/admin/config.shtml
- * @version         0.7.14
- * @release         2025-09-18
+ * @version         0.7.15
+ * @release         2025-09-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
 -->
 <html lang="en">
 <head>
@@ -237,7 +237,7 @@
         function togglePasswordVisibility(fieldId) {
             const field = document.getElementById(fieldId);
             const button = field.nextElementSibling;
-            
+
             if (field.type === 'password') {
                 field.type = 'text';
                 button.textContent = '🙈';
@@ -331,7 +331,7 @@
             // Save configuration
             configForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                
+
                 if (!isDirty) return;
 
                 // Validate required fields
@@ -358,7 +358,7 @@
                         originalData = getFormData();
                         isDirty = false;
                         updateButtonStates();
-                        
+
                         // Show success message and redirect
                         jPulse.showSlideDownSuccess('{{i18n.view.admin.config.saveSuccess}}');
                         setTimeout(() => {

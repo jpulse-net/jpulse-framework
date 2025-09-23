@@ -3,13 +3,13 @@
  * @tagline         Unit tests for i18n user language functionality (W-013)
  * @description     Tests for new translate(req, keyPath, context) method with user language detection
  * @file            webapp/tests/unit/translations/i18n-user-language.test.js
- * @version         0.7.14
- * @release         2025-09-18
+ * @version         0.7.15
+ * @release         2025-09-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           99%, Cursor 1.2, Claude Sonnet 4
+ * @genai           80%, Cursor 1.2, Claude Sonnet 4
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
@@ -66,28 +66,28 @@ describe('I18N User Language Detection (W-013)', () => {
 
         // Create i18n instance with test data including new translate method
         i18n = TestUtils.createMockI18n(translations, 'en');
-        
+
         // Add the new translate method that uses user language from request
         i18n.translate = (req, keyPath, context = {}, fallbackLang = 'en') => {
             // Extract user's preferred language from request session
             const userLang = req?.session?.user?.preferences?.language || 'en';
-            
+
             // Try user's preferred language first
             let result = i18n._translate(userLang, keyPath, context);
-            
+
             // If not found and fallback is different, try fallback
             if (result === keyPath && fallbackLang !== userLang) {
                 result = i18n._translate(fallbackLang, keyPath, context);
             }
-            
+
             return result;
         };
-        
+
         // Add _translate method for internal use
         i18n._translate = (langCode, keyPath, context) => {
             const keyParts = keyPath.split('.');
             let text = translations[langCode];
-            
+
             for (const keyPart of keyParts) {
                 if (text && typeof text === 'object') {
                     text = text[keyPart];
@@ -95,19 +95,19 @@ describe('I18N User Language Detection (W-013)', () => {
                     return keyPath; // Return key if not found
                 }
             }
-            
+
             if (typeof text !== 'string') {
                 return keyPath;
             }
-            
+
             // Handle context variables with {{variable}} syntax
             if (context && Object.keys(context).length > 0) {
                 text = text.replace(/{{(.*?)}}/g, (match, p1) => context[p1] || match);
             }
-            
+
             return text;
         };
-        
+
         // Add getLang method for backward compatibility
         i18n.getLang = (langCode) => translations[langCode] || translations['en'];
     });

@@ -376,22 +376,30 @@ class CrossPlatformTests {
                 try {
                     // First check basic syntax with bash
                     execSync(`bash -n ${scriptPath}`, { stdio: 'pipe' });
-
-                    // Try shellcheck if available (optional - don't fail if not installed)
-                    try {
-                        execSync(`shellcheck ${scriptPath}`, { stdio: 'pipe' });
-                    } catch (shellcheckError) {
-                        // If shellcheck is not installed, just warn but don't fail
-                        if (shellcheckError.message.includes('command not found') ||
-                            shellcheckError.message.includes('not found')) {
-                            console.log(`  ℹ️  shellcheck not available for ${scriptPath} (install shellcheck for enhanced validation)`);
-                        } else {
-                            // shellcheck found issues
-                            throw new Error(`shellcheck found issues in ${scriptPath}: ${shellcheckError.message}`);
-                        }
-                    }
                 } catch (syntaxError) {
                     throw new Error(`Syntax error in ${scriptPath}: ${syntaxError.message}`);
+                }
+
+                // Try shellcheck if available (optional - don't fail if not installed)
+                try {
+                    execSync(`shellcheck ${scriptPath}`, { stdio: 'pipe' });
+                } catch (shellcheckError) {
+                    // Check if shellcheck is not installed (various ways this can manifest)
+                    const errorMessage = shellcheckError.message || '';
+                    const isCommandNotFound =
+                        shellcheckError.code === 127 ||
+                        errorMessage.includes('command not found') ||
+                        errorMessage.includes('not found') ||
+                        errorMessage.includes('ENOENT') ||
+                        errorMessage.includes('shellcheck: not found') ||
+                        errorMessage.includes('Command failed: shellcheck');
+
+                    if (isCommandNotFound) {
+                        console.log(`  ℹ️  shellcheck not available for ${scriptPath} (install shellcheck for enhanced validation)`);
+                    } else {
+                        // shellcheck found actual issues
+                        throw new Error(`shellcheck found issues in ${scriptPath}: ${shellcheckError.message}`);
+                    }
                 }
             }
         }

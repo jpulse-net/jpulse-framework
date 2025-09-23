@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / REST API Reference v0.7.16
+# jPulse Framework / Docs / REST API Reference v0.7.17
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -579,6 +579,135 @@ The `createdAt` parameter supports flexible date formats:
 - `2025` - All logs from 2025
 - `2025-08` - All logs from August 2025
 - `2025-08-25` - All logs from August 25, 2025
+
+## 📄 Markdown Documentation API
+
+### Markdown Endpoints
+
+#### List Markdown Files
+List all markdown files in a namespace with hierarchical structure.
+
+**Route:** `GET /api/1/markdown/:namespace/`
+**Middleware:** None (public endpoint)
+**Authentication:** Not required
+
+**Parameters:**
+- `namespace` (path): Documentation namespace (e.g., "jpulse", "docs", "help")
+
+**Response (200):**
+```json
+{
+    "success": true,
+    "files": [
+        {
+            "path": "README.md",
+            "name": "README.md",
+            "title": "jPulse",
+            "isDirectory": true,
+            "files": [
+                {
+                    "path": "getting-started.md",
+                    "name": "getting-started.md",
+                    "title": "Getting Started",
+                    "isDirectory": false
+                },
+                {
+                    "path": "dev/README.md",
+                    "name": "README.md",
+                    "title": "Dev",
+                    "isDirectory": true,
+                    "files": [
+                        {
+                            "path": "dev/architecture.md",
+                            "name": "architecture.md",
+                            "title": "Architecture",
+                            "isDirectory": false
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+```
+
+#### Get Markdown File Content
+Retrieve the content of a specific markdown file.
+
+**Route:** `GET /api/1/markdown/:namespace/:path`
+**Middleware:** None (public endpoint)
+**Authentication:** Not required
+
+**Parameters:**
+- `namespace` (path): Documentation namespace
+- `path` (path): File path within namespace (e.g., "dev/architecture.md")
+
+**Response (200):**
+```json
+{
+    "success": true,
+    "content": "# Architecture\n\nThis document describes...",
+    "path": "dev/architecture.md"
+}
+```
+
+**Error Responses:**
+- **400**: Namespace required
+- **404**: Namespace not found or file not found
+- **500**: Internal server error
+
+### Namespace Resolution
+The markdown API follows the site override pattern for namespace resolution:
+
+1. **Site Override**: `site/webapp/static/assets/:namespace/`
+2. **Framework Default**: `webapp/static/assets/:namespace/`
+
+### File Filtering (.jpulse-ignore)
+The API respects `.jpulse-ignore` files in namespace roots to exclude files and directories from publication:
+
+**Ignore File Location:** `:namespace/.jpulse-ignore`
+
+**Supported Patterns:**
+- **Exact files**: `temp.md`
+- **Wildcard patterns**: `*.backup.md`, `draft-*.md`
+- **Directory patterns**: `dev/working/` (excludes entire directory)
+- **Comments**: Lines starting with `#`
+
+**Example .jpulse-ignore:**
+```
+# Ignore temporary development files
+dev/tmp.md
+
+# Ignore working directory with all contents
+dev/working/
+
+# Ignore backup markdown files
+*.backup.md
+```
+
+### File Structure
+The API returns a hierarchical structure where:
+- **Root README.md** becomes the container for all other files
+- **Directory READMEs** are merged up to represent their directories
+- **Files are sorted** with regular files first, then directories
+- **Titles are generated** from filenames with proper capitalization
+
+### Caching
+- **Directory listings** are cached when `appConfig.controller.markdown.cache` is enabled
+- **File contents** are cached with timestamp tracking for invalidation
+- **Cache invalidation** requires application restart (manual as designed)
+
+### Example Requests
+```bash
+# List all files in jpulse namespace
+GET /api/1/markdown/jpulse/
+
+# Get specific documentation file
+GET /api/1/markdown/jpulse/dev/architecture.md
+
+# List files in custom documentation namespace
+GET /api/1/markdown/docs/
+```
 
 ## 🏥 System Health API
 

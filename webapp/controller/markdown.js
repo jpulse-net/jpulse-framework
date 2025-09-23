@@ -3,7 +3,7 @@
  * @tagline         Markdown controller for the jPulse Framework
  * @description     Markdown document serving with caching support, part of jPulse Framework
  * @file            webapp/controller/markdown.js
- * @version         0.7.16
+ * @version         0.7.17
  * @release         2025-09-23
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,7 +21,8 @@ import CommonUtils from '../utils/common.js';
 const cache = {
     markdownFiles: {},
     fileTimestamp: {},
-    directoryListing: {}
+    directoryListing: {},
+    ignorePatterns: {}
 };
 
 // _extractTitle() substitution
@@ -115,7 +116,10 @@ class MarkdownController {
             return cache.directoryListing[cacheKey];
         }
 
-        const files = await MarkdownController._scanMarkdownFiles(baseDir, '', namespace);
+        // Load ignore patterns for this namespace
+        const ignorePatterns = await MarkdownController._loadIgnorePatterns(baseDir);
+
+        const files = await MarkdownController._scanMarkdownFiles(baseDir, '', namespace, ignorePatterns);
 
         // Cache if enabled
         if (global.appConfig.controller?.markdown?.cache) {
@@ -161,7 +165,7 @@ class MarkdownController {
     /**
      * Recursively scan directory for .md files
      */
-    static async _scanMarkdownFiles(dir, relativePath = '', namespace = '') {
+    static async _scanMarkdownFiles(dir, relativePath = '', namespace = '', ignorePatterns = null) {
         const entries = await fs.readdir(dir, { withFileTypes: true });
         let allFiles = [];
 
@@ -175,6 +179,11 @@ class MarkdownController {
                 // Process regular files (excluding root README)
                 for (const entry of entries) {
                     if (entry.isFile() && entry.name.endsWith('.md') && entry.name !== 'README.md') {
+                        // Check if file should be ignored
+                        if (ignorePatterns && MarkdownController._shouldIgnore(entry.name, false, ignorePatterns)) {
+                            continue;
+                        }
+
                         otherFiles.push({
                             path: entry.name,
                             name: entry.name,
@@ -191,9 +200,14 @@ class MarkdownController {
                     .sort((a, b) => a.localeCompare(b));
 
                 for (const dirName of dirEntries) {
+                    // Check if directory should be ignored
+                    if (ignorePatterns && MarkdownController._shouldIgnore(dirName, true, ignorePatterns)) {
+                        continue;
+                    }
+
                     const fullPath = path.join(dir, dirName);
                     const relPath = dirName;
-                    const dirContents = await MarkdownController._scanMarkdownFiles(fullPath, relPath, namespace);
+                    const dirContents = await MarkdownController._scanMarkdownFiles(fullPath, relPath, namespace, ignorePatterns);
 
                     // Skip empty directories (no .md files)
                     if (dirContents.length === 0) {
@@ -244,6 +258,11 @@ class MarkdownController {
         for (const entry of entries) {
             const relPath = path.join(relativePath, entry.name);
             if (entry.isFile() && entry.name.endsWith('.md')) {
+                // Check if file should be ignored
+                if (ignorePatterns && MarkdownController._shouldIgnore(relPath, false, ignorePatterns)) {
+                    continue;
+                }
+
                 allFiles.push({
                     path: relPath,
                     name: entry.name,
@@ -260,9 +279,15 @@ class MarkdownController {
             .sort((a, b) => a.localeCompare(b));
 
         for (const dirName of dirEntries) {
-            const fullPath = path.join(dir, dirName);
             const relPath = path.join(relativePath, dirName);
-            const dirContents = await MarkdownController._scanMarkdownFiles(fullPath, relPath, namespace);
+
+            // Check if directory should be ignored
+            if (ignorePatterns && MarkdownController._shouldIgnore(relPath, true, ignorePatterns)) {
+                continue;
+            }
+
+            const fullPath = path.join(dir, dirName);
+            const dirContents = await MarkdownController._scanMarkdownFiles(fullPath, relPath, namespace, ignorePatterns);
 
             // Skip empty directories (no .md files)
             if (dirContents.length === 0) {
@@ -305,6 +330,77 @@ class MarkdownController {
         });
 
         return allFiles;
+    }
+
+    /**
+     * Load and parse .jpulse-ignore file for a namespace
+     */
+    static async _loadIgnorePatterns(baseDir) {
+        const ignoreFile = path.join(baseDir, '.jpulse-ignore');
+
+        try {
+            const content = await fs.readFile(ignoreFile, 'utf8');
+            const patterns = content
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line && !line.startsWith('#'))
+                .map(pattern => {
+                    // Convert glob pattern to regex
+                    // Escape special regex chars except * and ?
+                    let regexPattern = pattern
+                        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+                        .replace(/\*/g, '.*')
+                        .replace(/\?/g, '.');
+
+                    // Handle directory patterns (ending with /)
+                    const isDirectory = pattern.endsWith('/');
+                    if (isDirectory) {
+                        regexPattern = regexPattern.slice(0, -1); // Remove trailing /
+                    }
+
+                    return {
+                        pattern: pattern,
+                        regex: new RegExp(`^${regexPattern}$`),
+                        isDirectory: isDirectory
+                    };
+                });
+
+            return patterns;
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                return []; // No ignore file, no patterns
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Check if a file or directory should be ignored
+     */
+    static _shouldIgnore(relativePath, isDirectory, ignorePatterns) {
+        for (const pattern of ignorePatterns) {
+            // For directory patterns (ending with /), check both exact match and subdirectory match
+            if (pattern.isDirectory) {
+                const dirPath = pattern.pattern.slice(0, -1); // Remove trailing /
+
+                // Exact directory match
+                if (isDirectory && relativePath === dirPath) {
+                    return true;
+                }
+
+                // File or subdirectory inside ignored directory
+                if (relativePath.startsWith(dirPath + '/')) {
+                    return true;
+                }
+            } else {
+                // File patterns - only match files
+                if (!isDirectory && pattern.regex.test(relativePath)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

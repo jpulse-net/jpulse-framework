@@ -1,6 +1,52 @@
-# jPulse Framework / Docs / Version History v0.7.16
+# jPulse Framework / Docs / Version History v0.7.17
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.7.17, W-059, 2025-09-23
+
+**Commit:** `W-059, v0.7.17: Complete markdown documentation filtering system with .jpulse-ignore functionality and enhanced test runner with color support`
+
+Implementation of W-059 markdown documentation filtering system with comprehensive .jpulse-ignore functionality, complete API documentation, enhanced test runner with color support, and thorough testing coverage.
+
+Major Features:
+- **Markdown Documentation Filtering (W-059)**: Complete .jpulse-ignore implementation for content control
+  - Added .jpulse-ignore file support in namespace roots (e.g., docs/.jpulse-ignore)
+  - Implemented gitignore-like pattern matching with wildcard support (*, ?) and exact matches
+  - Directory pattern support with trailing slash syntax (dev/working/) for excluding entire directories
+  - File pattern support for excluding specific markdown files (*.backup.md, draft-*.md)
+  - Comment support with # prefix and empty line handling for maintainable ignore files
+
+- **Enhanced Markdown Controller**: Robust filtering integration with existing functionality
+  - Added _loadIgnorePatterns() method for parsing .jpulse-ignore files with error handling
+  - Implemented _shouldIgnore() method with comprehensive pattern matching logic
+  - Modified _scanMarkdownFiles() to filter ignored files and directories at all hierarchy levels
+  - Maintained backward compatibility with existing caching and directory listing functionality
+  - Preserved hierarchical structure and README merging while respecting ignore patterns
+
+- **Comprehensive Test Coverage**: 12 new tests ensuring reliable ignore functionality
+  - Pattern parsing tests (4 tests): ignore file loading, comment handling, pattern compilation
+  - Ignore logic tests (5 tests): exact matches, wildcards, directory patterns, nested paths
+  - Integration tests (2 tests): full directory scanning with filtering, ignore file absence handling
+  - Manual API testing confirmed dev/working/ directory exclusion and *.save* file filtering
+
+- **Complete API Documentation**: Enhanced markdown API reference with ignore functionality
+  - Added comprehensive Markdown Documentation API section to api-reference.md
+  - Documented GET /api/1/markdown/:namespace/ and GET /api/1/markdown/:namespace/:path endpoints
+  - Included namespace resolution, file filtering, caching behavior, and example requests
+  - Added ignore pattern syntax documentation with practical examples and use cases
+
+- **Enhanced Test Runner**: Improved visual feedback with color support
+  - Added ANSI color codes for green PASSED and red FAILED status indicators
+  - Enhanced readability across all test output with consistent color scheme
+  - Maintained cross-platform compatibility with terminal color support
+  - Improved user experience for quick visual scanning of test results
+
+Framework Quality:
+- All tests passing including 12 new markdown ignore functionality tests
+- Production-ready .jpulse-ignore functionality with comprehensive pattern support
+- Enhanced documentation system with content filtering capabilities for development workflows
+- Improved developer experience with colored test output and clear visual feedback
 
 ________________________________________________
 ## v0.7.16, W-058, 2025-09-23
@@ -147,7 +193,7 @@ Technical Improvements:
 - Comprehensive system validation covering all deployment components
 
 ________________________________________________
-### v0.6.7, W-050, 2025-09-13
+## v0.6.7, W-050, 2025-09-13
 
 **Commit:** `Checkpoint commit 5 for: W-015: deployment: strategy for clean onboarding`
 

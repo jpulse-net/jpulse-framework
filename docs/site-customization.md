@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Customization Guide v0.7.16
+# jPulse Framework / Docs / Site Customization Guide v0.7.17
 
 This guide covers the W-014 Site Override Architecture - jPulse's powerful system for creating custom sites while maintaining clean framework updates.
 
@@ -364,6 +364,16 @@ GET /api/1/markdown/docs/admin/setup.md
 ```
 
 ### Advanced Features
+
+#### File Filtering and Content Control
+
+The markdown system supports excluding files and directories from publication using ignore files:
+
+- **Ignore files**: Place `.jpulse-ignore` in your namespace root to exclude content
+- **Pattern support**: Use gitignore-like patterns to filter files and directories
+- **Development content**: Hide draft files, working directories, and backup files
+
+For detailed ignore syntax and examples, see the [Markdown API Reference](api-reference.md#file-filtering-jpulse-ignore).
 
 #### Organizing Content with Subdirectories
 

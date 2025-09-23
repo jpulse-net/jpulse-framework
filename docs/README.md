@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.7.16
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.7.17
 
 **For Site Administrators & Site Developers**
 
@@ -15,7 +15,7 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 - ✅ **Clean Deployment Strategy (v0.7.0)**: Complete "don't make me think" deployment automation with interactive setup, production templates, and MongoDB security
 - ✅ **Package Distribution (v0.6.0+)**: Create new sites with `npx jpulse-configure` - clean repository separation
 - ✅ **Dual Licensing (v0.5.5)**: AGPL v3 open source with commercial licensing options for enterprise use
-- ✅ **Markdown Documentation System (v0.5.4)**: Complete documentation system with API standardization and i18n support
+- ✅ **Markdown Documentation System (v0.5.4+)**: Complete documentation system with API standardization, content filtering, and i18n support
 - ✅ **Enterprise UI Widgets (v0.5.2)**: Complete UI widget system with draggable dialogs and form interactions
 
 ## Key Features

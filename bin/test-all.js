@@ -4,7 +4,7 @@
  * @tagline         Runs all tests (webapp + CLI) with unified output
  * @description     "Don't make me think" test runner for complete validation
  * @file            bin/test-all.js
- * @version         0.7.16
+ * @version         0.7.17
  * @release         2025-09-23
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,6 +15,16 @@
 
 import { execSync } from 'child_process';
 import process from 'process';
+
+// ANSI color codes
+const colors = {
+    reset: '\x1b[0m',
+    green: '\x1b[32m',
+    red: '\x1b[31m',
+    yellow: '\x1b[33m',
+    blue: '\x1b[34m',
+    cyan: '\x1b[36m'
+};
 
 /**
  * Run command with proper error handling and output parsing
@@ -37,19 +47,19 @@ function runCommand(command, description, parseStats = false) {
             console.log(output);
             // Parse output for test statistics
             const stats = parseTestOutput(output, description);
-            console.log(`✅ ${description} - PASSED`);
+            console.log(`✅ ${colors.green}${description} - PASSED${colors.reset}`);
             return { success: true, stats };
         } else {
             execSync(command, {
                 stdio: 'inherit',
                 cwd: process.cwd()
             });
-            console.log(`✅ ${description} - PASSED`);
+            console.log(`✅ ${colors.green}${description} - PASSED${colors.reset}`);
             return { success: true };
         }
 
     } catch (error) {
-        console.error(`❌ ${description} - FAILED`);
+        console.error(`❌ ${colors.red}${description} - FAILED${colors.reset}`);
         console.error(`   Exit code: ${error.status}`);
 
         if (parseStats) {
@@ -228,8 +238,13 @@ async function runAllTests() {
     });
 
     finalStats.forEach(stats => {
-        const status = stats.passed > 0 && stats.failed === 0 ? '✅ PASSED' : '❌ FAILED';
-        console.log(`${status} ${stats.name}`);
+        let msg = '';
+        if(stats.passed > 0 && stats.failed === 0) {
+            msg = `✅ ${stats.name} -- ${colors.green}PASSED${colors.reset}`;
+        } else {
+            msg = `❌ ${colors.red}${stats.name} -- FAILED${colors.reset}`;
+        }
+        console.log(msg);
         console.log(`  - ${stats.passed} passed, ${stats.failed} failed, ${stats.skipped} skipped, ${stats.total} total`);
     });
 
@@ -247,10 +262,10 @@ async function runAllTests() {
     console.log('');
 
     if (totalFailed === 0) {
-        console.log('🎉 All tests passed! Framework is ready for use.');
+        console.log(`🎉 ${colors.green}All tests passed! Framework is ready for use.${colors.reset}`);
         process.exit(0);
     } else {
-        console.log('💥 Some tests failed. Please review the output above.');
+        console.log(`💥 ${colors.red}Some tests failed. Please review the output above.${colors.reset}`);
         console.log('');
         console.log('💡 Quick fixes:');
         console.log('   - For CLI issues: Check bin/configure.js and bin/jpulse-update.js');

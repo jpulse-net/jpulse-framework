@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.7.16
+# jPulse Framework / Docs / Dev / Work Items v0.7.17
 
 This is the doc to track work items, arranged in three sections:
 
@@ -738,6 +738,23 @@ This is the doc to track work items, arranged in three sections:
   - production monitoring and maintenance procedures
 - benefits: clear, actionable deployment documentation that matches the "don't make me think" site creation experience
 
+### W-058: controllers: consistently use global.CommonUtils.sendError, add test statistics framework
+- status: ✅ COMPLETE
+- type: Feature
+- objectives: clean & consistent code to reduce likelyhood of bugs
+- deliverables: fix controllers with i18n
+  - config
+  - log
+  - user
+  - view controllers
+- already done:
+  - auth
+  - markdown
+- add test statistics at end of tests
+  - for each test bucket:
+    - 447 passed, 0 failed, 10 skipped, 457 total
+  - show grand total:
+    - 534 passed, 0 failed, 10 skipped, 544 total
 
 
 
@@ -754,18 +771,30 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-058: controllers: consistently use global.CommonUtils.sendError
-- status: 🚧 IN_PROGRESS
+### W-059: docs: add exclude directory directive - v0.7.17
+- status: ✅ COMPLETED
 - type: Feature
-- objectives: clean & consistent code to reduce likelyhood of bugs
-- deliverables: fix controllers with i18n
-  - config
-  - log
-  - user
-  - view controllers
-- already done:
-  - auth
-  - markdown
+- objectives: hide markdown docs not relevant to be published
+- depends on: W-049: docs: views render markdown docs for jPulse docs and site docs
+- example: dev/working/ should be excluded from official /jpulse/ docs
+- exclude docs and directories defined in .jpulse-ignore file in docs root
+- deliverables
+  - ✅ docs/.jpulse-ignore:
+    - syntax like .gitignore with gitignore-like patterns
+    - supports exact files (temp.md), wildcards (*.backup.md), directories (dev/working/)
+    - comment support with # prefix and empty line handling
+  - ✅ webapp/controller/markdown.js:
+    - _loadIgnorePatterns() method for parsing .jpulse-ignore files
+    - _shouldIgnore() method with comprehensive pattern matching logic
+    - _scanMarkdownFiles() modified to filter ignored files and directories
+  - ✅ webapp/tests/unit/controller/markdown-ignore.test.js:
+    - 12 comprehensive tests covering pattern parsing, ignore logic, and integration
+    - verified exact matches, wildcards, directory patterns, and nested paths
+  - ✅ docs/api-reference.md:
+    - complete Markdown Documentation API section with ignore functionality
+    - documented endpoints, namespace resolution, and ignore pattern syntax
+  - ✅ docs/site-customization.md and docs/README.md:
+    - updated to reference new content filtering capabilities
 
 
 
@@ -776,7 +805,6 @@ This is the doc to track work items, arranged in three sections:
 ### Potential next items:
 W-045: architecture: create plugin infrastructure
 W-040: view: create view logs page for site admins
-W-0: docs: add exclude directory directive
 W-0: view: page headers with anchor links for copy & paste
 W-0: view controller: create {{#each}} handlebar
 W-0: controller & view: websocket strategy
@@ -784,7 +812,7 @@ W-0: controller & view: websocket strategy
 ### Chat instructions
 
 next work item: W-0...
-- review task, ask questions
+- review task, ask questions if unclear
 - suggest change of spec, goal is better usability for site developers
 - plan how to implement (wait for my go ahead)
 - current timestamp: 2025-09-23 00:33
@@ -793,8 +821,8 @@ finishing up work item: W-0...
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-15 12:12
-- assume release: W-058, v0.7.16
-- update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed
+- assume release: W-059, v0.7.17
+- update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
 
@@ -891,23 +919,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - status: 🕑 PENDING
 - type: Feature
 - create webapp/view/admin/logs.shtml -- search logs
-
-### W-0: docs: add exclude directory directive
-- status: 🕑 PENDING
-- type: Feature
-- objectives: hide markdown docs not relevant to be published
-- depends on: W-049: docs: views render markdown docs for jPulse docs and site docs
-- example: dev/working should be excluded from official /jpulse/ docs
-- exclude docs and directories defined in .jpulse-ignore file in docs root
-- deliverables
-  - docs/.jpulse-ignore:
-    - syntax like .gitignore
-    - file content:
-      # Ignore markdown files and directories once published to webapp/static/assets/jpulse/
-      dev/work-items.md
-      dev/working/
-  - webapp/controller/markdown.js:
-    - _getDirectoryListing() should exclude
 
 ### W-0: view: page headers with anchor links for copy & paste
 - status: 🕑 PENDING

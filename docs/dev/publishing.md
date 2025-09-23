@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Package Publishing Guide v0.7.16
+# jPulse Framework / Docs / Dev / Package Publishing Guide v0.7.17
 
 This guide covers publishing the jPulse Framework to GitHub Packages for framework maintainers and core developers.
 
@@ -106,6 +106,72 @@ git push origin main --tags
 - Runs complete test suite
 - Publishes to `@peterthoeny/jpulse-framework`
 - Creates GitHub release with installation instructions
+
+#### Build Failure Troubleshooting
+
+If the automated build fails, follow these steps:
+
+**Step 1: Identify the Issue**
+```bash
+# Check GitHub Actions logs at:
+# https://github.com/peterthoeny/jpulse-framework/actions
+
+# Common failure types:
+# - npm ci dependency sync issues
+# - Test failures (especially cross-platform compatibility)
+# - Authentication/permission issues
+```
+
+**Step 2: Fix Common Issues**
+
+*npm ci Dependency Sync Failure:*
+```bash
+# Update package-lock.json to sync with package.json
+npm install
+
+# Commit the updated lock file
+git add package-lock.json
+git commit -m "Fix: Update package-lock.json to sync with package.json dependencies for vX.X.X build"
+```
+
+*Test Failures (e.g., shellcheck not available):*
+```bash
+# Run tests locally to identify the issue
+npm test
+
+# Fix the failing tests (e.g., improve cross-platform compatibility)
+# Commit the fixes
+git add .
+git commit -m "Fix: Improve cross-platform compatibility for CI environment"
+```
+
+*Authentication/Permission Issues:*
+```bash
+# Verify GitHub token has required permissions:
+# - repo (Full control of private repositories)
+# - write:packages (Upload packages)
+# - read:packages (Download packages)
+```
+
+**Step 3: Update the Tag**
+```bash
+# Delete the failed tag (local and remote)
+git tag -d vX.X.X
+git push origin --delete vX.X.X
+
+# Push your fixes
+git push origin main
+
+# Re-create and push the tag
+git tag vX.X.X
+git push origin vX.X.X
+```
+
+**Step 4: Monitor the Rebuild**
+```bash
+# GitHub Actions will automatically trigger on the new tag
+# Monitor at: https://github.com/peterthoeny/jpulse-framework/actions
+```
 
 ### Method 2: Manual Publishing
 

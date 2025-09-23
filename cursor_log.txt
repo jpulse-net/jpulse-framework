@@ -12555,4 +12555,307 @@ Waiting for: User approval to proceed with implementation plan.
 
 **RELEASE READY**: All documentation updated for W-058, v0.7.16 release! 🚀
 
+
 ============================================================
+2025-09-23 11:12
+
+**W-058 BUILD FIX: GitHub CI build failed due to package-lock.json sync issue**
+
+**ISSUE**: GitHub CI build failed with npm ci error - package-lock.json out of sync
+**ERROR**: Missing packages in lock file (shellcheck, global-agent, boolean, etc.)
+**CAUSE**: Dependencies were modified but package-lock.json wasn't updated
+**SOLUTION**: Update package-lock.json, delete tag, re-tag, rebuild
+
+**STEPS TO FIX**:
+1. Update package-lock.json with npm install
+2. Delete the existing v0.7.16 tag (local and remote)
+3. Re-commit with updated lock file
+4. Re-tag v0.7.16
+5. Push and rebuild
+
+
+============================================================
+2025-09-23 11:14
+
+**W-058 BUILD FIX UPDATE: npm install completed successfully**
+
+**✅ COMPLETED**: npm install - package-lock.json updated
+**WARNING**: Deprecated boolean@3.2.0 package (non-breaking, just a notice)
+**RESULT**: Added 19 packages, 506 packages audited, 0 vulnerabilities
+**STATUS**: Ready to proceed with tag deletion and re-tagging
+
+**NEXT STEPS**: Delete tag, commit lock file, re-tag, push
+
+
+============================================================
+2025-09-23 11:16
+
+**W-058 BUILD FIX COMPLETED: v0.7.16 re-released successfully**
+
+**✅ ALL STEPS COMPLETED**:
+1. ✅ **Deleted local tag**: `git tag -d v0.7.16` (was 7baded3)
+2. ✅ **Deleted remote tag**: `git push origin --delete v0.7.16`
+3. ✅ **Committed lock file**: package-lock.json updated (246 insertions, 3 deletions)
+4. ✅ **Re-created tag**: `git tag v0.7.16` on commit a036c94
+5. ✅ **Pushed to GitHub**: main branch and v0.7.16 tag
+
+**COMMIT**: a036c94 - "Fix: Update package-lock.json to sync with package.json dependencies for v0.7.16 build"
+**TAG**: v0.7.16 successfully pushed to GitHub
+**STATUS**: GitHub Actions build should now run successfully with npm ci
+
+**VERIFICATION**: Check GitHub Actions for successful build completion! 🚀
+
+
+============================================================
+2025-09-23 11:20
+
+**W-058 BUILD ISSUE: shellcheck not available on GitHub Ubuntu runner**
+
+**ISSUE**: MongoDB validation test failing due to shellcheck command not found
+**ERROR**: "Shell script syntax validation - FAILED: shellcheck found issues in bin/jpulse-install.sh: Command failed: shellcheck bin/jpulse-install.sh"
+**CAUSE**: GitHub Ubuntu runner doesn't have shellcheck installed by default
+**SOLUTION**: Make shellcheck test optional/graceful when command not available
+
+**CURRENT STATUS**: 533 passed, 1 failed, 10 skipped, 544 total
+**FAILING TEST**: Shell script syntax validation in MongoDB & Cross-Platform suite
+
+
+============================================================
+2025-09-23 11:26
+
+**W-058 TAG UPDATE: Need to move v0.7.16 tag to include shellcheck fix**
+
+**ISSUE**: GitHub build won't start because v0.7.16 tag exists and points to old commit
+**CAUSE**: Tag was created before shellcheck fix commit (91f71e4)
+**SOLUTION**: Delete and recreate v0.7.16 tag to point to latest commit with shellcheck fix
+**MINOR**: Commit message not full W-058 text (acceptable for production releases)
+
+**CURRENT COMMITS**:
+- a036c94: package-lock.json fix
+- 91f71e4: shellcheck error handling fix (current HEAD)
+**TAG NEEDS**: v0.7.16 should point to 91f71e4, not a036c94
+
+
+============================================================
+2025-09-23 11:27
+
+**W-058 TAG UPDATE COMPLETED: v0.7.16 now points to shellcheck fix commit**
+
+**✅ TAG UPDATE SUCCESSFUL**:
+1. ✅ **Deleted old tag**: `git tag -d v0.7.16` (was a036c94)
+2. ✅ **Deleted remote tag**: `git push origin --delete v0.7.16`
+3. ✅ **Re-created tag**: `git tag v0.7.16` on commit 91f71e4
+4. ✅ **Pushed new tag**: `git push origin v0.7.16`
+
+**COMMIT HISTORY**:
+- 91f71e4 (HEAD -> main, tag: v0.7.16, origin/main) - shellcheck fix ✅
+- a036c94 - package-lock.json fix
+- 7baded3 - W-058 main implementation
+
+**STATUS**: GitHub Actions should now build successfully with all 544 tests passing! 🚀
+**FINAL RESULT**: 534 passed, 0 failed, 10 skipped, 544 total
+
+
+============================================================
+2025-09-23 11:31
+
+**W-058 BUILD SUCCESS: GitHub Actions completed successfully with warnings**
+
+**✅ BUILD COMPLETED**: v0.7.16 release successful!
+**⚠️ WARNINGS**: GitHub Actions `set-output` command deprecation warnings (3x)
+**STATUS**: Warnings are non-breaking, can be ignored for now
+**NEXT**: Update publishing.md with build failure troubleshooting steps
+
+**DEPRECATION WARNING**: `set-output` will be disabled soon, should upgrade to Environment Files
+**IMPACT**: Low priority - warnings don't affect functionality
+
+
+============================================================
+2025-09-23 12:34
+
+W-059: docs: add exclude directory directive - Task Review and Implementation Planning
+
+Summary: Reviewing W-059 task to add .jpulse-ignore functionality for excluding markdown docs from publication. Planning implementation approach for markdown controller modifications.
+
+Details:
+- ✅ Analyzed current markdown controller implementation
+- ✅ Identified _scanMarkdownFiles() method as integration point
+- ✅ Created implementation plan with 6 tasks
+- ❓ Awaiting clarification on ignore file location, pattern scope, cache behavior
+- 📋 Ready to implement once requirements are confirmed
+
+Questions for user:
+1. Ignore file location (namespace root vs per-directory)
+2. Pattern matching scope (relative to ignore file vs namespace root)
+3. Ignore precedence for nested files
+4. Cache invalidation strategy
+5. Pattern syntax complexity (basic vs full gitignore)
+
+
+============================================================
+2025-09-23 12:39
+
+W-059: Implementation Started - .jpulse-ignore functionality
+
+Summary: Starting implementation with user specifications: single ignore file in doc root, relative patterns, basic glob syntax with directory support, manual cache clearing.
+
+Requirements confirmed:
+1. Single .jpulse-ignore file in namespace root (e.g., docs/.jpulse-ignore)
+2. Patterns relative to ignore file location
+3. Manual cache clearing (app restart)
+4. Basic glob patterns including directory patterns (pattern/)
+
+============================================================
+2025-09-23 12:44
+
+W-059: IMPLEMENTATION COMPLETED - .jpulse-ignore functionality
+
+Summary: Successfully implemented .jpulse-ignore functionality for excluding markdown docs from publication. All tests pass and manual verification confirms working implementation.
+
+Implementation Details:
+✅ Created docs/.jpulse-ignore with gitignore-like syntax
+✅ Implemented _loadIgnorePatterns() to parse ignore files
+✅ Implemented _shouldIgnore() with glob pattern matching
+✅ Modified _scanMarkdownFiles() to filter ignored files/directories
+✅ Added comprehensive unit tests (12 test cases)
+✅ Manual testing confirms dev/working/ directory is hidden
+✅ Manual testing confirms *.save* files are filtered out
+✅ Cache invalidation handled via app restart (manual as requested)
+
+Features:
+- Single .jpulse-ignore file in namespace root (docs/.jpulse-ignore)
+- Patterns relative to ignore file location
+- Basic glob patterns: *, ?, exact matches
+- Directory patterns with trailing slash (dev/working/)
+- File patterns without slash (*.save*, temp.md)
+- Comment support (lines starting with #)
+- Empty line support
+- Proper filtering in both root and nested directory processing
+
+Test Results: All 12 tests passing
+- Pattern parsing: ✅ 4/4 tests
+- Ignore logic: ✅ 5/5 tests
+- Integration: ✅ 2/2 tests
+- Manual API testing: ✅ Confirmed working
+
+Status: W-059 COMPLETED - Ready for production use
+
+
+============================================================
+2025-09-23 12:46
+
+W-059: Fixed .jpulse-ignore examples
+
+Summary: Corrected commented examples in .jpulse-ignore file to reflect that only .md files are processed by the markdown controller.
+
+Changes:
+- ❌ Removed: api-reference.md.save1 (not a .md file)
+- ❌ Removed: *.save* (typically non-.md backup files)
+- ✅ Added: draft-feature.md (proper .md file example)
+- ✅ Added: *.backup.md (proper .md backup pattern)
+
+The examples now correctly demonstrate ignoring actual markdown files that would be processed by the controller.
+
+
+============================================================
+2025-09-23 12:54
+
+W-059: Added Markdown API Documentation
+
+Summary: Added comprehensive documentation for the Markdown API endpoints to api-reference.md, including the new .jpulse-ignore functionality.
+
+Documentation Added:
+✅ Markdown API section with two main endpoints:
+  - GET /api/1/markdown/:namespace/ (list files)
+  - GET /api/1/markdown/:namespace/:path (get file content)
+✅ Namespace resolution explanation (site override pattern)
+✅ File filtering documentation (.jpulse-ignore functionality)
+✅ Supported ignore patterns with examples
+✅ File structure and hierarchy explanation
+✅ Caching behavior documentation
+✅ Example requests and responses
+✅ Error response documentation
+
+The API reference now comprehensively documents the markdown documentation system including the newly implemented ignore functionality.
+
+
+============================================================
+2025-09-23 12:59
+
+W-059: Updated Documentation References for Ignore Feature
+
+Summary: Updated key documentation files to mention the new .jpulse-ignore functionality without duplicating detailed documentation, linking to API reference instead.
+
+Documentation Updates:
+✅ docs/site-customization.md - Added "File Filtering and Content Control" section
+  - Brief overview of ignore functionality
+  - Links to API reference for detailed syntax
+  - Positioned in Advanced Features section
+✅ docs/README.md - Updated markdown system description
+  - Changed from "API standardization and i18n support"
+  - To "API standardization, content filtering, and i18n support"
+  - Maintains concise feature list format
+
+Strategy Applied:
+- ❌ Did not duplicate .jpulse-ignore documentation
+- ✅ Added brief mentions with API reference links
+- ✅ Focused on user-facing benefits (content control, filtering)
+- ✅ Maintained existing documentation structure and flow
+
+The documentation now appropriately references the ignore feature without creating redundant detailed explanations.
+
+
+============================================================
+2025-09-23 13:27
+
+Enhancement: Added Color Support to Test Runner
+
+Summary: Added ANSI color codes to bin/test-all.js to improve test output readability with green PASSED and red FAILED indicators.
+
+Changes Made:
+✅ Added ANSI color constants (green, red, yellow, blue, cyan, reset)
+✅ Colored PASSED messages in green throughout the test runner
+✅ Colored FAILED messages in red throughout the test runner
+✅ Enhanced final summary with colored success/failure messages
+✅ Maintained consistent color scheme across all test output
+
+Color Implementation:
+- Green: \x1b[32m for PASSED states and success messages
+- Red: \x1b[31m for FAILED states and error messages
+- Reset: \x1b[0m to return to default terminal colors
+- Applied to individual test results and final summary
+
+The test runner now provides much clearer visual feedback with colored status indicators.
+
+
+============================================================
+2025-09-23 13:36
+
+W-059: Work Item Completion - Documentation and Release Preparation
+
+Summary: Completed W-059 work item by updating all documentation for v0.7.17 release and creating comprehensive commit message following established format.
+
+Documentation Updates:
+✅ docs/CHANGELOG.md - Added comprehensive v0.7.17 entry
+  - Complete feature description with .jpulse-ignore functionality
+  - Enhanced markdown controller details and test coverage
+  - API documentation and test runner enhancements
+  - Framework quality and production readiness notes
+✅ docs/README.md - Updated version header to v0.7.17
+✅ docs/dev/work-items.md - Marked W-059 as COMPLETED
+  - Added detailed deliverables with checkmarks
+  - Comprehensive implementation details
+  - Test coverage and documentation updates
+✅ commit-message.txt - Created following established format
+  - Comprehensive summary and major features
+  - Detailed implementation sections
+  - Technical details and file modifications
+  - Production readiness validation
+
+Release Preparation Complete:
+- All documentation updated for v0.7.17
+- Work item W-059 marked as completed with full deliverables
+- Commit message ready following project format
+- Ready for version bump and commit (user will handle)
+
+Status: W-059 COMPLETED - Ready for release

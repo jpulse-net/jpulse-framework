@@ -3,8 +3,8 @@
  * @tagline         Demo Site Controller Override
  * @description     Example of how to override framework controllers
  * @file            site/webapp/controller/hello.js
- * @version         0.7.17
- * @release         2025-09-23
+ * @version         0.7.18
+ * @release         2025-09-24
  * @author          Site Developer
  * @license         AGPL v3, see LICENSE file
  * @genai           60%, Cursor 1.2, Claude Sonnet 4
@@ -24,10 +24,11 @@ class HelloController {
      * @param {Object} res - Express response object
      */
     static async api(req, res) {
+        const startTime = Date.now();
         try {
-            LogController.logInfo(req, 'hello.api: Site API override accessed');
-
+            LogController.logRequest(req, 'hello.api', '');
             res.json({
+                success: true,
                 message: 'Hello from site override API!',
                 site: appConfig.app.name,
                 version: appConfig.app.version,
@@ -39,9 +40,11 @@ class HelloController {
                     pathResolution: 'site/webapp/ → webapp/ (framework fallback)'
                 }
             });
+            const duration = Date.now() - startTime;
+            LogController.logInfo(req, 'hello.api', `success: completed in ${duration}ms`);
 
         } catch (error) {
-            LogController.logError(req, `hello.api: error: ${error.message}`);
+            LogController.logError(req, 'hello.api', `error: ${error.message}`);
             return global.CommonUtils.sendError(req, res, 500, 'API error', 'INTERNAL_ERROR');
         }
     }

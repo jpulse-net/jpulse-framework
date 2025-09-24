@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-014 SiteRegistry auto-discovery utility
  * @description     Tests site controller auto-discovery and API registration functionality
  * @file            webapp/tests/unit/utils/site-registry.test.js
- * @version         0.7.17
- * @release         2025-09-23
+ * @version         0.7.18
+ * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -105,7 +105,8 @@ describe('SiteRegistry (W-014)', () => {
             expect(fs.readdirSync).toHaveBeenCalledWith(controllerDir);
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry: Discovered 2 controllers, 1 with APIs'
+                'site-registry',
+                'Discovered 2 controllers, 1 with APIs'
             );
         });
 
@@ -121,7 +122,8 @@ describe('SiteRegistry (W-014)', () => {
             expect(fs.readdirSync).not.toHaveBeenCalled();
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry: Site controller directory not found - no site overrides to register'
+                'site-registry',
+                'Site controller directory not found - no site overrides to register'
             );
         });
 
@@ -153,7 +155,8 @@ describe('SiteRegistry (W-014)', () => {
 
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry: Discovered 2 controllers, 2 with APIs'
+                'site-registry',
+                'Discovered 2 controllers, 2 with APIs'
             );
         });
 
@@ -178,11 +181,13 @@ describe('SiteRegistry (W-014)', () => {
 
             expect(LogController.logError).toHaveBeenCalledWith(
                 null,
-                expect.stringContaining('site-registry: Failed to analyze controller broken.js')
+                'site-registry',
+                expect.stringContaining('error: Failed to analyze controller broken.js')
             );
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry: Discovered 1 controllers, 1 with APIs'
+                'site-registry',
+                'Discovered 1 controllers, 1 with APIs'
             );
         });
     });
@@ -216,11 +221,13 @@ describe('SiteRegistry (W-014)', () => {
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/admin', expect.any(Function));
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry: Registered API route /api/1/hello → hello'
+                'site-registry',
+                'Registered API route /api/1/hello → hello'
             );
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry: Registered API route /api/1/admin → admin'
+                'site-registry',
+                'Registered API route /api/1/admin → admin'
             );
         });
 
@@ -356,7 +363,8 @@ describe('SiteRegistry (W-014)', () => {
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry: Discovered 1 controllers, 1 with APIs'
+                'site-registry',
+                'Discovered 1 controllers, 1 with APIs'
             );
         });
 
@@ -425,7 +433,8 @@ describe('SiteRegistry (W-014)', () => {
 
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry: Discovered 0 controllers, 0 with APIs'
+                'site-registry',
+                'Discovered 0 controllers, 0 with APIs'
             );
         });
 
@@ -441,7 +450,8 @@ describe('SiteRegistry (W-014)', () => {
 
             expect(LogController.logError).toHaveBeenCalledWith(
                 null,
-                expect.stringContaining('site-registry: Site Registry initialization failed:')
+                'site-registry',
+                expect.stringContaining('error: Site Registry initialization failed:')
             );
         });
 
@@ -461,7 +471,8 @@ describe('SiteRegistry (W-014)', () => {
 
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry: Discovered 1 controllers, 0 with APIs'
+                'site-registry',
+                'Discovered 1 controllers, 0 with APIs'
             );
         });
     });

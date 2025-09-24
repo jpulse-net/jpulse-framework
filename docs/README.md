@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.7.17
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.7.18
 
 **For Site Administrators & Site Developers**
 
@@ -10,8 +10,9 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 
 ## Latest Release Highlights
 
+- ✅ **TSV Logging System & API Standardization (v0.7.18)**: Complete conversion to tab-separated values (TSV) logging format with scope-based organization, standardized API request tracking, and enhanced analytics capabilities
+- ✅ **Markdown Documentation Filtering (v0.7.17)**: Complete .jpulse-ignore implementation for content control with gitignore-like syntax and enhanced test runner with color support
 - ✅ **Standardized Error Handling & Testing (v0.7.16)**: Complete error handling standardization across all controllers, enhanced test framework with dynamic statistics, and comprehensive sendError functionality
-- ✅ **Enhanced Deployment & Testing (v0.7.15)**: Comprehensive deployment validation with 17 new tests, MongoDB setup fixes, symbolic logs directory, and production-ready deployment experience
 - ✅ **Clean Deployment Strategy (v0.7.0)**: Complete "don't make me think" deployment automation with interactive setup, production templates, and MongoDB security
 - ✅ **Package Distribution (v0.6.0+)**: Create new sites with `npx jpulse-configure` - clean repository separation
 - ✅ **Dual Licensing (v0.5.5)**: AGPL v3 open source with commercial licensing options for enterprise use
@@ -45,10 +46,17 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 - Configuration merging system
 
 ### 🧪 **Testing & Quality**
-- 337+ comprehensive tests with 100% pass rate
+- 545+ comprehensive tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis
+
+### 📊 **Analytics & Monitoring**
+- TSV (Tab-Separated Values) logging format for easy parsing
+- Scope-based log organization with consistent API tracking
+- Complete request lifecycle logging (start → success/error)
+- Enhanced message truncation for large payloads
+- Analytics-ready log format for monitoring tools
 
 ## 📚 Documentation Guide
 

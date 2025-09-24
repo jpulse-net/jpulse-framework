@@ -3,8 +3,8 @@
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/utils/i18n.js
- * @version         0.7.17
- * @release         2025-09-23
+ * @version         0.7.18
+ * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -138,10 +138,10 @@ function auditAndFixTranslations(defaultLang, targetLang, langCode) {
     });
     // Log audit results
     if (missingGroups.length > 0) {
-        global.LogController.logError(null, `i18n: - missing: ${missingGroups.join(', ')}`);
+        global.LogController.logError(null, 'i18n', `warning: missing: ${missingGroups.join(', ')}`);
     }
     if (extraGroups.length > 0) {
-        global.LogController.logError(null, `i18n: - extra: ${extraGroups.join(', ')}`);
+        global.LogController.logError(null, 'i18n', `warning: extra: ${extraGroups.join(', ')}`);
     }
     // Copy missing fields from default language
     missing.forEach(keyPath => {
@@ -175,7 +175,7 @@ function loadTranslations() {
 
         // Check if translations directory exists
         if (!existsSync(translationsDir)) {
-            global.LogController.logError(null, `i18n: error: Translations directory not found: ${translationsDir}`);
+            global.LogController.logError(null, 'i18n', `error: Translations directory not found: ${translationsDir}`);
             process.exit(1);
         }
         // Read directory and filter for *.conf files
@@ -187,7 +187,7 @@ function loadTranslations() {
                 name: file
             }));
         if (langFiles.length === 0) {
-            global.LogController.logError(null, `i18n: error: No translation files found in ${translationsDir}`);
+            global.LogController.logError(null, 'i18n', `error: No translation files found in ${translationsDir}`);
             process.exit(1);
         }
         // Sort files to load default language first
@@ -197,7 +197,7 @@ function loadTranslations() {
             if (b.name === defaultFile) return 1;
             return a.name.localeCompare(b.name);
         });
-        global.LogController.logInfo(null, `i18n: Loading ${sortedFiles.length} translation files...`);
+        global.LogController.logInfo(null, 'i18n', `Loading ${sortedFiles.length} translation files...`);
         let defaultLangData = null;
         // Load each translation file
         for (const file of sortedFiles) {
@@ -211,7 +211,7 @@ function loadTranslations() {
                 const lang = Object.keys(obj)[0];
                 if (lang && obj[lang]) {
                     i18n.langs[lang] = obj[lang];
-                    global.LogController.logInfo(null, `i18n: ✓ Loaded language: ${lang} (${obj[lang].lang || lang})`);
+                    global.LogController.logInfo(null, 'i18n', `✓ Loaded language: ${lang} (${obj[lang].lang || lang})`);
 
                     // Store default language data for auditing
                     if (lang === i18n.default) {
@@ -221,15 +221,15 @@ function loadTranslations() {
                         auditAndFixTranslations(defaultLangData, i18n.langs[lang], lang);
                     }
                 } else {
-                    global.LogController.logError(null, `i18n: Warning: Invalid structure in ${file.filePath}`);
+                    global.LogController.logError(null, 'i18n', `warning: Invalid structure in ${file.filePath}`);
                 }
             } catch (fileError) {
-                global.LogController.logError(null, `i18n: Error loading translation file ${file.filePath}:`, fileError.message);
+                global.LogController.logError(null, 'i18n', `error: Error loading translation file ${file.filePath}: ${fileError.message}`);
             }
         }
         return i18n;
     } catch (error) {
-        global.LogController.logError(null, `i18n: error: Failed to load translations: ${error.message}`);
+        global.LogController.logError(null, 'i18n', `error: Failed to load translations: ${error.message}`);
         process.exit(1);
     }
 }
@@ -243,7 +243,7 @@ class I18n {
         this.default = data.default;
         // Validate default language exists
         if (this.default && !this.langs[this.default]) {
-            global.LogController.logError(null, `i18n: Warning: Default language '${this.default}' not found. Available languages:`, Object.keys(this.langs));
+            global.LogController.logError(null, 'i18n', `warning: Default language '${this.default}' not found. Available languages: ${Object.keys(this.langs).join(', ')}`);
             // Fallback to first available language
             this.default = Object.keys(this.langs)[0] || 'en';
         }
@@ -263,7 +263,7 @@ class I18n {
             return this.langs[langCode];
         }
         // Fallback to default language
-        global.LogController.logError(null, `i18n: Warning: Language '${langCode}' not found, falling back to '${this.default}'`);
+        global.LogController.logError(null, 'i18n', `warning: Language '${langCode}' not found, falling back to '${this.default}'`);
         return this.langs[this.default] || {};
     }
 
@@ -311,7 +311,7 @@ class I18n {
             if (result && typeof result === 'object' && result.hasOwnProperty(key)) {
                 result = result[key];
             } else {
-                global.LogController.logError(null, `i18n: Translation not found: ${langCode}.${keyPath}`);
+                global.LogController.logError(null, 'i18n', `error: Translation not found: ${langCode}.${keyPath}`);
                 return keyPath; // Return key path as fallback
             }
         }
@@ -367,12 +367,12 @@ export async function initialize() {
 
     // Validate that we have at least one language
     if (Object.keys(i18nInstance.langs).length === 0) {
-        global.LogController.logError(null, `i18n: error: No valid translations loaded`);
+        global.LogController.logError(null, 'i18n', 'error: No valid translations loaded');
         process.exit(1);
     }
 
-    global.LogController.logInfo(null, `i18n: Initialized with languages: ${i18nInstance.getCodes().join(', ')}`);
-    global.LogController.logInfo(null, `i18n: Default language: ${i18nInstance.default}`);
+    global.LogController.logInfo(null, 'i18n', `Initialized with languages: ${i18nInstance.getCodes().join(', ')}`);
+    global.LogController.logInfo(null, 'i18n', `Default language: ${i18nInstance.default}`);
 
     return i18nInstance;
 }

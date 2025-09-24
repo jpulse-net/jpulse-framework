@@ -1,6 +1,47 @@
-# jPulse Framework / Docs / Version History v0.7.17
+# jPulse Framework / Docs / Version History v0.7.18
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.7.18, W-060, 2025-09-23
+
+**Commit:** `W-060, v0.7.18: Complete TSV logging system conversion with scope-based organization, standardized API request tracking, and enhanced analytics capabilities`
+
+Implementation of W-060 TSV logging system with comprehensive conversion from comma-space to tab-separated format, complete scope-based log organization, standardized API request tracking across all endpoints, and enhanced analytics capabilities for monitoring tools.
+
+Major Features:
+- **TSV Logging System Conversion (W-060)**: Complete migration to tab-separated values format
+  - Converted all log output from comma-space separator to tab separator for easy parsing
+  - Enhanced CommonUtils.formatLogMessage with intuitive parameter order (scope, message, level, req)
+  - Implemented scope-based log organization with consistent API tracking patterns
+  - Added enhanced message truncation (250 chars: 200 start + 50 end) for large payloads
+  - Maintained backward compatibility while improving analytics capabilities
+
+- **Standardized API Request Tracking**: Complete lifecycle logging for all API endpoints
+  - Added logRequest entries to all API methods for comprehensive request tracking
+  - Implemented consistent success/error logging pattern across all controllers
+  - Enhanced timing information with "success: ... completed in Xms" format
+  - Added logging for unknown API endpoints (404 cases) with proper error tracking
+  - Standardized message prefixes: "success: ..." for successful operations, "error: ..." for failures
+
+- **Scope-Based Log Organization**: Clean separation of concerns with structured logging
+  - LogController methods now accept (req, scope, message) parameters for clear categorization
+  - Implemented scope patterns: auth.login, config.get, user.search, markdown.api, etc.
+  - Enhanced logRequest format with ==scope== for better human scanning of request events
+  - Consistent scope usage across framework and site controllers for unified logging
+
+- **Enhanced Analytics Capabilities**: Production-ready log format for monitoring tools
+  - TSV format enables easy parsing by analytics tools and log processors
+  - Structured scope-based organization for efficient filtering and analysis
+  - Complete request lifecycle tracking from start (logRequest) to end (logInfo/logError)
+  - Enhanced message truncation prevents log bloat while preserving essential information
+  - Consistent timing information for performance monitoring and optimization
+
+Framework Quality:
+- All 545 tests passing including comprehensive logging functionality verification
+- Production-ready TSV logging system with scope-based organization
+- Enhanced API request tracking with complete lifecycle logging
+- Improved analytics capabilities with structured log format for monitoring tools
 
 ________________________________________________
 ## v0.7.17, W-059, 2025-09-23

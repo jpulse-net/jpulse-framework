@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         0.7.17
- * @release         2025-09-23
+ * @version         0.7.18
+ * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -226,7 +226,7 @@ describe('AuthController', () => {
                 );
                 expect(mockNext).not.toHaveBeenCalled();
                 expect(global.LogController.logError).toHaveBeenCalledWith(
-                    mockReq, 'auth.requireAuthentication: error: Authentication required - access denied'
+                    mockReq, 'auth.requireAuthentication', 'error: Authentication required - access denied'
                 );
             });
 
@@ -240,7 +240,7 @@ describe('AuthController', () => {
                 );
                 expect(mockNext).not.toHaveBeenCalled();
                 expect(global.LogController.logError).toHaveBeenCalledWith(
-                    mockReq, 'auth.requireAuthentication: error: Authentication required - access denied'
+                    mockReq, 'auth.requireAuthentication', 'error: Authentication required - access denied'
                 );
             });
         });
@@ -276,7 +276,7 @@ describe('AuthController', () => {
                 );
                 expect(mockNext).not.toHaveBeenCalled();
                 expect(global.LogController.logError).toHaveBeenCalledWith(
-                    mockReq, 'auth.requireRole: error: Role required (admin, root) - access denied for user testuser'
+                    mockReq, 'auth.requireRole', 'error: Role required (admin, root) - access denied for user testuser'
                 );
             });
 
@@ -291,7 +291,7 @@ describe('AuthController', () => {
                 );
                 expect(mockNext).not.toHaveBeenCalled();
                 expect(global.LogController.logError).toHaveBeenCalledWith(
-                    mockReq, 'auth.requireRole: error: Authentication required for role check - access denied'
+                    mockReq, 'auth.requireRole', 'error: Authentication required for role check - access denied'
                 );
             });
         });
@@ -399,7 +399,7 @@ describe('AuthController', () => {
                 });
 
                 expect(global.LogController.logError).toHaveBeenCalledWith(
-                    mockReq, 'auth.login: failed: Database connection failed'
+                    mockReq, 'auth.login', 'error: Database connection failed'
                 );
 
                 // Should NOT call CommonUtils.sendError
@@ -455,7 +455,7 @@ describe('AuthController', () => {
                 });
 
                 expect(global.LogController.logError).toHaveBeenCalledWith(
-                    mockReq, 'auth.logout: failed: Session destruction failed'
+                    mockReq, 'auth.logout', 'error: Session destruction failed'
                 );
 
                 // Should NOT call CommonUtils.sendError

@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         0.7.17
- * @release         2025-09-23
+ * @version         0.7.18
+ * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -414,7 +414,7 @@ class CommonUtils {
             context.ip = req.ip ||
                        req.connection?.remoteAddress ||
                        req.socket?.remoteAddress ||
-                       (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
+                       (req.headers?.['x-forwarded-for'] || '').split(',')[0].trim() ||
                        '0.0.0.0';
 
             // Clean up IPv6 mapped IPv4 addresses
@@ -460,16 +460,17 @@ class CommonUtils {
     }
 
     /**
-     * Format log message with consistent structure
-     * @param {string} message - Log message
-     * @param {string} level - Log level (msg, ERR, etc.)
+     * Format log message with timestamp and context in TSV format
+     * @param {string} scope - Functional scope (required)
+     * @param {string} message - Log message (required)
+     * @param {string} level - Log level (msg, ERR, etc.) - defaults to 'msg'
      * @param {object} req - Express request object (optional)
      * @returns {string} Formatted log message
      */
-    static formatLogMessage(message, level = 'msg', req = null) {
+    static formatLogMessage(scope, message, level = 'msg', req = null) {
         const timestamp = CommonUtils.formatTimestamp();
         const context = CommonUtils.getLogContext(req);
-        return `- ${timestamp}, ${level}, ${context.username}, ip:${context.ip}, vm:${context.vm}, id:${context.id}, ${message}`;
+        return `-\t${timestamp}\t${level}\t${context.username}\tip:${context.ip}\tvm:${context.vm}\tid:${context.id}\t${scope}\t${message}`;
     }
 }
 

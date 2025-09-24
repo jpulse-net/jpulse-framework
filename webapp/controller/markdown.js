@@ -3,8 +3,8 @@
  * @tagline         Markdown controller for the jPulse Framework
  * @description     Markdown document serving with caching support, part of jPulse Framework
  * @file            webapp/controller/markdown.js
- * @version         0.7.17
- * @release         2025-09-23
+ * @version         0.7.18
+ * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -42,9 +42,12 @@ class MarkdownController {
         const namespace = pathParts[0];
         const filePath = pathParts.slice(1).join('/');
 
+        // Log the API request
+        global.LogController.logRequest(req, 'markdown.api', `${namespace}/${filePath}`);
+
         try {
             if (!namespace || namespace.trim() === '') {
-                global.LogController.logError(req, 'markdown.api: error: Namespace required');
+                global.LogController.logError(req, 'markdown.api', 'error: Namespace required');
                 const message = global.i18n.translate(req, 'controller.markdown.namespaceRequired');
                 return CommonUtils.sendError(req, res, 400, message, 'NAMESPACE_REQUIRED');
             }
@@ -52,7 +55,7 @@ class MarkdownController {
             // Determine base directory
             const baseDir = await MarkdownController._getNamespaceDirectory(namespace);
             if (!baseDir) {
-                global.LogController.logError(req, `markdown.api: error: Namespace ${baseDir} not found`);
+                global.LogController.logError(req, 'markdown.api', `error: Namespace ${baseDir} not found`);
                 const message = global.i18n.translate(req, 'controller.markdown.namespaceNotFound', { namespace: baseDir });
                 return CommonUtils.sendError(req, res, 404, message, 'NAMESPACE_NOT_FOUND');
             }
@@ -60,24 +63,23 @@ class MarkdownController {
             // List directory or serve file
             if (!filePath || filePath === '') {
                 const listing = await MarkdownController._getDirectoryListing(namespace, baseDir);
-                return res.json({ success: true, files: listing });
+                res.json({ success: true, files: listing });
             } else {
                 const content = await MarkdownController._getMarkdownFile(namespace, filePath, baseDir);
-                return res.json({ success: true, content, path: filePath });
+                res.json({ success: true, content, path: filePath });
             }
+            const duration = Date.now() - startTime;
+            LogController.logInfo(req, 'markdown.api', `success: ${namespace}/${filePath} completed in ${duration}ms`);
 
         } catch (error) {
             if(error.code === 'ENOENT') {
-                global.LogController.logError(req, `markdown.api: error: ${error.message}`);
+                global.LogController.logError(req, 'markdown.api', `error: ${error.message}`);
                 const message = global.i18n.translate(req, 'controller.markdown.fileNotFound', { file: `${namespace}/${filePath}` });
                 return CommonUtils.sendError(req, res, 404, message, 'FILE_NOT_FOUND');
             }
-            global.LogController.logError(req, `markdown.api: error: ${error.message}`);
+            global.LogController.logError(req, 'markdown.api', `error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.markdown.internalError', { details: error.message });
             return CommonUtils.sendError(req, res, 500, message, 'MARKDOWN_ERROR');
-        } finally {
-            const duration = Date.now() - startTime;
-            LogController.logInfo(req, `markdown.api: Completed in ${duration}ms`);
         }
     }
 

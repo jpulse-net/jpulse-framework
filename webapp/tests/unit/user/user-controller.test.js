@@ -3,8 +3,8 @@
  * @tagline         Controller tests for User authentication and management
  * @description     Unit tests for UserController endpoints, error handling, and HTTP responses
  * @file            webapp/tests/unit/user/user-controller.test.js
- * @version         0.7.17
- * @release         2025-09-23
+ * @version         0.7.18
+ * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -477,12 +477,12 @@ describe('User Controller Tests', () => {
 
             const processWithErrorLogging = (req, res) => {
                 try {
-                    mockLogController.logRequest(req, `user.search( ${JSON.stringify(req.query)} )`);
+                    mockLogController.logRequest(req, 'user.search', JSON.stringify(req.query));
 
                     // Simulate error
                     throw new Error('Database connection failed');
                 } catch (error) {
-                    mockLogController.logError(req, `user.search failed: ${error.message}`);
+                    mockLogController.logError(req, 'user.search', `error: ${error.message}`);
                     res.status(500).json({
                         success: false,
                         error: 'Internal server error',
@@ -493,8 +493,8 @@ describe('User Controller Tests', () => {
 
             processWithErrorLogging(mockReq, mockRes);
 
-            expect(mockLogController.logRequest).toHaveBeenCalledWith(mockReq, 'user.search( {} )');
-            expect(mockLogController.logError).toHaveBeenCalledWith(mockReq, 'user.search failed: Database connection failed');
+            expect(mockLogController.logRequest).toHaveBeenCalledWith(mockReq, 'user.search', '{}');
+            expect(mockLogController.logError).toHaveBeenCalledWith(mockReq, 'user.search', 'error: Database connection failed');
             expect(mockRes.status).toHaveBeenCalledWith(500);
         });
 
@@ -521,13 +521,13 @@ describe('User Controller Tests', () => {
             const processWithTiming = (req, res) => {
                 const startTime = Date.now();
 
-                mockLogController.logRequest(req, 'user.search( {} )');
+                mockLogController.logRequest(req, 'user.search', '{}');
 
                 // Simulate successful operation
                 const mockResults = { data: [], pagination: {} };
                 const elapsed = Date.now() - startTime;
 
-                mockLogController.logInfo(req, `user.search completed in ${elapsed}ms`);
+                mockLogController.logInfo(req, 'user.search', `completed in ${elapsed}ms`);
 
                 res.json({
                     success: true,
@@ -539,8 +539,8 @@ describe('User Controller Tests', () => {
 
             processWithTiming(mockReq, mockRes);
 
-            expect(mockLogController.logRequest).toHaveBeenCalledWith(mockReq, 'user.search( {} )');
-            expect(mockLogController.logInfo).toHaveBeenCalledWith(mockReq, expect.stringMatching(/user\.search completed in \d+ms/));
+            expect(mockLogController.logRequest).toHaveBeenCalledWith(mockReq, 'user.search', '{}');
+            expect(mockLogController.logInfo).toHaveBeenCalledWith(mockReq, 'user.search', expect.stringMatching(/completed in \d+ms/));
             expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
                 success: true,
                 elapsed: expect.any(Number)

@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the database interface for the jPulse Framework WebApp
  * @file            webapp/database.js
- * @version         0.7.17
- * @release         2025-09-23
+ * @version         0.7.18
+ * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -54,10 +54,10 @@ async function connect() {
         await client.connect();
         db = client.db(dbName);
 
-        console.log(CommonUtils.formatLogMessage(`database: Connected to: ${dbName} (${dbMode} mode)`));
+        console.log(CommonUtils.formatLogMessage('database', `Connected to: ${dbName} (${dbMode} mode)`));
         return true;
     } catch (error) {
-        console.error(CommonUtils.formatLogMessage(`database: error: Connection failed (continuing without database): ${error.message}`, 'ERR'));
+        console.error(CommonUtils.formatLogMessage('database', `error: Connection failed (continuing without database): ${error.message}`, 'ERR'));
         return false;
     }
 }
@@ -87,7 +87,7 @@ async function close() {
         await client.close();
         db = null;
         client = null;
-        console.log(CommonUtils.formatLogMessage('database: Connection closed'));
+        console.log(CommonUtils.formatLogMessage('database', 'Connection closed'));
     }
 }
 
@@ -117,7 +117,7 @@ async function initialize() {
             isInitialized = connected;
             return connected;
         } catch (error) {
-            console.error(CommonUtils.formatLogMessage(`database: error: Failed to initialize database connection: ${error.message}`, 'ERR'));
+            console.error(CommonUtils.formatLogMessage('database', `error: Failed to initialize database connection: ${error.message}`, 'ERR'));
             isInitialized = false;
             return false;
         }

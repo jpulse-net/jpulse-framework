@@ -3,8 +3,8 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         0.7.17
- * @release         2025-09-23
+ * @version         0.7.18
+ * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -81,7 +81,7 @@ class AuthController {
      */
     static requireAuthentication(req, res, next) {
         if (!AuthController.isAuthenticated(req)) {
-            global.LogController.logError(req, 'auth.requireAuthentication: error: Authentication required - access denied');
+            global.LogController.logError(req, 'auth.requireAuthentication', 'error: Authentication required - access denied');
             const message = global.i18n.translate(req, 'controller.auth.authenticationRequired');
             return global.CommonUtils.sendError(req, res, 401, message, 'UNAUTHORIZED');
         }
@@ -97,14 +97,14 @@ class AuthController {
     static requireRole(roles) {
         return (req, res, next) => {
             if (!AuthController.isAuthenticated(req)) {
-                global.LogController.logError(req, 'auth.requireRole: error: Authentication required for role check - access denied');
+                global.LogController.logError(req, 'auth.requireRole', 'error: Authentication required for role check - access denied');
                 const message = global.i18n.translate(req, 'controller.auth.authenticationRequired');
                 return global.CommonUtils.sendError(req, res, 401, message, 'UNAUTHORIZED');
             }
 
             if (!AuthController.isAuthorized(req, roles)) {
                 const roleList = Array.isArray(roles) ? roles.join(', ') : roles;
-                global.LogController.logError(req, `auth.requireRole: error: Role required (${roleList}) - access denied for user ${req.session.user.username}`);
+                global.LogController.logError(req, 'auth.requireRole', `error: Role required (${roleList}) - access denied for user ${req.session.user.username}`);
                 const message = global.i18n.translate(req, 'controller.auth.roleRequired', { roles: roleList });
                 return global.CommonUtils.sendError(req, res, 403, message, 'INSUFFICIENT_PRIVILEGES');
             }
@@ -160,13 +160,14 @@ class AuthController {
      * @param {object} res - Express response object
      */
     static async login(req, res) {
+        const startTime = Date.now();
         try {
-            global.LogController.logRequest(req, `auth.login( ${JSON.stringify({ identifier: req.body.identifier })} )`);
+            global.LogController.logRequest(req, 'auth.login', JSON.stringify({ identifier: req.body.identifier }));
 
             const { identifier, password } = req.body;
 
             if (!identifier || !password) {
-                global.LogController.logError(req, 'auth.login: error: Both identifier (username or email) and password are required');
+                global.LogController.logError(req, 'auth.login', 'error: Both identifier (username or email) and password are required');
                 const message = global.i18n.translate(req, 'controller.auth.idAndPasswordRequired');
                 return res.status(400).json({
                     success: false,
@@ -179,7 +180,7 @@ class AuthController {
             const user = await UserModel.authenticate(identifier, password);
 
             if (!user) {
-                global.LogController.logError(req, `auth.login: error: Login failed for identifier: ${identifier}`);
+                global.LogController.logError(req, 'auth.login', `error: Login failed for identifier: ${identifier}`);
                 const message = global.i18n.translate(req, 'controller.auth.invalidCredentials');
                 return res.status(401).json({
                     success: false,
@@ -208,7 +209,6 @@ class AuthController {
                 authenticated: true
             };
 
-            global.LogController.logInfo(req, `auth.login: success: User ${user.username} logged in successfully`);
             const message = global.i18n.translate(req, 'controller.auth.loginSuccessful');
             res.json({
                 success: true,
@@ -217,9 +217,11 @@ class AuthController {
                 },
                 message: message
             });
+            const duration = Date.now() - startTime;
+            global.LogController.logInfo(req, 'auth.login', `success: User ${user.username} logged in, completed in ${duration}ms`);
 
         } catch (error) {
-            global.LogController.logError(req, `auth.login: failed: ${error.message}`);
+            global.LogController.logError(req, 'auth.login', `error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.auth.loginInternalError', { error: error.message });
             res.status(500).json({
                 success: false,
@@ -237,15 +239,16 @@ class AuthController {
      * @param {object} res - Express response object
      */
     static async logout(req, res) {
+        const startTime = Date.now();
         try {
             const username = req.session.user ? req.session.user.username : '(unknown)';
 
-            global.LogController.logRequest(req, `auth.logout( ${username} )`);
+            global.LogController.logRequest(req, 'auth.logout', username);
 
             // Destroy session
             req.session.destroy((err) => {
                 if (err) {
-                    global.LogController.logError(req, `auth.logout: failed: ${err.message}`);
+                    global.LogController.logError(req, 'auth.logout', `error: ${err.message}`);
                     const message = global.i18n.translate(req, 'controller.auth.logoutFailed');
                     return res.status(500).json({
                         success: false,
@@ -254,16 +257,17 @@ class AuthController {
                     });
                 }
 
-                global.LogController.logInfo(req, `auth.logout: success: User ${username} logged out successfully`);
                 const message = global.i18n.translate(req, 'controller.auth.logoutSuccessful');
                 res.json({
                     success: true,
                     message: message
                 });
+                const duration = Date.now() - startTime;
+                global.LogController.logInfo(req, 'auth.logout', `success: User ${username} logged out, completed in ${duration}ms`);
             });
 
         } catch (error) {
-            global.LogController.logError(req, `auth.logout: failed: ${error.message}`);
+            global.LogController.logError(req, 'auth.logout', `error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.auth.logoutInternalError', { error: error.message });
             res.status(500).json({
                 success: false,
@@ -281,22 +285,24 @@ class AuthController {
      * @param {object} res - Express response object
      */
     static async getRoles(req, res) {
+        const startTime = Date.now();
         try {
-            global.LogController.logRequest(req, 'auth.getRoles()');
+            global.LogController.logRequest(req, 'auth.getRoles', '');
 
             // Get roles from UserModel schema
             const roles = UserModel.schema.roles.enum || ['guest', 'user', 'admin', 'root'];
 
-            global.LogController.logInfo(req, `auth.getRoles: success: roles: ${roles.join(', ')}`);
             const message = global.i18n.translate(req, 'controller.auth.rolesRetrieved');
             res.json({
                 success: true,
                 data: roles,
                 message: message
             });
+            const duration = Date.now() - startTime;
+            global.LogController.logInfo(req, 'auth.getRoles', `success: roles: ${roles.join(', ')}, completed in ${duration}ms`);
 
         } catch (error) {
-            global.LogController.logError(req, `auth.getRoles: error: ${error.message}`);
+            global.LogController.logError(req, 'auth.getRoles', `error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.auth.rolesInternalError');
             res.status(500).json({
                 success: false,
@@ -313,22 +319,24 @@ class AuthController {
      * @param {object} res - Express response object
      */
     static async getLanguages(req, res) {
+        const startTime = Date.now();
         try {
-            global.LogController.logRequest(req, 'auth.getLanguages()');
+            global.LogController.logRequest(req, 'auth.getLanguages', '');
 
             // Get available languages from i18n system
             const languages = global.i18n.getList(); // Returns [['en', 'English'], ['de', 'Deutsch']]
 
-            global.LogController.logInfo(req, `auth.getLanguages: success: languages: ${JSON.stringify(languages)}`);
             const message = global.i18n.translate(req, 'controller.auth.languagesRetrieved');
             res.json({
                 success: true,
                 data: languages,
                 message: message
             });
+            const duration = Date.now() - startTime;
+            global.LogController.logInfo(req, 'auth.getLanguages', `success: languages: ${JSON.stringify(languages)}, completed in ${duration}ms`);
 
         } catch (error) {
-            global.LogController.logError(req, `auth.getLanguages: error: ${error.message}`);
+            global.LogController.logError(req, 'auth.getLanguages', `error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.auth.languagesInternalError');
             res.status(500).json({
                 success: false,
@@ -345,22 +353,24 @@ class AuthController {
      * @param {object} res - Express response object
      */
     static async getThemes(req, res) {
+        const startTime = Date.now();
         try {
-            global.LogController.logRequest(req, 'auth.getThemes()');
+            global.LogController.logRequest(req, 'auth.getThemes', '');
 
             // Get themes from UserModel schema
             const themes = UserModel.schema.preferences.theme.enum || ['light', 'dark'];
 
-            global.LogController.logInfo(req, `auth.getThemes: success: themes: ${themes.join(', ')}`);
             const message = global.i18n.translate(req, 'controller.auth.themesRetrieved');
             res.json({
                 success: true,
                 data: themes,
                 message: message
             });
+            const duration = Date.now() - startTime;
+            global.LogController.logInfo(req, 'auth.getThemes', `success: themes: ${themes.join(', ')}, completed in ${duration}ms`);
 
         } catch (error) {
-            global.LogController.logError(req, `auth.getThemes: error: ${error.message}`);
+            global.LogController.logError(req, 'auth.getThemes', `error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.auth.themesInternalError');
             res.status(500).json({
                 success: false,

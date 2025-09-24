@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.7.17
+# jPulse Framework / Docs / Dev / Work Items v0.7.18
 
 This is the doc to track work items, arranged in three sections:
 
@@ -781,6 +781,21 @@ This is the doc to track work items, arranged in three sections:
   - ✅ docs/site-customization.md and docs/README.md:
     - updated to reference new content filtering capabilities
 
+### W-060: log controller: convert log to TSV, consistent login pattern - v0.7.18
+- status: ✅ COMPLETED
+- type: Feature
+- objective: make it easy for analytics tools to parse log files
+- completed: 2025-09-23
+- deliverables:
+  - ✅ Converted comma-space separator to tab separator (TSV format)
+  - ✅ Added scope parameter to LogController methods (logRequest, logInfo, logError)
+  - ✅ Updated CommonUtils.formatLogMessage with new parameter order
+  - ✅ Standardized all API methods with consistent logging pattern
+  - ✅ Added logRequest entries to all API endpoints for complete tracking
+  - ✅ Fixed missing "success:" and "error:" prefixes in log messages
+  - ✅ Added logging for unknown API endpoints (404 cases)
+  - ✅ All 545 tests passing with enhanced logging functionality
+
 
 
 
@@ -802,11 +817,18 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
+
+
+
+
 ### Potential next items:
 W-045: architecture: create plugin infrastructure
 W-040: view: create view logs page for site admins
+W-0: deployment: enhance hello example with hello model & MongoDB collection
 W-0: view: page headers with anchor links for copy & paste
 W-0: view controller: create {{#each}} handlebar
+W-0: log controller: convert log to TSV
 W-0: controller & view: websocket strategy
 
 ### Chat instructions
@@ -821,7 +843,7 @@ finishing up work item: W-0...
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-15 12:12
-- assume release: W-059, v0.7.17
+- assume release: W-060, v0.7.18
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
@@ -920,6 +942,12 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - type: Feature
 - create webapp/view/admin/logs.shtml -- search logs
 
+### W-0: deployment: enhance hello example with hello model & MongoDB collection
+- objective: make it easy for site developers to create their own MVC with custom collection
+- status: 🕑 PENDING
+- type: Feature
+- objective: paged queries that do not miss or duplicate docs between calls
+
 ### W-0: view: page headers with anchor links for copy & paste
 - status: 🕑 PENDING
 - type: Feature
@@ -964,10 +992,10 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 ### W-0: view: create site navigation pulldown and hamburger
 - status: 🕑 PENDING
 - type: Feature
-- objective: configurable site navigaton for quick access that works on desktop and mobile
+- objective: configurable site navigaton for quick access that works on desktop and mobile, easy to overload by site owners
 - define site menu in appConfig.view.siteMenu
   - or define in i18n?
-  - nesting possible
+  - with optional nesting
   - i18n (how?)
 - on desktop:
   - on hover over site logo and site name,
@@ -990,11 +1018,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - closed by default
   - open on command (hamburger menu?)
 - fix /jpulse/ markdown page to be based on common sidebar
-
-### W-0: log controller: convert log to TSV
-- status: 🕑 PENDING
-- type: Feature
-- objective: make it easy to parse by analytics tools
 
 ### W-0: view: broadcast message
 - status: 🕑 PENDING

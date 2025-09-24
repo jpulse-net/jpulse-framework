@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         0.7.17
- * @release         2025-09-23
+ * @version         0.7.18
+ * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -42,14 +42,14 @@ async function loadAppConfig() {
         // Ensure .jpulse directory exists
         if (!fs.existsSync(jpulseDir)) {
             fs.mkdirSync(jpulseDir, { recursive: true });
-            console.log(CommonUtils.formatLogMessage('app: Created .jpulse directory at project root'));
+            console.log(CommonUtils.formatLogMessage('app', 'Created .jpulse directory at project root'));
         }
 
         // Check if JSON needs regeneration
         const needsRegeneration = shouldRegenerateConfig(fs, confPath, jsonPath);
 
         if (needsRegeneration) {
-            console.log(CommonUtils.formatLogMessage('app: Configuration changed, regenerating .jpulse/app.json...'));
+            console.log(CommonUtils.formatLogMessage('app', 'Configuration changed, regenerating .jpulse/app.json...'));
             const config = await generateConsolidatedConfig(fs, confPath);
 
             // Save consolidated config (remove internal _sources before saving)
@@ -60,16 +60,16 @@ async function loadAppConfig() {
             // Save source metadata from config
             fs.writeFileSync(sourcesPath, JSON.stringify(config._sources, null, 2));
 
-            console.log(CommonUtils.formatLogMessage('app: Generated consolidated configuration in .jpulse/app.json'));
+            console.log(CommonUtils.formatLogMessage('app', 'Generated consolidated configuration in .jpulse/app.json'));
             return config;
         } else {
             // Load from cached JSON
-            console.log(CommonUtils.formatLogMessage('app: Using cached configuration from .jpulse/app.json'));
+            console.log(CommonUtils.formatLogMessage('app', 'Using cached configuration from .jpulse/app.json'));
             return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
         }
 
     } catch (error) {
-        console.error(CommonUtils.formatLogMessage(`app: error: Failed to load configuration: ${error.message}`, 'ERR'));
+        console.error(CommonUtils.formatLogMessage('app', `error: Failed to load configuration: ${error.message}`, 'ERR'));
         process.exit(1);
     }
 }
@@ -138,7 +138,7 @@ async function generateConsolidatedConfig(fs, confPath) {
         const siteConfig = loadConfigFile(fs, siteConfigPath);
         config = deepMerge(frameworkConfig, siteConfig);
         sources.push({ path: siteConfigPath, type: 'site', timestamp: fs.statSync(siteConfigPath).mtime });
-        console.log(CommonUtils.formatLogMessage('app: Merged site configuration from site/webapp/app.conf'));
+        console.log(CommonUtils.formatLogMessage('app', 'Merged site configuration from site/webapp/app.conf'));
     }
 
     // Set dirName for path resolution
@@ -167,12 +167,12 @@ const modules = await bootstrap({ isTest: false });
 // W-014: Initialize site registry for auto-discovery
 const SiteRegistry = (await import('./utils/site-registry.js')).default;
 const registryStats = await SiteRegistry.initialize();
-console.log(CommonUtils.formatLogMessage(`app: Site registry initialized - ${registryStats.controllers} controllers, ${registryStats.apis} APIs`));
+console.log(CommonUtils.formatLogMessage('app', `Site registry initialized - ${registryStats.controllers} controllers, ${registryStats.apis} APIs`));
 
 // W-014: Initialize context extensions system
 const ContextExtensions = (await import('./utils/context-extensions.js')).default;
 await ContextExtensions.initialize();
-console.log(CommonUtils.formatLogMessage('app: Context extensions initialized'));
+console.log(CommonUtils.formatLogMessage('app', 'Context extensions initialized'));
 
 // W-049: Build view registry for optimized routing
 function buildViewRegistry() {
@@ -208,7 +208,7 @@ function buildViewRegistry() {
 }
 
 global.viewRegistry = buildViewRegistry();
-console.log(CommonUtils.formatLogMessage(`app: View registry built - [${global.viewRegistry.viewList.map(v => `'${v}'`).join(', ')}]`));
+console.log(CommonUtils.formatLogMessage('app', `View registry built - [${global.viewRegistry.viewList.map(v => `'${v}'`).join(', ')}]`));
 
 // Load routing
 const routes = await import('./routes.js').then(m => m.default);
@@ -248,16 +248,16 @@ async function startApp() {
     // Start the server
     app.listen(port, () => {
         // Use LogController for structured logging (no req object for server startup)
-        LogController.logInfo(null, `app: jPulse Framework WebApp v${appConfig.app.version} (${appConfig.app.release})`);
-        LogController.logInfo(null, `app: Server running in ${appConfig.deployment[mode].name} mode on port ${port}`);
-        LogController.logInfo(null, `app: Database: ${appConfig.deployment[mode].db}`);
+        LogController.logInfo(null, 'app', `jPulse Framework WebApp v${appConfig.app.version} (${appConfig.app.release})`);
+        LogController.logInfo(null, 'app', `Server running in ${appConfig.deployment[mode].name} mode on port ${port}`);
+        LogController.logInfo(null, 'app', `Database: ${appConfig.deployment[mode].db}`);
     });
 }
 
 // Start the application
 startApp().catch(error => {
     // Use LogController for error logging (no req object for startup errors)
-    LogController.logError(null, `app: Failed to start application: ${error.message}`);
+    LogController.logError(null, 'app', `error: Failed to start application: ${error.message}`);
     process.exit(1);
 });
 

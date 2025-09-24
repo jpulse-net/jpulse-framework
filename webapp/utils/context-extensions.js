@@ -3,8 +3,8 @@
  * @tagline         Handlebars Context Extension System
  * @description     Allows site controllers to extend handlebars context (W-014)
  * @file            webapp/utils/context-extensions.js
- * @version         0.7.17
- * @release         2025-09-23
+ * @version         0.7.18
+ * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -47,7 +47,7 @@ class ContextExtensions {
 
         const LogController = global.LogController || console;
         if (LogController.logInfo) {
-            LogController.logInfo(null, `context-extensions: Registered provider '${name}' with priority ${options.priority || 100}`);
+            LogController.logInfo(null, 'context-extensions', `Registered provider '${name}' with priority ${options.priority || 100}`);
         } else {
             console.log(`Context Extensions: Registered provider '${name}' with priority ${options.priority || 100}`);
         }
@@ -171,7 +171,7 @@ class ContextExtensions {
 
         const LogController = global.LogController || console;
         if (LogController.logInfo) {
-            LogController.logInfo(null, 'context-extensions: Initialized with default providers');
+            LogController.logInfo(null, 'context-extensions', 'Initialized with default providers');
         } else {
             console.log('Context Extensions: Initialized with default providers');
         }

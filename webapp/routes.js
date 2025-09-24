@@ -3,8 +3,8 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         0.7.17
- * @release         2025-09-23
+ * @version         0.7.18
+ * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -27,6 +27,8 @@ import CommonUtils from './utils/common.js';
 
 // API routes (must come before catch-all route)
 router.get('/api/1/status', (req, res) => {
+    const startTime = Date.now();
+    LogController.logRequest(req, 'api.status', '');
     res.json({
         status: 'ok',
         version: appConfig.app.version,
@@ -34,6 +36,8 @@ router.get('/api/1/status', (req, res) => {
         mode: appConfig.deployment[appConfig.deployment.mode].name,
         database: appConfig.deployment[appConfig.deployment.mode].db
     });
+    const duration = Date.now() - startTime;
+    LogController.logInfo(req, 'api.status', `success: completed in ${duration}ms`);
 });
 
 // Config API routes
@@ -75,7 +79,7 @@ router.get(/^\/admin\/.*/, AuthController.requireAuthentication, AuthController.
 // W-014: Auto-register site controller APIs (no manual registration needed!)
 const SiteRegistry = (await import('./utils/site-registry.js')).default;
 const registeredApis = SiteRegistry.registerApiRoutes(router);
-LogController.logInfo(null, `routes: Auto-registered ${registeredApis} site API endpoints`);
+LogController.logInfo(null, 'routes', `Auto-registered ${registeredApis} site API endpoints`);
 
 // Dynamic content routes - handle {{handlebars}} in .shtml, .tmpl, and jpulse-* files only
 router.get(/\.(shtml|tmpl)$/, viewController.load);
@@ -94,6 +98,11 @@ router.use('/', express.static(path.join(appConfig.app.dirName, 'static')));
 
 // Catch-all 404 handler
 router.use('*', (req, res) => {
+    // Log API 404s differently from page 404s
+    if (req.originalUrl.startsWith('/api/')) {
+        LogController.logRequest(req, 'api.404', req.originalUrl);
+        LogController.logError(req, 'api.404', `error: API endpoint not found: ${req.originalUrl}`);
+    }
     return CommonUtils.sendError(req, res, 404, `Page not found: ${req.originalUrl}`, 'NOT_FOUND');
 });
 

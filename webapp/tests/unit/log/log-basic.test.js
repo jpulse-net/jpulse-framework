@@ -3,8 +3,8 @@
  * @tagline         Unit tests for log model and controller basic functionality
  * @description     This file contains unit tests for the log model and controller
  * @file            webapp/tests/unit/log/log-basic.test.js
- * @version         0.7.17
- * @release         2025-09-23
+ * @version         0.7.18
+ * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -392,10 +392,10 @@ describe('Log Controller Context Extraction', () => {
             ip: '192.168.1.100'
         };
 
-        LogController.logInfo(mockReq, 'Test message');
+        LogController.logInfo(mockReq, 'test.scope', 'Test message');
 
         expect(consoleLogs).toHaveLength(1);
-        expect(consoleLogs[0]).toMatch(/^- \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}, msg, testuser, ip:192\.168\.1\.100, vm:0, id:0, Test message$/);
+        expect(consoleLogs[0]).toMatch(/^-\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\tmsg\ttestuser\tip:192\.168\.1\.100\tvm:0\tid:0\ttest\.scope\tTest message$/);
     });
 
     test('should format logRequest log correctly', () => {
@@ -404,10 +404,10 @@ describe('Log Controller Context Extraction', () => {
             ip: '192.168.1.100'
         };
 
-        LogController.logRequest(mockReq, 'API call');
+        LogController.logRequest(mockReq, 'test.scope', 'API call');
 
         expect(consoleLogs).toHaveLength(1);
-        expect(consoleLogs[0]).toMatch(/^==\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}, ===, testuser, ip:192\.168\.1\.100, vm:0, id:0, === API call$/);
+        expect(consoleLogs[0]).toMatch(/^==\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\t===\ttestuser\tip:192\.168\.1\.100\tvm:0\tid:0\t==test\.scope==\tAPI call$/);
     });
 
     test('should format logError log correctly', () => {
@@ -416,10 +416,10 @@ describe('Log Controller Context Extraction', () => {
             ip: '192.168.1.100'
         };
 
-        LogController.logError(mockReq, 'Error message');
+        LogController.logError(mockReq, 'test.scope', 'error: Error message');
 
         expect(consoleLogs).toHaveLength(1);
-        expect(consoleLogs[0]).toMatch(/^- \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}, ERR, testuser, ip:192\.168\.1\.100, vm:0, id:0, Error message$/);
+        expect(consoleLogs[0]).toMatch(/^-\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\tERR\ttestuser\tip:192\.168\.1\.100\tvm:0\tid:0\ttest\.scope\terror: Error message$/);
     });
 
     test('should format timestamp correctly', () => {

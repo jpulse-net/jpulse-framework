@@ -3,7 +3,7 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         0.7.18
+ * @version         0.7.19
  * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -268,6 +268,146 @@ describe('View Controller Handlebars Processing', () => {
         });
     });
 
+    describe('Block Each Helper Processing', () => {
+        test('should process {{#each}} with simple string array', async () => {
+            const contextWithArray = {
+                ...mockContext,
+                fruits: ['apple', 'banana', 'cherry']
+            };
+            const content = '{{#each fruits}}{{@index}}: {{this}} {{/each}}';
+            const result = await processHandlebarsForTest(content, contextWithArray);
+            expect(result).toBe('0: apple 1: banana 2: cherry ');
+        });
+
+        test('should process {{#each}} with object array', async () => {
+            const contextWithUsers = {
+                ...mockContext,
+                users: [
+                    { name: 'Alice', age: 25 },
+                    { name: 'Bob', age: 30 }
+                ]
+            };
+            const content = '{{#each users}}{{this.name}} ({{this.age}}) {{/each}}';
+            const result = await processHandlebarsForTest(content, contextWithUsers);
+            expect(result).toBe('Alice (25) Bob (30) ');
+        });
+
+        test('should handle @first and @last flags in {{#each}}', async () => {
+            const contextWithArray = {
+                ...mockContext,
+                items: ['first', 'middle', 'last']
+            };
+            const content = '{{#each items}}{{#if @first}}[{{/if}}{{this}}{{#if @last}}]{{/if}}{{#if @last}}{{else}}, {{/if}}{{/each}}';
+            const result = await processHandlebarsForTest(content, contextWithArray);
+            expect(result).toBe('[first, middle, last]');
+        });
+
+        test('should process {{#each}} with object iteration using @key', async () => {
+            const contextWithObject = {
+                ...mockContext,
+                settings: { theme: 'dark', language: 'en', notifications: true }
+            };
+            const content = '{{#each settings}}{{@key}}: {{this}} {{/each}}';
+            const result = await processHandlebarsForTest(content, contextWithObject);
+            expect(result).toBe('theme: dark language: en notifications: true ');
+        });
+
+        test('should handle nested object properties in {{#each}}', async () => {
+            const contextWithNestedObjects = {
+                ...mockContext,
+                employees: [
+                    { profile: { firstName: 'John', lastName: 'Smith' }, department: 'IT' },
+                    { profile: { firstName: 'Jane', lastName: 'Doe' }, department: 'HR' }
+                ]
+            };
+            const content = '{{#each employees}}{{this.profile.firstName}} {{this.profile.lastName}} - {{this.department}} {{/each}}';
+            const result = await processHandlebarsForTest(content, contextWithNestedObjects);
+            expect(result).toBe('John Smith - IT Jane Doe - HR ');
+        });
+
+        test('should handle empty arrays in {{#each}}', async () => {
+            const contextWithEmptyArray = {
+                ...mockContext,
+                emptyList: []
+            };
+            const content = '{{#each emptyList}}{{this}}{{/each}}';
+            const result = await processHandlebarsForTest(content, contextWithEmptyArray);
+            expect(result).toBe('');
+        });
+
+        test('should handle null/undefined arrays in {{#each}}', async () => {
+            const contextWithNull = {
+                ...mockContext,
+                nullList: null,
+                undefinedList: undefined
+            };
+            const content1 = '{{#each nullList}}{{this}}{{/each}}';
+            const content2 = '{{#each undefinedList}}{{this}}{{/each}}';
+            const result1 = await processHandlebarsForTest(content1, contextWithNull);
+            const result2 = await processHandlebarsForTest(content2, contextWithNull);
+            expect(result1).toBe('');
+            expect(result2).toBe('');
+        });
+
+        test('should throw error for non-iterable values in {{#each}}', async () => {
+            const contextWithString = {
+                ...mockContext,
+                notAnArray: 'just a string'
+            };
+            const content = '{{#each notAnArray}}{{this}}{{/each}}';
+
+            // The error should be caught and replaced with HTML comment
+            const result = await processHandlebarsForTest(content, contextWithString);
+            expect(result).toContain('<!-- Error:');
+            expect(result).toContain('Cannot iterate over non-iterable value');
+        });
+
+        test('should handle complex nested handlebars within {{#each}}', async () => {
+            const contextWithComplexData = {
+                ...mockContext,
+                products: [
+                    { name: 'Laptop', price: 999, inStock: true },
+                    { name: 'Mouse', price: 25, inStock: false }
+                ]
+            };
+            const content = '{{#each products}}{{@index}}: {{this.name}} - ${{this.price}} {{#if this.inStock}}✓{{else}}✗{{/if}} {{/each}}';
+            const result = await processHandlebarsForTest(content, contextWithComplexData);
+            expect(result).toBe('0: Laptop - $999 ✓ 1: Mouse - $25 ✗ ');
+        });
+
+        test('should handle large arrays efficiently', async () => {
+            const largeArray = Array.from({ length: 100 }, (_, i) => `item${i}`);
+            const contextWithLargeArray = {
+                ...mockContext,
+                largeList: largeArray
+            };
+            const content = '{{#each largeList}}{{@index}}{{#if @last}}{{else}},{{/if}}{{/each}}';
+            const result = await processHandlebarsForTest(content, contextWithLargeArray);
+            const expected = Array.from({ length: 100 }, (_, i) => i).join(',');
+            expect(result).toBe(expected);
+        });
+
+        test('should handle object with mixed value types', async () => {
+            const contextWithMixedObject = {
+                ...mockContext,
+                config: {
+                    name: 'MyApp',
+                    version: 1.5,
+                    enabled: true,
+                    features: ['auth', 'logging'],
+                    metadata: { created: '2024-01-01' }
+                }
+            };
+            const content = '{{#each config}}{{@key}}: {{this}} | {{/each}}';
+            const result = await processHandlebarsForTest(content, contextWithMixedObject);
+            expect(result).toContain('name: MyApp |');
+            expect(result).toContain('version: 1.5 |');
+            expect(result).toContain('enabled: true |');
+            expect(result).toContain('features: auth,logging |');
+            expect(result).toContain('metadata: [object Object] |');
+        });
+    });
+
     describe('Complex Template Processing', () => {
         test('should process multiple handlebars in single template', async () => {
             const content = 'Hello {{user.firstName}}, version {{app.version}} on {{url.hostname}}';
@@ -503,7 +643,7 @@ async function processHandlebarsForTest(content, context, depth = 0) {
             } else if (match[4]) {
                 // Regular handlebars: group 4=full expression
                 const expression = match[4].trim();
-                replacement = await evaluateHandlebarForTest(expression, context, depth);
+                replacement = await ForTest(expression, context, depth);
             } else {
                 replacement = '';
             }
@@ -523,6 +663,8 @@ async function evaluateBlockHandlebarForTest(blockType, params, blockContent, co
     switch (blockType) {
         case 'if':
             return await handleBlockIfForTest(params, blockContent, context, depth);
+        case 'each':
+            return await handleBlockEachForTest(params, blockContent, context, depth);
         default:
             throw new Error(`Unknown block type: ${blockType}`);
     }
@@ -553,8 +695,74 @@ async function handleBlockIfForTest(params, blockContent, context, depth = 0) {
     return '';
 }
 
+// Handle block each iteration helper for testing
+async function handleBlockEachForTest(params, blockContent, context, depth = 0) {
+    const arrayPath = params.trim();
+    const arrayValue = getNestedPropertyForTest(context, arrayPath);
+
+    // Handle null/undefined
+    if (arrayValue == null) {
+        return '';
+    }
+
+    let items = [];
+    let isObject = false;
+
+    // Check if it's an array
+    if (Array.isArray(arrayValue)) {
+        items = arrayValue;
+    }
+    // Check if it's an object (but not null, array, or function)
+    else if (typeof arrayValue === 'object' && arrayValue !== null) {
+        // Convert object to array of [key, value] pairs for iteration
+        items = Object.entries(arrayValue);
+        isObject = true;
+    }
+    // Not iterable - throw error
+    else {
+        throw new Error(`Cannot iterate over non-iterable value: ${typeof arrayValue}. Expected array or object.`);
+    }
+
+    // Handle empty arrays/objects
+    if (items.length === 0) {
+        return '';
+    }
+
+    let result = '';
+    const totalItems = items.length;
+
+    // Iterate through items
+    for (let i = 0; i < totalItems; i++) {
+        const item = items[i];
+
+        // Create iteration context
+        const iterationContext = {
+            ...context,
+            '@index': i,
+            '@first': i === 0,
+            '@last': i === totalItems - 1
+        };
+
+        if (isObject) {
+            // For objects: item is [key, value] pair
+            const [key, value] = item;
+            iterationContext['@key'] = key;
+            iterationContext['this'] = value;
+        } else {
+            // For arrays: item is the array element
+            iterationContext['this'] = item;
+        }
+
+        // Process the block content with the iteration context
+        const processedContent = await processHandlebarsForTest(blockContent, iterationContext, depth + 1);
+        result += processedContent;
+    }
+
+    return result;
+}
+
 // Simplified handlebars evaluator for testing
-async function evaluateHandlebarForTest(expression, context, depth = 0) {
+async function ForTest(expression, context, depth = 0) {
     const parts = parseArgumentsForTest(expression);
     const helper = parts[0];
     const args = parts.slice(1);
@@ -617,6 +825,11 @@ function parseArgumentsForTest(expression) {
 }
 
 function getNestedPropertyForTest(obj, path) {
+    // Handle special @ properties for each loops
+    if (path.startsWith('@')) {
+        return obj[path];
+    }
+
     const result = path.split('.').reduce((current, key) => {
         return current && current[key] !== undefined ? current[key] : undefined;
     }, obj);
@@ -627,9 +840,19 @@ function getNestedPropertyForTest(obj, path) {
 function getNestedPropertyAsStringForTest(obj, path) {
     const result = getNestedPropertyForTest(obj, path);
 
-    // Convert boolean values to strings for handlebars display
-    if (typeof result === 'boolean') {
+    // Convert boolean and numeric values to strings for handlebars display
+    if (typeof result === 'boolean' || typeof result === 'number') {
         return result.toString();
+    }
+
+    // Handle arrays by joining them with commas
+    if (Array.isArray(result)) {
+        return result.join(',');
+    }
+
+    // Handle objects by converting to string representation
+    if (typeof result === 'object' && result !== null) {
+        return '[object Object]';
     }
 
     return result;

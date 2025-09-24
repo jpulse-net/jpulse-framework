@@ -1,6 +1,60 @@
-# jPulse Framework / Docs / Version History v0.7.18
+# jPulse Framework / Docs / Version History v0.7.19
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.7.19, W-061, 2025-09-23
+
+**Commit:** `W-061, v0.7.19: Complete {{#each}} handlebars helper implementation with array and object iteration, special context variables, and comprehensive error handling`
+
+Implementation of W-061 {{#each}} handlebars helper with comprehensive iteration support for arrays and objects, special context variables (@index, @first, @last, @key), nested property access, and robust error handling for enhanced template development capabilities.
+
+Major Features:
+- **{{#each}} Handlebars Helper (W-061)**: Complete iteration support for dynamic template content
+  - Array iteration with {{#each array}}{{@index}}: {{this}}{{/each}} syntax
+  - Object iteration with {{#each object}}{{@key}}: {{this}}{{/each}} syntax
+  - Special context variables: @index (zero-based), @first/@last (boolean flags), @key (property names)
+  - Nested property access with {{this.property.subproperty}} dot notation
+  - Full recursive handlebars processing within iteration blocks
+
+- **Enhanced Template Context System**: Rich iteration context with special variables
+  - @index: Zero-based index for arrays, iteration count for objects
+  - @first: Boolean flag indicating first iteration (useful for styling)
+  - @last: Boolean flag indicating last iteration (useful for separators)
+  - @key: Property name when iterating over object properties
+  - this: Current array element or object property value with full dot notation support
+
+- **Robust Error Handling**: Production-ready error management for iteration edge cases
+  - Graceful handling of null/undefined values (returns empty string)
+  - Clear error messages for non-iterable values (strings, numbers, functions)
+  - HTML comment error output: <!-- Error: Cannot iterate over non-iterable value: string -->
+  - Maintains template stability even with invalid data types
+
+- **Performance Optimized Implementation**: Efficient iteration for production use
+  - Optimized for large arrays and complex objects
+  - Minimal memory overhead with efficient context creation
+  - Recursive depth protection consistent with existing handlebars system
+  - Type-flexible handling of mixed data types in objects
+
+Template Development:
+- **Enhanced Template Capabilities**: Powerful iteration for dynamic content generation
+  - Navigation menu generation with {{#each navigationItems}}
+  - Data table creation with {{#each tableData}}
+  - Configuration display with {{#each settings}}
+  - User interface lists with {{#each users}}
+  - Complex nested object iteration for employee directories, product catalogs
+
+- **Developer Experience Improvements**: Intuitive syntax following Handlebars.js conventions
+  - Standard {{#each}} syntax familiar to developers
+  - Rich context variables for flexible template logic
+  - Comprehensive documentation with practical examples
+  - Integration with existing {{#if}} conditionals for complex templates
+
+Framework Quality:
+- All 469 unit tests passing including 11 new comprehensive {{#each}} test cases
+- Production-ready iteration system with complete error handling
+- Enhanced template reference documentation with practical examples
+- Seamless integration with existing handlebars infrastructure
 
 ________________________________________________
 ## v0.7.18, W-060, 2025-09-23

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.7.18
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.7.19
 
 **For Site Administrators & Site Developers**
 
@@ -10,6 +10,7 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 
 ## Latest Release Highlights
 
+- ✅ **{{#each}} Handlebars Helper & Template Iteration (v0.7.19)**: Complete {{#each}} implementation with array and object iteration, special context variables (@index, @first, @last, @key), nested property access, and comprehensive error handling
 - ✅ **TSV Logging System & API Standardization (v0.7.18)**: Complete conversion to tab-separated values (TSV) logging format with scope-based organization, standardized API request tracking, and enhanced analytics capabilities
 - ✅ **Markdown Documentation Filtering (v0.7.17)**: Complete .jpulse-ignore implementation for content control with gitignore-like syntax and enhanced test runner with color support
 - ✅ **Standardized Error Handling & Testing (v0.7.16)**: Complete error handling standardization across all controllers, enhanced test framework with dynamic statistics, and comprehensive sendError functionality

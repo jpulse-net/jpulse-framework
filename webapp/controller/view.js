@@ -3,7 +3,7 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.7.18
+ * @version         0.7.19
  * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -290,6 +290,8 @@ function evaluateBlockHandlebar(blockType, params, blockContent, context, viewDi
     switch (blockType) {
         case 'if':
             return handleBlockIf(params, blockContent, context, viewDir, req, depth);
+        case 'each':
+            return handleBlockEach(params, blockContent, context, viewDir, req, depth);
         default:
             throw new Error(`Unknown block type: ${blockType}`);
     }
@@ -364,11 +366,17 @@ function parseArguments(expression) {
 
 /**
  * Get nested property from object using dot notation
+ * Supports special @ properties for each loops: @index, @first, @last, @key
  * @param {Object} obj - Object to search in
  * @param {string} path - Dot-separated path
  * @returns {*} Property value or undefined
  */
 function getNestedProperty(obj, path) {
+    // Handle special @ properties for each loops
+    if (path.startsWith('@')) {
+        return obj[path];
+    }
+
     return path.split('.').reduce((current, key) => {
         return current && current[key] !== undefined ? current[key] : undefined;
     }, obj);
@@ -567,6 +575,87 @@ function handleBlockIf(params, blockContent, context, viewDir, req, depth = 0) {
     }
 
     return '';
+}
+
+/**
+ * Handle block each iteration helper ({{#each}}...{{/each}})
+ * Supports both array and object iteration with special variables:
+ * - @index: zero-based index for arrays, or current iteration count for objects
+ * - @first: true if first iteration
+ * - @last: true if last iteration
+ * - @key: property name when iterating over objects
+ * - this: current array element or object property value
+ * @param {string} params - The array/object parameter to iterate over
+ * @param {string} blockContent - Content within the each block
+ * @param {Object} context - Context for evaluation
+ * @param {string} viewDir - View base directory for file operations
+ * @param {Object} req - Express request object for logging
+ * @param {number} depth - Current include depth
+ * @returns {string} Result of all iterations concatenated
+ */
+function handleBlockEach(params, blockContent, context, viewDir, req, depth = 0) {
+    const arrayPath = params.trim();
+    const arrayValue = getNestedProperty(context, arrayPath);
+
+    // Handle null/undefined
+    if (arrayValue == null) {
+        return '';
+    }
+
+    let items = [];
+    let isObject = false;
+
+    // Check if it's an array
+    if (Array.isArray(arrayValue)) {
+        items = arrayValue;
+    }
+    // Check if it's an object (but not null, array, or function)
+    else if (typeof arrayValue === 'object' && arrayValue !== null) {
+        // Convert object to array of [key, value] pairs for iteration
+        items = Object.entries(arrayValue);
+        isObject = true;
+    }
+    // Not iterable - throw error
+    else {
+        throw new Error(`Cannot iterate over non-iterable value: ${typeof arrayValue}. Expected array or object.`);
+    }
+
+    // Handle empty arrays/objects
+    if (items.length === 0) {
+        return '';
+    }
+
+    let result = '';
+    const totalItems = items.length;
+
+    // Iterate through items
+    for (let i = 0; i < totalItems; i++) {
+        const item = items[i];
+
+        // Create iteration context
+        const iterationContext = {
+            ...context,
+            '@index': i,
+            '@first': i === 0,
+            '@last': i === totalItems - 1
+        };
+
+        if (isObject) {
+            // For objects: item is [key, value] pair
+            const [key, value] = item;
+            iterationContext['@key'] = key;
+            iterationContext['this'] = value;
+        } else {
+            // For arrays: item is the array element
+            iterationContext['this'] = item;
+        }
+
+        // Process the block content with the iteration context
+        const processedContent = processHandlebars(blockContent, iterationContext, viewDir, req, depth + 1);
+        result += processedContent;
+    }
+
+    return result;
 }
 
 export default {

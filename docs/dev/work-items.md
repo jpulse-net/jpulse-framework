@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.7.18
+# jPulse Framework / Docs / Dev / Work Items v0.7.19
 
 This is the doc to track work items, arranged in three sections:
 
@@ -796,6 +796,28 @@ This is the doc to track work items, arranged in three sections:
   - ✅ Added logging for unknown API endpoints (404 cases)
   - ✅ All 545 tests passing with enhanced logging functionality
 
+### W-061: view controller: create {{#each}} handlebar - v0.7.19
+- status: ✅ COMPLETED
+- type: Feature
+- completion: 2025-09-23, v0.7.19
+- syntax: {{#each array}} {{@index}}: {{this}} {{/each}}
+  - @index: zero-based index
+  - @first: boolean flag for first iteration
+  - @last: boolean flag for last iteration
+  - @key: property name for object iteration
+  - this: array element value (string or object)
+  - use key path in case the array elements are objects, such as:
+    - {{#each users}} {{this.profile.firstName}} {{this.profile.lastName}} {{/each}}
+    - stringify object if last item in key path is an object
+- implementation:
+  - Added handleBlockEach function in webapp/controller/view.js
+  - Extended getNestedProperty to handle special @ properties
+  - Updated evaluateBlockHandlebar switch statement
+  - Comprehensive test coverage with 11 new test cases
+  - Full documentation in docs/template-reference.md
+  - Supports both array and object iteration
+  - Robust error handling for non-iterable values
+
 
 
 
@@ -822,20 +844,46 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+### W-062: view controller: support nested {{#if}} and {{#each}} handlebars - v0.7.20
+- status: 🕑 PENDING
+- type: Feature
+- depends on:
+  - W-061: view controller: create {{#each}} handlebar - v0.7.19
+  - W-018: create {{#if}} handlebar for simple nesting - v0.2.7
+- algorithm:
+  - 3 phases approach based on https://twiki.org/cgi-bin/view/Blog/BlogEntry201109x3
+  - phase 1: annotate nesting levels
+  - phase 2: recursive expansion, starting at level 0
+  - phase 3: clean up unbalanced block elements
+  - limit recursion to 16 levels
+
+
+
+### W-063: view: /jpulse-examples/ pages, rename /jpulse/ to /jpulse-docs/
+- status: 🕑 PENDING
+- type: Feature
+- /jpulse-examples/ pages:
+  - index.shtml           # Overview with navigation cards
+  - handlebars.shtml      # Complete handlebars reference
+  - jpulse-ui.shtml       # UI components showcase
+  - forms.shtml           # Form handling examples
+  - layouts.shtml         # Responsive layout examples
+  - api-integration.shtml # API integration patterns
+
+
+
 ### Potential next items:
 W-045: architecture: create plugin infrastructure
 W-040: view: create view logs page for site admins
 W-0: deployment: enhance hello example with hello model & MongoDB collection
 W-0: view: page headers with anchor links for copy & paste
-W-0: view controller: create {{#each}} handlebar
-W-0: log controller: convert log to TSV
 W-0: controller & view: websocket strategy
 
 ### Chat instructions
 
 next work item: W-0...
 - review task, ask questions if unclear
-- suggest change of spec, goal is better usability for site developers
+- suggest change of spec if any, goal is better usability for developers and site owners
 - plan how to implement (wait for my go ahead)
 - current timestamp: 2025-09-23 00:33
 
@@ -843,7 +891,7 @@ finishing up work item: W-0...
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-15 12:12
-- assume release: W-060, v0.7.18
+- assume release: W-061, v0.7.19
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
@@ -978,16 +1026,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - deliverables:
   - webapp/view/jpulse-common.js, webapp/view/jpulse-footer.tmpl:
     - add logic for hover, copy to clipboard, URI change with anchor
-
-### W-0: view controller: create {{#each}} handlebar
-- status: 🕑 PENDING
-- type: Feature
-- syntax: {{#each array}} {{@index}}: {{this}} {{/each}}
-  - @index: zero-based index
-  - this: array element value (string or object)
-  - use key path in case the array elements are objects, such as:
-    - {{#each users}} {{this.profile.firstName}} {{this.profile.lastName}} {{/each}}
-    - stringify object if last item in key path is object
 
 ### W-0: view: create site navigation pulldown and hamburger
 - status: 🕑 PENDING

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Template Reference v0.7.18
+# jPulse Framework / Docs / Template Reference v0.7.19
 
 Complete reference for server-side template development with the jPulse Handlebars system, covering template variables, file operations, security features, and best practices for building dynamic web pages.
 
@@ -269,9 +269,9 @@ File operations leverage caching for performance:
 - **Pre-loading**: Common includes are asynchronously pre-loaded at startup
 - **Configurable**: Caching behavior controlled via `appConfig.controller.view.cacheIncludeFiles`
 
-## 🔀 Block Conditionals
+## 🔀 Block Helpers
 
-### Basic If/Else Blocks
+### Block Conditionals ({{#if}})
 
 The `{{#if}}` syntax provides powerful block-level conditionals:
 
@@ -306,26 +306,25 @@ The `{{#if}}` syntax provides powerful block-level conditionals:
 {{/if}}
 ```
 
-### Nested Conditionals
+### Complex Conditionals
 
 ```html
-<!-- Complex nested conditionals -->
+<!-- Complex conditionals with handlebars inside blocks -->
 {{#if config.messages.broadcast}}
     <div class="jp-alert jp-alert-info">
         <strong>{{i18n.messages.announcement}}</strong>
         <p>{{config.messages.broadcast}}</p>
         {{#if user.authenticated}}
             <small>Shown to: {{user.firstName}} {{user.lastName}}</small>
-            {{#if user.isAdmin}}
-                <div class="admin-actions">
-                    <button class="jp-btn jp-btn-outline">Edit Message</button>
-                </div>
-            {{/if}}
         {{else}}
             <small>Please <a href="/auth/login.shtml">sign in</a> for personalized content.</small>
         {{/if}}
     </div>
 {{/if}}
+
+<!-- Note: Nested {{#if}} blocks are NOT supported -->
+<!-- This will NOT work correctly: -->
+<!-- {{#if outer}}{{#if inner}}content{{/if}}{{/if}} -->
 ```
 
 ### Supported Conditions
@@ -347,12 +346,235 @@ The `{{#if}}` syntax provides powerful block-level conditionals:
 {{#if user.roles}}...{{/if}}
 ```
 
-### Features
+### Conditional Features
 - **Recursive Processing**: Handlebars within `{{#if}}` blocks are fully processed
 - **Nested Content**: Complex HTML and multiple handlebars supported within blocks
-- **No Nesting Limit**: `{{#if}}` blocks can contain other `{{#if}}` blocks
 - **Context Access**: Full template context available within conditional blocks
 - **Error Handling**: Malformed blocks show clear error messages
+- **Limitation**: Nested `{{#if}}` blocks (same type) are NOT supported due to regex limitations
+
+### Block Iteration ({{#each}})
+
+The `{{#each}}` syntax provides powerful iteration over arrays and objects with special context variables:
+
+```html
+<!-- Simple array iteration -->
+<ul class="fruit-list">
+{{#each fruits}}
+    <li>{{@index}}: {{this}}</li>
+{{/each}}
+</ul>
+
+<!-- Output with fruits = ['apple', 'banana', 'cherry'] -->
+<ul class="fruit-list">
+    <li>0: apple</li>
+    <li>1: banana</li>
+    <li>2: cherry</li>
+</ul>
+```
+
+#### Array Iteration with Objects
+
+```html
+<!-- Object array iteration -->
+<div class="user-cards">
+{{#each users}}
+    <div class="user-card {{#if @first}}first{{/if}} {{#if @last}}last{{/if}}">
+        <h3>{{this.name}}</h3>
+        <p>Age: {{this.age}}</p>
+        <p>Position: #{{@index}}</p>
+        {{#if @first}}
+            <span class="badge">Featured User</span>
+        {{/if}}
+    </div>
+{{/each}}
+</div>
+
+<!-- Output with users = [{name: 'Alice', age: 25}, {name: 'Bob', age: 30}] -->
+<div class="user-cards">
+    <div class="user-card first">
+        <h3>Alice</h3>
+        <p>Age: 25</p>
+        <p>Position: #0</p>
+        <span class="badge">Featured User</span>
+    </div>
+    <div class="user-card last">
+        <h3>Bob</h3>
+        <p>Age: 30</p>
+        <p>Position: #1</p>
+    </div>
+</div>
+```
+
+#### Object Property Iteration
+
+```html
+<!-- Object iteration using @key -->
+<div class="settings-panel">
+    <h3>Application Settings</h3>
+    <dl class="settings-list">
+    {{#each appSettings}}
+        <dt>{{@key}}</dt>
+        <dd>{{this}}</dd>
+    {{/each}}
+    </dl>
+</div>
+
+<!-- Output with appSettings = {theme: 'dark', language: 'en', notifications: true} -->
+<div class="settings-panel">
+    <h3>Application Settings</h3>
+    <dl class="settings-list">
+        <dt>theme</dt>
+        <dd>dark</dd>
+        <dt>language</dt>
+        <dd>en</dd>
+        <dt>notifications</dt>
+        <dd>true</dd>
+    </dl>
+</div>
+```
+
+#### Nested Object Properties
+
+```html
+<!-- Complex nested object iteration -->
+<div class="employee-directory">
+{{#each employees}}
+    <div class="employee-card">
+        <div class="employee-header">
+            <h4>{{this.profile.firstName}} {{this.profile.lastName}}</h4>
+            <span class="employee-id">#{{@index}}</span>
+        </div>
+        <div class="employee-details">
+            <p>Department: {{this.department}}</p>
+            <p>Email: {{this.contact.email}}</p>
+            {{#if this.contact.phone}}
+                <p>Phone: {{this.contact.phone}}</p>
+            {{/if}}
+        </div>
+        {{#if @last}}
+            <div class="directory-footer">
+                <small>End of directory ({{@index}} employees total)</small>
+            </div>
+        {{/if}}
+    </div>
+{{/each}}
+</div>
+```
+
+#### Special Context Variables
+
+The `{{#each}}` helper provides several special variables within the iteration context:
+
+| Variable | Type | Description | Example |
+|----------|------|-------------|---------|
+| `{{@index}}` | Number | Zero-based index of current iteration | `0, 1, 2, ...` |
+| `{{@first}}` | Boolean | `true` if this is the first iteration | `true` or `false` |
+| `{{@last}}` | Boolean | `true` if this is the last iteration | `true` or `false` |
+| `{{@key}}` | String | Property name (object iteration only) | `'theme', 'language'` |
+| `{{this}}` | Any | Current array element or object value | Current item |
+
+#### Practical Examples
+
+**Navigation Menu Generation:**
+```html
+<nav class="main-navigation">
+    <ul class="nav-list">
+    {{#each navigationItems}}
+        <li class="nav-item {{#if @first}}first{{/if}} {{#if @last}}last{{/if}}">
+            <a href="{{this.url}}" class="nav-link {{#if this.active}}active{{/if}}">
+                {{this.label}}
+            </a>
+            {{#if this.badge}}
+                <span class="nav-badge">{{this.badge}}</span>
+            {{/if}}
+        </li>
+    {{/each}}
+    </ul>
+</nav>
+```
+
+**Data Table Generation:**
+```html
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    {{#each tableData}}
+        <tr class="table-row {{#if @first}}first-row{{/if}}">
+            <td>{{@index}}</td>
+            <td>{{this.name}}</td>
+            <td>
+                <span class="status status-{{this.status}}">
+                    {{this.statusLabel}}
+                </span>
+            </td>
+            <td>
+                <button class="btn-edit" data-id="{{this.id}}">Edit</button>
+                {{#if @last}}
+                    <button class="btn-add-new">Add New</button>
+                {{/if}}
+            </td>
+        </tr>
+    {{/each}}
+    </tbody>
+</table>
+```
+
+**Configuration Display:**
+```html
+<div class="config-section">
+    <h3>System Configuration</h3>
+    {{#each systemConfig}}
+        <div class="config-group">
+            <h4>{{@key}} Settings</h4>
+            <div class="config-items">
+            {{#each this}}
+                <div class="config-item">
+                    <label>{{@key}}:</label>
+                    <span class="config-value">{{this}}</span>
+                </div>
+            {{/each}}
+            </div>
+        </div>
+    {{/each}}
+</div>
+```
+
+#### Error Handling
+
+The `{{#each}}` helper includes robust error handling:
+
+```html
+<!-- Safe handling of non-iterable values -->
+{{#each possiblyUndefined}}
+    <p>{{this}}</p>
+{{/each}}
+<!-- If possiblyUndefined is null/undefined, no output is generated -->
+
+<!-- Error handling for invalid data types -->
+{{#each stringValue}}
+    <p>{{this}}</p>
+{{/each}}
+<!-- If stringValue is a string, an error comment is generated:
+     <!-- Error: Cannot iterate over non-iterable value: string. Expected array or object. -->
+```
+
+### Iteration Features
+- **Array Support**: Iterate over JavaScript arrays with index access
+- **Object Support**: Iterate over object properties with key access
+- **Nested Properties**: Access deep object properties with dot notation
+- **Context Variables**: Rich set of iteration context variables (@index, @first, @last, @key)
+- **Recursive Processing**: Full handlebars processing within iteration blocks
+- **Error Resilience**: Graceful handling of null, undefined, and invalid data types
+- **Performance Optimized**: Efficient iteration even with large datasets
+- **Type Flexibility**: Automatic handling of mixed data types in objects
 
 ## 🛡️ Security Features
 
@@ -442,11 +664,22 @@ Standard structure for page templates:
 
     <!-- Main Content Area -->
     <div class="jp-main">
-        <!-- Server-side: Initial page structure -->
+        <!-- Server-side: Initial page structure with quick stats -->
         <div id="dashboard-content">
-            <div class="jp-flex-center" style="min-height: 200px;">
-                <div class="loading">{{i18n.common.loading}}</div>
-            </div>
+            {{#if quickStats}}
+                <div class="quick-stats">
+                    {{#each quickStats}}
+                        <div class="stat-card">
+                            <h3>{{this.label}}</h3>
+                            <span class="stat-value">{{this.value}}</span>
+                        </div>
+                    {{/each}}
+                </div>
+            {{else}}
+                <div class="jp-flex-center" style="min-height: 200px;">
+                    <div class="loading">{{i18n.common.loading}}</div>
+                </div>
+            {{/if}}
         </div>
 
         <!-- Placeholder for client-side content -->
@@ -591,12 +824,52 @@ Template pattern for administrative interfaces:
         </form>
     </div>
 
-    <!-- Results Container (populated by JavaScript) -->
+    <!-- Results Container (server-side initial data + client-side enhancement) -->
     <div class="jp-main">
         <div id="userResults">
-            <div class="jp-flex-center" style="min-height: 200px;">
-                <div class="loading">{{i18n.common.loadingUsers}}</div>
-            </div>
+            {{#if initialUsers}}
+                <!-- Server-side: Show initial user list -->
+                <div class="user-table">
+                    <table class="jp-table">
+                        <thead>
+                            <tr>
+                                <th>{{i18n.admin.username}}</th>
+                                <th>{{i18n.admin.email}}</th>
+                                <th>{{i18n.admin.role}}</th>
+                                <th>{{i18n.admin.status}}</th>
+                                <th>{{i18n.admin.actions}}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {{#each initialUsers}}
+                            <tr class="user-row" data-user-id="{{this.id}}">
+                                <td>{{this.username}}</td>
+                                <td>{{this.email}}</td>
+                                <td>
+                                    <span class="role-badge role-{{this.role}}">
+                                        {{this.role}}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-badge status-{{this.status}}">
+                                        {{this.statusLabel}}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="jp-btn jp-btn-sm edit-user" data-id="{{this.id}}">
+                                        {{i18n.admin.edit}}
+                                    </button>
+                                </td>
+                            </tr>
+                        {{/each}}
+                        </tbody>
+                    </table>
+                </div>
+            {{else}}
+                <div class="jp-flex-center" style="min-height: 200px;">
+                    <div class="loading">{{i18n.common.loadingUsers}}</div>
+                </div>
+            {{/if}}
         </div>
 
         <!-- Pagination (populated by JavaScript) -->
@@ -662,16 +935,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 <nav class="jp-nav">
                     {{#if user.authenticated}}
-                        <a href="/dashboard/">{{i18n.nav.dashboard}}</a>
-                        <a href="/profile/">{{i18n.nav.profile}}</a>
-                        {{#if user.isAdmin}}
-                            <a href="/admin/">{{i18n.nav.admin}}</a>
-                        {{/if}}
-                        <a href="/auth/logout.shtml">{{i18n.nav.logout}}</a>
+                        <!-- Dynamic navigation for authenticated users -->
+                        {{#each userNavigation}}
+                            <a href="{{this.url}}" class="nav-link {{#if this.active}}active{{/if}}">
+                                {{this.label}}
+                                {{#if this.badge}}
+                                    <span class="nav-badge">{{this.badge}}</span>
+                                {{/if}}
+                            </a>
+                        {{/each}}
+                        <a href="/auth/logout.shtml" class="nav-link logout">{{i18n.nav.logout}}</a>
                     {{else}}
-                        <a href="/home/">{{i18n.nav.home}}</a>
-                        <a href="/about/">{{i18n.nav.about}}</a>
-                        <a href="/auth/login.shtml">{{i18n.nav.login}}</a>
+                        <!-- Static navigation for guests -->
+                        {{#each guestNavigation}}
+                            <a href="{{this.url}}" class="nav-link {{#if this.active}}active{{/if}}">
+                                {{this.label}}
+                            </a>
+                        {{/each}}
                     {{/if}}
                 </nav>
             </div>

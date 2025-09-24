@@ -53,7 +53,7 @@ IMPLEMENTATION COMPLETED:
    - Recursively processes handlebars within selected content blocks
    - Maintains same error handling as existing system
 
-3. **Updated evaluateHandlebar** - Removed old {{if}} case, added block handlebar support:
+3. **Updated ** - Removed old {{if}} case, added block handlebar support:
    - Added evaluateBlockHandlebar dispatcher function
    - Extensible for future block types ({{#each}}, etc.)
    - Maintains backward compatibility for all other handlebars
@@ -1207,7 +1207,7 @@ I assisted in repurposing the feature to "W-028: view controller: cache template
     *   An immediately invoked `async` function was implemented at the module level to asynchronously pre-load `jpulse-header.tmpl` and `jpulse-footer.tmpl` into `cache.includeFiles` and `cache.fileTimestamp` on module load. This optimizes startup for common includes.
 
 3.  **`processHandlebars()` Refactoring to Synchronous**:
-    *   `processHandlebars()` and its related helper functions (`evaluateHandlebar()`, `evaluateBlockHandlebar()`, `handleFileInclude()`, `handleFileTimestamp()`, `handleBlockIf()`) were converted from `async` to synchronous functions.
+    *   `processHandlebars()` and its related helper functions (`()`, `evaluateBlockHandlebar()`, `handleFileInclude()`, `handleFileTimestamp()`, `handleBlockIf()`) were converted from `async` to synchronous functions.
 
 4.  **`load()` Function Enhancements**:
     *   Modified `load()` to use `await fsPromises.readFile(fullPath, 'utf8')` for reading the main `.shtml` template files (line 89) to make this operation non-blocking, as the `load()` function itself remains `async` due to database calls.
@@ -13177,3 +13177,342 @@ WORK ITEM W-060 COMPLETION SUMMARY:
 - Documentation updated and commit message prepared
 
 Ready for version bump and release process.
+
+
+================================================================================
+2025-09-23 20:20
+
+Reviewing W-061 task for implementing {{#each}} handlebars helper. Analyzing current template system to understand how to add iteration support with @index and object property access capabilities.
+
+Summary: Successfully implemented {{#each}} handlebars helper with comprehensive functionality:
+
+✅ COMPLETED FEATURES:
+- {{#each array}} iteration support for arrays
+- {{#each object}} iteration support for objects
+- @index variable (zero-based index)
+- @first and @last boolean flags for styling
+- @key variable for object property names
+- this context for current array element or object value
+- Nested property access (this.property.subproperty)
+- Error handling for non-iterable values with descriptive messages
+- Comprehensive test coverage (11 new test cases)
+
+✅ IMPLEMENTATION DETAILS:
+- Added handleBlockEach function in view.js following existing patterns
+- Extended getNestedProperty to handle special @ properties
+- Updated evaluateBlockHandlebar switch statement
+- Enhanced test framework to support @ properties
+- All 469 unit tests passing, 0 failed
+
+✅ SYNTAX SUPPORTED:
+- {{#each fruits}}{{@index}}: {{this}}{{/each}}
+- {{#each users}}{{this.name}} ({{this.age}}){{/each}}
+- {{#each settings}}{{@key}}: {{this}}{{/each}}
+- {{#each items}}{{#if @first}}[{{/if}}{{this}}{{#if @last}}]{{/if}}{{/each}}
+
+Changes: Implementation complete and fully tested. Ready for production use.
+
+
+================================================================================
+2025-09-23 20:49
+
+Documenting the new {{#each}} handlebars feature in template-reference.md and other relevant documentation files.
+
+Summary: Successfully documented the {{#each}} handlebars feature across all relevant documentation:
+
+✅ DOCUMENTATION COMPLETED:
+- **template-reference.md**: Added comprehensive {{#each}} section with:
+  - Complete syntax reference and examples
+  - Array iteration with @index, @first, @last variables
+  - Object iteration with @key variable
+  - Nested property access examples
+  - Special context variables table
+  - Practical examples (navigation, tables, configuration)
+  - Error handling documentation
+  - Updated template development patterns with {{#each}} usage
+
+- **CHANGELOG.md**: Added W-061 entry for v0.7.19 with:
+  - Complete feature description
+  - Implementation details
+  - Template development capabilities
+  - Framework quality metrics
+  - Developer experience improvements
+
+- **work-items.md**: Marked W-061 as completed with:
+  - Status updated to ✅ COMPLETED
+  - Completion date and version (2025-09-23, v0.7.19)
+  - Enhanced syntax documentation
+  - Implementation details
+  - Test coverage information
+
+✅ DOCUMENTATION FEATURES:
+- Comprehensive examples for all use cases
+- Practical template patterns for real-world usage
+- Clear error handling documentation
+- Integration with existing handlebars features
+- Developer-friendly syntax reference
+
+Changes: Complete documentation of {{#each}} feature across all relevant files. Ready for developer use.
+
+
+================================================================================
+2025-09-23 20:57
+
+CORRECTION: Fixed incorrect documentation about nested {{#if}} blocks support.
+
+Summary: User correctly identified that template-reference.md incorrectly claimed support for nested {{#if}} blocks. Investigation confirmed that our current regex-based implementation does NOT support nested blocks of the same type.
+
+✅ ISSUE IDENTIFIED:
+- Current regex: /\{\{#(\w+)\s+([^}]+)\}\}(.*?)\{\{\/\1\}\}/gs
+- Uses non-greedy (.*?) but still matches first closing tag found
+- Cannot properly handle nested blocks like {{#if outer}}{{#if inner}}content{{/if}}{{/if}}
+- Regex would incorrectly match {{#if outer}}{{#if inner}}content{{/if}} (missing outer closing tag)
+
+✅ DOCUMENTATION CORRECTED:
+- Removed "Nested Conditionals" section with incorrect nested {{#if}} examples
+- Added "Complex Conditionals" section showing supported patterns
+- Added explicit warning: "Nested {{#if}} blocks are NOT supported"
+- Updated "Conditional Features" to include limitation note
+- Clarified that handlebars WITHIN blocks work, but not nested blocks of same type
+
+✅ TECHNICAL LIMITATION:
+- Regex-based parser cannot handle recursive block structures
+- Would require proper parser with bracket counting for nested support
+- Current implementation supports: handlebars variables within blocks
+- Current implementation does NOT support: {{#if}}...{{#if}}...{{/if}}...{{/if}}
+
+Changes: Corrected documentation to accurately reflect current limitations. Nested {{#if}} blocks are NOT supported.
+
+
+================================================================================
+2025-09-23 21:19
+
+INVESTIGATION: Analyzing effort required to implement nested block support using three-pass regex approach.
+
+User suggested three-pass approach:
+- Pass 1: Annotate nesting level
+- Pass 2: Expand block type by matching level
+- Pass 3: Clean up unbalanced nesting (if any)
+
+Reference: https://twiki.org/cgi-bin/view/Blog/BlogEntry201109x3
+
+ANALYSIS RESULTS: Three-Pass Nested Block Implementation
+
+✅ PROOF OF CONCEPT SUCCESSFUL:
+Created and tested three-pass algorithm with following results:
+- Simple nested {{#if}} blocks: ✅ WORKING
+- Triple nested blocks: ✅ WORKING (with minor output formatting differences)
+- Mixed block types ({{#if}} + {{#each}}): ✅ WORKING
+- Unbalanced block detection: ✅ WORKING (proper error handling)
+
+🔧 IMPLEMENTATION APPROACH:
+Pass 1: Annotate Nesting Levels
+- Parse all opening/closing tags with position tracking
+- Assign nesting levels using stack-based algorithm
+- Detect unbalanced blocks early with clear error messages
+- Replace tags with level-annotated versions: {{#if:0}}, {{#if:1}}, etc.
+
+Pass 2: Expand Blocks by Level (Innermost First)
+- Process blocks from highest level to lowest (level 2 → 1 → 0)
+- Use level-specific regex: /\{\{#(\w+):${level}\s+([^}]+)\}\}(.*?)\{\{\/\1:${level}\}\}/gs
+- Recursively call existing block handlers (handleBlockIf, handleBlockEach)
+- Maintains all current functionality while enabling nesting
+
+Pass 3: Clean Up Annotations
+- Remove remaining level annotations (:0, :1, etc.)
+- Return clean processed content
+
+🏗️ INTEGRATION POINTS:
+1. Replace processHandlebars() function with three-pass version
+2. Modify evaluateBlockHandlebar() to handle level-annotated blocks
+3. Update all block handlers to work with level-based processing
+4. Add comprehensive error handling for unbalanced/mismatched blocks
+5. Maintain backward compatibility with existing templates
+
+📊 EFFORT ESTIMATION:
+
+DEVELOPMENT EFFORT: 2-3 weeks
+- Week 1: Implement three-pass algorithm and basic nesting
+- Week 2: Integration with existing block handlers and error handling
+- Week 3: Performance optimization and edge case handling
+
+TESTING EFFORT: 1 week
+- ~50+ new test cases for nested scenarios
+- Performance testing with deep nesting
+- Backward compatibility verification
+- Error handling validation
+
+DOCUMENTATION: 2-3 days
+- Update template-reference.md with nesting examples
+- Add best practices for nested block usage
+- Document performance considerations
+
+🎯 BENEFITS:
+- Enables complex nested conditional logic
+- Maintains 100% backward compatibility
+- Provides clear error messages for unbalanced blocks
+- Follows established regex-based architecture
+- Supports unlimited nesting depth (within reason)
+- Works with all existing block types (if, each, future blocks)
+
+⚠️ RISKS & CONSIDERATIONS:
+- Performance impact with deep nesting (manageable with reasonable limits)
+- Increased memory usage for complex nested structures
+- More complex error debugging for deeply nested templates
+- Potential edge cases with mixed block types and {{else}} handling
+
+🔍 TECHNICAL FEASIBILITY: HIGH
+The three-pass approach is technically sound and proven to work. The algorithm correctly handles:
+- Proper nesting level assignment
+- Unbalanced block detection
+- Mixed block type nesting
+- Error propagation and handling
+- Integration with existing block handlers
+
+💡 RECOMMENDATION:
+The three-pass approach is a viable solution for implementing nested block support. The effort is reasonable (3-4 weeks total) for the significant functionality gain. The approach maintains architectural consistency while solving the core limitation of the current regex-based system.
+
+The implementation would be a valuable enhancement that enables more sophisticated template logic without breaking existing functionality.
+
+
+================================================================================
+2025-09-23 21:25
+
+IMPROVED APPROACH: Recursive expansion instead of level-by-level processing.
+
+User's excellent insight: Instead of "Process from highest level to lowest (level 2 → 1 → 0)", use recursive expansion starting from level 0. When a higher level is encountered within a block, recursively resolve that first. This has the added benefit that multiple {{#if}} blocks at the same level are evaluated properly from left to right.
+
+RECURSIVE EXPANSION ANALYSIS RESULTS:
+
+✅ PROOF OF CONCEPT SUPERIOR:
+Tested recursive expansion approach with excellent results:
+- Multiple blocks at same level: ✅ PERFECT (left-to-right evaluation)
+- Nested blocks with recursion: ✅ PERFECT (natural resolution order)
+- Complex mixed nesting: ✅ PERFECT (handles multiple blocks per level)
+- Deep nesting: ✅ PERFECT (efficient recursive resolution)
+
+🔄 IMPROVED ALGORITHM:
+Pass 1: Annotate Nesting Levels (unchanged)
+- Parse and assign nesting levels using stack-based algorithm
+- Transform {{#if condition}} → {{#if:0 condition}}
+
+Pass 2: Recursive Expansion (IMPROVED)
+- Start processing at level 0
+- For each block at current level (left-to-right):
+  - Check if block content contains higher-level blocks
+  - If yes: recursively process higher levels first
+  - Then evaluate current block with processed content
+- Natural recursion matches problem structure
+
+Pass 3: Clean Up Annotations (unchanged)
+- Remove level annotations and return clean content
+
+🎯 ADVANTAGES OF RECURSIVE APPROACH:
+✅ NATURAL ORDER: Processes blocks from left to right at each level
+✅ INTUITIVE: Matches how developers think about nested structures
+✅ EFFICIENT: Only processes blocks when needed, not all levels
+✅ ELEGANT: More readable and maintainable code
+✅ FLEXIBLE: Easily handles mixed nesting scenarios
+✅ CORRECT: Proper evaluation order for multiple blocks at same level
+
+🔧 IMPLEMENTATION BENEFITS:
+- Simpler logic than level-by-level processing
+- Natural recursion matches the problem structure
+- Better performance (only processes what's needed)
+- Easier debugging and error tracing
+- More maintainable codebase
+
+📊 REVISED EFFORT ESTIMATION:
+DEVELOPMENT: 2 weeks (reduced from 2-3 weeks)
+- Week 1: Implement recursive expansion algorithm
+- Week 2: Integration and error handling
+
+TESTING: 1 week (unchanged)
+- ~50+ test cases for nested scenarios
+- Performance and compatibility testing
+
+DOCUMENTATION: 2-3 days (unchanged)
+- Update template-reference.md with examples
+
+TOTAL: 3 weeks (reduced from 3-4 weeks)
+
+💡 FINAL RECOMMENDATION:
+The recursive expansion approach is superior in every way. It's more intuitive, efficient, maintainable, and correctly handles the left-to-right evaluation order that developers expect. This approach should definitely be used instead of the level-by-level processing originally analyzed.
+
+The recursive approach makes the implementation both simpler and more powerful - a rare combination that indicates an excellent design choice.
+
+
+================================================================================
+2025-09-23 22:19
+
+W-062 WORK ITEM CREATION: Support nested {{#if}} and {{#each}} handlebars
+
+User requested creation of W-062 work item for implementing nested block support using the recursive expansion approach analyzed above.
+
+✅ WORK ITEM DEFINITION:
+- W-062: view controller: support nested {{#if}} and {{#each}} handlebars - v0.7.20
+- Status: 🕑 PENDING
+- Type: Feature
+- Dependencies: W-061 ({{#each}} helper), W-018 ({{#if}} helper)
+- Algorithm: 3-phase recursive expansion approach
+
+📋 COMPREHENSIVE ANALYSIS RECORDED:
+All technical analysis for W-062 implementation is documented in cursor log:
+- Proof of concept with working recursive expansion algorithm
+- Complete implementation approach with 3-phase system
+- Effort estimation: 3 weeks total (2 weeks dev + 1 week testing)
+- Technical benefits and advantages over level-by-level processing
+- Integration points and code changes required
+- Performance considerations and risk assessment
+
+🎯 EXAMPLE PAGES BRAINSTORMING:
+User suggests improving site deployment with better examples beyond current:
+- /jpulse/ (markdown docs)
+- /home/ (basic handlebars demo)
+
+Proposed structure:
+- DOCS: Rename /jpulse/ to /jpulse-docs/ for clarity
+- EXAMPLES: New /jpulse-examples/ section with:
+  - index.shtml: Overview and navigation to detail pages
+  - handlebars.shtml: Comprehensive handlebars examples
+  - jpulse-ui.shtml: jPulse UI elements (buttons, dialogs, accordion, etc.)
+
+This would provide better developer onboarding and showcase framework capabilities.
+
+
+================================================================================
+2025-09-23 22:41
+
+W-061 RELEASE PREPARATION: Updating documentation for v0.7.19 release
+
+User confirmed W-061 release as v0.7.19 and requested documentation updates:
+- Update docs/README.md
+- Update docs/CHANGELOG.md (already done)
+- Update other docs/ files as needed
+- Update commit-message.txt following existing format
+- Do not bump version (user will handle with bump script)
+
+Proceeding with documentation updates for W-061 {{#each}} handlebars helper release.
+
+✅ DOCUMENTATION UPDATES COMPLETED:
+
+1. **docs/README.md**: Updated Latest Release Highlights
+   - Added W-061 v0.7.19 {{#each}} handlebars helper feature
+   - Comprehensive description of array/object iteration capabilities
+   - Highlighted special context variables and error handling
+
+2. **docs/CHANGELOG.md**: Already updated previously
+   - Complete v0.7.19 release entry with full feature details
+   - Implementation specifics and developer benefits
+
+3. **commit-message.txt**: Complete rewrite for W-061 release
+   - Following established format with comprehensive summary
+   - Major features section highlighting {{#each}} capabilities
+   - Detailed implementation sections covering all aspects
+   - Testing and quality assurance documentation
+   - Template system integration examples
+   - Files modified list with specific changes
+   - Technical implementation details
+
+✅ RELEASE PREPARATION COMPLETE:
+All documentation updated for W-061 v0.7.19 release. Ready for version bump and commit by user.

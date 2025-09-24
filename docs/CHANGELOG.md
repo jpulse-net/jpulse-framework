@@ -1,6 +1,82 @@
-# jPulse Framework / Docs / Version History v0.7.19
+# jPulse Framework / Docs / Version History v0.7.20
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.7.20, W-062, 2025-09-24
+
+**Commit:** `W-062, v0.7.20: Complete nested handlebars support with multi-line blocks, left-to-right processing, and comprehensive test coverage for complex template scenarios`
+
+Implementation of W-062 nested handlebars support enabling complex template scenarios with nested {{#if}} and {{#each}} blocks, multi-line block support, efficient left-to-right processing algorithm, and comprehensive test coverage for production-ready template development capabilities.
+
+Major Features:
+- **Nested Handlebars Support (W-062)**: Complete implementation of nested block handlebars for complex template scenarios
+  - Nested {{#if}} blocks within {{#each}} loops with proper context management
+  - Nested {{#each}} loops for multi-dimensional data structures (books → chapters)
+  - Multi-level nesting with 16-level recursion depth protection
+  - Left-to-right processing algorithm ensuring correct evaluation order
+  - Efficient regex-based 3-phase approach: annotation, resolution, cleanup
+
+- **Multi-line Block Support**: Production-ready multi-line template processing
+  - Multi-line {{#if}} blocks spanning multiple lines with proper whitespace handling
+  - Multi-line {{#each}} blocks for complex HTML structure generation
+  - Regex dotall modifier (s flag) for cross-line pattern matching
+  - Preserved formatting and indentation in template output
+  - Enhanced readability for complex template structures
+
+- **Advanced Template Processing Engine**: Robust left-to-right evaluation system
+  - Single regex pattern handling both block and regular handlebars simultaneously
+  - Proper context management for nested {{#each}} iterations (@index, @key, this)
+  - Encapsulated helper functions with underscore prefix for clean architecture
+  - Efficient recursive processing without redundant annotation phases
+  - Standardized error handling with descriptive HTML comments
+
+- **Comprehensive Test Coverage**: Production-ready validation with 576+ tests
+  - 14 new nested handlebars test cases covering all nesting scenarios
+  - Array iteration with nested conditionals and proper context isolation
+  - Object iteration with nested loops and multi-dimensional data structures
+  - Multi-line block processing with complex HTML generation
+  - Edge case handling for empty arrays, null values, and error conditions
+  - Test consolidation into main view.test.js for improved maintainability
+
+Template Development:
+- **Enhanced Template Capabilities**: Powerful nested structures for complex applications
+  - User management interfaces with nested user lists and conditional active badges
+  - Product catalogs with nested categories and conditional availability displays
+  - Navigation systems with nested menu items and dynamic styling
+  - Data tables with nested row details and conditional formatting
+  - Dashboard widgets with nested data visualization and interactive elements
+
+- **Developer Experience Improvements**: Intuitive nested syntax with comprehensive error handling
+  - Natural nesting syntax following Handlebars.js conventions
+  - Clear error messages for debugging nested template issues
+  - Multi-line support for readable template organization
+  - Comprehensive documentation with practical nested examples
+  - Enhanced test framework supporting complex template scenarios
+
+Framework Architecture:
+- **Clean Code Architecture**: Encapsulated helper functions with consistent naming
+  - All handlebars helper functions moved inside processHandlebars with _ prefix
+  - Consistent import usage eliminating global/local variable mixing
+  - ES module export compatibility for modern JavaScript standards
+  - Improved code organization with clear separation of concerns
+  - Enhanced maintainability through function encapsulation
+
+- **Performance Optimized Processing**: Efficient nested evaluation without redundant operations
+  - Single-pass annotation phase for entire template content
+  - Efficient recursive resolution with proper context passing
+  - Minimal memory overhead for nested iteration contexts
+  - Optimized regex patterns for fast pattern matching
+  - Left-to-right processing ensuring correct evaluation order
+
+Testing and Quality Assurance:
+- **Comprehensive Test Suite**: 576+ tests with 100% pass rate including nested scenarios
+  - All existing functionality preserved during nested implementation
+  - New nested handlebars test cases covering complex template scenarios
+  - Multi-line block processing validation with proper formatting
+  - Error handling verification for edge cases and invalid inputs
+  - Performance testing for nested loops with large datasets
+  - Test file consolidation improving maintainability and organization
 
 ________________________________________________
 ## v0.7.19, W-061, 2025-09-23

@@ -3,18 +3,17 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.7.19
+ * @version         0.7.20
  * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           60%, Cursor 1.2, Claude Sonnet 4
+ * @genai           50%, Cursor 1.2, Claude Sonnet 4
  */
 
 import fs from 'fs';
 import path from 'path';
-import url from 'url';
 import LogController from './log.js';
 import configModel from '../model/config.js';
 // i18n will be available globally after bootstrap
@@ -227,12 +226,15 @@ async function load(req, res) {
     } catch (error) {
         LogController.logError(req, 'view.load', `error: ${error.message}`);
         const message = global.i18n.translate(req, 'controller.view.internalServerError', { error: error.message });
-        return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR');
+        return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR');
     }
 }
 
 /**
- * Process handlebars in content
+ * Process handlebars in content using simple regex-based 3-phase approach
+ * Phase 1: Annotate nesting levels with simple level numbering
+ * Phase 2: Recursive resolution using regex replace
+ * Phase 3: Clean up unbalanced nesting
  * @param {string} content - Template content
  * @param {Object} context - Handlebars context data
  * @param {string} viewDir - View base directory for file includes
@@ -241,419 +243,366 @@ async function load(req, res) {
  * @returns {string} Processed content
  */
 function processHandlebars(content, context, viewDir, req, depth = 0) {
-    // Combined regex to match both block handlebars ({{#if}}...{{/if}}) and regular handlebars ({{expression}})
-    const handlebarsRegex = /\{\{#(\w+)\s+([^}]+)\}\}(.*?)\{\{\/\1\}\}|\{\{([^#][^}]*|)\}\}/gs;
-    let result = content;
-    let match;
-    while ((match = handlebarsRegex.exec(content)) !== null) {
-        const fullMatch = match[0];
-        try {
-            let replacement;
+    // Prevent infinite recursion
+    const MAX_DEPTH = 16;
+    if (depth > MAX_DEPTH) {
+        LogController.logError(req, 'view.load', `error: Maximum nesting depth (${MAX_DEPTH}) exceeded`);
+        return content;
+    }
 
-            // Check if this is a block handlebar ({{#expression}}...{{/expression}})
-            if (match[1] && match[2] && match[3] !== undefined) {
-                // Block handlebars: group 1=blockType, group 2=params, group 3=content
-                const blockType = match[1];
-                const params = match[2].trim();
-                const blockContent = match[3];
-                replacement = evaluateBlockHandlebar(blockType, params, blockContent, context, viewDir, req, depth);
-            } else if (match[4]) {
-                // Regular handlebars: group 4=full expression
-                const expression = match[4].trim();
-                replacement = evaluateHandlebar(expression, context, viewDir, req, depth);
-            } else {
-                replacement = '';
-            }
+    // Phase 1: Annotate nesting levels with simple level numbering
+    let level = 0;
+    const annotated = content.replace(/(\{\{)([#\/])([a-z]+)(.*?\}\})/gs, (match, c1, c2, c3, c4) => {
+        let result;
+        if (c2 === '#') {
+            result = `${c1}${c2}${c3}:~${level}~${c4}`;
+            level++;
+        } else {
+            level--;
+            result = `${c1}${c2}${c3}:~${level}~${c4}`;
+        }
+        return result;
+    });
 
-            result = result.replace(fullMatch, replacement);
-        } catch (error) {
-            const errorExpression = match[1] ? `#${match[1]} ${match[2]}` : match[4] || 'unknown';
-            LogController.logError(req, 'view.load', `error: Handlebars "${errorExpression}": ${error.message}`);
-            result = result.replace(fullMatch, `<!-- Error: ${error.message} -->`);
+    // Local helper functions (encapsulated within processHandlebars)
+
+    /**
+     * Evaluate a block handlebars expression ({{#type}}...{{/type}})
+     */
+    function _evaluateBlockHandlebar(blockType, params, blockContent, currentContext) {
+        switch (blockType) {
+            case 'if':
+                return _handleBlockIf(params, blockContent, currentContext);
+            case 'each':
+                return _handleBlockEach(params, blockContent, currentContext);
+            default:
+                throw new Error(`Unknown block type: #${blockType}`);
         }
     }
-    return result;
-}
 
-/**
- * Evaluate a block handlebars expression ({{#type}}...{{/type}})
- * @param {string} blockType - The block type (e.g., 'if', 'each')
- * @param {string} params - The parameters for the block
- * @param {string} blockContent - The content within the block
- * @param {Object} context - Context data
- * @param {string} viewDir - View base directory for file operations
- * @param {Object} req - Express request object for logging
- * @param {number} depth - Current include depth
- * @returns {string} Evaluated result
- */
-function evaluateBlockHandlebar(blockType, params, blockContent, context, viewDir, req, depth = 0) {
-    switch (blockType) {
-        case 'if':
-            return handleBlockIf(params, blockContent, context, viewDir, req, depth);
-        case 'each':
-            return handleBlockEach(params, blockContent, context, viewDir, req, depth);
-        default:
-            throw new Error(`Unknown block type: ${blockType}`);
+    /**
+     * Evaluate a single handlebars expression
+     */
+    function _evaluateHandlebar(expression, currentContext) {
+        const parts = _parseArguments(expression);
+        const helper = parts[0];
+        const args = parts.slice(1);
+
+        // Handle helper functions first (before property access)
+        switch (helper) {
+            case 'file.include':
+                return _handleFileInclude(args[0], currentContext);
+            case 'file.timestamp':
+                return _handleFileTimestamp(args[0]);
+            case 'file.exists':
+                return _handleFileExists(args[0]);
+            default:
+                // Handle property access (no spaces, contains dots)
+                if (!helper.includes(' ') && helper.includes('.')) {
+                    return getNestedProperty(currentContext, helper) || '';
+                }
+                // Unknown helper, return empty
+                return '';
+        }
     }
-}
 
-/**
- * Evaluate a single handlebars expression
- * @param {string} expression - The handlebars expression (without {{}})
- * @param {Object} context - Context data
- * @param {string} viewDir - View base directory for file operations
- * @param {number} depth - Current include depth
- * @returns {string} Evaluated result
- */
-function evaluateHandlebar(expression, context, viewDir, req, depth = 0) {
-    const parts = parseArguments(expression);
-    const helper = parts[0];
-    const args = parts.slice(1);
-
-    // Handle helper functions first (before property access)
-    switch (helper) {
-        case 'file.include':
-            // server side include, handle recursively
-            return handleFileInclude(args[0], context, viewDir, req, depth);
-        case 'file.timestamp':
-            // server side timestamp, use to avoid browser caching
-            return handleFileTimestamp(args[0], viewDir, req);
-        case 'file.exists':
-            // server side file existence check
-            return handleFileExists(args[0], viewDir, req);
-        default:
-            // Handle property access (no spaces, contains dots)
-            if (!helper.includes(' ') && helper.includes('.')) {
-                return getNestedProperty(context, helper) || '';
+    /**
+     * Parse handlebars arguments (space-separated, quoted strings preserved)
+     */
+    function _parseArguments(expression) {
+        const args = [];
+        let current = '';
+        let inQuotes = false;
+        let quoteChar = '';
+        for (let i = 0; i < expression.length; i++) {
+            const char = expression[i];
+            if (!inQuotes && (char === '"' || char === "'")) {
+                inQuotes = true;
+                quoteChar = char;
+            } else if (inQuotes && char === quoteChar) {
+                inQuotes = false;
+                quoteChar = '';
+            } else if (!inQuotes && char === ' ') {
+                if (current.trim()) {
+                    args.push(current.trim());
+                    current = '';
+                }
+            } else {
+                current += char;
             }
-            // Unknown helper, return empty
+        }
+        if (current.trim()) {
+            args.push(current.trim());
+        }
+        return args;
+    }
+
+    /**
+     * Handle {{#if}} blocks
+     */
+    function _handleBlockIf(params, blockContent, currentContext) {
+        const condition = _evaluateCondition(params, currentContext);
+
+        // Split content on {{else}}
+        const elseParts = blockContent.split('{{else}}');
+        const ifContent = elseParts[0] || '';
+        const elseContent = elseParts[1] || '';
+
+        return condition ? ifContent : elseContent;
+    }
+
+    /**
+     * Handle {{#each}} blocks
+     */
+    function _handleBlockEach(params, blockContent, currentContext) {
+        const items = getNestedProperty(currentContext, params.trim());
+
+        if (!items || (!Array.isArray(items) && typeof items !== 'object')) {
             return '';
-    }
-}
-
-/**
- * Parse handlebars arguments (space-separated, quoted strings preserved)
- * @param {string} expression - The full expression
- * @returns {Array} Array of arguments
- */
-function parseArguments(expression) {
-    const args = [];
-    let current = '';
-    let inQuotes = false;
-    let quoteChar = '';
-    for (let i = 0; i < expression.length; i++) {
-        const char = expression[i];
-        if (!inQuotes && (char === '"' || char === "'")) {
-            inQuotes = true;
-            quoteChar = char;
-        } else if (inQuotes && char === quoteChar) {
-            inQuotes = false;
-            quoteChar = '';
-        } else if (!inQuotes && char === ' ') {
-            if (current.trim()) {
-                args.push(current.trim());
-                current = '';
-            }
-        } else {
-            current += char;
         }
-    }
-    if (current.trim()) {
-        args.push(current.trim());
-    }
-    return args;
-}
 
-/**
- * Get nested property from object using dot notation
- * Supports special @ properties for each loops: @index, @first, @last, @key
- * @param {Object} obj - Object to search in
- * @param {string} path - Dot-separated path
- * @returns {*} Property value or undefined
- */
-function getNestedProperty(obj, path) {
-    // Handle special @ properties for each loops
-    if (path.startsWith('@')) {
-        return obj[path];
-    }
+        let result = '';
+        const itemsArray = Array.isArray(items) ? items : Object.entries(items);
 
-    return path.split('.').reduce((current, key) => {
-        return current && current[key] !== undefined ? current[key] : undefined;
-    }, obj);
-}
+        for (let i = 0; i < itemsArray.length; i++) {
+            const item = itemsArray[i];
 
-/**
- * Handle file.include helper - SECURE VERSION
- * Always resolves relative to view root, prohibits path traversal
- * @param {string} filePath - Path to include (with quotes)
- * @param {Object} context - Context for nested processing
- * @param {string} viewDir - View base directory
- * @param {number} depth - Current include depth
- * @returns {string} Included content
- */
-function handleFileInclude(filePath, context, viewDir, req, depth = 0) {
-    // Check include depth to prevent infinite recursion
-    const maxDepth = global.appConfig?.controller?.view?.maxIncludeDepth || 10;
-    if (depth >= maxDepth) {
-        throw new Error(`Maximum include depth (${maxDepth}) exceeded`);
-    }
+            // Create iteration context with special variables
+            const iterationContext = { ...currentContext };
+            iterationContext['@index'] = i;
+            iterationContext['@first'] = i === 0;
+            iterationContext['@last'] = i === itemsArray.length - 1;
 
-    // Remove quotes
-    const includePath = filePath.replace(/^["']|["']$/g, '');
-
-    // Security: Prohibit path traversal and absolute paths
-    if (includePath.includes('../') || includePath.includes('..\\') || path.isAbsolute(includePath)) {
-        throw new Error(`Prohibited path in include: ${includePath}. Use relative paths from view root only.`);
-    }
-
-    // Always resolve relative to view root for security and consistency
-    const fullPath = path.join(viewDir, includePath);
-
-    // Double-check that resolved path is still within view root
-    if (!fullPath.startsWith(viewDir)) {
-        throw new Error(`Path traversal attempt blocked: ${includePath}`);
-    }
-
-    // Check cache first
-    if (global.appConfig.controller.view.cacheIncludeFiles && cache.includeFiles[includePath]) {
-        LogController.logInfo(req, 'view.load', `Include cache hit for ${includePath}`);
-        return processHandlebars(cache.includeFiles[includePath], context, viewDir, null, depth + 1);
-    }
-
-    if (!fs.existsSync(fullPath)) {
-        throw new Error(`Include file not found: ${includePath} (resolved to: ${fullPath})`);
-    }
-
-    const content = fs.readFileSync(fullPath, 'utf8');
-    LogController.logInfo(req, 'view.load', `Loaded ${includePath}`);
-    // Add to cache before returning, if caching is enabled
-    if (global.appConfig.controller.view.cacheIncludeFiles) {
-        cache.includeFiles[includePath] = content;
-        //LogController.logInfo(req, 'view.load', `Added ${includePath} to include cache`);
-    } else {
-        //LogController.logInfo(req, 'view.load', `Loaded ${includePath} (include caching disabled)`);
-    }
-    // Recursively process handlebars in included content (now synchronous)
-    return processHandlebars(content, context, viewDir, req, depth + 1);
-}
-
-/**
- * Handle file.timestamp helper - W-047: Updated to support site overrides
- * @param {string} filePath - Path to file (with quotes)
- * @param {string} viewDir - View base directory for file operations
- * @param {Object} req - Express request object for logging
- * @returns {string} File modification timestamp
- */
-function handleFileTimestamp(filePath, viewDir, req) {
-    const includePath = filePath.replace(/^["']|["']$/g, '');
-
-    // Check cache first for file timestamp
-    if (global.appConfig.controller.view.cacheIncludeFiles && cache.fileTimestamp[includePath]) {
-        //LogController.logInfo(req, 'view.load', `Timestamp cache hit for ${includePath}`);
-        return cache.fileTimestamp[includePath];
-    }
-
-    let fullPath;
-    try {
-        // W-047: Use PathResolver to support site overrides for timestamp files (synchronous)
-        const webappDir = global.appConfig?.app?.dirName || path.join(process.cwd(), 'webapp');
-        const projectRoot = path.dirname(webappDir);
-        const relativePath = `view/${includePath}`;
-
-        // 1. Check site override first (highest priority)
-        const sitePath = path.join(projectRoot, 'site/webapp', relativePath);
-        if (fs.existsSync(sitePath)) {
-            fullPath = sitePath;
-        } else {
-            // 2. Fall back to framework default
-            const frameworkPath = path.join(webappDir, relativePath);
-            if (fs.existsSync(frameworkPath)) {
-                fullPath = frameworkPath;
+            if (Array.isArray(items)) {
+                // For arrays: item is the array element
+                iterationContext['this'] = item;
             } else {
-                throw new Error(`File not found: ${includePath} (checked site and framework paths)`);
+                // For objects: item is [key, value] pair
+                iterationContext['@key'] = item[0];
+                iterationContext['this'] = item[1];
             }
+
+            // Process handlebars in block content with iteration context
+            // Use _resolveHandlebars with local context for efficiency (no re-annotation)
+            let processedContent = _resolveHandlebars(blockContent, null, null, null, null, null, iterationContext);
+
+            result += processedContent;
         }
-    } catch (error) {
-        // Final fallback to original behavior
-        fullPath = path.resolve(viewDir, includePath);
+
+        return result;
+    }
+
+    /**
+     * Handle file.include helper
+     */
+    function _handleFileInclude(filePath, currentContext) {
+        // Check include depth to prevent infinite recursion
+        const maxDepth = global.appConfig?.controller?.view?.maxIncludeDepth || 10;
+        if (depth >= maxDepth) {
+            throw new Error(`Maximum include depth (${maxDepth}) exceeded`);
+        }
+
+        // Remove quotes
+        const includePath = filePath.replace(/^["']|["']$/g, '');
+
+        // Security: Prohibit path traversal and absolute paths
+        if (includePath.includes('../') || includePath.includes('..\\') || path.isAbsolute(includePath)) {
+            throw new Error(`Prohibited path in include: ${includePath}. Use relative paths from view root only.`);
+        }
+
+        // Always resolve relative to view root for security and consistency
+        const fullPath = path.join(viewDir, includePath);
+
+        // Double-check that resolved path is still within view root
+        if (!fullPath.startsWith(viewDir)) {
+            throw new Error(`Path traversal attempt blocked: ${includePath}`);
+        }
+
+        // Check cache first
+        if (global.appConfig.controller.view.cacheIncludeFiles && cache.includeFiles[includePath]) {
+            LogController.logInfo(req, 'view.load', `Include cache hit for ${includePath}`);
+            return processHandlebars(cache.includeFiles[includePath], currentContext, viewDir, req, depth + 1);
+        }
+
         if (!fs.existsSync(fullPath)) {
-            throw new Error(`File not found: ${includePath} (resolved to: ${fullPath})`);
+            throw new Error(`Include file not found: ${includePath} (resolved to: ${fullPath})`);
         }
+
+        const content = fs.readFileSync(fullPath, 'utf8');
+        LogController.logInfo(req, 'view.load', `Loaded ${includePath}`);
+        // Add to cache before returning, if caching is enabled
+        if (global.appConfig.controller.view.cacheIncludeFiles) {
+            cache.includeFiles[includePath] = content;
+        }
+        // Recursively process handlebars in included content
+        return processHandlebars(content, currentContext, viewDir, req, depth + 1);
     }
 
-    const stats = fs.statSync(fullPath);
-    const timestamp = stats.mtime.valueOf();
-    // Cache the timestamp, if caching is enabled
-    if (global.appConfig.controller.view.cacheIncludeFiles) {
-        //LogController.logInfo(req, 'view.load', `Loaded timestamp ${timestamp} of ${includePath} and added to cache`);
-        cache.fileTimestamp[includePath] = timestamp;
-    } else {
-        //LogController.logInfo(req, 'view.load', `Loaded timestamp ${timestamp} of ${includePath} (include caching disabled)`);
-    }
-    return timestamp;
-}
+    /**
+     * Handle file.timestamp helper
+     */
+    function _handleFileTimestamp(filePath) {
+        const includePath = filePath.replace(/^["']|["']$/g, '');
 
-/**
- * Handle file.exists helper - W-048: Check if file exists with site override support
- * @param {string} filePath - Path to file (with quotes)
- * @param {string} viewDir - View base directory for file operations
- * @param {Object} req - Express request object for logging
- * @returns {string} 'true' or 'false' as string (for handlebars boolean evaluation)
- */
-function handleFileExists(filePath, viewDir, req) {
-    const includePath = filePath.replace(/^["']|["']$/g, '');
+        // Check cache first for file timestamp
+        if (global.appConfig.controller.view.cacheIncludeFiles && cache.fileTimestamp[includePath]) {
+            return cache.fileTimestamp[includePath];
+        }
 
-    // Check cache first for file existence
-    const cacheKey = `exists_${includePath}`;
-    if (global.appConfig.controller.view.cacheIncludeFiles && cache.fileTimestamp[cacheKey] !== undefined) {
-        //LogController.logInfo(req, 'view.load', `File exists cache hit for ${includePath}`);
-        return cache.fileTimestamp[cacheKey] ? 'true' : 'false';
-    }
+        let fullPath;
+        try {
+            // W-047: Use PathResolver to support site overrides for timestamp files (synchronous)
+            const webappDir = global.appConfig?.app?.dirName || path.join(process.cwd(), 'webapp');
+            const projectRoot = path.dirname(webappDir);
+            const relativePath = `view/${includePath}`;
 
-    let fileExists = false;
-    try {
-        // W-048: Use PathResolver to support site overrides for file existence check
-        const webappDir = global.appConfig?.app?.dirName || path.join(process.cwd(), 'webapp');
-        const projectRoot = path.dirname(webappDir);
-        const relativePath = `view/${includePath}`;
-
-        // 1. Check site override first (highest priority)
-        const sitePath = path.join(projectRoot, 'site/webapp', relativePath);
-        if (fs.existsSync(sitePath)) {
-            fileExists = true;
-        } else {
-            // 2. Check framework default
-            const frameworkPath = path.join(webappDir, relativePath);
-            if (fs.existsSync(frameworkPath)) {
-                fileExists = true;
+            // 1. Check site override first (highest priority)
+            const sitePath = path.join(projectRoot, 'site/webapp', relativePath);
+            if (fs.existsSync(sitePath)) {
+                fullPath = sitePath;
+            } else {
+                // 2. Fall back to framework default
+                const frameworkPath = path.join(webappDir, relativePath);
+                if (fs.existsSync(frameworkPath)) {
+                    fullPath = frameworkPath;
+                } else {
+                    throw new Error(`File not found: ${includePath} (checked site and framework paths)`);
+                }
+            }
+        } catch (error) {
+            // Final fallback to original behavior
+            fullPath = path.resolve(viewDir, includePath);
+            if (!fs.existsSync(fullPath)) {
+                throw new Error(`File not found: ${includePath} (resolved to: ${fullPath})`);
             }
         }
-    } catch (error) {
-        // Final fallback to original behavior
-        const fullPath = path.resolve(viewDir, includePath);
-        fileExists = fs.existsSync(fullPath);
+
+        const stats = fs.statSync(fullPath);
+        const timestamp = stats.mtime.valueOf();
+        // Cache the timestamp, if caching is enabled
+        if (global.appConfig.controller.view.cacheIncludeFiles) {
+            cache.fileTimestamp[includePath] = timestamp;
+        }
+        return timestamp;
     }
 
-    // Cache the result, if caching is enabled
-    if (global.appConfig.controller.view.cacheIncludeFiles) {
-        cache.fileTimestamp[cacheKey] = fileExists;
-        //LogController.logInfo(req, 'view.load', `Cached file exists result for ${includePath}: ${fileExists}`);
-    }
+    /**
+     * Handle file.exists helper
+     */
+    function _handleFileExists(filePath) {
+        const includePath = filePath.replace(/^["']|["']$/g, '');
 
-    return fileExists ? 'true' : 'false';
-}
-
-/**
- * Handle block if conditional helper ({{#if}}...{{/if}})
- * @param {string} params - The condition parameter
- * @param {string} blockContent - Content within the if block
- * @param {Object} context - Context for evaluation
- * @param {string} viewDir - View base directory for file operations
- * @param {Object} req - Express request object for logging
- * @param {number} depth - Current include depth
- * @returns {string} Result based on condition
- */
-function handleBlockIf(params, blockContent, context, viewDir, req, depth = 0) {
-    const condition = params.trim();
-    const conditionValue = getNestedProperty(context, condition);
-
-    // Check if there's an {{else}} block
-    const elseMatch = blockContent.match(/^(.*?)\{\{else\}\}(.*?)$/s);
-
-    let contentToProcess;
-    if (elseMatch) {
-        // Has {{else}} - choose content based on condition
-        contentToProcess = conditionValue ? elseMatch[1] : elseMatch[2];
-    } else {
-        // No {{else}} - only show content if condition is true
-        contentToProcess = conditionValue ? blockContent : '';
-    }
-
-    // Recursively process any handlebars within the selected content (now synchronous)
-    if (contentToProcess) {
-        return processHandlebars(contentToProcess, context, viewDir, req, depth + 1);
-    }
-
-    return '';
-}
-
-/**
- * Handle block each iteration helper ({{#each}}...{{/each}})
- * Supports both array and object iteration with special variables:
- * - @index: zero-based index for arrays, or current iteration count for objects
- * - @first: true if first iteration
- * - @last: true if last iteration
- * - @key: property name when iterating over objects
- * - this: current array element or object property value
- * @param {string} params - The array/object parameter to iterate over
- * @param {string} blockContent - Content within the each block
- * @param {Object} context - Context for evaluation
- * @param {string} viewDir - View base directory for file operations
- * @param {Object} req - Express request object for logging
- * @param {number} depth - Current include depth
- * @returns {string} Result of all iterations concatenated
- */
-function handleBlockEach(params, blockContent, context, viewDir, req, depth = 0) {
-    const arrayPath = params.trim();
-    const arrayValue = getNestedProperty(context, arrayPath);
-
-    // Handle null/undefined
-    if (arrayValue == null) {
-        return '';
-    }
-
-    let items = [];
-    let isObject = false;
-
-    // Check if it's an array
-    if (Array.isArray(arrayValue)) {
-        items = arrayValue;
-    }
-    // Check if it's an object (but not null, array, or function)
-    else if (typeof arrayValue === 'object' && arrayValue !== null) {
-        // Convert object to array of [key, value] pairs for iteration
-        items = Object.entries(arrayValue);
-        isObject = true;
-    }
-    // Not iterable - throw error
-    else {
-        throw new Error(`Cannot iterate over non-iterable value: ${typeof arrayValue}. Expected array or object.`);
-    }
-
-    // Handle empty arrays/objects
-    if (items.length === 0) {
-        return '';
-    }
-
-    let result = '';
-    const totalItems = items.length;
-
-    // Iterate through items
-    for (let i = 0; i < totalItems; i++) {
-        const item = items[i];
-
-        // Create iteration context
-        const iterationContext = {
-            ...context,
-            '@index': i,
-            '@first': i === 0,
-            '@last': i === totalItems - 1
-        };
-
-        if (isObject) {
-            // For objects: item is [key, value] pair
-            const [key, value] = item;
-            iterationContext['@key'] = key;
-            iterationContext['this'] = value;
-        } else {
-            // For arrays: item is the array element
-            iterationContext['this'] = item;
+        // Check cache first for file existence
+        const cacheKey = `exists_${includePath}`;
+        if (global.appConfig.controller.view.cacheIncludeFiles && cache.fileTimestamp[cacheKey] !== undefined) {
+            return cache.fileTimestamp[cacheKey] ? 'true' : 'false';
         }
 
-        // Process the block content with the iteration context
-        const processedContent = processHandlebars(blockContent, iterationContext, viewDir, req, depth + 1);
-        result += processedContent;
+        let fileExists = false;
+        try {
+            // W-048: Use PathResolver to support site overrides for file existence check
+            const webappDir = global.appConfig?.app?.dirName || path.join(process.cwd(), 'webapp');
+            const projectRoot = path.dirname(webappDir);
+            const relativePath = `view/${includePath}`;
+
+            // 1. Check site override first (highest priority)
+            const sitePath = path.join(projectRoot, 'site/webapp', relativePath);
+            if (fs.existsSync(sitePath)) {
+                fileExists = true;
+            } else {
+                // 2. Check framework default
+                const frameworkPath = path.join(webappDir, relativePath);
+                if (fs.existsSync(frameworkPath)) {
+                    fileExists = true;
+                }
+            }
+        } catch (error) {
+            // Final fallback to original behavior
+            const fullPath = path.resolve(viewDir, includePath);
+            fileExists = fs.existsSync(fullPath);
+        }
+
+        // Cache the result, if caching is enabled
+        if (global.appConfig.controller.view.cacheIncludeFiles) {
+            cache.fileTimestamp[cacheKey] = fileExists;
+        }
+
+        return fileExists ? 'true' : 'false';
     }
+
+    /**
+     * Get nested property from object using dot notation
+     */
+    function getNestedProperty(obj, path) {
+        // Handle special @ properties for each loops
+        if (path.startsWith('@')) {
+            return obj[path];
+        }
+
+        return path.split('.').reduce((current, key) => {
+            return current && current[key] !== undefined ? current[key] : undefined;
+        }, obj);
+    }
+
+    /**
+     * Evaluate condition for {{#if}} blocks
+     */
+    function _evaluateCondition(params, currentContext) {
+        const trimmed = params.trim();
+
+        // Handle negation
+        if (trimmed.startsWith('!')) {
+            return !_evaluateCondition(trimmed.substring(1), currentContext);
+        }
+
+        // Handle helper functions
+        if (trimmed.startsWith('file.exists ')) {
+            const filePath = trimmed.substring('file.exists '.length).trim();
+            return _handleFileExists(filePath) === 'true';
+        }
+
+        // Handle property access
+        const value = getNestedProperty(currentContext, trimmed);
+
+        // JavaScript truthy evaluation
+        return !!value;
+    }
+
+    // Phase 2: Left-to-right resolution using single regex for both regular and block handlebars
+    function _resolveHandlebars(text, blockType, blockLevel, blockParams, blockContent, regularHandlebar, localContext = null) {
+        const currentContext = localContext || context;
+
+        if (blockType) {
+            // Block handlebars: {{#type:~level~ params}}content{{/type:~level~}}
+            try {
+                const evaluatedContent = _evaluateBlockHandlebar(blockType, blockParams.trim(), blockContent, currentContext);
+                // Recursively process the evaluated content (without re-annotating)
+                return _resolveHandlebars(evaluatedContent, null, null, null, null, null, localContext);
+            } catch (error) {
+                LogController.logError(req, 'view.load', `error: Handlebar "#${blockType} ${blockParams}": ${error.message}`);
+                return `<!-- Error: Handlebar "#${blockType} ${blockParams}": ${error.message} -->`;
+            }
+        } else if (regularHandlebar) {
+            // Regular handlebars: {{name params}}
+            try {
+                return _evaluateHandlebar(regularHandlebar, currentContext);
+            } catch (error) {
+                LogController.logError(req, 'view.load', `error: Handlebar "${regularHandlebar}": ${error.message}`);
+                return `<!-- Error: Handlebar "${regularHandlebar}": ${error.message} -->`;
+            }
+        } else {
+            // Recursive text processing - this is the entry point
+            return text.replace(/\{\{#([a-z]+):~(\d+)~ ?(.*?)\}\}(.*?)\{\{\/\1:~\2~\}\}|\{\{(\@?[a-z]+.*?)\}\}/gs,
+                (match, bType, bLevel, bParams, bContent, rHandlebar) => {
+                    return _resolveHandlebars(match, bType, bLevel, bParams, bContent, rHandlebar, localContext);
+                });
+        }
+    }
+
+    let result = _resolveHandlebars(annotated);
+
+    // Phase 3: Clean up any remaining unbalanced annotations
+    result = result.replace(/\{\{([#\/][a-z]+):~\d+~(.*?)\}\}/g, '<!-- Error: Unbalanced handlebar "$1$2" removed -->');
 
     return result;
 }

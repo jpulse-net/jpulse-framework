@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.7.19
+# jPulse Framework / Docs / Dev / Work Items v0.7.20
 
 This is the doc to track work items, arranged in three sections:
 
@@ -818,6 +818,24 @@ This is the doc to track work items, arranged in three sections:
   - Supports both array and object iteration
   - Robust error handling for non-iterable values
 
+### W-062: view controller: support nested {{#if}} and {{#each}} handlebars - v0.7.20
+- status: ✅ COMPLETED
+- type: Feature
+- depends on:
+  - W-061: view controller: create {{#each}} handlebar - v0.7.19
+  - W-018: create {{#if}} handlebar for simple nesting - v0.2.7
+- algorithm:
+  - 3 phases approach based on https://twiki.org/cgi-bin/view/Blog/BlogEntry201109x3
+  - phase 1: annotate nesting levels
+  - phase 2: recursive expansion, starting at level 0
+  - phase 3: clean up unbalanced block elements
+  - limit recursion to 16 levels
+- deliverables:
+  - nested handlebars support with:
+    - multi-line blocks
+    - left-to-right processing
+  - comprehensive test coverage for complex template scenarios
+
 
 
 
@@ -844,18 +862,7 @@ This is the doc to track work items, arranged in three sections:
 
 
 
-### W-062: view controller: support nested {{#if}} and {{#each}} handlebars - v0.7.20
-- status: 🕑 PENDING
-- type: Feature
-- depends on:
-  - W-061: view controller: create {{#each}} handlebar - v0.7.19
-  - W-018: create {{#if}} handlebar for simple nesting - v0.2.7
-- algorithm:
-  - 3 phases approach based on https://twiki.org/cgi-bin/view/Blog/BlogEntry201109x3
-  - phase 1: annotate nesting levels
-  - phase 2: recursive expansion, starting at level 0
-  - phase 3: clean up unbalanced block elements
-  - limit recursion to 16 levels
+
 
 
 
@@ -879,6 +886,10 @@ W-0: deployment: enhance hello example with hello model & MongoDB collection
 W-0: view: page headers with anchor links for copy & paste
 W-0: controller & view: websocket strategy
 
+
+
+
+
 ### Chat instructions
 
 next work item: W-0...
@@ -891,7 +902,7 @@ finishing up work item: W-0...
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-15 12:12
-- assume release: W-061, v0.7.19
+- assume release: W-062, v0.7.20
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 

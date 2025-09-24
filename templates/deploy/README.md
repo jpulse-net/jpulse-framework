@@ -1,4 +1,4 @@
-# jPulse Framework v0.7.19 Deployment Guide for %SITE_NAME%
+# jPulse Framework v0.7.20 Deployment Guide for %SITE_NAME%
 
 **Site Generated**: %GENERATION_DATE%
 **Deployment Type**: %DEPLOYMENT_TYPE%

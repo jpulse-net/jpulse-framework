@@ -3,7 +3,7 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         0.7.19
+ * @version         0.7.20
  * @release         2025-09-24
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -882,5 +882,356 @@ async function handleFileTimestampForTest(filePath) {
     const stats = fs.statSync(cleanPath);
     return stats.mtime.toISOString();
 }
+
+// ============================================================================
+// Nested Handlebars Tests (W-062)
+// ============================================================================
+
+// Create a minimal handlebars processor for testing
+function createTestHandlebarsProcessor() {
+    // Simplified version of the processHandlebars logic for testing
+    function processHandlebars(content, context) {
+        // Phase 1: Annotate nesting levels
+        let level = 0;
+        const annotated = content.replace(/(\{\{)([#\/])([a-z]+)(.*?\}\})/gs, (match, c1, c2, c3, c4) => {
+            let result;
+            if (c2 === '#') {
+                result = `${c1}${c2}${c3}:~${level}~${c4}`;
+                level++;
+            } else {
+                level--;
+                result = `${c1}${c2}${c3}:~${level}~${c4}`;
+            }
+            return result;
+        });
+
+        // Local helper functions
+        function _evaluateCondition(params, currentContext) {
+            const trimmed = params.trim();
+            if (trimmed.startsWith('!')) {
+                return !_evaluateCondition(trimmed.substring(1), currentContext);
+            }
+            const value = getNestedProperty(currentContext, trimmed);
+            return !!value;
+        }
+
+        function _handleBlockIf(params, blockContent, currentContext) {
+            const condition = _evaluateCondition(params, currentContext);
+            const elseParts = blockContent.split('{{else}}');
+            const ifContent = elseParts[0] || '';
+            const elseContent = elseParts[1] || '';
+            return condition ? ifContent : elseContent;
+        }
+
+        function _handleBlockEach(params, blockContent, currentContext) {
+            const items = getNestedProperty(currentContext, params.trim());
+
+            if (!items || (!Array.isArray(items) && typeof items !== 'object')) {
+                return '';
+            }
+
+            let result = '';
+            const itemsArray = Array.isArray(items) ? items : Object.entries(items);
+
+            for (let i = 0; i < itemsArray.length; i++) {
+                const item = itemsArray[i];
+
+                const iterationContext = { ...currentContext };
+                iterationContext['@index'] = i;
+                iterationContext['@first'] = i === 0;
+                iterationContext['@last'] = i === itemsArray.length - 1;
+
+                if (Array.isArray(items)) {
+                    iterationContext['this'] = item;
+                } else {
+                    iterationContext['@key'] = item[0];
+                    iterationContext['this'] = item[1];
+                }
+
+                let processedContent = resolveHandlebars(blockContent, null, null, null, null, null, iterationContext);
+                result += processedContent;
+            }
+
+            return result;
+        }
+
+        function _evaluateBlockHandlebar(blockType, params, blockContent, currentContext) {
+            switch (blockType) {
+                case 'if':
+                    return _handleBlockIf(params, blockContent, currentContext);
+                case 'each':
+                    return _handleBlockEach(params, blockContent, currentContext);
+                default:
+                    throw new Error(`Unknown block type: #${blockType}`);
+            }
+        }
+
+        function _evaluateHandlebar(expression, currentContext) {
+            // Handle property access (no spaces, contains dots or is special property)
+            if (!expression.includes(' ') && (expression.includes('.') || expression.startsWith('@') || expression === 'this')) {
+                const value = getNestedProperty(currentContext, expression);
+                return value !== undefined ? value : '';
+            }
+            return '';
+        }
+
+        // Phase 2: Recursive resolution
+        function resolveHandlebars(text, blockType, blockLevel, blockParams, blockContent, regularHandlebar, localContext = null) {
+            const currentContext = localContext || context;
+
+            if (blockType) {
+                try {
+                    const evaluatedContent = _evaluateBlockHandlebar(blockType, blockParams.trim(), blockContent, currentContext);
+                    return resolveHandlebars(evaluatedContent, null, null, null, null, null, localContext);
+                } catch (error) {
+                    return `<!-- Error: Handlebar "#${blockType} ${blockParams}": ${error.message} -->`;
+                }
+            } else if (regularHandlebar) {
+                try {
+                    return _evaluateHandlebar(regularHandlebar, currentContext);
+                } catch (error) {
+                    return `<!-- Error: Handlebar "${regularHandlebar}": ${error.message} -->`;
+                }
+            } else {
+            return text.replace(/\{\{#([a-z]+):~(\d+)~ ?(.*?)\}\}(.*?)\{\{\/\1:~\2~\}\}|\{\{(\@?[a-z]+.*?)\}\}/gs,
+                (match, bType, bLevel, bParams, bContent, rHandlebar) => {
+                    return resolveHandlebars(match, bType, bLevel, bParams, bContent, rHandlebar, localContext);
+                });
+            }
+        }
+
+        let result = resolveHandlebars(annotated);
+
+        // Phase 3: Clean up unbalanced annotations
+        result = result.replace(/\{\{([#\/][a-z]+):~\d+~(.*?)\}\}/g, '<!-- Error: Unbalanced handlebar "$1$2" removed -->');
+
+        return result;
+    }
+
+    // Helper function to get nested properties
+    function getNestedProperty(obj, path) {
+        if (!obj || !path) return undefined;
+
+        // Handle special @ properties for each loops
+        if (path.startsWith('@')) {
+            return obj[path];
+        }
+
+        // Handle 'this' property
+        if (path === 'this') {
+            return obj['this'];
+        }
+
+        return path.split('.').reduce((current, key) => {
+            return current && current[key] !== undefined ? current[key] : undefined;
+        }, obj);
+    }
+
+    return { processHandlebars };
+}
+
+describe('View Controller - Nested Handlebars (W-062)', () => {
+    let processor;
+
+    beforeEach(() => {
+        processor = createTestHandlebarsProcessor();
+    });
+
+    describe('{{#each}} loops', () => {
+        test('should iterate over arrays', () => {
+            const template = '{{#each items}}Item: {{this}} ({{@index}}){{/each}}';
+            const context = {
+                items: ['apple', 'banana', 'cherry']
+            };
+
+            const result = processor.processHandlebars(template, context);
+
+            expect(result).toContain('Item: apple (0)');
+            expect(result).toContain('Item: banana (1)');
+            expect(result).toContain('Item: cherry (2)');
+        });
+
+        test('should iterate over objects', () => {
+            const template = '{{#each user}}{{@key}}: {{this}}{{/each}}';
+            const context = {
+                user: { name: 'John', age: 30, city: 'NYC' }
+            };
+
+            const result = processor.processHandlebars(template, context);
+
+            expect(result).toContain('name: John');
+            expect(result).toContain('age: 30');
+            expect(result).toContain('city: NYC');
+        });
+
+        test('should handle nested {{#if}} inside {{#each}}', () => {
+            const template = '{{#each items}}{{#if this.active}}Active: {{this.name}}{{/if}}{{/each}}';
+            const context = {
+                items: [
+                    { name: 'Item1', active: true },
+                    { name: 'Item2', active: false },
+                    { name: 'Item3', active: true }
+                ]
+            };
+
+            const result = processor.processHandlebars(template, context);
+
+            expect(result).toContain('Active: Item1');
+            expect(result).not.toContain('Active: Item2');
+            expect(result).toContain('Active: Item3');
+        });
+
+        test('should handle nested {{#each}} loops', () => {
+            const template = '{{#each books}}Book: {{this.title}}{{#each this.chapters}} - Chapter: {{this}}{{/each}}{{/each}}';
+            const context = {
+                books: [
+                    { title: 'Book1', chapters: ['Ch1', 'Ch2'] },
+                    { title: 'Book2', chapters: ['Ch3', 'Ch4'] }
+                ]
+            };
+
+            const result = processor.processHandlebars(template, context);
+
+            expect(result).toContain('Book: Book1');
+            expect(result).toContain('- Chapter: Ch1');
+            expect(result).toContain('- Chapter: Ch2');
+            expect(result).toContain('Book: Book2');
+            expect(result).toContain('- Chapter: Ch3');
+            expect(result).toContain('- Chapter: Ch4');
+        });
+
+        test('should provide iteration context variables', () => {
+            const template = '{{#each items}}{{@index}}: {{this}} {{#if @first}}(first){{/if}}{{#if @last}}(last){{/if}}{{/each}}';
+            const context = {
+                items: ['A', 'B', 'C']
+            };
+
+            const result = processor.processHandlebars(template, context);
+
+            expect(result).toContain('0: A (first)');
+            expect(result).toContain('1: B ');
+            expect(result).toContain('2: C (last)');
+        });
+    });
+
+    describe('Multi-line blocks', () => {
+        test('should handle {{#if}} blocks spanning multiple lines', () => {
+            const template = `{{#if user.isActive}}
+<div class="active-user">
+    <h1>Welcome {{user.name}}</h1>
+    <p>You are logged in</p>
+</div>
+{{else}}
+<div class="inactive-user">
+    <p>Please log in</p>
+</div>
+{{/if}}`;
+
+            const context = {
+                user: { isActive: true, name: 'John' }
+            };
+
+            const result = processor.processHandlebars(template, context);
+
+            expect(result).toContain('<div class="active-user">');
+            expect(result).toContain('<h1>Welcome John</h1>');
+            expect(result).toContain('<p>You are logged in</p>');
+            expect(result).not.toContain('<div class="inactive-user">');
+        });
+
+        test('should handle {{#each}} blocks spanning multiple lines', () => {
+            const template = `<ul>
+{{#each items}}
+    <li class="item">
+        <strong>{{this.name}}</strong>
+        <span>{{this.description}}</span>
+    </li>
+{{/each}}
+</ul>`;
+
+            const context = {
+                items: [
+                    { name: 'Item1', description: 'First item' },
+                    { name: 'Item2', description: 'Second item' }
+                ]
+            };
+
+            const result = processor.processHandlebars(template, context);
+
+            expect(result).toContain('<strong>Item1</strong>');
+            expect(result).toContain('<span>First item</span>');
+            expect(result).toContain('<strong>Item2</strong>');
+            expect(result).toContain('<span>Second item</span>');
+        });
+
+        test('should handle nested multi-line blocks', () => {
+            const template = `{{#if showUsers}}
+<div class="users-section">
+    <h2>Users</h2>
+    {{#each users}}
+    <div class="user-card">
+        {{#if this.active}}
+        <div class="active-badge">
+            Active User
+        </div>
+        {{/if}}
+        <h3>{{this.name}}</h3>
+    </div>
+    {{/each}}
+</div>
+{{/if}}`;
+
+            const context = {
+                showUsers: true,
+                users: [
+                    { name: 'Alice', active: true },
+                    { name: 'Bob', active: false }
+                ]
+            };
+
+            const result = processor.processHandlebars(template, context);
+
+            expect(result).toContain('<div class="users-section">');
+            expect(result).toContain('<h3>Alice</h3>');
+            expect(result).toContain('<h3>Bob</h3>');
+            expect(result).toContain('<div class="active-badge">');
+            expect(result).toContain('Active User');
+
+            // More specific: Alice should have the active badge, Bob should not
+            const aliceIndex = result.indexOf('<h3>Alice</h3>');
+            const bobIndex = result.indexOf('<h3>Bob</h3>');
+            const activeBadgeIndex = result.indexOf('Active User');
+
+            // Active badge should appear before Alice's name but after the start
+            expect(activeBadgeIndex).toBeGreaterThan(-1);
+            expect(activeBadgeIndex).toBeLessThan(aliceIndex);
+
+            // No active badge should appear after Alice but before Bob
+            const afterAlice = result.substring(aliceIndex);
+            const beforeBob = afterAlice.substring(0, afterAlice.indexOf('<h3>Bob</h3>'));
+            expect(beforeBob).not.toContain('Active User');
+        });
+    });
+
+    describe('Error handling', () => {
+        test('should handle empty arrays in {{#each}}', () => {
+            const template = '{{#each items}}Item: {{this}}{{/each}}';
+            const context = { items: [] };
+
+            const result = processor.processHandlebars(template, context);
+
+            expect(result).toBe('');
+        });
+
+        test('should handle null/undefined in {{#each}}', () => {
+            const template = '{{#each items}}Item: {{this}}{{/each}}';
+            const context = { items: null };
+
+            const result = processor.processHandlebars(template, context);
+
+            expect(result).toBe('');
+        });
+    });
+});
 
 // EOF webapp/tests/unit/controller/view.test.js

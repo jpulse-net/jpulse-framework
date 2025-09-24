@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Template Reference v0.7.19
+# jPulse Framework / Docs / Template Reference v0.7.20
 
 Complete reference for server-side template development with the jPulse Handlebars system, covering template variables, file operations, security features, and best practices for building dynamic web pages.
 
@@ -322,9 +322,12 @@ The `{{#if}}` syntax provides powerful block-level conditionals:
     </div>
 {{/if}}
 
-<!-- Note: Nested {{#if}} blocks are NOT supported -->
-<!-- This will NOT work correctly: -->
-<!-- {{#if outer}}{{#if inner}}content{{/if}}{{/if}} -->
+<!-- Nested {{#if}} blocks are fully supported (v0.7.20+) -->
+{{#if user.authenticated}}
+    {{#if user.isAdmin}}
+        <div class="admin-panel">Admin controls available</div>
+    {{/if}}
+{{/if}}
 ```
 
 ### Supported Conditions
@@ -351,7 +354,50 @@ The `{{#if}}` syntax provides powerful block-level conditionals:
 - **Nested Content**: Complex HTML and multiple handlebars supported within blocks
 - **Context Access**: Full template context available within conditional blocks
 - **Error Handling**: Malformed blocks show clear error messages
-- **Limitation**: Nested `{{#if}}` blocks (same type) are NOT supported due to regex limitations
+- **Nested Support (v0.7.20+)**: Full support for nested `{{#if}}` and `{{#each}}` blocks with multi-line processing
+
+### Nested Handlebars (v0.7.20+)
+
+Complex template scenarios with nested blocks are fully supported:
+
+```html
+<!-- Nested {{#if}} within {{#each}} -->
+{{#each users}}
+    <div class="user-card">
+        {{#if this.active}}
+            <div class="active-badge">Active User</div>
+        {{/if}}
+        <h3>{{this.name}}</h3>
+    </div>
+{{/each}}
+
+<!-- Nested {{#each}} loops -->
+{{#each books}}
+    <div class="book">
+        <h2>{{this.title}}</h2>
+        {{#each this.chapters}}
+            <div class="chapter">Chapter {{@index}}: {{this}}</div>
+        {{/each}}
+    </div>
+{{/each}}
+
+<!-- Multi-line nested blocks -->
+{{#if showUsers}}
+<div class="users-section">
+    <h2>Users</h2>
+    {{#each users}}
+    <div class="user-card">
+        {{#if this.active}}
+        <div class="active-badge">
+            Active User
+        </div>
+        {{/if}}
+        <h3>{{this.name}}</h3>
+    </div>
+    {{/each}}
+</div>
+{{/if}}
+```
 
 ### Block Iteration ({{#each}})
 

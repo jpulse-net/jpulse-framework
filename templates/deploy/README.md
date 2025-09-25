@@ -1,4 +1,4 @@
-# jPulse Framework v0.7.20 Deployment Guide for %SITE_NAME%
+# jPulse Framework v0.7.21 Deployment Guide for %SITE_NAME%
 
 **Site Generated**: %GENERATION_DATE%
 **Deployment Type**: %DEPLOYMENT_TYPE%
@@ -294,7 +294,7 @@ All available on your running site:
  * @site            %SITE_NAME%
  * @generated       %GENERATION_DATE%
  * @file            templates/deploy/README.md
- * @release         2025-09-24
+ * @release         2025-09-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

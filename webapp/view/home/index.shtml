@@ -4,8 +4,8 @@
  * @tagline         Home page of jPulse Framework
  * @description     This is the home page of jPulse Framework
  * @file            webapp/view/home/index.shtml
- * @version         0.7.20
- * @release         2025-09-24
+ * @version         0.7.21
+ * @release         2025-09-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -261,6 +261,147 @@ accordion.closeAll();</code></pre>
                 </div>
             </div>
         </div>
+
+        <!-- W-064 Tab Interface Demo -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>jPulse.UI Tab Interface Demo (W-064)</h3>
+            </div>
+            <div class="jp-card-body">
+                <p>Test tab interface with navigation and panel modes:</p>
+
+                <h4>Navigation Tabs (Page Navigation)</h4>
+                <p>These tabs navigate to different pages. Click to test navigation:</p>
+                <div id="navigationTabs" class="jp-tabs"></div>
+
+                <h4>Panel Tabs (Content Switching)</h4>
+                <p>These tabs switch content panels with slide animation:</p>
+                <div id="panelTabs" class="jp-tabs"></div>
+
+                <!-- Panel Content (hidden by default) -->
+                <div id="panel1" class="jp-panel">
+                    <h4>Dashboard Panel</h4>
+                    <p>This is the dashboard panel with key metrics and overview information.</p>
+                    <div class="jp-section">
+                        <h5>Key Metrics</h5>
+                        <ul>
+                            <li>Active Users: 1,234</li>
+                            <li>Total Sessions: 5,678</li>
+                            <li>Conversion Rate: 12.3%</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div id="panel2" class="jp-panel">
+                    <h4>Analytics Panel</h4>
+                    <p>Detailed analytics and reporting functionality would go here.</p>
+                    <div class="jp-section">
+                        <h5>Recent Activity</h5>
+                        <p>Charts, graphs, and detailed analytics would be displayed in this panel.</p>
+                        <button class="jp-btn jp-btn-primary">Generate Report</button>
+                    </div>
+                </div>
+
+                <div id="panel3" class="jp-panel">
+                    <h4>Settings Panel</h4>
+                    <p>Configuration and settings options for the application.</p>
+                    <div class="jp-section">
+                        <h5>Preferences</h5>
+                        <div class="jp-form-group">
+                            <label class="jp-form-label">Theme</label>
+                            <select class="jp-form-input">
+                                <option>Light</option>
+                                <option>Dark</option>
+                                <option>Auto</option>
+                            </select>
+                        </div>
+                        <div class="jp-form-group">
+                            <label class="jp-form-label">
+                                <input type="checkbox" class="jp-form-checkbox"> Enable notifications
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="position: relative;">
+                    <h4>Nested Tab Example</h4>
+                    <button id="testTabsBtn" class="jp-btn jp-btn-primary" style="position: absolute; top: 0; right: 0;">Test Programmatic Control</button>
+                </div>
+                <p>Example of nested tabs (Engineering → Dashboard/R&D/SCM):</p>
+
+                <!-- First level tabs -->
+                <div id="departmentTabs" class="jp-tabs"></div>
+
+                <!-- Department panels -->
+                <div id="engDashboard" class="jp-panel">
+                    <h5>Engineering Department</h5>
+                    <p>Engineering team dashboard with project status and metrics.</p>
+
+                    <!-- Engineering sub-tabs (nested inside engineering panel) -->
+                    <div id="engineeringTabs" class="jp-tabs" style="margin-top: 15px;"></div>
+
+                    <!-- Engineering sub-panels -->
+                    <div id="engDash" class="jp-panel">
+                        <h6>Engineering Dashboard</h6>
+                        <p>Main engineering dashboard with overall project status and team metrics.</p>
+                    </div>
+
+                    <div id="engRnD" class="jp-panel">
+                        <h6>Research & Development</h6>
+                        <p>R&D projects, innovation pipeline, and research initiatives.</p>
+                    </div>
+
+                    <div id="engSCM" class="jp-panel">
+                        <h6>Supply Chain Management</h6>
+                        <p>Supply chain operations, vendor management, and logistics.</p>
+                    </div>
+
+                    <div id="engSVT" class="jp-panel">
+                        <h6>System Verification Testing</h6>
+                        <p>Testing protocols, quality assurance, and verification processes.</p>
+                    </div>
+
+                    <div id="engDevOps" class="jp-panel">
+                        <h6>DevOps</h6>
+                        <p>Development operations, CI/CD pipelines, and infrastructure management.</p>
+                    </div>
+                </div>
+
+                <!-- Sales and Ops panels (simple content) -->
+                <div id="salesPanel" class="jp-panel">
+                    <h5>Sales Department</h5>
+                    <p>Sales metrics, pipeline management, and customer relationships.</p>
+                </div>
+
+                <div id="opsPanel" class="jp-panel">
+                    <h5>Operations Department</h5>
+                    <p>Operational efficiency, process management, and resource allocation.</p>
+                </div>
+
+                <h4>API Examples</h4>
+                <div class="jp-section">
+                    <h5>Navigation Tabs</h5>
+                    <pre><code>const navTabs = jPulse.UI.tabs.register('navigationTabs', {
+    tabs: [
+        { id: 'home', label: 'Home', url: '/' },
+        { id: 'admin', label: 'Admin', url: '/admin', tabClass: 'adminOnly' },
+        { id: 'docs', label: 'Documentation', url: '/jpulse' }
+    ]
+}, 'home');</code></pre>
+
+                    <h5>Panel Tabs</h5>
+                    <pre><code>const panelTabs = jPulse.UI.tabs.register('panelTabs', {
+    tabs: [
+        { id: 'dashboard', label: 'Dashboard', panelId: 'panel1' },
+        { id: 'analytics', label: 'Analytics', panelId: 'panel2' },
+        { id: 'settings', label: 'Settings', panelId: 'panel3' }
+    ],
+    slideAnimation: true
+}, 'dashboard');</code></pre>
+                </div>
+
+            </div>
+        </div>
     </div>
 
     <script>
@@ -459,6 +600,105 @@ accordion.closeAll();</code></pre>
                             break;
                     }
                     testStep++;
+                });
+            }
+
+            // W-064 Tab Interface Demo Initialization
+            let navigationTabs = null;
+            let panelTabs = null;
+            let departmentTabs = null;
+            let engineeringTabs = null;
+
+            // Initialize navigation tabs
+            navigationTabs = jPulse.UI.tabs.register('navigationTabs', {
+                tabs: [
+                    { id: 'home', label: 'Home', url: '/home/', tooltip: 'Go to home page' },
+                    { id: 'admin', label: 'Admin', url: '/admin/', tooltip: 'Admin dashboard', tabClass: 'adminOnly' },
+                    { id: 'docs', label: 'Documentation', url: '/jpulse/', tooltip: 'View documentation' },
+                    { id: 'user', label: 'User Profile', url: '/user/', tooltip: 'User settings' }
+                ],
+                linkActiveTab: true
+            }, 'home');
+
+            // Initialize panel tabs
+            panelTabs = jPulse.UI.tabs.register('panelTabs', {
+                tabs: [
+                    { id: 'dashboard', label: 'Dashboard', panelId: 'panel1', tooltip: 'View dashboard' },
+                    { id: 'analytics', label: 'Analytics', panelId: 'panel2', tooltip: 'Analytics and reports' },
+                    { id: 'settings', label: 'Settings', panelId: 'panel3', tooltip: 'Application settings' }
+                ],
+                slideAnimation: true,
+                onTabChange: (tabId, previousTabId, tabData) => {
+                    console.log(`Panel tab changed from ${previousTabId} to ${tabId}:`, tabData);
+                }
+            }, 'dashboard');
+
+            // Initialize nested department tabs
+            departmentTabs = jPulse.UI.tabs.register('departmentTabs', {
+                tabs: [
+                    { id: 'engineering', label: 'Engineering', panelId: 'engDashboard', tooltip: 'Engineering department' },
+                    { id: 'sales', label: 'Sales', panelId: 'salesPanel', tooltip: 'Sales department' },
+                    { id: 'ops', label: 'Operations', panelId: 'opsPanel', tooltip: 'Operations department' }
+                ],
+                onTabChange: (tabId, previousTabId) => {
+                    // Show/hide engineering sub-tabs based on selection
+                    const engTabs = document.getElementById('engineeringTabs');
+                    if (tabId === 'engineering') {
+                        engTabs.style.display = 'block';
+                    } else {
+                        engTabs.style.display = 'none';
+                    }
+                }
+            }, 'engineering');
+
+            // Initialize engineering tabs immediately (not lazily) to ensure consistent behavior
+            engineeringTabs = jPulse.UI.tabs.register('engineeringTabs', {
+                tabs: [
+                    { id: 'engDash', label: 'Dashboard', panelId: 'engDash' },
+                    { id: 'rnd', label: 'R&D', panelId: 'engRnD', spacers: 1 },
+                    { id: 'scm', label: 'SCM', panelId: 'engSCM' },
+                    { id: 'svt', label: 'SVT', panelId: 'engSVT' },
+                    { id: 'devops', label: 'DevOps', panelId: 'engDevOps' }
+                ],
+                slideAnimation: true
+            }, 'engDash');
+
+            // Test programmatic control for nested tabs only
+            const testTabsBtn = document.getElementById('testTabsBtn');
+            if (testTabsBtn) {
+                let tabTestStep = 0;
+                testTabsBtn.addEventListener('click', function() {
+                    // Ensure we're on engineering department first
+                    departmentTabs.activateTab('engineering');
+
+                    setTimeout(() => {
+                        if (engineeringTabs) {
+                            switch (tabTestStep) {
+                                case 0:
+                                    engineeringTabs.activateTab('rnd');
+                                    testTabsBtn.textContent = 'Step 2: SCM';
+                                    break;
+                                case 1:
+                                    engineeringTabs.activateTab('scm');
+                                    testTabsBtn.textContent = 'Step 3: SVT';
+                                    break;
+                                case 2:
+                                    engineeringTabs.activateTab('svt');
+                                    testTabsBtn.textContent = 'Step 4: DevOps';
+                                    break;
+                                case 3:
+                                    engineeringTabs.activateTab('devops');
+                                    testTabsBtn.textContent = 'Step 5: Reset';
+                                    break;
+                                case 4:
+                                    engineeringTabs.activateTab('engDash');
+                                    tabTestStep = -1; // Will be incremented to 0
+                                    testTabsBtn.textContent = 'Test Programmatic Control';
+                                    break;
+                            }
+                            tabTestStep++;
+                        }
+                    }, 100);
                 });
             }
         });

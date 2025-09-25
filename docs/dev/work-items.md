@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.7.20
+# jPulse Framework / Docs / Dev / Work Items v0.7.21
 
 This is the doc to track work items, arranged in three sections:
 
@@ -851,6 +851,51 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-064: view: create jPulse.UI tab interface widget - v0.7.21
+- status: ✅ COMPLETE
+- type: Feature
+- objective: offer a common tab interface within a page to show panels, and across pages for intuitive navigation
+- two types of tabs:
+  - 1. navigation tabs:
+    - use same tab definition across pages:
+      // options object, is typically included from a common template
+      const tabOptions = {
+          tabs: [
+              { id: 'myTab1', label: 'My Tab 1', tooltip: '....', url: 'my-page-1.shtml' },
+              { id: 'myTab2', label: 'My Tab 2', tooltip: '....', url: 'my-page-2.shtml',
+                spacers: 2, tabClass: 'adminOnly' },
+              { id: 'myTab3', label: 'My Tab 3', tooltip: '....', url: 'my-page-3.shtml' }
+          ],
+          linkActiveTab: false
+      };
+      // show tab on a page:
+      jPulse.dom.ready(() => {
+          jPulse.UI.navTab.register('myTabDiv', tabOptions, 'myTab2');
+      });
+    - one tab is active per tab row on a page, defined by second parameter of jPulse.UI.navTab()
+    - tabs can be nested for visual navigation in a complex page setup, each with separate tabOptions
+    - inspiration: jquery.simpletabs, https://github.com/peterthoeny/jquery.simpletabs
+  - 2. multiple panels tabs:
+    - single content area with multiple panels, each associated with a tab
+    - similar to accordions, just horizontal instead of vertical
+    - defined by <ul> list with href attributes pointing to panel ID
+      - or by tabOptions as above (with optional panelWidth, panelHeight properties)
+    - inspiration: jQuery UI Tabs, https://jqueryui.com/tabs
+- questions:
+  - two types of widgets, or combined?
+    - combined: (preferred)
+      // if options[].url is set => nav tabs, else => panel tabs
+      jPulse.UI.tabs.register(tabsId, options, activeTabId = null);
+    - separate:
+      jPulse.UI.tabs.registerNavTabs(tabsId, options, activeTabId = null);
+      jPulse.UI.tabs.registerPanelTabs(tabsId, options, activeTabId = null);
+  - what if the tabs don't fit hirizontally on the page?
+    - horizontal auto-scroll?
+    - clip?
+    - wrap?
+- deliverables:
+  - jPulse.UI.tabs
+  - styles for jPulse.UI.tabs
 
 
 
@@ -863,19 +908,30 @@ This is the doc to track work items, arranged in three sections:
 
 
 
-
-
-
-### W-063: view: /jpulse-examples/ pages, rename /jpulse/ to /jpulse-docs/
+### W-063: view: add /jpulse-examples/ pages, rename /jpulse/ to /jpulse-docs/ - v0.8.0
 - status: 🕑 PENDING
 - type: Feature
-- /jpulse-examples/ pages:
-  - index.shtml           # Overview with navigation cards
-  - handlebars.shtml      # Complete handlebars reference
-  - jpulse-ui.shtml       # UI components showcase
-  - forms.shtml           # Form handling examples
-  - layouts.shtml         # Responsive layout examples
-  - api-integration.shtml # API integration patterns
+- objectives: good onboarding, helpful docs and examples
+- depends on:
+  - W-015: deployment: strategy for clean onboarding - v0.7.0
+  - W-064: view: create jPulse.UI tab interface widget - v0.7.21
+- deliverables:
+  - renamed /jpulse-docs/ from /docs/
+  - new /jpulse-examples/ pages:
+    - index.shtml           # Overview with navigation cards
+    - handlebars.shtml      # Complete handlebars reference
+    - jpulse-ui.shtml       # UI components showcase
+    - forms.shtml           # Form handling examples
+    - layouts.shtml         # Responsive layout examples
+    - api-integration.shtml # API integration patterns
+  - reduce /home/ to a short page with:
+    - welcome note based on login status
+    - "this page is meant to be overloaded by site/webapp/view/home/index.shtml"
+    - links (or buttons like in /admin/) to /jpulse-docs/ and /jpulse-examples/
+
+
+
+
 
 
 
@@ -913,7 +969,7 @@ finishing up work item: W-0...
 - enhance === view.load( /error/index.shtml ) log to show additional details on what is wrong, likely in followup log entry
 
 
-Misc:
+### Misc
 - status: 🚧 IN_PROGRESS
 git add .
 git commit -F commit-message.txt
@@ -921,6 +977,10 @@ git push
 
 git commit --amend -F commit-message.txt
 git push --force-with-lease origin main
+
+### Port 8080 in use
+
+lsof -ti:8080
 
 ### Tests how to
 
@@ -1005,7 +1065,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - objective: make it easy for site developers to create their own MVC with custom collection
 - status: 🕑 PENDING
 - type: Feature
-- objective: paged queries that do not miss or duplicate docs between calls
+- objective: better onboarding, teaching developers how to create a full MVC trio.
 
 ### W-0: view: page headers with anchor links for copy & paste
 - status: 🕑 PENDING
@@ -1037,6 +1097,11 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - deliverables:
   - webapp/view/jpulse-common.js, webapp/view/jpulse-footer.tmpl:
     - add logic for hover, copy to clipboard, URI change with anchor
+
+### W-0: view: create breadcrumb navigation, optional
+- status: 🕑 PENDING
+- type: Idea
+- objective: let users know where they are on a big site
 
 ### W-0: view: create site navigation pulldown and hamburger
 - status: 🕑 PENDING

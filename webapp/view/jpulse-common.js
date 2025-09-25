@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         0.7.20
- * @release         2025-09-24
+ * @version         0.7.21
+ * @release         2025-09-25
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1244,6 +1244,438 @@ window.jPulse = {
                 section.dispatchEvent(new CustomEvent('jp-accordion-collapsed', {
                     detail: { section: section, index: parseInt(section.dataset.sectionIndex) }
                 }));
+            }
+        },
+
+        /**
+         * Tab interface widget for navigation and panel switching
+         */
+        tabs: {
+            /**
+             * Register a tab interface with automatic type detection
+             * @param {string} elementId - The ID of the .jp-tabs element
+             * @param {Object} options - Configuration options
+             * @param {string} activeTabId - Active tab ID (overrides options.activeTab)
+             * @returns {Object} Handle object with methods for controlling the tabs
+             */
+            register: (elementId, options = {}, activeTabId = null) => {
+                const element = document.getElementById(elementId);
+                if (!element) {
+                    console.warn(`Tab element with ID '${elementId}' not found`);
+                    return null;
+                }
+
+                const defaultOptions = {
+                    tabs: [],
+                    activeTab: null,
+                    linkActiveTab: false,
+                    responsive: 'scroll',
+                    onTabChange: null,
+                    panelWidth: null,
+                    panelHeight: null,
+                    slideAnimation: true
+                };
+
+                const config = { ...defaultOptions, ...options };
+
+                // activeTabId parameter takes precedence over options.activeTab
+                const finalActiveTab = activeTabId || config.activeTab;
+
+                // Detect tab type based on URL presence
+                const hasNavTabs = config.tabs.some(tab => tab.url);
+                const hasPanelTabs = config.tabs.some(tab => tab.panelId);
+
+                if (hasNavTabs && hasPanelTabs) {
+                    console.warn('Mixed navigation and panel tabs in same group not supported');
+                    return null;
+                }
+
+                const tabType = hasNavTabs ? 'navigation' : 'panel';
+
+                // Setup the tabs
+                jPulse.UI.tabs._setup(element, config, finalActiveTab, tabType);
+
+                // Return handle object for method chaining and cleaner API
+                return {
+                    elementId: elementId,
+                    tabType: tabType,
+                    activateTab: (tabId) => jPulse.UI.tabs._activateTab(elementId, tabId),
+                    getActiveTab: () => jPulse.UI.tabs._getActiveTab(elementId),
+                    refresh: () => jPulse.UI.tabs._refresh(elementId),
+                    destroy: () => jPulse.UI.tabs._destroy(elementId)
+                };
+            },
+
+            // ========================================
+            // INTERNAL TAB FUNCTIONS
+            // ========================================
+
+            /**
+             * Setup tab interface with automatic type detection
+             * @param {Element} tabsElement - The .jp-tabs element
+             * @param {Object} config - Configuration options
+             * @param {string} activeTabId - Active tab ID
+             * @param {string} tabType - 'navigation' or 'panel'
+             */
+            _setup: (tabsElement, config, activeTabId, tabType) => {
+                // Store config on element
+                tabsElement._jpTabsConfig = config;
+                tabsElement._jpTabsType = tabType;
+                tabsElement._jpTabsActiveTab = activeTabId;
+
+                // Add CSS classes
+                tabsElement.classList.add('jp-tabs', `jp-tabs-${tabType}`);
+
+                // Create tab structure
+                jPulse.UI.tabs._createTabStructure(tabsElement, config, tabType);
+
+                // Setup event handlers
+                jPulse.UI.tabs._setupEventHandlers(tabsElement, config, tabType);
+
+                // For panel tabs, move all panels into the container first
+                if (tabType === 'panel') {
+                    const panelContainer = tabsElement.querySelector('.jp-tabs-panels');
+                    config.tabs.forEach(tab => {
+                        if (tab.panelId) {
+                            let panel = document.getElementById(tab.panelId);
+
+                            // If not found by ID, try to find it in the panel container
+                            if (!panel && panelContainer) {
+                                panel = panelContainer.querySelector(`#${tab.panelId}`);
+                            }
+
+                            if (panel && panel.parentNode !== panelContainer) {
+                                panelContainer.appendChild(panel);
+                            }
+                        }
+                    });
+                }
+
+                // Set initial active tab
+                const finalActiveTabId = activeTabId || config.activeTab;
+                if (finalActiveTabId) {
+                    jPulse.UI.tabs._setActiveTab(tabsElement, finalActiveTabId, false);
+                } else if (config.tabs.length > 0) {
+                    // Default to first visible tab
+                    const firstVisibleTab = config.tabs.find(tab => !jPulse.UI.tabs._isTabHidden(tab));
+                    if (firstVisibleTab) {
+                        jPulse.UI.tabs._setActiveTab(tabsElement, firstVisibleTab.id, false);
+                    }
+                }
+            },
+
+            /**
+             * Create the HTML structure for tabs
+             * @param {Element} tabsElement - The .jp-tabs element
+             * @param {Object} config - Configuration options
+             * @param {string} tabType - 'navigation' or 'panel'
+             */
+            _createTabStructure: (tabsElement, config, tabType) => {
+                // Create tab list container
+                const tabList = document.createElement('div');
+                tabList.className = 'jp-tabs-list';
+
+                // Add responsive class
+                if (config.responsive === 'scroll') {
+                    tabList.classList.add('jp-tabs-scroll');
+                }
+
+                // Create individual tabs
+                config.tabs.forEach((tab, index) => {
+                    // Check if tab should be visible based on tabClass
+                    if (jPulse.UI.tabs._isTabHidden(tab)) {
+                        return; // Skip hidden tabs
+                    }
+
+                    // Add spacers before tab if specified
+                    if (tab.spacers && tab.spacers > 0) {
+                        for (let i = 0; i < tab.spacers; i++) {
+                            const spacer = document.createElement('div');
+                            spacer.className = 'jp-tabs-spacer';
+                            if (tab.spacerClass) {
+                                spacer.classList.add(tab.spacerClass);
+                            }
+                            tabList.appendChild(spacer);
+                        }
+                    }
+
+                    // Create tab element
+                    const tabElement = document.createElement('div');
+                    tabElement.className = 'jp-tab';
+                    tabElement.dataset.tabId = tab.id;
+
+                    if (tab.tabClass) {
+                        tabElement.classList.add(tab.tabClass);
+                    }
+
+                    if (tab.disabled) {
+                        tabElement.classList.add('jp-tab-disabled');
+                    }
+
+                    // Create tab content
+                    let tabContent = '';
+
+                    if (tab.icon) {
+                        tabContent += `<span class="jp-tab-icon">${jPulse.string.escapeHtml(tab.icon)}</span>`;
+                    }
+
+                    tabContent += `<span class="jp-tab-label">${jPulse.string.escapeHtml(tab.label)}</span>`;
+
+                    tabElement.innerHTML = tabContent;
+
+                    // Add tooltip if specified
+                    if (tab.tooltip) {
+                        tabElement.title = tab.tooltip;
+                    }
+
+                    // Store tab data
+                    tabElement._jpTabData = tab;
+
+                    tabList.appendChild(tabElement);
+                });
+
+                // Clear existing content and add tab list
+                tabsElement.innerHTML = '';
+                tabsElement.appendChild(tabList);
+
+                // For panel tabs, create panel container
+                if (tabType === 'panel') {
+                    const panelContainer = document.createElement('div');
+                    panelContainer.className = 'jp-tabs-panels';
+
+                    // Apply panel dimensions if specified
+                    if (config.panelWidth) {
+                        panelContainer.style.width = typeof config.panelWidth === 'number'
+                            ? `${config.panelWidth}px` : config.panelWidth;
+                    }
+                    if (config.panelHeight) {
+                        panelContainer.style.height = typeof config.panelHeight === 'number'
+                            ? `${config.panelHeight}px` : config.panelHeight;
+                    }
+
+                    tabsElement.appendChild(panelContainer);
+                }
+            },
+
+            /**
+             * Setup event handlers for tab interactions
+             * @param {Element} tabsElement - The .jp-tabs element
+             * @param {Object} config - Configuration options
+             * @param {string} tabType - 'navigation' or 'panel'
+             */
+            _setupEventHandlers: (tabsElement, config, tabType) => {
+                const tabList = tabsElement.querySelector('.jp-tabs-list');
+
+                tabList.addEventListener('click', (event) => {
+                    const tabElement = event.target.closest('.jp-tab');
+                    if (!tabElement || tabElement.classList.contains('jp-tab-disabled')) {
+                        return;
+                    }
+
+                    const tabId = tabElement.dataset.tabId;
+                    const tabData = tabElement._jpTabData;
+
+                    if (tabType === 'navigation' && tabData.url) {
+                        // Navigation tab - navigate to URL
+                        window.location.href = tabData.url;
+                    } else if (tabType === 'panel') {
+                        // Panel tab - switch panels
+                        jPulse.UI.tabs._setActiveTab(tabsElement, tabId, true);
+                    }
+                });
+            },
+
+            /**
+             * Set the active tab
+             * @param {Element} tabsElement - The .jp-tabs element
+             * @param {string} tabId - Tab ID to activate
+             * @param {boolean} animate - Whether to animate the transition
+             */
+            _setActiveTab: (tabsElement, tabId, animate = true) => {
+                const config = tabsElement._jpTabsConfig;
+                const tabType = tabsElement._jpTabsType;
+                const previousActiveTab = tabsElement._jpTabsActiveTab;
+
+                // Update active tab tracking
+                tabsElement._jpTabsActiveTab = tabId;
+
+                // Update tab visual states
+                const tabs = tabsElement.querySelectorAll('.jp-tab');
+                tabs.forEach(tab => {
+                    if (tab.dataset.tabId === tabId) {
+                        tab.classList.add('jp-tab-active');
+                    } else {
+                        tab.classList.remove('jp-tab-active');
+                    }
+                });
+
+                // Handle panel switching for panel tabs
+                if (tabType === 'panel') {
+                    jPulse.UI.tabs._switchPanels(tabsElement, tabId, animate);
+                }
+
+                // Call onTabChange callback
+                if (config.onTabChange && typeof config.onTabChange === 'function') {
+                    const tabData = Array.from(tabs).find(tab => tab.dataset.tabId === tabId)?._jpTabData;
+                    config.onTabChange(tabId, previousActiveTab, tabData);
+                }
+
+                // Dispatch custom event
+                tabsElement.dispatchEvent(new CustomEvent('jp-tab-changed', {
+                    detail: {
+                        tabId: tabId,
+                        previousTabId: previousActiveTab,
+                        tabType: tabType
+                    }
+                }));
+            },
+
+            /**
+             * Switch panels for panel tabs with optional animation
+             * @param {Element} tabsElement - The .jp-tabs element
+             * @param {string} tabId - Tab ID to show panel for
+             * @param {boolean} animate - Whether to animate the transition
+             */
+            _switchPanels: (tabsElement, tabId, animate) => {
+                const config = tabsElement._jpTabsConfig;
+                const tabData = config.tabs.find(tab => tab.id === tabId);
+
+                if (!tabData || !tabData.panelId) {
+                    return;
+                }
+
+                const panelContainer = tabsElement.querySelector('.jp-tabs-panels');
+                let targetPanel = document.getElementById(tabData.panelId);
+
+                // If not found by ID, try to find it in the panel container
+                if (!targetPanel && panelContainer) {
+                    targetPanel = panelContainer.querySelector(`#${tabData.panelId}`);
+                }
+
+                if (!targetPanel) {
+                    console.warn(`Panel with ID '${tabData.panelId}' not found`);
+                    return;
+                }
+
+                // Move panel into container if not already there
+                if (targetPanel.parentNode !== panelContainer) {
+                    panelContainer.appendChild(targetPanel);
+                }
+
+                // Hide all panels first and ensure they're in the container
+                config.tabs.forEach(tab => {
+                    if (tab.panelId) {
+                        let panel = document.getElementById(tab.panelId);
+
+                        // If not found by ID, try to find it in the panel container
+                        if (!panel && panelContainer) {
+                            panel = panelContainer.querySelector(`#${tab.panelId}`);
+                        }
+
+                        if (panel) {
+                            // Move panel into container if not already there
+                            if (panel.parentNode !== panelContainer) {
+                                panelContainer.appendChild(panel);
+                            }
+
+                            panel.classList.remove('jp-panel-active');
+                            if (animate && config.slideAnimation) {
+                                panel.classList.add('jp-panel-sliding');
+                            }
+                        }
+                    }
+                });
+
+                // Show target panel
+                if (animate && config.slideAnimation) {
+                    // Animate the transition
+                    setTimeout(() => {
+                        targetPanel.classList.add('jp-panel-active');
+                        targetPanel.classList.remove('jp-panel-sliding');
+                    }, 150);
+                } else {
+                    // Instant switch
+                    targetPanel.classList.add('jp-panel-active');
+                }
+            },
+
+            /**
+             * Check if a tab should be hidden based on tabClass
+             * @param {Object} tab - Tab configuration object
+             * @returns {boolean} True if tab should be hidden
+             */
+            _isTabHidden: (tab) => {
+                if (!tab.tabClass) {
+                    return false;
+                }
+
+                // Check if the tab class exists in the document
+                // This is a simple implementation - could be enhanced with role checking
+                const testElement = document.createElement('div');
+                testElement.className = tab.tabClass;
+                document.body.appendChild(testElement);
+
+                const isVisible = window.getComputedStyle(testElement).display !== 'none';
+                document.body.removeChild(testElement);
+
+                return !isVisible;
+            },
+
+
+            /**
+             * Public method to activate a tab
+             * @param {string} elementId - The tabs element ID
+             * @param {string} tabId - Tab ID to activate
+             */
+            _activateTab: (elementId, tabId) => {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    jPulse.UI.tabs._setActiveTab(element, tabId, true);
+                }
+            },
+
+            /**
+             * Get the currently active tab ID
+             * @param {string} elementId - The tabs element ID
+             * @returns {string|null} Active tab ID or null
+             */
+            _getActiveTab: (elementId) => {
+                const element = document.getElementById(elementId);
+                return element ? element._jpTabsActiveTab : null;
+            },
+
+            /**
+             * Refresh the tabs (re-render)
+             * @param {string} elementId - The tabs element ID
+             */
+            _refresh: (elementId) => {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    const config = element._jpTabsConfig;
+                    const tabType = element._jpTabsType;
+                    const activeTab = element._jpTabsActiveTab;
+                    jPulse.UI.tabs._setup(element, config, activeTab, tabType);
+                }
+            },
+
+            /**
+             * Destroy the tabs instance
+             * @param {string} elementId - The tabs element ID
+             */
+            _destroy: (elementId) => {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    // Clean up stored data
+                    delete element._jpTabsConfig;
+                    delete element._jpTabsType;
+                    delete element._jpTabsActiveTab;
+
+                    // Remove CSS classes
+                    element.classList.remove('jp-tabs', 'jp-tabs-navigation', 'jp-tabs-panel');
+
+                    // Clear content
+                    element.innerHTML = '';
+                }
             }
         },
 

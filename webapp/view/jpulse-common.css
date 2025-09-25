@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         0.7.20
- * @release         2025-09-24
+ * @version         0.7.21
+ * @release         2025-09-25
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1087,6 +1087,306 @@ body {
     .jp-container-1200 {
         margin: 0 15px;
         padding: 0 15px;
+    }
+}
+
+/* ========================================
+ * TAB INTERFACE WIDGET (W-064)
+ * ======================================== */
+
+/* Tab Container */
+.jp-tabs {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+/* Tab List - Horizontal Layout */
+.jp-tabs-list {
+    display: flex;
+    align-items: flex-end;
+    margin-bottom: 0;
+    position: relative;
+    z-index: 5;
+    padding-left: 24px;
+    background: linear-gradient(to bottom, white 0%, #f6f7f8 100%);
+    padding-top: 10px;
+    padding-bottom: 0;
+}
+
+.jp-tabs-list::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #dee2e6;
+    z-index: 6; /* Above tabs list but below active tab pseudo-elements */
+}
+
+/* Responsive Horizontal Scroll */
+.jp-tabs-list.jp-tabs-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #007acc transparent;
+    -webkit-overflow-scrolling: touch;
+}
+
+.jp-tabs-list.jp-tabs-scroll::-webkit-scrollbar {
+    height: 4px;
+}
+
+.jp-tabs-list.jp-tabs-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.jp-tabs-list.jp-tabs-scroll::-webkit-scrollbar-thumb {
+    background: #007acc;
+    border-radius: 2px;
+}
+
+.jp-tabs-list.jp-tabs-scroll::-webkit-scrollbar-thumb:hover {
+    background: #005a99;
+}
+
+/* Individual Tab */
+.jp-tab {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    cursor: pointer;
+    border: 1px solid #dee2e6;
+    background: #e9ecef; /* Darker background for better contrast */
+    color: #6c757d;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    position: relative;
+    border-radius: 6px; /* Round all corners for inactive tabs */
+    margin-right: 12px; /* Increased spacer distance */
+    margin-bottom: 6px; /* Increased space from divider - move buttons up */
+}
+
+.jp-tab:hover {
+    color: #007acc;
+    background: #e3f2fd;
+    border-color: #007acc;
+}
+
+.jp-tab-active {
+    color: #007acc !important;
+    background: white !important;
+    border-color: #dee2e6 !important;
+    border-bottom: none !important; /* Remove bottom border to flow into panel */
+    border-radius: 6px 6px 0 0 !important; /* Only round top corners for active tabs */
+    z-index: 10; /* Higher z-index to ensure it covers divider */
+    margin-bottom: 6px !important; /* Align with inactive tabs */
+    position: relative;
+}
+
+.jp-tab-active::after {
+    content: '';
+    position: absolute;
+    bottom: -8px; /* Start from bottom of tab */
+    left: -1px; /* Align with left border */
+    right: -1px; /* Align with right border */
+    height: 8px; /* Extend down to cover divider */
+    background: white;
+    border-left: 1px solid #dee2e6; /* Continue left border */
+    border-right: 1px solid #dee2e6; /* Continue right border */
+    z-index: 15; /* Above divider pseudo-element (z-index: 6) */
+}
+
+.jp-tab-disabled {
+    color: #adb5bd !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+    background: #e9ecef !important;
+}
+
+.jp-tab-disabled:hover {
+    background: #e9ecef !important;
+    border-color: #dee2e6 !important;
+}
+
+/* Tab Content Elements */
+.jp-tab-icon {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.jp-tab-label {
+    line-height: 1.2;
+}
+
+/* Tab Spacers */
+.jp-tabs-spacer {
+    width: 32px; /* Increased spacer distance */
+    flex-shrink: 0;
+}
+
+/* Navigation Tabs Specific */
+.jp-tabs-navigation .jp-tabs-list {
+    margin-bottom: 20px;
+    background: linear-gradient(to bottom, white 0%, #f6f7f8 100%);
+    padding-top: 10px;
+    padding-left: 24px;
+    z-index: 5;
+}
+
+.jp-tabs-navigation .jp-tabs-list::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #dee2e6;
+    z-index: 6; /* Above tabs list but below active tab pseudo-elements */
+}
+
+.jp-tabs-navigation .jp-tab {
+    border-radius: 6px; /* Round all corners for inactive nav tabs */
+    margin-bottom: 6px; /* Increased space from divider - move buttons up */
+    margin-right: 12px; /* Increased spacer distance */
+}
+
+.jp-tabs-navigation .jp-tab:hover {
+    background: #e3f2fd;
+    border-color: #007acc;
+}
+
+.jp-tabs-navigation .jp-tab-active {
+    background: white !important;
+    color: #007acc !important;
+    border-color: #dee2e6 !important;
+    border-bottom: none !important; /* Remove bottom border to flow into divider */
+    border-radius: 6px 6px 0 0 !important; /* Only round top corners for active nav tabs */
+    margin-bottom: 6px !important; /* Align with inactive tabs */
+    z-index: 10; /* Higher z-index to ensure it covers divider */
+    position: relative;
+}
+
+.jp-tabs-navigation .jp-tab-active::after {
+    content: '';
+    position: absolute;
+    bottom: -8px; /* Start from bottom of tab */
+    left: -1px; /* Align with left border */
+    right: -1px; /* Align with right border */
+    height: 8px; /* Extend down to cover divider */
+    background: white;
+    border-left: 1px solid #dee2e6; /* Continue left border */
+    border-right: 1px solid #dee2e6; /* Continue right border */
+    z-index: 15; /* Above divider pseudo-element (z-index: 6) */
+}
+
+/* Panel Tabs Specific */
+.jp-tabs-panel .jp-tabs-panels {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    min-height: 200px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Panel Content */
+.jp-panel {
+    display: none;
+    padding: 20px;
+    animation: none;
+}
+
+.jp-panel-active {
+    display: block;
+}
+
+/* Panel Slide Animation */
+.jp-panel-sliding {
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.jp-panel-active:not(.jp-panel-sliding) {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .jp-tabs-list,
+    .jp-tabs-navigation .jp-tabs-list {
+        padding-left: 8px; /* Reduce left spacer on mobile */
+    }
+
+    .jp-tab {
+        padding: 10px 14px;
+        font-size: 13px;
+        margin-right: 8px; /* Reduce spacing on mobile */
+    }
+
+    .jp-tabs-spacer {
+        width: 20px; /* Reduce spacer on mobile */
+    }
+
+    .jp-tabs-list.jp-tabs-scroll {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+@media (max-width: 480px) {
+    .jp-tabs-list,
+    .jp-tabs-navigation .jp-tabs-list {
+        padding-left: 6px; /* Further reduce on small mobile */
+    }
+
+    .jp-tab {
+        padding: 8px 12px;
+        font-size: 12px;
+        margin-right: 6px;
+    }
+
+    .jp-tab-icon {
+        margin-right: 6px;
+        font-size: 14px;
+    }
+
+    .jp-tabs-spacer {
+        width: 15px;
+    }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .jp-tab {
+        border: 1px solid transparent;
+    }
+
+    .jp-tab:hover {
+        border-color: #007acc;
+    }
+
+    .jp-tab-active {
+        border-color: #007acc;
+        background: #f8f9fa;
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    .jp-tab {
+        transition: none;
+    }
+
+    .jp-panel-sliding,
+    .jp-panel-active:not(.jp-panel-sliding) {
+        transition: none;
     }
 }
 

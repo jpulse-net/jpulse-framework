@@ -5,7 +5,7 @@
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
  * @version         0.8.0
- * @release         2025-09-25
+ * @release         2025-09-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -60,7 +60,7 @@
         <!-- Tab Interface Widget -->
         <div class="jp-card">
             <div class="jp-card-header">
-                <h3>Tab Interface Widget (v0.7.21+)</h3>
+                <h3>Tab Interface Widget</h3>
             </div>
             <div class="jp-card-body">
                 <div class="jp-info-box">
@@ -168,12 +168,191 @@ jPulse.dom.ready(() =&gt; {
             </div>
         </div>
 
+        <!-- Accordion Widget -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Accordion Widget</h3>
+            </div>
+            <div class="jp-card-body">
+                <div class="jp-info-box">
+                    <p><strong>What you learn:</strong> How to create collapsible accordion interfaces with exclusive or multiple open sections, smooth animations, and programmatic control.</p>
+                    <p><strong>Behind the scenes:</strong> Uses jPulse's accordion system with configurable behavior, section state management, and callback functions for interaction tracking.</p>
+                </div>
+                <div id="accordion-demo-tabs" class="jp-tabs"></div>
+                <div id="accordion-example-panel" class="jp-panel">
+                            <p>Accordion widgets provide collapsible content sections:</p>
+
+                            <div id="demo-accordion" class="jp-accordion">
+                                <div class="jp-accordion-section">
+                                    <h4>Getting Started</h4>
+                                    <div class="jp-accordion-content">
+                                        <p>This section contains information about getting started with jPulse Framework.</p>
+                                        <ul>
+                                            <li>Installation instructions</li>
+                                            <li>Basic configuration</li>
+                                            <li>First steps tutorial</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="jp-accordion-section">
+                                    <h4>Advanced Features</h4>
+                                    <div class="jp-accordion-content">
+                                        <p>Learn about advanced jPulse features and capabilities.</p>
+                                        <div class="jp-info-box">
+                                            <p>Advanced topics include:</p>
+                                            <ul>
+                                                <li>Custom middleware development</li>
+                                                <li>Database integration patterns</li>
+                                                <li>API design best practices</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="jp-accordion-section">
+                                    <h4>Troubleshooting</h4>
+                                    <div class="jp-accordion-content">
+                                        <p>Common issues and their solutions.</p>
+                                        <div class="jp-warning-box">
+                                            <p><strong>Common Problems:</strong></p>
+                                            <ul>
+                                                <li>Port conflicts during development</li>
+                                                <li>Database connection issues</li>
+                                                <li>Template rendering problems</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button id="testAccordionBtn" class="jp-btn jp-btn-secondary" style="margin-top: 15px;">Test Programmatic Control</button>
+                </div>
+                <div id="accordion-source-panel" class="jp-panel">
+                    <div class="jp-source-code" data-lang="html">
+&lt;!-- HTML Structure --&gt;
+&lt;div id="demo-accordion" class="jp-accordion"&gt;
+    &lt;div class="jp-accordion-section"&gt;
+        &lt;h4&gt;Getting Started&lt;/h4&gt;
+        &lt;div class="jp-accordion-content"&gt;
+            &lt;p&gt;Content for getting started section...&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="jp-accordion-section"&gt;
+        &lt;h4&gt;Advanced Features&lt;/h4&gt;
+        &lt;div class="jp-accordion-content"&gt;
+            &lt;p&gt;Content for advanced features section...&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- JavaScript Initialization --&gt;
+&lt;script&gt;
+jPulse.dom.ready(() =&gt; {
+    // Initialize accordion
+    const demoAccordion = jPulse.UI.accordion.register('demo-accordion', {
+        exclusive: true,
+        initOpen: 0,
+        onSectionChange: (openIndex, clickedIndex) =&gt; {
+            console.log(`Accordion section ${clickedIndex} clicked`);
+        }
+    });
+
+    // Programmatic control
+    document.getElementById('testAccordionBtn').addEventListener('click', () =&gt; {
+        demoAccordion.openSection(1);
+    });
+});
+&lt;/script&gt;
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Collapsible Widget -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>🧭 Collapsible Widget</h3>
+                <p class="jp-text-muted jp-text-small">Part of Content Navigation &amp; Show/Hide widgets</p>
+            </div>
+            <div class="jp-card-body">
+                <div class="jp-info-box">
+                    <p><strong>What you learn:</strong> How to create collapsible content sections with expand/collapse functionality, programmatic control, and event callbacks.</p>
+                    <p><strong>Behind the scenes:</strong> Uses jPulse's collapsible system with automatic arrow indicators, smooth animations, and flexible HTML structure support.</p>
+                </div>
+                <div id="collapsible-demo-tabs" class="jp-tabs"></div>
+                <div id="collapsible-example-panel" class="jp-panel">
+                            <p>Interactive collapsible sections:</p>
+
+                            <div id="demo-collapsible" class="jp-collapsible">
+                                <h3>📚 Documentation Section</h3>
+                                <div class="jp-collapsible-content">
+                                    <p>This section contains detailed documentation about the feature.</p>
+                                    <ul>
+                                        <li>Installation instructions</li>
+                                        <li>Configuration options</li>
+                                        <li>Usage examples</li>
+                                        <li>Troubleshooting guide</li>
+                                    </ul>
+                                    <div class="jp-info-box">
+                                        <p><strong>Pro tip:</strong> Collapsible sections are great for organizing large amounts of content without overwhelming the user.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="jp-btn-group" style="margin-top: 15px;">
+                                <button id="expandBtn" class="jp-btn jp-btn-success">Expand</button>
+                                <button id="collapseBtn" class="jp-btn jp-btn-warning">Collapse</button>
+                                <button id="toggleBtn" class="jp-btn jp-btn-primary">Toggle</button>
+                            </div>
+                </div>
+                <div id="collapsible-source-panel" class="jp-panel">
+                    <div class="jp-source-code" data-lang="html">
+&lt;!-- HTML Structure --&gt;
+&lt;div id="demo-collapsible" class="jp-collapsible"&gt;
+    &lt;h3&gt;📚 Documentation Section&lt;/h3&gt;
+    &lt;div class="jp-collapsible-content"&gt;
+        &lt;p&gt;This section contains detailed documentation...&lt;/p&gt;
+        &lt;ul&gt;
+            &lt;li&gt;Installation instructions&lt;/li&gt;
+            &lt;li&gt;Configuration options&lt;/li&gt;
+        &lt;/ul&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- JavaScript Initialization --&gt;
+&lt;script&gt;
+jPulse.dom.ready(() =&gt; {
+    // Initialize collapsible
+    const demoCollapsible = jPulse.UI.collapsible.register('demo-collapsible', {
+        initOpen: false,
+        onOpen: () =&gt; console.log('Collapsible opened'),
+        onClose: () =&gt; console.log('Collapsible closed')
+    });
+
+    // Programmatic control
+    document.getElementById('expandBtn').addEventListener('click', () =&gt; {
+        demoCollapsible.expand();
+    });
+
+    document.getElementById('collapseBtn').addEventListener('click', () =&gt; {
+        demoCollapsible.collapse();
+    });
+
+    document.getElementById('toggleBtn').addEventListener('click', () =&gt; {
+        demoCollapsible.toggle();
+    });
+});
+&lt;/script&gt;
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- ========================================= -->
-        <!-- BUTTONS AND DIALOGS                      -->
+        <!-- BUTTONS, DIALOGS, AND NOTIFICATIONS       -->
         <!-- ========================================= -->
 
         <div class="jp-section-header">
-            <h3>🔘 Buttons &amp; Dialogs</h3>
+            <h3>🔘 Buttons, Dialogs, and Notifications</h3>
             <p>Interactive elements for user actions and feedback</p>
         </div>
 
@@ -295,98 +474,47 @@ document.getElementById('complexBtn').addEventListener('click', async () =&gt; {
             </div>
         </div>
 
-        <!-- Accordion Widget -->
+        <!-- Notification System -->
         <div class="jp-card">
             <div class="jp-card-header">
-                <h3>Accordion Widget</h3>
+                <h3>Non-Blocking Notification System</h3>
             </div>
             <div class="jp-card-body">
                 <div class="jp-info-box">
-                    <p><strong>What you learn:</strong> How to create collapsible accordion interfaces with exclusive or multiple open sections, smooth animations, and programmatic control.</p>
-                    <p><strong>Behind the scenes:</strong> Uses jPulse's accordion system with configurable behavior, section state management, and callback functions for interaction tracking.</p>
+                    <p><strong>What you learn:</strong> How to display different types of user notifications including success, error, warning, and info messages with customizable duration and styling.</p>
+                    <p><strong>Behind the scenes:</strong> Uses jPulse's slidedown notification system with automatic positioning, fade animations, and configurable display options.</p>
                 </div>
-                <div id="accordion-demo-tabs" class="jp-tabs"></div>
-                <div id="accordion-example-panel" class="jp-panel">
-                            <p>Accordion widgets provide collapsible content sections:</p>
+                <div id="notification-demo-tabs" class="jp-tabs"></div>
+                <div id="notification-example-panel" class="jp-panel">
+                            <p>Show different types of notifications to users:</p>
 
-                            <div id="demo-accordion" class="jp-accordion">
-                                <div class="jp-accordion-section">
-                                    <h4>Getting Started</h4>
-                                    <div class="jp-accordion-content">
-                                        <p>This section contains information about getting started with jPulse Framework.</p>
-                                        <ul>
-                                            <li>Installation instructions</li>
-                                            <li>Basic configuration</li>
-                                            <li>First steps tutorial</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                                <div class="jp-accordion-section">
-                                    <h4>Advanced Features</h4>
-                                    <div class="jp-accordion-content">
-                                        <p>Learn about advanced jPulse features and capabilities.</p>
-                                        <div class="jp-info-box">
-                                            <p>Advanced topics include:</p>
-                                            <ul>
-                                                <li>Custom middleware development</li>
-                                                <li>Database integration patterns</li>
-                                                <li>API design best practices</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="jp-accordion-section">
-                                    <h4>Troubleshooting</h4>
-                                    <div class="jp-accordion-content">
-                                        <p>Common issues and their solutions.</p>
-                                        <div class="jp-warning-box">
-                                            <p><strong>Common Problems:</strong></p>
-                                            <ul>
-                                                <li>Port conflicts during development</li>
-                                                <li>Database connection issues</li>
-                                                <li>Template rendering problems</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="jp-btn-group">
+                                <button id="successBtn" class="jp-btn jp-btn-success">Success Message</button>
+                                <button id="errorBtn" class="jp-btn jp-btn-danger">Error Message</button>
+                                <button id="warningBtn" class="jp-btn jp-btn-warning">Warning Message</button>
+                                <button id="infoNotifyBtn" class="jp-btn jp-btn-primary">Info Message</button>
                             </div>
-
-                            <button id="testAccordionBtn" class="jp-btn jp-btn-secondary" style="margin-top: 15px;">Test Programmatic Control</button>
                 </div>
-                <div id="accordion-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="html">
-&lt;!-- HTML Structure --&gt;
-&lt;div id="demo-accordion" class="jp-accordion"&gt;
-    &lt;div class="jp-accordion-section"&gt;
-        &lt;h4&gt;Getting Started&lt;/h4&gt;
-        &lt;div class="jp-accordion-content"&gt;
-            &lt;p&gt;Content for getting started section...&lt;/p&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
-    &lt;div class="jp-accordion-section"&gt;
-        &lt;h4&gt;Advanced Features&lt;/h4&gt;
-        &lt;div class="jp-accordion-content"&gt;
-            &lt;p&gt;Content for advanced features section...&lt;/p&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
-&lt;/div&gt;
-
-&lt;!-- JavaScript Initialization --&gt;
+                <div id="notification-source-panel" class="jp-panel">
+                    <div class="jp-source-code" data-lang="js">
+&lt;!-- JavaScript Notifications --&gt;
 &lt;script&gt;
-jPulse.dom.ready(() =&gt; {
-    // Initialize accordion
-    const demoAccordion = jPulse.UI.accordion.register('demo-accordion', {
-        exclusive: true,
-        initOpen: 0,
-        onSectionChange: (openIndex, clickedIndex) =&gt; {
-            console.log(`Accordion section ${clickedIndex} clicked`);
-        }
-    });
+// Success notification
+jPulse.showSlideDownSuccess('Operation completed successfully!');
 
-    // Programmatic control
-    document.getElementById('testAccordionBtn').addEventListener('click', () =&gt; {
-        demoAccordion.openSection(1);
-    });
+// Error notification
+jPulse.showSlideDownError('An error occurred while processing your request.');
+
+// Warning notification
+jPulse.showSlideDownWarning('Please review your input before continuing.');
+
+// Info notification
+jPulse.showSlideDownInfo('Here is some helpful information.');
+
+// Custom notification with options
+jPulse.showSlideDown('Custom message', 'info', {
+    duration: 5000,
+    closable: true
 });
 &lt;/script&gt;
                     </div>
@@ -478,138 +606,10 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
             </div>
         </div>
 
-        <!-- Notification System -->
-        <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Non-Blocking Notification System</h3>
-            </div>
-            <div class="jp-card-body">
-                <div class="jp-info-box">
-                    <p><strong>What you learn:</strong> How to display different types of user notifications including success, error, warning, and info messages with customizable duration and styling.</p>
-                    <p><strong>Behind the scenes:</strong> Uses jPulse's slidedown notification system with automatic positioning, fade animations, and configurable display options.</p>
-                </div>
-                <div id="notification-demo-tabs" class="jp-tabs"></div>
-                <div id="notification-example-panel" class="jp-panel">
-                            <p>Show different types of notifications to users:</p>
-
-                            <div class="jp-btn-group">
-                                <button id="successBtn" class="jp-btn jp-btn-success">Success Message</button>
-                                <button id="errorBtn" class="jp-btn jp-btn-danger">Error Message</button>
-                                <button id="warningBtn" class="jp-btn jp-btn-warning">Warning Message</button>
-                                <button id="infoNotifyBtn" class="jp-btn jp-btn-primary">Info Message</button>
-                            </div>
-                </div>
-                <div id="notification-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="js">
-&lt;!-- JavaScript Notifications --&gt;
-&lt;script&gt;
-// Success notification
-jPulse.showSlideDownSuccess('Operation completed successfully!');
-
-// Error notification
-jPulse.showSlideDownError('An error occurred while processing your request.');
-
-// Warning notification
-jPulse.showSlideDownWarning('Please review your input before continuing.');
-
-// Info notification
-jPulse.showSlideDownInfo('Here is some helpful information.');
-
-// Custom notification with options
-jPulse.showSlideDown('Custom message', 'info', {
-    duration: 5000,
-    closable: true
-});
-&lt;/script&gt;
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Collapsible Widget -->
-        <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>🧭 Collapsible Widget (v0.7.21+)</h3>
-                <p class="jp-text-muted jp-text-small">Part of Content Navigation &amp; Show/Hide widgets</p>
-            </div>
-            <div class="jp-card-body">
-                <div class="jp-info-box">
-                    <p><strong>What you learn:</strong> How to create collapsible content sections with expand/collapse functionality, programmatic control, and event callbacks.</p>
-                    <p><strong>Behind the scenes:</strong> Uses jPulse's collapsible system with automatic arrow indicators, smooth animations, and flexible HTML structure support.</p>
-                </div>
-                <div id="collapsible-demo-tabs" class="jp-tabs"></div>
-                <div id="collapsible-example-panel" class="jp-panel">
-                            <p>Interactive collapsible sections:</p>
-
-                            <div id="demo-collapsible" class="jp-collapsible">
-                                <h3>📚 Documentation Section</h3>
-                                <div class="jp-collapsible-content">
-                                    <p>This section contains detailed documentation about the feature.</p>
-                                    <ul>
-                                        <li>Installation instructions</li>
-                                        <li>Configuration options</li>
-                                        <li>Usage examples</li>
-                                        <li>Troubleshooting guide</li>
-                                    </ul>
-                                    <div class="jp-info-box">
-                                        <p><strong>Pro tip:</strong> Collapsible sections are great for organizing large amounts of content without overwhelming the user.</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="jp-btn-group" style="margin-top: 15px;">
-                                <button id="expandBtn" class="jp-btn jp-btn-success">Expand</button>
-                                <button id="collapseBtn" class="jp-btn jp-btn-warning">Collapse</button>
-                                <button id="toggleBtn" class="jp-btn jp-btn-primary">Toggle</button>
-                            </div>
-                </div>
-                <div id="collapsible-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="html">
-&lt;!-- HTML Structure --&gt;
-&lt;div id="demo-collapsible" class="jp-collapsible"&gt;
-    &lt;h3&gt;📚 Documentation Section&lt;/h3&gt;
-    &lt;div class="jp-collapsible-content"&gt;
-        &lt;p&gt;This section contains detailed documentation...&lt;/p&gt;
-        &lt;ul&gt;
-            &lt;li&gt;Installation instructions&lt;/li&gt;
-            &lt;li&gt;Configuration options&lt;/li&gt;
-        &lt;/ul&gt;
-    &lt;/div&gt;
-&lt;/div&gt;
-
-&lt;!-- JavaScript Initialization --&gt;
-&lt;script&gt;
-jPulse.dom.ready(() =&gt; {
-    // Initialize collapsible
-    const demoCollapsible = jPulse.UI.collapsible.register('demo-collapsible', {
-        initOpen: false,
-        onOpen: () =&gt; console.log('Collapsible opened'),
-        onClose: () =&gt; console.log('Collapsible closed')
-    });
-
-    // Programmatic control
-    document.getElementById('expandBtn').addEventListener('click', () =&gt; {
-        demoCollapsible.expand();
-    });
-
-    document.getElementById('collapseBtn').addEventListener('click', () =&gt; {
-        demoCollapsible.collapse();
-    });
-
-    document.getElementById('toggleBtn').addEventListener('click', () =&gt; {
-        demoCollapsible.toggle();
-    });
-});
-&lt;/script&gt;
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Content Boxes & Visual Elements -->
         <div class="jp-card">
             <div class="jp-card-header">
-                <h3>📋 Content Boxes &amp; Visual Elements (v0.7.21+)</h3>
+                <h3>📋 Content Boxes &amp; Visual Elements</h3>
                 <p class="jp-text-muted jp-text-small">Part of Content widgets</p>
             </div>
             <div class="jp-card-body">
@@ -718,7 +718,7 @@ jPulse.dom.ready(() =&gt; {
         <!-- Source Code Widget -->
         <div class="jp-card">
             <div class="jp-card-header">
-                <h3>Source Code Widget (v0.7.21+)</h3>
+                <h3>Source Code Widget</h3>
             </div>
             <div class="jp-card-body">
                 <div class="jp-info-box">

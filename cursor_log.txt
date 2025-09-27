@@ -18421,3 +18421,13 @@ jPulse.UI.tabs.register('my-tabs', {
 - **webapp/view/jpulse-examples/ui-widgets.shtml**: Added demo info and enhanced source code examples
 
 ✅ **IMPLEMENTATION COMPLETE**: Enhanced panelHeight API with 3 clear options, improved performance, and better developer experience!
+
+
+============================================================
+
+2025-09-27 15:49: Redesigned home page (webapp/view/home/index.shtml) with minimal Apache-style approach for better onboarding experience. Reduced from 710 to 168 lines (~76% smaller). Added clean welcome message, installation confirmation, file location info, and navigation links to key documentation. Changed all page-specific CSS classes from .jp-* to .local-* prefix to demonstrate proper separation between framework styles (.jp-*) and page-specific styles (.local-*) as a teaching tool. Maintains professional appearance while focusing on essential onboarding information.
+
+
+============================================================
+
+2025-09-27 16:12: W-063 v0.8.0 release preparation complete. Created comprehensive test suite for jPulse.UI.sourceCode and jPulse.clipboard functionality (27 tests covering syntax highlighting, copy functionality, language labels, DOM integration). Updated all documentation files to v0.8.0 including README.md, CHANGELOG.md, and 8 other docs. Created detailed commit-message.txt following project format. All 527 tests passing including new source code widget and clipboard tests. Ready for version bump and release.

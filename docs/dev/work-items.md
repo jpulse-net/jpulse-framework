@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.7.21
+# jPulse Framework / Docs / Dev / Work Items v0.8.0
 
 This is the doc to track work items, arranged in three sections:
 
@@ -907,12 +907,12 @@ This is the doc to track work items, arranged in three sections:
 - deliverables:
   - renamed /jpulse-docs/ from /docs/
   - new /jpulse-examples/ pages:
-    - index.shtml           # Overview with navigation cards
-    - handlebars.shtml      # Complete handlebars reference
-    - jpulse-ui.shtml       # UI components showcase
-    - forms.shtml           # Form handling examples
-    - layouts.shtml         # Responsive layout examples
-    - api-integration.shtml # API integration patterns
+    - index.shtml         # Overview with navigation cards
+    - handlebars.shtml    # Complete handlebars reference
+    - ui-widgets.shtml    # UI components showcase
+    - forms.shtml         # Form handling examples
+    - layout.shtml        # Responsive layout examples
+    - api.shtml           # API integration patterns
   - reduce /home/ to a short page with:
     - welcome note based on login status
     - "this page is meant to be overloaded by site/webapp/view/home/index.shtml"
@@ -922,23 +922,16 @@ This is the doc to track work items, arranged in three sections:
     - show a copy button on hover to copy to clipboard
   - add a jPulse.clipboard with copy to clipboard functionality
   - create new docs/handlebars.md markdown doc
+  - enhance panelHeight API with 3 options (undefined/auto/fixed)
+  - content Boxes & Visual Elements section in ui-widgets
+  - cross-linking between docs and examples
 
 
 
 
 
 
-- docs/markdown.md:
-  - loops: needs doc update:
-    - iterate over object keys, in addition to arrays
-    - document @index, @first, @last, @key, this
-- markdown rendering:
-  - scroll X auto for each code block (avoid horizontal scroll of whole page)
-  - `single quote text` is a bit too small
-  - ```triple quote code block```:
-    - first line has buggy indent
-    - a bit too large compared to other text
-- is cache disabled on include with context? if so, try to make it work with enabled cache
+
 
 - move handlebar stuff from view controller to handlebar controller?
   - offer an API to expand text with handlebars?
@@ -970,7 +963,7 @@ finishing up work item: W-0...
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-15 12:12
-- assume release: W-062, v0.7.20
+- assume release: W-063, v0.8.0
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 

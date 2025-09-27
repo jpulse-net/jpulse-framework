@@ -4,8 +4,8 @@
  * @tagline         Home page of jPulse Framework
  * @description     This is the home page of jPulse Framework
  * @file            webapp/view/home/index.shtml
- * @version         0.7.21
- * @release         2025-09-25
+ * @version         0.8.0
+ * @release         2025-09-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,689 +20,148 @@
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
-        /* Page-specific demo content styles only */
-        .local-demo-section {
-            background: #f8f9fa;
+        /* Minimal Apache-style home page styling */
+        .local-home-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .local-home-title {
+            font-size: 3rem;
+            font-weight: 300;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+
+        .local-home-subtitle {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            margin-bottom: 2rem;
+        }
+
+        .local-home-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
             padding: 20px;
             border-radius: 8px;
-            margin: 15px 0;
+            margin: 30px 0;
+            font-size: 1.1rem;
+        }
+
+        .local-home-info {
+            background: #f8f9fa;
             border: 1px solid #dee2e6;
-        }
-
-        .demo-spacer {
-            height: 200px;
-            margin: 20px 0;
+            color: #495057;
             padding: 20px;
-            border-radius: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            border-radius: 8px;
+            margin: 30px 0;
+            text-align: left;
         }
 
-        .demo-spacer-1 { background: linear-gradient(45deg, #e3f2fd, #bbdefb); }
-        .demo-spacer-2 { background: linear-gradient(45deg, #f3e5f5, #e1bee7); }
-        .demo-spacer-3 { background: linear-gradient(45deg, #e8f5e8, #c8e6c9); }
-        .demo-spacer-4 { background: linear-gradient(45deg, #fff3e0, #ffcc02); }
-        .demo-spacer-5 { background: linear-gradient(45deg, #ffebee, #ffcdd2); }
+        .local-home-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .local-home-link-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 25px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .local-home-link-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .local-home-link-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .local-home-link-desc {
+            color: #6c757d;
+            line-height: 1.5;
+        }
+
+        .local-home-footer {
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid #dee2e6;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
     <div class="jp-main">
-        <h1 class="jp-title">🫧 {{app.name}} - Home Page</h1>
+        <div class="local-home-container">
+            <h1 class="local-home-title">🫧 Welcome to jPulse Framework v0.8.0</h1>
+            <p class="local-home-subtitle">A modern, lightweight web application framework</p>
 
-        <!-- Introduction Box (i18n messages) - at the top -->
-        <div class="jp-info-box">
-            <p>{{i18n.view.home.introduction}}</p>
-            <p>{{#if user.authenticated}}{{i18n.view.home.welcomeBack}}{{else}}{{i18n.view.home.notLoggedIn}}{{/if}}</p>
-        </div>
-
-        <!-- User Information Box (testing content) -->
-        <div class="jp-warning-box">
-            <h3>User Information</h3>
-            <p>{{#if user.authenticated}}{{i18n.view.home.welcomeBack}}{{else}}{{i18n.view.home.notLoggedIn}}{{/if}}</p>
-            {{#if user.authenticated}}<p><strong>User ID:</strong> {{user.id}}</p>{{else}}<p>{{i18n.view.home.pleaseLogin}}</p>{{/if}}
-            {{#if user.authenticated}}<p><strong>Name:</strong> {{user.firstName}} {{user.lastName}}</p>{{else}}{{/if}}
-            {{#if user.authenticated}}<p><strong>Email:</strong> {{user.email}}</p>{{else}}{{/if}}
-        </div>
-
-        <!-- Framework Information Box -->
-        <div class="jp-info-box">
-            <p><strong>Framework:</strong> {{app.name}}</p>
-            <p><strong>Version:</strong> <span class="jp-text-muted jp-text-small">{{app.version}} ({{app.release}})</span></p>
-            <p><strong>Current URL:</strong> {{url.domain}}{{url.pathname}}{{url.search}}</p>
-            <p><strong>Protocol:</strong> {{url.protocol}}</p>
-            <p><strong>Hostname:</strong> {{url.hostname}}</p>
-            <p>{{#if url.port}}<strong>Port:</strong> {{else}}{{/if}}{{url.port}}</p>
-            <p><strong>Test 404 link:</strong> <a href="/home/x.shtml">/home/x.shtml</a></p>
-        </div>
-
-        <!-- Handlebars Demo Box -->
-        <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Handlebars Demo</h3>
+            <div class="local-home-success">
+                <strong>✅ Installation Working!</strong><br>
+                If you can see this page, your jPulse Framework installation is working correctly.
             </div>
-            <div class="jp-card-body">
-                <p>This page demonstrates various handlebars features:</p>
-                <ul>
-                    <li><strong>App info:</strong> {{app.version}} / {{app.release}}</li>
-                    <li><strong>URL parsing:</strong> {{url.domain}} + {{url.pathname}}</li>
-                    <li><strong>URL params:</strong> Try ?name=test → {{url.param.name}}</li>
-                    <li><strong>User roles:</strong> {{user.roles}}</li>
-                    <li><strong>Conditionals:</strong> {{#if user.authenticated}}User {{user.username}} is logged in{{else}}User is guest{{/if}}</li>
-                    <li><strong>i18n:</strong>
-                        {{#if user.authenticated}}
-                          {{i18n.view.auth.login.welcomeBack}}
-                        {{else}}
-                          {{i18n.view.auth.common.notAuthenticated}}
-                        {{/if}}
-                    </li>
-                    <li><strong>Config:</strong> Admin email: {{config.email.adminEmail}}</li>
-                    <li><strong>User object debug:</strong></li>
-                    <li><strong>user.authenticated:</strong> {{user.authenticated}}</li>
-                    <li><strong>user.id:</strong> {{user.id}}</li>
-                    <li><strong>user.username:</strong> {{user.username}}</li>
-                    <li><strong>user.firstName:</strong> {{user.firstName}}</li>
-                    <li><strong>user.nickName:</strong> {{user.nickName}}</li>
-                    <li><strong>user.lastName:</strong> {{user.lastName}}</li>
-                    <li><strong>user.email:</strong> {{user.email}}</li>
-                    <li><strong>user.roles:</strong> {{user.roles}}</li>
-                    <li><strong>user.isAdmin:</strong> {{user.isAdmin}}</li>
-                </ul>
+
+            <div class="local-home-info">
+                <h3>📁 About This Page</h3>
+                <p><strong>Current file:</strong> <code>webapp/view/home/index.shtml</code></p>
+                <p><strong>Customize:</strong> Override this page by creating your own at <code>site/webapp/view/home/index.shtml</code></p>
+                <p><strong>Framework version:</strong> {{app.version}} ({{app.release}})</p>
             </div>
-        </div>
 
-        <!-- Site Override API Demo -->
-        <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>🎯 Site Override API Demo</h3>
+            <div class="local-home-links">
+                <a href="/jpulse-docs/" class="local-home-link-card">
+                    <div class="local-home-link-title">📚 Documentation</div>
+                    <div class="local-home-link-desc">Complete guides for installation, development, and deployment</div>
+                </a>
+
+                <a href="/jpulse-docs/getting-started" class="local-home-link-card">
+                    <div class="local-home-link-title">🚀 Getting Started</div>
+                    <div class="local-home-link-desc">Quick start guide for building your first jPulse application</div>
+                </a>
+
+                <a href="/jpulse-docs/site-customization" class="local-home-link-card">
+                    <div class="local-home-link-title">🎨 Site Customization</div>
+                    <div class="local-home-link-desc">Learn how to customize themes, layouts, and functionality</div>
+                </a>
+
+                <a href="/jpulse-examples/" class="local-home-link-card">
+                    <div class="local-home-link-title">🧪 Live Examples</div>
+                    <div class="local-home-link-desc">Interactive code examples and UI component demonstrations</div>
+                </a>
+
+                <a href="/jpulse-docs/api-reference" class="local-home-link-card">
+                    <div class="local-home-link-title">🔌 API Reference</div>
+                    <div class="local-home-link-desc">Complete REST API documentation and integration guides</div>
+                </a>
+
+                <a href="/jpulse-docs/template-reference" class="local-home-link-card">
+                    <div class="local-home-link-title">📝 Template Reference</div>
+                    <div class="local-home-link-desc">Handlebars templating system documentation and examples</div>
+                </a>
             </div>
-            <div class="jp-card-body">
-                <p>Test the W-014 site override system with a live API call:</p>
-                <button id="testSiteApiBtn" class="jp-btn jp-btn-secondary">Test Site Override API</button>
-                <div id="siteApiResponse" style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px; display: none;">
-                    <strong>API Response:</strong>
-                    <pre id="siteApiResponseContent" style="margin: 10px 0; white-space: pre-wrap; font-size: 12px;"></pre>
-                </div>
-                <p style="margin-top: 10px;">
-                    <small>
-                        This calls <code>/api/1/hello</code> which is auto-discovered from <code>site/webapp/controller/hello.js</code>
-                        <br>
-                        <a href="/hello/">Visit the full demo page</a> | <a href="/api/1/hello" target="_blank">View raw API response</a>
-                    </small>
-                </p>
-            </div>
-        </div>
 
-        <!-- Status Information -->
-        <p>This is a server-side rendered template using the viewController with handlebars processing.</p>
-        <p><strong>Status:</strong> <span class="jp-theme-text-primary" style="color: #007acc; font-weight: bold;">✅ W-006 viewController - IMPLEMENTED</span></p>
-
-        <!-- Sticky Header Test Box -->
-        <div class="jp-info-box">
-            <h3>🔍 Sticky Header Test</h3>
-            <p><strong>Instructions:</strong> Scroll down this page to see the sticky header in action!</p>
-            <p>The blue header with the jPulse logo should remain fixed at the top of the browser window as you scroll.</p>
-        </div>
-
-        <div class="demo-spacer demo-spacer-1">
-            <h4>📏 Spacer Content Block 1</h4>
-        </div>
-
-        <div class="demo-spacer demo-spacer-2">
-            <h4>📏 Spacer Content Block 2</h4>
-        </div>
-
-        <div class="demo-spacer demo-spacer-3">
-            <h4>📏 Spacer Content Block 3</h4>
-        </div>
-
-        <div class="demo-spacer demo-spacer-4">
-            <h4>📏 Spacer Content Block 4 - Keep Scrolling!</h4>
-        </div>
-
-        <div class="demo-spacer demo-spacer-5">
-            <h4>🎯 Bottom Content - Header should still be visible!</h4>
-        </div>
-
-        <p><em>File timestamp: {{file.timestamp "jpulse-footer.tmpl"}}</em></p>
-
-        <!-- W-048 Dialog Demo -->
-        <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>jPulse.UI Dialog Demo (W-048)</h3>
-            </div>
-            <div class="jp-card-body">
-                <p>Test the new jPulse.UI dialog widgets:</p>
-                <div class="jp-btn-group">
-                    <button id="testAlertBtn" class="jp-btn jp-btn-danger">Test Alert Dialog</button>
-                    <button id="testInfoBtn" class="jp-btn jp-btn-primary">Test Info Dialog</button>
-                    <button id="testHtmlBtn" class="jp-btn jp-btn-secondary">Test HTML Content</button>
-                    <button id="testCustomBtn" class="jp-btn jp-btn-success">Test Custom Options</button>
-                    <button id="testConfirmBtn" class="jp-btn jp-btn-warning">Test Complex Confirm Dialog</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- W-048 Accordion Demo -->
-        <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>jPulse.UI Accordion Demo (W-048)</h3>
-            </div>
-            <div class="jp-card-body">
-                <p>Test accordion with flexible decoration detection:</p>
-
-                <h4>Standalone Accordion (Full Decoration)</h4>
-                <div id="standaloneAccordion" class="jp-accordion">
-                    <div class="jp-accordion-section">
-                        <h3>Getting Started</h3>
-                        <div class="jp-accordion-content">
-                            <p>This is a standalone accordion with full section-like decoration. It has its own background, border, and padding.</p>
-                            <ul>
-                                <li>Automatic decoration detection</li>
-                                <li>Mutual exclusion (only one open at a time)</li>
-                                <li>Smooth animations</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="jp-accordion-section">
-                        <h3>Advanced Features</h3>
-                        <div class="jp-accordion-content">
-                            <p>Advanced accordion features include:</p>
-                            <ul>
-                                <li>Programmatic control via handle object</li>
-                                <li>Custom event dispatching</li>
-                                <li>Flexible configuration options</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="jp-accordion-section">
-                        <h3>API Reference</h3>
-                        <div class="jp-accordion-content">
-                            <p>Use the accordion API:</p>
-                            <pre><code>const accordion = jPulse.UI.accordion.register('myAccordion', {
-    exclusive: true,
-    initOpen: 0
-});
-
-accordion.openSection(1);
-accordion.closeAll();</code></pre>
-                        </div>
-                    </div>
-                </div>
-
-                <h4>Nested Accordion (Inside Section)</h4>
-                <div class="local-demo-section">
-                    <p>This accordion is nested inside a section container, so it gets minimal internal styling:</p>
-
-                    <div id="nestedAccordion" class="jp-accordion">
-                        <div class="jp-accordion-section">
-                            <h3>FAQ: How does it work?</h3>
-                            <div class="jp-accordion-content">
-                                <p>The accordion automatically detects if it's inside a section container and applies appropriate styling.</p>
-                            </div>
-                        </div>
-                        <div class="jp-accordion-section">
-                            <h3>FAQ: Can I customize it?</h3>
-                            <div class="jp-accordion-content">
-                                <p>Yes! You can configure exclusive behavior, initial open section, and event callbacks.</p>
-                            </div>
-                        </div>
-                        <div class="jp-accordion-section">
-                            <h3>FAQ: Is it accessible?</h3>
-                            <div class="jp-accordion-content">
-                                <p>The accordion includes keyboard navigation support and custom events for screen readers.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="jp-btn-group">
-                    <button id="testAccordionBtn" class="jp-btn jp-btn-primary">Test Programmatic Control</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- W-064 Tab Interface Demo -->
-        <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>jPulse.UI Tab Interface Demo (W-064)</h3>
-            </div>
-            <div class="jp-card-body">
-                <p>Test tab interface with navigation and panel modes:</p>
-
-                <h4>Navigation Tabs (Page Navigation)</h4>
-                <p>These tabs navigate to different pages. Click to test navigation:</p>
-                <div id="navigationTabs" class="jp-tabs"></div>
-
-                <h4>Panel Tabs (Content Switching)</h4>
-                <p>These tabs switch content panels with slide animation:</p>
-                <div id="panelTabs" class="jp-tabs"></div>
-
-                <!-- Panel Content (hidden by default) -->
-                <div id="panel1" class="jp-panel">
-                    <h4>Dashboard Panel</h4>
-                    <p>This is the dashboard panel with key metrics and overview information.</p>
-                    <div class="jp-section">
-                        <h5>Key Metrics</h5>
-                        <ul>
-                            <li>Active Users: 1,234</li>
-                            <li>Total Sessions: 5,678</li>
-                            <li>Conversion Rate: 12.3%</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div id="panel2" class="jp-panel">
-                    <h4>Analytics Panel</h4>
-                    <p>Detailed analytics and reporting functionality would go here.</p>
-                    <div class="jp-section">
-                        <h5>Recent Activity</h5>
-                        <p>Charts, graphs, and detailed analytics would be displayed in this panel.</p>
-                        <button class="jp-btn jp-btn-primary">Generate Report</button>
-                    </div>
-                </div>
-
-                <div id="panel3" class="jp-panel">
-                    <h4>Settings Panel</h4>
-                    <p>Configuration and settings options for the application.</p>
-                    <div class="jp-section">
-                        <h5>Preferences</h5>
-                        <div class="jp-form-group">
-                            <label class="jp-form-label">Theme</label>
-                            <select class="jp-form-input">
-                                <option>Light</option>
-                                <option>Dark</option>
-                                <option>Auto</option>
-                            </select>
-                        </div>
-                        <div class="jp-form-group">
-                            <label class="jp-form-label">
-                                <input type="checkbox" class="jp-form-checkbox"> Enable notifications
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="position: relative;">
-                    <h4>Nested Tab Example</h4>
-                    <button id="testTabsBtn" class="jp-btn jp-btn-primary" style="position: absolute; top: 0; right: 0;">Test Programmatic Control</button>
-                </div>
-                <p>Example of nested tabs (Engineering → Dashboard/R&D/SCM):</p>
-
-                <!-- First level tabs -->
-                <div id="departmentTabs" class="jp-tabs"></div>
-
-                <!-- Department panels -->
-                <div id="engDashboard" class="jp-panel">
-                    <h5>Engineering Department</h5>
-                    <p>Engineering team dashboard with project status and metrics.</p>
-
-                    <!-- Engineering sub-tabs (nested inside engineering panel) -->
-                    <div id="engineeringTabs" class="jp-tabs" style="margin-top: 15px;"></div>
-
-                    <!-- Engineering sub-panels -->
-                    <div id="engDash" class="jp-panel">
-                        <h6>Engineering Dashboard</h6>
-                        <p>Main engineering dashboard with overall project status and team metrics.</p>
-                    </div>
-
-                    <div id="engRnD" class="jp-panel">
-                        <h6>Research & Development</h6>
-                        <p>R&D projects, innovation pipeline, and research initiatives.</p>
-                    </div>
-
-                    <div id="engSCM" class="jp-panel">
-                        <h6>Supply Chain Management</h6>
-                        <p>Supply chain operations, vendor management, and logistics.</p>
-                    </div>
-
-                    <div id="engSVT" class="jp-panel">
-                        <h6>System Verification Testing</h6>
-                        <p>Testing protocols, quality assurance, and verification processes.</p>
-                    </div>
-
-                    <div id="engDevOps" class="jp-panel">
-                        <h6>DevOps</h6>
-                        <p>Development operations, CI/CD pipelines, and infrastructure management.</p>
-                    </div>
-                </div>
-
-                <!-- Sales and Ops panels (simple content) -->
-                <div id="salesPanel" class="jp-panel">
-                    <h5>Sales Department</h5>
-                    <p>Sales metrics, pipeline management, and customer relationships.</p>
-                </div>
-
-                <div id="opsPanel" class="jp-panel">
-                    <h5>Operations Department</h5>
-                    <p>Operational efficiency, process management, and resource allocation.</p>
-                </div>
-
-                <h4>API Examples</h4>
-                <div class="jp-section">
-                    <h5>Navigation Tabs</h5>
-                    <pre><code>const navTabs = jPulse.UI.tabs.register('navigationTabs', {
-    tabs: [
-        { id: 'home', label: 'Home', url: '/' },
-        { id: 'admin', label: 'Admin', url: '/admin', tabClass: 'adminOnly' },
-        { id: 'docs', label: 'Documentation', url: '/jpulse' }
-    ]
-}, 'home');</code></pre>
-
-                    <h5>Panel Tabs</h5>
-                    <pre><code>const panelTabs = jPulse.UI.tabs.register('panelTabs', {
-    tabs: [
-        { id: 'dashboard', label: 'Dashboard', panelId: 'panel1' },
-        { id: 'analytics', label: 'Analytics', panelId: 'panel2' },
-        { id: 'settings', label: 'Settings', panelId: 'panel3' }
-    ],
-    slideAnimation: true
-}, 'dashboard');</code></pre>
-                </div>
-
+            <div class="local-home-footer">
+                <p>jPulse Framework &copy; 2025 Peter Thoeny | <a href="https://github.com/peterthoeny/jpulse-framework">GitHub Repository</a></p>
             </div>
         </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const testBtn = document.getElementById('testSiteApiBtn');
-            const responseDiv = document.getElementById('siteApiResponse');
-            const responseContent = document.getElementById('siteApiResponseContent');
-
-            if (testBtn) {
-                testBtn.addEventListener('click', async function() {
-                    testBtn.disabled = true;
-                    testBtn.textContent = 'Testing...';
-                    responseDiv.style.display = 'none';
-
-                    try {
-                        // Use jPulse.apiCall to test the site override API
-                        const response = await jPulse.apiCall('/api/1/hello', 'GET');
-
-                        responseDiv.style.display = 'block';
-                        responseContent.textContent = JSON.stringify(response, null, 2);
-                        responseDiv.style.background = '#e8f5e8'; // Success green
-
-                    } catch (error) {
-                        responseDiv.style.display = 'block';
-                        responseContent.textContent = `Error: ${error.message}`;
-                        responseDiv.style.background = '#ffebee'; // Error red
-                    }
-
-                    testBtn.disabled = false;
-                    testBtn.textContent = 'Test Site Override API';
-                });
-            }
-
-            // W-048 Dialog Demo Event Handlers
-            const testAlertBtn = document.getElementById('testAlertBtn');
-            const testInfoBtn = document.getElementById('testInfoBtn');
-            const testHtmlBtn = document.getElementById('testHtmlBtn');
-            const testCustomBtn = document.getElementById('testCustomBtn');
-
-            if (testAlertBtn) {
-                testAlertBtn.addEventListener('click', async function() {
-                    await jPulse.UI.alertDialog('This is a test alert dialog with red header styling!');
-                });
-            }
-
-            if (testInfoBtn) {
-                testInfoBtn.addEventListener('click', async function() {
-                    await jPulse.UI.infoDialog('This is a test info dialog with blue header styling.');
-                });
-            }
-
-            if (testHtmlBtn) {
-                testHtmlBtn.addEventListener('click', async function() {
-                    await jPulse.UI.infoDialog('<p>This dialog supports <b>basic HTML</b> formatting:</p><p>• <i>Italic text</i><br>• <b>Bold text</b><br>• Line breaks and paragraphs</p>');
-                });
-            }
-
-            if (testCustomBtn) {
-                testCustomBtn.addEventListener('click', async function() {
-                    await jPulse.UI.alertDialog('Custom sized dialog with minimum dimensions.', {
-                        title: 'Custom Alert',
-                        minWidth: 500,
-                        minHeight: 200
-                    });
-                });
-            }
-
-            // Complex confirm dialog test
-            const testConfirmBtn = document.getElementById('testConfirmBtn');
-            if (testConfirmBtn) {
-                testConfirmBtn.addEventListener('click', async function() {
-                    // Create file list with checkboxes
-                    const fileListHtml = `
-                        <p>Select files to delete:</p>
-                        <div style="text-align: left; margin: 15px 0; line-height: 1.8;">
-                            <div style="margin: 8px 0;">
-                                <input type="checkbox" id="file1" checked style="margin-right: 8px;">
-                                <label for="file1">document1.pdf</label>
-                            </div>
-                            <div style="margin: 8px 0;">
-                                <input type="checkbox" id="file2" checked style="margin-right: 8px;">
-                                <label for="file2">image.jpg</label>
-                            </div>
-                            <div style="margin: 8px 0;">
-                                <input type="checkbox" id="file3" style="margin-right: 8px;">
-                                <label for="file3">backup.zip</label>
-                            </div>
-                            <div style="margin: 8px 0;">
-                                <input type="checkbox" id="file4" checked style="margin-right: 8px;">
-                                <label for="file4">notes.txt</label>
-                            </div>
-                        </div>
-                    `;
-
-                    const result = await jPulse.UI.confirmDialog({
-                        title: 'Delete Files',
-                        message: fileListHtml,
-                        buttons: {
-                            'Cancel': (dialog) => {
-                                // Close dialog (default behavior)
-                                return false;
-                            },
-                            'Delete Selected Files': async (dialog) => {
-                                // Get selected files
-                                const checkboxes = dialog.querySelectorAll('input[type="checkbox"]:checked');
-                                const selectedFiles = Array.from(checkboxes).map(cb => {
-                                    const label = dialog.querySelector(`label[for="${cb.id}"]`);
-                                    return label ? label.textContent.trim() : cb.id;
-                                });
-
-                                if (selectedFiles.length === 0) {
-                                    await jPulse.UI.alertDialog('Please select at least one file to delete.');
-                                    return true; // dontClose - keep first dialog open
-                                }
-
-                                // Show second confirmation dialog
-                                const confirmResult = await jPulse.UI.confirmDialog({
-                                    title: 'Confirm Deletion',
-                                    message: `<p>Do you want to delete the selected files?</p><ul>${selectedFiles.map(file => `<li>${file}</li>`).join('')}</ul>`,
-                                    buttons: {
-                                        'Cancel': () => {
-                                            // Close second dialog, keep first open
-                                            return false;
-                                        },
-                                        'Yes, Delete': () => {
-                                            // Simulate file deletion
-                                            console.log('Deleting files:', selectedFiles);
-                                            jPulse.showSlideDownSuccess(`Deleted ${selectedFiles.length} file(s) successfully!`);
-                                            return false; // Close second dialog
-                                        }
-                                    }
-                                });
-
-                                // If user confirmed deletion, close first dialog too
-                                if (confirmResult.button === 'Yes, Delete') {
-                                    return false; // Close first dialog
-                                } else {
-                                    return true; // Keep first dialog open
-                                }
-                            }
-                        }
-                    });
-
-                    console.log('First dialog result:', result);
-                });
-            }
-
-            // W-048 Accordion Demo Initialization
-            let standaloneAccordion = null;
-            let nestedAccordion = null;
-
-            // Initialize accordions
-            standaloneAccordion = jPulse.UI.accordion.register('standaloneAccordion', {
-                exclusive: true,
-                initOpen: 0, // First section open initially
-                onSectionChange: (openIndex, clickedIndex) => {
-                    console.log(`Standalone accordion: section ${clickedIndex} clicked, now open: ${openIndex}`);
-                }
-            });
-
-            nestedAccordion = jPulse.UI.accordion.register('nestedAccordion', {
-                exclusive: true,
-                initOpen: null, // All closed initially
-                onSectionChange: (openIndex, clickedIndex) => {
-                    console.log(`Nested accordion: section ${clickedIndex} clicked, now open: ${openIndex}`);
-                }
-            });
-
-            // Test programmatic control
-            const testAccordionBtn = document.getElementById('testAccordionBtn');
-            if (testAccordionBtn) {
-                let testStep = 0;
-                testAccordionBtn.addEventListener('click', function() {
-                    switch (testStep) {
-                        case 0:
-                            // Open second section of standalone accordion
-                            standaloneAccordion.openSection(1);
-                            testAccordionBtn.textContent = 'Step 2: Open Nested FAQ';
-                            break;
-                        case 1:
-                            // Open first section of nested accordion
-                            nestedAccordion.openSection(0);
-                            testAccordionBtn.textContent = 'Step 3: Close All';
-                            break;
-                        case 2:
-                            // Close all sections
-                            standaloneAccordion.closeAll();
-                            nestedAccordion.closeAll();
-                            testAccordionBtn.textContent = 'Step 4: Reset Demo';
-                            break;
-                        case 3:
-                            // Reset to initial state
-                            standaloneAccordion.openSection(0);
-                            testStep = -1; // Will be incremented to 0
-                            testAccordionBtn.textContent = 'Test Programmatic Control';
-                            break;
-                    }
-                    testStep++;
-                });
-            }
-
-            // W-064 Tab Interface Demo Initialization
-            let navigationTabs = null;
-            let panelTabs = null;
-            let departmentTabs = null;
-            let engineeringTabs = null;
-
-            // Initialize navigation tabs
-            navigationTabs = jPulse.UI.tabs.register('navigationTabs', {
-                tabs: [
-                    { id: 'home', label: 'Home', url: '/home/', tooltip: 'Go to home page' },
-                    { id: 'admin', label: 'Admin', url: '/admin/', tooltip: 'Admin dashboard', tabClass: 'adminOnly' },
-                    { id: 'docs', label: 'Documentation', url: '/jpulse/', tooltip: 'View documentation' },
-                    { id: 'user', label: 'User Profile', url: '/user/', tooltip: 'User settings' }
-                ],
-                linkActiveTab: true
-            }, 'home');
-
-            // Initialize panel tabs
-            panelTabs = jPulse.UI.tabs.register('panelTabs', {
-                tabs: [
-                    { id: 'dashboard', label: 'Dashboard', panelId: 'panel1', tooltip: 'View dashboard' },
-                    { id: 'analytics', label: 'Analytics', panelId: 'panel2', tooltip: 'Analytics and reports' },
-                    { id: 'settings', label: 'Settings', panelId: 'panel3', tooltip: 'Application settings' }
-                ],
-                slideAnimation: true,
-                onTabChange: (tabId, previousTabId, tabData) => {
-                    console.log(`Panel tab changed from ${previousTabId} to ${tabId}:`, tabData);
-                }
-            }, 'dashboard');
-
-            // Initialize nested department tabs
-            departmentTabs = jPulse.UI.tabs.register('departmentTabs', {
-                tabs: [
-                    { id: 'engineering', label: 'Engineering', panelId: 'engDashboard', tooltip: 'Engineering department' },
-                    { id: 'sales', label: 'Sales', panelId: 'salesPanel', tooltip: 'Sales department' },
-                    { id: 'ops', label: 'Operations', panelId: 'opsPanel', tooltip: 'Operations department' }
-                ],
-                onTabChange: (tabId, previousTabId) => {
-                    // Show/hide engineering sub-tabs based on selection
-                    const engTabs = document.getElementById('engineeringTabs');
-                    if (tabId === 'engineering') {
-                        engTabs.style.display = 'block';
-                    } else {
-                        engTabs.style.display = 'none';
-                    }
-                }
-            }, 'engineering');
-
-            // Initialize engineering tabs immediately (not lazily) to ensure consistent behavior
-            engineeringTabs = jPulse.UI.tabs.register('engineeringTabs', {
-                tabs: [
-                    { id: 'engDash', label: 'Dashboard', panelId: 'engDash' },
-                    { id: 'rnd', label: 'R&D', panelId: 'engRnD', spacers: 1 },
-                    { id: 'scm', label: 'SCM', panelId: 'engSCM' },
-                    { id: 'svt', label: 'SVT', panelId: 'engSVT' },
-                    { id: 'devops', label: 'DevOps', panelId: 'engDevOps' }
-                ],
-                slideAnimation: true
-            }, 'engDash');
-
-            // Test programmatic control for nested tabs only
-            const testTabsBtn = document.getElementById('testTabsBtn');
-            if (testTabsBtn) {
-                let tabTestStep = 0;
-                testTabsBtn.addEventListener('click', function() {
-                    // Ensure we're on engineering department first
-                    departmentTabs.activateTab('engineering');
-
-                    setTimeout(() => {
-                        if (engineeringTabs) {
-                            switch (tabTestStep) {
-                                case 0:
-                                    engineeringTabs.activateTab('rnd');
-                                    testTabsBtn.textContent = 'Step 2: SCM';
-                                    break;
-                                case 1:
-                                    engineeringTabs.activateTab('scm');
-                                    testTabsBtn.textContent = 'Step 3: SVT';
-                                    break;
-                                case 2:
-                                    engineeringTabs.activateTab('svt');
-                                    testTabsBtn.textContent = 'Step 4: DevOps';
-                                    break;
-                                case 3:
-                                    engineeringTabs.activateTab('devops');
-                                    testTabsBtn.textContent = 'Step 5: Reset';
-                                    break;
-                                case 4:
-                                    engineeringTabs.activateTab('engDash');
-                                    tabTestStep = -1; // Will be incremented to 0
-                                    testTabsBtn.textContent = 'Test Programmatic Control';
-                                    break;
-                            }
-                            tabTestStep++;
-                        }
-                    }, 100);
-                });
-            }
-        });
-    </script>
 
     {{file.include "jpulse-footer.tmpl"}}
 </body>

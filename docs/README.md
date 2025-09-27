@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.7.21
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.8.0
 
 **For Site Administrators & Site Developers**
 
@@ -10,6 +10,7 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 
 ## Latest Release Highlights
 
+- ✅ **Interactive Examples & Documentation Hub (v0.8.0)**: Complete `/jpulse-examples/` system with interactive code demonstrations, syntax-highlighted source code widgets with copy functionality, comprehensive UI component showcase, and enhanced onboarding experience with Apache-style home page
 - ✅ **Tab Interface Widget & UI Framework Enhancement (v0.7.21)**: Complete `jPulse.UI.tabs` widget system with navigation tabs (page routing), panel tabs (content switching), nested tab hierarchies, programmatic control API, and professional styling with divider interruption effects
 - ✅ **Nested Handlebars Support & Multi-line Blocks (v0.7.20)**: Complete nested {{#if}} and {{#each}} handlebars implementation with multi-line block support, left-to-right processing, and comprehensive test coverage for complex template scenarios
 - ✅ **{{#each}} Handlebars Helper & Template Iteration (v0.7.19)**: Complete {{#each}} implementation with array and object iteration, special context variables (@index, @first, @last, @key), nested property access, and comprehensive error handling

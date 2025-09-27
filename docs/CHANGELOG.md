@@ -1,6 +1,64 @@
-# jPulse Framework / Docs / Version History v0.7.21
+# jPulse Framework / Docs / Version History v0.8.0
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.8.0, W-063, 2025-09-27
+
+**Commit:** `W-063, v0.8.0: Interactive examples system with comprehensive UI demonstrations, syntax-highlighted source code widgets, clipboard functionality, and enhanced onboarding experience`
+
+Implementation of W-063 interactive examples and documentation hub providing comprehensive code demonstrations, syntax-highlighted source code widgets with copy functionality, enhanced UI component showcase, and streamlined onboarding experience with Apache-style home page design for improved developer experience and framework adoption.
+
+Major Features:
+- **Interactive Examples System (W-063)**: Complete `/jpulse-examples/` documentation hub with live demonstrations
+  - Six comprehensive example pages: index, handlebars, ui-widgets, forms, layout, api integration
+  - Interactive code demonstrations with working examples and source code display
+  - Cross-linking between documentation and examples for seamless learning experience
+  - Professional card-based navigation with clear categorization and descriptions
+  - Responsive design with consistent styling and user experience patterns
+
+- **Source Code Widget System**: Syntax-highlighted code blocks with copy functionality
+  - `jPulse.UI.sourceCode.register()` and `jPulse.UI.sourceCode.initAll()` API
+  - Prism.js integration for syntax highlighting (JavaScript, HTML, CSS, Python, etc.)
+  - Copy-to-clipboard functionality with `jPulse.clipboard.copy()` utility
+  - Language labels with customizable display (`data-show-lang="true"`)
+  - Configurable copy button visibility (`data-show-copy="false"`)
+  - Automatic initialization on DOM ready for seamless integration
+
+- **Enhanced UI Widget Showcase**: Comprehensive demonstrations of all jPulse UI components
+  - Content Navigation & Show/Hide: tabs, accordion, collapsible widgets
+  - Buttons & Dialogs: button variants, modal dialogs, complex nested dialogs
+  - Content: form validation, content boxes, source code display
+  - Live examples with working JavaScript and proper source code accuracy
+  - Enhanced panelHeight API with three options: undefined (natural), 'auto' (equalized), fixed values
+
+- **Streamlined Home Page**: Apache-inspired onboarding experience
+  - Clean, professional welcome page with installation confirmation
+  - File location guidance and customization instructions
+  - Direct navigation links to documentation and examples
+  - Reduced from 710 to 168 lines (76% smaller) for faster loading
+  - Teaching example using `.local-*` CSS prefix for page-specific styles
+
+User Experience Enhancements:
+- **Content Organization**: Logical grouping of widgets and examples by functionality
+- **Cross-Linking**: Seamless navigation between documentation and live examples
+- **Copy Functionality**: One-click code copying for rapid development workflow
+- **Visual Consistency**: Unified styling and interaction patterns across all examples
+- **Mobile Responsive**: All examples work properly on mobile devices and tablets
+
+Developer Experience:
+- **Complete Source Code**: All examples include accurate, copy-paste ready code
+- **Teaching Tools**: Clear separation between framework (`.jp-*`) and local (`.local-*`) styles
+- **Comprehensive Testing**: New test suite for source code widget and clipboard functionality
+- **Documentation Hub**: Centralized access to all framework capabilities and examples
+- **Onboarding Flow**: Clear path from installation confirmation to productive development
+
+Technical Implementation:
+- **Prism.js Integration**: Fixed dependency issues with clike.js for JavaScript highlighting
+- **Clipboard API**: Modern clipboard integration with fallback support
+- **CSS Organization**: Consolidated button and accordion styles for better maintainability
+- **Performance**: Default natural panel heights for better performance, explicit opt-in for auto-adjustment
+- **Accessibility**: Proper semantic HTML and keyboard navigation support
 
 ________________________________________________
 ## v0.7.21, W-064, 2025-09-25

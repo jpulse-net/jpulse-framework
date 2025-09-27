@@ -18,6 +18,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{app.version}} - UI Widget Examples</title>
     {{file.include "jpulse-header.tmpl"}}
+    <style>
+        /* Demo spacer styles for Content Boxes example */
+        .demo-spacer {
+            height: 120px;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .demo-spacer-1 { background: linear-gradient(45deg, #e3f2fd, #bbdefb); }
+        .demo-spacer-2 { background: linear-gradient(45deg, #f3e5f5, #e1bee7); }
+        .demo-spacer-3 { background: linear-gradient(45deg, #e8f5e8, #c8e6c9); }
+    </style>
 </head>
 <body>
     <div class="jp-main">
@@ -28,6 +45,16 @@
 
         <div class="jp-info-box">
             <p>jPulse includes a comprehensive set of UI widgets for creating interactive user interfaces. All widgets follow consistent design patterns and provide clean APIs.</p>
+            <p><strong>📖 Documentation:</strong> <a href="/jpulse-docs/front-end-development">Front-End Development</a> - Comprehensive documentation with syntax reference and best practices.</p>
+        </div>
+
+        <!-- ========================================= -->
+        <!-- CONTENT NAVIGATION & SHOW/HIDE WIDGETS  -->
+        <!-- ========================================= -->
+
+        <div class="jp-section-header">
+            <h3>🧭 Content Navigation &amp; Show/Hide</h3>
+            <p>Widgets for organizing and controlling content visibility</p>
         </div>
 
         <!-- Tab Interface Widget -->
@@ -37,8 +64,8 @@
             </div>
             <div class="jp-card-body">
                 <div class="jp-info-box">
-                    <p><strong>What you learn:</strong> How to create interactive tab interfaces with programmatic control, slide animations, and event callbacks for dynamic user interfaces.</p>
-                    <p><strong>Behind the scenes:</strong> Uses jPulse's tab system with automatic panel switching, keyboard navigation support, and customizable animation effects.</p>
+                    <p><strong>What you learn:</strong> How to create both panel tabs (content switching) and navigation tabs (page navigation) with programmatic control, slide animations, and event callbacks.</p>
+                    <p><strong>Two Types:</strong> <strong>Panel Tabs</strong> switch content within the same page (like the examples below). <strong>Navigation Tabs</strong> navigate between different pages (like the main navigation at the top of this page).</p>
                 </div>
                 <div id="tabs-demo-tabs" class="jp-tabs"></div>
                 <div id="tabs-example-panel" class="jp-panel">
@@ -87,7 +114,7 @@
                 </div>
                 <div id="tabs-source-panel" class="jp-panel">
                     <div class="jp-source-code" data-lang="html">
-&lt;!-- HTML Structure --&gt;
+&lt;!-- PANEL TABS: Content switching within same page --&gt;
 &lt;div id="demo-tabs" class="jp-tabs"&gt;&lt;/div&gt;
 &lt;div id="tab1" class="jp-panel"&gt;
     &lt;h4&gt;📊 Dashboard Panel&lt;/h4&gt;
@@ -97,30 +124,42 @@
     &lt;h4&gt;📈 Analytics Panel&lt;/h4&gt;
     &lt;p&gt;Analytics and reporting tools...&lt;/p&gt;
 &lt;/div&gt;
-&lt;div id="tab3" class="jp-panel"&gt;
-    &lt;h4&gt;⚙️ Settings Panel&lt;/h4&gt;
-    &lt;p&gt;Configuration options...&lt;/p&gt;
-&lt;/div&gt;
+
+&lt;!-- NAVIGATION TABS: Page navigation --&gt;
+&lt;div id="nav-tabs" class="jp-tabs"&gt;&lt;/div&gt;
 
 &lt;!-- JavaScript Initialization --&gt;
 &lt;script&gt;
 jPulse.dom.ready(() =&gt; {
-    // Initialize tab interface with new API
-    const demoTabs = jPulse.UI.tabs.register('demo-tabs', {
+    // PANEL TABS: Switch content within same page
+    const panelTabs = jPulse.UI.tabs.register('demo-tabs', {
         tabs: [
             { id: 'demo-tab1', label: 'Dashboard', panelId: 'tab1' },
             { id: 'demo-tab2', label: 'Analytics', panelId: 'tab2' },
             { id: 'demo-tab3', label: 'Settings', panelId: 'tab3' }
         ],
-        slideAnimation: true,
-        onTabChange: (activeTab, clickedTab) =&gt; {
-            console.log(`Demo tab changed to: ${activeTab}`);
-        }
+        // panelHeight: undefined,    // DEFAULT: Natural heights
+        // panelHeight: 'auto',       // Auto-adjust to tallest panel
+        // panelHeight: '400px',      // Fixed height with scrolling
+        slideAnimation: true
     }, 'demo-tab1');
 
-    // Programmatic control
+    // NAVIGATION TABS: Navigate to different pages
+    // Tip: Because navigation tabs are used across many pages, it is good to keep the
+    // tabs definition in a template file used by all pages, such as my-nav-tabs.tmpl
+    const navTabs = jPulse.UI.tabs.register('nav-tabs', {
+        tabs: [
+            { id: 'home-tab', label: 'Home', url: '/' },
+            { id: 'examples-tab', label: 'Examples', url: '/jpulse-examples/' },
+            { id: 'docs-tab', label: 'Documentation', url: '/jpulse-docs/' }
+        ]
+    }, '&#123;&#123;myActiveNavTab&#125;&#125;'); // expands to 'docs-tab' (mark current page as active)
+    // Example include in the documentation page:
+    // &#123;&#123;file.include "my-nav-tabs.tmpl" myActiveNavTab="docs-tab"&#125;&#125;
+
+    // Programmatic control for panel tabs
     document.getElementById('testTabsBtn').addEventListener('click', () =&gt; {
-        demoTabs.activateTab('demo-tab2');
+        panelTabs.activateTab('demo-tab2');
     });
 });
 &lt;/script&gt;
@@ -129,10 +168,19 @@ jPulse.dom.ready(() =&gt; {
             </div>
         </div>
 
-        <!-- Dialog Widget -->
+        <!-- ========================================= -->
+        <!-- BUTTONS AND DIALOGS                      -->
+        <!-- ========================================= -->
+
+        <div class="jp-section-header">
+            <h3>🔘 Buttons &amp; Dialogs</h3>
+            <p>Interactive elements for user actions and feedback</p>
+        </div>
+
+        <!-- Buttons & Dialog Widget -->
         <div class="jp-card">
             <div class="jp-card-header">
-                <h3>Dialog Widget</h3>
+                <h3>Buttons &amp; Dialog Widget</h3>
             </div>
             <div class="jp-card-body">
                 <div class="jp-info-box">
@@ -346,6 +394,15 @@ jPulse.dom.ready(() =&gt; {
             </div>
         </div>
 
+        <!-- ========================================= -->
+        <!-- CONTENT WIDGETS                          -->
+        <!-- ========================================= -->
+
+        <div class="jp-section-header">
+            <h3>📋 Content</h3>
+            <p>Widgets for content display and user input</p>
+        </div>
+
         <!-- Form Validation Helpers -->
         <div class="jp-card">
             <div class="jp-card-header">
@@ -424,7 +481,7 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
         <!-- Notification System -->
         <div class="jp-card">
             <div class="jp-card-header">
-                <h3>Notification System</h3>
+                <h3>Non-Blocking Notification System</h3>
             </div>
             <div class="jp-card-body">
                 <div class="jp-info-box">
@@ -472,7 +529,8 @@ jPulse.showSlideDown('Custom message', 'info', {
         <!-- Collapsible Widget -->
         <div class="jp-card">
             <div class="jp-card-header">
-                <h3>Collapsible Widget (v0.7.21+)</h3>
+                <h3>🧭 Collapsible Widget (v0.7.21+)</h3>
+                <p class="jp-text-muted jp-text-small">Part of Content Navigation &amp; Show/Hide widgets</p>
             </div>
             <div class="jp-card-body">
                 <div class="jp-info-box">
@@ -543,6 +601,115 @@ jPulse.dom.ready(() =&gt; {
     });
 });
 &lt;/script&gt;
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Boxes & Visual Elements -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>📋 Content Boxes &amp; Visual Elements (v0.7.21+)</h3>
+                <p class="jp-text-muted jp-text-small">Part of Content widgets</p>
+            </div>
+            <div class="jp-card-body">
+                <div class="jp-info-box">
+                    <p><strong>What you learn:</strong> How to use informational content boxes, visual spacers, and decorative elements to organize and enhance your page layouts.</p>
+                    <p><strong>Behind the scenes:</strong> Uses jPulse's content box system with consistent styling, semantic colors, and responsive design for better user experience.</p>
+                </div>
+                <div id="content-boxes-demo-tabs" class="jp-tabs"></div>
+                <div id="content-boxes-example-panel" class="jp-panel">
+                            <p>Examples of content boxes and visual elements:</p>
+
+                            <h4>Information Boxes</h4>
+                            <div class="jp-info-box">
+                                <h4>Information Box</h4>
+                                <p>Use <code>.jp-info-box</code> for helpful information, tips, or neutral content. Perfect for explanations, documentation notes, or general information.</p>
+                                <ul>
+                                    <li>Helpful tips and guidance</li>
+                                    <li>Documentation notes</li>
+                                    <li>General information</li>
+                                </ul>
+                            </div>
+
+                            <div class="jp-warning-box">
+                                <h4>Warning Box</h4>
+                                <p>Use <code>.jp-warning-box</code> for important warnings, cautions, or things users should pay attention to. Great for highlighting potential issues.</p>
+                                <ul>
+                                    <li>Important warnings</li>
+                                    <li>Caution messages</li>
+                                    <li>Things to pay attention to</li>
+                                </ul>
+                            </div>
+
+                            <div class="jp-error-box">
+                                <h4>Error Box</h4>
+                                <p>Use <code>.jp-error-box</code> for error messages, critical issues, or things that require immediate attention. Perfect for validation errors or system issues.</p>
+                                <ul>
+                                    <li>Error messages</li>
+                                    <li>Critical issues</li>
+                                    <li>Validation problems</li>
+                                </ul>
+                            </div>
+
+                            <h4>Visual Spacer Elements</h4>
+                            <p>Colorful gradient blocks for visual separation and demonstration purposes:</p>
+
+                            <div class="demo-spacer demo-spacer-1">
+                                <h4>📊 Spacer Block 1 - Blue Gradient</h4>
+                            </div>
+
+                            <div class="demo-spacer demo-spacer-2">
+                                <h4>💜 Spacer Block 2 - Purple Gradient</h4>
+                            </div>
+
+                            <div class="demo-spacer demo-spacer-3">
+                                <h4>🌱 Spacer Block 3 - Green Gradient</h4>
+                            </div>
+                </div>
+                <div id="content-boxes-source-panel" class="jp-panel">
+                    <div class="jp-source-code" data-lang="html">
+&lt;!-- Information Boxes --&gt;
+&lt;div class="jp-info-box"&gt;
+    &lt;h4&gt;Information Box&lt;/h4&gt;
+    &lt;p&gt;Use for helpful information, tips, or neutral content.&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;div class="jp-warning-box"&gt;
+    &lt;h4&gt;Warning Box&lt;/h4&gt;
+    &lt;p&gt;Use for important warnings or cautions.&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;div class="jp-error-box"&gt;
+    &lt;h4&gt;Error Box&lt;/h4&gt;
+    &lt;p&gt;Use for error messages or critical issues.&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;!-- Visual Spacer Elements --&gt;
+&lt;div class="demo-spacer demo-spacer-1"&gt;
+    &lt;h4&gt;Spacer Block 1 - Blue Gradient&lt;/h4&gt;
+&lt;/div&gt;
+
+&lt;div class="demo-spacer demo-spacer-2"&gt;
+    &lt;h4&gt;Spacer Block 2 - Purple Gradient&lt;/h4&gt;
+&lt;/div&gt;
+
+&lt;!-- CSS for Demo Spacers (add to page &lt;style&gt; section) --&gt;
+&lt;style&gt;
+.demo-spacer {
+    height: 120px;
+    margin: 20px 0;
+    padding: 20px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.demo-spacer-1 { background: linear-gradient(45deg, #e3f2fd, #bbdefb); }
+.demo-spacer-2 { background: linear-gradient(45deg, #f3e5f5, #e1bee7); }
+.demo-spacer-3 { background: linear-gradient(45deg, #e8f5e8, #c8e6c9); }
+&lt;/style&gt;
                     </div>
                 </div>
             </div>
@@ -695,6 +862,14 @@ jPulse.UI.sourceCode.initAll();
                 slideAnimation: true
             }, 'collapsible-example-tab');
 
+            jPulse.UI.tabs.register('content-boxes-demo-tabs', {
+                tabs: [
+                    { id: 'content-boxes-example-tab', label: 'Example', panelId: 'content-boxes-example-panel' },
+                    { id: 'content-boxes-source-tab', label: 'Source Code', panelId: 'content-boxes-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'content-boxes-example-tab');
+
             jPulse.UI.tabs.register('sourcecode-demo-tabs', {
                 tabs: [
                     { id: 'sourcecode-example-tab', label: 'Example', panelId: 'sourcecode-example-panel' },
@@ -710,6 +885,7 @@ jPulse.UI.sourceCode.initAll();
                     { id: 'demo-tab2', label: 'Analytics', panelId: 'tab2' },
                     { id: 'demo-tab3', label: 'Settings', panelId: 'tab3' }
                 ],
+                panelHeight: '21rem',
                 slideAnimation: true,
                 onTabChange: (activeTab, clickedTab) => {
                     console.log(`Demo tab changed to: ${activeTab}`);

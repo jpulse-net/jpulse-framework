@@ -2,6 +2,8 @@
 
 Complete reference for server-side template development with the jPulse Handlebars system, covering template variables, file operations, security features, and best practices for building dynamic web pages.
 
+**🎯 Live Examples:** See the [Handlebars Examples](/jpulse-examples/handlebars.shtml) page for interactive demonstrations of all template features with working code examples.
+
 ## 🎯 Overview
 
 The jPulse Framework uses a custom Handlebars implementation for server-side template processing. This system provides minimal initial page rendering with basic context, while the majority of dynamic functionality is handled by client-side JavaScript and API calls.

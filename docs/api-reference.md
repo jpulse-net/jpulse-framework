@@ -2,6 +2,8 @@
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
+**🎯 Live Examples:** See the [API Integration Examples](/jpulse-examples/api.shtml) page for interactive demonstrations of all API patterns with working code examples.
+
 ## 🔌 API Overview
 
 jPulse provides a comprehensive RESTful API under the `/api/1/` prefix with the following features:

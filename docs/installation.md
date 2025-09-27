@@ -2,7 +2,7 @@
 
 This guide covers creating and setting up jPulse sites for development and production environments.
 
-> **Framework Development**: See [Framework Development Installation](dev/installation.md) for contributing to jPulse itself.
+**Framework Development**: See [Framework Development Installation](dev/installation.md) for contributing to jPulse itself.
 
 ## Prerequisites
 

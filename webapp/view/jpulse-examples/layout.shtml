@@ -28,6 +28,7 @@
 
         <div class="jp-info-box">
             <p>Learn responsive layout techniques and CSS patterns used throughout the jPulse Framework. All layouts are mobile-first and fully responsive.</p>
+            <p><strong>📖 Documentation:</strong> <a href="/jpulse-docs/style-reference">Style Reference</a> - Complete CSS framework documentation with all available components and utilities.</p>
         </div>
 
         <!-- Card Grid Layout -->

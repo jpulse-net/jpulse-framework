@@ -29,6 +29,7 @@
         <div class="jp-info-box">
             <p>Welcome to the jPulse Framework examples! These interactive examples demonstrate key features and patterns for building sites with jPulse.</p>
             <p>Each example includes both interactive demonstrations and source code you can copy and use in your own projects.</p>
+            <p><strong>📖 Complete Documentation:</strong> <a href="/jpulse-docs/">jPulse Documentation</a> - Comprehensive guides, API references, and detailed explanations of all framework features.</p>
         </div>
 
         <!-- Examples Navigation Buttons -->

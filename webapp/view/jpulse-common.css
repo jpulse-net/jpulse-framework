@@ -2463,14 +2463,15 @@ Example site customizations:
 .jp-source-code .jp-lang-label {
     position: absolute;
     top: 0;
-    left: 0;
-    background: #e9ecef;
+    right: 0; /* Flush to upper right corner */
+    background: rgba(233, 236, 239, 0.9);
     color: #495057;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.65rem;
     font-weight: 500;
-    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
     opacity: 0.8;
+    z-index: 10;
 }
 
 /* Prism.js theme integration */
@@ -2498,6 +2499,28 @@ Example site customizations:
 .jp-source-code code[class*="language-"] {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
+}
+
+/* Section Headers */
+.jp-section-header {
+    margin: 3rem 0 2rem 0;
+    padding: 1.5rem 0 1rem 0;
+    border-bottom: 2px solid #e9ecef;
+    text-align: center;
+}
+
+.jp-section-header h2 {
+    color: #495057;
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+}
+
+.jp-section-header p {
+    color: #6c757d;
+    font-size: 1rem;
+    margin: 0;
+    font-style: italic;
 }
 
 /* EOF webapp/view/jpulse-common.css */

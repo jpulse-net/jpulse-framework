@@ -28,6 +28,7 @@
 
         <div class="jp-info-box">
             <p>Learn how to integrate with APIs, handle data, and create dynamic user experiences using jPulse's built-in utilities and patterns.</p>
+            <p><strong>📖 Documentation:</strong> <a href="/jpulse-docs/api-reference">REST API Reference</a> - Complete API documentation with endpoints, authentication, and response formats.</p>
         </div>
 
         <!-- Basic API Call -->

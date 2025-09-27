@@ -2,6 +2,8 @@
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
+**🎯 Live Examples:** See the [UI Widgets Examples](/jpulse-examples/ui-widgets.shtml) and [Form Examples](/jpulse-examples/forms.shtml) pages for interactive demonstrations of all concepts with working code.
+
 ## 🎯 Overview
 
 The jPulse Framework provides a comprehensive client-side utility library available globally as `jPulse`. This framework eliminates code duplication, provides consistent patterns across all views, and implements the "don't make me think" philosophy for front-end development.

@@ -2,6 +2,8 @@
 
 Comprehensive CSS framework documentation for the jPulse `jp-*` styling system, providing consistent, responsive, and enterprise-ready components for web applications.
 
+**🎯 Live Examples:** See the [Layout Examples](/jpulse-examples/layout.shtml) page for interactive demonstrations of responsive layouts, CSS Grid, Flexbox, and all styling components.
+
 ## 🎨 Overview
 
 The jPulse CSS Component Library provides a complete set of pre-built components using the `jp-*` prefix convention. This system ensures consistent styling, responsive design, and easy maintenance across all jPulse applications.

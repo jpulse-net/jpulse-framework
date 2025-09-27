@@ -28,6 +28,7 @@
 
         <div class="jp-info-box">
             <p>Learn how to create effective forms with validation, AJAX submission, and great user experience patterns in jPulse.</p>
+            <p><strong>📖 Documentation:</strong> <a href="/jpulse-docs/front-end-development#form-handling">Form Handling Guide</a> - Comprehensive documentation for form validation, submission, and error handling.</p>
         </div>
 
         <!-- Basic Form Validation -->

@@ -1606,48 +1606,31 @@ window.jPulse = {
             },
 
             /**
-             * Setup panel height management to prevent content jumping
+             * Setup panel height management with enhanced panelHeight options
              * @param {Element} tabsElement - The .jp-tabs element
              * @param {Object} config - Tab configuration
+             * @param {undefined|'auto'|string|number} config.panelHeight - Height behavior:
+             *   - undefined (default): Natural heights, content below jumps when switching tabs
+             *   - 'auto': Auto-adjust to tallest panel height (prevents content jumping)
+             *   - string/number: Fixed height with scrolling (e.g., '400px', 400, '30rem')
              */
             _setupPanelHeights: (tabsElement, config) => {
                 const panelContainer = tabsElement.querySelector('.jp-tabs-panels');
                 if (!panelContainer) return;
 
-                if (config.panelHeight) {
-                    // Fixed height specified - add scrolling
-                    panelContainer.style.height = config.panelHeight;
-                    panelContainer.style.overflowY = 'auto';
-                    panelContainer.style.overflowX = 'auto';
+                // Clear any existing height constraints first
+                panelContainer.style.height = '';
+                panelContainer.style.overflowY = '';
+                panelContainer.style.overflowX = '';
 
-                    // Also handle child divs for fixed height mode
-                    const panels = [];
-                    config.tabs.forEach(tab => {
-                        if (tab.panelId) {
-                            let panel = document.getElementById(tab.panelId);
-                            if (!panel && panelContainer) {
-                                panel = panelContainer.querySelector(`#${tab.panelId}`);
-                            }
-                            if (panel) {
-                                panels.push(panel);
-                            }
-                        }
-                    });
+                if (!config.panelHeight) {
+                    // DEFAULT: Natural heights - no adjustment, content can jump
+                    // This is the most performant option as it requires no measurement or adjustment
+                    return;
+                }
 
-                    // Apply height to panels and their child divs for fixed height mode
-                    const fixedHeightValue = parseInt(config.panelHeight);
-                    panels.forEach(panel => {
-                        panel.style.minHeight = fixedHeightValue + 'px';
-
-                        // Only extend height to child divs if there's exactly one child div
-                        // Multiple child divs should maintain their natural heights
-                        const childDivs = panel.querySelectorAll(':scope > div');
-                        if (childDivs.length === 1) {
-                            childDivs[0].style.minHeight = (fixedHeightValue - 30 - 15) + 'px'; // Panel padding + bottom space
-                        }
-                    });
-                } else {
-                    // Dynamic height - equalize to tallest panel
+                if (config.panelHeight === 'auto') {
+                    // AUTO: Dynamic height - equalize to tallest panel
                     let maxHeight = 0;
                     const panels = [];
 
@@ -1695,6 +1678,45 @@ window.jPulse = {
                             const childDivs = panel.querySelectorAll(':scope > div');
                             if (childDivs.length === 1) {
                                 childDivs[0].style.minHeight = (maxHeight - 30 - 15) + 'px'; // Panel padding + bottom space
+                            }
+                        });
+                    }
+                } else {
+                    // FIXED HEIGHT: Use specified height with scrolling
+                    const heightValue = typeof config.panelHeight === 'number'
+                        ? config.panelHeight + 'px'
+                        : config.panelHeight;
+
+                    panelContainer.style.height = heightValue;
+                    panelContainer.style.overflowY = 'auto';
+                    panelContainer.style.overflowX = 'auto';
+
+                    // For numeric heights, also apply minHeight to panels and child divs
+                    if (typeof config.panelHeight === 'number' || /^\d+px$/.test(config.panelHeight)) {
+                        const fixedHeightValue = parseInt(config.panelHeight);
+                        const panels = [];
+
+                        config.tabs.forEach(tab => {
+                            if (tab.panelId) {
+                                let panel = document.getElementById(tab.panelId);
+                                if (!panel && panelContainer) {
+                                    panel = panelContainer.querySelector(`#${tab.panelId}`);
+                                }
+                                if (panel) {
+                                    panels.push(panel);
+                                }
+                            }
+                        });
+
+                        // Apply height to panels and their child divs for fixed height mode
+                        panels.forEach(panel => {
+                            panel.style.minHeight = fixedHeightValue + 'px';
+
+                            // Only extend height to child divs if there's exactly one child div
+                            // Multiple child divs should maintain their natural heights
+                            const childDivs = panel.querySelectorAll(':scope > div');
+                            if (childDivs.length === 1) {
+                                childDivs[0].style.minHeight = (fixedHeightValue - 30 - 15) + 'px'; // Panel padding + bottom space
                             }
                         });
                     }

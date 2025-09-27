@@ -1,0 +1,17 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="scale(0.50)">
+    <!-- Document outline -->
+    <path d="M40 20h120v200H40V20z" fill="white" stroke="white" stroke-width="4"/>
+    <!-- Handlebars brackets -->
+    <path d="M60 60h20v8H60v-8zm0 20h20v8H60v-8zm0 20h20v8H60v-8z" fill="#007acc"/>
+    <path d="M120 60h20v8h-20v-8zm0 20h20v8h-20v-8zm0 20h20v8h-20v-8z" fill="#007acc"/>
+    <!-- Variable placeholders -->
+    <rect x="85" y="60" width="30" height="8" fill="white" stroke="#007acc" stroke-width="2"/>
+    <rect x="85" y="80" width="30" height="8" fill="white" stroke="#007acc" stroke-width="2"/>
+    <rect x="85" y="100" width="30" height="8" fill="white" stroke="#007acc" stroke-width="2"/>
+    <!-- Code lines -->
+    <rect x="60" y="140" width="80" height="4" fill="white" opacity="0.7"/>
+    <rect x="60" y="150" width="60" height="4" fill="white" opacity="0.7"/>
+    <rect x="60" y="160" width="70" height="4" fill="white" opacity="0.7"/>
+  </g>
+</svg>

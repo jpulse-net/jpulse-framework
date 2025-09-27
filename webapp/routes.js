@@ -88,6 +88,8 @@ router.get(/\/jpulse-.*\.(js|css)$/, viewController.load);
 router.get(/\/site-common\.(js|css)$/, viewController.load);
 // W-049: Use view registry for optimized routing to view directories
 router.get(global.viewRegistry.viewRouteRE, viewController.load);
+// Also handle non-existing view directories ending with / so view controller can render proper 404
+router.get(/^\/[a-zA-Z][a-zA-Z0-9-]*\/$/, viewController.load);
 router.get('/', (req, res) => {
     res.redirect('/home/');
 });

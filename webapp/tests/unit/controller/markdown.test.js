@@ -102,10 +102,10 @@ describe('MarkdownController', () => {
             });
         });
 
-        it('should list markdown files in jpulse namespace (read-only test)', async () => {
+        it('should list markdown files in jpulse-docs namespace (read-only test)', async () => {
             const mockReq = {
-                path: '/api/1/markdown/jpulse/',
-                originalUrl: '/api/1/markdown/jpulse/',
+                path: '/api/1/markdown/jpulse-docs/',
+                originalUrl: '/api/1/markdown/jpulse-docs/',
                 headers: {}
             };
             const mockRes = {
@@ -115,7 +115,7 @@ describe('MarkdownController', () => {
 
             await MarkdownController.api(mockReq, mockRes);
 
-            // Test that jpulse namespace returns files (using real docs)
+            // Test that jpulse-docs namespace returns files (using real docs)
             expect(mockRes.json).toHaveBeenCalledWith(
                 expect.objectContaining({
                     files: expect.any(Array)

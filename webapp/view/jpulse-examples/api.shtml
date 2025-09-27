@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / jPulse Examples / API Integration
+ * @tagline         API integration examples and patterns
+ * @description     Comprehensive examples of API integration, data handling, and dynamic UX in jPulse
+ * @file            webapp/view/jpulse-examples/api.shtml
+ * @version         0.8.0
+ * @release         2025-09-25
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{app.version}} - API Integration Examples</title>
+    {{file.include "jpulse-header.tmpl"}}
+</head>
+<body>
+    <div class="jp-main">
+        <!-- Navigation Tabs -->
+        {{file.include "jpulse-nav-tabs.tmpl" showExamplesNav=true mainNavActiveTab="jp-tab-examples" examplesNavActiveTab="jp-tab-api-integration"}}
+
+        <h1 class="jp-title">🔌 API Integration Examples</h1>
+
+        <div class="jp-info-box">
+            <p>Learn how to integrate with APIs, handle data, and create dynamic user experiences using jPulse's built-in utilities and patterns.</p>
+        </div>
+
+        <!-- Basic API Call -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Basic API Call with jPulse.apiCall</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="basic-api-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="basic-api-example">Example</div>
+                        <div class="jp-tab" data-tab-id="basic-api-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="basic-api-example" class="jp-panel jp-panel-active">
+                            <p>Test the site override API system with a live API call:</p>
+
+                            <button id="testApiBtn" class="jp-btn jp-btn-primary">Test API Call</button>
+                            <button id="testErrorBtn" class="jp-btn jp-btn-danger">Test Error Handling</button>
+
+                            <div id="apiResponse" style="margin-top: 15px; padding: 15px; background: #f5f5f5; border-radius: 4px; display: none;">
+                                <strong>API Response:</strong>
+                                <pre id="apiResponseContent" style="margin: 10px 0; white-space: pre-wrap; font-size: 12px; background: white; padding: 10px; border-radius: 4px;"></pre>
+                            </div>
+                        </div>
+                        <div id="basic-api-source" class="jp-panel">
+                            <pre><code>&lt;button id="testApiBtn" class="jp-btn jp-btn-primary"&gt;Test API Call&lt;/button&gt;
+
+&lt;script&gt;
+document.getElementById('testApiBtn').addEventListener('click', async () =&gt; {
+    try {
+        // Use jPulse.apiCall for consistent API handling
+        const response = await jPulse.apiCall('/api/1/hello', 'GET');
+
+        console.log('API Response:', response);
+
+        // Handle successful response
+        if (response.success) {
+            jPulse.showSlideDownSuccess('API call successful!');
+            displayResponse(response);
+        } else {
+            jPulse.showSlideDownError('API returned an error: ' + response.error);
+        }
+    } catch (error) {
+        // Handle network or parsing errors
+        console.error('API Error:', error);
+        jPulse.showSlideDownError('Network error: ' + error.message);
+    }
+});
+
+function displayResponse(data) {
+    const responseDiv = document.getElementById('apiResponse');
+    const responseContent = document.getElementById('apiResponseContent');
+
+    responseDiv.style.display = 'block';
+    responseContent.textContent = JSON.stringify(data, null, 2);
+}
+&lt;/script&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading States and UX -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Loading States and User Feedback</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="loading-states-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="loading-states-example">Example</div>
+                        <div class="jp-tab" data-tab-id="loading-states-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="loading-states-example" class="jp-panel jp-panel-active">
+                            <p>Demonstrate proper loading states and user feedback:</p>
+
+                            <button id="loadingTestBtn" class="jp-btn jp-btn-secondary">
+                                <span class="btn-text">Simulate Long API Call</span>
+                                <span class="btn-loading" style="display: none;">Loading...</span>
+                            </button>
+
+                            <div id="loadingDemo" style="margin-top: 20px;">
+                                <div id="loadingContent" style="display: none;">
+                                    <div class="jp-info-box">
+                                        <h4>Loaded Data</h4>
+                                        <p>This content was "loaded" from an API call.</p>
+                                        <ul id="loadedList">
+                                            <!-- Content will be populated by JavaScript -->
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div id="loadingSpinner" style="display: none; text-align: center; padding: 40px;">
+                                    <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #007acc; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                    <p style="margin-top: 15px; color: #666;">Loading data...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="loading-states-source" class="jp-panel">
+                            <pre><code>&lt;button id="loadingTestBtn" class="jp-btn jp-btn-secondary"&gt;
+    &lt;span class="btn-text"&gt;Simulate Long API Call&lt;/span&gt;
+    &lt;span class="btn-loading" style="display: none;"&gt;Loading...&lt;/span&gt;
+&lt;/button&gt;
+
+&lt;div id="loadingSpinner" style="display: none;"&gt;
+    &lt;div class="spinner"&gt;&lt;/div&gt;
+    &lt;p&gt;Loading data...&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;script&gt;
+document.getElementById('loadingTestBtn').addEventListener('click', async () =&gt; {
+    const btn = document.getElementById('loadingTestBtn');
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoading = btn.querySelector('.btn-loading');
+    const spinner = document.getElementById('loadingSpinner');
+    const content = document.getElementById('loadingContent');
+
+    // Show loading state
+    btn.disabled = true;
+    btnText.style.display = 'none';
+    btnLoading.style.display = 'inline';
+    spinner.style.display = 'block';
+    content.style.display = 'none';
+
+    try {
+        // Simulate API delay
+        await new Promise(resolve =&gt; setTimeout(resolve, 3000));
+
+        // Simulate successful response
+        const data = await simulateApiCall();
+
+        // Hide loading, show content
+        spinner.style.display = 'none';
+        content.style.display = 'block';
+
+        // Populate content
+        populateContent(data);
+
+        jPulse.showSlideDownSuccess('Data loaded successfully!');
+    } catch (error) {
+        spinner.style.display = 'none';
+        jPulse.showSlideDownError('Failed to load data: ' + error.message);
+    } finally {
+        // Reset button state
+        btn.disabled = false;
+        btnText.style.display = 'inline';
+        btnLoading.style.display = 'none';
+    }
+});
+
+async function simulateApiCall() {
+    // Simulate API response
+    return {
+        items: ['Item 1', 'Item 2', 'Item 3'],
+        timestamp: new Date().toISOString()
+    };
+}
+&lt;/script&gt;
+
+&lt;!-- CSS for spinner animation --&gt;
+&lt;style&gt;
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007acc;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+&lt;/style&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Data Submission -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Form Data Submission</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="form-submission-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="form-submission-example">Example</div>
+                        <div class="jp-tab" data-tab-id="form-submission-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="form-submission-example" class="jp-panel jp-panel-active">
+                            <form id="apiForm" class="jp-form">
+                                <div class="jp-form-group">
+                                    <label for="api-name">Name</label>
+                                    <input type="text" id="api-name" name="name" class="jp-form-input" required>
+                                </div>
+
+                                <div class="jp-form-group">
+                                    <label for="api-email">Email</label>
+                                    <input type="email" id="api-email" name="email" class="jp-form-input" required>
+                                </div>
+
+                                <div class="jp-form-group">
+                                    <label for="api-message">Message</label>
+                                    <textarea id="api-message" name="message" class="jp-form-input" rows="4" required></textarea>
+                                </div>
+
+                                <button type="submit" class="jp-btn jp-btn-primary" id="submitBtn">
+                                    <span class="submit-text">Submit Form</span>
+                                    <span class="submit-loading" style="display: none;">Submitting...</span>
+                                </button>
+                            </form>
+
+                            <div id="submissionResult" style="margin-top: 15px; display: none;">
+                                <div class="jp-info-box">
+                                    <h4>Submission Result</h4>
+                                    <pre id="submissionData" style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px;"></pre>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="form-submission-source" class="jp-panel">
+                            <pre><code>&lt;form id="apiForm" class="jp-form"&gt;
+    &lt;div class="jp-form-group"&gt;
+        &lt;label for="api-name"&gt;Name&lt;/label&gt;
+        &lt;input type="text" id="api-name" name="name" class="jp-form-input" required&gt;
+    &lt;/div&gt;
+
+    &lt;button type="submit" class="jp-btn jp-btn-primary"&gt;Submit Form&lt;/button&gt;
+&lt;/form&gt;
+
+&lt;script&gt;
+document.getElementById('apiForm').addEventListener('submit', async (e) =&gt; {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = submitBtn.querySelector('.submit-text');
+    const submitLoading = submitBtn.querySelector('.submit-loading');
+
+    // Show loading state
+    submitBtn.disabled = true;
+    submitText.style.display = 'none';
+    submitLoading.style.display = 'inline';
+
+    try {
+        // Collect form data
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        // Submit to API
+        const response = await jPulse.apiCall('/api/1/contact', 'POST', data);
+
+        if (response.success) {
+            jPulse.showSlideDownSuccess('Form submitted successfully!');
+            e.target.reset(); // Clear form
+            displaySubmissionResult(response);
+        } else {
+            jPulse.showSlideDownError('Submission failed: ' + response.error);
+        }
+    } catch (error) {
+        jPulse.showSlideDownError('Network error: ' + error.message);
+    } finally {
+        // Reset button state
+        submitBtn.disabled = false;
+        submitText.style.display = 'inline';
+        submitLoading.style.display = 'none';
+    }
+});
+
+function displaySubmissionResult(data) {
+    const resultDiv = document.getElementById('submissionResult');
+    const resultData = document.getElementById('submissionData');
+
+    resultDiv.style.display = 'block';
+    resultData.textContent = JSON.stringify(data, null, 2);
+}
+&lt;/script&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Handling Patterns -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Error Handling Patterns</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="error-handling-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="error-handling-example">Example</div>
+                        <div class="jp-tab" data-tab-id="error-handling-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="error-handling-example" class="jp-panel jp-panel-active">
+                            <p>Test different error scenarios and handling patterns:</p>
+
+                            <div class="jp-btn-group">
+                                <button id="test404Btn" class="jp-btn jp-btn-warning">Test 404 Error</button>
+                                <button id="test500Btn" class="jp-btn jp-btn-danger">Test Server Error</button>
+                                <button id="testNetworkBtn" class="jp-btn jp-btn-secondary">Test Network Error</button>
+                                <button id="testTimeoutBtn" class="jp-btn jp-btn-info">Test Timeout</button>
+                            </div>
+
+                            <div id="errorDetails" style="margin-top: 15px; display: none;">
+                                <div class="jp-error-box">
+                                    <h4>Error Details</h4>
+                                    <pre id="errorContent" style="background: #fff; padding: 10px; border-radius: 4px; font-size: 12px;"></pre>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="error-handling-source" class="jp-panel">
+                            <pre><code>&lt;script&gt;
+async function handleApiCall(url, options = {}) {
+    try {
+        const response = await jPulse.apiCall(url, 'GET', null, options);
+        return response;
+    } catch (error) {
+        // Categorize and handle different error types
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            // Network error
+            jPulse.showSlideDownError('Network connection failed. Please check your internet connection.');
+            throw new Error('NETWORK_ERROR');
+        } else if (error.status === 404) {
+            // Not found error
+            jPulse.showSlideDownError('The requested resource was not found.');
+            throw new Error('NOT_FOUND');
+        } else if (error.status >= 500) {
+            // Server error
+            jPulse.showSlideDownError('Server error occurred. Please try again later.');
+            throw new Error('SERVER_ERROR');
+        } else if (error.status === 408 || error.name === 'AbortError') {
+            // Timeout error
+            jPulse.showSlideDownError('Request timed out. Please try again.');
+            throw new Error('TIMEOUT_ERROR');
+        } else {
+            // Generic error
+            jPulse.showSlideDownError('An unexpected error occurred: ' + error.message);
+            throw error;
+        }
+    }
+}
+
+// Usage with retry logic
+async function apiCallWithRetry(url, maxRetries = 3) {
+    for (let attempt = 1; attempt &lt;= maxRetries; attempt++) {
+        try {
+            return await handleApiCall(url);
+        } catch (error) {
+            if (attempt === maxRetries) {
+                throw error; // Final attempt failed
+            }
+
+            // Wait before retry (exponential backoff)
+            const delay = Math.pow(2, attempt) * 1000;
+            await new Promise(resolve =&gt; setTimeout(resolve, delay));
+
+            console.log(`Retrying API call (attempt ${attempt + 1}/${maxRetries})...`);
+        }
+    }
+}
+
+// Timeout wrapper
+function withTimeout(promise, timeoutMs = 10000) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) =&gt;
+            setTimeout(() =&gt; reject(new Error('Request timeout')), timeoutMs)
+        )
+    ]);
+}
+&lt;/script&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-time Data Updates -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Real-time Data Updates</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="realtime-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="realtime-example">Example</div>
+                        <div class="jp-tab" data-tab-id="realtime-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="realtime-example" class="jp-panel jp-panel-active">
+                            <p>Simulate real-time data updates with polling:</p>
+
+                            <div class="jp-btn-group">
+                                <button id="startPollingBtn" class="jp-btn jp-btn-success">Start Updates</button>
+                                <button id="stopPollingBtn" class="jp-btn jp-btn-danger" disabled>Stop Updates</button>
+                            </div>
+
+                            <div id="realtimeData" style="margin-top: 15px;">
+                                <div class="jp-info-box">
+                                    <h4>Live Data <span id="updateStatus" style="color: #666;">(Stopped)</span></h4>
+                                    <p><strong>Last Update:</strong> <span id="lastUpdate">Never</span></p>
+                                    <p><strong>Update Count:</strong> <span id="updateCount">0</span></p>
+                                    <p><strong>Random Value:</strong> <span id="randomValue">-</span></p>
+                                    <div id="dataHistory" style="margin-top: 10px; max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                                        <small>Update history will appear here...</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="realtime-source" class="jp-panel">
+                            <pre><code>&lt;script&gt;
+class RealtimeDataManager {
+    constructor() {
+        this.pollingInterval = null;
+        this.updateCount = 0;
+    }
+
+    startPolling(intervalMs = 2000) {
+        if (this.pollingInterval) {
+            this.stopPolling();
+        }
+
+        this.pollingInterval = setInterval(async () =&gt; {
+            try {
+                await this.fetchAndUpdateData();
+            } catch (error) {
+                console.error('Polling error:', error);
+                this.handlePollingError(error);
+            }
+        }, intervalMs);
+
+        // Initial fetch
+        this.fetchAndUpdateData();
+    }
+
+    stopPolling() {
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
+        }
+    }
+
+    async fetchAndUpdateData() {
+        // Simulate API call
+        const data = await this.simulateApiCall();
+        this.updateUI(data);
+        this.updateCount++;
+    }
+
+    async simulateApiCall() {
+        // Simulate network delay
+        await new Promise(resolve =&gt; setTimeout(resolve, 200));
+
+        return {
+            timestamp: new Date().toISOString(),
+            value: Math.floor(Math.random() * 1000),
+            status: 'active'
+        };
+    }
+
+    updateUI(data) {
+        document.getElementById('lastUpdate').textContent =
+            new Date(data.timestamp).toLocaleTimeString();
+        document.getElementById('updateCount').textContent = this.updateCount;
+        document.getElementById('randomValue').textContent = data.value;
+
+        // Add to history
+        this.addToHistory(data);
+    }
+
+    addToHistory(data) {
+        const history = document.getElementById('dataHistory');
+        const entry = document.createElement('div');
+        entry.innerHTML = `
+            &lt;small&gt;${new Date(data.timestamp).toLocaleTimeString()}:
+            Value = ${data.value}&lt;/small&gt;
+        `;
+        history.appendChild(entry);
+
+        // Keep only last 10 entries
+        while (history.children.length &gt; 10) {
+            history.removeChild(history.firstChild);
+        }
+
+        // Scroll to bottom
+        history.scrollTop = history.scrollHeight;
+    }
+
+    handlePollingError(error) {
+        console.error('Real-time update failed:', error);
+        jPulse.showSlideDownWarning('Real-time updates temporarily unavailable');
+    }
+}
+
+// Usage
+const realtimeManager = new RealtimeDataManager();
+
+document.getElementById('startPollingBtn').addEventListener('click', () =&gt; {
+    realtimeManager.startPolling(2000); // Update every 2 seconds
+    updateButtonStates(true);
+});
+
+document.getElementById('stopPollingBtn').addEventListener('click', () =&gt; {
+    realtimeManager.stopPolling();
+    updateButtonStates(false);
+});
+
+function updateButtonStates(isRunning) {
+    document.getElementById('startPollingBtn').disabled = isRunning;
+    document.getElementById('stopPollingBtn').disabled = !isRunning;
+    document.getElementById('updateStatus').textContent =
+        isRunning ? '(Running)' : '(Stopped)';
+    document.getElementById('updateStatus').style.color =
+        isRunning ? '#28a745' : '#666';
+}
+&lt;/script&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Best Practices -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>API Integration Best Practices</h3>
+            </div>
+            <div class="jp-card-body">
+                <div class="jp-info-box">
+                    <h4>jPulse.apiCall() Features</h4>
+                    <ul>
+                        <li>Consistent error handling across all API calls</li>
+                        <li>Automatic JSON parsing and response formatting</li>
+                        <li>Built-in support for different HTTP methods</li>
+                        <li>Integration with jPulse notification system</li>
+                        <li>Proper handling of authentication and headers</li>
+                    </ul>
+                </div>
+
+                <div class="jp-warning-box">
+                    <h4>Performance Considerations</h4>
+                    <ul>
+                        <li>Implement proper loading states for better UX</li>
+                        <li>Use debouncing for search/filter API calls</li>
+                        <li>Cache responses when appropriate</li>
+                        <li>Implement retry logic for transient failures</li>
+                        <li>Set reasonable timeouts for API calls</li>
+                    </ul>
+                </div>
+
+                <div class="jp-info-box">
+                    <h4>Security Best Practices</h4>
+                    <ul>
+                        <li>Never expose sensitive data in client-side code</li>
+                        <li>Validate and sanitize all user inputs</li>
+                        <li>Use HTTPS for all API communications</li>
+                        <li>Implement proper authentication and authorization</li>
+                        <li>Handle errors gracefully without exposing system details</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        jPulse.dom.ready(() => {
+            // Initialize all tab interfaces
+            jPulse.UI.tabs.register('basic-api-tabs', {
+                slideAnimation: true
+            }, 'basic-api-example');
+
+            jPulse.UI.tabs.register('loading-states-tabs', {
+                slideAnimation: true
+            }, 'loading-states-example');
+
+            jPulse.UI.tabs.register('form-submission-tabs', {
+                slideAnimation: true
+            }, 'form-submission-example');
+
+            jPulse.UI.tabs.register('error-handling-tabs', {
+                slideAnimation: true
+            }, 'error-handling-example');
+
+            jPulse.UI.tabs.register('realtime-tabs', {
+                slideAnimation: true
+            }, 'realtime-example');
+
+            // Basic API call example
+            document.getElementById('testApiBtn').addEventListener('click', async () => {
+                const responseDiv = document.getElementById('apiResponse');
+                const responseContent = document.getElementById('apiResponseContent');
+
+                try {
+                    const response = await jPulse.apiCall('/api/1/hello', 'GET');
+
+                    responseDiv.style.display = 'block';
+                    responseDiv.style.background = '#e8f5e8';
+                    responseContent.textContent = JSON.stringify(response, null, 2);
+
+                    jPulse.showSlideDownSuccess('API call successful! ✅');
+                } catch (error) {
+                    responseDiv.style.display = 'block';
+                    responseDiv.style.background = '#ffebee';
+                    responseContent.textContent = `Error: ${error.message}`;
+
+                    jPulse.showSlideDownError('API call failed: ' + error.message);
+                }
+            });
+
+            // Error handling test
+            document.getElementById('testErrorBtn').addEventListener('click', async () => {
+                const responseDiv = document.getElementById('apiResponse');
+                const responseContent = document.getElementById('apiResponseContent');
+
+                try {
+                    // This will likely fail
+                    const response = await jPulse.apiCall('/api/1/nonexistent', 'GET');
+                    responseContent.textContent = JSON.stringify(response, null, 2);
+                } catch (error) {
+                    responseDiv.style.display = 'block';
+                    responseDiv.style.background = '#ffebee';
+                    responseContent.textContent = `Expected Error: ${error.message}`;
+
+                    jPulse.showSlideDownWarning('Demonstrated error handling ⚠️');
+                }
+            });
+
+            // Loading states example
+            document.getElementById('loadingTestBtn').addEventListener('click', async () => {
+                const btn = document.getElementById('loadingTestBtn');
+                const btnText = btn.querySelector('.btn-text');
+                const btnLoading = btn.querySelector('.btn-loading');
+                const spinner = document.getElementById('loadingSpinner');
+                const content = document.getElementById('loadingContent');
+                const list = document.getElementById('loadedList');
+
+                // Show loading state
+                btn.disabled = true;
+                btnText.style.display = 'none';
+                btnLoading.style.display = 'inline';
+                spinner.style.display = 'block';
+                content.style.display = 'none';
+
+                try {
+                    // Simulate API delay
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+
+                    // Simulate data
+                    const items = [
+                        'Dynamic content item 1',
+                        'Dynamic content item 2',
+                        'Dynamic content item 3',
+                        `Loaded at ${new Date().toLocaleTimeString()}`
+                    ];
+
+                    // Populate content
+                    list.innerHTML = items.map(item => `<li>${item}</li>`).join('');
+
+                    // Show content
+                    spinner.style.display = 'none';
+                    content.style.display = 'block';
+
+                    jPulse.showSlideDownSuccess('Data loaded successfully! 📊');
+                } catch (error) {
+                    spinner.style.display = 'none';
+                    jPulse.showSlideDownError('Failed to load data: ' + error.message);
+                } finally {
+                    // Reset button
+                    btn.disabled = false;
+                    btnText.style.display = 'inline';
+                    btnLoading.style.display = 'none';
+                }
+            });
+
+            // Form submission example
+            document.getElementById('apiForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const submitBtn = document.getElementById('submitBtn');
+                const submitText = submitBtn.querySelector('.submit-text');
+                const submitLoading = submitBtn.querySelector('.submit-loading');
+                const resultDiv = document.getElementById('submissionResult');
+                const resultData = document.getElementById('submissionData');
+
+                // Show loading
+                submitBtn.disabled = true;
+                submitText.style.display = 'none';
+                submitLoading.style.display = 'inline';
+
+                try {
+                    // Collect form data
+                    const formData = new FormData(e.target);
+                    const data = Object.fromEntries(formData.entries());
+
+                    // Simulate API call
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+
+                    // Simulate response
+                    const response = {
+                        success: true,
+                        message: 'Form submitted successfully',
+                        data: data,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    // Show result
+                    resultDiv.style.display = 'block';
+                    resultData.textContent = JSON.stringify(response, null, 2);
+
+                    jPulse.showSlideDownSuccess('Form submitted successfully! 📧');
+                    e.target.reset();
+                } catch (error) {
+                    jPulse.showSlideDownError('Submission failed: ' + error.message);
+                } finally {
+                    // Reset button
+                    submitBtn.disabled = false;
+                    submitText.style.display = 'inline';
+                    submitLoading.style.display = 'none';
+                }
+            });
+
+            // Error handling examples
+            const errorButtons = {
+                'test404Btn': () => simulateError('NOT_FOUND', 'Resource not found (404)'),
+                'test500Btn': () => simulateError('SERVER_ERROR', 'Internal server error (500)'),
+                'testNetworkBtn': () => simulateError('NETWORK_ERROR', 'Network connection failed'),
+                'testTimeoutBtn': () => simulateError('TIMEOUT_ERROR', 'Request timed out')
+            };
+
+            Object.entries(errorButtons).forEach(([btnId, errorFn]) => {
+                document.getElementById(btnId).addEventListener('click', errorFn);
+            });
+
+            function simulateError(errorType, message) {
+                const errorDiv = document.getElementById('errorDetails');
+                const errorContent = document.getElementById('errorContent');
+
+                const errorInfo = {
+                    type: errorType,
+                    message: message,
+                    timestamp: new Date().toISOString(),
+                    userAgent: navigator.userAgent,
+                    url: window.location.href
+                };
+
+                errorDiv.style.display = 'block';
+                errorContent.textContent = JSON.stringify(errorInfo, null, 2);
+
+                jPulse.showSlideDownError(`Simulated ${errorType}: ${message}`);
+            }
+
+            // Real-time updates
+            let pollingInterval = null;
+            let updateCount = 0;
+
+            document.getElementById('startPollingBtn').addEventListener('click', () => {
+                if (pollingInterval) clearInterval(pollingInterval);
+
+                pollingInterval = setInterval(updateRealtimeData, 2000);
+                updateRealtimeData(); // Initial update
+
+                document.getElementById('startPollingBtn').disabled = true;
+                document.getElementById('stopPollingBtn').disabled = false;
+                document.getElementById('updateStatus').textContent = '(Running)';
+                document.getElementById('updateStatus').style.color = '#28a745';
+
+                jPulse.showSlideDownInfo('Real-time updates started 🔄');
+            });
+
+            document.getElementById('stopPollingBtn').addEventListener('click', () => {
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                }
+
+                document.getElementById('startPollingBtn').disabled = false;
+                document.getElementById('stopPollingBtn').disabled = true;
+                document.getElementById('updateStatus').textContent = '(Stopped)';
+                document.getElementById('updateStatus').style.color = '#666';
+
+                jPulse.showSlideDownInfo('Real-time updates stopped ⏹️');
+            });
+
+            function updateRealtimeData() {
+                updateCount++;
+                const now = new Date();
+                const randomValue = Math.floor(Math.random() * 1000);
+
+                document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+                document.getElementById('updateCount').textContent = updateCount;
+                document.getElementById('randomValue').textContent = randomValue;
+
+                // Add to history
+                const history = document.getElementById('dataHistory');
+                const entry = document.createElement('div');
+                entry.innerHTML = `<small>${now.toLocaleTimeString()}: Value = ${randomValue}</small>`;
+                history.appendChild(entry);
+
+                // Keep only last 10 entries
+                while (history.children.length > 10) {
+                    history.removeChild(history.firstChild);
+                }
+
+                history.scrollTop = history.scrollHeight;
+            }
+        });
+    </script>
+
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

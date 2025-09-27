@@ -1,0 +1,51 @@
+<!--
+ * @name            jPulse Framework / WebApp / View / Navigation Tabs Template
+ * @tagline         Multi-level navigation tabs for jPulse docs and examples
+ * @description     Reusable template for consistent navigation across jPulse documentation and examples
+ * @file            webapp/view/jpulse-nav-tabs.tmpl
+ * @version         0.8.0
+ * @release         2025-09-25
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+-->
+
+<!-- First Tab Row: Global Navigation (jPulse Documentation | jPulse Examples) -->
+<div id="jpulse-main-nav"></div>
+
+<!-- Second Tab Row: Examples Navigation (only shown on examples pages) -->
+<!-- This will be conditionally included based on the page context -->
+{{#if showExamplesNav}}
+<div id="jpulse-examples-nav"></div>
+{{/if}}
+
+<script>
+    // Initialize navigation tabs when DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialize main navigation tabs
+        const mainNavTabs = jPulse.UI.tabs.register('jpulse-main-nav', {
+            tabs: [
+                { id: 'jp-tab-docs', label: 'jPulse Documentation', url: '/jpulse-docs/' },
+                { id: 'jp-tab-examples', label: 'jPulse Examples', url: '/jpulse-examples/' }
+            ],
+            linkActiveTab: true
+        }, '{{mainNavActiveTab}}');
+
+        {{#if showExamplesNav}}
+        // Initialize examples navigation tabs (only on examples pages)
+        const examplesNavTabs = jPulse.UI.tabs.register('jpulse-examples-nav', {
+            tabs: [
+                { id: 'jp-tab-overview', label: 'Overview', url: '/jpulse-examples/' },
+                { id: 'jp-tab-api-integration', label: 'API', url: '/jpulse-examples/api.shtml' },
+                { id: 'jp-tab-handlebars', label: 'Handlebars', url: '/jpulse-examples/handlebars.shtml' },
+                { id: 'jp-tab-ui-widgets', label: 'UI Widgets', url: '/jpulse-examples/ui-widgets.shtml' },
+                { id: 'jp-tab-layout', label: 'Layout', url: '/jpulse-examples/layout.shtml' },
+                { id: 'jp-tab-forms', label: 'Forms', url: '/jpulse-examples/forms.shtml' }
+            ],
+            linkActiveTab: true
+        }, '{{examplesNavActiveTab}}');
+        {{/if}}
+    });
+</script>

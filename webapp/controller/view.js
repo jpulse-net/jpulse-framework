@@ -18,6 +18,7 @@ import LogController from './log.js';
 import configModel from '../model/config.js';
 // i18n will be available globally after bootstrap
 import CommonUtils from '../utils/common.js';
+import PathResolver from '../utils/path-resolver.js';
 import AuthController from './auth.js';
 import fsPromises from 'fs/promises'; // New import
 
@@ -48,8 +49,9 @@ const cache = {
         try {
             // Pre-load only if include file caching is enabled
             if (global.appConfig.controller.view.cacheIncludeFiles) {
+                // Read file and remove header comments with @name attribute
                 const content = await fsPromises.readFile(fullPath, 'utf8');
-                cache.includeFiles[includePath] = content;
+                cache.includeFiles[includePath] = content.replace(/<!--.*? \@name .*?-->/gs, '');
 
                 const stats = await fsPromises.stat(fullPath);
                 const timestamp = stats.mtime.valueOf();
@@ -91,11 +93,8 @@ async function load(req, res) {
             filePath = filePath + defaultTemplate;
         }
 
-        // W-014: Use PathResolver to support site overrides
-        const PathResolver = (await import('../utils/path-resolver.js')).default;
-        const viewDir = path.join(global.appConfig.app.dirName, 'view'); // Keep for handlebars processing
+        // W-014: Use PathResolver to support site overrides (now imported at module level)
         let fullPath;
-
         try {
             // Try to resolve with site override support
             const relativePath = `view${filePath}`;
@@ -106,8 +105,13 @@ async function load(req, res) {
             const pathParts = filePath.split('/');
             const namespace = pathParts[1]; // e.g., 'jpulse' from '/jpulse/deployment'
 
-            if (global.viewRegistry && global.viewRegistry.viewList.includes(namespace) && pathParts.length > 2) {
-                // This is a doc page like /jpulse/deployment, try /jpulse/index.shtml
+            // Only allow fallback for truly extensionless paths (no dot in last segment)
+            // This supports documentation systems in any namespace (docs, sales, jpulse-docs, etc.)
+            const lastSegment = pathParts[pathParts.length - 1];
+            const isExtensionless = lastSegment && !lastSegment.includes('.');
+
+            if (global.viewRegistry && global.viewRegistry.viewList.includes(namespace) && pathParts.length > 2 && isExtensionless) {
+                // This is a doc page like /jpulse-docs/deployment (no extension), try /jpulse-docs/index.shtml
                 const docIndexPath = `/${namespace}/index.shtml`;
                 try {
                     const docRelativePath = `view${docIndexPath}`;
@@ -131,8 +135,8 @@ async function load(req, res) {
                     fullPath = PathResolver.resolveModule(`view${filePath}`);
                 } catch (errorPageError) {
                     // Fallback to framework error page if site override doesn't exist
-                    const viewDir = path.join(global.appConfig.app.dirName, 'view');
-                    fullPath = path.join(viewDir, filePath.substring(1));
+                    const webappDir = global.appConfig.app.dirName;
+                    fullPath = path.join(webappDir, 'view', filePath.substring(1));
                 }
                 req.query = { // Create a new query object for the context
                     code: '404',
@@ -198,11 +202,12 @@ async function load(req, res) {
             : baseContext; // Fallback if not loaded yet
         //console.log('DEBUG: user context:', JSON.stringify(context.user, null, 2));
 
-        // Process handlebars
-        content = processHandlebars(content, context, viewDir, req, 0);
+        // Preprocess i18n handlebars first (only {{i18n.}} expressions),
+        // it may return content with new handlebars
+        content = global.i18n.processI18nHandlebars(req, content);
 
-        // Second pass: Process any handlebars expressions that were returned from i18n translations
-        content = processHandlebars(content, context, viewDir, req, 0);
+        // Process all other handlebars (including file.include with context variables)
+        content = processHandlebars(content, context, req, 0);
 
         // Log completion time
         const duration = Date.now() - startTime;
@@ -237,12 +242,11 @@ async function load(req, res) {
  * Phase 3: Clean up unbalanced nesting
  * @param {string} content - Template content
  * @param {Object} context - Handlebars context data
- * @param {string} viewDir - View base directory for file includes
  * @param {Object} req - Express request object for logging
  * @param {number} depth - Current include depth for recursion protection
  * @returns {string} Processed content
  */
-function processHandlebars(content, context, viewDir, req, depth = 0) {
+function processHandlebars(content, context, req, depth = 0) {
     // Prevent infinite recursion
     const MAX_DEPTH = 16;
     if (depth > MAX_DEPTH) {
@@ -284,24 +288,30 @@ function processHandlebars(content, context, viewDir, req, depth = 0) {
      * Evaluate a single handlebars expression
      */
     function _evaluateHandlebar(expression, currentContext) {
-        const parts = _parseArguments(expression);
-        const helper = parts[0];
-        const args = parts.slice(1);
+        const parsedArgs = _parseArguments(expression);
+        const helper = parsedArgs._helper;
 
         // Handle helper functions first (before property access)
         switch (helper) {
             case 'file.include':
-                return _handleFileInclude(args[0], currentContext);
+                return _handleFileInclude(parsedArgs, currentContext);
             case 'file.timestamp':
-                return _handleFileTimestamp(args[0]);
+                return _handleFileTimestamp(parsedArgs._target);
             case 'file.exists':
-                return _handleFileExists(args[0]);
+                return _handleFileExists(parsedArgs._target);
             default:
-                // Handle property access (no spaces, contains dots)
-                if (!helper.includes(' ') && helper.includes('.')) {
-                    return getNestedProperty(currentContext, helper) || '';
+                // Handle property access (no spaces)
+                if (!helper.includes(' ')) {
+                    if (helper.includes('.')) {
+                        // Nested property access (e.g., user.name)
+                        return getNestedProperty(currentContext, helper) || '';
+                    } else {
+                        // Simple property access (e.g., mainNavActiveTab)
+                        return currentContext[helper] || '';
+                    }
                 }
                 // Unknown helper, return empty
+                LogController.logInfo(req, 'view.load', `DEBUG: Unknown helper: ${helper}`);
                 return '';
         }
     }
@@ -310,32 +320,29 @@ function processHandlebars(content, context, viewDir, req, depth = 0) {
      * Parse handlebars arguments (space-separated, quoted strings preserved)
      */
     function _parseArguments(expression) {
-        const args = [];
-        let current = '';
-        let inQuotes = false;
-        let quoteChar = '';
-        for (let i = 0; i < expression.length; i++) {
-            const char = expression[i];
-            if (!inQuotes && (char === '"' || char === "'")) {
-                inQuotes = true;
-                quoteChar = char;
-            } else if (inQuotes && char === quoteChar) {
-                inQuotes = false;
-                quoteChar = '';
-            } else if (!inQuotes && char === ' ') {
-                if (current.trim()) {
-                    args.push(current.trim());
-                    current = '';
+        const args = {};
+        const parts = expression.trim().match(/^([^ ]+)(?: *"?([^"]*)"?(?:" (.*))?)?$/);
+        args._helper = parts?.[1];
+        args._target = parts?.[2];
+        if(parts?.[3]) {
+            parts[3].replace(/ *(\w+)=(?:(['"])(.*?)\2|([^ ]*))/g, (m, key, q1, sVal, val) => {
+                if(!q1) {
+                    if(val === 'true') {
+                        val = true;
+                    } else if(val === 'false') {
+                        val = false;
+                    } else {
+                        val = Number(val);
+                    }
+                } else {
+                    val = sVal;
                 }
-            } else {
-                current += char;
-            }
-        }
-        if (current.trim()) {
-            args.push(current.trim());
+                args[key] = val;
+            });
         }
         return args;
     }
+
 
     /**
      * Handle {{#if}} blocks
@@ -384,7 +391,7 @@ function processHandlebars(content, context, viewDir, req, depth = 0) {
 
             // Process handlebars in block content with iteration context
             // Use _resolveHandlebars with local context for efficiency (no re-annotation)
-            let processedContent = _resolveHandlebars(blockContent, null, null, null, null, null, iterationContext);
+            let processedContent = _resolveHandlebars(blockContent, iterationContext);
 
             result += processedContent;
         }
@@ -393,49 +400,65 @@ function processHandlebars(content, context, viewDir, req, depth = 0) {
     }
 
     /**
-     * Handle file.include helper
+     * Handle file.include helper with optional context variables
      */
-    function _handleFileInclude(filePath, currentContext) {
+    function _handleFileInclude(parsedArgs, currentContext) {
         // Check include depth to prevent infinite recursion
         const maxDepth = global.appConfig?.controller?.view?.maxIncludeDepth || 10;
         if (depth >= maxDepth) {
             throw new Error(`Maximum include depth (${maxDepth}) exceeded`);
         }
 
-        // Remove quotes
-        const includePath = filePath.replace(/^["']|["']$/g, '');
+        // Get the target file path
+        const includePath = parsedArgs._target;
+        if (!includePath) {
+            throw new Error('file.include requires a file path as second argument');
+        }
 
         // Security: Prohibit path traversal and absolute paths
         if (includePath.includes('../') || includePath.includes('..\\') || path.isAbsolute(includePath)) {
             throw new Error(`Prohibited path in include: ${includePath}. Use relative paths from view root only.`);
         }
 
-        // Always resolve relative to view root for security and consistency
-        const fullPath = path.join(viewDir, includePath);
-
-        // Double-check that resolved path is still within view root
-        if (!fullPath.startsWith(viewDir)) {
-            throw new Error(`Path traversal attempt blocked: ${includePath}`);
+        // Use PathResolver to support site overrides
+        let fullPath;
+        try {
+            const relativePath = `view/${includePath}`;
+            fullPath = PathResolver.resolveModule(relativePath);
+        } catch (error) {
+            throw new Error(`Include file not found: ${includePath} (${error.message})`);
         }
 
-        // Check cache first
-        if (global.appConfig.controller.view.cacheIncludeFiles && cache.includeFiles[includePath]) {
+        // Build include context by merging current context with parsed arguments
+        const includeContext = { ...currentContext };
+
+        // Add all parsed key=value pairs to the context (excluding _helper and _target)
+        for (const [key, value] of Object.entries(parsedArgs)) {
+            if (key !== '_helper' && key !== '_target') {
+                includeContext[key] = value;
+            }
+        }
+
+        // Get template content (use smart caching with context)
+        let content;
+        const hasContextVars = Object.keys(parsedArgs).some(key => key !== '_helper' && key !== '_target');
+
+        if (!hasContextVars && global.appConfig.controller.view.cacheIncludeFiles && cache.includeFiles[includePath]) {
             LogController.logInfo(req, 'view.load', `Include cache hit for ${includePath}`);
-            return processHandlebars(cache.includeFiles[includePath], currentContext, viewDir, req, depth + 1);
+            content = cache.includeFiles[includePath];
+        } else {
+            // Read file and remove header comments with @name attribute
+            content = fs.readFileSync(fullPath, 'utf8').replace(/<!--.*? \@name .*?-->/gs, '');
+            LogController.logInfo(req, 'view.load', `Loaded ${includePath}${hasContextVars ? ' (with context vars)' : ''}`);
+
+            // Only cache templates without context variables
+            if (!hasContextVars && global.appConfig.controller.view.cacheIncludeFiles) {
+                cache.includeFiles[includePath] = content;
+            }
         }
 
-        if (!fs.existsSync(fullPath)) {
-            throw new Error(`Include file not found: ${includePath} (resolved to: ${fullPath})`);
-        }
-
-        const content = fs.readFileSync(fullPath, 'utf8');
-        LogController.logInfo(req, 'view.load', `Loaded ${includePath}`);
-        // Add to cache before returning, if caching is enabled
-        if (global.appConfig.controller.view.cacheIncludeFiles) {
-            cache.includeFiles[includePath] = content;
-        }
-        // Recursively process handlebars in included content
-        return processHandlebars(content, currentContext, viewDir, req, depth + 1);
+        // Process handlebars with the include context
+        return processHandlebars(content, includeContext, req, depth + 1);
     }
 
     /**
@@ -451,30 +474,10 @@ function processHandlebars(content, context, viewDir, req, depth = 0) {
 
         let fullPath;
         try {
-            // W-047: Use PathResolver to support site overrides for timestamp files (synchronous)
-            const webappDir = global.appConfig?.app?.dirName || path.join(process.cwd(), 'webapp');
-            const projectRoot = path.dirname(webappDir);
             const relativePath = `view/${includePath}`;
-
-            // 1. Check site override first (highest priority)
-            const sitePath = path.join(projectRoot, 'site/webapp', relativePath);
-            if (fs.existsSync(sitePath)) {
-                fullPath = sitePath;
-            } else {
-                // 2. Fall back to framework default
-                const frameworkPath = path.join(webappDir, relativePath);
-                if (fs.existsSync(frameworkPath)) {
-                    fullPath = frameworkPath;
-                } else {
-                    throw new Error(`File not found: ${includePath} (checked site and framework paths)`);
-                }
-            }
+            fullPath = PathResolver.resolveModule(relativePath);
         } catch (error) {
-            // Final fallback to original behavior
-            fullPath = path.resolve(viewDir, includePath);
-            if (!fs.existsSync(fullPath)) {
-                throw new Error(`File not found: ${includePath} (resolved to: ${fullPath})`);
-            }
+            throw new Error(`File not found: ${includePath} (${error.message})`);
         }
 
         const stats = fs.statSync(fullPath);
@@ -500,26 +503,11 @@ function processHandlebars(content, context, viewDir, req, depth = 0) {
 
         let fileExists = false;
         try {
-            // W-048: Use PathResolver to support site overrides for file existence check
-            const webappDir = global.appConfig?.app?.dirName || path.join(process.cwd(), 'webapp');
-            const projectRoot = path.dirname(webappDir);
             const relativePath = `view/${includePath}`;
-
-            // 1. Check site override first (highest priority)
-            const sitePath = path.join(projectRoot, 'site/webapp', relativePath);
-            if (fs.existsSync(sitePath)) {
-                fileExists = true;
-            } else {
-                // 2. Check framework default
-                const frameworkPath = path.join(webappDir, relativePath);
-                if (fs.existsSync(frameworkPath)) {
-                    fileExists = true;
-                }
-            }
+            PathResolver.resolveModule(relativePath);
+            fileExists = true;
         } catch (error) {
-            // Final fallback to original behavior
-            const fullPath = path.resolve(viewDir, includePath);
-            fileExists = fs.existsSync(fullPath);
+            fileExists = false;
         }
 
         // Cache the result, if caching is enabled
@@ -569,7 +557,7 @@ function processHandlebars(content, context, viewDir, req, depth = 0) {
     }
 
     // Phase 2: Left-to-right resolution using single regex for both regular and block handlebars
-    function _resolveHandlebars(text, blockType, blockLevel, blockParams, blockContent, regularHandlebar, localContext = null) {
+    function _resolveHandlebars(text, localContext = null, blockType, blockLevel, blockParams, blockContent, regularHandlebar) {
         const currentContext = localContext || context;
 
         if (blockType) {
@@ -577,7 +565,7 @@ function processHandlebars(content, context, viewDir, req, depth = 0) {
             try {
                 const evaluatedContent = _evaluateBlockHandlebar(blockType, blockParams.trim(), blockContent, currentContext);
                 // Recursively process the evaluated content (without re-annotating)
-                return _resolveHandlebars(evaluatedContent, null, null, null, null, null, localContext);
+                return _resolveHandlebars(evaluatedContent, localContext);
             } catch (error) {
                 LogController.logError(req, 'view.load', `error: Handlebar "#${blockType} ${blockParams}": ${error.message}`);
                 return `<!-- Error: Handlebar "#${blockType} ${blockParams}": ${error.message} -->`;
@@ -592,20 +580,21 @@ function processHandlebars(content, context, viewDir, req, depth = 0) {
             }
         } else {
             // Recursive text processing - this is the entry point
-            return text.replace(/\{\{#([a-z]+):~(\d+)~ ?(.*?)\}\}(.*?)\{\{\/\1:~\2~\}\}|\{\{(\@?[a-z]+.*?)\}\}/gs,
+            return text.replace(/\{\{#([a-z]+):~(\d+)~ ?(.*?)\}\}(.*?)\{\{\/\1:~\2~\}\}|\{\{(\@?[a-z][a-z0-9.]*.*?)\}\}/gs,
                 (match, bType, bLevel, bParams, bContent, rHandlebar) => {
-                    return _resolveHandlebars(match, bType, bLevel, bParams, bContent, rHandlebar, localContext);
+                    return _resolveHandlebars(match, localContext, bType, bLevel, bParams, bContent, rHandlebar);
                 });
         }
     }
 
-    let result = _resolveHandlebars(annotated);
+    let result = _resolveHandlebars(annotated, context);
 
     // Phase 3: Clean up any remaining unbalanced annotations
     result = result.replace(/\{\{([#\/][a-z]+):~\d+~(.*?)\}\}/g, '<!-- Error: Unbalanced handlebar "$1$2" removed -->');
 
     return result;
 }
+
 
 export default {
     load

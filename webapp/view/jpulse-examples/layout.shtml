@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / jPulse Examples / Layout
+ * @tagline         Responsive layout examples and CSS patterns
+ * @description     Comprehensive examples of responsive layouts and CSS utility classes in jPulse
+ * @file            webapp/view/jpulse-examples/layout.shtml
+ * @version         0.8.0
+ * @release         2025-09-25
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{app.version}} - Layout Examples</title>
+    {{file.include "jpulse-header.tmpl"}}
+</head>
+<body>
+    <div class="jp-main">
+        <!-- Navigation Tabs -->
+        {{file.include "jpulse-nav-tabs.tmpl" showExamplesNav=true mainNavActiveTab="jp-tab-examples" examplesNavActiveTab="jp-tab-layout"}}
+
+        <h1 class="jp-title">📐 Layout Examples</h1>
+
+        <div class="jp-info-box">
+            <p>Learn responsive layout techniques and CSS patterns used throughout the jPulse Framework. All layouts are mobile-first and fully responsive.</p>
+        </div>
+
+        <!-- Card Grid Layout -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Card Grid Layout</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="card-grid-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="card-grid-example">Example</div>
+                        <div class="jp-tab" data-tab-id="card-grid-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="card-grid-example" class="jp-panel jp-panel-active">
+                            <p>The card grid automatically adjusts to screen size:</p>
+
+                            <div class="jp-card-grid">
+                                <div class="jp-card">
+                                    <div class="jp-card-header">
+                                        <h4>Feature 1</h4>
+                                    </div>
+                                    <div class="jp-card-body">
+                                        <p>This card demonstrates responsive grid behavior. Resize your browser to see how cards adapt.</p>
+                                        <button class="jp-btn jp-btn-primary">Learn More</button>
+                                    </div>
+                                </div>
+
+                                <div class="jp-card">
+                                    <div class="jp-card-header">
+                                        <h4>Feature 2</h4>
+                                    </div>
+                                    <div class="jp-card-body">
+                                        <p>Cards maintain consistent spacing and alignment across different screen sizes.</p>
+                                        <button class="jp-btn jp-btn-secondary">Explore</button>
+                                    </div>
+                                </div>
+
+                                <div class="jp-card">
+                                    <div class="jp-card-header">
+                                        <h4>Feature 3</h4>
+                                    </div>
+                                    <div class="jp-card-body">
+                                        <p>The grid system ensures optimal readability and usability on all devices.</p>
+                                        <button class="jp-btn jp-btn-success">Get Started</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="card-grid-source" class="jp-panel">
+                            <pre><code>&lt;div class="jp-card-grid"&gt;
+    &lt;div class="jp-card"&gt;
+        &lt;div class="jp-card-header"&gt;
+            &lt;h4&gt;Feature 1&lt;/h4&gt;
+        &lt;/div&gt;
+        &lt;div class="jp-card-body"&gt;
+            &lt;p&gt;Card content goes here...&lt;/p&gt;
+            &lt;button class="jp-btn jp-btn-primary"&gt;Learn More&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class="jp-card"&gt;
+        &lt;div class="jp-card-header"&gt;
+            &lt;h4&gt;Feature 2&lt;/h4&gt;
+        &lt;/div&gt;
+        &lt;div class="jp-card-body"&gt;
+            &lt;p&gt;More card content...&lt;/p&gt;
+            &lt;button class="jp-btn jp-btn-secondary"&gt;Explore&lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- CSS (automatically included) --&gt;
+.jp-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flexbox Layouts -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Flexbox Layouts</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="flexbox-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="flexbox-example">Example</div>
+                        <div class="jp-tab" data-tab-id="flexbox-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="flexbox-example" class="jp-panel jp-panel-active">
+                            <h4>Button Groups</h4>
+                            <div class="jp-btn-group">
+                                <button class="jp-btn jp-btn-primary">Primary</button>
+                                <button class="jp-btn jp-btn-secondary">Secondary</button>
+                                <button class="jp-btn jp-btn-success">Success</button>
+                                <button class="jp-btn jp-btn-danger">Danger</button>
+                            </div>
+
+                            <h4>Justified Content</h4>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f8f9fa; border-radius: 6px; margin: 15px 0;">
+                                <div>
+                                    <h5 style="margin: 0;">Content Title</h5>
+                                    <p style="margin: 5px 0 0 0; color: #666;">Subtitle or description</p>
+                                </div>
+                                <button class="jp-btn jp-btn-primary">Action</button>
+                            </div>
+
+                            <h4>Centered Content</h4>
+                            <div style="display: flex; justify-content: center; align-items: center; height: 120px; background: #e9ecef; border-radius: 6px; margin: 15px 0;">
+                                <div style="text-align: center;">
+                                    <h5 style="margin: 0;">Perfectly Centered</h5>
+                                    <p style="margin: 5px 0 0 0;">Both horizontally and vertically</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="flexbox-source" class="jp-panel">
+                            <pre><code>&lt;!-- Button Group (Flexbox) --&gt;
+&lt;div class="jp-btn-group"&gt;
+    &lt;button class="jp-btn jp-btn-primary"&gt;Primary&lt;/button&gt;
+    &lt;button class="jp-btn jp-btn-secondary"&gt;Secondary&lt;/button&gt;
+    &lt;button class="jp-btn jp-btn-success"&gt;Success&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;!-- Justified Content --&gt;
+&lt;div style="display: flex; justify-content: space-between; align-items: center;"&gt;
+    &lt;div&gt;
+        &lt;h5&gt;Content Title&lt;/h5&gt;
+        &lt;p&gt;Subtitle or description&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;button class="jp-btn jp-btn-primary"&gt;Action&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;!-- Centered Content --&gt;
+&lt;div style="display: flex; justify-content: center; align-items: center; height: 120px;"&gt;
+    &lt;div style="text-align: center;"&gt;
+        &lt;h5&gt;Perfectly Centered&lt;/h5&gt;
+        &lt;p&gt;Both horizontally and vertically&lt;/p&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- CSS Classes Available --&gt;
+.jp-btn-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Boxes -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Information Boxes</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="info-boxes-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="info-boxes-example">Example</div>
+                        <div class="jp-tab" data-tab-id="info-boxes-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="info-boxes-example" class="jp-panel jp-panel-active">
+                            <div class="jp-info-box">
+                                <h4>Information Box</h4>
+                                <p>Use info boxes to highlight important information or provide helpful context to users.</p>
+                                <ul>
+                                    <li>Perfect for tips and guidelines</li>
+                                    <li>Draws attention without being intrusive</li>
+                                    <li>Maintains consistent styling</li>
+                                </ul>
+                            </div>
+
+                            <div class="jp-warning-box">
+                                <h4>Warning Box</h4>
+                                <p>Warning boxes are ideal for cautionary information that users should be aware of before proceeding.</p>
+                                <p><strong>Use cases:</strong> Form validation messages, important notices, or potential issues.</p>
+                            </div>
+
+                            <div class="jp-error-box">
+                                <h4>Error Box</h4>
+                                <p>Error boxes clearly communicate problems that need immediate attention.</p>
+                                <p>They use distinct styling to ensure users notice critical issues.</p>
+                            </div>
+                        </div>
+                        <div id="info-boxes-source" class="jp-panel">
+                            <pre><code>&lt;!-- Information Box --&gt;
+&lt;div class="jp-info-box"&gt;
+    &lt;h4&gt;Information Box&lt;/h4&gt;
+    &lt;p&gt;Use info boxes to highlight important information...&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;!-- Warning Box --&gt;
+&lt;div class="jp-warning-box"&gt;
+    &lt;h4&gt;Warning Box&lt;/h4&gt;
+    &lt;p&gt;Warning boxes are ideal for cautionary information...&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;!-- Error Box --&gt;
+&lt;div class="jp-error-box"&gt;
+    &lt;h4&gt;Error Box&lt;/h4&gt;
+    &lt;p&gt;Error boxes clearly communicate problems...&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;!-- CSS Classes --&gt;
+.jp-info-box     /* Light blue background, informational */
+.jp-warning-box  /* Light yellow background, cautionary */
+.jp-error-box    /* Light red background, error state */</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Responsive Breakpoints -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Responsive Breakpoints</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="breakpoints-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="breakpoints-example">Example</div>
+                        <div class="jp-tab" data-tab-id="breakpoints-source">Breakpoint Guide</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="breakpoints-example" class="jp-panel jp-panel-active">
+                            <p>Resize your browser window to see how content adapts at different breakpoints:</p>
+
+                            <div id="responsive-demo" style="padding: 20px; background: linear-gradient(45deg, #e3f2fd, #bbdefb); border-radius: 6px; text-align: center; margin: 15px 0;">
+                                <h4 id="breakpoint-indicator">Current Breakpoint: <span id="current-breakpoint">Desktop</span></h4>
+                                <p>This demo shows how content adapts to different screen sizes.</p>
+
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+                                    <div style="background: white; padding: 15px; border-radius: 4px;">
+                                        <h5>Column 1</h5>
+                                        <p>Content adapts automatically</p>
+                                    </div>
+                                    <div style="background: white; padding: 15px; border-radius: 4px;">
+                                        <h5>Column 2</h5>
+                                        <p>Grid adjusts to screen size</p>
+                                    </div>
+                                    <div style="background: white; padding: 15px; border-radius: 4px;">
+                                        <h5>Column 3</h5>
+                                        <p>Mobile-first approach</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="breakpoints-source" class="jp-panel">
+                            <pre><code>&lt;!-- jPulse Framework Breakpoints --&gt;
+
+/* Mobile First Approach */
+/* Base styles (mobile) - 0px and up */
+.jp-main {
+    padding: 15px;
+    max-width: 100%;
+}
+
+/* Tablet - 768px and up */
+@media (min-width: 768px) {
+    .jp-main {
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+}
+
+/* Desktop - 1024px and up */
+@media (min-width: 1024px) {
+    .jp-main {
+        padding: 30px;
+    }
+}
+
+/* Large Desktop - 1440px and up */
+@media (min-width: 1440px) {
+    .jp-main {
+        padding: 40px;
+    }
+}
+
+/* Responsive Grid Example */
+.jp-card-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* Mobile: 1 column */
+    gap: 15px;
+}
+
+@media (min-width: 768px) {
+    .jp-card-grid {
+        grid-template-columns: repeat(2, 1fr); /* Tablet: 2 columns */
+        gap: 20px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .jp-card-grid {
+        grid-template-columns: repeat(3, 1fr); /* Desktop: 3 columns */
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spacing and Typography -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Spacing and Typography</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="spacing-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="spacing-example">Example</div>
+                        <div class="jp-tab" data-tab-id="spacing-source">CSS Variables</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="spacing-example" class="jp-panel jp-panel-active">
+                            <div class="jp-info-box">
+                                <h4>Typography Hierarchy</h4>
+                                <h1 style="margin: 10px 0;">Heading 1 - Main Page Title</h1>
+                                <h2 style="margin: 10px 0;">Heading 2 - Section Title</h2>
+                                <h3 style="margin: 10px 0;">Heading 3 - Subsection Title</h3>
+                                <h4 style="margin: 10px 0;">Heading 4 - Card Header</h4>
+                                <h5 style="margin: 10px 0;">Heading 5 - Small Header</h5>
+                                <h6 style="margin: 10px 0;">Heading 6 - Smallest Header</h6>
+                                <p>Regular paragraph text with proper line height and spacing for optimal readability.</p>
+                                <p class="jp-text-small">Small text for captions, footnotes, or secondary information.</p>
+                                <p class="jp-text-muted">Muted text for less important information or placeholders.</p>
+                            </div>
+
+                            <div class="jp-warning-box">
+                                <h4>Spacing Examples</h4>
+                                <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin: 15px 0;">
+                                    <p style="margin: 0 0 8px 0;">Small spacing (8px)</p>
+                                    <p style="margin: 0 0 15px 0;">Medium spacing (15px)</p>
+                                    <p style="margin: 0 0 20px 0;">Large spacing (20px)</p>
+                                    <p style="margin: 0;">No bottom margin</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="spacing-source" class="jp-panel">
+                            <pre><code>&lt;!-- Typography Classes --&gt;
+&lt;h1 class="jp-title"&gt;Main Page Title&lt;/h1&gt;
+&lt;p class="jp-text-small"&gt;Small text&lt;/p&gt;
+&lt;p class="jp-text-muted"&gt;Muted text&lt;/p&gt;
+&lt;p class="jp-text-center"&gt;Centered text&lt;/p&gt;
+
+&lt;!-- CSS Variables for Consistent Spacing --&gt;
+:root {
+    /* Spacing Scale */
+    --jp-space-xs: 4px;
+    --jp-space-sm: 8px;
+    --jp-space-md: 15px;
+    --jp-space-lg: 20px;
+    --jp-space-xl: 30px;
+    --jp-space-xxl: 40px;
+
+    /* Typography */
+    --jp-font-size-sm: 0.875rem;
+    --jp-font-size-base: 1rem;
+    --jp-font-size-lg: 1.125rem;
+    --jp-line-height-base: 1.5;
+    --jp-line-height-tight: 1.25;
+
+    /* Colors */
+    --jp-color-primary: #007acc;
+    --jp-color-secondary: #6c757d;
+    --jp-color-success: #28a745;
+    --jp-color-danger: #dc3545;
+    --jp-color-warning: #ffc107;
+    --jp-color-info: #17a2b8;
+    --jp-color-muted: #6c757d;
+}
+
+&lt;!-- Usage Examples --&gt;
+.custom-component {
+    padding: var(--jp-space-md);
+    margin-bottom: var(--jp-space-lg);
+    font-size: var(--jp-font-size-base);
+    line-height: var(--jp-line-height-base);
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Layout Best Practices -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Layout Best Practices</h3>
+            </div>
+            <div class="jp-card-body">
+                <div class="jp-info-box">
+                    <h4>Mobile-First Design</h4>
+                    <ul>
+                        <li>Start with mobile layouts and enhance for larger screens</li>
+                        <li>Use <code>min-width</code> media queries for progressive enhancement</li>
+                        <li>Test on real devices, not just browser dev tools</li>
+                        <li>Consider touch targets (minimum 44px for interactive elements)</li>
+                    </ul>
+                </div>
+
+                <div class="jp-warning-box">
+                    <h4>Performance Considerations</h4>
+                    <ul>
+                        <li>Use CSS Grid and Flexbox instead of floats or positioning</li>
+                        <li>Minimize layout shifts with proper sizing</li>
+                        <li>Use <code>transform</code> and <code>opacity</code> for animations</li>
+                        <li>Optimize images with appropriate formats and sizes</li>
+                    </ul>
+                </div>
+
+                <div class="jp-info-box">
+                    <h4>Accessibility Guidelines</h4>
+                    <ul>
+                        <li>Maintain proper heading hierarchy (h1 → h2 → h3)</li>
+                        <li>Ensure sufficient color contrast (4.5:1 minimum)</li>
+                        <li>Use semantic HTML elements appropriately</li>
+                        <li>Test with keyboard navigation and screen readers</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        jPulse.dom.ready(() => {
+            // Initialize all tab interfaces
+            jPulse.UI.tabs.register('card-grid-tabs', {
+                slideAnimation: true
+            }, 'card-grid-example');
+
+            jPulse.UI.tabs.register('flexbox-tabs', {
+                slideAnimation: true
+            }, 'flexbox-example');
+
+            jPulse.UI.tabs.register('info-boxes-tabs', {
+                slideAnimation: true
+            }, 'info-boxes-example');
+
+            jPulse.UI.tabs.register('breakpoints-tabs', {
+                slideAnimation: true
+            }, 'breakpoints-example');
+
+            jPulse.UI.tabs.register('spacing-tabs', {
+                slideAnimation: true
+            }, 'spacing-example');
+
+            // Responsive breakpoint indicator
+            function updateBreakpointIndicator() {
+                const width = window.innerWidth;
+                const indicator = document.getElementById('current-breakpoint');
+
+                if (width < 768) {
+                    indicator.textContent = 'Mobile (< 768px)';
+                    indicator.style.color = '#dc3545';
+                } else if (width < 1024) {
+                    indicator.textContent = 'Tablet (768px - 1023px)';
+                    indicator.style.color = '#ffc107';
+                } else if (width < 1440) {
+                    indicator.textContent = 'Desktop (1024px - 1439px)';
+                    indicator.style.color = '#28a745';
+                } else {
+                    indicator.textContent = 'Large Desktop (≥ 1440px)';
+                    indicator.style.color = '#007acc';
+                }
+            }
+
+            // Update on load and resize
+            updateBreakpointIndicator();
+            window.addEventListener('resize', updateBreakpointIndicator);
+        });
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

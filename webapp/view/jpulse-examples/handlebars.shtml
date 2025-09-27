@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / jPulse Examples / Handlebars
+ * @tagline         Comprehensive Handlebars templating examples
+ * @description     Interactive examples and source code for Handlebars templating in jPulse
+ * @file            webapp/view/jpulse-examples/handlebars.shtml
+ * @version         0.8.0
+ * @release         2025-09-25
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{app.version}} - Handlebars Examples</title>
+    {{file.include "jpulse-header.tmpl"}}
+</head>
+<body>
+    <div class="jp-main">
+        <!-- Navigation Tabs -->
+        {{file.include "jpulse-nav-tabs.tmpl" showExamplesNav=true mainNavActiveTab="jp-tab-examples" examplesNavActiveTab="jp-tab-handlebars"}}
+
+        <h1 class="jp-title">📝 Handlebars Examples</h1>
+
+        <div class="jp-info-box">
+            <p>jPulse uses Handlebars for server-side templating. These examples show you how to use variables, conditionals, loops, and advanced features.</p>
+            <p><strong>📖 Documentation:</strong> <a href="/jpulse-docs/handlebars">Complete Handlebars Guide</a> - Comprehensive documentation with syntax reference and best practices.</p>
+        </div>
+
+        <!-- Basic Variables Example -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Basic Variables</h3>
+            </div>
+            <div class="jp-card-body">
+                <!-- Tab interface for example/source -->
+                <div id="variables-tabs" class="jp-tabs"></div>
+                <div id="variables-example-panel" class="jp-panel">
+                    <div class="jp-info-box">
+                        <ul>
+                            <li><strong>App Name:</strong> {{app.name}}</li>
+                            <li><strong>Version:</strong> {{app.version}}</li>
+                            <li><strong>Current User:</strong> {{#if user.authenticated}}{{user.firstName}} {{user.lastName}}{{else}}Guest{{/if}}</li>
+                            <li><strong>Current URL:</strong> {{url.domain}}{{url.pathname}}</li>
+                            <li><strong>Admin Email:</strong> {{config.email.adminEmail}}</li>
+                        </ul>
+                    </div>
+                </div>
+                <div id="variables-source-panel" class="jp-panel">
+                    <div class="jp-source-code" data-lang="html">
+&lt;ul&gt;
+    &lt;li&gt;&lt;strong&gt;App Name:&lt;/strong&gt; &#123;&#123;app.name&#125;&#125;&lt;/li&gt;
+    &lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; &#123;&#123;app.version&#125;&#125;&lt;/li&gt;
+    &lt;li&gt;&lt;strong&gt;Current User:&lt;/strong&gt; &#123;&#123;#if user.authenticated&#125;&#125;&#123;&#123;user.firstName&#125;&#125; &#123;&#123;user.lastName&#125;&#125;&#123;&#123;else&#125;&#125;Guest&#123;&#123;/if&#125;&#125;&lt;/li&gt;
+    &lt;li&gt;&lt;strong&gt;Current URL:&lt;/strong&gt; &#123;&#123;url.domain&#125;&#125;&#123;&#123;url.pathname&#125;&#125;&lt;/li&gt;
+    &lt;li&gt;&lt;strong&gt;Admin Email:&lt;/strong&gt; &#123;&#123;config.email.adminEmail&#125;&#125;&lt;/li&gt;
+&lt;/ul&gt;
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Conditional Rendering Example -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Conditional Rendering</h3>
+            </div>
+            <div class="jp-card-body">
+                <!-- Tab interface for example/source -->
+                <div id="conditionals-tabs" class="jp-tabs"></div>
+                <div id="conditionals-example-panel" class="jp-panel">
+                    <div class="jp-warning-box">
+                        <h4>Authentication Status</h4>
+                        {{#if user.authenticated}}
+                            <p>✅ Welcome back, {{user.firstName}}!</p>
+                            <p>Your roles: {{user.roles}}</p>
+                            {{#if user.isAdmin}}
+                                <p>🔧 You have admin privileges</p>
+                            {{/if}}
+                        {{else}}
+                            <p>👋 Hello, guest! Please <a href="/auth/login">log in</a> to access more features.</p>
+                        {{/if}}
+                    </div>
+                </div>
+
+                <div id="conditionals-source-panel" class="jp-panel">
+                    <div class="jp-source-code" data-lang="html">
+&#123;&#123;#if user.authenticated&#125;&#125;
+    &lt;p&gt;✅ Welcome back, &#123;&#123;user.firstName&#125;&#125;!&lt;/p&gt;
+    &lt;p&gt;Your roles: &#123;&#123;user.roles&#125;&#125;&lt;/p&gt;
+    &#123;&#123;#if user.isAdmin&#125;&#125;
+        &lt;p&gt;🔧 You have admin privileges&lt;/p&gt;
+    &#123;&#123;/if&#125;&#125;
+&#123;&#123;else&#125;&#125;
+    &lt;p&gt;👋 Hello, guest! Please &lt;a href="/auth/login"&gt;log in&lt;/a&gt; to access more features.&lt;/p&gt;
+&#123;&#123;/if&#125;&#125;
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Internationalization Example -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Internationalization (i18n)</h3>
+            </div>
+            <div class="jp-card-body">
+                <!-- Tab interface for example/source -->
+                <div id="i18n-tabs" class="jp-tabs"></div>
+                <div id="i18n-example-panel" class="jp-panel">
+                    <div class="jp-info-box">
+                        <p><strong>Welcome Message:</strong> {{i18n.view.home.introduction}}</p>
+                        <p><strong>Login Status:</strong> {{#if user.authenticated}}{{i18n.view.home.welcomeBack}}{{else}}{{i18n.view.home.notLoggedIn}}{{/if}}</p>
+                        <p><strong>Authentication Message:</strong> {{i18n.view.auth.common.notAuthenticated}}</p>
+                    </div>
+                </div>
+
+                <div id="i18n-source-panel" class="jp-panel">
+                    <div class="jp-source-code" data-lang="html">
+&lt;p&gt;&lt;strong&gt;Welcome Message:&lt;/strong&gt; &#123;&#123;i18n.view.home.introduction&#125;&#125;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Login Status:&lt;/strong&gt; &#123;&#123;#if user.authenticated&#125;&#125;&#123;&#123;i18n.view.home.welcomeBack&#125;&#125;&#123;&#123;else&#125;&#125;&#123;&#123;i18n.view.home.notLoggedIn&#125;&#125;&#123;&#123;/if&#125;&#125;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Authentication Message:&lt;/strong&gt; &#123;&#123;i18n.view.auth.common.notAuthenticated&#125;&#125;&lt;/p&gt;
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Template Includes Example -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Template Includes</h3>
+            </div>
+            <div class="jp-card-body">
+                <!-- Tab interface for example/source -->
+                <div id="includes-tabs" class="jp-tabs"></div>
+                <div id="includes-example-panel" class="jp-panel">
+                    <div class="jp-info-box">
+                        <p>This page includes the header and footer templates:</p>
+                        <ul>
+                            <li><code>jpulse-header.tmpl</code> - Contains CSS, meta tags, and navigation</li>
+                            <li><code>jpulse-footer.tmpl</code> - Contains JavaScript libraries and closing tags</li>
+                            <li><code>jpulse-nav-tabs.tmpl</code> - Contains the navigation tabs for this page</li>
+                        </ul>
+                        <p>File timestamp: Used for browser cache busting</p>
+                        <ul>
+                            <li><code>jpulse-common.css</code> timestamp: {{file.timestamp "jpulse-common.css"}}</li>
+                        </ul>
+                   </div>
+                </div>
+
+                <div id="includes-source-panel" class="jp-panel">
+                    <div class="jp-source-code" data-lang="html">
+&lt;!-- Server side include in the &lt;head&gt; section --&gt;
+&#123;&#123;file.include "jpulse-header.tmpl"&#125;&#125;
+
+&lt;!-- Server side include in the &lt;body&gt; section --&gt;
+&#123;&#123;file.include "jpulse-nav-tabs.tmpl" showExamplesNav=true mainNavActiveTab="jp-tab-examples" examplesNavActiveTab="jp-tab-handlebars"&#125;&#125;
+
+&lt;!-- Server side include at the end of &lt;body&gt; --&gt;
+&#123;&#123;file.include "jpulse-footer.tmpl"&#125;&#125;
+
+&lt;!-- Link to file with timestamp for browser cache busting --&gt;
+&lt;link rel="stylesheet" href="/jpulse-common.css?t=&#123;&#123;file.timestamp "jpulse-common.css"&#125;&#125;"&gt;
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nested Handlebars Example (v0.7.20+) -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Nested Handlebars (v0.7.20+)</h3>
+            </div>
+            <div class="jp-card-body">
+                <!-- Tab interface for example/source -->
+                <div id="nested-tabs" class="jp-tabs"></div>
+                <div id="nested-example-panel" class="jp-panel">
+                    <div class="jp-warning-box">
+                        <h4>Multi-level Conditional Example</h4>
+                        {{#if user.authenticated}}
+                            <p>User: {{user.firstName}} {{user.lastName}}</p>
+                            {{#if user.isAdmin}}
+                                <div class="jp-info-box">
+                                    <p>Admin Panel Access:</p>
+                                    {{#if config.features.adminPanel}}
+                                        <p>✅ Admin panel is enabled</p>
+                                    {{else}}
+                                        <p>❌ Admin panel is disabled</p>
+                                    {{/if}}
+                                </div>
+                            {{else}}
+                                <p>Regular user - limited access</p>
+                            {{/if}}
+                        {{else}}
+                            <p>Please log in to see personalized content</p>
+                        {{/if}}
+                    </div>
+                </div>
+
+                <div id="nested-source-panel" class="jp-panel">
+                    <div class="jp-source-code" data-lang="html">
+&#123;&#123;#if user.authenticated&#125;&#125;
+    &lt;p&gt;User: &#123;&#123;user.firstName&#125;&#125; &#123;&#123;user.lastName&#125;&#125;&lt;/p&gt;
+    &#123;&#123;#if user.isAdmin&#125;&#125;
+        &lt;div class="jp-info-box"&gt;
+            &lt;p&gt;Admin Panel Access:&lt;/p&gt;
+            &#123;&#123;#if config.features.adminPanel&#125;&#125;
+                &lt;p&gt;✅ Admin panel is enabled&lt;/p&gt;
+            &#123;&#123;else&#125;&#125;
+                &lt;p&gt;❌ Admin panel is disabled&lt;/p&gt;
+            &#123;&#123;/if&#125;&#125;
+        &lt;/div&gt;
+    &#123;&#123;else&#125;&#125;
+        &lt;p&gt;Regular user - limited access&lt;/p&gt;
+    &#123;&#123;/if&#125;&#125;
+&#123;&#123;else&#125;&#125;
+    &lt;p&gt;Please log in to see personalized content&lt;/p&gt;
+&#123;&#123;/if&#125;&#125;
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loops Example -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Loops</h3>
+            </div>
+            <div class="jp-card-body">
+                <!-- Tab interface for example/source -->
+                <div id="loops-tabs" class="jp-tabs"></div>
+                <div id="loops-example-panel" class="jp-panel">
+                    <div class="jp-info-box">
+                        <h4>Array of Strings (User Roles)</h4>
+                        <p>Current user roles:
+                        {{#each user.roles}}
+                            <span class="jp-role-badge jp-role-{{this}}">{{this}}</span>
+                        {{/each}}
+                        </p>
+                    </div>
+
+                    <div class="jp-warning-box">
+                        <h4>Loop Variables Example</h4>
+                        <ul>
+                        {{#each user.roles}}
+                            <li>Role {{@index}}: {{this}} {{#if @first}}(first){{/if}}{{#if @last}}(last){{/if}}</li>
+                        {{/each}}
+                        </ul>
+                    </div>
+
+                    <div class="jp-info-box">
+                        <h4>Array of Objects Example</h4>
+                        <p><em>Note: This example shows the concept. In a real application, you would pass an array of user objects to the template.</em></p>
+                        <div class="jp-user-card" style="border: 1px solid #ddd; padding: 10px; margin: 5px 0;">
+                            <h5>{{user.firstName}} {{user.lastName}}</h5>
+                            <p>Email: {{user.email}}</p>
+                        </div>
+                    </div>
+
+                    <div class="jp-warning-box">
+                        <h4>Object Keys Example</h4>
+                        <p><em>Iterating over configuration features:</em></p>
+                        <div>
+                            <strong>adminPanel:</strong> {{config.features.adminPanel}}<br>
+                            <strong>userRegistration:</strong> {{config.features.userRegistration}}<br>
+                            <strong>emailNotifications:</strong> {{config.features.emailNotifications}}
+                        </div>
+                    </div>
+                </div>
+
+                <div id="loops-source-panel" class="jp-panel">
+                    <div class="jp-source-code" data-lang="html">
+&lt;!-- Array of Strings --&gt;
+&#123;&#123;#each user.roles&#125;&#125;
+    &lt;span class="jp-role-badge jp-role-&#123;&#123;this&#125;&#125;"&gt;&#123;&#123;this&#125;&#125;&lt;/span&gt;
+&#123;&#123;/each&#125;&#125;
+
+&lt;!-- With Loop Variables --&gt;
+&#123;&#123;#each user.roles&#125;&#125;
+    &lt;li&gt;Role &#123;&#123;@index&#125;&#125;: &#123;&#123;this&#125;&#125; &#123;&#123;#if @first&#125;&#125;(first)&#123;&#123;/if&#125;&#125;&#123;&#123;#if @last&#125;&#125;(last)&#123;&#123;/if&#125;&#125;&lt;/li&gt;
+&#123;&#123;/each&#125;&#125;
+
+&lt;!-- Array of Objects --&gt;
+&#123;&#123;#each users&#125;&#125;
+    &lt;div class="jp-user-card"&gt;
+        &lt;h4&gt;&#123;&#123;this.firstName&#125;&#125; &#123;&#123;this.lastName&#125;&#125;&lt;/h4&gt;
+        &lt;p&gt;Email: &#123;&#123;this.email&#125;&#125;&lt;/p&gt;
+    &lt;/div&gt;
+&#123;&#123;/each&#125;&#125;
+
+&lt;!-- Object Keys --&gt;
+&#123;&#123;#each config.features&#125;&#125;
+    &lt;div&gt;&lt;strong&gt;&#123;&#123;@key&#125;&#125;:&lt;/strong&gt; &#123;&#123;this&#125;&#125;&lt;/div&gt;
+&#123;&#123;/each&#125;&#125;
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Context Variables -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Available Context Variables</h3>
+            </div>
+            <div class="jp-card-body">
+                <p>jPulse provides these context variables in all templates:</p>
+
+                <div class="jp-card-grid">
+                    <div class="jp-info-box">
+                        <h4>App Context</h4>
+                        <table class="jp-table">
+                            <tr>
+                                <th>Variable</th>
+                                <th>Handlebar</th>
+                                <th>Expanded</th>
+                            </tr>
+                            <tr>
+                                <td>Application name</td>
+                                <td><code>&#123;&#123;app.name&#125;&#125;</code></td>
+                                <td><code>{{app.name}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>Current application version</td>
+                                <td><code>&#123;&#123;app.version&#125;&#125;</code></td>
+                                <td><code>{{app.version}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>Current application release</td>
+                                <td><code>&#123;&#123;app.release&#125;&#125;</code></td>
+                                <td><code>{{app.release}}</code></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="jp-info-box">
+                        <h4>User Context</h4>
+                        <table class="jp-table">
+                            <tr>
+                                <th>Variable</th>
+                                <th>Handlebar</th>
+                                <th>Expanded</th>
+                            </tr>
+                            <tr>
+                                <td>Login status</td>
+                                <td><code>&#123;&#123;user.authenticated&#125;&#125;</code></td>
+                                <td><code>{{user.authenticated}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>First name</td>
+                                <td><code>&#123;&#123;user.firstName&#125;&#125;</code></td>
+                                <td><code>{{user.firstName}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>Last name</td>
+                                <td><code>&#123;&#123;user.lastName&#125;&#125;</code></td>
+                                <td><code>{{user.lastName}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>Email address</td>
+                                <td><code>&#123;&#123;user.email&#125;&#125;</code></td>
+                                <td><code>{{user.email}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>User roles</td>
+                                <td><code>&#123;&#123;user.roles&#125;&#125;</code></td>
+                                <td><code>{{user.roles}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>Admin status</td>
+                                <td><code>&#123;&#123;user.isAdmin&#125;&#125;</code></td>
+                                <td><code>{{user.isAdmin}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>User initials</td>
+                                <td><code>&#123;&#123;user.initials&#125;&#125;</code></td>
+                                <td><code>{{user.initials}}</code></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="jp-info-box">
+                        <h4>URL Context</h4>
+                        <table class="jp-table">
+                            <tr>
+                                <th>Variable</th>
+                                <th>Handlebar</th>
+                                <th>Expanded</th>
+                            </tr>
+                            <tr>
+                                <td>HTTP/HTTPS</td>
+                                <td><code>&#123;&#123;url.protocol&#125;&#125;</code></td>
+                                <td><code>{{url.protocol}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>Domain name</td>
+                                <td><code>&#123;&#123;url.hostname&#125;&#125;</code></td>
+                                <td><code>{{url.hostname}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>Port number</td>
+                                <td><code>&#123;&#123;url.port&#125;&#125;</code></td>
+                                <td><code>{{url.port}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>URL path</td>
+                                <td><code>&#123;&#123;url.pathname&#125;&#125;</code></td>
+                                <td><code>{{url.pathname}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>Query string</td>
+                                <td><code>&#123;&#123;url.search&#125;&#125;</code></td>
+                                <td><code>{{url.search}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>Full domain</td>
+                                <td><code>&#123;&#123;url.domain&#125;&#125;</code></td>
+                                <td><code>{{url.domain}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>Query parameters</td>
+                                <td><code>&#123;&#123;url.param.name&#125;&#125;</code></td>
+                                <td><code>{{url.param.name}}</code></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="jp-info-box">
+                        <h4>Configuration</h4>
+                        <table class="jp-table">
+                            <tr>
+                                <th>Variable</th>
+                                <th>Handlebar</th>
+                                <th>Expanded</th>
+                            </tr>
+                            <tr>
+                                <td>Admin email</td>
+                                <td><code>&#123;&#123;config.email.adminEmail&#125;&#125;</code></td>
+                                <td><code>{{config.email.adminEmail}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>Feature flags</td>
+                                <td><code>&#123;&#123;config.features.*&#125;&#125;</code></td>
+                                <td><code>{{config.features.*}}</code></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="jp-info-box">
+                        <h4>Internationalization</h4>
+                        <table class="jp-table">
+                            <tr>
+                                <th>Variable</th>
+                                <th>Handlebar</th>
+                                <th>Expanded</th>
+                            </tr>
+                            <tr>
+                                <td>Home page messages</td>
+                                <td><code>&#123;&#123;i18n.view.home.*&#125;&#125;</code></td>
+                                <td><code>{{i18n.view.home.*}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>Example Introduction message</td>
+                                <td><code>&#123;&#123;i18n.view.home.introduction&#125;&#125;</code></td>
+                                <td><code>{{i18n.view.home.introduction}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>Auth messages</td>
+                                <td><code>&#123;&#123;i18n.view.auth.*&#125;&#125;</code></td>
+                                <td><code>{{i18n.view.auth.*}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>Common messages</td>
+                                <td><code>&#123;&#123;i18n.common.*&#125;&#125;</code></td>
+                                <td><code>{{i18n.common.*}}</code></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="jp-info-box">
+                        <h4>File Operations</h4>
+                        <table class="jp-table">
+                            <tr>
+                                <th>Variable</th>
+                                <th>Handlebar</th>
+                                <th>Expanded</th>
+                            </tr>
+                            <tr>
+                                <td>Include template</td>
+                                <td><code>&#123;&#123;file.include "template.tmpl"&#125;&#125;</code></td>
+                                <td><code>{{file.include "template.tmpl"}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>File timestamp</td>
+                                <td><code>&#123;&#123;file.timestamp "jpulse-header.tmpl"&#125;&#125;</code></td>
+                                <td><code>{{file.timestamp "jpulse-header.tmpl"}}</code></td>
+                            </tr>
+                            <tr>
+                                <td>File exists</td>
+                                <td><code>&#123;&#123;file.exists "jpulse-footer.tmpl"&#125;&#125;</code></td>
+                                <td><code>{{file.exists "jpulse-footer.tmpl"}}</code></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize all tab interfaces on this page
+        jPulse.dom.ready(() => {
+            // Variables example tabs
+            jPulse.UI.tabs.register('variables-tabs', {
+                tabs: [
+                    { id: 'variables-example-tab', label: 'Example', panelId: 'variables-example-panel' },
+                    { id: 'variables-source-tab', label: 'Source Code', panelId: 'variables-source-panel' }
+                ],
+                panelHeight: '15rem',
+                slideAnimation: true
+            }, 'variables-example-tab');
+
+            // Conditionals example tabs
+            jPulse.UI.tabs.register('conditionals-tabs', {
+                tabs: [
+                    { id: 'conditionals-example-tab', label: 'Example', panelId: 'conditionals-example-panel' },
+                    { id: 'conditionals-source-tab', label: 'Source Code', panelId: 'conditionals-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'conditionals-example-tab');
+
+            // i18n example tabs
+            jPulse.UI.tabs.register('i18n-tabs', {
+                tabs: [
+                    { id: 'i18n-example', label: 'Example', panelId: 'i18n-example-panel' },
+                    { id: 'i18n-source', label: 'Source Code', panelId: 'i18n-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'i18n-example');
+
+            // Includes example tabs
+            jPulse.UI.tabs.register('includes-tabs', {
+                tabs: [
+                    { id: 'includes-example', label: 'Example', panelId: 'includes-example-panel' },
+                    { id: 'includes-source', label: 'Source Code', panelId: 'includes-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'includes-example');
+
+            // Nested example tabs
+            jPulse.UI.tabs.register('nested-tabs', {
+                tabs: [
+                    { id: 'nested-example', label: 'Example', panelId: 'nested-example-panel' },
+                    { id: 'nested-source', label: 'Source Code', panelId: 'nested-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'nested-example');
+
+            // Loops example tabs
+            jPulse.UI.tabs.register('loops-tabs', {
+                tabs: [
+                    { id: 'loops-example', label: 'Example', panelId: 'loops-example-panel' },
+                    { id: 'loops-source', label: 'Source Code', panelId: 'loops-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'loops-example');
+        });
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

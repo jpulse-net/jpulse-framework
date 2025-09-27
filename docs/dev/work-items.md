@@ -836,23 +836,8 @@ This is the doc to track work items, arranged in three sections:
     - left-to-right processing
   - comprehensive test coverage for complex template scenarios
 
-
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-064: view: create jPulse.UI tab interface widget - v0.7.21
-- status: ✅ COMPLETE
+- status: ✅ COMPLETED
 - type: Feature
 - objective: offer a common tab interface within a page to show panels, and across pages for intuitive navigation
 - two types of tabs:
@@ -908,8 +893,12 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
 ### W-063: view: add /jpulse-examples/ pages, rename /jpulse/ to /jpulse-docs/ - v0.8.0
-- status: 🕑 PENDING
+- status: 🚧 IN_PROGRESS
 - type: Feature
 - objectives: good onboarding, helpful docs and examples
 - depends on:
@@ -928,8 +917,31 @@ This is the doc to track work items, arranged in three sections:
     - welcome note based on login status
     - "this page is meant to be overloaded by site/webapp/view/home/index.shtml"
     - links (or buttons like in /admin/) to /jpulse-docs/ and /jpulse-examples/
+  - add a jPulse.UI.sourceCode.register()
+    - syntax highlighting based on prims.js
+    - show a copy button on hover to copy to clipboard
+  - add a jPulse.clipboard with copy to clipboard functionality
+  - create new docs/handlebars.md markdown doc
 
 
+
+
+
+
+- docs/markdown.md:
+  - loops: needs doc update:
+    - iterate over object keys, in addition to arrays
+    - document @index, @first, @last, @key, this
+- markdown rendering:
+  - scroll X auto for each code block (avoid horizontal scroll of whole page)
+  - `single quote text` is a bit too small
+  - ```triple quote code block```:
+    - first line has buggy indent
+    - a bit too large compared to other text
+- is cache disabled on include with context? if so, try to make it work with enabled cache
+
+- move handlebar stuff from view controller to handlebar controller?
+  - offer an API to expand text with handlebars?
 
 
 

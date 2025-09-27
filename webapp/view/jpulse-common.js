@@ -1349,9 +1349,10 @@ window.jPulse = {
                             }
                         }
                     });
+
                 }
 
-                // Set initial active tab
+                // Set initial active tab FIRST
                 const finalActiveTabId = activeTabId || config.activeTab;
                 if (finalActiveTabId) {
                     jPulse.UI.tabs._setActiveTab(tabsElement, finalActiveTabId, false);
@@ -1361,6 +1362,11 @@ window.jPulse = {
                     if (firstVisibleTab) {
                         jPulse.UI.tabs._setActiveTab(tabsElement, firstVisibleTab.id, false);
                     }
+                }
+
+                // Handle panel height management AFTER setting active tab
+                if (tabType === 'panel') {
+                    jPulse.UI.tabs._setupPanelHeights(tabsElement, config);
                 }
             },
 
@@ -1596,6 +1602,102 @@ window.jPulse = {
                 } else {
                     // Instant switch
                     targetPanel.classList.add('jp-panel-active');
+                }
+            },
+
+            /**
+             * Setup panel height management to prevent content jumping
+             * @param {Element} tabsElement - The .jp-tabs element
+             * @param {Object} config - Tab configuration
+             */
+            _setupPanelHeights: (tabsElement, config) => {
+                const panelContainer = tabsElement.querySelector('.jp-tabs-panels');
+                if (!panelContainer) return;
+
+                if (config.panelHeight) {
+                    // Fixed height specified - add scrolling
+                    panelContainer.style.height = config.panelHeight;
+                    panelContainer.style.overflowY = 'auto';
+                    panelContainer.style.overflowX = 'auto';
+
+                    // Also handle child divs for fixed height mode
+                    const panels = [];
+                    config.tabs.forEach(tab => {
+                        if (tab.panelId) {
+                            let panel = document.getElementById(tab.panelId);
+                            if (!panel && panelContainer) {
+                                panel = panelContainer.querySelector(`#${tab.panelId}`);
+                            }
+                            if (panel) {
+                                panels.push(panel);
+                            }
+                        }
+                    });
+
+                    // Apply height to panels and their child divs for fixed height mode
+                    const fixedHeightValue = parseInt(config.panelHeight);
+                    panels.forEach(panel => {
+                        panel.style.minHeight = fixedHeightValue + 'px';
+
+                        // Only extend height to child divs if there's exactly one child div
+                        // Multiple child divs should maintain their natural heights
+                        const childDivs = panel.querySelectorAll(':scope > div');
+                        if (childDivs.length === 1) {
+                            childDivs[0].style.minHeight = (fixedHeightValue - 30 - 15) + 'px'; // Panel padding + bottom space
+                        }
+                    });
+                } else {
+                    // Dynamic height - equalize to tallest panel
+                    let maxHeight = 0;
+                    const panels = [];
+
+                    // Collect all panels and measure their natural heights
+                    config.tabs.forEach(tab => {
+                        if (tab.panelId) {
+                            let panel = document.getElementById(tab.panelId);
+                            if (!panel && panelContainer) {
+                                panel = panelContainer.querySelector(`#${tab.panelId}`);
+                            }
+                            if (panel) {
+                                panels.push(panel);
+
+                                // Temporarily show panel to measure its height
+                                const wasActive = panel.classList.contains('jp-panel-active');
+                                panel.classList.add('jp-panel-active');
+                                panel.style.visibility = 'hidden';
+                                panel.style.position = 'absolute';
+
+                                const height = panel.offsetHeight;
+                                maxHeight = Math.max(maxHeight, height);
+
+                                // Restore original state
+                                panel.style.visibility = '';
+                                panel.style.position = '';
+                                if (!wasActive) {
+                                    panel.classList.remove('jp-panel-active');
+                                }
+                            }
+                        }
+                    });
+
+                    // Apply the max height to the container
+                    if (maxHeight > 0) {
+                        panelContainer.style.height = maxHeight + 'px';
+                        panelContainer.style.overflowY = 'hidden';
+                        panelContainer.style.overflowX = 'auto';
+
+                        // Also apply height to panels and their child divs to prevent content jumping
+                        panels.forEach(panel => {
+                            panel.style.minHeight = maxHeight + 'px';
+
+                            // Only extend height to child divs if there's exactly one child div
+                            // Multiple child divs should maintain their natural heights
+                            const childDivs = panel.querySelectorAll(':scope > div');
+                            if (childDivs.length === 1) {
+                                childDivs[0].style.minHeight = (maxHeight - 30 - 15) + 'px'; // Panel padding + bottom space
+                            }
+                        });
+                    }
                 }
             },
 
@@ -1919,8 +2021,201 @@ window.jPulse = {
                     dialog.classList.remove('jp-dialog-dragging');
                 }
             });
+        },
+
+        /**
+         * Source Code UI Component with syntax highlighting and copy functionality
+         */
+        sourceCode: {
+            /**
+             * Initialize all source code components on the page
+             */
+            initAll: function() {
+                const elements = document.querySelectorAll('.jp-source-code');
+                elements.forEach(element => {
+                    if (!element.dataset.jpSourceCodeInitialized) {
+                        this.init(element);
+                    }
+                });
+            },
+
+            /**
+             * Initialize a single source code component
+             * @param {HTMLElement} element - The .jp-source-code element
+             */
+            init: function(element) {
+                if (element.dataset.jpSourceCodeInitialized) {
+                    return;
+                }
+
+                const lang = element.dataset.lang || 'text';
+                const showCopy = element.dataset.showCopy !== 'false';
+                const showLang = element.dataset.showLang === 'true';
+
+                // Get or create the code content
+                let codeElement = element.querySelector('code');
+                let preElement = element.querySelector('pre');
+
+                if (!preElement) {
+                    preElement = document.createElement('pre');
+                    if (codeElement) {
+                        preElement.appendChild(codeElement);
+                    } else {
+                        codeElement = document.createElement('code');
+                        codeElement.textContent = element.textContent.trim();
+                        preElement.appendChild(codeElement);
+                    }
+                    element.innerHTML = '';
+                    element.appendChild(preElement);
+                }
+
+                if (!codeElement) {
+                    codeElement = document.createElement('code');
+                    codeElement.textContent = preElement.textContent;
+                    preElement.innerHTML = '';
+                    preElement.appendChild(codeElement);
+                }
+
+                // Add language classes for Prism.js
+                if (lang && lang !== 'text') {
+                    preElement.className = `language-${lang}`;
+                    codeElement.className = `language-${lang}`;
+                }
+
+                // Add language label if requested
+                if (showLang && lang && lang !== 'text') {
+                    const langLabel = document.createElement('div');
+                    langLabel.className = 'jp-lang-label';
+                    langLabel.textContent = lang.toUpperCase();
+                    element.appendChild(langLabel);
+                }
+
+                // Add copy button if requested
+                if (showCopy) {
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'jp-copy-btn';
+                    copyBtn.textContent = '📋 Copy';
+                    copyBtn.onclick = () => this._copyCode(copyBtn, codeElement);
+                    element.appendChild(copyBtn);
+                }
+
+                // Apply syntax highlighting if Prism is available
+                if (typeof Prism !== 'undefined' && lang && lang !== 'text') {
+                    Prism.highlightElement(codeElement);
+                }
+
+                element.dataset.jpSourceCodeInitialized = 'true';
+            },
+
+            /**
+             * Copy code content to clipboard
+             * @param {HTMLElement} button - The copy button
+             * @param {HTMLElement} codeElement - The code element
+             */
+            _copyCode: function(button, codeElement) {
+                jPulse.clipboard.copyFromElement(codeElement).then((success) => {
+                    if (success) {
+                        this._showCopySuccess(button);
+                    } else {
+                        this._showCopyError(button);
+                    }
+                });
+            },
+
+            /**
+             * Show copy error feedback
+             * @param {HTMLElement} button - The copy button
+             */
+            _showCopyError: function(button) {
+                button.textContent = '❌ Failed';
+                setTimeout(() => {
+                    button.textContent = '📋 Copy';
+                }, 2000);
+            },
+
+            /**
+             * Show copy success feedback
+             * @param {HTMLElement} button - The copy button
+             */
+            _showCopySuccess: function(button) {
+                button.textContent = '✅ Copied!';
+                button.classList.add('jp-copy-success');
+
+                setTimeout(() => {
+                    button.textContent = '📋 Copy';
+                    button.classList.remove('jp-copy-success');
+                }, 2000);
+            }
+        }
+    },
+
+    // ========================================
+    // jPulse.clipboard - Clipboard Utility
+    // ========================================
+
+    clipboard: {
+        /**
+         * Copy text to clipboard with automatic fallback
+         * @param {string} text - Text to copy
+         * @returns {Promise<boolean>} Promise that resolves to true if successful
+         */
+        copy: function(text) {
+            return new Promise((resolve) => {
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        resolve(true);
+                    }).catch(() => {
+                        // Fallback to legacy method
+                        resolve(this._fallbackCopy(text));
+                    });
+                } else {
+                    // Fallback for older browsers or non-HTTPS
+                    resolve(this._fallbackCopy(text));
+                }
+            });
+        },
+
+        /**
+         * Copy text from an element to clipboard
+         * @param {HTMLElement} element - Element containing text to copy
+         * @returns {Promise<boolean>} Promise that resolves to true if successful
+         */
+        copyFromElement: function(element) {
+            const text = element.textContent || element.innerText || '';
+            return this.copy(text);
+        },
+
+        /**
+         * Fallback copy method for older browsers
+         * @param {string} text - Text to copy
+         * @returns {boolean} True if successful
+         */
+        _fallbackCopy: function(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                return successful;
+            } catch (err) {
+                console.error('Copy failed:', err);
+                document.body.removeChild(textArea);
+                return false;
+            }
         }
     }
 };
+
+// Auto-initialize source code components when DOM is ready
+jPulse.dom.ready(() => {
+    jPulse.UI.sourceCode.initAll();
+});
 
 // EOF webapp/view/jpulse-common.js

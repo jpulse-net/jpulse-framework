@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / jPulse Examples / Forms
+ * @tagline         Form handling examples and patterns
+ * @description     Comprehensive examples of form handling, validation, and submission in jPulse
+ * @file            webapp/view/jpulse-examples/forms.shtml
+ * @version         0.8.0
+ * @release         2025-09-25
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{app.version}} - Form Examples</title>
+    {{file.include "jpulse-header.tmpl"}}
+</head>
+<body>
+    <div class="jp-main">
+        <!-- Navigation Tabs -->
+        {{file.include "jpulse-nav-tabs.tmpl" showExamplesNav=true mainNavActiveTab="jp-tab-examples" examplesNavActiveTab="jp-tab-forms"}}
+
+        <h1 class="jp-title">📋 Form Examples</h1>
+
+        <div class="jp-info-box">
+            <p>Learn how to create effective forms with validation, AJAX submission, and great user experience patterns in jPulse.</p>
+        </div>
+
+        <!-- Basic Form Validation -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Basic Form Validation</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="basic-form-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="basic-form-example">Example</div>
+                        <div class="jp-tab" data-tab-id="basic-form-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="basic-form-example" class="jp-panel jp-panel-active">
+                            <form id="basic-form" class="jp-form">
+                                <div class="jp-form-group">
+                                    <label for="name">Full Name *</label>
+                                    <input type="text" id="name" name="name" class="jp-form-input" required>
+                                    <div class="jp-form-error" id="name-error"></div>
+                                </div>
+
+                                <div class="jp-form-group">
+                                    <label for="email">Email Address *</label>
+                                    <input type="email" id="email" name="email" class="jp-form-input" required>
+                                    <div class="jp-form-error" id="email-error"></div>
+                                </div>
+
+                                <div class="jp-form-group">
+                                    <label for="phone">Phone Number</label>
+                                    <input type="tel" id="phone" name="phone" class="jp-form-input">
+                                    <div class="jp-form-error" id="phone-error"></div>
+                                </div>
+
+                                <div class="jp-form-group">
+                                    <label for="message">Message *</label>
+                                    <textarea id="message" name="message" class="jp-form-input" rows="4" required></textarea>
+                                    <div class="jp-form-error" id="message-error"></div>
+                                </div>
+
+                                <button type="submit" class="jp-btn jp-btn-primary">Submit Form</button>
+                            </form>
+                        </div>
+                        <div id="basic-form-source" class="jp-panel">
+                            <pre><code>&lt;form id="basic-form" class="jp-form"&gt;
+    &lt;div class="jp-form-group"&gt;
+        &lt;label for="name"&gt;Full Name *&lt;/label&gt;
+        &lt;input type="text" id="name" name="name" class="jp-form-input" required&gt;
+        &lt;div class="jp-form-error" id="name-error"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class="jp-form-group"&gt;
+        &lt;label for="email"&gt;Email Address *&lt;/label&gt;
+        &lt;input type="email" id="email" name="email" class="jp-form-input" required&gt;
+        &lt;div class="jp-form-error" id="email-error"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;button type="submit" class="jp-btn jp-btn-primary"&gt;Submit Form&lt;/button&gt;
+&lt;/form&gt;
+
+&lt;script&gt;
+document.getElementById('basic-form').addEventListener('submit', (e) =&gt; {
+    e.preventDefault();
+
+    // Clear previous errors
+    clearFormErrors();
+
+    // Validate form
+    let isValid = true;
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+
+    if (!name) {
+        showFieldError('name-error', 'Name is required');
+        isValid = false;
+    }
+
+    if (!email) {
+        showFieldError('email-error', 'Email is required');
+        isValid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+        showFieldError('email-error', 'Please enter a valid email');
+        isValid = false;
+    }
+
+    if (isValid) {
+        jPulse.showSlideDownSuccess('Form submitted successfully!');
+    }
+});
+&lt;/script&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AJAX Form Submission -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>AJAX Form Submission</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="ajax-form-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="ajax-form-example">Example</div>
+                        <div class="jp-tab" data-tab-id="ajax-form-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="ajax-form-example" class="jp-panel jp-panel-active">
+                            <form id="ajax-form" class="jp-form">
+                                <div class="jp-form-group">
+                                    <label for="ajax-email">Email Address</label>
+                                    <input type="email" id="ajax-email" name="email" class="jp-form-input" required>
+                                    <div class="jp-form-error" id="ajax-email-error"></div>
+                                </div>
+
+                                <div class="jp-form-group">
+                                    <label for="ajax-subject">Subject</label>
+                                    <input type="text" id="ajax-subject" name="subject" class="jp-form-input" required>
+                                    <div class="jp-form-error" id="ajax-subject-error"></div>
+                                </div>
+
+                                <div class="jp-form-group">
+                                    <label for="ajax-content">Message Content</label>
+                                    <textarea id="ajax-content" name="content" class="jp-form-input" rows="5" required></textarea>
+                                    <div class="jp-form-error" id="ajax-content-error"></div>
+                                </div>
+
+                                <button type="submit" class="jp-btn jp-btn-primary" id="ajax-submit-btn">
+                                    <span class="submit-text">Send Message</span>
+                                    <span class="loading-text" style="display: none;">Sending...</span>
+                                </button>
+                            </form>
+                        </div>
+                        <div id="ajax-form-source" class="jp-panel">
+                            <pre><code>&lt;form id="ajax-form" class="jp-form"&gt;
+    &lt;div class="jp-form-group"&gt;
+        &lt;label for="ajax-email"&gt;Email Address&lt;/label&gt;
+        &lt;input type="email" id="ajax-email" name="email" class="jp-form-input" required&gt;
+        &lt;div class="jp-form-error" id="ajax-email-error"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;button type="submit" class="jp-btn jp-btn-primary" id="ajax-submit-btn"&gt;
+        &lt;span class="submit-text"&gt;Send Message&lt;/span&gt;
+        &lt;span class="loading-text" style="display: none;"&gt;Sending...&lt;/span&gt;
+    &lt;/button&gt;
+&lt;/form&gt;
+
+&lt;script&gt;
+document.getElementById('ajax-form').addEventListener('submit', async (e) =&gt; {
+    e.preventDefault();
+
+    // Show loading state
+    const submitBtn = document.getElementById('ajax-submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.querySelector('.submit-text').style.display = 'none';
+    submitBtn.querySelector('.loading-text').style.display = 'inline';
+
+    try {
+        // Collect form data
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        // Simulate API call
+        const response = await jPulse.apiCall('/api/1/contact', 'POST', data);
+
+        if (response.success) {
+            jPulse.showSlideDownSuccess('Message sent successfully!');
+            e.target.reset(); // Clear form
+        } else {
+            jPulse.showSlideDownError('Failed to send message. Please try again.');
+        }
+    } catch (error) {
+        jPulse.showSlideDownError('Network error. Please check your connection.');
+    } finally {
+        // Reset button state
+        submitBtn.disabled = false;
+        submitBtn.querySelector('.submit-text').style.display = 'inline';
+        submitBtn.querySelector('.loading-text').style.display = 'none';
+    }
+});
+&lt;/script&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Multi-step Form -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Multi-step Form</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="multistep-form-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="multistep-form-example">Example</div>
+                        <div class="jp-tab" data-tab-id="multistep-form-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="multistep-form-example" class="jp-panel jp-panel-active">
+                            <!-- Progress indicator -->
+                            <div class="jp-progress-bar">
+                                <div class="jp-progress-step jp-progress-active" data-step="1">Personal Info</div>
+                                <div class="jp-progress-step" data-step="2">Preferences</div>
+                                <div class="jp-progress-step" data-step="3">Review</div>
+                            </div>
+
+                            <form id="multistep-form" class="jp-form">
+                                <!-- Step 1: Personal Information -->
+                                <div class="form-step" id="step-1">
+                                    <h4>Step 1: Personal Information</h4>
+                                    <div class="jp-form-group">
+                                        <label for="step1-name">Full Name</label>
+                                        <input type="text" id="step1-name" name="name" class="jp-form-input" required>
+                                    </div>
+                                    <div class="jp-form-group">
+                                        <label for="step1-email">Email</label>
+                                        <input type="email" id="step1-email" name="email" class="jp-form-input" required>
+                                    </div>
+                                    <div class="jp-form-group">
+                                        <label for="step1-age">Age</label>
+                                        <input type="number" id="step1-age" name="age" class="jp-form-input" min="18" max="120">
+                                    </div>
+                                    <button type="button" class="jp-btn jp-btn-primary" onclick="nextStep(2)">Next Step</button>
+                                </div>
+
+                                <!-- Step 2: Preferences -->
+                                <div class="form-step" id="step-2" style="display: none;">
+                                    <h4>Step 2: Preferences</h4>
+                                    <div class="jp-form-group">
+                                        <label for="step2-interests">Interests</label>
+                                        <select id="step2-interests" name="interests" class="jp-form-input" multiple>
+                                            <option value="technology">Technology</option>
+                                            <option value="design">Design</option>
+                                            <option value="business">Business</option>
+                                            <option value="marketing">Marketing</option>
+                                        </select>
+                                    </div>
+                                    <div class="jp-form-group">
+                                        <label>
+                                            <input type="checkbox" name="newsletter" value="yes"> Subscribe to newsletter
+                                        </label>
+                                    </div>
+                                    <div class="jp-btn-group">
+                                        <button type="button" class="jp-btn jp-btn-secondary" onclick="prevStep(1)">Previous</button>
+                                        <button type="button" class="jp-btn jp-btn-primary" onclick="nextStep(3)">Next Step</button>
+                                    </div>
+                                </div>
+
+                                <!-- Step 3: Review -->
+                                <div class="form-step" id="step-3" style="display: none;">
+                                    <h4>Step 3: Review & Submit</h4>
+                                    <div id="review-content" class="jp-info-box">
+                                        <!-- Review content will be populated by JavaScript -->
+                                    </div>
+                                    <div class="jp-btn-group">
+                                        <button type="button" class="jp-btn jp-btn-secondary" onclick="prevStep(2)">Previous</button>
+                                        <button type="submit" class="jp-btn jp-btn-success">Submit Application</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div id="multistep-form-source" class="jp-panel">
+                            <pre><code>&lt;!-- Progress indicator --&gt;
+&lt;div class="jp-progress-bar"&gt;
+    &lt;div class="jp-progress-step jp-progress-active" data-step="1"&gt;Personal Info&lt;/div&gt;
+    &lt;div class="jp-progress-step" data-step="2"&gt;Preferences&lt;/div&gt;
+    &lt;div class="jp-progress-step" data-step="3"&gt;Review&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;form id="multistep-form" class="jp-form"&gt;
+    &lt;div class="form-step" id="step-1"&gt;
+        &lt;h4&gt;Step 1: Personal Information&lt;/h4&gt;
+        &lt;!-- Form fields --&gt;
+        &lt;button type="button" onclick="nextStep(2)"&gt;Next Step&lt;/button&gt;
+    &lt;/div&gt;
+
+    &lt;div class="form-step" id="step-2" style="display: none;"&gt;
+        &lt;h4&gt;Step 2: Preferences&lt;/h4&gt;
+        &lt;!-- Form fields --&gt;
+        &lt;button type="button" onclick="prevStep(1)"&gt;Previous&lt;/button&gt;
+        &lt;button type="button" onclick="nextStep(3)"&gt;Next Step&lt;/button&gt;
+    &lt;/div&gt;
+&lt;/form&gt;
+
+&lt;script&gt;
+function nextStep(step) {
+    // Hide current step
+    document.querySelectorAll('.form-step').forEach(s =&gt; s.style.display = 'none');
+
+    // Show target step
+    document.getElementById(`step-${step}`).style.display = 'block';
+
+    // Update progress indicator
+    updateProgress(step);
+}
+
+function prevStep(step) {
+    nextStep(step);
+}
+
+function updateProgress(currentStep) {
+    document.querySelectorAll('.jp-progress-step').forEach((step, index) =&gt; {
+        if (index + 1 &lt;= currentStep) {
+            step.classList.add('jp-progress-active');
+        } else {
+            step.classList.remove('jp-progress-active');
+        }
+    });
+}
+&lt;/script&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Styling Guide -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Form Styling Guide</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="styling-guide-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="styling-example">Example</div>
+                        <div class="jp-tab" data-tab-id="styling-source">CSS Classes</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="styling-example" class="jp-panel jp-panel-active">
+                            <div class="jp-card-grid">
+                                <div class="jp-info-box">
+                                    <h4>Form Elements</h4>
+                                    <div class="jp-form-group">
+                                        <label>Text Input</label>
+                                        <input type="text" class="jp-form-input" placeholder="Enter text">
+                                    </div>
+                                    <div class="jp-form-group">
+                                        <label>Select Dropdown</label>
+                                        <select class="jp-form-input">
+                                            <option>Option 1</option>
+                                            <option>Option 2</option>
+                                        </select>
+                                    </div>
+                                    <div class="jp-form-group">
+                                        <label>Textarea</label>
+                                        <textarea class="jp-form-input" rows="3" placeholder="Enter message"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="jp-info-box">
+                                    <h4>Form States</h4>
+                                    <div class="jp-form-group">
+                                        <label>Normal State</label>
+                                        <input type="text" class="jp-form-input" value="Normal input">
+                                    </div>
+                                    <div class="jp-form-group">
+                                        <label>Error State</label>
+                                        <input type="text" class="jp-form-input jp-form-error-input" value="Invalid input">
+                                        <div class="jp-form-error">This field has an error</div>
+                                    </div>
+                                    <div class="jp-form-group">
+                                        <label>Disabled State</label>
+                                        <input type="text" class="jp-form-input" value="Disabled input" disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="styling-source" class="jp-panel">
+                            <pre><code>&lt;!-- Form Container --&gt;
+&lt;form class="jp-form"&gt;
+    &lt;!-- Form Group --&gt;
+    &lt;div class="jp-form-group"&gt;
+        &lt;label for="input-id"&gt;Field Label&lt;/label&gt;
+        &lt;input type="text" id="input-id" class="jp-form-input"&gt;
+        &lt;div class="jp-form-error" id="input-error"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+&lt;/form&gt;
+
+&lt;!-- CSS Classes Available --&gt;
+.jp-form              /* Form container */
+.jp-form-group        /* Field group wrapper */
+.jp-form-input        /* Input, select, textarea styling */
+.jp-form-error        /* Error message styling */
+.jp-form-error-input  /* Error state for inputs */
+
+&lt;!-- Button Groups --&gt;
+&lt;div class="jp-btn-group"&gt;
+    &lt;button class="jp-btn jp-btn-secondary"&gt;Cancel&lt;/button&gt;
+    &lt;button class="jp-btn jp-btn-primary"&gt;Submit&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;!-- Progress Bar --&gt;
+&lt;div class="jp-progress-bar"&gt;
+    &lt;div class="jp-progress-step jp-progress-active"&gt;Step 1&lt;/div&gt;
+    &lt;div class="jp-progress-step"&gt;Step 2&lt;/div&gt;
+&lt;/div&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        jPulse.dom.ready(() => {
+            // Initialize all tab interfaces
+            jPulse.UI.tabs.register('basic-form-tabs', {
+                slideAnimation: true
+            }, 'basic-form-example');
+
+            jPulse.UI.tabs.register('ajax-form-tabs', {
+                slideAnimation: true
+            }, 'ajax-form-example');
+
+            jPulse.UI.tabs.register('multistep-form-tabs', {
+                slideAnimation: true
+            }, 'multistep-form-example');
+
+            jPulse.UI.tabs.register('styling-guide-tabs', {
+                slideAnimation: true
+            }, 'styling-example');
+
+            // Basic form validation
+            document.getElementById('basic-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                // Clear previous errors
+                clearFormErrors(['name-error', 'email-error', 'phone-error', 'message-error']);
+
+                let isValid = true;
+                const name = document.getElementById('name').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const message = document.getElementById('message').value.trim();
+
+                if (!name) {
+                    showFieldError('name-error', 'Name is required');
+                    isValid = false;
+                }
+
+                if (!email) {
+                    showFieldError('email-error', 'Email is required');
+                    isValid = false;
+                } else if (!/\S+@\S+\.\S+/.test(email)) {
+                    showFieldError('email-error', 'Please enter a valid email address');
+                    isValid = false;
+                }
+
+                if (!message) {
+                    showFieldError('message-error', 'Message is required');
+                    isValid = false;
+                }
+
+                if (isValid) {
+                    jPulse.showSlideDownSuccess('Form submitted successfully! ✅');
+                    e.target.reset();
+                } else {
+                    jPulse.showSlideDownError('Please fix the errors above.');
+                }
+            });
+
+            // AJAX form submission
+            document.getElementById('ajax-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const submitBtn = document.getElementById('ajax-submit-btn');
+                const submitText = submitBtn.querySelector('.submit-text');
+                const loadingText = submitBtn.querySelector('.loading-text');
+
+                // Show loading state
+                submitBtn.disabled = true;
+                submitText.style.display = 'none';
+                loadingText.style.display = 'inline';
+
+                try {
+                    // Simulate API delay
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+
+                    // Simulate success
+                    jPulse.showSlideDownSuccess('Message sent successfully! 📧');
+                    e.target.reset();
+                } catch (error) {
+                    jPulse.showSlideDownError('Failed to send message. Please try again.');
+                } finally {
+                    // Reset button state
+                    submitBtn.disabled = false;
+                    submitText.style.display = 'inline';
+                    loadingText.style.display = 'none';
+                }
+            });
+
+            // Multi-step form submission
+            document.getElementById('multistep-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                jPulse.showSlideDownSuccess('Application submitted successfully! 🎉');
+                // Reset form to step 1
+                nextStep(1);
+                e.target.reset();
+            });
+        });
+
+        // Multi-step form functions
+        function nextStep(step) {
+            // Validate current step before proceeding
+            if (step > 1 && !validateCurrentStep(step - 1)) {
+                return;
+            }
+
+            // Hide all steps
+            document.querySelectorAll('.form-step').forEach(s => s.style.display = 'none');
+
+            // Show target step
+            document.getElementById(`step-${step}`).style.display = 'block';
+
+            // Update progress indicator
+            updateProgress(step);
+
+            // Populate review content if on step 3
+            if (step === 3) {
+                populateReview();
+            }
+        }
+
+        function prevStep(step) {
+            nextStep(step);
+        }
+
+        function updateProgress(currentStep) {
+            document.querySelectorAll('.jp-progress-step').forEach((step, index) => {
+                if (index + 1 <= currentStep) {
+                    step.classList.add('jp-progress-active');
+                } else {
+                    step.classList.remove('jp-progress-active');
+                }
+            });
+        }
+
+        function validateCurrentStep(step) {
+            if (step === 1) {
+                const name = document.getElementById('step1-name').value.trim();
+                const email = document.getElementById('step1-email').value.trim();
+
+                if (!name || !email) {
+                    jPulse.showSlideDownError('Please fill in all required fields.');
+                    return false;
+                }
+
+                if (!/\S+@\S+\.\S+/.test(email)) {
+                    jPulse.showSlideDownError('Please enter a valid email address.');
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function populateReview() {
+            const formData = new FormData(document.getElementById('multistep-form'));
+            const data = Object.fromEntries(formData.entries());
+
+            const reviewContent = document.getElementById('review-content');
+            reviewContent.innerHTML = `
+                <h5>Please review your information:</h5>
+                <p><strong>Name:</strong> ${data.name || 'Not provided'}</p>
+                <p><strong>Email:</strong> ${data.email || 'Not provided'}</p>
+                <p><strong>Age:</strong> ${data.age || 'Not provided'}</p>
+                <p><strong>Interests:</strong> ${data.interests || 'None selected'}</p>
+                <p><strong>Newsletter:</strong> ${data.newsletter ? 'Yes' : 'No'}</p>
+            `;
+        }
+
+        // Helper functions
+        function clearFormErrors(errorIds) {
+            errorIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = '';
+            });
+        }
+
+        function showFieldError(errorId, message) {
+            const element = document.getElementById(errorId);
+            if (element) element.textContent = message;
+        }
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

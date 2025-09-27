@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / jPulse Examples / UI Widgets
+ * @tagline         Interactive UI widget examples and demonstrations
+ * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
+ * @file            webapp/view/jpulse-examples/ui-widgets.shtml
+ * @version         0.8.0
+ * @release         2025-09-25
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{app.version}} - UI Widget Examples</title>
+    {{file.include "jpulse-header.tmpl"}}
+</head>
+<body>
+    <div class="jp-main">
+        <!-- Navigation Tabs -->
+        {{file.include "jpulse-nav-tabs.tmpl" showExamplesNav=true mainNavActiveTab="jp-tab-examples" examplesNavActiveTab="jp-tab-ui-widgets"}}
+
+        <h1 class="jp-title">🎨 UI Widget Examples</h1>
+
+        <div class="jp-info-box">
+            <p>jPulse includes a comprehensive set of UI widgets for creating interactive user interfaces. All widgets follow consistent design patterns and provide clean APIs.</p>
+        </div>
+
+        <!-- Tab Interface Widget -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Tab Interface Widget (v0.7.21+)</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="tabs-demo-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="tabs-example">Example</div>
+                        <div class="jp-tab" data-tab-id="tabs-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="tabs-example" class="jp-panel jp-panel-active">
+                            <p>Here's a live demonstration of the tab interface widget:</p>
+
+                            <!-- Demo tab interface -->
+                            <div id="demo-tabs" class="jp-tabs-panel">
+                                <div class="jp-tabs-list">
+                                    <div class="jp-tab jp-tab-active" data-tab-id="tab1">Dashboard</div>
+                                    <div class="jp-tab" data-tab-id="tab2">Analytics</div>
+                                    <div class="jp-tab" data-tab-id="tab3">Settings</div>
+                                </div>
+                                <div class="jp-tabs-panels">
+                                    <div id="tab1" class="jp-panel jp-panel-active">
+                                        <h4>📊 Dashboard Panel</h4>
+                                        <p>This is the dashboard content with key metrics and overview information.</p>
+                                        <div class="jp-info-box">
+                                            <p>Dashboard features:</p>
+                                            <ul>
+                                                <li>Real-time data updates</li>
+                                                <li>Interactive charts</li>
+                                                <li>Quick action buttons</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div id="tab2" class="jp-panel">
+                                        <h4>📈 Analytics Panel</h4>
+                                        <p>Detailed analytics and reporting tools for data analysis.</p>
+                                        <div class="jp-warning-box">
+                                            <p>Analytics tools:</p>
+                                            <ul>
+                                                <li>Custom date ranges</li>
+                                                <li>Export capabilities</li>
+                                                <li>Trend analysis</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div id="tab3" class="jp-panel">
+                                        <h4>⚙️ Settings Panel</h4>
+                                        <p>Configuration options and preferences management.</p>
+                                        <div class="jp-info-box">
+                                            <p>Settings categories:</p>
+                                            <ul>
+                                                <li>User preferences</li>
+                                                <li>Notification settings</li>
+                                                <li>Security options</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button id="testTabsBtn" class="jp-btn jp-btn-primary" style="margin-top: 15px;">Test Programmatic Control</button>
+                        </div>
+                        <div id="tabs-source" class="jp-panel">
+                            <pre><code>&lt;!-- HTML Structure --&gt;
+&lt;div id="demo-tabs" class="jp-tabs-panel"&gt;
+    &lt;div class="jp-tabs-list"&gt;
+        &lt;div class="jp-tab jp-tab-active" data-tab-id="tab1"&gt;Dashboard&lt;/div&gt;
+        &lt;div class="jp-tab" data-tab-id="tab2"&gt;Analytics&lt;/div&gt;
+        &lt;div class="jp-tab" data-tab-id="tab3"&gt;Settings&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="jp-tabs-panels"&gt;
+        &lt;div id="tab1" class="jp-panel jp-panel-active"&gt;
+            &lt;h4&gt;Dashboard Panel&lt;/h4&gt;
+            &lt;p&gt;Dashboard content...&lt;/p&gt;
+        &lt;/div&gt;
+        &lt;div id="tab2" class="jp-panel"&gt;
+            &lt;h4&gt;Analytics Panel&lt;/h4&gt;
+            &lt;p&gt;Analytics content...&lt;/p&gt;
+        &lt;/div&gt;
+        &lt;div id="tab3" class="jp-panel"&gt;
+            &lt;h4&gt;Settings Panel&lt;/h4&gt;
+            &lt;p&gt;Settings content...&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- JavaScript Initialization --&gt;
+&lt;script&gt;
+jPulse.dom.ready(() =&gt; {
+    // Initialize tab interface
+    const demoTabs = jPulse.UI.tabs.register('demo-tabs', {
+        slideAnimation: true,
+        onTabChange: (activeTab, clickedTab) =&gt; {
+            console.log(`Tab changed to: ${activeTab}`);
+        }
+    }, 'tab1');
+
+    // Programmatic control
+    document.getElementById('testTabsBtn').addEventListener('click', () =&gt; {
+        demoTabs.activateTab('tab2');
+    });
+});
+&lt;/script&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dialog Widget -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Dialog Widget</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="dialog-demo-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="dialog-example">Example</div>
+                        <div class="jp-tab" data-tab-id="dialog-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="dialog-example" class="jp-panel jp-panel-active">
+                            <p>jPulse provides several types of dialog widgets:</p>
+
+                            <div class="jp-btn-group">
+                                <button id="alertBtn" class="jp-btn jp-btn-danger">Alert Dialog</button>
+                                <button id="infoBtn" class="jp-btn jp-btn-primary">Info Dialog</button>
+                                <button id="confirmBtn" class="jp-btn jp-btn-warning">Confirm Dialog</button>
+                                <button id="customBtn" class="jp-btn jp-btn-success">Custom Dialog</button>
+                            </div>
+                        </div>
+                        <div id="dialog-source" class="jp-panel">
+                            <pre><code>&lt;!-- HTML Buttons --&gt;
+&lt;button id="alertBtn" class="jp-btn jp-btn-danger"&gt;Alert Dialog&lt;/button&gt;
+&lt;button id="infoBtn" class="jp-btn jp-btn-primary"&gt;Info Dialog&lt;/button&gt;
+&lt;button id="confirmBtn" class="jp-btn jp-btn-warning"&gt;Confirm Dialog&lt;/button&gt;
+
+&lt;!-- JavaScript --&gt;
+&lt;script&gt;
+// Alert dialog
+document.getElementById('alertBtn').addEventListener('click', async () =&gt; {
+    await jPulse.UI.alertDialog('This is an alert message!');
+});
+
+// Info dialog
+document.getElementById('infoBtn').addEventListener('click', async () =&gt; {
+    await jPulse.UI.infoDialog('This is an informational message.');
+});
+
+// Confirm dialog
+document.getElementById('confirmBtn').addEventListener('click', async () =&gt; {
+    const result = await jPulse.UI.confirmDialog({
+        title: 'Confirm Action',
+        message: 'Are you sure you want to proceed?',
+        buttons: {
+            'Cancel': () =&gt; false,
+            'Yes, Continue': () =&gt; true
+        }
+    });
+
+    if (result.confirmed) {
+        jPulse.showSlideDownSuccess('Action confirmed!');
+    }
+});
+
+// Custom dialog with HTML content
+document.getElementById('customBtn').addEventListener('click', async () =&gt; {
+    await jPulse.UI.infoDialog(
+        '&lt;p&gt;This dialog supports &lt;b&gt;HTML content&lt;/b&gt;:&lt;/p&gt;' +
+        '&lt;ul&gt;&lt;li&gt;Lists&lt;/li&gt;&lt;li&gt;Formatting&lt;/li&gt;&lt;li&gt;Links&lt;/li&gt;&lt;/ul&gt;',
+        {
+            title: 'Custom Content',
+            minWidth: 400,
+            minHeight: 200
+        }
+    );
+});
+&lt;/script&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accordion Widget -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Accordion Widget</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="accordion-demo-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="accordion-example">Example</div>
+                        <div class="jp-tab" data-tab-id="accordion-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="accordion-example" class="jp-panel jp-panel-active">
+                            <p>Accordion widgets provide collapsible content sections:</p>
+
+                            <div id="demo-accordion" class="jp-accordion">
+                                <div class="jp-accordion-section">
+                                    <h4>Getting Started</h4>
+                                    <div class="jp-accordion-content">
+                                        <p>This section contains information about getting started with jPulse Framework.</p>
+                                        <ul>
+                                            <li>Installation instructions</li>
+                                            <li>Basic configuration</li>
+                                            <li>First steps tutorial</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="jp-accordion-section">
+                                    <h4>Advanced Features</h4>
+                                    <div class="jp-accordion-content">
+                                        <p>Learn about advanced jPulse features and capabilities.</p>
+                                        <div class="jp-info-box">
+                                            <p>Advanced topics include:</p>
+                                            <ul>
+                                                <li>Custom middleware development</li>
+                                                <li>Database integration patterns</li>
+                                                <li>API design best practices</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="jp-accordion-section">
+                                    <h4>Troubleshooting</h4>
+                                    <div class="jp-accordion-content">
+                                        <p>Common issues and their solutions.</p>
+                                        <div class="jp-warning-box">
+                                            <p><strong>Common Problems:</strong></p>
+                                            <ul>
+                                                <li>Port conflicts during development</li>
+                                                <li>Database connection issues</li>
+                                                <li>Template rendering problems</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button id="testAccordionBtn" class="jp-btn jp-btn-secondary" style="margin-top: 15px;">Test Programmatic Control</button>
+                        </div>
+                        <div id="accordion-source" class="jp-panel">
+                            <pre><code>&lt;!-- HTML Structure --&gt;
+&lt;div id="demo-accordion" class="jp-accordion"&gt;
+    &lt;div class="jp-accordion-section"&gt;
+        &lt;h4&gt;Getting Started&lt;/h4&gt;
+        &lt;div class="jp-accordion-content"&gt;
+            &lt;p&gt;Content for getting started section...&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="jp-accordion-section"&gt;
+        &lt;h4&gt;Advanced Features&lt;/h4&gt;
+        &lt;div class="jp-accordion-content"&gt;
+            &lt;p&gt;Content for advanced features section...&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- JavaScript Initialization --&gt;
+&lt;script&gt;
+jPulse.dom.ready(() =&gt; {
+    // Initialize accordion
+    const demoAccordion = jPulse.UI.accordion.register('demo-accordion', {
+        exclusive: true,
+        initOpen: 0,
+        onSectionChange: (openIndex, clickedIndex) =&gt; {
+            console.log(`Accordion section ${clickedIndex} clicked`);
+        }
+    });
+
+    // Programmatic control
+    document.getElementById('testAccordionBtn').addEventListener('click', () =&gt; {
+        demoAccordion.openSection(1);
+    });
+});
+&lt;/script&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Validation Helpers -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Form Validation Helpers</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="validation-demo-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="validation-example">Example</div>
+                        <div class="jp-tab" data-tab-id="validation-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="validation-example" class="jp-panel jp-panel-active">
+                            <p>jPulse provides form validation helpers for common scenarios:</p>
+
+                            <form id="demo-form" class="jp-form">
+                                <div class="jp-form-group">
+                                    <label for="email">Email Address:</label>
+                                    <input type="email" id="email" name="email" class="jp-form-input" required>
+                                    <div class="jp-form-error" id="email-error"></div>
+                                </div>
+
+                                <div class="jp-form-group">
+                                    <label for="password">Password:</label>
+                                    <input type="password" id="password" name="password" class="jp-form-input" required>
+                                    <div class="jp-form-error" id="password-error"></div>
+                                </div>
+
+                                <button type="submit" class="jp-btn jp-btn-primary">Validate Form</button>
+                            </form>
+                        </div>
+                        <div id="validation-source" class="jp-panel">
+                            <pre><code>&lt;!-- HTML Form --&gt;
+&lt;form id="demo-form" class="jp-form"&gt;
+    &lt;div class="jp-form-group"&gt;
+        &lt;label for="email"&gt;Email Address:&lt;/label&gt;
+        &lt;input type="email" id="email" name="email" class="jp-form-input" required&gt;
+        &lt;div class="jp-form-error" id="email-error"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;button type="submit" class="jp-btn jp-btn-primary"&gt;Validate Form&lt;/button&gt;
+&lt;/form&gt;
+
+&lt;!-- JavaScript Validation --&gt;
+&lt;script&gt;
+document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; {
+    e.preventDefault();
+
+    // Clear previous errors
+    jPulse.form.clearErrors('demo-form');
+
+    // Validate form
+    const isValid = jPulse.form.validate('demo-form', {
+        email: {
+            required: true,
+            email: true
+        },
+        password: {
+            required: true,
+            minLength: 6
+        }
+    });
+
+    if (isValid) {
+        jPulse.showSlideDownSuccess('Form validation passed!');
+    } else {
+        jPulse.showSlideDownError('Please fix the errors above.');
+    }
+});
+&lt;/script&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification System -->
+        <div class="jp-card">
+            <div class="jp-card-header">
+                <h3>Notification System</h3>
+            </div>
+            <div class="jp-card-body">
+                <div id="notification-demo-tabs" class="jp-tabs-panel">
+                    <div class="jp-tabs-list">
+                        <div class="jp-tab jp-tab-active" data-tab-id="notification-example">Example</div>
+                        <div class="jp-tab" data-tab-id="notification-source">Source Code</div>
+                    </div>
+                    <div class="jp-tabs-panels">
+                        <div id="notification-example" class="jp-panel jp-panel-active">
+                            <p>Show different types of notifications to users:</p>
+
+                            <div class="jp-btn-group">
+                                <button id="successBtn" class="jp-btn jp-btn-success">Success Message</button>
+                                <button id="errorBtn" class="jp-btn jp-btn-danger">Error Message</button>
+                                <button id="warningBtn" class="jp-btn jp-btn-warning">Warning Message</button>
+                                <button id="infoNotifyBtn" class="jp-btn jp-btn-primary">Info Message</button>
+                            </div>
+                        </div>
+                        <div id="notification-source" class="jp-panel">
+                            <pre><code>&lt;!-- JavaScript Notifications --&gt;
+&lt;script&gt;
+// Success notification
+jPulse.showSlideDownSuccess('Operation completed successfully!');
+
+// Error notification
+jPulse.showSlideDownError('An error occurred while processing your request.');
+
+// Warning notification
+jPulse.showSlideDownWarning('Please review your input before continuing.');
+
+// Info notification
+jPulse.showSlideDownInfo('Here is some helpful information.');
+
+// Custom notification with options
+jPulse.showSlideDown('Custom message', 'info', {
+    duration: 5000,
+    closable: true
+});
+&lt;/script&gt;</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        jPulse.dom.ready(() => {
+            // Initialize all tab interfaces
+            jPulse.UI.tabs.register('tabs-demo-tabs', {
+                slideAnimation: true
+            }, 'tabs-example');
+
+            jPulse.UI.tabs.register('dialog-demo-tabs', {
+                slideAnimation: true
+            }, 'dialog-example');
+
+            jPulse.UI.tabs.register('accordion-demo-tabs', {
+                slideAnimation: true
+            }, 'accordion-example');
+
+            jPulse.UI.tabs.register('validation-demo-tabs', {
+                slideAnimation: true
+            }, 'validation-example');
+
+            jPulse.UI.tabs.register('notification-demo-tabs', {
+                slideAnimation: true
+            }, 'notification-example');
+
+            // Initialize demo tab interface
+            const demoTabs = jPulse.UI.tabs.register('demo-tabs', {
+                slideAnimation: true,
+                onTabChange: (activeTab, clickedTab) => {
+                    console.log(`Demo tab changed to: ${activeTab}`);
+                }
+            }, 'tab1');
+
+            // Initialize demo accordion
+            const demoAccordion = jPulse.UI.accordion.register('demo-accordion', {
+                exclusive: true,
+                initOpen: 0,
+                onSectionChange: (openIndex, clickedIndex) => {
+                    console.log(`Demo accordion section ${clickedIndex} clicked`);
+                }
+            });
+
+            // Tab programmatic control
+            let tabStep = 0;
+            document.getElementById('testTabsBtn').addEventListener('click', () => {
+                const tabs = ['tab1', 'tab2', 'tab3'];
+                tabStep = (tabStep + 1) % tabs.length;
+                demoTabs.activateTab(tabs[tabStep]);
+            });
+
+            // Accordion programmatic control
+            let accordionStep = 0;
+            document.getElementById('testAccordionBtn').addEventListener('click', () => {
+                accordionStep = (accordionStep + 1) % 3;
+                if (accordionStep === 0) {
+                    demoAccordion.closeAll();
+                } else {
+                    demoAccordion.openSection(accordionStep - 1);
+                }
+            });
+
+            // Dialog examples
+            document.getElementById('alertBtn').addEventListener('click', async () => {
+                await jPulse.UI.alertDialog('This is an alert dialog with important information!');
+            });
+
+            document.getElementById('infoBtn').addEventListener('click', async () => {
+                await jPulse.UI.infoDialog('This is an informational dialog with helpful details.');
+            });
+
+            document.getElementById('confirmBtn').addEventListener('click', async () => {
+                const result = await jPulse.UI.confirmDialog({
+                    title: 'Confirm Action',
+                    message: 'Are you sure you want to proceed with this action?',
+                    buttons: {
+                        'Cancel': () => false,
+                        'Yes, Continue': () => true
+                    }
+                });
+
+                if (result.confirmed) {
+                    jPulse.showSlideDownSuccess('Action confirmed!');
+                } else {
+                    jPulse.showSlideDownInfo('Action cancelled.');
+                }
+            });
+
+            document.getElementById('customBtn').addEventListener('click', async () => {
+                await jPulse.UI.infoDialog(
+                    '<p>This dialog supports <b>HTML content</b>:</p>' +
+                    '<ul><li>Formatted text</li><li>Lists and bullets</li><li>Custom styling</li></ul>',
+                    {
+                        title: 'Custom HTML Content',
+                        minWidth: 450,
+                        minHeight: 250
+                    }
+                );
+            });
+
+            // Form validation example
+            document.getElementById('demo-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                // Clear previous errors
+                document.getElementById('email-error').textContent = '';
+                document.getElementById('password-error').textContent = '';
+
+                let isValid = true;
+
+                // Email validation
+                if (!email) {
+                    document.getElementById('email-error').textContent = 'Email is required';
+                    isValid = false;
+                } else if (!/\S+@\S+\.\S+/.test(email)) {
+                    document.getElementById('email-error').textContent = 'Please enter a valid email address';
+                    isValid = false;
+                }
+
+                // Password validation
+                if (!password) {
+                    document.getElementById('password-error').textContent = 'Password is required';
+                    isValid = false;
+                } else if (password.length < 6) {
+                    document.getElementById('password-error').textContent = 'Password must be at least 6 characters';
+                    isValid = false;
+                }
+
+                if (isValid) {
+                    jPulse.showSlideDownSuccess('Form validation passed! ✅');
+                } else {
+                    jPulse.showSlideDownError('Please fix the errors above.');
+                }
+            });
+
+            // Notification examples
+            document.getElementById('successBtn').addEventListener('click', () => {
+                jPulse.showSlideDownSuccess('Operation completed successfully! 🎉');
+            });
+
+            document.getElementById('errorBtn').addEventListener('click', () => {
+                jPulse.showSlideDownError('An error occurred while processing your request. ❌');
+            });
+
+            document.getElementById('warningBtn').addEventListener('click', () => {
+                jPulse.showSlideDownWarning('Please review your input before continuing. ⚠️');
+            });
+
+            document.getElementById('infoNotifyBtn').addEventListener('click', () => {
+                jPulse.showSlideDownInfo('Here is some helpful information for you. ℹ️');
+            });
+        });
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

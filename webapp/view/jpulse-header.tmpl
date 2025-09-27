@@ -1,3 +1,16 @@
+<!--
+ * @name            jPulse Framework / WebApp / View / Header Template
+ * @tagline         Header template for jPulse pages
+ * @description     Common header included in all jPulse pages
+ * @file            webapp/view/jpulse-nav-tabs.tmpl
+ * @version         0.8.0
+ * @release         2025-09-25
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+-->
 <!-- Favicon and manifest links -->
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -7,6 +20,9 @@
 
 <!-- jPulse Component Library - Framework Core -->
 <link rel="stylesheet" href="/jpulse-common.css?t={{file.timestamp "jpulse-common.css"}}">
+
+<!-- Prism.js Syntax Highlighting -->
+<link rel="stylesheet" href="/common/prism/prism.css">
 
 <!-- Site-Specific Styles (W-047) -->
 {{#if file.exists "site-common.css"}}
@@ -33,6 +49,13 @@
         });
     });
 </script>
+
+<!-- Prism.js Syntax Highlighting -->
+<script src="/common/prism/prism.js"></script>
+<script src="/common/prism/prism-markup.js"></script>
+<script src="/common/prism/prism-css.js"></script>
+<script src="/common/prism/prism-javascript.js"></script>
+<script src="/common/prism/prism-json.js"></script>
 
 <!-- jPulse Common Utilities -->
 <script src="/jpulse-common.js?t={{file.timestamp "jpulse-common.js"}}"></script>

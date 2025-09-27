@@ -1,0 +1,30 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="scale(0.50)">
+    <!-- Server/Database -->
+    <ellipse cx="80" cy="60" rx="60" ry="20" fill="white" stroke="white" stroke-width="4"/>
+    <rect x="20" y="60" width="120" height="40" fill="white"/>
+    <ellipse cx="80" cy="100" rx="60" ry="20" fill="white" stroke="white" stroke-width="4"/>
+    <!-- API connection lines -->
+    <path d="M140 80 L180 120" stroke="#007acc" stroke-width="4"/>
+    <path d="M140 80 L180 40" stroke="#007acc" stroke-width="4"/>
+    <!-- Client devices -->
+    <!-- Desktop -->
+    <rect x="170" y="110" width="40" height="25" rx="4" fill="white" stroke="#007acc" stroke-width="3"/>
+    <rect x="175" y="115" width="30" height="15" fill="#007acc"/>
+    <rect x="185" y="135" width="10" height="8" fill="white" stroke="#007acc" stroke-width="2"/>
+    <!-- Mobile -->
+    <rect x="170" y="30" width="25" height="40" rx="4" fill="white" stroke="#007acc" stroke-width="3"/>
+    <rect x="175" y="38" width="15" height="24" fill="#007acc"/>
+    <!-- Data flow indicators -->
+    <circle cx="160" cy="80" r="4" fill="#007acc"/>
+    <circle cx="150" cy="85" r="3" fill="#007acc" opacity="0.7"/>
+    <circle cx="140" cy="90" r="2" fill="#007acc" opacity="0.5"/>
+    <!-- JSON/Data representation -->
+    <rect x="30" y="70" width="8" height="8" rx="1" fill="#007acc"/>
+    <rect x="42" y="70" width="12" height="4" fill="white" opacity="0.7"/>
+    <rect x="42" y="76" width="8" height="4" fill="white" opacity="0.7"/>
+    <rect x="30" y="85" width="8" height="8" rx="1" fill="#007acc"/>
+    <rect x="42" y="85" width="15" height="4" fill="white" opacity="0.7"/>
+    <rect x="42" y="91" width="10" height="4" fill="white" opacity="0.7"/>
+  </g>
+</svg>

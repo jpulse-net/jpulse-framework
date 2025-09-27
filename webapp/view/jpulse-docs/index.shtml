@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{app.version}} - {{app.name}} {{i18n.view.jpulse.documentation}}</title>
+    <title>{{app.version}} - {{app.name}} {{i18n.view.jpulseDocs.documentation}}</title>
     {{file.include "jpulse-header.tmpl"}}
     <style>
     </style>
@@ -24,9 +24,11 @@
 <body>
 
     <div class="jp-main">
+        <!-- Navigation Tabs -->
+        {{file.include "jpulse-nav-tabs.tmpl" mainNavActiveTab="jp-tab-docs"}}
         <div class="jp-docs-container">
             <nav class="jp-docs-nav local-docs-nav">
-                <h3>{{i18n.view.jpulse.documentation}}</h3>
+                <h3>{{i18n.view.jpulseDocs.documentation}}</h3>
                 <div class="jp-docs-nav-wrapper">
                     <ul id="docs-navigation">
                         <!-- Populated by JavaScript -->

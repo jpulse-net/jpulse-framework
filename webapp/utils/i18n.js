@@ -343,6 +343,46 @@ class I18n {
 
         return result;
     }
+
+    /**
+     * Process only i18n handlebars in content, leaving other handlebars untouched
+     * This is used to preprocess i18n translations before main template processing
+     * @param {object} req - Express request object (for user language preference)
+     * @param {string} content - Template content with handlebars
+     * @returns {string} Content with i18n handlebars processed
+     */
+    processI18nHandlebars(req, content) {
+        // Only process {{i18n.}} and {{@i18n.}} handlebars
+        return content.replace(/\{\{(@?i18n\.[^}]+)\}\}/g, (match, expression) => {
+            try {
+                // Remove @ prefix if present (for escaped handlebars)
+                const cleanExpression = expression.replace(/^@/, '');
+
+                // Parse i18n key and parameters
+                const parts = cleanExpression.split(/\s+/);
+                const key = parts[0].replace('i18n.', '');
+
+                // Extract parameters if any
+                let params = {};
+                if (parts.length > 1) {
+                    // Simple parameter parsing - could be enhanced if needed
+                    const paramString = parts.slice(1).join(' ');
+                    try {
+                        params = JSON.parse(paramString);
+                    } catch (e) {
+                        // If JSON parsing fails, use empty params
+                        params = {};
+                    }
+                }
+
+                // Use the translate method - this handles user language preferences automatically
+                return this.translate(req, key, params);
+            } catch (error) {
+                // Return original match if translation fails
+                return match;
+            }
+        });
+    }
 }
 
 let i18nInstance = null;
@@ -376,6 +416,7 @@ export async function initialize() {
 
     return i18nInstance;
 }
+
 
 /**
  * Get the initialized i18n instance

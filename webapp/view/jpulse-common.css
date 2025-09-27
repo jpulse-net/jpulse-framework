@@ -2133,12 +2133,19 @@ Example site customizations:
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Markdown Content Styling */
 .jp-markdown-content {
     line-height: 1.6;
     font-size: 16px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .jp-markdown-content h1 {
@@ -2178,6 +2185,7 @@ Example site customizations:
     box-sizing: border-box;
     word-wrap: normal;
     word-break: normal;
+    min-width: 0;
 }
 
 /* Enhanced pre styling for example pages */
@@ -2212,6 +2220,13 @@ Example site customizations:
     background: transparent;
     padding: 0;
     font-size: 14px;
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: pre;
+    word-wrap: normal;
+    word-break: normal;
 }
 
 .jp-markdown-content p {
@@ -2265,7 +2280,9 @@ Example site customizations:
     border: 1px solid #e0e0e0;
     border-radius: 4px;
     margin: 0 0 1.5rem 0;
-    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .jp-source-code pre {
@@ -2274,7 +2291,6 @@ Example site customizations:
     background: transparent;
     border: none;
     font-family: 'Courier New', Courier, monospace;
-    font-size: 0.9rem;
     line-height: 1.4;
     overflow-x: auto;
     overflow-y: hidden;
@@ -2291,6 +2307,17 @@ Example site customizations:
     padding: 0;
     border: none;
     font-family: inherit;
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: pre;
+    word-wrap: normal;
+    word-break: normal;
+}
+
+.jp-source-code pre code {
+    font-size: 10pt;
 }
 
 .jp-source-code .jp-copy-btn {
@@ -2345,6 +2372,13 @@ Example site customizations:
 
 .jp-source-code code[class*="language-"] {
     background: transparent !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    white-space: pre !important;
+    word-wrap: normal !important;
+    word-break: normal !important;
 }
 
 /* Override any Prism.js default margins */

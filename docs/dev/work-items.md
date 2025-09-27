@@ -983,12 +983,16 @@ finishing up work item: W-0...
 
 ### Misc
 - status: 🚧 IN_PROGRESS
+npm test
 git add .
 git commit -F commit-message.txt
-git push
+git tag v0.8.0
+git push origin main --tags
 
 git commit --amend -F commit-message.txt
 git push --force-with-lease origin main
+
+
 
 ### Port 8080 in use
 

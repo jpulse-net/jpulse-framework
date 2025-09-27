@@ -439,20 +439,21 @@ function processHandlebars(content, context, req, depth = 0) {
             }
         }
 
-        // Get template content (use smart caching with context)
+        // Get template content (cache unexpanded content, apply context on each use)
         let content;
         const hasContextVars = Object.keys(parsedArgs).some(key => key !== '_helper' && key !== '_target');
 
-        if (!hasContextVars && global.appConfig.controller.view.cacheIncludeFiles && cache.includeFiles[includePath]) {
-            LogController.logInfo(req, 'view.load', `Include cache hit for ${includePath}`);
+        if (global.appConfig.controller.view.cacheIncludeFiles && cache.includeFiles[includePath]) {
+            // Cache hit: get cached unexpanded content
+            LogController.logInfo(req, 'view.load', `Include cache hit for ${includePath}${hasContextVars ? ' (with context vars)' : ''}`);
             content = cache.includeFiles[includePath];
         } else {
-            // Read file and remove header comments with @name attribute
+            // Cache miss: read file and cache unexpanded content
             content = fs.readFileSync(fullPath, 'utf8').replace(/<!--.*? \@name .*?-->/gs, '');
             LogController.logInfo(req, 'view.load', `Loaded ${includePath}${hasContextVars ? ' (with context vars)' : ''}`);
 
-            // Only cache templates without context variables
-            if (!hasContextVars && global.appConfig.controller.view.cacheIncludeFiles) {
+            // Cache the unexpanded template content (always cache if caching enabled)
+            if (global.appConfig.controller.view.cacheIncludeFiles) {
                 cache.includeFiles[includePath] = content;
             }
         }

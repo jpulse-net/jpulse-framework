@@ -401,17 +401,34 @@ body {
 
 /* Button Components */
 .jp-btn {
-    padding: 8px 16px;
-    border-radius: 4px;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    text-decoration: none;
     display: inline-block;
-    transition: all 0.2s ease;
-    text-align: center;
-    line-height: 1.4;
+    padding: 8px 16px;
+    margin: 2px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 14px;
     font-weight: 500;
+    line-height: 1.4;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #f8f9fa;
+    color: #333;
+}
+
+.jp-btn:hover {
+    background: #e9ecef;
+    text-decoration: none;
+}
+
+.jp-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+.jp-btn:active {
+    transform: translateY(1px);
 }
 
 .jp-btn:disabled {
@@ -420,40 +437,65 @@ body {
     pointer-events: none;
 }
 
+/* Button Variants */
 .jp-btn-primary {
-    background: #007acc;
+    background: var(--jp-color-primary, #007acc);
     color: white;
+    border-color: var(--jp-color-primary, #007acc);
 }
 
 .jp-btn-primary:hover:not(:disabled) {
-    background: #005999;
+    background: #0056b3;
+    border-color: #0056b3;
+    color: white;
 }
 
 .jp-btn-secondary {
-    background: #6c757d;
+    background: var(--jp-color-secondary, #6c757d);
     color: white;
+    border-color: var(--jp-color-secondary, #6c757d);
 }
 
 .jp-btn-secondary:hover:not(:disabled) {
     background: #545b62;
+    border-color: #545b62;
+    color: white;
 }
 
 .jp-btn-success {
-    background: #28a745;
+    background: var(--jp-color-success, #28a745);
     color: white;
+    border-color: var(--jp-color-success, #28a745);
 }
 
 .jp-btn-success:hover:not(:disabled) {
-    background: #218838;
+    background: #1e7e34;
+    border-color: #1e7e34;
+    color: white;
 }
 
 .jp-btn-danger {
-    background: #dc3545;
+    background: var(--jp-color-danger, #dc3545);
     color: white;
+    border-color: var(--jp-color-danger, #dc3545);
 }
 
 .jp-btn-danger:hover:not(:disabled) {
     background: #c82333;
+    border-color: #c82333;
+    color: white;
+}
+
+.jp-btn-warning {
+    background: var(--jp-color-warning, #ffc107);
+    color: #212529;
+    border-color: var(--jp-color-warning, #ffc107);
+}
+
+.jp-btn-warning:hover:not(:disabled) {
+    background: #e0a800;
+    border-color: #e0a800;
+    color: #212529;
 }
 
 .jp-btn-outline {
@@ -467,6 +509,7 @@ body {
     color: white;
 }
 
+/* Button Loading State */
 .jp-btn-loading {
     position: relative;
     color: transparent !important;
@@ -491,6 +534,162 @@ body {
 @keyframes jp-btn-spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* Button Groups */
+.jp-btn-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.jp-btn-group .jp-btn {
+    flex: 0 0 auto;
+    margin: 2px;
+}
+
+.jp-btn-group.jp-btn-group-start {
+    justify-content: flex-start;
+}
+
+.jp-btn-group.jp-btn-group-end {
+    justify-content: flex-end;
+}
+
+.jp-btn-group.jp-btn-group-equal .jp-btn {
+    flex: 1;
+    min-width: 120px;
+}
+
+/* Responsive Button Groups */
+@media (max-width: 480px) {
+    .jp-btn-group.jp-btn-group-stack {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .jp-btn-group.jp-btn-group-stack .jp-btn {
+        width: 100%;
+        max-width: 200px;
+    }
+}
+
+/* Accordion Components */
+.jp-accordion {
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+/* Accordion Variants */
+.jp-accordion-standalone {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+.jp-accordion-nested {
+    background: transparent;
+    border: none;
+    margin: 10px 0;
+}
+
+.jp-accordion-nested .jp-accordion-section {
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.jp-accordion-nested .jp-accordion-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Accordion Sections */
+.jp-accordion-section {
+    border-bottom: 1px solid #e9ecef;
+}
+
+.jp-accordion-section:last-child {
+    border-bottom: none;
+}
+
+/* Accordion Headers */
+.jp-accordion-section h3,
+.jp-accordion-section h4 {
+    margin: 0;
+    padding: 15px 20px;
+    background: #f8f9fa;
+    color: #007acc;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.jp-accordion-section h3:hover,
+.jp-accordion-section h4:hover {
+    background: #e9ecef;
+}
+
+.jp-accordion-section.jp-accordion-open h3,
+.jp-accordion-section.jp-accordion-open h4,
+.jp-accordion-section.jp-accordion-expanded h3,
+.jp-accordion-section.jp-accordion-expanded h4 {
+    background: #007acc;
+    color: white;
+}
+
+.jp-accordion-nested .jp-accordion-section h3,
+.jp-accordion-nested .jp-accordion-section h4 {
+    padding: 12px 16px;
+    font-size: 1.0em;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* Accordion Arrows */
+.jp-accordion-arrow {
+    font-size: 14px;
+    color: #007acc;
+    font-weight: bold;
+    user-select: none;
+    margin-left: 8px;
+    display: inline;
+}
+
+.jp-accordion-section.jp-accordion-open .jp-accordion-arrow,
+.jp-accordion-section.jp-accordion-expanded .jp-accordion-arrow {
+    color: white;
+}
+
+/* Accordion Content */
+.jp-accordion-content {
+    padding: 0 20px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    background: white;
+}
+
+.jp-accordion-section.jp-accordion-open .jp-accordion-content,
+.jp-accordion-section.jp-accordion-expanded .jp-accordion-content {
+    display: block;
+    max-height: 1000px;
+    padding: 15px 20px 20px;
+}
+
+.jp-accordion-nested .jp-accordion-content {
+    padding: 0 16px;
+}
+
+.jp-accordion-nested .jp-accordion-section.jp-accordion-open .jp-accordion-content,
+.jp-accordion-nested .jp-accordion-section.jp-accordion-expanded .jp-accordion-content {
+    padding: 12px 16px 16px;
 }
 
 /* Copy button for code examples */
@@ -588,6 +787,55 @@ body {
     font-size: 0.9em;
 }
 
+/* Progress Bar Components */
+.jp-progress-bar {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.jp-progress-step {
+    flex: 1;
+    text-align: center;
+    padding: 12px 8px;
+    background: #e9ecef;
+    color: #6c757d;
+    border-radius: 4px;
+    margin: 0 4px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+}
+
+.jp-progress-step:first-child {
+    margin-left: 0;
+}
+
+.jp-progress-step:last-child {
+    margin-right: 0;
+}
+
+.jp-progress-step.jp-progress-active {
+    background: var(--jp-color-primary, #007acc);
+    color: white;
+}
+
+.jp-progress-step.jp-progress-completed {
+    background: var(--jp-color-success, #28a745);
+    color: white;
+}
+
+/* Horizontal Divider */
+.jp-hr {
+    margin: 1rem 0;
+    border: none;
+    border-top: 2px solid #e9ecef;
+}
+
+
 /* Form Components */
 .jp-form {
     margin: 0;
@@ -617,6 +865,23 @@ body {
     outline: none;
     border-color: #007acc;
     box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+.jp-form-error {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 4px;
+    display: block;
+}
+
+.jp-form-error-input {
+    border-color: #dc3545 !important;
+    background-color: #fff5f5 !important;
+}
+
+.jp-form-error-input:focus {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2) !important;
 }
 
 .jp-form-select {
@@ -700,6 +965,11 @@ body {
     margin: 0 0 1.5rem 0;
 }
 
+.jp-info-box h4,
+.jp-warning-box h4,
+.jp-error-box h4 {
+        margin: 0 0 10px 0;
+}
 
 /* Typography Components */
 .jp-title {
@@ -869,29 +1139,6 @@ body {
     margin: 0 auto 20px;
 }
 
-/* Button Group Component */
-.jp-btn-group {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-    margin: 20px 0;
-}
-
-.jp-btn-group .jp-btn {
-    flex: 0 0 auto;
-}
-
-@media (max-width: 480px) {
-    .jp-btn-group {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .jp-btn-group .jp-btn {
-        width: 100%;
-        max-width: 200px;
-    }
-}
 
 /* Table Components */
 .jp-table-container {
@@ -1035,47 +1282,6 @@ body {
     letter-spacing: 0.5px;
 }
 
-/* Enhanced Button Group */
-.jp-btn-group {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-    margin: 20px 0;
-}
-
-.jp-btn-group.jp-btn-group-wrap {
-    flex-wrap: wrap;
-}
-
-.jp-btn-group.jp-btn-group-start {
-    justify-content: flex-start;
-}
-
-.jp-btn-group.jp-btn-group-end {
-    justify-content: flex-end;
-}
-
-.jp-btn-group .jp-btn {
-    flex: 0 0 auto;
-}
-
-.jp-btn-group.jp-btn-group-equal .jp-btn {
-    flex: 1;
-    min-width: 120px;
-}
-
-/* Responsive Button Groups */
-@media (max-width: 480px) {
-    .jp-btn-group.jp-btn-group-stack {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .jp-btn-group.jp-btn-group-stack .jp-btn {
-        width: 100%;
-        max-width: 200px;
-    }
-}
 
 /* Countdown/Highlight Text */
 .jp-highlight {
@@ -1954,102 +2160,6 @@ Example site customizations:
     }
 }
 
-/* ========================================
- * ACCORDION COMPONENTS (W-048)
- * ======================================== */
-
-/* Standalone Accordion - Full decoration */
-.jp-accordion-standalone {
-    background: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
-    margin-bottom: 20px;
-    overflow: hidden;
-}
-
-/* Nested Accordion - Minimal styling */
-.jp-accordion-nested {
-    background: transparent;
-    border: none;
-    margin: 10px 0;
-}
-
-/* Accordion Section */
-.jp-accordion-section {
-    border-bottom: 1px solid #dee2e6;
-}
-
-.jp-accordion-section:last-child {
-    border-bottom: none;
-}
-
-.jp-accordion-nested .jp-accordion-section {
-    border-bottom: 1px solid #e9ecef;
-    background: #f8f9fa;
-    border-radius: 6px;
-    margin-bottom: 8px;
-}
-
-.jp-accordion-nested .jp-accordion-section:last-child {
-    margin-bottom: 0;
-}
-
-/* Accordion Headers */
-.jp-accordion-section h3 {
-    margin: 0;
-    padding: 15px 20px;
-    color: #007acc;
-    font-size: 1.1em;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.jp-accordion-section h3:hover {
-    background-color: #e9ecef;
-}
-
-.jp-accordion-expanded h3 {
-    border-bottom: 1px solid #dee2e6;
-}
-
-.jp-accordion-nested .jp-accordion-section h3 {
-    padding: 12px 16px;
-    font-size: 1.0em;
-    border-bottom: 1px solid #e9ecef;
-}
-
-/* Accordion Arrows */
-.jp-accordion-arrow {
-    font-size: 14px;
-    color: #007acc;
-    font-weight: bold;
-    user-select: none;
-    margin-left: 8px;
-    display: inline;
-}
-
-/* Accordion Content */
-.jp-accordion-content {
-    padding: 0 20px;
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease, padding 0.3s ease;
-}
-
-.jp-accordion-expanded .jp-accordion-content {
-    max-height: 1000px;
-    padding: 15px 20px 20px;
-}
-
-.jp-accordion-nested .jp-accordion-content {
-    padding: 0 16px;
-}
-
-.jp-accordion-nested .jp-accordion-expanded .jp-accordion-content {
-    padding: 12px 16px 16px;
-}
 
 /* ========================================
  * DOCUMENTATION COMPONENTS (W-049)

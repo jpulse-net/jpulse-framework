@@ -39,7 +39,7 @@
                 <div id="basic-api-tabs" class="jp-tabs"></div>
                 <div id="basic-api-example-panel" class="jp-panel">
                     <div class="jp-info-box">
-                        <p>This example demonstrates how to use <code>jPulse.apiCall()</code> for consistent API handling with proper success/error feedback.</p>
+                        <p><strong>What you learn:</strong> How to use <code>jPulse.apiCall()</code> for consistent API handling with proper success/error feedback and user notifications.</p>
                         <p><strong>Test API Call:</strong> Calls <code>/api/1/status</code> (working endpoint) and shows green success message.</p>
                         <p><strong>Test Error Handling:</strong> Calls <code>/api/1/does-not-exist</code> and shows a red error message with proper user feedback.</p>
                     </div>
@@ -104,7 +104,7 @@ document.getElementById('testApiBtn').addEventListener('click', async () =&gt; {
                 <div id="loading-states-tabs" class="jp-tabs"></div>
                 <div id="loading-states-example-panel" class="jp-panel">
                     <div class="jp-info-box">
-                        <p>This example shows how to implement proper loading states and user feedback during API calls. Essential for good UX!</p>
+                        <p><strong>What you learn:</strong> How to implement proper loading states and user feedback during API calls for excellent user experience.</p>
                         <p><strong>Features:</strong> Button loading state, spinner animation, content replacement, and success feedback.</p>
                         <p><strong>Best Practice:</strong> Always show loading indicators for operations that take more than 200ms.</p>
                     </div>
@@ -226,7 +226,7 @@ async function simulateApiCall() {
                 <div id="form-submission-tabs" class="jp-tabs"></div>
                 <div id="form-submission-example-panel" class="jp-panel">
                     <div class="jp-info-box">
-                        <p>This example demonstrates form data collection, validation, and API submission with proper user feedback.</p>
+                        <p><strong>What you learn:</strong> How to collect form data, validate it, and submit it via API with proper user feedback and loading states.</p>
                         <p><strong>Demo Mode:</strong> This simulates form submission - no real data is sent to a server.</p>
                         <p><strong>Features:</strong> Form validation, loading states, success feedback, and form reset after submission.</p>
                     </div>
@@ -340,7 +340,7 @@ function displaySubmissionResult(data) {
                 <div id="error-handling-tabs" class="jp-tabs"></div>
                 <div id="error-handling-example-panel" class="jp-panel">
                     <div class="jp-info-box">
-                        <p>This example demonstrates comprehensive error handling patterns for different failure scenarios in API calls.</p>
+                        <p><strong>What you learn:</strong> How to handle different types of API errors gracefully with user-friendly messages and recovery options.</p>
                         <p><strong>Error Types:</strong> 404 Not Found, 500 Server Error, Network Failures, and Timeouts.</p>
                         <p><strong>Best Practice:</strong> Always provide clear, user-friendly error messages and recovery options.</p>
                     </div>
@@ -437,7 +437,7 @@ function withTimeout(promise, timeoutMs = 10000) {
                 <div id="realtime-tabs" class="jp-tabs"></div>
                 <div id="realtime-example-panel" class="jp-panel">
                     <div class="jp-info-box">
-                        <p>This example shows how to implement real-time data updates using polling techniques for live dashboards and monitoring.</p>
+                        <p><strong>What you learn:</strong> How to implement real-time data updates using polling techniques for live dashboards and monitoring applications.</p>
                         <p><strong>Features:</strong> Automatic polling, start/stop controls, update history, and error handling.</p>
                         <p><strong>Use Cases:</strong> Live dashboards, status monitoring, chat applications, and real-time analytics.</p>
                     </div>

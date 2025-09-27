@@ -1073,10 +1073,10 @@ window.jPulse = {
              * @param {Object} config - Configuration options
              */
             _setupSection: (section, index, config) => {
-                // Find header (h3 element)
-                const header = section.querySelector('h3');
+                // Find header (h3 or h4 element)
+                const header = section.querySelector('h3, h4');
                 if (!header) {
-                    console.warn('Accordion section missing required h3 element');
+                    console.warn('Accordion section missing required h3 or h4 element');
                     return;
                 }
 

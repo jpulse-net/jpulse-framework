@@ -36,13 +36,12 @@
                 <h3>Basic Form Validation</h3>
             </div>
             <div class="jp-card-body">
-                <div id="basic-form-tabs" class="jp-tabs-panel">
-                    <div class="jp-tabs-list">
-                        <div class="jp-tab jp-tab-active" data-tab-id="basic-form-example">Example</div>
-                        <div class="jp-tab" data-tab-id="basic-form-source">Source Code</div>
-                    </div>
-                    <div class="jp-tabs-panels">
-                        <div id="basic-form-example" class="jp-panel jp-panel-active">
+                <div class="jp-info-box">
+                    <p><strong>What you learn:</strong> How to implement client-side form validation with real-time error feedback. This example shows how to validate required fields, email formats, and provide clear error messages to users.</p>
+                    <p><strong>Behind the scenes:</strong> Uses JavaScript event listeners to validate form data on submission. All validation is performed locally in the browser - no server communication occurs in this demo.</p>
+                </div>
+                <div id="basic-form-tabs" class="jp-tabs"></div>
+                <div id="basic-form-example-panel" class="jp-panel">
                             <form id="basic-form" class="jp-form">
                                 <div class="jp-form-group">
                                     <label for="name">Full Name *</label>
@@ -70,9 +69,10 @@
 
                                 <button type="submit" class="jp-btn jp-btn-primary">Submit Form</button>
                             </form>
-                        </div>
-                        <div id="basic-form-source" class="jp-panel">
-                            <pre><code>&lt;form id="basic-form" class="jp-form"&gt;
+                </div>
+                <div id="basic-form-source-panel" class="jp-panel">
+                    <div class="jp-source-code" data-lang="html">
+&lt;form id="basic-form" class="jp-form"&gt;
     &lt;div class="jp-form-group"&gt;
         &lt;label for="name"&gt;Full Name *&lt;/label&gt;
         &lt;input type="text" id="name" name="name" class="jp-form-input" required&gt;
@@ -117,8 +117,7 @@ document.getElementById('basic-form').addEventListener('submit', (e) =&gt; {
         jPulse.showSlideDownSuccess('Form submitted successfully!');
     }
 });
-&lt;/script&gt;</code></pre>
-                        </div>
+&lt;/script&gt;
                     </div>
                 </div>
             </div>
@@ -130,13 +129,12 @@ document.getElementById('basic-form').addEventListener('submit', (e) =&gt; {
                 <h3>AJAX Form Submission</h3>
             </div>
             <div class="jp-card-body">
-                <div id="ajax-form-tabs" class="jp-tabs-panel">
-                    <div class="jp-tabs-list">
-                        <div class="jp-tab jp-tab-active" data-tab-id="ajax-form-example">Example</div>
-                        <div class="jp-tab" data-tab-id="ajax-form-source">Source Code</div>
-                    </div>
-                    <div class="jp-tabs-panels">
-                        <div id="ajax-form-example" class="jp-panel jp-panel-active">
+                <div class="jp-info-box">
+                    <p><strong>What you learn:</strong> How to submit forms asynchronously using AJAX with proper loading states and user feedback. Includes error handling and form reset functionality.</p>
+                    <p><strong>Behind the scenes:</strong> This is a <em>simulated demo</em> - the form submission is mocked with a 2-second delay to demonstrate loading states. In a real application, this would call your backend API endpoint.</p>
+                </div>
+                <div id="ajax-form-tabs" class="jp-tabs"></div>
+                <div id="ajax-form-example-panel" class="jp-panel">
                             <form id="ajax-form" class="jp-form">
                                 <div class="jp-form-group">
                                     <label for="ajax-email">Email Address</label>
@@ -161,9 +159,10 @@ document.getElementById('basic-form').addEventListener('submit', (e) =&gt; {
                                     <span class="loading-text" style="display: none;">Sending...</span>
                                 </button>
                             </form>
-                        </div>
-                        <div id="ajax-form-source" class="jp-panel">
-                            <pre><code>&lt;form id="ajax-form" class="jp-form"&gt;
+                </div>
+                <div id="ajax-form-source-panel" class="jp-panel">
+                    <div class="jp-source-code" data-lang="html">
+&lt;form id="ajax-form" class="jp-form"&gt;
     &lt;div class="jp-form-group"&gt;
         &lt;label for="ajax-email"&gt;Email Address&lt;/label&gt;
         &lt;input type="email" id="ajax-email" name="email" class="jp-form-input" required&gt;
@@ -209,8 +208,7 @@ document.getElementById('ajax-form').addEventListener('submit', async (e) =&gt; 
         submitBtn.querySelector('.loading-text').style.display = 'none';
     }
 });
-&lt;/script&gt;</code></pre>
-                        </div>
+&lt;/script&gt;
                     </div>
                 </div>
             </div>
@@ -222,13 +220,12 @@ document.getElementById('ajax-form').addEventListener('submit', async (e) =&gt; 
                 <h3>Multi-step Form</h3>
             </div>
             <div class="jp-card-body">
-                <div id="multistep-form-tabs" class="jp-tabs-panel">
-                    <div class="jp-tabs-list">
-                        <div class="jp-tab jp-tab-active" data-tab-id="multistep-form-example">Example</div>
-                        <div class="jp-tab" data-tab-id="multistep-form-source">Source Code</div>
-                    </div>
-                    <div class="jp-tabs-panels">
-                        <div id="multistep-form-example" class="jp-panel jp-panel-active">
+                <div class="jp-info-box">
+                    <p><strong>What you learn:</strong> How to build a multi-step form wizard with progress tracking, step validation, and data persistence across steps. Perfect for complex registration or onboarding flows.</p>
+                    <p><strong>Behind the scenes:</strong> Uses JavaScript to manage step navigation, validate each step before proceeding, and collect form data across multiple steps. The final submission is mocked for demonstration purposes.</p>
+                </div>
+                <div id="multistep-form-tabs" class="jp-tabs"></div>
+                <div id="multistep-form-example-panel" class="jp-panel">
                             <!-- Progress indicator -->
                             <div class="jp-progress-bar">
                                 <div class="jp-progress-step jp-progress-active" data-step="1">Personal Info</div>
@@ -290,9 +287,10 @@ document.getElementById('ajax-form').addEventListener('submit', async (e) =&gt; 
                                     </div>
                                 </div>
                             </form>
-                        </div>
-                        <div id="multistep-form-source" class="jp-panel">
-                            <pre><code>&lt;!-- Progress indicator --&gt;
+                </div>
+                <div id="multistep-form-source-panel" class="jp-panel">
+                    <div class="jp-source-code" data-lang="html">
+&lt;!-- Progress indicator --&gt;
 &lt;div class="jp-progress-bar"&gt;
     &lt;div class="jp-progress-step jp-progress-active" data-step="1"&gt;Personal Info&lt;/div&gt;
     &lt;div class="jp-progress-step" data-step="2"&gt;Preferences&lt;/div&gt;
@@ -339,8 +337,7 @@ function updateProgress(currentStep) {
         }
     });
 }
-&lt;/script&gt;</code></pre>
-                        </div>
+&lt;/script&gt;
                     </div>
                 </div>
             </div>
@@ -352,13 +349,12 @@ function updateProgress(currentStep) {
                 <h3>Form Styling Guide</h3>
             </div>
             <div class="jp-card-body">
-                <div id="styling-guide-tabs" class="jp-tabs-panel">
-                    <div class="jp-tabs-list">
-                        <div class="jp-tab jp-tab-active" data-tab-id="styling-example">Example</div>
-                        <div class="jp-tab" data-tab-id="styling-source">CSS Classes</div>
-                    </div>
-                    <div class="jp-tabs-panels">
-                        <div id="styling-example" class="jp-panel jp-panel-active">
+                <div class="jp-info-box">
+                    <p><strong>What you learn:</strong> All available jPulse form styling classes and states. See examples of form elements, validation states, and CSS classes for consistent form design across your application.</p>
+                    <p><strong>Behind the scenes:</strong> These are static examples demonstrating the visual appearance of different form states. The CSS classes shown are part of the jPulse framework's built-in styling system.</p>
+                </div>
+                <div id="styling-guide-tabs" class="jp-tabs"></div>
+                <div id="styling-example-panel" class="jp-panel">
                             <div class="jp-card-grid">
                                 <div class="jp-info-box">
                                     <h4>Form Elements</h4>
@@ -396,9 +392,10 @@ function updateProgress(currentStep) {
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div id="styling-source" class="jp-panel">
-                            <pre><code>&lt;!-- Form Container --&gt;
+                </div>
+                <div id="styling-source-panel" class="jp-panel">
+                    <div class="jp-source-code" data-lang="html">
+&lt;!-- Form Container --&gt;
 &lt;form class="jp-form"&gt;
     &lt;!-- Form Group --&gt;
     &lt;div class="jp-form-group"&gt;
@@ -425,8 +422,7 @@ function updateProgress(currentStep) {
 &lt;div class="jp-progress-bar"&gt;
     &lt;div class="jp-progress-step jp-progress-active"&gt;Step 1&lt;/div&gt;
     &lt;div class="jp-progress-step"&gt;Step 2&lt;/div&gt;
-&lt;/div&gt;</code></pre>
-                        </div>
+&lt;/div&gt;
                     </div>
                 </div>
             </div>
@@ -437,20 +433,40 @@ function updateProgress(currentStep) {
         jPulse.dom.ready(() => {
             // Initialize all tab interfaces
             jPulse.UI.tabs.register('basic-form-tabs', {
+                tabs: [
+                    { id: 'basic-form-example-tab', label: 'Example', panelId: 'basic-form-example-panel' },
+                    { id: 'basic-form-source-tab', label: 'Source Code', panelId: 'basic-form-source-panel' }
+                ],
+                panelHeight: '30rem',
                 slideAnimation: true
-            }, 'basic-form-example');
+            }, 'basic-form-example-tab');
 
             jPulse.UI.tabs.register('ajax-form-tabs', {
+                tabs: [
+                    { id: 'ajax-form-example-tab', label: 'Example', panelId: 'ajax-form-example-panel' },
+                    { id: 'ajax-form-source-tab', label: 'Source Code', panelId: 'ajax-form-source-panel' }
+                ],
+                panelHeight: '30rem',
                 slideAnimation: true
-            }, 'ajax-form-example');
+            }, 'ajax-form-example-tab');
 
             jPulse.UI.tabs.register('multistep-form-tabs', {
+                tabs: [
+                    { id: 'multistep-form-example-tab', label: 'Example', panelId: 'multistep-form-example-panel' },
+                    { id: 'multistep-form-source-tab', label: 'Source Code', panelId: 'multistep-form-source-panel' }
+                ],
+                panelHeight: '30rem',
                 slideAnimation: true
-            }, 'multistep-form-example');
+            }, 'multistep-form-example-tab');
 
             jPulse.UI.tabs.register('styling-guide-tabs', {
+                tabs: [
+                    { id: 'styling-example-tab', label: 'Example', panelId: 'styling-example-panel' },
+                    { id: 'styling-source-tab', label: 'CSS Classes', panelId: 'styling-source-panel' }
+                ],
+                panelHeight: '37rem',
                 slideAnimation: true
-            }, 'styling-example');
+            }, 'styling-example-tab');
 
             // Basic form validation
             document.getElementById('basic-form').addEventListener('submit', (e) => {
@@ -486,7 +502,7 @@ function updateProgress(currentStep) {
                     jPulse.showSlideDownSuccess('Form submitted successfully! ✅');
                     e.target.reset();
                 } else {
-                    jPulse.showSlideDownError('Please fix the errors above.');
+                    jPulse.showSlideDownError('Please fix the errors below.');
                 }
             });
 

@@ -1,10 +1,10 @@
-# jPulse Framework / Docs / Dev / Development Guide v0.8.0
+# jPulse Framework / Docs / Dev / Development Guide v0.8.1
 
 **For Framework Contributors & Core Developers**
 
 Technical documentation for developers working on the jPulse Framework itself. This covers architecture decisions, implementation details, and contribution workflows.
 
-> **Site Development**: For building sites with jPulse, see the [main documentation](../README.md).
+**Site Development**: For building sites with jPulse, see the [main documentation](../README.md).
 
 ## 🏗️ Architecture Overview
 

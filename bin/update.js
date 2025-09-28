@@ -4,8 +4,8 @@
  * @tagline         Framework update wrapper with dry-run support
  * @description     Safely updates framework package and syncs files
  * @file            bin/update.js
- * @version         0.8.0
- * @release         2025-09-27
+ * @version         0.8.1
+ * @release         2025-09-28
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

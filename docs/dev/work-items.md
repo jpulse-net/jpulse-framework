@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.8.0
+# jPulse Framework / Docs / Dev / Work Items v0.8.1
 
 This is the doc to track work items, arranged in three sections:
 
@@ -932,6 +932,12 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-065: branding: create new jPulse logo with a pulse wave
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: a logo that is brandable and recognizable
+- deliverable:
+  - round logo, blue background, white pulse wave across round background
 
 
 
@@ -940,9 +946,6 @@ This is the doc to track work items, arranged in three sections:
 
 
 
-- fix /jpulse-example/ SVGs
-- move handlebar stuff from view controller to handlebar controller?
-  - offer an API to expand text with handlebars?
 
 
 
@@ -979,7 +982,9 @@ finishing up work item: W-0...
 
 
 
-- enhance === view.load( /error/index.shtml ) log to show additional details on what is wrong, likely in followup log entry
+
+
+
 
 
 ### Misc
@@ -1207,6 +1212,21 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - status: 🕑 PENDING
 - type: Feature
 - objective: paged queries that do not miss or duplicate docs between calls
+
+### W-0: controller: extract Handlebars processing to dedicated controller
+- status: 🕑 PENDING
+- type: Idea
+- objectives: better separation of concerns, reusable template processing API
+- depends on: none
+- deliverables:
+  - create webapp/controller/handlebars.js with dedicated Handlebars processing logic
+  - extract all template processing from view.js to handlebars.js
+  - provide clean API: HandlebarsController.process(template, context, options)
+  - maintain backward compatibility with existing view controller behavior
+  - add standalone processing method for non-view contexts
+  - enable future "Try Your Own Handlebars" demo functionality
+  - comprehensive test coverage for new controller
+  - documentation for new API patterns
 
 ### W-0: config controller: nested site config
 - status: 🕑 PENDING

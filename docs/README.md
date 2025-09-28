@@ -1,12 +1,12 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.8.0
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.8.1
 
 **For Site Administrators & Site Developers**
 
-Welcome to the ![Logo](./images/favicon-16x16.png) jPulse Framework documentation - your complete guide to building enterprise-grade web applications.
+Welcome to the jPulse Framework documentation - your complete guide to building enterprise-grade web applications.
 
 ## What is jPulse?
 
-jPulse is a Node.js web application framework that combines the simplicity of traditional server-side rendering with modern development practices. Built on Express and MongoDB, it offers clean MVC architecture with extensible site customization capabilities.
+![Logo](./images/jpulse-logo-16.png) jPulse is a Node.js web application framework that combines the simplicity of traditional server-side rendering with modern development practices. Built on Express and MongoDB, it offers clean MVC architecture with extensible site customization capabilities.
 
 ## Latest Release Highlights
 
@@ -75,6 +75,7 @@ jPulse is a Node.js web application framework that combines the simplicity of tr
 - **[Front-End Development](front-end-development.md)** - Complete jPulse JavaScript framework guide
 - **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation
 - **[Template Reference](template-reference.md)** - Server-side Handlebars system
+- **[Handlebars Templating](handlebars.md)** - Server-side Handlebars system
 - **[Style Reference](style-reference.md)** - Complete `jp-*` CSS framework and components
 
 ### 🚀 **Deployment**

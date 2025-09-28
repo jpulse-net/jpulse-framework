@@ -882,23 +882,8 @@ This is the doc to track work items, arranged in three sections:
   - jPulse.UI.tabs
   - styles for jPulse.UI.tabs
 
-
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-063: view: add /jpulse-examples/ pages, rename /jpulse/ to /jpulse-docs/ - v0.8.0
-- status: 🚧 IN_PROGRESS
+- status: ✅ COMPLETED
 - type: Feature
 - objectives: good onboarding, helpful docs and examples
 - depends on:
@@ -933,6 +918,29 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
+
+
+
+
+
+
+
+- fix /jpulse-example/ SVGs
 - move handlebar stuff from view controller to handlebar controller?
   - offer an API to expand text with handlebars?
 
@@ -944,7 +952,7 @@ This is the doc to track work items, arranged in three sections:
 W-045: architecture: create plugin infrastructure
 W-040: view: create view logs page for site admins
 W-0: deployment: enhance hello example with hello model & MongoDB collection
-W-0: view: page headers with anchor links for copy & paste
+W-0: view: page headers with anchor links for copy & paste in browser URL bar
 W-0: controller & view: websocket strategy
 
 
@@ -1076,7 +1084,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - type: Feature
 - objective: better onboarding, teaching developers how to create a full MVC trio.
 
-### W-0: view: page headers with anchor links for copy & paste
+### W-0: view: page headers with anchor links for copy & paste in browser URL bar
 - status: 🕑 PENDING
 - type: Feature
 - objectives: shared content with deep links, should work on any jpulse rendered page, not just markdown docs

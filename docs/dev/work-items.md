@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.8.2
+# jPulse Framework / Docs / Dev / Work Items v0.8.3
 
 This is the doc to track work items, arranged in three sections:
 
@@ -918,6 +918,21 @@ This is the doc to track work items, arranged in three sections:
 - deliverable:
   - round logo, blue background, white pulse wave across round background
 
+### W-066: docs: improve site specific docs for better onboarding - v0.8.2
+- status: ✅ COMPLETED
+- type: Feature
+- objective: better onboarding experience for site admins and site developers
+- deliverables:
+  - docs/deployment.md: add new "Version Control and Site Management" section
+  - docs/template-reference.md: fix URL bug in .css and .js examples
+  - docs/installation.md: document how to wipe MongoDB data for a clean re-install
+  - api-reference.md and docs/deployment.md: fix incorrect links to jPulse docs from /jpulse/ to /jpulse-docs/
+  - site/README.md: reference and link to "Version Control and Site Management" in docs/deployment.md
+  - reverse sequence in HTML title in all .shtml pages to:
+    <title>Page title - {{app.shortName}}</title>
+  - webapp/static/: add updated favicons to static root
+  - bin/test-all.js: add elapsed time to each test, and total in grand total
+
 
 
 
@@ -938,20 +953,24 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-066: docs: improve site specific docs for better onboarding - v0.8.2
-- status: 🚧 IN_PROGRESS
-- type: Feature
-- objective: better onboarding experience for site admins and site developers
-- deliverables:
-  - docs/deployment.md: add new "Version Control and Site Management" section
-  - docs/template-reference.md: fix URL bug in .css and .js examples
-  - docs/installation.md: document how to wipe MongoDB data for a clean re-install
-  - api-reference.md and docs/deployment.md: fix incorrect links to jPulse docs from /jpulse/ to /jpulse-docs/
-  - site/README.md: reference and link to "Version Control and Site Management" in docs/deployment.md
-  - reverse sequence in HTML title in all .shtml pages to:
-    <title>Page title - {{app.shortName}}</title>
-  - webapp/static/: add updated favicons to static root
-  - bin/test-all.js: add elapsed time to each test, and total in grand total
+### W-067: regression bug: site/ directory is missing in published package - v0.8.3
+- status: ✅ COMPLETED
+- type: Bug
+- note: this is a critical bug (Regression)
+- Problem: New sites installing the jPulse Framework with "npx jpulse-configure" miss the critical site/ directory and all site templates
+- Root Cause: package.json "files" array was missing "site/" entry, so site templates weren't published to npm
+- Impact: Breaks W-014 site override system for all fresh installations
+- Fix: Added "site/" to package.json files array (line 16)
+- Evidence: User's jpulse.net server showed empty site/ directory after fresh install
+- Files Changed: package.json
+- SECURITY FIX: Also discovered and fixed that site/webapp/app.conf (containing session secrets) was being included in npm package
+- Additional Fix: Removed brittle package.json files array, now uses .npmignore for maintainable exclusions
+- Next: Requires v0.8.3 release to fix all affected installations
+
+
+
+
+
 
 
 
@@ -984,7 +1003,7 @@ finishing up work item: W-0...
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-15 12:12
-- assume release: W-063, v0.8.0
+- assume release: W-067, v0.8.3
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 

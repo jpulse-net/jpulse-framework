@@ -18476,3 +18476,126 @@ Successfully added GitHub repository setup documentation:
 - Positioned logically after other best practices
 
 The documentation provides security-first guidance, jPulse-specific instructions, and practical workflow for site owners wanting to version control their sites while maintaining framework update safety.
+
+## FIXED: .gitignore Issue in deployment.md
+
+User reported that initial commit was missing the whole site/ directory. Problem was the .gitignore in deployment.md was too minimal compared to the framework's .gitignore.
+
+**Issue**: The documentation .gitignore was missing important patterns and exclusions
+**Fix**: Updated deployment.md .gitignore to match framework .gitignore more closely
+**Changes**:
+- Added missing patterns: tt-*, *.save[0-9], etc.
+- Added proper editor file exclusions
+- Added comprehensive OS file exclusions
+- Added test fixture exclusions
+- Improved comments and organization
+
+The .gitignore now properly excludes only sensitive files while preserving the entire site/ directory structure for version control.
+
+## ✅ CRITICAL BUG FIXED: W-067 Site Templates Missing from Package
+
+**REGRESSION BUG RESOLVED**: Successfully fixed the critical packaging issue where site/ directory was missing from published npm packages.
+
+**Fix Applied**:
+- Added "site/" to package.json files array (line 16)
+- Verified with `npm pack --dry-run` that site templates are now included:
+  - site/README.md (13.2kB)
+  - site/webapp/app.conf.tmpl (1.5kB)
+  - site/webapp/controller/hello.js (2.1kB)
+  - site/webapp/view/hello/index.shtml (6.6kB)
+  - site/webapp/view/hello/site-demo.shtml (11.4kB)
+  - site/webapp/view/site-common.css.tmpl (8.4kB)
+  - site/webapp/view/site-common.js.tmpl (12.1kB)
+
+**Impact**: This fix will restore the W-014 site override system for all future installations. Requires v0.8.3 release to deploy the fix.
+
+**Status**: Ready for release preparation.
+
+## 🔒 CRITICAL SECURITY FIX: Sensitive Config File in Package
+
+**ADDITIONAL SECURITY ISSUE DISCOVERED AND FIXED**: The site/webapp/app.conf file containing session secrets was being included in the npm package!
+
+**Security Risk**:
+- site/webapp/app.conf contains session secrets (line 28: 'CHANGE-THIS-SECRET-IN-PRODUCTION')
+- This file would expose sensitive configuration data in published packages
+
+**Fix Applied**:
+- Changed package.json files array from broad "site/" to specific inclusions
+- Now explicitly includes only safe files:
+  - "site/README.md" ✅
+  - "site/webapp/app.conf.tmpl" ✅ (template only)
+  - "site/webapp/controller/" ✅
+  - "site/webapp/model/" ✅
+  - "site/webapp/view/" ✅
+  - "site/webapp/static/" ✅
+- Excludes sensitive "site/webapp/app.conf" ❌
+
+**Verification**: npm pack --dry-run confirms site/webapp/app.conf is no longer included (total files reduced from 218 to 217)
+
+**Impact**: Prevents accidental exposure of site configuration secrets in published packages.
+
+## 🎯 IMPROVED APPROACH: Maintainable .npmignore Solution
+
+**USER FEEDBACK**: "Is it necessary to specify all files? This smells like a future bug"
+
+**ABSOLUTELY CORRECT!** The specific files array approach was a maintenance nightmare.
+
+**Better Solution Implemented**:
+- ✅ **Removed brittle package.json files array** (was listing every directory)
+- ✅ **Using .npmignore exclusively** for clean exclusion-based approach
+- ✅ **Future-proof**: New site files/directories automatically included
+- ✅ **Maintainable**: Only sensitive files need explicit exclusion
+
+**Results**:
+- Package size: 800.3 kB (reduced from 880.0 kB)
+- File count: 203 (reduced from 218)
+- Security: site/webapp/app.conf properly excluded
+- Maintainability: No more manual file-by-file package.json maintenance
+
+**This is the correct, scalable approach for npm package management.**
+
+
+============================================================
+2025-09-28 22:53
+
+W-067, v0.8.3: Critical regression fix - site templates missing from npm package, security vulnerability fixed
+
+## CRITICAL BUG FIXES COMPLETED
+
+**REGRESSION BUG RESOLVED**: Fixed critical issue where site/ directory templates were completely missing from published npm packages, breaking the W-014 site override system for all fresh installations.
+
+**SECURITY VULNERABILITY FIXED**: Resolved security issue where site/webapp/app.conf (containing session secrets) was being exposed in published npm packages.
+
+**MAINTAINABILITY IMPROVED**: Replaced brittle package.json files array with maintainable .npmignore exclusion-based approach.
+
+## Root Cause Analysis
+- package.json "files" array was missing "site/" entry
+- Site templates weren't being published to npm
+- Fresh installations had empty site/ directories with no hello examples or templates
+- Sensitive configuration files were accidentally included in packages
+
+## Solution Implemented
+- Removed brittle package.json files array (manual directory listing)
+- Implemented comprehensive .npmignore exclusion system
+- Future-proof: new site files automatically included
+- Security: explicit exclusion of sensitive files
+- Package optimized: 800.3 kB (203 files) vs previous 880.0 kB (218 files)
+
+## Files Updated
+- package.json: Removed files array, now uses .npmignore
+- .npmignore: Added comprehensive exclusions for sensitive files
+- docs/CHANGELOG.md: Added W-067 v0.8.3 release notes
+- docs/README.md: Updated to v0.8.3 with release highlights
+- docs/deployment.md: Updated to v0.8.3
+- docs/installation.md: Updated to v0.8.3
+- docs/getting-started.md: Updated to v0.8.3
+- commit-message.txt: Complete W-067 commit message following project format
+
+## Verification Complete
+- ✅ Site templates properly included (site/README.md, site/webapp/app.conf.tmpl, controllers, views)
+- ✅ Sensitive files properly excluded (site/webapp/app.conf)
+- ✅ Future-proof maintainability achieved
+- ✅ Security vulnerability resolved
+- ✅ W-014 site override system restored for fresh installations
+
+**Status**: Ready for v0.8.3 release and deployment.

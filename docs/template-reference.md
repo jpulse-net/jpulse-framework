@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Template Reference v0.8.2
+# jPulse Framework / Docs / Template Reference v0.8.3
 
 Complete reference for server-side template development with the jPulse Handlebars system, covering template variables, file operations, security features, and best practices for building dynamic web pages.
 

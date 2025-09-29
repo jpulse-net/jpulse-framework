@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Production Deployment Guide v0.8.2
+# jPulse Framework / Docs / Production Deployment Guide v0.8.3
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -395,29 +395,50 @@ pids
 *.pid
 *.seed
 *.pid.lock
+
+# Logs (symbolic link to system logs)
 logs
 *.log
 
 # Local work files
 .jpulse/
 commit-message*.txt
+tt-*
+*.save[0-9]
+*.save[0-9][0-9]
 *.bak
 
 # Coverage and test files
 coverage/
 *.lcov
 .nyc_output
+webapp/tests/fixtures/temp-*.conf
+
+# Optional npm cache directory
+.npm
+.eslintcache
 
 # Temporary folders
 tmp/
 temp/
 
-# Editor and OS files
+# Editor directories and files
 .vscode/*
 !.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 *.swp
 *.swo
+*~
+
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 EOF
 ```

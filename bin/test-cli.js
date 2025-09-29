@@ -4,7 +4,7 @@
  * @tagline         Test script for CLI tools validation
  * @description     Tests setup and sync CLI tools in isolated environment
  * @file            bin/test-cli.js
- * @version         0.8.2
+ * @version         0.8.3
  * @release         2025-09-29
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

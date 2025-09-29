@@ -1,6 +1,6 @@
 {
     "name": "@peterthoeny/jpulse-framework",
-    "version": "0.8.2",
+    "version": "0.8.3",
     "description": "Generic web application framework using MongoDB, Node.js, Express",
     "type": "module",
     "main": "webapp/app.js",
@@ -9,14 +9,6 @@
         "jpulse-update": "./bin/jpulse-update.js",
         "jpulse-framework": "./bin/jpulse-framework.js"
     },
-    "files": [
-        "webapp/",
-        "bin/",
-        "templates/",
-        "docs/",
-        "README.md",
-        "LICENSE"
-    ],
     "scripts": {
         "start": "node webapp/app.js",
         "dev": "node webapp/app.js",

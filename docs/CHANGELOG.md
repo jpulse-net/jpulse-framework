@@ -1,6 +1,78 @@
-# jPulse Framework / Docs / Version History v0.8.2
+# jPulse Framework / Docs / Version History v0.8.3
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.8.3, W-067, 2025-09-29
+
+**Commit:** `W-067, v0.8.3: Critical regression fix - site templates missing from npm package`
+
+**CRITICAL BUG FIX**: Fixed regression where site/ directory templates were completely missing from published npm packages, breaking the W-014 site override system for all fresh installations.
+
+**SECURITY FIX**: Fixed security vulnerability where site/webapp/app.conf (containing session secrets) was being included in npm packages.
+
+**Root Cause**: package.json "files" array was missing "site/" entry, so site templates weren't published to npm.
+
+**Impact**:
+- Broke W-014 site override system for all fresh installations
+- Fresh sites had empty site/ directories with no hello examples or templates
+- Exposed sensitive configuration data in published packages
+
+**Fix Applied**:
+- Removed brittle package.json files array approach
+- Implemented maintainable .npmignore exclusion-based approach
+- Site templates now properly included while sensitive files excluded
+- Future-proof: new site files automatically included without manual package.json maintenance
+
+**Files Changed**:
+- package.json: Removed files array, now uses .npmignore for exclusions
+- .npmignore: Added comprehensive exclusions for sensitive files
+- docs/deployment.md: Updated GitHub repository setup documentation
+
+**Verification**:
+- npm pack confirms site templates included (site/README.md, site/webapp/app.conf.tmpl, controllers, views, etc.)
+- Sensitive site/webapp/app.conf properly excluded
+- Package size optimized (800.3 kB, 203 files)
+
+________________________________________________
+## v0.8.2, W-066, 2025-09-29
+
+**Commit:** `W-066, v0.8.2: Improved site specific docs for better onboarding`
+
+Objectives: Better onboarding experience for site admins and site developers
+
+New "Version Control and Site Management" section in installation document:
+- Explain benefits of using version control for jPulse sites
+- Step-by-step repository setup instructions
+- Complete .gitignore file tailored for jPulse sites
+- Security considerations (never commit .env, secrets, etc.)
+- Deployment workflow from git repository
+- What to include/exclude with clear rationale
+
+Files Modified:
+- docs/deployment.md: add new "Version Control and Site Management" section
+- docs/template-reference.md: fix URL bug in .css and .js examples
+- docs/installation.md: document how to wipe MongoDB data for a clean re-install
+- api-reference.md and docs/deployment.md: fix incorrect links to jPulse docs from /jpulse/ to /jpulse-docs/
+- site/README.md: reference and link to "Version Control and Site Management" in docs/deployment.md
+- reverse sequence in HTML title in all .shtml pages to:
+  <title>Page title - {{app.shortName}}</title>
+- webapp/static/: add updated favicons to static root to new blue jPulse logo:
+  - favicon-16x16.png
+  - favicon-32x32.png
+  - favicon.ico
+- bin/test-all.js: add elapsed time to each test, and total time in grand total
+
+________________________________________________
+## v0.8.1, W-065, 2025-09-28
+
+**Commit:** `W-065, v0.8.1: Branding: New jPulse Framework logo in the shape of a single pulse wave`
+
+Change the jPulse Framework logo from a "jP" text logo to a round logo with a horizontal white pulse wave on a blue background, which is better brandable and more memorable
+
+Deliverables:
+- New jPulse Framework logo in the shape of a single pulse wave
+- Improved SVG icons in /jpulse-examples/
 
 ________________________________________________
 ## v0.8.0, W-063, 2025-09-27

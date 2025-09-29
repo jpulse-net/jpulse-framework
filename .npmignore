@@ -1,0 +1,66 @@
+# NPM Package Exclusions
+# Files that should NOT be published to npm
+
+# CRITICAL: Site-specific configuration with secrets
+site/webapp/app.conf
+
+# Environment files with secrets
+.env
+.env.*
+
+# Local work files
+.jpulse/
+commit-message*.txt
+tt-*
+*.save[0-9]
+*.save[0-9][0-9]
+*.bak
+
+# Test temporary files
+webapp/tests/fixtures/temp-*.conf
+
+# Development and build artifacts
+coverage/
+*.lcov
+.nyc_output
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+logs
+*.log
+
+# Temporary folders
+tmp/
+temp/
+
+# Editor directories and files
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Cursor log (contains development history)
+cursor_log.txt
+
+# Unused development files
+tt-unused/

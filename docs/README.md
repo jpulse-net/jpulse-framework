@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.8.2
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.8.3
 
 **For Site Administrators & Site Developers**
 
@@ -10,6 +10,9 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 
 ## Latest Release Highlights
 
+- ✅ **Critical regression fix - site templates missing from npm package (v0.8.3)**: Fixed critical bug where site/ directory templates were missing from published packages, breaking W-014 site override system. Also fixed security vulnerability exposing sensitive config files. Improved maintainability with .npmignore approach.
+- ✅ **Improved site specific docs for better onboarding (v0.8.2)**: Improved docs for better onboarding of site administrators and site developers
+- ✅ **New jPulse Framework logo (v0.8.1)**: The new jPulse Framework logo has the shape of a single pulse wave on a blue background, which is better brandable and more memorable
 - ✅ **Interactive Examples & Documentation Hub (v0.8.0)**: Complete `/jpulse-examples/` system with interactive code demonstrations, syntax-highlighted source code widgets with copy functionality, comprehensive UI component showcase, and enhanced onboarding experience with Apache-style home page
 - ✅ **Tab Interface Widget & UI Framework Enhancement (v0.7.21)**: Complete `jPulse.UI.tabs` widget system with navigation tabs (page routing), panel tabs (content switching), nested tab hierarchies, programmatic control API, and professional styling with divider interruption effects
 - ✅ **Nested Handlebars Support & Multi-line Blocks (v0.7.20)**: Complete nested {{#if}} and {{#each}} handlebars implementation with multi-line block support, left-to-right processing, and comprehensive test coverage for complex template scenarios

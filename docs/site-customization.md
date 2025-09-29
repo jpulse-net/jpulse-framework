@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Customization Guide v0.8.1
+# jPulse Framework / Docs / Site Customization Guide v0.8.2
 
 This guide covers the W-014 Site Override Architecture - jPulse's powerful system for creating custom sites while maintaining clean framework updates.
 
@@ -302,7 +302,7 @@ Copy and customize the jPulse documentation template:
 mkdir -p site/webapp/view/docs
 
 # Copy the jPulse template as a starting point
-cp -p webapp/view/jpulse/index.shtml site/webapp/view/docs/index.shtml
+cp -p webapp/view/jpulse-docs/index.shtml site/webapp/view/docs/index.shtml
 ```
 
 #### 4. Customize the Template
@@ -481,7 +481,7 @@ Translations: Use one namespace per language
 
 Your site documentation works alongside the built-in jPulse framework documentation:
 
-- **Framework docs**: `/jpulse/` (for developers and site administrators)
+- **Framework docs**: `/jpulse-docs/` (for developers and site administrators)
 - **Site docs**: `/docs/`, `/help/`, etc. (for your site's users)
 
 This separation ensures framework updates don't affect your site-specific documentation.

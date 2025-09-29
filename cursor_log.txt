@@ -18424,10 +18424,55 @@ jPulse.UI.tabs.register('my-tabs', {
 
 
 ============================================================
+2025-09-27 15:49: Redesigned home page
 
-2025-09-27 15:49: Redesigned home page (webapp/view/home/index.shtml) with minimal Apache-style approach for better onboarding experience. Reduced from 710 to 168 lines (~76% smaller). Added clean welcome message, installation confirmation, file location info, and navigation links to key documentation. Changed all page-specific CSS classes from .jp-* to .local-* prefix to demonstrate proper separation between framework styles (.jp-*) and page-specific styles (.local-*) as a teaching tool. Maintains professional appearance while focusing on essential onboarding information.
+Redesigned home page (webapp/view/home/index.shtml) with minimal Apache-style approach for better onboarding experience. Reduced from 710 to 168 lines (~76% smaller). Added clean welcome message, installation confirmation, file location info, and navigation links to key documentation. Changed all page-specific CSS classes from .jp-* to .local-* prefix to demonstrate proper separation between framework styles (.jp-*) and page-specific styles (.local-*) as a teaching tool. Maintains professional appearance while focusing on essential onboarding information.
 
 
 ============================================================
+2025-09-27 16:12: W-063 v0.8.0 release preparation complete
 
-2025-09-27 16:12: W-063 v0.8.0 release preparation complete. Created comprehensive test suite for jPulse.UI.sourceCode and jPulse.clipboard functionality (27 tests covering syntax highlighting, copy functionality, language labels, DOM integration). Updated all documentation files to v0.8.0 including README.md, CHANGELOG.md, and 8 other docs. Created detailed commit-message.txt following project format. All 527 tests passing including new source code widget and clipboard tests. Ready for version bump and release.
+Created comprehensive test suite for jPulse.UI.sourceCode and jPulse.clipboard functionality (27 tests covering syntax highlighting, copy functionality, language labels, DOM integration). Updated all documentation files to v0.8.0 including README.md, CHANGELOG.md, and 8 other docs. Created detailed commit-message.txt following project format. All 527 tests passing including new source code widget and clipboard tests. Ready for version bump and release.
+
+
+============================================================
+2025-09-28 15:16
+
+User requested guidance for setting up GitHub repository for their fresh jpulse.net site installation, including initial commit process and .gitignore best practices. Now in agent mode to document this as an option for site owners in deployment.md and README.md.
+
+## GitHub Repository Setup Guide Provided
+
+Comprehensive guide covering:
+- Initial git repository setup and remote configuration
+- Complete .gitignore file for jpulse sites with security considerations
+- Initial commit process with proper commit message format
+- Best practices for what to include/exclude from version control
+- Repository structure documentation
+- Deployment workflow from git repository
+
+## Documentation Strategy
+
+User suggests documenting this in:
+- deployment.md (primary location)
+- README.md (mention with link to deployment doc)
+
+This makes sense as it's part of the deployment workflow and site management process.
+
+## Documentation Implementation Complete
+
+Successfully added GitHub repository setup documentation:
+
+**deployment.md changes:**
+- Added "🔄 Version Control and Site Management" section
+- Comprehensive guide with step-by-step setup instructions
+- Security-focused .gitignore tailored for jPulse sites
+- Clear include/exclude guidelines with rationale
+- Deployment workflow from git repository
+
+**site/README.md changes:**
+- Added version control as best practice #6
+- Created "Version Control Setup" subsection with benefits overview
+- Cross-reference link to comprehensive deployment.md guide
+- Positioned logically after other best practices
+
+The documentation provides security-first guidance, jPulse-specific instructions, and practical workflow for site owners wanting to version control their sites while maintaining framework update safety.

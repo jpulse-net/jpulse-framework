@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Template Reference v0.8.1
+# jPulse Framework / Docs / Template Reference v0.8.2
 
 Complete reference for server-side template development with the jPulse Handlebars system, covering template variables, file operations, security features, and best practices for building dynamic web pages.
 
@@ -78,8 +78,8 @@ Templates have access to a rich context object with application data, user infor
 <span class="version">Version {{app.version}} ({{app.release}})</span>
 
 <!-- Example output -->
-<title>jPulse Framework v0.5.4</title>
-<span class="version">Version 0.5.2 (2025-09-07)</span>
+<title>jPulse Framework v1.0.0</title>
+<span class="version">Version 1.0.0 (2025-10-01)</span>
 ```
 
 ### User Context
@@ -253,8 +253,8 @@ Get file modification timestamps for cache busting or display:
 
 ```html
 <!-- Cache busting for assets -->
-<link rel="stylesheet" href="/static/assets/jpulse/jpulse-common.css?v={{file.timestamp "jpulse-common.css"}}">
-<script src="/static/assets/jpulse/jpulse-common.js?v={{file.timestamp "jpulse-common.js"}}"></script>
+<link rel="stylesheet" href="/jpulse-common.css?v={{file.timestamp "jpulse-common.css"}}">
+<script src="/jpulse-common.js?v={{file.timestamp "jpulse-common.js"}}"></script>
 
 <!-- Display file information -->
 <footer>
@@ -957,10 +957,10 @@ document.addEventListener('DOMContentLoaded', () => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{pageTitle}} - {{app.name}}</title>
+    <title>{{pageTitle}} - {{app.shortName}}</title>
 
     <!-- Framework CSS -->
-    <link rel="stylesheet" href="/static/assets/jpulse/jpulse-common.css?v={{file.timestamp "jpulse-common.css"}}">
+    <link rel="stylesheet" href="/jpulse-common.css?v={{file.timestamp "jpulse-common.css"}}">
 
     <!-- Theme support -->
     <script>
@@ -1040,7 +1040,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </footer>
 
     <!-- Framework JavaScript -->
-    <script src="/static/assets/jpulse/jpulse-common.js?v={{file.timestamp "jpulse-common.js"}}"></script>
+    <script src="/jpulse-common.js?v={{file.timestamp "jpulse-common.js"}}"></script>
 
     <!-- Global initialization -->
     <script>

@@ -88,6 +88,21 @@ The following files are protected from framework updates:
 3. **Views**: Copy and modify entire templates for consistency
 4. **Assets**: Use site-specific paths to avoid conflicts
 5. **Documentation**: Document your customizations
+6. **Version Control**: Consider setting up a GitHub repository for your site
+
+### Version Control Setup
+
+For team collaboration and deployment automation, you can set up version control for your jPulse site. This provides:
+- **Team Collaboration**: Multiple developers working on site customizations
+- **Change Tracking**: Full history of site modifications
+- **Deployment Automation**: Deploy from repository to multiple environments
+- **Backup**: Additional backup layer for customizations
+
+See the **[GitHub Repository Setup](/jpulse-docs/deployment)** section in the deployment guide for complete instructions on:
+- Initial repository setup and .gitignore configuration
+- What files to include/exclude for security
+- Deployment workflow from git repository
+- Security considerations for site repositories
 
 ---
 
@@ -430,4 +445,4 @@ Visit `/hello/` to see a comprehensive demo of:
 - **W-014 Site Override System**: Compatible with jPulse Framework v0.4.10+
 - **W-047 Site Guidelines**: Compatible with jPulse Framework v0.5.0+
 
-For more information, see the main project documentation and `tt-w-014-w-045-mvc-site-plugins-architecture.md`.
+For more information, see the main project documentation.

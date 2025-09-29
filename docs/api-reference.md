@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / REST API Reference v0.8.1
+# jPulse Framework / Docs / REST API Reference v0.8.2
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -702,12 +702,12 @@ The API returns a hierarchical structure where:
 ### Example Requests
 ```bash
 # List all files in jpulse namespace
-GET /api/1/markdown/jpulse/
+GET /api/1/markdown/jpulse-docs/
 
 # Get specific documentation file
-GET /api/1/markdown/jpulse/dev/architecture.md
+GET /api/1/markdown/jpulse-docs/dev/architecture.md
 
-# List files in custom documentation namespace
+# List files in a site's custom documentation namespace
 GET /api/1/markdown/docs/
 ```
 

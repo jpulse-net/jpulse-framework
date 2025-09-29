@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.8.1
+# jPulse Framework / Docs / Dev / Work Items v0.8.2
 
 This is the doc to track work items, arranged in three sections:
 
@@ -911,6 +911,12 @@ This is the doc to track work items, arranged in three sections:
   - content Boxes & Visual Elements section in ui-widgets
   - cross-linking between docs and examples
 
+### W-065: branding: create new jPulse logo with a pulse wave - v0.8.1
+- status: ✅ COMPLETED
+- type: Feature
+- objective: a logo that is brandable and recognizable
+- deliverable:
+  - round logo, blue background, white pulse wave across round background
 
 
 
@@ -932,16 +938,20 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-065: branding: create new jPulse logo with a pulse wave
+### W-066: docs: improve site specific docs for better onboarding - v0.8.2
 - status: 🚧 IN_PROGRESS
 - type: Feature
-- objective: a logo that is brandable and recognizable
-- deliverable:
-  - round logo, blue background, white pulse wave across round background
-
-
-
-
+- objective: better onboarding experience for site admins and site developers
+- deliverables:
+  - docs/deployment.md: add new "Version Control and Site Management" section
+  - docs/template-reference.md: fix URL bug in .css and .js examples
+  - docs/installation.md: document how to wipe MongoDB data for a clean re-install
+  - api-reference.md and docs/deployment.md: fix incorrect links to jPulse docs from /jpulse/ to /jpulse-docs/
+  - site/README.md: reference and link to "Version Control and Site Management" in docs/deployment.md
+  - reverse sequence in HTML title in all .shtml pages to:
+    <title>Page title - {{app.shortName}}</title>
+  - webapp/static/: add updated favicons to static root
+  - bin/test-all.js: add elapsed time to each test, and total in grand total
 
 
 

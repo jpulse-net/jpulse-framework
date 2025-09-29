@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Installation Guide v0.8.1
+# jPulse Framework / Docs / Site Installation Guide v0.8.2
 
 This guide covers creating and setting up jPulse sites for development and production environments.
 
@@ -175,6 +175,36 @@ mongosh $DB_NAME -u $DB_USER -p --eval "db.runCommand('ping')"
 > **Important**: The database setup script must be run BEFORE starting the application in production mode.
 
 > **See**: `deploy/README.md` for complete production deployment guide
+
+### Complete Wipe of MongoDB Data - ⚠️ DANGER ZONE!
+
+Here are the instructions how to completely wipe the MongoDB data. Use this in case you have a configuration issue, and want to start from scratch. Make sure no data from other apps reside on the same MongoDB server.
+
+```bash
+# Step 1: Stop MongoDB
+sudo systemctl stop mongod
+
+#Step 2: Remove All MongoDB Data
+sudo rm -rf /var/lib/mongo/*
+sudo rm -rf /var/log/mongodb/*
+
+#Step 3: Reset MongoDB Configuration
+sudo cp /etc/mongod.conf /etc/mongod.conf.backup
+sudo sed -i 's/^security:/#security:/' /etc/mongod.conf
+sudo sed -i 's/^  authorization: enabled/#  authorization: enabled/' /etc/mongod.conf
+
+#Step 4: Start MongoDB Fresh
+sudo systemctl start mongod
+
+#Step 5: Verify Clean State
+mongosh --eval "show dbs"
+#Should only show: admin, config, local (system databases)
+
+#Step 6: Run Fresh Setup
+cd /path/to/your/jpulse/site
+source .env
+npm run jpulse-mongodb-setup
+```
 
 ### Manual Production Setup
 For custom MongoDB configurations, see [Deployment Guide](deployment.md) for detailed manual setup instructions.

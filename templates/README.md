@@ -1,4 +1,4 @@
-# %SITE_NAME% - Site based on jPulse Framework v0.8.1
+# %SITE_NAME% - Site based on jPulse Framework v0.8.2
 
 A production-ready jPulse Framework site created with `npx jpulse-setup`.
 
@@ -96,7 +96,7 @@ pm2 start deploy/ecosystem.prod.config.cjs && pm2 save  # Start production
  * @site            %SITE_NAME%
  * @generated       %GENERATION_DATE%
  * @file            templates/README.md
- * @release         2025-09-28
+ * @release         2025-09-29
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

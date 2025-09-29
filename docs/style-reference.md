@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Style Reference v0.8.1
+# jPulse Framework / Docs / Style Reference v0.8.2
 
 Comprehensive CSS framework documentation for the jPulse `jp-*` styling system, providing consistent, responsive, and enterprise-ready components for web applications.
 
@@ -1166,7 +1166,7 @@ Example of a complete page using jPulse components:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management - jPulse Framework</title>
-    <link rel="stylesheet" href="/static/assets/jpulse/jpulse-common.css">
+    <link rel="stylesheet" href="/jpulse-common.css">
 </head>
 <body>
     <div class="jp-container">

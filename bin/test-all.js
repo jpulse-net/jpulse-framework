@@ -4,8 +4,8 @@
  * @tagline         Runs all tests (webapp + CLI) with unified output
  * @description     "Don't make me think" test runner for complete validation
  * @file            bin/test-all.js
- * @version         0.8.1
- * @release         2025-09-28
+ * @version         0.8.2
+ * @release         2025-09-29
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -175,6 +175,7 @@ async function runAllTests() {
     console.log('🧪 jPulse Framework - Unified Test Suite');
     console.log('========================================');
 
+    const testStart = new Date().valueOf();
     const results = [];
     let totalPassed = 0;
     let totalFailed = 0;
@@ -182,31 +183,31 @@ async function runAllTests() {
     // Test 1: CLI Tools
     console.log('\n📋 Test Suite 1: CLI Tools');
     const cliResult = runCommand('node bin/test-cli.js', 'CLI Tools (setup, sync)', true);
-    results.push({ name: 'CLI Tools', result: cliResult, baseStats: null });
+    results.push({ name: 'CLI Tools', result: cliResult, baseStats: null, time: new Date().valueOf() });
     if (cliResult.success) totalPassed++; else totalFailed++;
 
     // Test 2: Enhanced CLI Validation
     console.log('\n📋 Test Suite 2: Enhanced CLI Validation');
     const cliEnhancedResult = runCommand('node bin/test-cli-enhanced.js', 'Enhanced CLI (template expansion, env consistency)', true);
-    results.push({ name: 'Enhanced CLI Validation', result: cliEnhancedResult, baseStats: null });
+    results.push({ name: 'Enhanced CLI Validation', result: cliEnhancedResult, baseStats: null, time: new Date().valueOf() });
     if (cliEnhancedResult.success) totalPassed++; else totalFailed++;
 
     // Test 3: MongoDB & Cross-Platform Validation
     console.log('\n📋 Test Suite 3: MongoDB & Cross-Platform Validation');
     const mongoValidationResult = runCommand('node bin/test-mongodb-validation.js', 'MongoDB Setup & Cross-Platform (password hashing, YAML, compatibility)', true);
-    results.push({ name: 'MongoDB & Cross-Platform Validation', result: mongoValidationResult, baseStats: null });
+    results.push({ name: 'MongoDB & Cross-Platform Validation', result: mongoValidationResult, baseStats: null, time: new Date().valueOf() });
     if (mongoValidationResult.success) totalPassed++; else totalFailed++;
 
     // Test 4: Unit Tests
     console.log('\n📋 Test Suite 4: Unit Tests');
     const unitResult = runCommand('jest webapp/tests/unit --runInBand', 'Unit Tests (models, controllers, utils)', true);
-    results.push({ name: 'Unit Tests', result: unitResult, baseStats: null });
+    results.push({ name: 'Unit Tests', result: unitResult, baseStats: null, time: new Date().valueOf() });
     if (unitResult.success) totalPassed++; else totalFailed++;
 
     // Test 5: Integration Tests
     console.log('\n📋 Test Suite 5: Integration Tests');
     const integrationResult = runCommand('jest webapp/tests/integration --runInBand', 'Integration Tests (routes, middleware, auth)', true);
-    results.push({ name: 'Integration Tests', result: integrationResult, baseStats: null });
+    results.push({ name: 'Integration Tests', result: integrationResult, baseStats: null, time: new Date().valueOf() });
     if (integrationResult.success) totalPassed++; else totalFailed++;
 
     // Summary
@@ -215,7 +216,8 @@ async function runAllTests() {
     console.log('='.repeat(60));
 
     // Calculate statistics using actual parsed results
-    const finalStats = results.map(result => {
+    const finalStats = results.map((result, idx) => {
+        const elapsed = idx ? result.time - results[idx-1].time : result.time - testStart;
         if (result.result.stats) {
             // Use actual parsed statistics (regardless of success/failure)
             return {
@@ -223,7 +225,8 @@ async function runAllTests() {
                 passed: result.result.stats.passed,
                 failed: result.result.stats.failed,
                 skipped: result.result.stats.skipped,
-                total: result.result.stats.total
+                total: result.result.stats.total,
+                elapsed: Math.round(elapsed/100)/10
             };
         } else {
             // Fallback for tests without stats parsing
@@ -232,7 +235,8 @@ async function runAllTests() {
                 passed: result.result.success ? 1 : 0,
                 failed: result.result.success ? 0 : 1,
                 skipped: 0,
-                total: 1
+                total: 1,
+                elapsed: Math.round(elapsed/100)/10
             };
         }
     });
@@ -245,7 +249,7 @@ async function runAllTests() {
             msg = `❌ ${colors.red}${stats.name} -- FAILED${colors.reset}`;
         }
         console.log(msg);
-        console.log(`  - ${stats.passed} passed, ${stats.failed} failed, ${stats.skipped} skipped, ${stats.total} total`);
+        console.log(`  - ${stats.passed} passed, ${stats.failed} failed, ${stats.skipped} skipped, ${stats.total} total, ${stats.elapsed} sec`);
     });
 
     // Grand total calculation using actual stats
@@ -253,12 +257,13 @@ async function runAllTests() {
         skipped: finalStats.reduce((sum, stat) => sum + stat.skipped, 0),
         passed: finalStats.reduce((sum, stat) => sum + stat.passed, 0),
         failed: finalStats.reduce((sum, stat) => sum + stat.failed, 0),
-        total: finalStats.reduce((sum, stat) => sum + stat.total, 0)
+        total: finalStats.reduce((sum, stat) => sum + stat.total, 0),
+        elapsed: finalStats.reduce((sum, stat) => sum + stat.elapsed, 0)
     };
 
     console.log('');
     console.log(`⏩ Grand Total:`);
-    console.log(`  - ${grandTotal.passed} passed, ${grandTotal.failed} failed, ${grandTotal.skipped} skipped, ${grandTotal.total} total`);
+    console.log(`  - ${grandTotal.passed} passed, ${grandTotal.failed} failed, ${grandTotal.skipped} skipped, ${grandTotal.total} total, ${grandTotal.elapsed} sec total time`);
     console.log('');
 
     if (totalFailed === 0) {

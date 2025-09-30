@@ -933,6 +933,19 @@ This is the doc to track work items, arranged in three sections:
   - webapp/static/: add updated favicons to static root
   - bin/test-all.js: add elapsed time to each test, and total in grand total
 
+### W-067: regression bug: site/ directory is missing in published package - v0.8.3
+- status: ✅ COMPLETED
+- type: Bug
+- note: this is a critical bug (Regression)
+- Problem: New sites installing the jPulse Framework with "npx jpulse-configure" miss the critical site/ directory and all site templates
+- Root Cause: package.json "files" array was missing "site/" entry, so site templates weren't published to npm
+- Impact: Breaks W-014 site override system for all fresh installations
+- Fix: Added "site/" to package.json files array (line 16)
+- Evidence: User's jpulse.net server showed empty site/ directory after fresh install
+- Files Changed: package.json
+- SECURITY FIX: Also discovered and fixed that site/webapp/app.conf (containing session secrets) was being included in npm package
+- Additional Fix: Removed brittle package.json files array, now uses .npmignore for maintainable exclusions
+
 
 
 
@@ -953,20 +966,6 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-067: regression bug: site/ directory is missing in published package - v0.8.3
-- status: ✅ COMPLETED
-- type: Bug
-- note: this is a critical bug (Regression)
-- Problem: New sites installing the jPulse Framework with "npx jpulse-configure" miss the critical site/ directory and all site templates
-- Root Cause: package.json "files" array was missing "site/" entry, so site templates weren't published to npm
-- Impact: Breaks W-014 site override system for all fresh installations
-- Fix: Added "site/" to package.json files array (line 16)
-- Evidence: User's jpulse.net server showed empty site/ directory after fresh install
-- Files Changed: package.json
-- SECURITY FIX: Also discovered and fixed that site/webapp/app.conf (containing session secrets) was being included in npm package
-- Additional Fix: Removed brittle package.json files array, now uses .npmignore for maintainable exclusions
-- Next: Requires v0.8.3 release to fix all affected installations
-
 
 
 
@@ -985,11 +984,12 @@ W-045: architecture: create plugin infrastructure
 W-040: view: create view logs page for site admins
 W-0: deployment: enhance hello example with hello model & MongoDB collection
 W-0: view: page headers with anchor links for copy & paste in browser URL bar
+W-0: view: create breadcrumb navigation, optional
+W-0: view: create site navigation pulldown and hamburger
+W-0: view: create responsive sidebar
+W-0: i18n: site specific translations
+W-0: controller: change search to cursor based paging API with limit & cursor
 W-0: controller & view: websocket strategy
-
-
-
-
 
 ### Chat instructions
 
@@ -1007,27 +1007,16 @@ finishing up work item: W-0...
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
-
-
-
-
-
-
-
-
-
 ### Misc
 - status: 🚧 IN_PROGRESS
 npm test
 git add .
 git commit -F commit-message.txt
-git tag v0.8.0
+git tag v0.8.3
 git push origin main --tags
 
 git commit --amend -F commit-message.txt
 git push --force-with-lease origin main
-
-
 
 ### Port 8080 in use
 
@@ -1291,6 +1280,16 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - possiby as plugin once W-045 is implemented
 - choice of SMS, authentication app
 
+### W-0: view: strategy for SPA using vue.js
+- status: 🕑 PENDING
+- type: Feature
+- objective: define a way to create SPA (single page application) using vue.js, with example and easy onboarding
+- inspiration:
+  - the /jpulse-docs/ is already a SPA with changing URI, not based on vue.js
+- deliverables:
+  - define standard for SPA using vue.js
+  - create /hello-vue/index.shtml demo page
+
 ### W-0: controller & view: websocket strategy
 - status: 🕑 PENDING
 - type: Idea
@@ -1309,16 +1308,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - at each node, show default English text on top, selected language below
     - save on focus loss, or save button?
   - for view text (i18n.view.*) add link to jPulse app
-
-### W-0:
-- status: 🕑 PENDING
-- type: Idea
-- objective:
-
-### W-0:
-- status: 🕑 PENDING
-- type: Idea
-- objective:
 
 ### W-0:
 - status: 🕑 PENDING

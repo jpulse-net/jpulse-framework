@@ -117,10 +117,10 @@ function sync() {
                 fs.writeFileSync('webapp/ATTENTION_README.txt', expandedContent);
             }
 
-            // Copy documentation to webapp/static/assets/jpulse/
+            // Copy documentation to webapp/static/assets/jpulse-docs/
             console.log('📚 Copying documentation...');
             const docsSource = path.join(frameworkPath, 'docs');
-            const docsDestination = path.join('webapp', 'static', 'assets', 'jpulse');
+            const docsDestination = path.join('webapp', 'static', 'assets', 'jpulse-docs');
 
             if (fs.existsSync(docsSource)) {
                 // Ensure parent directory exists

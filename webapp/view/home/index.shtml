@@ -161,6 +161,30 @@
                     <div class="local-home-link-title">📝 Template Reference</div>
                     <div class="local-home-link-desc">Handlebars templating system documentation and examples</div>
                 </a>
+                {{#if file.exists "hello/index.shtml"}}
+                <a href="/hello/" class="local-home-link-card">
+                    <div class="local-home-link-title">👋 Basic Hello Example</div>
+                    <div class="local-home-link-desc">Learn how site files override framework files</div>
+                </a>
+                {{/if}}
+                {{#if file.exists "hello-todo/index.shtml"}}
+                <a href="/hello-todo/" class="local-home-link-card">
+                    <div class="local-home-link-title">💡 To-do MVC Example</div>
+                    <div class="local-home-link-desc">Learn how to create a to-do application with a full MVC (Model-View-Controller) trio</div>
+                </a>
+                {{/if}}
+                {{#if file.exists "hello-vue/index.shtml"}}
+                <a href="/hello-vue/" class="local-home-link-card">
+                    <div class="local-home-link-title">🔄 Vue.js SPA Example</div>
+                    <div class="local-home-link-desc">Learn how to create a SPA using vue.js</div>
+                </a>
+                {{/if}}
+                {{#if file.exists "hello-websocket/index.shtml"}}
+                <a href="/hello-websocket/" class="local-home-link-card">
+                    <div class="local-home-link-title">🔌 WebSocket Example</div>
+                    <div class="local-home-link-desc">Learn how to create a WebSocket real-time demo</div>
+                </a>
+                {{/if}}
             </div>
 
             <div class="local-home-footer">

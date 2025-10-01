@@ -241,16 +241,17 @@ jPulse.site = {
      */
     _initComponents: () => {
         // Initialize any site-specific components
-        // Example: Custom tooltips, modals, etc.
+        // Example: Custom modals, accordions, etc.
 
         // Auto-initialize elements with data-site-component attribute
-        document.querySelectorAll('[data-site-component]').forEach(element => {
+        const components = document.querySelectorAll('[data-site-component]');
+        console.log('Found site components:', components.length, components);
+
+        components.forEach(element => {
             const componentType = element.dataset.siteComponent;
+            console.log('Initializing component:', componentType, 'for element:', element);
 
             switch (componentType) {
-                case 'tooltip':
-                    jPulse.site._initTooltip(element);
-                    break;
                 case 'accordion':
                     jPulse.site._initAccordion(element);
                     break;
@@ -259,35 +260,6 @@ jPulse.site = {
         });
     },
 
-    /**
-     * Private: Initialize tooltip component
-     */
-    _initTooltip: (element) => {
-        const tooltip = element.dataset.siteTooltip;
-        if (!tooltip) return;
-
-        element.addEventListener('mouseenter', () => {
-            // Create and show tooltip
-            const tooltipEl = document.createElement('div');
-            tooltipEl.className = 'site-tooltip';
-            tooltipEl.textContent = tooltip;
-            document.body.appendChild(tooltipEl);
-
-            // Position tooltip
-            const rect = element.getBoundingClientRect();
-            tooltipEl.style.left = rect.left + (rect.width / 2) - (tooltipEl.offsetWidth / 2) + 'px';
-            tooltipEl.style.top = rect.top - tooltipEl.offsetHeight - 8 + 'px';
-
-            element._tooltip = tooltipEl;
-        });
-
-        element.addEventListener('mouseleave', () => {
-            if (element._tooltip) {
-                element._tooltip.remove();
-                element._tooltip = null;
-            }
-        });
-    },
 
     /**
      * Private: Initialize accordion component

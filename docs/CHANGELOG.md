@@ -23,11 +23,16 @@ ________________________________________________
 - Implemented maintainable .npmignore exclusion-based approach
 - Site templates now properly included while sensitive files excluded
 - Future-proof: new site files automatically included without manual package.json maintenance
+- Added .gitkeep to empty site sub-directories for better onboarding
+- jPulse documentation not working: Fixed by correcting jpulse-update.js destination path from webapp/static/assets/jpulse/ to webapp/static/assets/jpulse-docs/
 
-**Files Changed**:
+**Files Changed/Added**:
 - package.json: Removed files array, now uses .npmignore for exclusions
 - .npmignore: Added comprehensive exclusions for sensitive files
 - docs/deployment.md: Updated GitHub repository setup documentation
+- bin/jpulse-update.js: Fixed documentation path in webapp/static/assets/
+- site/webapp/model/.gitkeep: Added to empty sub-directory
+- site/webapp/static/assets/.gitkeep: Added to empty sub-directory
 
 **Verification**:
 - npm pack confirms site templates included (site/README.md, site/webapp/app.conf.tmpl, controllers, views, etc.)

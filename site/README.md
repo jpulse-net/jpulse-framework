@@ -338,11 +338,6 @@ if (document.readyState === 'loading') {
 
 <!-- Analytics tracking -->
 <button data-site-track="demo_click" class="site-btn">Track This Click</button>
-
-<!-- Tooltips -->
-<span data-site-component="tooltip" data-site-tooltip="Helpful tip">
-    Hover for tooltip
-</span>
 ```
 
 ### Best Practices

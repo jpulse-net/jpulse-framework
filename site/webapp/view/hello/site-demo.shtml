@@ -92,8 +92,8 @@
             <p>Site-specific components with data attributes:</p>
 
             <div style="margin: 20px 0;">
-                <h4>Tooltip Component:</h4>
-                <p>Hover for site tooltip: <span data-site-component="tooltip" data-site-tooltip="This is a site-specific tooltip powered by site-common.js!" style="text-decoration: underline; cursor: help; color: #2563eb;">Hover me</span></p>
+                <h4>Site-Specific Components:</h4>
+                <p>This demonstrates site-specific functionality that extends the jPulse Framework.</p>
             </div>
 
             <div style="margin: 20px 0;">

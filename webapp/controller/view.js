@@ -95,30 +95,47 @@ async function load(req, res) {
 
         // W-014: Use PathResolver to support site overrides (now imported at module level)
         let fullPath;
+        let isTemplateFile = false; // Track if we're serving a template file
+        const originalFilePath = filePath; // Keep original for content type detection
+
         try {
             // Try to resolve with site override support
             const relativePath = `view${filePath}`;
             fullPath = PathResolver.resolveModule(relativePath);
         } catch (error) {
+            // Try .tmpl fallback for CSS and JS files (W-047 site-common files)
+            const fileExtension = path.extname(filePath).toLowerCase();
+            if (fileExtension === '.css' || fileExtension === '.js') {
+                try {
+                    const templatePath = `view${filePath}.tmpl`;
+                    fullPath = PathResolver.resolveModule(templatePath);
+                    isTemplateFile = true; // Mark as template file for content type handling
+                } catch (templateError) {
+                    // Template fallback failed, continue with original error handling
+                }
+            }
+
             // W-049: Special handling for documentation pages without extensions
             // Check if this is a documentation namespace that should use index.shtml
-            const pathParts = filePath.split('/');
-            const namespace = pathParts[1]; // e.g., 'jpulse' from '/jpulse/deployment'
+            if (!fullPath) {
+                const pathParts = filePath.split('/');
+                const namespace = pathParts[1]; // e.g., 'jpulse' from '/jpulse/deployment'
 
-            // Only allow fallback for truly extensionless paths (no dot in last segment)
-            // This supports documentation systems in any namespace (docs, sales, jpulse-docs, etc.)
-            const lastSegment = pathParts[pathParts.length - 1];
-            const isExtensionless = lastSegment && !lastSegment.includes('.');
+                // Only allow fallback for truly extensionless paths (no dot in last segment)
+                // This supports documentation systems in any namespace (docs, sales, jpulse-docs, etc.)
+                const lastSegment = pathParts[pathParts.length - 1];
+                const isExtensionless = lastSegment && !lastSegment.includes('.');
 
-            if (global.viewRegistry && global.viewRegistry.viewList.includes(namespace) && pathParts.length > 2 && isExtensionless) {
-                // This is a doc page like /jpulse-docs/deployment (no extension), try /jpulse-docs/index.shtml
-                const docIndexPath = `/${namespace}/index.shtml`;
-                try {
-                    const docRelativePath = `view${docIndexPath}`;
-                    fullPath = PathResolver.resolveModule(docRelativePath);
-                    // Don't throw error, continue with doc index template
-                } catch (docError) {
-                    // Doc index doesn't exist, continue with original error handling
+                if (global.viewRegistry && global.viewRegistry.viewList.includes(namespace) && pathParts.length > 2 && isExtensionless) {
+                    // This is a doc page like /jpulse-docs/deployment (no extension), try /jpulse-docs/index.shtml
+                    const docIndexPath = `/${namespace}/index.shtml`;
+                    try {
+                        const docRelativePath = `view${docIndexPath}`;
+                        fullPath = PathResolver.resolveModule(docRelativePath);
+                        // Don't throw error, continue with doc index template
+                    } catch (docError) {
+                        // Doc index doesn't exist, continue with original error handling
+                    }
                 }
             }
 
@@ -214,7 +231,9 @@ async function load(req, res) {
         LogController.logInfo(req, 'view.load', `${req.path} completed in ${duration}ms`);
 
         // Send response with appropriate content type
-        const fileExtension = path.extname(filePath).toLowerCase();
+        // Use original file path for content type detection when serving template files
+        const pathForContentType = isTemplateFile ? originalFilePath : filePath;
+        const fileExtension = path.extname(pathForContentType).toLowerCase();
         let contentType = 'text/html';
 
         if (fileExtension === '.css') {
@@ -478,7 +497,18 @@ function processHandlebars(content, context, req, depth = 0) {
             const relativePath = `view/${includePath}`;
             fullPath = PathResolver.resolveModule(relativePath);
         } catch (error) {
-            throw new Error(`File not found: ${includePath} (${error.message})`);
+            // Try .tmpl fallback for CSS and JS files (same logic as main file resolution)
+            const fileExtension = path.extname(includePath).toLowerCase();
+            if (fileExtension === '.css' || fileExtension === '.js') {
+                try {
+                    const templatePath = `view/${includePath}.tmpl`;
+                    fullPath = PathResolver.resolveModule(templatePath);
+                } catch (templateError) {
+                    throw new Error(`File not found: ${includePath} (${error.message})`);
+                }
+            } else {
+                throw new Error(`File not found: ${includePath} (${error.message})`);
+            }
         }
 
         const stats = fs.statSync(fullPath);
@@ -508,7 +538,19 @@ function processHandlebars(content, context, req, depth = 0) {
             PathResolver.resolveModule(relativePath);
             fileExists = true;
         } catch (error) {
-            fileExists = false;
+            // Try .tmpl fallback for CSS and JS files (same logic as main file resolution)
+            const fileExtension = path.extname(includePath).toLowerCase();
+            if (fileExtension === '.css' || fileExtension === '.js') {
+                try {
+                    const templatePath = `view/${includePath}.tmpl`;
+                    PathResolver.resolveModule(templatePath);
+                    fileExists = true;
+                } catch (templateError) {
+                    fileExists = false;
+                }
+            } else {
+                fileExists = false;
+            }
         }
 
         // Cache the result, if caching is enabled

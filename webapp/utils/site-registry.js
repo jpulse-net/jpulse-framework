@@ -79,11 +79,21 @@ class SiteRegistry {
                     // Check if controller has API methods by reading the file
                     const content = fs.readFileSync(controllerPath, 'utf8');
                     const hasApi = content.includes('static async api(') || content.includes('static api(');
+                    
+                    // Detect additional CRUD API methods
+                    const apiMethods = {
+                        api: hasApi,
+                        apiCreate: content.includes('static async apiCreate(') || content.includes('static apiCreate('),
+                        apiToggle: content.includes('static async apiToggle(') || content.includes('static apiToggle('),
+                        apiDelete: content.includes('static async apiDelete(') || content.includes('static apiDelete('),
+                        apiStats: content.includes('static async apiStats(') || content.includes('static apiStats(')
+                    };
 
                     this.registry.controllers.set(controllerName, {
                         name: controllerName,
                         path: controllerPath,
                         hasApi,
+                        apiMethods,
                         relativePath: `controller/${file}`,
                         registeredAt: new Date().toISOString()
                     });
@@ -173,30 +183,114 @@ class SiteRegistry {
      */
     static registerApiRoutes(router) {
         const apiControllers = this.getApiControllers();
+        let routeCount = 0;
 
         for (const controller of apiControllers) {
             const apiPath = `/api/1/${controller.name}`;
+            const kebabName = controller.name.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '');
 
-            router.get(apiPath, async (req, res) => {
-                try {
-                    const ControllerClass = await this.loadController(controller.name);
-                    await ControllerClass.api(req, res);
-                } catch (error) {
-                    LogController.logError(null, `site-api.${controller.name}`, `error: ${error.message}`);
-
-                    const CommonUtils = global.CommonUtils;
-                    if (CommonUtils && CommonUtils.sendError && req.originalUrl) {
-                        return CommonUtils.sendError(req, res, 500, 'Site API error');
-                    } else {
-                        return res.status(500).json({ error: 'Site API error' });
+            // Register GET route for api() method
+            if (controller.apiMethods?.api) {
+                router.get(apiPath, async (req, res) => {
+                    try {
+                        const ControllerClass = await this.loadController(controller.name);
+                        await ControllerClass.api(req, res);
+                    } catch (error) {
+                        LogController.logError(null, `site-api.${controller.name}`, `error: ${error.message}`);
+                        const CommonUtils = global.CommonUtils;
+                        if (CommonUtils && CommonUtils.sendError && req.originalUrl) {
+                            return CommonUtils.sendError(req, res, 500, 'Site API error');
+                        } else {
+                            return res.status(500).json({ error: 'Site API error' });
+                        }
                     }
-                }
-            });
+                });
+                routeCount++;
+                LogController.logInfo(null, 'site-registry', `Registered API route GET ${apiPath} → ${controller.name}.api`);
+            }
 
-            LogController.logInfo(null, 'site-registry', `Registered API route ${apiPath} → ${controller.name}`);
+            // Register POST route for apiCreate() method
+            if (controller.apiMethods?.apiCreate) {
+                router.post(apiPath, async (req, res) => {
+                    try {
+                        const ControllerClass = await this.loadController(controller.name);
+                        await ControllerClass.apiCreate(req, res);
+                    } catch (error) {
+                        LogController.logError(null, `site-api.${controller.name}`, `error: ${error.message}`);
+                        const CommonUtils = global.CommonUtils;
+                        if (CommonUtils && CommonUtils.sendError && req.originalUrl) {
+                            return CommonUtils.sendError(req, res, 500, 'Site API error');
+                        } else {
+                            return res.status(500).json({ error: 'Site API error' });
+                        }
+                    }
+                });
+                routeCount++;
+                LogController.logInfo(null, 'site-registry', `Registered API route POST ${apiPath} → ${controller.name}.apiCreate`);
+            }
+
+            // Register PUT route for apiToggle() method
+            if (controller.apiMethods?.apiToggle) {
+                router.put(`${apiPath}/:id/toggle`, async (req, res) => {
+                    try {
+                        const ControllerClass = await this.loadController(controller.name);
+                        await ControllerClass.apiToggle(req, res);
+                    } catch (error) {
+                        LogController.logError(null, `site-api.${controller.name}`, `error: ${error.message}`);
+                        const CommonUtils = global.CommonUtils;
+                        if (CommonUtils && CommonUtils.sendError && req.originalUrl) {
+                            return CommonUtils.sendError(req, res, 500, 'Site API error');
+                        } else {
+                            return res.status(500).json({ error: 'Site API error' });
+                        }
+                    }
+                });
+                routeCount++;
+                LogController.logInfo(null, 'site-registry', `Registered API route PUT ${apiPath}/:id/toggle → ${controller.name}.apiToggle`);
+            }
+
+            // Register DELETE route for apiDelete() method
+            if (controller.apiMethods?.apiDelete) {
+                router.delete(`${apiPath}/:id`, async (req, res) => {
+                    try {
+                        const ControllerClass = await this.loadController(controller.name);
+                        await ControllerClass.apiDelete(req, res);
+                    } catch (error) {
+                        LogController.logError(null, `site-api.${controller.name}`, `error: ${error.message}`);
+                        const CommonUtils = global.CommonUtils;
+                        if (CommonUtils && CommonUtils.sendError && req.originalUrl) {
+                            return CommonUtils.sendError(req, res, 500, 'Site API error');
+                        } else {
+                            return res.status(500).json({ error: 'Site API error' });
+                        }
+                    }
+                });
+                routeCount++;
+                LogController.logInfo(null, 'site-registry', `Registered API route DELETE ${apiPath}/:id → ${controller.name}.apiDelete`);
+            }
+
+            // Register GET route for apiStats() method
+            if (controller.apiMethods?.apiStats) {
+                router.get(`${apiPath}/stats`, async (req, res) => {
+                    try {
+                        const ControllerClass = await this.loadController(controller.name);
+                        await ControllerClass.apiStats(req, res);
+                    } catch (error) {
+                        LogController.logError(null, `site-api.${controller.name}`, `error: ${error.message}`);
+                        const CommonUtils = global.CommonUtils;
+                        if (CommonUtils && CommonUtils.sendError && req.originalUrl) {
+                            return CommonUtils.sendError(req, res, 500, 'Site API error');
+                        } else {
+                            return res.status(500).json({ error: 'Site API error' });
+                        }
+                    }
+                });
+                routeCount++;
+                LogController.logInfo(null, 'site-registry', `Registered API route GET ${apiPath}/stats → ${controller.name}.apiStats`);
+            }
         }
 
-        return apiControllers.length;
+        return routeCount;
     }
 }
 

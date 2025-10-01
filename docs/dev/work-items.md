@@ -966,6 +966,24 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-071: site: example /hello-todo/ MVC app with MongoDB collection
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: make it easy for site developers to create their own MVC trio with mongodb collection
+- see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
+- prerequisites:
+  - site/webapp/view/hello/index.shtml      # simple hello world for site override
+  - site/webapp/view/hello/site-demo.shtml  # more details
+  - site/webapp/controller/hello.js         # simple demo of API
+- deliverables:
+  - site/webapp/view/hello-todo/index.shtml # todo MVC demo view
+  - site/webapp/controller/helloTodo.js     # todo MVC demo controller with API
+  - site/webapp/model/helloTodo.js          # todo MVC demo model with helloTodos MongoDB collection
+  - link hello examples as a dashboard buttons in /home/
+    - show dashboard buttons conditionally with #if
+    - site admin might delete the examples
+    - hello examples are only coped at initial installation, not on framework update
+
 
 
 
@@ -980,24 +998,25 @@ This is the doc to track work items, arranged in three sections:
 
 
 ### Potential next items:
-W-045: architecture: create plugin infrastructure
-W-040: view: create view logs page for site admins
-W-0: deployment: enhance hello example with hello model & MongoDB collection
-W-0: view: page headers with anchor links for copy & paste in browser URL bar
-W-0: view: create breadcrumb navigation, optional
-W-0: view: create site navigation pulldown and hamburger
-W-0: view: create responsive sidebar
-W-0: i18n: site specific translations
-W-0: controller: change search to cursor based paging API with limit & cursor
-W-0: controller & view: websocket strategy
+- W-045: architecture: create plugin infrastructure
+- W-040: view: create view logs page for site admins
+- W-068: view: create responsive sidebar
+- W-069: view: create site navigation pulldown and hamburger
+- W-070: view: create breadcrumb navigation, optional
+- W-071: site: example /hello-todo/ MVC app with MongoDB collection
+- W-072: site: example /hello-vue/ SPA using vue.js
+- W-073: site: example /hello-websocket/ app
+- W-0: view: page headers with anchor links for copy & paste in browser URL bar
+- W-0: i18n: site specific translations
+- W-0: controller: change search to cursor based paging API with limit & cursor
 
 ### Chat instructions
 
 next work item: W-0...
 - review task, ask questions if unclear
-- suggest change of spec if any, goal is better usability for developers and site owners
+- suggest change of spec if any, goal is good onboarding and learning experience for site admins and developers, using don't make me think paradigm
 - plan how to implement (wait for my go ahead)
-- current timestamp: 2025-09-23 00:33
+- current timestamp: 2025-09-30 13:14
 
 finishing up work item: W-0...
 - run tests, and fix issues
@@ -1101,11 +1120,83 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - type: Feature
 - create webapp/view/admin/logs.shtml -- search logs
 
-### W-0: deployment: enhance hello example with hello model & MongoDB collection
-- objective: make it easy for site developers to create their own MVC with custom collection
+### W-068: view: create responsive sidebar
 - status: 🕑 PENDING
 - type: Feature
-- objective: better onboarding, teaching developers how to create a full MVC trio.
+- objective: define common sidebar, make it useful on mobile and desktop
+- brainstorming:
+  docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
+- only left sidebar?
+  - also right sidebar?
+- on desktop:
+  - show options:
+    - fixed (default)
+    - toggle: ▶ / ◀ clickable buttons
+    - auto-hide: show when mouse is on left page padding (open close with delay)
+    - when open:
+      - shift left border of main content to right (with content reflow), or
+      - overlap main content
+- on mobile:
+  - closed by default
+  - open on command (hamburger menu?)
+- fix /jpulse-docs/ markdown SPA to be based on common sidebar
+
+### W-069: view: create site navigation pulldown and hamburger menu
+- status: 🕑 PENDING
+- type: Feature
+- objective: configurable site navigaton for quick access that works on desktop and mobile, easy to overload by site owners
+- brainstorming:
+  docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
+- define site menu in appConfig.view.siteMenu
+  - or define in i18n?
+  - with optional nesting
+  - i18n (how?)
+- on desktop:
+  - on hover over site logo and site name,
+  - show pulldown with nested pages
+- on mobile:
+  - show hamburger menu (where? to the left of app icon?)
+
+### W-070: view: create hierarchical breadcrumb navigation, optional
+- status: 🕑 PENDING
+- type: Idea
+- objective: let users know where they are on a big site
+- brainstorming:
+  docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
+- example:
+  - Home > Admin > Site Configuration
+- all parents shold be links for quick access
+- should parents have on hover pulldowns to show siblings for quick navigation?
+- automatic breadcrumb based on page hierarchy?
+  - or defined in configuration?
+- i18n?
+- desktop vs mobile
+
+### site: example /hello-vue/ SPA using vue.js
+- status: 🕑 PENDING
+- type: Feature
+- objective: define a way to create SPA (single page application) using vue.js, with example for easy onboarding
+- see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
+- inspiration:
+  - the /jpulse-docs/ is already a SPA with changing URI, not based on vue.js
+- deliverables:
+  - define standard for SPA using vue.js
+  - demo app should change URI, so that a page reload brings back to same place (like gmail UI)
+  - site/webapp/view/hello-vue/index.shtml  # Vue.js SPA view
+  - site/webapp/controller/helloVue.js      # Vue.js SPA demo controller with API
+
+### W-073: site: example /hello-websocket/ app
+- status: 🕑 PENDING
+- type: Feature
+- objective: standard way where views can establish a persistent bi-directional communication with a controller, useful for single page apps, or concurrent edit of content
+- see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
+- deliverables:
+  - high availability with ping pong initiated on both sides
+    - reestablish connection with progressive time interval
+  - a standard way for a controller to register a websocket server
+  - a standard way for a view to register a websocket client in webapp/view/jpulse-common.js
+  - site/webapp/view/hello-websocket/index.shtml  # websocket demo view
+  - site/webapp/controller/helloWebsocket.js      # websocket demo controller with API
 
 ### W-0: view: page headers with anchor links for copy & paste in browser URL bar
 - status: 🕑 PENDING
@@ -1137,41 +1228,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - deliverables:
   - webapp/view/jpulse-common.js, webapp/view/jpulse-footer.tmpl:
     - add logic for hover, copy to clipboard, URI change with anchor
-
-### W-0: view: create breadcrumb navigation, optional
-- status: 🕑 PENDING
-- type: Idea
-- objective: let users know where they are on a big site
-
-### W-0: view: create site navigation pulldown and hamburger
-- status: 🕑 PENDING
-- type: Feature
-- objective: configurable site navigaton for quick access that works on desktop and mobile, easy to overload by site owners
-- define site menu in appConfig.view.siteMenu
-  - or define in i18n?
-  - with optional nesting
-  - i18n (how?)
-- on desktop:
-  - on hover over site logo and site name,
-  - show pulldown with nested pages
-- on mobile:
-  - show hamburger menu (where? to the left of app icon?)
-
-### W-0: view: create responsive sidebar
-- status: 🕑 PENDING
-- type: Feature
-- objective: define common sidebar, make it useful on mobile and desktop
-- only left sidebar?
-  - also right sidebar?
-- on desktop:
-  - show options:
-    - fixed (default)
-    - toggle: ▶ / ◀ clickable buttons
-    - auto-hide: show when mouse is on left page padding (open close with delay)
-- on mobile:
-  - closed by default
-  - open on command (hamburger menu?)
-- fix /jpulse/ markdown page to be based on common sidebar
 
 ### W-0: view: broadcast message
 - status: 🕑 PENDING
@@ -1279,24 +1335,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - objective: offer increased security
 - possiby as plugin once W-045 is implemented
 - choice of SMS, authentication app
-
-### W-0: view: strategy for SPA using vue.js
-- status: 🕑 PENDING
-- type: Feature
-- objective: define a way to create SPA (single page application) using vue.js, with example and easy onboarding
-- inspiration:
-  - the /jpulse-docs/ is already a SPA with changing URI, not based on vue.js
-- deliverables:
-  - define standard for SPA using vue.js
-  - create /hello-vue/index.shtml demo page
-
-### W-0: controller & view: websocket strategy
-- status: 🕑 PENDING
-- type: Idea
-- objective: standard way where views can establish a persistent bi-directional communication with a controller, useful for single page apps, or concurrent edit of content
-- high availability with ping pong initiated on both sides
-- a standard way for a controller to register a websocket server
-- a standard way for a view to register a websocket client
 
 ### W-0: i18n: utility app to manage translations
 - status: 🕑 PENDING

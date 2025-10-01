@@ -61,7 +61,7 @@
         </div>
         {{else}}
         <div class="jp-info-box">
-            <p>👤 You're viewing this as a guest. <a href="/auth/login">Sign in</a> to see personalized content.</p>
+            <p>👤 You're viewing this as a guest. <a href="/auth/login.shtml">Sign in</a> to see personalized content.</p>
         </div>
         {{/if}}
 

@@ -306,39 +306,6 @@
 
 /* Placeholder for future site-specific UI components */
 
-/* ========================================
- * SITE-SPECIFIC TOOLTIP SYSTEM
- * ======================================== */
-
-.site-tooltip {
-    position: absolute;
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-size: 0.875rem;
-    white-space: nowrap;
-    z-index: 10001;
-    pointer-events: none;
-    opacity: 0;
-    animation: site-tooltip-show 0.2s ease forwards;
-}
-
-.site-tooltip::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 4px solid transparent;
-    border-top-color: rgba(0, 0, 0, 0.9);
-}
-
-@keyframes site-tooltip-show {
-    to {
-        opacity: 1;
-    }
-}
 
 /* ========================================
  * SITE-SPECIFIC ACCORDION SYSTEM
@@ -355,8 +322,7 @@
 
 @media print {
     .site-header,
-    .site-nav,
-    .site-tooltip {
+    .site-nav {
         display: none;
     }
 

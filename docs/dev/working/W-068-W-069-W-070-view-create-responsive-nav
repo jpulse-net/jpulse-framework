@@ -1,0 +1,203 @@
+
+# W-068, W-069, W-070: View: Create Responsive Navigation System with Sidebar, Site Nav Pulldown, Breadcrumb
+
+## Overview
+
+Design and implement a unified navigation system for the jPulse Framework consisting of:
+- W-068: Responsive sidebar navigation
+- W-069: Site navigation pulldown and hamburger menu
+- W-070: Breadcrumb navigation
+
+## Architecture Decision: Template-Based Navigation
+
+### Core Concept
+- Rename jpulse-nav-tabs.tmpl to jpulse-navigation.tmpl
+- Single data structure serves all navigation contexts
+- Site override via site/webapp/view/jpulse-navigation.tmpl
+- No appConfig access required for site developers
+
+### Navigation Data Structure
+
+Defined in webapp/view/jpulse-navigation.tmpl
+
+```javascript
+const siteNavigation = {
+    products: {
+        label: '{{i18n.navigation.products}}',
+        url: '/products/',
+        pages: {
+            software: {
+                label: '{{i18n.navigation.software}}',
+                url: '/products/software/'
+            },
+            services: {
+                label: '{{i18n.navigation.services}}',
+                url: '/products/services/'
+            }
+        }
+    },
+    about: {
+        label: '{{i18n.navigation.about}}',
+        url: '/about/',
+        pages: {
+            company: {
+                label: '{{i18n.navigation.company}}',
+                url: '/about/company/'
+            },
+            team: {
+                label: '{{i18n.navigation.team}}',
+                url: '/about/team/'
+            }
+        }
+    },
+    admin: {
+        label: '{{i18n.navigation.admin}}',
+        url: '/admin/',
+        classes: 'jp-admin-only',
+        pages: {
+            dashboard: {
+                label: '{{i18n.navigation.dashboard}}',
+                url: '/admin/'
+            },
+            users: {
+                label: '{{i18n.navigation.users}}',
+                url: '/admin/users/'
+            }
+        }
+    },
+    docs: {
+        label: '{{i18n.navigation.documentation}}',
+        url: '/jpulse-docs/',
+        pages: {
+            overview: { label: '{{i18n.navigation.overview}}', url: '/jpulse-docs/' }
+        },
+        // SPA callback replaces pages when on docs section
+        spaCallback: async function() {
+            const response = await fetch('/api/1/markdown/jpulse/');
+            const data = await response.json();
+            return convertMarkdownToNavPages(data.files);
+        }
+    }
+};
+```
+
+### API Pattern (Consistent with Existing Framework)
+
+```javascript
+jPulse.dom.ready(() => {
+    const navHandle = jPulse.UI.navigation.register('site-nav', siteNavigation, {
+        showSiteNav: true,
+        showSidebar: true,
+        showBreadcrumbs: false,
+        currentSection: 'docs'  // Triggers spaCallback for docs section
+    });
+});
+```
+
+### Page Includes
+
+```javascript
+// Conditional sidebar (jpulse.net style)
+{{file.include "jpulse-navigation.tmpl" showSidebar=false}}  // Regular page
+{{file.include "jpulse-navigation.tmpl" showSidebar=true sidebarContext="docs"}}  // Docs page
+
+// Always-on sidebar sites
+{{file.include "jpulse-navigation.tmpl" showSidebar=true showSiteNav=true}}
+```
+
+## W-068: Responsive Sidebar
+
+### Simple Sidebar Strategy
+
+**Conditional Sidebar Sites (jpulse.net style):**
+- Use showSidebar: true/false based on page type
+- Different pages control sidebar visibility
+- Performance: No sidebar overhead on pages that don't need it
+
+**Always-On Sidebar Sites:**
+- Single siteNavigation definition
+- Static navigation structure for performance
+- Dynamic sub-hierarchies only expanded when on SPA pages
+- Multiple SPA pages supported via spaCallback property
+
+### Content Behavior Options
+- **Reflow**: Main content shifts right, sidebar pushes content
+- **Overlay**: Sidebar covers part of main content
+- **Auto**: Overlay on mobile (<768px), reflow on desktop (>=768px)
+
+### Configuration
+- Default: Auto mode for responsive behavior
+- CSS classes: jp-sidebar-reflow, jp-sidebar-overlay
+- Configurable via options object
+
+### SPA Integration
+- spaCallback function property for dynamic content expansion
+- Only executes when user navigates to that section
+- Multiple SPA sections supported with different callbacks
+- Performance: Static structure until dynamic expansion needed
+
+## W-069: Site Navigation Pulldown & Hamburger
+
+### Desktop Experience
+- Hover over site logo/name reveals dropdown
+- Nested menu structure with smooth animations
+- Keyboard navigation support
+
+### Mobile Experience
+- Hamburger menu consolidates:
+  - Site navigation sections
+  - Sidebar content
+  - User menu (login/profile/logout)
+- Touch-friendly spacing and interactions
+
+### No Home Duplication
+- Banner/header handles logo and home link
+- Site navigation focuses on content sections
+- Cleaner structure without redundancy
+
+## W-070: Breadcrumb Navigation
+
+### Auto-Generation
+- Based on navigation hierarchy and current URL
+- Starts with "Home" (from header context)
+- Follows navigation structure for deeper pages
+
+### i18n Integration
+- Labels use existing translation system
+- Consistent with navigation structure
+
+## Implementation Benefits
+
+### Developer Experience
+- Simple JSON structure, no complex handlebars conditionals
+- Single definition serves all navigation contexts
+- Template override system (no server restart needed)
+- Follows existing jPulse.UI.*.register() patterns
+
+### Technical Advantages
+- Maintainable: Single source of truth
+- i18n-ready: Handlebars processes translations before JavaScript
+- Extensible: New navigation types just need new renderers
+- Performance: Lightweight, no duplicate definitions
+- No overengineering: Two clear patterns for different site needs
+
+### Integration Points
+- Existing /jpulse-docs/ SPA: Use spaCallback for dynamic expansion
+- Current tab system: Represented as navigation sections
+- Role-based visibility: CSS classes for conditional display
+- Mobile responsive: Unified hamburger menu experience
+
+## Key Design Principles
+
+1. **Keep It Simple**: Avoid overengineering complex merge strategies
+2. **Performance First**: Dynamic content only loads when needed
+3. **Flexible Patterns**: Support both conditional and always-on sidebar sites
+4. **Backward Compatible**: Current jpulse.net behavior unchanged
+5. **Developer Friendly**: Template overrides, no server access needed
+
+## Next Steps
+1. Create detailed technical specifications for each component
+2. Design CSS framework with jp-* prefixes
+3. Implement jPulse.UI.navigation.register() method
+4. Plan migration from existing jpulse-nav-tabs.tmpl
+5. Integration testing with /jpulse-docs/ SPA system

@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         0.8.3
- * @release         2025-09-29
+ * @version         0.8.4
+ * @release         2025-10-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -127,6 +127,7 @@ class UserController {
      * @param {object} res - Express response object
      */
     static async get(req, res) {
+        const startTime = Date.now();
         try {
             LogController.logRequest(req, 'user.get', '');
 
@@ -144,12 +145,14 @@ class UserController {
             // Remove sensitive data
             const { passwordHash, ...userProfile } = user;
 
-            LogController.logInfo(req, 'user.get', `success: profile retrieved for user ${req.session.user.username}`);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'user.get', `success: profile retrieved for user ${req.session.user.username} in ${elapsed}ms`);
             const message = global.i18n.translate(req, 'controller.user.profile.retrievedSuccessfully');
             res.json({
                 success: true,
                 data: userProfile,
-                message: message
+                message: message,
+                elapsed
             });
 
         } catch (error) {
@@ -166,6 +169,7 @@ class UserController {
      * @param {object} res - Express response object
      */
     static async update(req, res) {
+        const startTime = Date.now();
         try {
             LogController.logRequest(req, 'user.update', JSON.stringify(req.body));
 
@@ -208,12 +212,14 @@ class UserController {
             // Remove sensitive data
             const { passwordHash, ...userProfile } = updatedUser;
 
-            LogController.logInfo(req, 'user.update', `success: profile updated for user ${req.session.user.username}`);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'user.update', `success: profile updated for user ${req.session.user.username} in ${elapsed}ms`);
             const message = global.i18n.translate(req, 'controller.user.profile.updatedSuccessfully');
             res.json({
                 success: true,
                 data: userProfile,
-                message: message
+                message: message,
+                elapsed
             });
 
         } catch (error) {
@@ -234,6 +240,7 @@ class UserController {
      * @param {object} res - Express response object
      */
     static async changePassword(req, res) {
+        const startTime = Date.now();
         try {
             LogController.logRequest(req, 'user.changePassword', '');
 
@@ -271,12 +278,14 @@ class UserController {
 
             await UserModel.updateById(req.session.user.id, updateData);
 
-            LogController.logInfo(req, 'user.changePassword', `success: Password changed for user ${req.session.user.username}`);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'user.changePassword', `success: Password changed for user ${req.session.user.username} in ${elapsed}ms`);
 
             const message = global.i18n.translate(req, 'controller.user.password.changedSuccessfully');
             res.json({
                 success: true,
-                message: message
+                message: message,
+                elapsed
             });
 
         } catch (error) {

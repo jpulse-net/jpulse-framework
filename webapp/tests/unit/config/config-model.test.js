@@ -3,8 +3,8 @@
  * @tagline         Unit tests for ConfigModel
  * @description     Tests for config model validation, CRUD operations, and inheritance
  * @file            webapp/tests/unit/config/config-model.test.js
- * @version         0.8.3
- * @release         2025-09-29
+ * @version         0.8.4
+ * @release         2025-10-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

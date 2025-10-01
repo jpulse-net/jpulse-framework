@@ -1,6 +1,54 @@
-# jPulse Framework / Docs / Examples & Use Cases v0.8.3
+# jPulse Framework / Docs / Examples & Use Cases v0.8.4
 
 Real-world examples of building applications with the jPulse Framework, targeting enterprise and government scenarios.
+
+## Hello To-Do MVC Learning Example
+
+**Perfect for: Site developers learning jPulse Framework patterns**
+
+A complete Model-View-Controller demonstration with MongoDB integration, showing how to build a full-featured web application with the jPulse Framework.
+
+### Features
+- **Complete MVC Pattern**: Model, Controller, and View with clear separation of concerns
+- **MongoDB Integration**: Schema validation, CRUD operations, and statistics
+- **REST API**: Full HTTP endpoints (GET, POST, PUT, DELETE) with proper error handling
+- **Interactive UI**: Real-time updates, user authentication context, confirmation dialogs
+- **Educational Content**: Info box explaining the pattern and how to clone for custom apps
+- **Framework Integration**: Uses jPulse.UI.confirmDialog, jPulse.dom.ready, ISO date formatting
+
+### Quick Start
+```bash
+# After installing jPulse Framework
+npm start
+# Visit http://localhost:8080/hello-todo/
+```
+
+### File Structure
+```
+site/webapp/
+├── model/helloTodo.js           # MongoDB model with validation and CRUD
+├── controller/helloTodo.js      # REST API controller with comprehensive endpoints
+└── view/hello-todo/index.shtml  # Interactive UI with educational content
+```
+
+### Learning Objectives
+- Understand jPulse Framework MVC architecture
+- Learn MongoDB schema design and validation
+- Master REST API development with proper logging
+- Implement interactive UIs with framework components
+- Follow "don't make me think" development patterns
+
+### Cloning for Custom Apps
+The Hello To-Do example is designed to be easily cloned:
+1. Copy the three files and rename them (e.g., `myApp.js`)
+2. Change the collection name in the model (e.g., `myApps`)
+3. Update the API endpoints in the controller (e.g., `/api/1/my-app`)
+4. Customize the view for your data structure
+5. Add your new route to the navigation
+
+**Location**: Available at `/hello-todo/` after installation
+
+---
 
 ## Enterprise Portal Example
 

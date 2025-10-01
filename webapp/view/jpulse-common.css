@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         0.8.3
- * @release         2025-09-29
+ * @version         0.8.4
+ * @release         2025-10-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1020,6 +1020,12 @@ body {
     padding: 0 20px;
 }
 
+.jp-container-1000 {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
 .jp-container-1200 {
     max-width: 1200px;
     margin: 0 auto;
@@ -1347,6 +1353,7 @@ body {
     .jp-container-400,
     .jp-container-600,
     .jp-container-800,
+    .jp-container-1000,
     .jp-container-1200 {
         margin: 0 15px;
         padding: 0 15px;

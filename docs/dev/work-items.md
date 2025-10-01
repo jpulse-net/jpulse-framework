@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.8.3
+# jPulse Framework / Docs / Dev / Work Items v0.8.4
 
 This is the doc to track work items, arranged in three sections:
 
@@ -946,13 +946,35 @@ This is the doc to track work items, arranged in three sections:
 - SECURITY FIX: Also discovered and fixed that site/webapp/app.conf (containing session secrets) was being included in npm package
 - Additional Fix: Removed brittle package.json files array, now uses .npmignore for maintainable exclusions
 
-
-
-
-
-
-
-
+### W-071: site: example /hello-todo/ MVC app with MongoDB collection - v0.8.4
+- status: ✅ COMPLETED
+- type: Feature
+- objective: make it easy for site developers to create their own MVC trio with mongodb collection
+- see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
+- prerequisites:
+  - site/webapp/view/hello/index.shtml      # simple hello world for site override
+  - site/webapp/view/hello/site-demo.shtml  # more details
+  - site/webapp/controller/hello.js         # simple demo of API
+- deliverables:
+  - site/webapp/view/hello-todo/index.shtml # todo MVC demo view with with educational content and app
+  - site/webapp/controller/helloTodo.js     # todo MVC demo controller with API
+  - site/webapp/model/helloTodo.js          # todo MVC demo model with helloTodos MongoDB collection
+  - webapp/utils/site-registry.js           # Enhanced auto-registration for CRUD API method discovery
+  - webapp/tests/unit/site/hello-todo-model.test.js # Comprehensive model test coverage
+  - webapp/tests/unit/utils/site-registry.test.js   # Updated tests for enhanced registry functionality
+  - webapp/view/home/index.shtml:
+    - link hello examples as a dashboard buttons
+    - show dashboard buttons conditionally with #if
+- implementation notes:
+  - Complete MVC pattern demonstration with MongoDB integration
+  - Enhanced SiteRegistry for automatic API endpoint discovery (apiCreate, apiToggle, apiDelete, apiStats)
+  - Educational info box explaining MVC pattern and how to clone for custom apps
+  - User authentication context with guest mode support
+  - Interactive UI with real-time statistics and confirmation dialogs
+  - Framework integration: jPulse.UI.confirmDialog, jPulse.dom.ready, ISO date formatting
+  - Comprehensive test coverage with model tests
+  - All 536 tests passing, production-ready code
+- release: v0.8.4, 2025-09-30
 
 
 
@@ -966,23 +988,7 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-071: site: example /hello-todo/ MVC app with MongoDB collection
-- status: 🚧 IN_PROGRESS
-- type: Feature
-- objective: make it easy for site developers to create their own MVC trio with mongodb collection
-- see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
-- prerequisites:
-  - site/webapp/view/hello/index.shtml      # simple hello world for site override
-  - site/webapp/view/hello/site-demo.shtml  # more details
-  - site/webapp/controller/hello.js         # simple demo of API
-- deliverables:
-  - site/webapp/view/hello-todo/index.shtml # todo MVC demo view
-  - site/webapp/controller/helloTodo.js     # todo MVC demo controller with API
-  - site/webapp/model/helloTodo.js          # todo MVC demo model with helloTodos MongoDB collection
-  - link hello examples as a dashboard buttons in /home/
-    - show dashboard buttons conditionally with #if
-    - site admin might delete the examples
-    - hello examples are only coped at initial installation, not on framework update
+
 
 
 
@@ -1003,7 +1009,6 @@ This is the doc to track work items, arranged in three sections:
 - W-068: view: create responsive sidebar
 - W-069: view: create site navigation pulldown and hamburger
 - W-070: view: create breadcrumb navigation, optional
-- W-071: site: example /hello-todo/ MVC app with MongoDB collection
 - W-072: site: example /hello-vue/ SPA using vue.js
 - W-073: site: example /hello-websocket/ app
 - W-0: view: page headers with anchor links for copy & paste in browser URL bar
@@ -1018,7 +1023,7 @@ next work item: W-0...
 - plan how to implement (wait for my go ahead)
 - current timestamp: 2025-09-30 13:14
 
-finishing up work item: W-0...
+finishing up work item: W-071:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-15 12:12

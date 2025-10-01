@@ -3,8 +3,8 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         0.8.3
- * @release         2025-09-29
+ * @version         0.8.4
+ * @release         2025-10-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -209,16 +209,17 @@ class AuthController {
                 authenticated: true
             };
 
+            const elapsed = Date.now() - startTime;
+            global.LogController.logInfo(req, 'auth.login', `success: User ${user.username} logged in, completed in ${elapsed}ms`);
             const message = global.i18n.translate(req, 'controller.auth.loginSuccessful');
             res.json({
                 success: true,
                 data: {
                     user: req.session.user
                 },
-                message: message
+                message: message,
+                elapsed
             });
-            const duration = Date.now() - startTime;
-            global.LogController.logInfo(req, 'auth.login', `success: User ${user.username} logged in, completed in ${duration}ms`);
 
         } catch (error) {
             global.LogController.logError(req, 'auth.login', `error: ${error.message}`);
@@ -257,13 +258,14 @@ class AuthController {
                     });
                 }
 
+                const elapsed = Date.now() - startTime;
+                global.LogController.logInfo(req, 'auth.logout', `success: User ${username} logged out, completed in ${elapsed}ms`);
                 const message = global.i18n.translate(req, 'controller.auth.logoutSuccessful');
                 res.json({
                     success: true,
-                    message: message
+                    message: message,
+                    elapsed
                 });
-                const duration = Date.now() - startTime;
-                global.LogController.logInfo(req, 'auth.logout', `success: User ${username} logged out, completed in ${duration}ms`);
             });
 
         } catch (error) {
@@ -292,14 +294,15 @@ class AuthController {
             // Get roles from UserModel schema
             const roles = UserModel.schema.roles.enum || ['guest', 'user', 'admin', 'root'];
 
+            const elapsed = Date.now() - startTime;
+            global.LogController.logInfo(req, 'auth.getRoles', `success: roles: ${roles.join(', ')}, completed in ${elapsed}ms`);
             const message = global.i18n.translate(req, 'controller.auth.rolesRetrieved');
             res.json({
                 success: true,
                 data: roles,
-                message: message
+                message: message,
+                elapsed
             });
-            const duration = Date.now() - startTime;
-            global.LogController.logInfo(req, 'auth.getRoles', `success: roles: ${roles.join(', ')}, completed in ${duration}ms`);
 
         } catch (error) {
             global.LogController.logError(req, 'auth.getRoles', `error: ${error.message}`);
@@ -326,14 +329,15 @@ class AuthController {
             // Get available languages from i18n system
             const languages = global.i18n.getList(); // Returns [['en', 'English'], ['de', 'Deutsch']]
 
+            const elapsed = Date.now() - startTime;
+            global.LogController.logInfo(req, 'auth.getLanguages', `success: languages: ${JSON.stringify(languages)}, completed in ${elapsed}ms`);
             const message = global.i18n.translate(req, 'controller.auth.languagesRetrieved');
             res.json({
                 success: true,
                 data: languages,
-                message: message
+                message: message,
+                elapsed
             });
-            const duration = Date.now() - startTime;
-            global.LogController.logInfo(req, 'auth.getLanguages', `success: languages: ${JSON.stringify(languages)}, completed in ${duration}ms`);
 
         } catch (error) {
             global.LogController.logError(req, 'auth.getLanguages', `error: ${error.message}`);
@@ -360,15 +364,16 @@ class AuthController {
             // Get themes from UserModel schema
             const themes = UserModel.schema.preferences.theme.enum || ['light', 'dark'];
 
+            const elapsed = Date.now() - startTime;
+            global.LogController.logInfo(req, 'auth.getThemes', `success: themes: ${themes.join(', ')}, completed in ${elapsed}ms`);
+
             const message = global.i18n.translate(req, 'controller.auth.themesRetrieved');
             res.json({
                 success: true,
                 data: themes,
-                message: message
+                message: message,
+                elapsed
             });
-            const duration = Date.now() - startTime;
-            global.LogController.logInfo(req, 'auth.getThemes', `success: themes: ${themes.join(', ')}, completed in ${duration}ms`);
-
         } catch (error) {
             global.LogController.logError(req, 'auth.getThemes', `error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.auth.themesInternalError');

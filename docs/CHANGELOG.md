@@ -1,6 +1,70 @@
-# jPulse Framework / Docs / Version History v0.8.3
+# jPulse Framework / Docs / Version History v0.8.4
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.8.4, W-071, 2025-09-30
+
+**Commit:** `W-071, v0.8.4: Hello To-Do MVC Demo for Site Development Learning`
+
+**EDUCATIONAL ENHANCEMENT**: Complete Model-View-Controller demonstration with MongoDB integration, REST API patterns, user authentication context, and interactive UI for site developer onboarding and learning.
+
+**Objective**: Make it easy for site developers to create their own MVC trio with MongoDB collection by providing a comprehensive, working example that follows jPulse Framework best practices.
+
+**Key Features**:
+- **Complete MVC Pattern**: Full Model-View-Controller demonstration with clear separation of concerns
+- **MongoDB Integration**: HelloTodoModel with schema validation, CRUD operations, and statistics
+- **REST API Excellence**: HelloTodoController with comprehensive API endpoints (GET, POST, PUT, DELETE)
+- **Interactive UI**: Single-page application with real-time updates and user context
+- **Educational Value**: Extensive documentation and code comments for learning
+- **Auto-Registration**: Enhanced SiteRegistry for automatic API endpoint discovery
+- **User Context**: Authentication integration with user information display
+- **Framework Integration**: Uses jPulse.UI.confirmDialog, jPulse.dom.ready, ISO date formatting
+
+**Technical Implementation**:
+- **Model** (`site/webapp/model/helloTodo.js`): MongoDB schema with validation, CRUD methods, statistics
+- **Controller** (`site/webapp/controller/helloTodo.js`): REST API with proper logging, error handling, timing
+- **View** (`site/webapp/view/hello-todo/index.shtml`): Interactive UI with educational info box
+- **Enhanced SiteRegistry**: Auto-discovery of apiCreate, apiToggle, apiDelete, apiStats methods
+- **Dashboard Integration**: Conditional display using `{{#if (file.exists "hello-todo/index.shtml")}}`
+
+**User Experience**:
+- **Educational Info Box**: Clear explanation of MVC pattern and how to clone for custom apps
+- **User Context Display**: Shows authenticated user information and guest mode
+- **Real-time Statistics**: Live counts of total, completed, and pending to-dos
+- **Professional UI**: Uses jp-container-1000, jp-card, jp-btn framework styles
+- **Mobile Responsive**: Works properly on all device sizes
+- **Confirmation Dialogs**: Uses framework's jPulse.UI.confirmDialog for delete operations
+
+**Developer Experience**:
+- **"Don't Make Me Think"**: Clear file structure and naming conventions
+- **Copy-Paste Ready**: Easy to clone for custom MVC implementations
+- **Comprehensive Logging**: Request parameters, timing, and completion status
+- **Error Handling**: Proper validation, 404 handling, and user-friendly messages
+- **Test Coverage**: Complete model tests with proper mocking
+- **Framework Patterns**: Demonstrates all jPulse Framework best practices
+
+**Files Added/Modified**:
+- `site/webapp/model/helloTodo.js`: Complete MongoDB model with validation and CRUD
+- `site/webapp/controller/helloTodo.js`: REST API controller with comprehensive endpoints
+- `site/webapp/view/hello-todo/index.shtml`: Interactive UI with educational content
+- `webapp/utils/site-registry.js`: Enhanced auto-registration for CRUD API methods
+- `webapp/tests/unit/site/hello-todo-model.test.js`: Comprehensive model test coverage
+- `webapp/tests/unit/utils/site-registry.test.js`: Updated tests for enhanced registry
+- `webapp/view/home/index.shtml`: Already contained conditional hello-todo dashboard link
+
+**Educational Impact**:
+- Perfect onboarding experience for site developers learning MVC patterns
+- Clear demonstration of MongoDB integration and schema design
+- REST API best practices with proper error handling and logging
+- Framework integration patterns (UI components, authentication, styling)
+- Ready-to-clone example for custom site development
+
+**Quality Assurance**:
+- All 536 tests passing with comprehensive coverage
+- Production-ready code with proper error handling
+- Security best practices with user authentication context
+- Performance optimized with efficient database queries
 
 ________________________________________________
 ## v0.8.3, W-067, 2025-09-29

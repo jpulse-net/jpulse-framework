@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <!--
- * @name            jPulse Framework / Site / WebApp / View / Hello Todo
- * @tagline         Demo Todo MVC Application for Learning
+ * @name            jPulse Framework / Site / WebApp / View / Hello To-Do
+ * @tagline         Demo To-Do MVC Application for Learning
  * @description     Complete Model-View-Controller example with MongoDB integration
  * @file            site/webapp/view/hello-todo/index.shtml
- * @version         0.8.3
- * @release         2025-09-30
+ * @version         0.8.4
+ * @release         2025-10-01
  * @author          Site Developer
  * @license         AGPL v3, see LICENSE file
  * @genai           60%, Cursor 1.2, Claude Sonnet 4
@@ -14,15 +14,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello To-do MVC Demo - {{app.shortName}}</title>
+    <title>Hello To-Do MVC Demo - {{app.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
     <style>
-        .local-todo-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
         .local-todo-form {
             display: flex;
             gap: 10px;
@@ -182,8 +176,8 @@
 </head>
 <body>
     <div class="jp-main">
-        <div class="local-todo-container">
-            <h1 class="jp-title">📝 Hello To-do MVC Demo</h1>
+        <div class="jp-container-1000">
+            <h1 class="jp-title">📝 Hello To-Do MVC Demo</h1>
 
             <!-- Educational Info Box -->
             <div class="jp-info-box">
@@ -224,7 +218,7 @@
             </div>
             {{/if}}
 
-            <!-- To-do Statistics -->
+            <!-- To-Do Statistics -->
             <div class="local-todo-stats" id="todoStats" style="display: none;">
                 <div class="local-todo-stat">
                     <div class="local-todo-stat-number" id="totalCount">0</div>
@@ -232,30 +226,31 @@
                 </div>
                 <div class="local-todo-stat">
                     <div class="local-todo-stat-number" id="completedCount">0</div>
-                    <div class="local-todo-stat-label">Completed</div>
+                    <div class="local-todo-stat-label">✅ Completed</div>
                 </div>
                 <div class="local-todo-stat">
                     <div class="local-todo-stat-number" id="pendingCount">0</div>
-                    <div class="local-todo-stat-label">Pending</div>
+                    <div class="local-todo-stat-label">⬜ Pending</div>
                 </div>
             </div>
 
             <!-- Add To-do Form -->
             <div class="jp-card">
-                <h3>➕ Add New To-do</h3>
+                <h3>➕ Add New To-Do</h3>
                 <form class="local-todo-form" id="todoForm">
                     <input type="text"
                            id="todoTitle"
                            placeholder="What needs to be done?"
                            maxlength="200"
                            required>
-                    <button type="submit" id="addButton">Add To-do</button>
+                    <button type="submit" id="addButton">Add To-Do</button>
                 </form>
             </div>
 
             <!-- To-do List -->
             <div class="jp-card">
-                <h3>📋 All To-dos</h3>
+                <h3>📋 All To-Dos</h3>
+                <p class="jp-help-text">💡 <strong>Tip:</strong> Click the checkbox to mark a to-do as completed. Click the ✕ button to delete it.</p>
                 <div class="local-todo-loading" id="loadingMessage">Loading todos...</div>
                 <div class="local-todo-empty" id="emptyMessage" style="display: none;">
                     <p>🎉 No to-dos yet! Add one above to get started.</p>
@@ -367,7 +362,7 @@
                 } finally {
                     const addButton = document.getElementById('addButton');
                     addButton.disabled = false;
-                    addButton.textContent = 'Add To-do';
+                    addButton.textContent = 'Add To-Do';
                 }
             }
 
@@ -395,7 +390,12 @@
             }
 
             async deleteTodo(todoId) {
-                if (!confirm('Are you sure you want to delete this to-do?')) {
+                const result = await jPulse.UI.confirmDialog({
+                    message: 'Are you sure you want to delete this to-do?',
+                    buttons: ['Cancel', 'Delete']
+                });
+
+                if (!result.confirmed) {
                     return;
                 }
 
@@ -454,7 +454,7 @@
                 emptyMessage.style.display = 'none';
 
                 todoList.innerHTML = this.todos.map(todo => {
-                    const createdDate = new Date(todo.createdAt).toLocaleDateString();
+                    const createdDate = new Date(todo.createdAt).toISOString().split('T')[0]; // ISO format YYYY-MM-DD
                     const userName = todo.userFirstName && todo.userLastName
                         ? `${todo.userFirstName} ${todo.userLastName}`
                         : todo.username;

@@ -3,8 +3,8 @@
  * @tagline         Demo Todo Controller for MVC Learning
  * @description     Example of complete MVC pattern with REST API endpoints
  * @file            site/webapp/controller/helloTodo.js
- * @version         0.8.3
- * @release         2025-09-30
+ * @version         0.8.4
+ * @release         2025-10-01
  * @author          Site Developer
  * @license         AGPL v3, see LICENSE file
  * @genai           60%, Cursor 1.2, Claude Sonnet 4
@@ -44,6 +44,7 @@ class HelloTodoController {
      * @param {Object} res - Express response object
      */
     static async api(req, res) {
+        const startTime = Date.now();
         try {
             LogController.logRequest(req, 'helloTodo.api', '');
 
@@ -57,7 +58,8 @@ class HelloTodoController {
                 message: `Retrieved ${todos.length} todos successfully`
             });
 
-            LogController.logInfo(req, 'helloTodo.api', `success: retrieved ${todos.length} todos`);
+            const duration = Date.now() - startTime;
+            LogController.logInfo(req, 'helloTodo.api', `success: retrieved ${todos.length} todos in ${duration}ms`);
 
         } catch (error) {
             LogController.logError(req, 'helloTodo.api', `error: ${error.message}`);
@@ -72,10 +74,10 @@ class HelloTodoController {
      * @param {Object} res - Express response object
      */
     static async apiCreate(req, res) {
+        const startTime = Date.now();
         try {
-            LogController.logRequest(req, 'helloTodo.apiCreate', '');
-
             const { title, userFirstName, userLastName } = req.body;
+            LogController.logRequest(req, 'helloTodo.apiCreate', JSON.stringify({ title, userFirstName, userLastName }));
 
             // Validate required fields
             if (!title?.trim()) {
@@ -84,14 +86,14 @@ class HelloTodoController {
             }
 
             // Get username from authenticated user or use 'guest'
-            const username = req.user?.username || 'guest';
+            const username = req.session?.user?.username || 'guest';
 
             // Create todo with user context
             const todoData = {
                 title: title.trim(),
                 username: username,
-                userFirstName: userFirstName || req.user?.profile?.firstName || '',
-                userLastName: userLastName || req.user?.profile?.lastName || ''
+                userFirstName: userFirstName || req.session?.user?.firstName || '',
+                userLastName: userLastName || req.session?.user?.lastName || ''
             };
 
             const todo = await HelloTodoModel.create(todoData);
@@ -102,7 +104,8 @@ class HelloTodoController {
                 message: 'Todo created successfully'
             });
 
-            LogController.logInfo(req, 'helloTodo.apiCreate', `success: created todo "${title}" for user ${username}`);
+            const duration = Date.now() - startTime;
+            LogController.logInfo(req, 'helloTodo.apiCreate', `success: created todo "${title}" for user ${username} in ${duration}ms`);
 
         } catch (error) {
             LogController.logError(req, 'helloTodo.apiCreate', `error: ${error.message}`);
@@ -117,10 +120,10 @@ class HelloTodoController {
      * @param {Object} res - Express response object
      */
     static async apiToggle(req, res) {
+        const startTime = Date.now();
         try {
-            LogController.logRequest(req, 'helloTodo.apiToggle', '');
-
             const { id } = req.params;
+            LogController.logRequest(req, 'helloTodo.apiToggle', JSON.stringify({ id }));
 
             if (!id) {
                 LogController.logError(req, 'helloTodo.apiToggle', 'validation error: id parameter is required');
@@ -135,7 +138,8 @@ class HelloTodoController {
                 message: `Todo ${todo.completed ? 'completed' : 'reopened'} successfully`
             });
 
-            LogController.logInfo(req, 'helloTodo.apiToggle', `success: toggled todo ${id} to ${todo.completed ? 'completed' : 'pending'}`);
+            const duration = Date.now() - startTime;
+            LogController.logInfo(req, 'helloTodo.apiToggle', `success: toggled todo ${id} to ${todo.completed ? 'completed' : 'pending'} in ${duration}ms`);
 
         } catch (error) {
             LogController.logError(req, 'helloTodo.apiToggle', `error: ${error.message}`);
@@ -159,10 +163,10 @@ class HelloTodoController {
      * @param {Object} res - Express response object
      */
     static async apiDelete(req, res) {
+        const startTime = Date.now();
         try {
-            LogController.logRequest(req, 'helloTodo.apiDelete', '');
-
             const { id } = req.params;
+            LogController.logRequest(req, 'helloTodo.apiDelete', JSON.stringify({ id }));
 
             if (!id) {
                 LogController.logError(req, 'helloTodo.apiDelete', 'validation error: id parameter is required');
@@ -177,7 +181,8 @@ class HelloTodoController {
                 message: 'Todo deleted successfully'
             });
 
-            LogController.logInfo(req, 'helloTodo.apiDelete', `success: deleted todo ${id}`);
+            const duration = Date.now() - startTime;
+            LogController.logInfo(req, 'helloTodo.apiDelete', `success: deleted todo ${id} in ${duration}ms`);
 
         } catch (error) {
             LogController.logError(req, 'helloTodo.apiDelete', `error: ${error.message}`);
@@ -201,6 +206,7 @@ class HelloTodoController {
      * @param {Object} res - Express response object
      */
     static async apiStats(req, res) {
+        const startTime = Date.now();
         try {
             LogController.logRequest(req, 'helloTodo.apiStats', '');
 
@@ -212,7 +218,8 @@ class HelloTodoController {
                 message: 'Todo statistics retrieved successfully'
             });
 
-            LogController.logInfo(req, 'helloTodo.apiStats', `success: retrieved stats (${stats.total} total, ${stats.completed} completed)`);
+            const duration = Date.now() - startTime;
+            LogController.logInfo(req, 'helloTodo.apiStats', `success: retrieved stats (${stats.total} total, ${stats.completed} completed) in ${duration}ms`);
 
         } catch (error) {
             LogController.logError(req, 'helloTodo.apiStats', `error: ${error.message}`);

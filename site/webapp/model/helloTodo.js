@@ -3,8 +3,8 @@
  * @tagline         Demo Todo Model for MVC Learning
  * @description     Example of complete MVC pattern with MongoDB integration
  * @file            site/webapp/model/helloTodo.js
- * @version         0.8.3
- * @release         2025-09-30
+ * @version         0.8.4
+ * @release         2025-10-01
  * @author          Site Developer
  * @license         AGPL v3, see LICENSE file
  * @genai           60%, Cursor 1.2, Claude Sonnet 4

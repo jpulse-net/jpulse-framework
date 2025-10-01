@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.8.3
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.8.4
 
 **For Site Administrators & Site Developers**
 
@@ -10,6 +10,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 
 ## Latest Release Highlights
 
+- ✅ **Hello To-Do MVC Demo for Site Development Learning (v0.8.4)**: Complete Model-View-Controller demonstration with MongoDB integration, REST API patterns, user authentication context, and interactive UI. Perfect educational example for site developers learning jPulse Framework patterns with full CRUD operations, auto-registration, and "don't make me think" onboarding experience.
 - ✅ **Critical regression fix - site templates missing from npm package (v0.8.3)**: Fixed critical bug where site/ directory templates were missing from published packages, breaking W-014 site override system. Also fixed security vulnerability exposing sensitive config files. Improved maintainability with .npmignore approach.
 - ✅ **Improved site specific docs for better onboarding (v0.8.2)**: Improved docs for better onboarding of site administrators and site developers
 - ✅ **New jPulse Framework logo (v0.8.1)**: The new jPulse Framework logo has the shape of a single pulse wave on a blue background, which is better brandable and more memorable
@@ -54,7 +55,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - Configuration merging system
 
 ### 🧪 **Testing & Quality**
-- 576+ comprehensive tests with 100% pass rate
+- 536+ comprehensive tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis

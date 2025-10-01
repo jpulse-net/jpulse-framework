@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-014 SiteRegistry auto-discovery utility
  * @description     Tests site controller auto-discovery and API registration functionality
  * @file            webapp/tests/unit/utils/site-registry.test.js
- * @version         0.8.3
- * @release         2025-09-29
+ * @version         0.8.4
+ * @release         2025-10-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -133,6 +133,7 @@ describe('SiteRegistry (W-014)', () => {
             fs.existsSync.mockReturnValue(true);
             fs.readdirSync.mockReturnValue([
                 'hello.js',
+                'helloTodo.js',
                 'admin.ts',      // TypeScript file - should be ignored
                 'readme.txt',    // Text file - should be ignored
                 'config.json',   // JSON file - should be ignored
@@ -145,6 +146,9 @@ describe('SiteRegistry (W-014)', () => {
                 if (filePath.endsWith('hello.js')) {
                     return 'export default class HelloController { static async api(req, res) {} }';
                 }
+                if (filePath.endsWith('helloTodo.js')) {
+                    return 'export default class HelloTodoController { static async api(req, res) {} static async apiCreate(req, res) {} }';
+                }
                 if (filePath.endsWith('test.js')) {
                     return 'export default class TestController { static async api(req, res) {} }';
                 }
@@ -156,7 +160,7 @@ describe('SiteRegistry (W-014)', () => {
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
                 'site-registry',
-                'Discovered 2 controllers, 2 with APIs'
+                'Discovered 3 controllers, 3 with APIs'
             );
         });
 
@@ -205,12 +209,21 @@ describe('SiteRegistry (W-014)', () => {
             SiteRegistry.registry.controllers.set('hello', {
                 name: 'hello',
                 hasApi: true,
+                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
                 path: '/mock/path/hello.js',
                 relativePath: 'controller/hello.js'
+            });
+            SiteRegistry.registry.controllers.set('helloTodo', {
+                name: 'helloTodo',
+                hasApi: true,
+                apiMethods: { api: true, apiCreate: true, apiToggle: true, apiDelete: true, apiStats: true },
+                path: '/mock/path/helloTodo.js',
+                relativePath: 'controller/helloTodo.js'
             });
             SiteRegistry.registry.controllers.set('admin', {
                 name: 'admin',
                 hasApi: true,
+                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
                 path: '/mock/path/admin.js',
                 relativePath: 'controller/admin.js'
             });
@@ -218,16 +231,21 @@ describe('SiteRegistry (W-014)', () => {
             SiteRegistry.registerApiRoutes(mockRouter);
 
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
+            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/helloTodo', expect.any(Function));
+            expect(mockRouter.post).toHaveBeenCalledWith('/api/1/helloTodo', expect.any(Function));
+            expect(mockRouter.put).toHaveBeenCalledWith('/api/1/helloTodo/:id/toggle', expect.any(Function));
+            expect(mockRouter.delete).toHaveBeenCalledWith('/api/1/helloTodo/:id', expect.any(Function));
+            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/helloTodo/stats', expect.any(Function));
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/admin', expect.any(Function));
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
                 'site-registry',
-                'Registered API route /api/1/hello → hello'
+                'Registered API route GET /api/1/hello → hello.api'
             );
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
                 'site-registry',
-                'Registered API route /api/1/admin → admin'
+                'Registered API route GET /api/1/admin → admin.api'
             );
         });
 
@@ -245,6 +263,7 @@ describe('SiteRegistry (W-014)', () => {
             SiteRegistry.registry.controllers.set('hello', {
                 name: 'hello',
                 hasApi: true,
+                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
                 path: '/mock/path/hello.js',
                 relativePath: 'controller/hello.js'
             });
@@ -254,8 +273,11 @@ describe('SiteRegistry (W-014)', () => {
 
             SiteRegistry.registerApiRoutes(mockRouter);
 
+            // Verify the route was registered
+            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
+
             // Get the registered route handler
-            const routeHandler = mockRouter.get.mock.calls[0][1];
+            const routeHandler = mockRouter.get.mock.calls.find(call => call[0] === '/api/1/hello')[1];
 
             // Mock Express req/res objects
             const mockReq = { method: 'GET', url: '/api/1/hello' };
@@ -285,6 +307,7 @@ describe('SiteRegistry (W-014)', () => {
             SiteRegistry.registry.controllers.set('hello', {
                 name: 'hello',
                 hasApi: true,
+                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
                 path: '/mock/path/hello.js',
                 relativePath: 'controller/hello.js'
             });
@@ -296,7 +319,7 @@ describe('SiteRegistry (W-014)', () => {
 
             SiteRegistry.registerApiRoutes(mockRouter);
 
-            const routeHandler = mockRouter.get.mock.calls[0][1];
+            const routeHandler = mockRouter.get.mock.calls.find(call => call[0] === '/api/1/hello')[1];
             const mockReq = { method: 'GET', url: '/api/1/hello', originalUrl: '/api/1/hello' };
             const mockRes = {
                 json: jest.fn(),
@@ -315,27 +338,41 @@ describe('SiteRegistry (W-014)', () => {
 
         test('should not register routes for controllers without API methods', () => {
             const mockRouter = {
-                get: jest.fn()
+                get: jest.fn(),
+                post: jest.fn(),
+                put: jest.fn(),
+                delete: jest.fn()
             };
 
             // Mock controllers - one with API, one without
             SiteRegistry.registry.controllers.set('hello', {
                 name: 'hello',
                 hasApi: true,
+                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
                 path: '/mock/path/hello.js',
                 relativePath: 'controller/hello.js'
+            });
+            SiteRegistry.registry.controllers.set('helloTodo', {
+                name: 'helloTodo',
+                hasApi: true,
+                apiMethods: { api: true, apiCreate: true, apiToggle: true, apiDelete: true, apiStats: true },
+                path: '/mock/path/helloTodo.js',
+                relativePath: 'controller/helloTodo.js'
             });
             SiteRegistry.registry.controllers.set('admin', {
                 name: 'admin',
                 hasApi: false, // No API method
+                apiMethods: { api: false, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
                 path: '/mock/path/admin.js',
                 relativePath: 'controller/admin.js'
             });
 
             SiteRegistry.registerApiRoutes(mockRouter);
 
-            expect(mockRouter.get).toHaveBeenCalledTimes(1);
+            expect(mockRouter.get).toHaveBeenCalledTimes(3); // hello + helloTodo (with stats endpoint) + helloTodo main
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
+            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/helloTodo', expect.any(Function));
+            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/helloTodo/stats', expect.any(Function));
         });
     });
 
@@ -369,24 +406,32 @@ describe('SiteRegistry (W-014)', () => {
         });
 
         test('should support consistent API endpoint pattern', () => {
-            const mockRouter = { get: jest.fn() };
+            const mockRouter = {
+                get: jest.fn(),
+                post: jest.fn(),
+                put: jest.fn(),
+                delete: jest.fn()
+            };
 
             // Mock multiple controllers with APIs
             SiteRegistry.registry.controllers.set('hello', {
                 name: 'hello',
                 hasApi: true,
+                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
                 path: '/mock/path/hello.js',
                 relativePath: 'controller/hello.js'
             });
             SiteRegistry.registry.controllers.set('user-profile', {
                 name: 'user-profile',
                 hasApi: true,
+                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
                 path: '/mock/path/user-profile.js',
                 relativePath: 'controller/user-profile.js'
             });
             SiteRegistry.registry.controllers.set('admin-dashboard', {
                 name: 'admin-dashboard',
                 hasApi: true,
+                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
                 path: '/mock/path/admin-dashboard.js',
                 relativePath: 'controller/admin-dashboard.js'
             });

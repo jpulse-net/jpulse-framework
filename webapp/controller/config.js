@@ -3,8 +3,8 @@
  * @tagline         Config Controller for jPulse Framework WebApp
  * @description     This is the config controller for the jPulse Framework WebApp
  * @file            webapp/controller/config.js
- * @version         0.8.3
- * @release         2025-09-29
+ * @version         0.8.4
+ * @release         2025-10-01
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -75,14 +75,15 @@ class ConfigController {
                 return global.CommonUtils.sendError(req, res, 404, message, 'CONFIG_NOT_FOUND');
             }
 
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'config.get', `success: config retrieved for id: ${id}, completed in ${elapsed}ms`);
             const message = global.i18n.translate(req, 'controller.config.configGetDone', { id });
             res.json({
                 success: true,
                 data: config,
-                message: message
+                message: message,
+                elapsed
             });
-            const duration = Date.now() - startTime;
-            LogController.logInfo(req, 'config.get', `success: config retrieved for id: ${id}, completed in ${duration}ms`);
 
         } catch (error) {
             LogController.logError(req, 'config.get', `error: ${error.message}`);

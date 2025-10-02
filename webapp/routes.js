@@ -100,11 +100,8 @@ router.use('/', express.static(path.join(appConfig.app.dirName, 'static')));
 
 // Catch-all 404 handler
 router.use('*', (req, res) => {
-    // Log API 404s differently from page 404s
-    if (req.originalUrl.startsWith('/api/')) {
-        LogController.logRequest(req, 'api.404', req.originalUrl);
-        LogController.logError(req, 'api.404', `error: API endpoint not found: ${req.originalUrl}`);
-    }
+    LogController.logRequest(req, 'router.use', req.originalUrl);
+    LogController.logError(req, 'router.use', `error: 404 not found: ${req.originalUrl}`);
     return CommonUtils.sendError(req, res, 404, `Page not found: ${req.originalUrl}`, 'NOT_FOUND');
 });
 

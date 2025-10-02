@@ -245,7 +245,11 @@ async function load(req, res) {
 
         // Log completion time only on success
         const duration = Date.now() - startTime;
-        LogController.logInfo(req, 'view.load', `${req.path} completed in ${duration}ms`);
+        let err = '';
+        if (filePath.match(/^\/error\/.*\.shtml$/)) {
+            err = `, ${req.query?.msg || ''}`;
+        }
+        LogController.logInfo(req, 'view.load', `${req.path}${err}, completed in ${duration}ms`);
 
     } catch (error) {
         LogController.logError(req, 'view.load', `error: ${error.message}`);

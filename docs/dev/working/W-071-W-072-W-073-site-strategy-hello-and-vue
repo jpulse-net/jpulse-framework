@@ -521,10 +521,59 @@ window.jPulse.websocket = {
 - **Learning Resource**: Onboarding for new developers
 - **Pattern Library**: Reference implementations for common tasks
 
+## SPA Integration Strategy Discussion
+
+### Integration Options Analysis
+
+During W-072 implementation, we discussed three approaches for integrating Vue.js SPAs with existing jPulse patterns:
+
+#### Option A: Shared Routing Utilities
+- **Purpose**: Common navigation and routing utilities in `jpulse-common.js`
+- **Implementation**: `jPulse.spa.navigate()`, `jPulse.spa.setupPopstateHandler()`, `jPulse.spa.validateRoute()`
+- **Benefits**: Consistent navigation behavior, minimal coupling, immediate value
+- **Status**: Recommended for Phase 1
+
+#### Option B: Shared Component Framework
+- **Purpose**: Reusable Vue components vs extending existing `jPulse.UI.*` widgets
+- **Key Insight**: Better to extend existing `jPulse.UI.*` widgets rather than create Vue-specific components
+- **Benefits**: Consistent behavior between MPA and SPA, single source of truth
+- **Implementation**: Add SPA support methods to existing widgets (e.g., `jPulse.UI.Card.renderSPA()`)
+
+#### Option C: Cross-SPA Communication
+- **Purpose**: Inter-SPA communication via events
+- **Key Insight**: Overkill with W-073 WebSocket implementation coming
+- **Decision**: Skip in favor of WebSocket-based communication in W-073
+- **Benefits**: Real-time, cross-tab, server-coordinated communication
+
+### Revised Integration Plan
+
+**Phase 1**: Shared Routing Utilities (Option A)
+- Add common SPA navigation patterns to `jpulse-common.js`
+- Both `hello-vue` and `jpulse-docs` SPAs use shared utilities
+- Minimal coupling, immediate value
+
+**Phase 2**: Extend `jPulse.UI.*` for SPA Support (Option B)
+- Add SPA rendering methods to existing widgets
+- Maintain consistency between MPA and SPA patterns
+- Avoid duplicating functionality
+
+**Phase 3**: WebSocket Integration (W-073)
+- Superior to event-based communication
+- Real-time, bidirectional, cross-tab support
+- Server coordination and scalability
+
+### Implementation Status
+
+- **W-072**: Vue.js SPA with routing ✅ Complete
+- **Grid Layout**: Fixed 4-column layout with proper vertical alignment ✅ Complete
+- **Integration**: Ready for shared utilities implementation
+- **Next**: Implement shared routing utilities in `jpulse-common.js`
+
 ## Next Steps
 
 1. **W-071 Implementation**: Create HelloTodoModel and HelloTodoController
-2. **W-072 Implementation**: Build Vue.js SPA with routing
-3. **W-073 Implementation**: Add WebSocket server and client utilities
-4. **Documentation**: Update installation and getting-started guides
-5. **Testing**: Create test suites for each example pattern
+2. **W-072 Implementation**: Build Vue.js SPA with routing ✅ Complete
+3. **Shared Utilities**: Implement Option A routing utilities in `jpulse-common.js`
+4. **W-073 Implementation**: Add WebSocket server and client utilities
+5. **Documentation**: Update installation and getting-started guides
+6. **Testing**: Create test suites for each example pattern

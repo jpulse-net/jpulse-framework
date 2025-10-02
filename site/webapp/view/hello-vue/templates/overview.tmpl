@@ -1,4 +1,5 @@
-<!-- Overview Page Template -->
+<!-- Overview page template, site/webapp/view/hello-vue/templates/routing.tmpl -->
+
 <div class="jp-info-box">
     <h3>🚀 Vue.js SPA Demo</h3>
     <p>This is a Single Page Application (SPA) built with Vue.js 3 and Vue Router.
@@ -7,28 +8,14 @@
 </div>
 
 <div class="jp-dashboard-grid local-dashboard-grid">
-    <button @click="navigate('todo-demo')" class="jp-card-dashboard local-clickable-card">
-        <div class="jp-icon-container local-icon-container">🎯</div>
-        <h3 class="jp-card-title">Interactive Demo</h3>
-        <p class="jp-card-description">Experience real to-do management with Vue.js reactivity and API integration</p>
-    </button>
-
-    <button @click="navigate('features')" class="jp-card-dashboard local-clickable-card">
-        <div class="jp-icon-container local-icon-container">⚡</div>
-        <h3 class="jp-card-title">SPA Features</h3>
-        <p class="jp-card-description">Learn about the technical benefits and implementation details</p>
-    </button>
-
-    <button @click="navigate('code')" class="jp-card-dashboard local-clickable-card">
-        <div class="jp-icon-container local-icon-container">✳️</div>
-        <h3 class="jp-card-title">Code Examples</h3>
-        <p class="jp-card-description">See the actual implementation patterns and code snippets</p>
-    </button>
-
-    <button @click="navigate('about')" class="jp-card-dashboard local-clickable-card">
-        <div class="jp-icon-container local-icon-container">ℹ️</div>
-        <h3 class="jp-card-title">About this SPA Demo</h3>
-        <p class="jp-card-description">Learn about the benefits of a Vue.js based SPA (single page application)</p>
+    <button v-for="route in routes" 
+            :key="route.path"
+            v-if="route.path !== '/hello-vue/'"
+            @click="navigate(route.path)" 
+            class="jp-card-dashboard local-clickable-card">
+        <div class="jp-icon-container local-icon-container">{{ route.icon }}</div>
+        <h3 class="jp-card-title">{{ route.title }}</h3>
+        <p class="jp-card-description">{{ route.description }}</p>
     </button>
 </div>
 
@@ -41,3 +28,5 @@
         <li><strong>Read About Integration</strong> - See how it fits with jPulse Framework</li>
     </ol>
 </div>
+
+<!-- EOF site/webapp/view/hello-vue/templates/overview.tmpl -->

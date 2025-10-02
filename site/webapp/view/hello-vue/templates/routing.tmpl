@@ -1,0 +1,67 @@
+<!-- SPA routing configuration, site/webapp/view/hello-vue/templates/routing.tmpl -->
+<!-- This file defines the routing structure for the Vue.js SPA -->
+
+<script type="text/javascript">
+// Route definitions - easily configurable
+const helloVueRoutes = [
+    {
+        path: '/',
+        component: 'Overview',
+        title: 'Overview',
+        icon: '🚀',
+        description: 'Welcome to the Vue.js SPA Demo'
+    },
+    {
+        path: '/overview',
+        component: 'Overview',
+        title: 'Overview',
+        icon: '🚀',
+        description: 'Welcome to the Vue.js SPA Demo'
+    },
+    {
+        path: '/todo-demo',
+        component: 'TodoDemo',
+        title: 'Interactive Demo',
+        icon: '🎯',
+        description: 'Experience real to-do management with Vue.js reactivity and API integration'
+    },
+    {
+        path: '/features',
+        component: 'Features',
+        title: 'SPA Features',
+        icon: '⚡',
+        description: 'Learn about the technical benefits and implementation details'
+    },
+    {
+        path: '/code',
+        component: 'Code',
+        title: 'Code Examples',
+        icon: '⚙️',
+        description: 'See the actual implementation patterns and code snippets'
+    },
+    {
+        path: '/about',
+        component: 'About',
+        title: 'About',
+        icon: 'ℹ️',
+        description: 'Learn about the benefits of a Vue.js based SPA (single page application)'
+    }
+];
+
+// Navigation configuration
+const helloVueNavigation = {
+    showOnOverview: true,  // Show navigation on overview page
+    showOnOtherPages: true, // Show navigation on other pages
+    style: 'buttons',      // 'buttons' or 'tabs'
+    layout: 'horizontal'   // 'horizontal' or 'vertical'
+};
+</script>
+
+<!-- Include all pages: -->
+{{file.include "hello-vue/templates/overview.tmpl"}}
+{{file.include "hello-vue/templates/todo-demo.tmpl"}}
+{{file.include "hello-vue/templates/features.tmpl"}}
+{{file.include "hello-vue/templates/code.tmpl"}}
+{{file.include "hello-vue/templates/about.tmpl"}}
+
+<!-- EOF site/webapp/view/hello-vue/templates/routing.tmpl -->

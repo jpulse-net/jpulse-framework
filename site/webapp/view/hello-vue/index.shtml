@@ -25,6 +25,8 @@
 {{#if file.exists "jpulse-header.tmpl"}}
     {{file.include "jpulse-header.tmpl"}}
 {{/if}}
+<!-- Include all routing and all pages: -->
+{{file.include "hello-vue/templates/routing.tmpl"}}
     <style>
         /* Vue.js SPA Demo Styles */
         .hello-vue-app {
@@ -289,243 +291,30 @@
         const { createApp } = Vue;
         const { createRouter, createWebHistory } = VueRouter;
 
-        // Vue components
-        const Overview = {
-            template: `{{file.include "hello-vue/templates/overview.tmpl"}}`,
-            props: ['navigateTo'],
-            methods: {
-                navigate(route) {
-                    this.navigateTo(route);
-                }
-            }
-        };
-
-        const TodoDemo = {
-            template: `{{file.include "hello-vue/templates/todo-demo.tmpl"}}`,
-            data() {
-                return {
-                    todos: [],
-                    newTodoTitle: '',
-                    stats: { totalTodos: 0, completedTodos: 0, pendingTodos: 0 }
-                };
-            },
-            async mounted() {
-                await this.loadTodos();
-                await this.loadDemoData();
-            },
-            methods: {
-                async loadTodos() {
-                    try {
-                        const response = await jPulse.apiCall('/api/1/helloTodo');
-                        this.todos = response.data || [];
-                        this.updateStats();
-                    } catch (error) {
-                        console.log('Todo data not available - this is normal if hello-todo is not set up');
-                    }
-                },
-                async loadDemoData() {
-                    try {
-                        const response = await jPulse.apiCall('/api/1/helloVue');
-                        this.demoData = response.data;
-                    } catch (error) {
-                        console.log('Demo data not available');
-                    }
-                },
-                async createTodo() {
-                    if (!this.newTodoTitle.trim()) return;
-
-                    const title = this.newTodoTitle.trim();
-                    this.newTodoTitle = ''; // Clear input immediately
-
-                    console.log('Creating to-do:', title);
-
-                    try {
-                        const response = await jPulse.apiCall('/api/1/helloTodo', {
-                            method: 'POST',
-                            body: {
-                                title: title
-                            }
-                        });
-
-                        console.log('API response:', response);
-
-                        if (response && response.data) {
-                            // Use the response data directly
-                            this.todos.unshift(response.data);
-                            this.updateStats();
-
-                            // Show success message
-                            jPulse.showSlideDownMessage('To-do added successfully!', 'success');
-                        } else {
-                            throw new Error('Invalid response from server');
-                        }
-                    } catch (error) {
-                        console.error('Error creating todo:', error);
-                        jPulse.showSlideDownMessage(`Error creating to-do: ${error.message}`, 'error');
-                        // Restore the input if there was an error
-                        this.newTodoTitle = title;
-                    }
-                },
-                async toggleTodo(todo) {
-                    try {
-                        const response = await jPulse.apiCall(`/api/1/helloTodo/${todo._id}/toggle`, {
-                            method: 'PUT'
-                        });
-
-                        if (response.success) {
-                            todo.completed = response.data.completed;
-                            this.updateStats();
-                        } else {
-                            throw new Error(response.message || 'Failed to update to-do');
-                        }
-                    } catch (error) {
-                        console.error('Error updating todo:', error);
-                        jPulse.showSlideDownMessage('Failed to update to-do: ' + error.message, 'error');
-                    }
-                },
-                updateStats() {
-                    this.stats.totalTodos = this.todos.length;
-                    this.stats.completedTodos = this.todos.filter(t => t.completed).length;
-                    this.stats.pendingTodos = this.todos.filter(t => !t.completed).length;
-                },
-                formatDate(dateString) {
-                    if (!dateString) return 'N/A';
-                    return new Date(dateString).toISOString().split('T')[0]; // YYYY-MM-DD format
-                },
-                formatTimestamp(timestamp) {
-                    return new Date(timestamp).toLocaleString();
-                }
-            }
-        };
-
-        const Features = {
-            template: `{{file.include "hello-vue/templates/features.tmpl"}}`
-        };
-
-        const Code = {
-            template: `{{file.include "hello-vue/templates/code.tmpl"}}`
-        };
-
-        const About = {
-            template: `{{file.include "hello-vue/templates/about.tmpl"}}`
-        };
-
-        // Router configuration
-        const routes = [
-            { path: '/', component: Overview },
-            { path: '/overview', component: Overview },
-            { path: '/todo-demo', component: TodoDemo },
-            { path: '/features', component: Features },
-            { path: '/code', component: Code },
-            { path: '/about', component: About }
-        ];
-
-        const router = createRouter({
-            history: createWebHistory('/hello-vue/'),
-            routes
-        });
-
-        // Main Vue app
+        // Minimal working Vue app - can be overridden by external configuration
         const app = createApp({
             template: `
-                <div>
-                    <nav class="hello-vue-nav">
-                        <button @click="navigateTo('overview')"
-                                :class="['jp-btn', currentRoute === 'overview' ? 'jp-btn-primary' : 'jp-btn-outline']">
-                            🚀 Overview
-                        </button>
-                        <button @click="navigateTo('todo-demo')"
-                                :class="['jp-btn', currentRoute === 'todo-demo' ? 'jp-btn-primary' : 'jp-btn-outline']">
-                            🎯 Interactive Demo
-                        </button>
-                        <button @click="navigateTo('features')"
-                                :class="['jp-btn', currentRoute === 'features' ? 'jp-btn-primary' : 'jp-btn-outline']">
-                            ⚡ SPA Features
-                        </button>
-                        <button @click="navigateTo('code')"
-                                :class="['jp-btn', currentRoute === 'code' ? 'jp-btn-primary' : 'jp-btn-outline']">
-                            ✳️ Code Examples
-                        </button>
-                        <button @click="navigateTo('about')"
-                                :class="['jp-btn', currentRoute === 'about' ? 'jp-btn-primary' : 'jp-btn-outline']">
-                            ℹ️ About
-                        </button>
-                    </nav>
-
-                    <div class="hello-vue-content">
-                        <router-view :navigateTo="navigateTo"></router-view>
-                    </div>
+                <div class="jp-card">
+                    <h2>Vue.js SPA Ready</h2>
+                    <p>This is a minimal Vue.js SPA implementation. The actual configuration should be loaded from external sources.</p>
+                    <p>To customize this SPA, provide your own components, routes, and app configuration.</p>
                 </div>
             `,
             data() {
                 return {
-                    loading: true,
-                    currentRoute: 'overview'
+                    loading: false
                 };
-            },
-            async mounted() {
-                // Initialize the app
-                this.loading = false;
-
-                // Set initial route
-                this.currentRoute = this.getRouteFromUrl();
-
-                // Listen for route changes
-                this.$router.afterEach((to) => {
-                    this.currentRoute = to.path.substring(1) || 'overview';
-                });
-            },
-            methods: {
-                navigateTo(route) {
-                    this.$router.push('/' + route);
-                },
-                getRouteFromUrl() {
-                    const path = window.location.pathname;
-                    const route = path.split('/').pop() || 'overview';
-                    return route;
-                }
             }
         });
 
-        app.use(router);
-
-        // Wait for DOM to be ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
-                console.log('DOM ready, mounting Vue app...');
-                mountVueApp();
-            });
-        } else {
-            console.log('DOM already ready, mounting Vue app...');
-            mountVueApp();
+        // Hide loading overlay
+        const loadingOverlay = document.getElementById('spaLoadingOverlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
         }
 
-        function mountVueApp() {
-            try {
-                console.log('About to mount Vue app...');
-                console.log('Target element exists:', !!document.querySelector('#helloVueApp'));
-
-                // Hide loading overlay
-                const loadingOverlay = document.getElementById('spaLoadingOverlay');
-                if (loadingOverlay) {
-                    loadingOverlay.style.display = 'none';
-                }
-
-                // Mount Vue app
-                app.mount('#helloVueApp');
-
-                console.log('Vue app mounted successfully');
-                console.log('App element after mount:', document.querySelector('#helloVueApp').innerHTML);
-
-            } catch (error) {
-                console.error('Error mounting Vue app:', error);
-                // Show error in the app container
-                const appElement = document.querySelector('#helloVueApp');
-                if (appElement) {
-                    appElement.innerHTML = '<div class="jp-card"><h2>Error Loading Vue App</h2><p>There was an error loading the Vue.js application. Please check the console for details.</p><pre>' + error.message + '</pre></div>';
-                }
-            }
-        }
+        // Mount the app
+        app.mount('#helloVueApp');
     }
 </script>
 

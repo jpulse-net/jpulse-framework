@@ -6,6 +6,9 @@
  * @file            site/webapp/view/hello/site-demo.shtml
  * @version         0.8.4
  * @release         2025-10-01
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @author          Site Developer
  * @license         AGPL v3, see LICENSE file
  * @genai           60%, Cursor 1.2, Claude Sonnet 4

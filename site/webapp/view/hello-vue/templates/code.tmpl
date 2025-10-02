@@ -1,0 +1,115 @@
+<!-- Code Examples Page Template -->
+<div class="jp-card">
+    <h2>✳️ Code Examples</h2>
+    <p class="jp-text">Learn the implementation patterns used in this Vue.js SPA.</p>
+
+    <div class="code-section">
+        <h3>1. Vue Router Setup</h3>
+        <p class="jp-text">Each page is a separate template file for better organization:</p>
+        <pre><code class="language-javascript">// Router configuration
+const routes = [
+    { path: '/', component: Overview },
+    { path: '/todo-demo', component: TodoDemo },
+    { path: '/features', component: Features },
+    { path: '/code', component: Code },
+    { path: '/about', component: About }
+];
+
+const router = createRouter({
+    history: createWebHistory(),
+    routes
+});</code></pre>
+    </div>
+
+    <div class="code-section">
+        <h3>2. Component Structure</h3>
+        <p class="jp-text">Clean separation of data, methods, and template:</p>
+        <pre><code class="language-javascript">const TodoDemo = {
+    data() {
+        return {
+            todos: [],
+            newTodoTitle: '',
+            stats: { totalTodos: 0, completedTodos: 0, pendingTodos: 0 }
+        };
+    },
+
+    async mounted() {
+        await this.loadTodos();
+        await this.loadDemoData();
+    },
+
+    methods: {
+        async createTodo() {
+            if (!this.newTodoTitle.trim()) return;
+            
+            const response = await jPulse.apiCall('/api/1/helloTodo', 'POST', {
+                title: this.newTodoTitle.trim()
+            });
+            
+            this.todos.unshift(response.data);
+            this.newTodoTitle = '';
+        }
+    },
+
+    template: &#96;
+        &lt;div class="jp-card"&gt;
+            &lt;!-- Component template --&gt;
+        &lt;/div&gt;
+    &#96;
+};</code></pre>
+    </div>
+
+    <div class="code-section">
+        <h3>3. Template Integration</h3>
+        <p class="jp-text">Templates can be loaded from separate files using jPulse's include system:</p>
+        <pre><code class="language-handlebars">&#123;&#123;#if file.exists "hello-vue/templates/todo-demo.tmpl"&#125;&#125;
+    &#123;&#123;file.include "hello-vue/templates/todo-demo.tmpl"&#125;&#125;
+&#123;&#123;/if&#125;&#125;</code></pre>
+    </div>
+
+    <div class="code-section">
+        <h3>4. API Integration</h3>
+        <p class="jp-text">Using jPulse's built-in API utilities:</p>
+        <pre><code class="language-javascript">// Load data from backend
+async loadTodos() {
+    try {
+        const response = await jPulse.apiCall('/api/1/helloTodo', 'GET');
+        this.todos = response.data.slice(0, 5);
+    } catch (error) {
+        console.warn('Todo data not available');
+    }
+}
+
+// Create new todo
+async createTodo() {
+    const response = await jPulse.apiCall('/api/1/helloTodo', 'POST', {
+        title: this.newTodoTitle.trim()
+    });
+    this.todos.unshift(response.data);
+}</code></pre>
+    </div>
+
+    <div class="code-section">
+        <h3>5. Reactive Data Binding</h3>
+        <p class="jp-text">Vue.js automatically updates the DOM when data changes:</p>
+        <pre><code class="language-html">&lt;div v-for="todo in todos" :key="todo._id"&gt;
+    &lt;input type="checkbox" 
+           :checked="todo.completed"
+           @change="toggleTodo(todo)"&gt;
+    &lt;span :class="{ completed: todo.completed }"&gt;
+        &#123;&#123; todo.title &#125;&#125;
+    &lt;/span&gt;
+&lt;/div&gt;</code></pre>
+    </div>
+
+    <div class="jp-text">
+        <h3>Key Learning Points</h3>
+        <ul class="jp-list">
+            <li><strong>Component-Based:</strong> Each page is a separate Vue component</li>
+            <li><strong>Reactive Data:</strong> Data changes automatically update the UI</li>
+            <li><strong>API Integration:</strong> Seamless backend communication</li>
+            <li><strong>Template Separation:</strong> Templates can be in separate files</li>
+            <li><strong>jPulse Integration:</strong> Uses framework utilities for consistency</li>
+        </ul>
+    </div>
+</div>

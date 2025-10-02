@@ -988,6 +988,18 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-072: site: example /hello-vue/ SPA using vue.js
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: define a way to create SPA (single page application) using vue.js, with example for easy onboarding
+- see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
+- inspiration:
+  - the /jpulse-docs/ is already a SPA with changing URI, not based on vue.js
+- deliverables:
+  - define standard for SPA using vue.js
+  - demo app should change URI, so that a page reload brings back to same place (like gmail UI)
+  - site/webapp/view/hello-vue/index.shtml  # Vue.js SPA view
+  - site/webapp/controller/helloVue.js      # Vue.js SPA demo controller with API
 
 
 
@@ -996,8 +1008,11 @@ This is the doc to track work items, arranged in three sections:
 
 
 
-
-
+questions:
+- what about vue & i18n?
+- why .demo-stats and not .jp-* (use existing styles as much as possible for educational reason)
+  - same with grid buttons, which I changed,
+  - review the "about" grid button, which was missing (I removed the "MPA vs SPA" grid button)
 
 
 
@@ -1009,7 +1024,6 @@ This is the doc to track work items, arranged in three sections:
 - W-068: view: create responsive sidebar
 - W-069: view: create site navigation pulldown and hamburger
 - W-070: view: create breadcrumb navigation, optional
-- W-072: site: example /hello-vue/ SPA using vue.js
 - W-073: site: example /hello-websocket/ app
 - W-0: view: page headers with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific translations
@@ -1036,7 +1050,7 @@ finishing up work item: W-071:
 npm test
 git add .
 git commit -F commit-message.txt
-git tag v0.8.3
+git tag v0.8.4
 git push origin main --tags
 
 git commit --amend -F commit-message.txt
@@ -1176,19 +1190,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - or defined in configuration?
 - i18n?
 - desktop vs mobile
-
-### site: example /hello-vue/ SPA using vue.js
-- status: 🕑 PENDING
-- type: Feature
-- objective: define a way to create SPA (single page application) using vue.js, with example for easy onboarding
-- see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
-- inspiration:
-  - the /jpulse-docs/ is already a SPA with changing URI, not based on vue.js
-- deliverables:
-  - define standard for SPA using vue.js
-  - demo app should change URI, so that a page reload brings back to same place (like gmail UI)
-  - site/webapp/view/hello-vue/index.shtml  # Vue.js SPA view
-  - site/webapp/controller/helloVue.js      # Vue.js SPA demo controller with API
 
 ### W-073: site: example /hello-websocket/ app
 - status: 🕑 PENDING

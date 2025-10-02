@@ -151,6 +151,7 @@ jPulse is designed for:
 - **[REST API Reference](api-reference.md)** - Complete endpoint documentation
 - **[Style Reference](style-reference.md)** - Complete CSS framework and components
 - **[Template Reference](template-reference.md)** - Server-side integration guide
+- **[MPA vs SPA Comparison](mpa-vs-spa.md)** - Architecture patterns and when to choose each
 
 ### Framework Development
 - **[Framework Development Guide](dev/README.md)** - Architecture and contribution guide

@@ -1,0 +1,63 @@
+<!-- Todo Demo Page Template -->
+<div class="jp-card">
+    <h2>Interactive Todo Demo</h2>
+    <p class="jp-text">Experience Vue.js reactivity and API integration with real todo management.</p>
+    
+    <!-- Statistics Dashboard -->
+    <div class="jp-dashboard-grid local-stats-grid">
+        <div class="jp-card-dashboard">
+            <div class="jp-icon-container local-icon-container">📊</div>
+            <h3 class="jp-card-title">{{ stats.totalTodos || 0 }}</h3>
+            <p class="jp-card-description">Total Todos</p>
+        </div>
+        <div class="jp-card-dashboard">
+            <div class="jp-icon-container local-icon-container">✅</div>
+            <h3 class="jp-card-title">{{ stats.completedTodos || 0 }}</h3>
+            <p class="jp-card-description">Completed</p>
+        </div>
+        <div class="jp-card-dashboard">
+            <div class="jp-icon-container local-icon-container">⏳</div>
+            <h3 class="jp-card-title">{{ stats.pendingTodos || 0 }}</h3>
+            <p class="jp-card-description">Pending</p>
+        </div>
+    </div>
+
+    <!-- Add Todo Form -->
+    <div class="todo-form">
+        <div class="jp-form-group">
+            <input 
+                v-model="newTodoTitle"
+                @keyup.enter="createTodo"
+                type="text" 
+                placeholder="Add a new todo to test Vue.js reactivity..."
+                class="jp-form-input"
+            >
+            <button @click="createTodo" class="jp-btn jp-btn-primary">
+                Add Todo
+            </button>
+        </div>
+    </div>
+
+    <!-- Todo List -->
+    <div class="todo-list">
+        <h3>Todo List</h3>
+        <div v-if="todos.length === 0" class="jp-text">
+            <p>No todos yet. Add one above to see Vue.js reactivity in action!</p>
+        </div>
+        <div v-else>
+            <div v-for="todo in todos" :key="todo._id" class="todo-item">
+                <label class="todo-checkbox">
+                    <input 
+                        type="checkbox" 
+                        :checked="todo.completed"
+                        @change="toggleTodo(todo)"
+                    >
+                    <span class="todo-text" :class="{ completed: todo.completed }">
+                        {{ todo.title }}
+                    </span>
+                </label>
+                <span class="todo-date">{{ formatDate(todo.createdAt) }}</span>
+            </div>
+        </div>
+    </div>
+</div>

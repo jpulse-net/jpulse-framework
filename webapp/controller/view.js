@@ -226,10 +226,6 @@ async function load(req, res) {
         // Process all other handlebars (including file.include with context variables)
         content = processHandlebars(content, context, req, 0);
 
-        // Log completion time
-        const duration = Date.now() - startTime;
-        LogController.logInfo(req, 'view.load', `${req.path} completed in ${duration}ms`);
-
         // Send response with appropriate content type
         // Use original file path for content type detection when serving template files
         const pathForContentType = isTemplateFile ? originalFilePath : filePath;
@@ -246,6 +242,10 @@ async function load(req, res) {
 
         res.set('Content-Type', contentType);
         res.send(content);
+
+        // Log completion time only on success
+        const duration = Date.now() - startTime;
+        LogController.logInfo(req, 'view.load', `${req.path} completed in ${duration}ms`);
 
     } catch (error) {
         LogController.logError(req, 'view.load', `error: ${error.message}`);

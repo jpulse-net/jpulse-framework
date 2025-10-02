@@ -176,7 +176,7 @@
                 {{#if file.exists "hello-vue/index.shtml"}}
                 <a href="/hello-vue/" class="local-home-link-card">
                     <div class="local-home-link-title">🔄 Vue.js SPA Example</div>
-                    <div class="local-home-link-desc">Learn how to create a SPA using vue.js</div>
+                    <div class="local-home-link-desc">Learn how to create a single-page application using vue.js</div>
                 </a>
                 {{/if}}
                 {{#if file.exists "hello-websocket/index.shtml"}}

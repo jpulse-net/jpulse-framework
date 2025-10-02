@@ -1873,6 +1873,8 @@ Example site customizations:
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
+    align-items: stretch;
+    grid-auto-rows: 1fr;
 }
 
 @media (max-width: 768px) {
@@ -1898,6 +1900,7 @@ Example site customizations:
     text-decoration: none;
     color: inherit;
     border: 1px solid #e0e0e0;
+    height: 100%;
 }
 
 .jp-card-dashboard:hover {

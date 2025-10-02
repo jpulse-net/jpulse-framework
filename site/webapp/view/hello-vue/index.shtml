@@ -22,143 +22,244 @@
     <!-- Vue.js 3 -->
     <script src="/common/vue/vue.min.js"></script>
     <script src="/common/vue/vue-router.min.js"></script>
-
 {{#if file.exists "jpulse-header.tmpl"}}
     {{file.include "jpulse-header.tmpl"}}
 {{/if}}
+    <style>
+        /* Vue.js SPA Demo Styles */
+        .hello-vue-app {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
 
-<style>
-    /* Vue.js SPA Demo Styles */
-    .hello-vue-app {
-        max-width: 1000px;
-        margin: 0 auto;
-    }
+        .hello-vue-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 15px;
+        }
 
-    .hello-vue-nav {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 30px;
-        border-bottom: 2px solid #e0e0e0;
-        padding-bottom: 15px;
-    }
+        .hello-vue-content {
+            min-height: 400px;
+        }
 
-    .hello-vue-content {
-        min-height: 400px;
-    }
+        /* Local styles with local- prefix */
+        .jp-dashboard-grid.local-dashboard-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
 
-    .local-icon-container {
-        font-size: 64px;
-        color: white;
-    }
+        .jp-dashboard-grid.local-dashboard-grid .jp-card-dashboard {
+            justify-content: flex-start;
+        }
 
-    .local-dashboard-grid {
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    }
+        @media (max-width: 1200px) {
+            .local-dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
 
-    .local-stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    }
+        @media (max-width: 768px) {
+            .local-dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
 
-    .local-features-grid {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    }
+        .local-icon-container {
+            font-size: 64px !important;
+            color: white;
+        }
 
-    .local-about-grid {
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    }
+        .local-clickable-card {
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
 
-    .todo-form {
-        margin: 20px 0;
-    }
+        .local-clickable-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
 
-    .todo-form .jp-form-group {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-    }
+        .local-non-clickable-card {
+            cursor: default;
+            /* No hover effects for non-clickable cards */
+        }
 
-    .todo-list {
-        margin-top: 20px;
-    }
+        .local-non-clickable-card:hover {
+            transform: none !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+            background: linear-gradient(to bottom, #f8f8f8 0%, #fbfbfb 40%, #fbfbfb 100%) !important;
+        }
 
-    .todo-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px;
-        border-bottom: 1px solid #eee;
-    }
+        .local-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
 
-    .todo-checkbox {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        cursor: pointer;
-    }
+        .local-stats-card {
+            cursor: default;
+        }
 
-    .todo-text.completed {
-        text-decoration: line-through;
-        color: #666;
-    }
+        .local-features-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+            align-items: stretch;
+        }
 
-    .todo-date {
-        font-size: 0.9em;
-        color: #666;
-    }
+        @media (max-width: 1200px) {
+            .local-features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
 
-    .code-section {
-        margin: 20px 0;
-    }
+        @media (max-width: 768px) {
+            .local-features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
 
-    .code-section pre {
-        background: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 4px;
-        padding: 15px;
-        overflow-x: auto;
-    }
+        .local-feature-card {
+            cursor: default;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            text-align: center;
+        }
 
-    .code-section code {
-        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-        font-size: 13px;
-        line-height: 1.4;
-    }
+        .local-about-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
 
-    .spa-loading-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(255, 255, 255, 0.9);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-    }
+        @media (max-width: 1200px) {
+            .local-about-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
 
-    .spa-spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #007acc;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 20px;
-    }
+        @media (max-width: 768px) {
+            .local-about-grid {
+                grid-template-columns: 1fr;
+            }
+        }
 
-    .spa-loading-text {
-        font-size: 18px;
-        color: #007acc;
-        font-weight: 500;
-    }
+        .local-about-card {
+            cursor: default;
+        }
 
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-</style>
+        .local-todo-form {
+            margin-bottom: 2rem;
+        }
+
+        .local-todo-form .jp-form-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .local-todo-form .jp-form-input {
+            flex: 1;
+        }
+
+        .local-todo-list {
+            margin-top: 1rem;
+        }
+
+        .local-todo-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            background: white;
+        }
+
+        .local-todo-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .local-todo-text.completed {
+            text-decoration: line-through;
+            color: #666;
+        }
+
+        .local-todo-date {
+            color: #888;
+            font-size: 0.875rem;
+        }
+
+        .local-icon-container {
+            font-size: 64px;
+            color: white;
+        }
+
+        .code-section {
+            margin: 20px 0;
+        }
+
+        .code-section pre {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+
+        .code-section code {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .spa-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .spa-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007acc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .spa-loading-text {
+            font-size: 18px;
+            color: #007acc;
+            font-weight: 500;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
 <div class="jp-main">
@@ -188,215 +289,243 @@
         const { createApp } = Vue;
         const { createRouter, createWebHistory } = VueRouter;
 
-    // Vue components
-    const Overview = {
-        template: `{{file.include "hello-vue/templates/overview.tmpl"}}`
-    };
-
-    const TodoDemo = {
-        template: `{{file.include "hello-vue/templates/todo-demo.tmpl"}}`,
-        data() {
-            return {
-                todos: [],
-                newTodoTitle: '',
-                stats: { totalTodos: 0, completedTodos: 0, pendingTodos: 0 }
-            };
-        },
-        async mounted() {
-            await this.loadTodos();
-            await this.loadDemoData();
-        },
-        methods: {
-            async loadTodos() {
-                try {
-                    const response = await jPulse.apiCall('/api/1/helloTodo');
-                    this.todos = response.data || [];
-                    this.updateStats();
-                } catch (error) {
-                    console.log('Todo data not available - this is normal if hello-todo is not set up');
+        // Vue components
+        const Overview = {
+            template: `{{file.include "hello-vue/templates/overview.tmpl"}}`,
+            props: ['navigateTo'],
+            methods: {
+                navigate(route) {
+                    this.navigateTo(route);
                 }
-            },
-            async loadDemoData() {
-                try {
-                    const response = await jPulse.apiCall('/api/1/helloVue');
-                    this.demoData = response.data;
-                } catch (error) {
-                    console.log('Demo data not available');
-                }
-            },
-            async createTodo() {
-                if (!this.newTodoTitle.trim()) return;
-
-                try {
-                    const response = await jPulse.apiCall('/api/1/helloTodo', 'POST', {
-                        title: this.newTodoTitle.trim()
-                    });
-
-                    this.todos.unshift(response.data);
-                    this.newTodoTitle = '';
-                    this.updateStats();
-
-                    // Show success message
-                    jPulse.showMessage('Todo added successfully!', 'success');
-                } catch (error) {
-                    console.error('Error creating todo:', error);
-                    jPulse.showMessage('Error creating todo', 'error');
-                }
-            },
-            async toggleTodo(todo) {
-                try {
-                    const response = await jPulse.apiCall(`/api/1/helloTodo/${todo._id}`, 'PUT', {
-                        completed: !todo.completed
-                    });
-
-                    todo.completed = response.data.completed;
-                    this.updateStats();
-                } catch (error) {
-                    console.error('Error updating todo:', error);
-                }
-            },
-            updateStats() {
-                this.stats.totalTodos = this.todos.length;
-                this.stats.completedTodos = this.todos.filter(t => t.completed).length;
-                this.stats.pendingTodos = this.todos.filter(t => !t.completed).length;
-            },
-            formatDate(dateString) {
-                return new Date(dateString).toLocaleDateString();
-            },
-            formatTimestamp(timestamp) {
-                return new Date(timestamp).toLocaleString();
             }
-        }
-    };
+        };
 
-    const Features = {
-        template: `{{file.include "hello-vue/templates/features.tmpl"}}`
-    };
-
-    const Code = {
-        template: `{{file.include "hello-vue/templates/code.tmpl"}}`
-    };
-
-    const About = {
-        template: `{{file.include "hello-vue/templates/about.tmpl"}}`
-    };
-
-    // Router configuration
-    const routes = [
-        { path: '/', component: Overview },
-        { path: '/overview', component: Overview },
-        { path: '/todo-demo', component: TodoDemo },
-        { path: '/features', component: Features },
-        { path: '/code', component: Code },
-        { path: '/about', component: About }
-    ];
-
-    const router = createRouter({
-        history: createWebHistory('/hello-vue/'),
-        routes
-    });
-
-    // Main Vue app
-    const app = createApp({
-        template: `
-            <div>
-                <nav class="hello-vue-nav">
-                    <button @click="navigateTo('overview')"
-                            :class="['jp-btn', currentRoute === 'overview' ? 'jp-btn-primary' : 'jp-btn-outline']">
-                        🚀 Overview
-                    </button>
-                    <button @click="navigateTo('todo-demo')"
-                            :class="['jp-btn', currentRoute === 'todo-demo' ? 'jp-btn-primary' : 'jp-btn-outline']">
-                        🎯 Interactive Demo
-                    </button>
-                    <button @click="navigateTo('features')"
-                            :class="['jp-btn', currentRoute === 'features' ? 'jp-btn-primary' : 'jp-btn-outline']">
-                        ⚡ SPA Features
-                    </button>
-                    <button @click="navigateTo('code')"
-                            :class="['jp-btn', currentRoute === 'code' ? 'jp-btn-primary' : 'jp-btn-outline']">
-                        ✳️ Code Examples
-                    </button>
-                    <button @click="navigateTo('about')"
-                            :class="['jp-btn', currentRoute === 'about' ? 'jp-btn-primary' : 'jp-btn-outline']">
-                        ℹ️ About
-                    </button>
-                </nav>
-
-                <div class="hello-vue-content">
-                    <router-view></router-view>
-                </div>
-            </div>
-        `,
-        data() {
-            return {
-                loading: true,
-                currentRoute: 'overview'
-            };
-        },
-        async mounted() {
-            // Initialize the app
-            this.loading = false;
-
-            // Set initial route
-            this.currentRoute = this.getRouteFromUrl();
-
-            // Listen for route changes
-            this.$router.afterEach((to) => {
-                this.currentRoute = to.path.substring(1) || 'overview';
-            });
-        },
-        methods: {
-            navigateTo(route) {
-                this.$router.push('/' + route);
+        const TodoDemo = {
+            template: `{{file.include "hello-vue/templates/todo-demo.tmpl"}}`,
+            data() {
+                return {
+                    todos: [],
+                    newTodoTitle: '',
+                    stats: { totalTodos: 0, completedTodos: 0, pendingTodos: 0 }
+                };
             },
-            getRouteFromUrl() {
-                const path = window.location.pathname;
-                const route = path.split('/').pop() || 'overview';
-                return route;
+            async mounted() {
+                await this.loadTodos();
+                await this.loadDemoData();
+            },
+            methods: {
+                async loadTodos() {
+                    try {
+                        const response = await jPulse.apiCall('/api/1/helloTodo');
+                        this.todos = response.data || [];
+                        this.updateStats();
+                    } catch (error) {
+                        console.log('Todo data not available - this is normal if hello-todo is not set up');
+                    }
+                },
+                async loadDemoData() {
+                    try {
+                        const response = await jPulse.apiCall('/api/1/helloVue');
+                        this.demoData = response.data;
+                    } catch (error) {
+                        console.log('Demo data not available');
+                    }
+                },
+                async createTodo() {
+                    if (!this.newTodoTitle.trim()) return;
+
+                    const title = this.newTodoTitle.trim();
+                    this.newTodoTitle = ''; // Clear input immediately
+
+                    console.log('Creating to-do:', title);
+
+                    try {
+                        const response = await jPulse.apiCall('/api/1/helloTodo', {
+                            method: 'POST',
+                            body: {
+                                title: title
+                            }
+                        });
+
+                        console.log('API response:', response);
+
+                        if (response && response.data) {
+                            // Use the response data directly
+                            this.todos.unshift(response.data);
+                            this.updateStats();
+
+                            // Show success message
+                            jPulse.showSlideDownMessage('To-do added successfully!', 'success');
+                        } else {
+                            throw new Error('Invalid response from server');
+                        }
+                    } catch (error) {
+                        console.error('Error creating todo:', error);
+                        jPulse.showSlideDownMessage(`Error creating to-do: ${error.message}`, 'error');
+                        // Restore the input if there was an error
+                        this.newTodoTitle = title;
+                    }
+                },
+                async toggleTodo(todo) {
+                    try {
+                        const response = await jPulse.apiCall(`/api/1/helloTodo/${todo._id}/toggle`, {
+                            method: 'PUT'
+                        });
+
+                        if (response.success) {
+                            todo.completed = response.data.completed;
+                            this.updateStats();
+                        } else {
+                            throw new Error(response.message || 'Failed to update to-do');
+                        }
+                    } catch (error) {
+                        console.error('Error updating todo:', error);
+                        jPulse.showSlideDownMessage('Failed to update to-do: ' + error.message, 'error');
+                    }
+                },
+                updateStats() {
+                    this.stats.totalTodos = this.todos.length;
+                    this.stats.completedTodos = this.todos.filter(t => t.completed).length;
+                    this.stats.pendingTodos = this.todos.filter(t => !t.completed).length;
+                },
+                formatDate(dateString) {
+                    if (!dateString) return 'N/A';
+                    return new Date(dateString).toISOString().split('T')[0]; // YYYY-MM-DD format
+                },
+                formatTimestamp(timestamp) {
+                    return new Date(timestamp).toLocaleString();
+                }
             }
-        }
-    });
+        };
 
-    app.use(router);
+        const Features = {
+            template: `{{file.include "hello-vue/templates/features.tmpl"}}`
+        };
 
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM ready, mounting Vue app...');
-            mountVueApp();
+        const Code = {
+            template: `{{file.include "hello-vue/templates/code.tmpl"}}`
+        };
+
+        const About = {
+            template: `{{file.include "hello-vue/templates/about.tmpl"}}`
+        };
+
+        // Router configuration
+        const routes = [
+            { path: '/', component: Overview },
+            { path: '/overview', component: Overview },
+            { path: '/todo-demo', component: TodoDemo },
+            { path: '/features', component: Features },
+            { path: '/code', component: Code },
+            { path: '/about', component: About }
+        ];
+
+        const router = createRouter({
+            history: createWebHistory('/hello-vue/'),
+            routes
         });
-    } else {
-        console.log('DOM already ready, mounting Vue app...');
-        mountVueApp();
-    }
 
-    function mountVueApp() {
-        try {
-            console.log('About to mount Vue app...');
-            console.log('Target element exists:', !!document.querySelector('#helloVueApp'));
+        // Main Vue app
+        const app = createApp({
+            template: `
+                <div>
+                    <nav class="hello-vue-nav">
+                        <button @click="navigateTo('overview')"
+                                :class="['jp-btn', currentRoute === 'overview' ? 'jp-btn-primary' : 'jp-btn-outline']">
+                            🚀 Overview
+                        </button>
+                        <button @click="navigateTo('todo-demo')"
+                                :class="['jp-btn', currentRoute === 'todo-demo' ? 'jp-btn-primary' : 'jp-btn-outline']">
+                            🎯 Interactive Demo
+                        </button>
+                        <button @click="navigateTo('features')"
+                                :class="['jp-btn', currentRoute === 'features' ? 'jp-btn-primary' : 'jp-btn-outline']">
+                            ⚡ SPA Features
+                        </button>
+                        <button @click="navigateTo('code')"
+                                :class="['jp-btn', currentRoute === 'code' ? 'jp-btn-primary' : 'jp-btn-outline']">
+                            ✳️ Code Examples
+                        </button>
+                        <button @click="navigateTo('about')"
+                                :class="['jp-btn', currentRoute === 'about' ? 'jp-btn-primary' : 'jp-btn-outline']">
+                            ℹ️ About
+                        </button>
+                    </nav>
 
-            // Hide loading overlay
-            const loadingOverlay = document.getElementById('spaLoadingOverlay');
-            if (loadingOverlay) {
-                loadingOverlay.style.display = 'none';
+                    <div class="hello-vue-content">
+                        <router-view :navigateTo="navigateTo"></router-view>
+                    </div>
+                </div>
+            `,
+            data() {
+                return {
+                    loading: true,
+                    currentRoute: 'overview'
+                };
+            },
+            async mounted() {
+                // Initialize the app
+                this.loading = false;
+
+                // Set initial route
+                this.currentRoute = this.getRouteFromUrl();
+
+                // Listen for route changes
+                this.$router.afterEach((to) => {
+                    this.currentRoute = to.path.substring(1) || 'overview';
+                });
+            },
+            methods: {
+                navigateTo(route) {
+                    this.$router.push('/' + route);
+                },
+                getRouteFromUrl() {
+                    const path = window.location.pathname;
+                    const route = path.split('/').pop() || 'overview';
+                    return route;
+                }
             }
+        });
 
-            // Mount Vue app
-            app.mount('#helloVueApp');
+        app.use(router);
 
-            console.log('Vue app mounted successfully');
-            console.log('App element after mount:', document.querySelector('#helloVueApp').innerHTML);
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('DOM ready, mounting Vue app...');
+                mountVueApp();
+            });
+        } else {
+            console.log('DOM already ready, mounting Vue app...');
+            mountVueApp();
+        }
 
-        } catch (error) {
-            console.error('Error mounting Vue app:', error);
-            // Show error in the app container
-            const appElement = document.querySelector('#helloVueApp');
-            if (appElement) {
-                appElement.innerHTML = '<div class="jp-card"><h2>Error Loading Vue App</h2><p>There was an error loading the Vue.js application. Please check the console for details.</p><pre>' + error.message + '</pre></div>';
+        function mountVueApp() {
+            try {
+                console.log('About to mount Vue app...');
+                console.log('Target element exists:', !!document.querySelector('#helloVueApp'));
+
+                // Hide loading overlay
+                const loadingOverlay = document.getElementById('spaLoadingOverlay');
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                }
+
+                // Mount Vue app
+                app.mount('#helloVueApp');
+
+                console.log('Vue app mounted successfully');
+                console.log('App element after mount:', document.querySelector('#helloVueApp').innerHTML);
+
+            } catch (error) {
+                console.error('Error mounting Vue app:', error);
+                // Show error in the app container
+                const appElement = document.querySelector('#helloVueApp');
+                if (appElement) {
+                    appElement.innerHTML = '<div class="jp-card"><h2>Error Loading Vue App</h2><p>There was an error loading the Vue.js application. Please check the console for details.</p><pre>' + error.message + '</pre></div>';
+                }
             }
         }
-    }
     }
 </script>
 

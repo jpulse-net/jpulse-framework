@@ -472,7 +472,7 @@ function processHandlebars(content, context, req, depth = 0) {
             content = cache.includeFiles[includePath];
         } else {
             // Cache miss: read file and cache unexpanded content
-            content = fs.readFileSync(fullPath, 'utf8').replace(/<!--.*? \@name .*?-->/gs, '');
+            content = fs.readFileSync(fullPath, 'utf8').replace(/(<!--|\/\*\*)\s+\* +\@name .*?(\*\/|-->)\r?\n?/gs, '');
             LogController.logInfo(req, 'view.load', `Loaded ${includePath}${hasContextVars ? ' (with context vars)' : ''}`);
 
             // Cache the unexpanded template content (always cache if caching enabled)

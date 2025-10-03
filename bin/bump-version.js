@@ -44,14 +44,19 @@ const conf = {
         'webapp/view/*.tmpl',
         'webapp/view/*/*.shtml',
 
-        // site directory
+        // Site directory
         'site/webapp/*.conf.tmpl',
         'site/webapp/*.js',
         'site/webapp/controller/*.js',
         'site/webapp/model/*.js',
         'site/webapp/translations/*.conf',
+        'site/webapp/view/*.css',
+        'site/webapp/view/*.js',
         'site/webapp/view/*.tmpl',
-        'site/webapp/view/*/*.shtml',
+        'site/webapp/view/**/*.css',
+        'site/webapp/view/**/*.js',
+        'site/webapp/view/**/*.shtml',
+        'site/webapp/view/**/*.tmpl',
 
         // Template files
         'templates/README.md',

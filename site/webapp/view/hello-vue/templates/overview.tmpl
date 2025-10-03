@@ -1,11 +1,30 @@
 // Overview page component, site/webapp/view/hello-vue/templates/overview.tmpl
+/**
+ * @name            jPulse Framework / Site / WebApp / View / Hello Vue / Templates / Overview Page
+ * @tagline         Overview of Hello Vue Single Page Application
+ * @description     This page gives an overview of the Vue.js SPA
+ * @file            site/webapp/view/hello-vue/templates/overview.tmpl
+ * @version         0.8.4
+ * @release         2025-10-01
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+ */
 
 window.jpSpaRoutes.Overview = {
     template: `
         <div class="jp-info-box">
             <h3>🚀 Vue.js SPA Demo</h3>
-            <p>This is a Single Page Application (SPA) built with Vue.js 3 and Vue Router.
-               Notice how the URL changes but the page doesn't reload - just like Gmail!</p>
+            <p>This is a Single Page Application (SPA) built with Vue.js and Vue Router.</p>
+            <ol class="jp-list">
+                <li>Notice how navigation changes the URL, but the page doesn't reload - just like Gmail!</li>
+                <li>Try adding a to-do item to see Vue reactivity in action</li>
+                <li>Check your browser's Network tab to see the API calls</li>
+                <li>Study the code examples to learn how this is implemented</li>
+                <li>Copy the <tt>site/webapp/view/hello-vue/</tt> directory, and use it as a template for your own SPA</li>
+            </ol>
             <p><strong>Educational Goal:</strong> Learn how to build modern SPAs with Vue.js and integrate them with jPulse Framework backends.</p>
         </div>
 
@@ -18,16 +37,6 @@ window.jpSpaRoutes.Overview = {
                 <h3 class="jp-card-title">{{ route.title }}</h3>
                 <p class="jp-card-description">{{ route.description }}</p>
             </button>
-        </div>
-
-        <div class="jp-text">
-            <h3>Learning Path</h3>
-            <ol class="jp-list">
-                <li><strong>Try Interactive Demo</strong> - See Vue.js reactivity in action</li>
-                <li><strong>Explore SPA Features</strong> - Understand the technical benefits</li>
-                <li><strong>Study Code Examples</strong> - Learn the implementation patterns</li>
-                <li><strong>Read About Integration</strong> - See how it fits with jPulse Framework</li>
-            </ol>
         </div>
     `,
     data() {

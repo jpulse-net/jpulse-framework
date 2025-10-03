@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
- * @name            jPulse Framework / Site / WebApp / View / Hello Vue.js SPA Demo
- * @tagline         Demo Vue.js Single Page Application
+ * @name            jPulse Framework / Site / WebApp / View / Hello Vue SPA Demo
+ * @tagline         Hello Vue Single Page Application using Vue.js
  * @description     Example of Vue.js SPA with URL routing and reactive components
  * @file            site/webapp/view/hello-vue/index.shtml
  * @version         0.8.4
@@ -9,7 +9,6 @@
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @author          Site Developer
  * @license         AGPL v3, see LICENSE file
  * @genai           60%, Cursor 1.2, Claude Sonnet 4
 -->
@@ -29,12 +28,12 @@
 {{file.include "hello-vue/templates/routing.tmpl"}}
     <style>
         /* Vue.js SPA Demo Styles */
-        .hello-vue-app {
+        .local-vue-app {
             max-width: 1000px;
             margin: 0 auto;
         }
 
-        .hello-vue-nav {
+        .local-vue-nav {
             display: flex;
             gap: 10px;
             margin-bottom: 30px;
@@ -42,13 +41,19 @@
             padding-bottom: 15px;
         }
 
-        .hello-vue-nav .jp-btn.jp-btn-active {
+        .local-vue-nav .nav-arrow {
+            display: inline;
+            padding-top: 8px;
+            color: #007acc;
+        }
+
+        .local-vue-nav .jp-btn.jp-btn-active {
             background-color: #007acc;
             color: white;
             border-color: #007acc;
         }
 
-        .hello-vue-content {
+        .local-vue-content {
             min-height: 400px;
         }
 
@@ -278,7 +283,7 @@
     </div>
 
     <div class="jp-container-1000">
-        <h1 class="jp-title">🚀 Vue.js SPA Demo</h1>
+        <h1 class="jp-title">Vue.js SPA Demo</h1>
         <div id="helloVueApp" class="hello-vue-app">
             <!-- Vue.js SPA content will be rendered here -->
         </div>

@@ -1,5 +1,17 @@
 <!-- SPA routing configuration, site/webapp/view/hello-vue/templates/routing.tmpl -->
-<!-- This file defines the routing structure for the Vue.js SPA -->
+<!--
+ * @name            jPulse Framework / Site / WebApp / View / Hello Vue / Templates / Routing
+ * @tagline         Routing of the Hello Vue Single Page Application
+ * @description     This file defines the routing structure for the Vue.js SPA
+ * @file            site/webapp/view/hello-vue/templates/routing.tmpl
+ * @version         0.8.4
+ * @release         2025-10-01
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+-->
 
 <script type="text/javascript">
 
@@ -97,17 +109,18 @@ jPulse.dom.ready(() => {
     const app = createApp({
         template: `
             <div>
-                <nav class="hello-vue-nav">
-                    <button
-                        v-for="nav in navigation"
-                        :key="nav.path"
-                        @click="navigateTo(nav.path)"
-                        :class="['jp-btn', 'jp-btn-outline', { 'jp-btn-active': currentPath === nav.path }]"
-                    >
-                        {{ nav.label }}
-                    </button>
+                <nav class="local-vue-nav">
+                    <template v-for="(nav, index) in navigation" :key="nav.path">
+                        <button
+                            @click="navigateTo(nav.path)"
+                            :class="['jp-btn', 'jp-btn-outline', { 'jp-btn-active': currentPath === nav.path }]"
+                        >
+                            {{ nav.icon }} {{ nav.label }}
+                        </button>
+                        <span v-if="index < navigation.length - 1" class="nav-arrow">→</span>
+                    </template>
                 </nav>
-                <div class="hello-vue-content">
+                <div class="local-vue-content">
                     <router-view></router-view>
                 </div>
             </div>
@@ -115,7 +128,8 @@ jPulse.dom.ready(() => {
         data() {
             const navigation = window.helloVueRoutes.map(route => ({
                 path: route.path,
-                label: route.title
+                label: route.title,
+                icon: route.icon
             }));
             return {
                 navigation: navigation,

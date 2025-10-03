@@ -1,4 +1,18 @@
 // Code page component, site/webapp/view/hello-vue/templates/code.tmpl
+/**
+ * @name            jPulse Framework / Site / WebApp / View / Hello Vue / Templates / Code Examples Page
+ * @tagline         Code examples of Hello Vue Single Page Application
+ * @description     This page shows code examples of the Vue.js SPA
+ * @file            site/webapp/view/hello-vue/templates/code.tmpl
+ * @version         0.8.4
+ * @release         2025-10-01
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+ */
+
 window.jpSpaRoutes.Code = {
     template: `
         <div class="jp-card">
@@ -8,7 +22,7 @@ window.jpSpaRoutes.Code = {
             <div class="code-section">
                 <h3>1. Vue Router Setup</h3>
                 <p class="jp-text">Define routes and create the router with History Mode:</p>
-                <pre><code class="language-javascript">// Define routes
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>// Define routes
 window.helloVueRoutes = [
     { path: '/overview', component: 'Overview', title: 'Overview' },
     { path: '/todo-demo', component: 'TodoDemo', title: 'Interactive Demo' },
@@ -25,13 +39,13 @@ const router = createRouter({
         })),
         { path: '/', redirect: '/overview' }
     ]
-});</code></pre>
+});</pre></div>
             </div>
 
             <div class="code-section">
                 <h3>2. Component Structure</h3>
                 <p class="jp-text">Components have data, computed properties, methods, and templates:</p>
-                <pre><code class="language-javascript">window.jpSpaRoutes.TodoDemo = {
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>window.jpSpaRoutes.TodoDemo = {
     data() {
         return {
             todos: [],
@@ -62,29 +76,31 @@ const router = createRouter({
     },
 
     template: \`&lt;div&gt;...&lt;/div&gt;\`
-};</code></pre>
+};</pre></div>
             </div>
 
             <div class="code-section">
                 <h3>3. Template Organization</h3>
                 <p class="jp-text">Templates are loaded from separate .tmpl files using server-side includes:</p>
-                <pre><code class="language-handlebars">&lt;!-- In routing.tmpl --&gt;
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>// In routing.tmpl
 &#123;&#123;file.include "hello-vue/templates/overview.tmpl"&#125;&#125;
 &#123;&#123;file.include "hello-vue/templates/todo-demo.tmpl"&#125;&#125;
-&#123;&#123;file.include "hello-vue/templates/features.tmpl"&#125;&#125;</code></pre>
+&#123;&#123;file.include "hello-vue/templates/features.tmpl"&#125;&#125;
+&#123;&#123;file.include "hello-vue/templates/code.tmpl"&#125;&#125;
+&#123;&#123;file.include "hello-vue/templates/about.tmpl"&#125;&#125;</pre></div>
                 <p class="jp-text">Each .tmpl file defines a component in the window.jpSpaRoutes namespace:</p>
-                <pre><code class="language-javascript">// In todo-demo.tmpl
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>// In todo-demo.tmpl
 window.jpSpaRoutes.TodoDemo = {
     template: \`...\`,
     data() { return {...}; },
     methods: {...}
-};</code></pre>
+};</pre></div>
             </div>
 
             <div class="code-section">
                 <h3>4. API Integration with jPulse</h3>
                 <p class="jp-text">jPulse.apiCall() uses an options object with method and body:</p>
-                <pre><code class="language-javascript">// GET request
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>// GET request
 const response = await jPulse.apiCall('/api/1/helloTodo', {
     method: 'GET'
 });
@@ -99,13 +115,13 @@ const response = await jPulse.apiCall('/api/1/helloTodo', {
 // PUT request
 const response = await jPulse.apiCall('/api/1/helloTodo/123/toggle', {
     method: 'PUT'
-});</code></pre>
+});</pre></div>
             </div>
 
             <div class="code-section">
                 <h3>5. Reactive Data Binding</h3>
                 <p class="jp-text">Vue automatically updates the DOM when data changes:</p>
-                <pre><code class="language-html">&lt;!-- v-for loops through arrays --&gt;
+                <div class="jp-source-code" data-lang="html" data-show-lang="true"><pre>&lt;!-- v-for loops through arrays --&gt;
 &lt;div v-for="todo in todos" :key="todo._id"&gt;
     &lt;!-- v-model for two-way binding --&gt;
     &lt;input v-model="newTodoTitle" type="text"&gt;
@@ -117,20 +133,20 @@ const response = await jPulse.apiCall('/api/1/helloTodo/123/toggle', {
     &lt;span :class="{ completed: todo.completed }"&gt;
         &#123;&#123; todo.title &#125;&#125;
     &lt;/span&gt;
-&lt;/div&gt;</code></pre>
+&lt;/div&gt;</pre></div>
             </div>
 
             <div class="code-section">
                 <h3>6. Router Navigation</h3>
                 <p class="jp-text">Navigate programmatically using this.$router.push():</p>
-                <pre><code class="language-javascript">methods: {
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>methods: {
     navigate(path) {
         this.$router.push(path);
     }
 },
 
 // Or use router-link in templates:
-// &lt;router-link to="/overview"&gt;Overview&lt;/router-link&gt;</code></pre>
+// &lt;router-link to="/overview"&gt;Overview&lt;/router-link&gt;</pre></div>
             </div>
 
             <div class="jp-text">
@@ -144,7 +160,14 @@ const response = await jPulse.apiCall('/api/1/helloTodo/123/toggle', {
                 </ul>
             </div>
         </div>
-    `
+    `,
+
+    mounted() {
+        // Initialize jPulse source code components after Vue renders the template
+        this.$nextTick(() => {
+            jPulse.UI.sourceCode.initAll();
+        });
+    }
 };
 
 // EOF Code page component, site/webapp/view/hello-vue/templates/code.tmpl

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.8.4
+# jPulse Framework / Docs / Dev / Work Items v0.8.5
 
 This is the doc to track work items, arranged in three sections:
 
@@ -988,8 +988,8 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-072: site: example /hello-vue/ SPA using vue.js
-- status: 🚧 IN_PROGRESS
+### W-072: site: example /hello-vue/ SPA using vue.js - v0.8.5
+- status: ✅ COMPLETED
 - type: Feature
 - objective: define a way to create SPA (single page application) using vue.js, with example for easy onboarding
 - see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
@@ -997,10 +997,15 @@ This is the doc to track work items, arranged in three sections:
   - the /jpulse-docs/ is already a SPA with changing URI, not based on vue.js
 - deliverables:
   - define standard for SPA using vue.js
-  - demo app should change URI, so that a page reload brings back to same place (like gmail UI)
-  - site/webapp/view/hello-vue/index.shtml  # Vue.js SPA view
-  - site/webapp/controller/helloVue.js      # Vue.js SPA demo controller with API
-
+  - demo app should change URI, so that a page reload brings back to same place (like Gmail)
+  - site/webapp/controller/helloVue.js                  # Vue.js SPA demo controller with API
+  - site/webapp/view/hello-vue/index.shtml              # Vue.js SPA view
+  - site/webapp/view/hello-vue/templates/routing.tmpl   # app routing
+  - site/webapp/view/hello-vue/templates/todo-demo.tmpl # To-do Demo page
+  - site/webapp/view/hello-vue/templates/overview.tmpl  # Overview page
+  - site/webapp/view/hello-vue/templates/about.tmpl     # About page
+  - site/webapp/view/hello-vue/templates/code.tmpl      # Code Examples page
+  - site/webapp/view/hello-vue/templates/features.tmpl  # Features page
 
 
 
@@ -1010,10 +1015,6 @@ This is the doc to track work items, arranged in three sections:
 
 questions:
 - what about vue & i18n?
-- why .demo-stats and not .jp-* (use existing styles as much as possible for educational reason)
-  - same with grid buttons, which I changed,
-  - review the "about" grid button, which was missing (I removed the "MPA vs SPA" grid button)
-
 
 
 
@@ -1041,18 +1042,30 @@ finishing up work item: W-071:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-15 12:12
-- assume release: W-067, v0.8.3
+- assume release: W-072, v0.8.5
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
 ### Misc
 - status: 🚧 IN_PROGRESS
+
+(normal package build on github)
 npm test
 git add .
 git commit -F commit-message.txt
-git tag v0.8.4
+git tag v0.8.5
 git push origin main --tags
 
+(on failed package build on github)
+git tag -d v0.8.5
+git push --delete origin v0.8.5
+git add .
+git commit --amend --no-edit
+git tag -a v0.8.5 -m "W-072, v0.8.5: Vue.js SPA Demo & Enhanced jPulse Utilities for Modern Web Development"
+git push origin main --force-with-lease
+git push origin v0.8.5
+
+(amend commit message)
 git commit --amend -F commit-message.txt
 git push --force-with-lease origin main
 
@@ -1267,6 +1280,51 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - timer based, e.g. cache TTL?
   - file change detection?
   - on-demand via API?
+
+### W-0: view: rename jPulse.apiCall() to jPulse.api.call()
+- status: 🕑 PENDING
+- type: Feature
+- objective: more consistent common utilities
+- deliverables:
+  - rename/change function scope
+  - fix all views and docs referencing jPulse.apiCall()
+  - remove jPulse.apiCall() (no backwards compatibility)
+
+### W-0: docs: syntax highlighting for preformatted sections
+- status: 🕑 PENDING
+- type: Feature
+- objective: better way to understand code
+- deliverables:
+  - all tripple backtick sections are initialized with prism syntax highlighting based on specified language
+
+### W-0: view: create tooltip on any element with jp-tooltip class
+- status: 🕑 PENDING
+- type: Feature
+- objective: easy way to add nice looking tooltips to any element
+- spec:
+  - add class="jp-tooltip" to any element with tooltip=""
+  - auto initialize and initialize on demand, such as when used in a dialog box
+  - position: automatic based on viewport, possibly configurable
+
+### W-0: view: create jPulse.UI.progressbar
+- status: 🕑 PENDING
+- type: Feature
+- objective: way to indicate the progress of a multi step process, such as multi-page forms
+- deliverables:
+  - jPulse.UI.progressbar('step-2', {
+      steps: [
+        { id: 'step-1', label: 'Step 1', url: '/signup/1' },
+        { id: 'step-2', label: 'Step 2', url: '/signup/2' },
+      ],
+      disablePending: true,   // disable to pending steps after current step
+      width:          '100%'
+    })
+  - visual display:
+    - ative step in blue background
+    - done steps in light blue
+    - pending steps in gray
+  - example:
+    | Step 1 | > | Step 2 | > | Step 3 |
 
 ### W-0: model: create redis caching infrastrucure
 - status: 🕑 PENDING

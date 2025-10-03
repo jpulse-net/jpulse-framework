@@ -4,8 +4,8 @@
  * @tagline         Routing of the Hello Vue Single Page Application
  * @description     This file defines the routing structure for the Vue.js SPA
  * @file            site/webapp/view/hello-vue/templates/routing.tmpl
- * @version         0.8.4
- * @release         2025-10-01
+ * @version         0.8.5
+ * @release         2025-10-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -146,19 +146,23 @@ jPulse.dom.ready(() => {
             // Wait for router to be ready
             this.$nextTick(() => {
                 this.currentPath = this.$route ? this.$route.path : '/';
-                console.log('- Vue app mounted, current route:', this.$route);
             });
         },
         watch: {
             '$route'(to, from) {
                 this.currentPath = to.path;
-                console.log('- Route changed to:', to.path);
             }
         }
     });
 
     // Use router
     app.use(router);
+
+    // Add global error handler for better resilience
+    app.config.errorHandler = (err, instance, info) => {
+        console.error('- Vue error:', err, info);
+        jPulse.showSlideDownMessage('Application error: ' + err.message, 'error');
+    };
 
     // Hide loading overlay
     const loadingOverlay = document.getElementById('spaLoadingOverlay');
@@ -184,14 +188,13 @@ jPulse.dom.ready(() => {
     }
 });
 
-// Fallback: Hide loading overlay after 2 seconds regardless
-setTimeout(() => {
-    const loadingOverlay = document.getElementById('spaLoadingOverlay');
-    if (loadingOverlay && loadingOverlay.style.display !== 'none') {
-        console.log('- Fallback: Hiding loading overlay after timeout');
-        loadingOverlay.style.display = 'none';
-    }
-}, 2000);
+    // Fallback: Hide loading overlay after 2 seconds regardless
+    setTimeout(() => {
+        const loadingOverlay = document.getElementById('spaLoadingOverlay');
+        if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+            loadingOverlay.style.display = 'none';
+        }
+    }, 2000);
 </script>
 
 <!-- EOF SPA routing configuration, site/webapp/view/hello-vue/templates/routing.tmpl -->

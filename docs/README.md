@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.8.4
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.8.5
 
 **For Site Administrators & Site Developers**
 
@@ -6,10 +6,11 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 
 ## What is jPulse?
 
-![Logo](./images/jpulse-logo-16.png) jPulse is a Node.js web application framework that combines the simplicity of traditional server-side rendering with modern development practices. Built on Express and MongoDB, it offers clean MVC architecture with extensible site customization capabilities.
+![Logo](./images/jpulse-logo-16.png) jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application framework built on **MVC architecture**. It uniquely supports **both Multi-Page Applications (MPA) and Single Page Applications (SPA)**, letting you choose the right pattern for each part of your application - from traditional server-rendered pages to modern Vue.js SPAs.
 
 ## Latest Release Highlights
 
+- ✅ **Vue.js SPA Demo & Enhanced jPulse Utilities (v0.8.5)**: Complete Single Page Application demonstration with Vue.js 3, Vue Router, client-side routing, and real-time interactivity. Enhanced jPulse common utilities with `jPulse.date` namespace (formatLocalDate, formatLocalDateAndTime) and `jPulse.api.handleError()` for consistent error handling. Comprehensive educational example perfect for learning modern SPA development with jPulse Framework backend integration.
 - ✅ **Hello To-Do MVC Demo for Site Development Learning (v0.8.4)**: Complete Model-View-Controller demonstration with MongoDB integration, REST API patterns, user authentication context, and interactive UI. Perfect educational example for site developers learning jPulse Framework patterns with full CRUD operations, auto-registration, and "don't make me think" onboarding experience.
 - ✅ **Critical regression fix - site templates missing from npm package (v0.8.3)**: Fixed critical bug where site/ directory templates were missing from published packages, breaking W-014 site override system. Also fixed security vulnerability exposing sensitive config files. Improved maintainability with .npmignore approach.
 - ✅ **Improved site specific docs for better onboarding (v0.8.2)**: Improved docs for better onboarding of site administrators and site developers
@@ -29,6 +30,12 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 
 ## Key Features
 
+### 🏗️ **Flexible Architecture**
+- **MVC at the Core**: Clean Model-View-Controller pattern with flexible View placement
+- **MPA & SPA Support**: Traditional MPA, enhanced MPA (RESTful MVC), or full Vue.js SPA
+- **MEVN Stack**: MongoDB + Express + Vue.js + Node.js for full-stack development
+- **Choose Per Page**: Mix MPA and SPA patterns in the same application
+
 ### 🚀 **Enterprise-Ready Foundation**
 - Multi-environment support (development/production)
 - Advanced JavaScript-based configuration system
@@ -39,7 +46,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - Non-blocking slide-down message system
 - Responsive design with mobile-first approach
 - Professional UI components and widgets (dialogs, accordions, tabs)
-- Tab interface system with navigation and panel switching
+- Vue.js integration for interactive SPAs
 - Smooth animations and transitions
 
 ### 🌐 **Internationalization**
@@ -55,7 +62,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - Configuration merging system
 
 ### 🧪 **Testing & Quality**
-- 536+ comprehensive tests with 100% pass rate
+- 637+ comprehensive tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis
@@ -76,6 +83,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 
 ### 👨‍💻 **Site Development**
 - **[Site Customization](site-customization.md)** - Override system for update-safe customizations
+- **[MPA vs. SPA Guide](mpa-vs-spa.md)** - Architecture comparison with diagrams and use cases
 - **[Front-End Development](front-end-development.md)** - Complete jPulse JavaScript framework guide
 - **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation
 - **[Template Reference](template-reference.md)** - Server-side Handlebars system
@@ -139,9 +147,10 @@ my-jpulse-site/
 ## Target Audience
 
 jPulse is designed for:
+- **Full-stack developers** who want MEVN stack with flexible MPA/SPA choices
 - **Government agencies** requiring secure, maintainable web applications
 - **Private sector organizations** needing scalable internal tools
-- **Development teams** building enterprise-grade applications
+- **Development teams** building enterprise-grade applications with mixed architectures
 - **Site administrators** who prefer markdown-based documentation
 
 ## Support & Community

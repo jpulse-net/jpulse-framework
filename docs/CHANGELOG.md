@@ -1,6 +1,102 @@
-# jPulse Framework / Docs / Version History v0.8.4
+# jPulse Framework / Docs / Version History v0.8.5
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.8.5, W-072, 2025-10-03
+
+**Commit:** `W-072, v0.8.5: Vue.js SPA Demo & Enhanced jPulse Utilities for Modern Web Development`
+
+**EDUCATIONAL ENHANCEMENT & FRAMEWORK UTILITIES**: Complete Single Page Application demonstration with Vue.js 3, Vue Router, client-side routing, and enhanced jPulse common utilities for date formatting and error handling across the entire framework.
+
+**Objective**: Provide comprehensive SPA learning example and standardize date formatting and error handling throughout the jPulse Framework ecosystem.
+
+**Key Features**:
+- **Complete Vue.js SPA**: Full single-page application with client-side routing and dynamic content
+- **Enhanced jPulse Utilities**: New `jPulse.date` and enhanced `jPulse.api` namespaces
+- **Educational Value**: Progressive learning path from overview to interactive demos
+- **Real API Integration**: Demonstrates jPulse.apiCall() with hello-todo backend
+- **Browser History Support**: Back/forward buttons work seamlessly with Vue Router
+- **Code Examples**: Comprehensive implementation patterns and best practices
+
+**Vue.js SPA Implementation**:
+- **5 Interactive Pages**: Overview, Todo Demo, Features, Code Examples, About
+- **Vue Router Integration**: History mode with clean URLs (no hash)
+- **Component Architecture**: Separate `.tmpl` files for each page component
+- **Global Error Handler**: Catches all Vue errors with user feedback
+- **Active State Management**: Reactive navigation with proper highlighting
+- **Loading States**: Professional loading overlay with spinner
+- **Responsive Design**: Mobile-first with 4-column grid layout
+
+**Enhanced jPulse Utilities**:
+- **jPulse.date.formatLocalDate(date)**: Returns YYYY-MM-DD format using local browser timezone
+- **jPulse.date.formatLocalDateAndTime(date)**: Returns YYYY-MM-DD HH:MM format
+- **jPulse.api.handleError(error, action, options)**: Unified error handling with console logging and slide-down messages
+
+**Technical Implementation**:
+- **View** (`site/webapp/view/hello-vue/index.shtml`): Main SPA shell with Vue.js and Vue Router
+- **Routing** (`site/webapp/view/hello-vue/templates/routing.tmpl`): Router configuration and main app
+- **Components** (`site/webapp/view/hello-vue/templates/*.tmpl`): Five page components registered to window.jpSpaRoutes
+- **Controller** (`site/webapp/controller/helloVue.js`): Demo API endpoint for SPA data
+- **Enhanced Utilities** (`webapp/view/jpulse-common.js`): New date namespace and enhanced API namespace
+- **Documentation** (`docs/mpa-vs-spa.md`): Comprehensive MPA vs SPA comparison with ASCII diagrams
+
+**User Experience**:
+- **Progressive Learning**: Overview → Interactive Demo → Features → Code → About
+- **Navigation Cards**: Visual dashboard with emoji icons and descriptions
+- **Active Button Highlighting**: Clear indication of current page
+- **Error Resilience**: Vue error handler prevents silent failures
+- **Consistent Styling**: Uses jp-* framework classes throughout
+- **Mobile Responsive**: Works perfectly on all device sizes
+
+**Developer Experience**:
+- **Template Separation**: Each page is a separate file for maintainability
+- **Reusable Utilities**: Date formatting and error handling standardized
+- **Simple Integration**: Just call `jPulse.date.formatLocalDate(date)`
+- **Consistent Error Handling**: One-line `jPulse.api.handleError(error, 'action')`
+- **Zero Duplication**: Eliminated duplicate error handling code
+- **Clean Console**: Removed verbose logging, kept essential error messages
+
+**Files Added/Modified**:
+- `site/webapp/view/hello-vue/index.shtml`: Main SPA HTML shell with styles
+- `site/webapp/view/hello-vue/templates/routing.tmpl`: Vue Router setup and main app
+- `site/webapp/view/hello-vue/templates/overview.tmpl`: Overview page component
+- `site/webapp/view/hello-vue/templates/todo-demo.tmpl`: Interactive todo demo component
+- `site/webapp/view/hello-vue/templates/features.tmpl`: SPA features showcase component
+- `site/webapp/view/hello-vue/templates/code.tmpl`: Code examples component
+- `site/webapp/view/hello-vue/templates/about.tmpl`: About SPA component
+- `site/webapp/controller/helloVue.js`: Vue SPA demo API controller
+- `webapp/view/jpulse-common.js`: Enhanced with jPulse.date namespace and jPulse.api.handleError()
+- `site/webapp/view/hello-todo/index.shtml`: Updated to use jPulse.date.formatLocalDate()
+- `docs/mpa-vs-spa.md`: Complete rewrite with diagrams, use cases, and examples
+- `docs/README.md`: Updated with v0.8.5 release information
+- `docs/CHANGELOG.md`: This entry
+
+**Test Coverage**:
+- `webapp/tests/unit/site/hello-vue-controller.test.js`: Controller structure and integration tests (3 passing)
+- `webapp/tests/unit/utils/jpulse-common-enhanced.test.js`: Utility verification tests (11 passing)
+- **Total**: 637 tests passing, 0 failures, 10 skipped
+
+**Educational Impact**:
+- Perfect onboarding for developers learning SPA development
+- Clear demonstration of Vue Router integration patterns
+- Real API integration examples with jPulse backend
+- Template separation patterns for large SPAs
+- Framework utility enhancement examples
+
+**Quality Assurance**:
+- All 637 tests passing with comprehensive coverage
+- Zero test failures or regressions
+- Production-ready code with proper error handling
+- Performance optimized with efficient rendering
+- Follows all jPulse Framework best practices
+
+**Documentation**:
+- Enhanced MPA vs. SPA comparison with ASCII architecture diagrams
+- Detailed feature comparison table with visual indicators
+- Use case guidance for choosing the right architecture
+- Code examples for all three patterns (MPA, jPulse MPA, SPA)
+- Migration path and best practices
 
 ________________________________________________
 ## v0.8.4, W-071, 2025-09-30

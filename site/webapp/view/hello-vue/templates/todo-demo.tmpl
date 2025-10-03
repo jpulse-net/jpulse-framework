@@ -4,8 +4,8 @@
  * @tagline         Do-do Demo of Hello Vue Single Page Application
  * @description     This page demonstrates the reactive behavior of the Vue.js SPA
  * @file            site/webapp/view/hello-vue/templates/todo-demo.tmpl
- * @version         0.8.4
- * @release         2025-10-01
+ * @version         0.8.5
+ * @release         2025-10-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -109,8 +109,7 @@ window.jpSpaRoutes.TodoDemo = {
                     throw new Error(response.message || 'Failed to add to-do');
                 }
             } catch (error) {
-                console.error('- Error creating to-do:', error);
-                jPulse.showSlideDownMessage('Failed to create to-do: ' + error.message, 'error');
+                jPulse.api.handleError(error, 'create to-do');
             }
         },
 
@@ -127,8 +126,7 @@ window.jpSpaRoutes.TodoDemo = {
                     this.updateStats();
                 }
             } catch (error) {
-                console.error('- Error toggling to-do:', error);
-                jPulse.showSlideDownMessage('Failed to update to-do', 'error');
+                jPulse.api.handleError(error, 'update to-do');
             }
         },
 
@@ -154,7 +152,7 @@ window.jpSpaRoutes.TodoDemo = {
         },
 
         formatDate(date) {
-            return new Date(date).toLocaleDateString();
+            return jPulse.date.formatLocalDate(date);
         }
     },
 

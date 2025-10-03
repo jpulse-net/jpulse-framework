@@ -1,6 +1,6 @@
-# jPulse Framework v0.8.4
+# jPulse Framework v0.8.5
 
-A modern, lightweight web application framework designed for enterprise and government organizations. Built with Node.js, Express, and MongoDB, jPulse combines the simplicity of traditional server-side rendering with modern development practices.
+A modern **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application framework designed for enterprise and government organizations. Built on **MVC architecture**, jPulse uniquely supports **both MPA and SPA patterns**, giving you the flexibility to choose the right architecture for each part of your application.
 
 ## Why jPulse?
 
@@ -11,10 +11,13 @@ Designed specifically for midsize to large organizations in government and priva
 Clean APIs, zero-configuration auto-discovery, and intuitive development patterns that eliminate cognitive load and accelerate development.
 
 ### 🔄 **Seamless Updates**
-Revolutionary W-014 Site Override Architecture enables framework updates without losing customizations - your site code stays safe in the `site/` directory.
+Revolutionary site override architecture enables framework updates without losing customizations - your site code stays safe in the `site/` directory.
 
-### 🏗️ **MVC Architecture**
-Clean separation of concerns with automatic controller discovery, flexible templating, and standardized data access patterns.
+### 🏗️ **Flexible Architecture**
+**MVC at the core** with support for both **Multi-Page Applications (MPA)** and **Single Page Applications (SPA)**. Use traditional MPA for content-focused pages, enhanced MPA for interactive features, or full SPA for app-like experiences - all in the same application.
+
+### 🎭 **MEVN Stack**
+Full-stack JavaScript with **MongoDB** for data, **Express** for routing, **Vue.js** for SPAs, and **Node.js** as the runtime. Optional Vue.js usage means you can build traditional MPAs and/or modern SPAs based on your needs.
 
 ## Quick Start
 
@@ -62,11 +65,14 @@ npm start
 
 ## Key Features
 
+- **MPA & SPA Support**: Choose the right architecture for each page - traditional MPA, enhanced MPA, or full SPA
+- **MVC Architecture**: Clean Model-View-Controller pattern with flexible View placement (server or browser)
+- **MEVN Stack**: MongoDB + Express + Vue.js + Node.js for full-stack JavaScript development
 - **Site Override System**: Customize without fear of losing changes during updates
 - **Zero Configuration**: Auto-discovery of controllers, routes, and APIs
 - **Enterprise Security**: Built-in authentication, session management, and security headers
 - **Internationalization**: Complete i18n support with dynamic translation loading
-- **Testing Framework**: 400+ tests with automated cleanup and isolation
+- **Testing Framework**: 637+ tests with automated cleanup and isolation
 - **Production Ready**: nginx integration, PM2 clustering, MongoDB replica sets
 
 ## Architecture Overview
@@ -124,11 +130,11 @@ npm update @peterthoeny/jpulse-framework && npm run jpulse-update
 
 ## Latest Release Highlights
 
-- ✅ **Enhanced Deployment & Testing (v0.7.15)** - Comprehensive deployment validation with 17 new tests, MongoDB setup fixes, and symbolic logs directory
-- ✅ **Clean Deployment Strategy (v0.7.0)** - Complete "don't make me think" deployment automation with interactive setup
+- ✅ **Vue.js SPA Demo & Enhanced Utilities (v0.8.5)** - Complete Single Page Application with Vue.js 3, Vue Router, and enhanced jPulse utilities for date formatting and error handling
+- ✅ **Hello To-Do MVC Demo (v0.8.4)** - Complete Model-View-Controller demonstration with MongoDB integration and REST API patterns
+- ✅ **[MPA vs. SPA Architecture Guide](docs/mpa-vs-spa.md)** - Comprehensive comparison with diagrams showing when to use each pattern
 - ✅ **Package Distribution (v0.6.0+)** - npm-based site creation with `npx jpulse-configure`
 - ✅ **Dual Licensing (v0.5.5)** - AGPL v3 open source with commercial licensing options
-- ✅ **Enterprise UI Widgets (v0.5.2)** - Complete dialog system with draggable windows
 
 ## Community & Support
 

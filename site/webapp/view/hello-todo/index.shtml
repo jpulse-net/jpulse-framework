@@ -4,8 +4,8 @@
  * @tagline         Demo To-Do MVC Application for Learning
  * @description     Complete Model-View-Controller example with MongoDB integration
  * @file            site/webapp/view/hello-todo/index.shtml
- * @version         0.8.4
- * @release         2025-10-01
+ * @version         0.8.5
+ * @release         2025-10-03
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -456,7 +456,7 @@
                 emptyMessage.style.display = 'none';
 
                 todoList.innerHTML = this.todos.map(todo => {
-                    const createdDate = new Date(todo.createdAt).toISOString().split('T')[0]; // ISO format YYYY-MM-DD
+                    const createdDate = jPulse.date.formatLocalDate(todo.createdAt);
                     const userName = todo.userFirstName && todo.userLastName
                         ? `${todo.userFirstName} ${todo.userLastName}`
                         : todo.username;

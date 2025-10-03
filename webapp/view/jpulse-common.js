@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         0.8.4
- * @release         2025-10-01
+ * @version         0.8.5
+ * @release         2025-10-03
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -260,6 +260,30 @@ window.jPulse = {
          */
         delete: (endpoint, options = {}) => {
             return jPulse.apiCall(endpoint, { ...options, method: 'DELETE' });
+        },
+
+        /**
+         * Handle API errors with user-friendly messages
+         * @param {Error} error - The error object from API call
+         * @param {string} action - User-friendly description of the action (e.g., 'save to-do', 'load data')
+         * @param {Object} options - Optional configuration
+         * @param {boolean} options.showMessage - Whether to show slide-down message (default: true)
+         * @param {boolean} options.logError - Whether to log to console (default: true)
+         * @returns {void}
+         */
+        handleError: (error, action, options = {}) => {
+            const { showMessage = true, logError = true } = options;
+
+            // Log error to console
+            if (logError) {
+                console.error(`- API error during ${action}:`, error);
+            }
+
+            // Show user-friendly message
+            if (showMessage) {
+                const message = `Could not ${action}. Please try again or check your connection.`;
+                jPulse.showSlideDownMessage(message, 'error');
+            }
         }
     },
 
@@ -536,6 +560,39 @@ window.jPulse = {
         hide: (element) => element.classList.add('jp-hidden'),
         show: (element) => element.classList.remove('jp-hidden'),
         toggle: (element) => element.classList.toggle('jp-hidden')
+    },
+
+    /**
+     * Date formatting utilities
+     */
+    date: {
+        /**
+         * Format date to local YYYY-MM-DD format
+         * @param {Date|string|number} date - Date to format
+         * @returns {string} Formatted date string (YYYY-MM-DD)
+         */
+        formatLocalDate: (date) => {
+            const d = new Date(date);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        },
+
+        /**
+         * Format date and time to local YYYY-MM-DD HH:MM format
+         * @param {Date|string|number} date - Date to format
+         * @returns {string} Formatted date and time string (YYYY-MM-DD HH:MM)
+         */
+        formatLocalDateAndTime: (date) => {
+            const d = new Date(date);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        }
     },
 
     /**

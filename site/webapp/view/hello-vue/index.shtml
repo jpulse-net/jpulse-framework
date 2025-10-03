@@ -42,6 +42,12 @@
             padding-bottom: 15px;
         }
 
+        .hello-vue-nav .jp-btn.jp-btn-active {
+            background-color: #007acc;
+            color: white;
+            border-color: #007acc;
+        }
+
         .hello-vue-content {
             min-height: 400px;
         }
@@ -273,50 +279,11 @@
 
     <div class="jp-container-1000">
         <h1 class="jp-title">🚀 Vue.js SPA Demo</h1>
-
         <div id="helloVueApp" class="hello-vue-app">
             <!-- Vue.js SPA content will be rendered here -->
         </div>
     </div>
 </div>
-
-<script>
-    // Wait for Vue and Vue Router to be available
-    if (typeof Vue === 'undefined') {
-        console.error('Vue is not loaded. Please check the script tag.');
-    } else if (typeof VueRouter === 'undefined') {
-        console.error('Vue Router is not loaded. Please check the script tag.');
-    } else {
-        // Extract Vue and Vue Router functions
-        const { createApp } = Vue;
-        const { createRouter, createWebHistory } = VueRouter;
-
-        // Minimal working Vue app - can be overridden by external configuration
-        const app = createApp({
-            template: `
-                <div class="jp-card">
-                    <h2>Vue.js SPA Ready</h2>
-                    <p>This is a minimal Vue.js SPA implementation. The actual configuration should be loaded from external sources.</p>
-                    <p>To customize this SPA, provide your own components, routes, and app configuration.</p>
-                </div>
-            `,
-            data() {
-                return {
-                    loading: false
-                };
-            }
-        });
-
-        // Hide loading overlay
-        const loadingOverlay = document.getElementById('spaLoadingOverlay');
-        if (loadingOverlay) {
-            loadingOverlay.style.display = 'none';
-        }
-
-        // Mount the app
-        app.mount('#helloVueApp');
-    }
-</script>
 
 {{#if file.exists "jpulse-footer.tmpl"}}
     {{file.include "jpulse-footer.tmpl"}}

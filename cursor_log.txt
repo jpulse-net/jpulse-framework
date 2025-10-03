@@ -19663,8 +19663,8 @@ PROBLEMS IDENTIFIED:
 3. **Analytics Error**: Site analytics showing `{page: '/hello-vue/hello-vue/', timestamp: '...'}`
 
 ROOT CAUSE:
-- Router base was set to `/hello-vue/` 
-- Had redirect from `/` to `/hello-vue/` 
+- Router base was set to `/hello-vue/`
+- Had redirect from `/` to `/hello-vue/`
 - This created double path: `/hello-vue/` + `/hello-vue/` = `/hello-vue/hello-vue/`
 
 SOLUTION IMPLEMENTED:
@@ -19828,7 +19828,7 @@ SYSTEMATIC ANALYSIS:
 
 PROBLEM IDENTIFIED:
 - Router created with: `createWebHistory()` (no base path)
-- SPA served from: `/hello-vue/` 
+- SPA served from: `/hello-vue/`
 - Routes defined as: `/hello-vue/overview`, `/hello-vue/todo-demo`, etc.
 - **Mismatch**: Router expected root paths but SPA was in subdirectory
 
@@ -19887,7 +19887,7 @@ SYSTEMATIC ANALYSIS:
 
 PROBLEM IDENTIFIED:
 - Duplicate routes: Both `/` and `/overview` pointing to Overview component
-- Unnecessary redirect: `/` redirecting to `/overview` 
+- Unnecessary redirect: `/` redirecting to `/overview`
 - Router confusion: Multiple routes for same component
 - Base path: Correctly set to `/hello-vue/` but routes were conflicting
 
@@ -19895,15 +19895,15 @@ SOLUTION IMPLEMENTED:
 ```javascript
 // 1. Simplified route structure - single root route
 const helloVueRoutes = [
-    { 
-        path: '/', 
+    {
+        path: '/',
         component: 'Overview',
         title: 'Overview',
         icon: '🚀',
         description: 'Welcome to the Vue.js SPA Demo'
     },
-    { 
-        path: '/todo-demo', 
+    {
+        path: '/todo-demo',
         component: 'TodoDemo',
         // ... other routes
     }
@@ -19961,15 +19961,15 @@ PROBLEM IDENTIFIED:
 SOLUTION IMPLEMENTED:
 ```javascript
 const helloVueRoutes = [
-    { 
-        path: '/', 
+    {
+        path: '/',
         component: 'Overview',
         title: 'Overview',
         icon: '🚀',
         description: 'Welcome to the Vue.js SPA Demo'
     },
-    { 
-        path: '/overview', 
+    {
+        path: '/overview',
         component: 'Overview',
         title: 'Overview',
         icon: '🚀',
@@ -20071,7 +20071,7 @@ SOLUTION IMPLEMENTED:
    ```javascript
    // Use component switching instead of router-view
    <component :is="currentComponent" :navigateTo="navigateTo"></component>
-   
+
    // Simple data-driven navigation
    data() {
        return {
@@ -20141,7 +20141,7 @@ SOLUTION IMPLEMENTED:
    ```javascript
    // BEFORE: Hardcoded routes
    const helloVueRoutes = [...]
-   
+
    // AFTER: Generic placeholder
    // Configuration will be loaded from external source
    ```
@@ -20152,7 +20152,7 @@ SOLUTION IMPLEMENTED:
    const Overview = {...}
    const TodoDemo = {...}
    // etc.
-   
+
    // AFTER: Generic placeholder
    // All components will be loaded from external configuration
    ```
@@ -20161,7 +20161,7 @@ SOLUTION IMPLEMENTED:
    ```javascript
    // BEFORE: Hardcoded app template and data
    const app = createApp({...})
-   
+
    // AFTER: Generic placeholder
    // Main Vue app will be loaded from external configuration
    ```
@@ -20170,7 +20170,7 @@ SOLUTION IMPLEMENTED:
    ```javascript
    // BEFORE: Hardcoded mounting
    function mountVueApp() {...}
-   
+
    // AFTER: Generic placeholder
    // App mounting will be handled by external configuration
    ```
@@ -20277,3 +20277,57 @@ CHANGES ACCEPTED: Yes
 -	2025-10-02 14:19:50	msg	ptester1	ip:::1	vm:0	id:0	view.load	Include cache hit for jpulse-header.tmpl
 -	2025-10-02 14:19:50	msg	ptester1	ip:::1	vm:0	id:0	view.load	Include cache hit for jpulse-footer.tmpl
 -	2025-10-02 14:19:50	msg	ptester1	ip:::1	vm:0	id:0	view.load	/error/index.shtml, Page not found: /sm/6630dc53343651f780634067ccd4f5292719afec87ca2fef9b0447806db704cf.map, completed in 4ms
+
+
+============================================================
+
+2025-10-02 15:48:02 - Fixed Vue.js SPA JavaScript syntax error
+
+ISSUE: "Uncaught SyntaxError: Unexpected token 'class' (at overview:440:14)" error in Vue.js SPA
+
+ROOT CAUSE: Handlebars was processing Vue.js template expressions like {{ route.icon }} as Handlebars expressions instead of leaving them as Vue.js template expressions
+
+SOLUTION: Escaped all Vue.js template expressions in template files by changing {{ }} to {{{ }}} so Handlebars treats them as literal text instead of processing them
+
+FILES FIXED:
+- site/webapp/view/hello-vue/templates/overview.tmpl: Fixed {{ route.icon }}, {{ route.title }}, {{ route.description }}
+- site/webapp/view/hello-vue/templates/todo-demo.tmpl: Fixed {{ stats.* }}, {{ todo.title }}, {{ formatDate() }}, {{ todo.username }}
+- site/webapp/view/hello-vue/templates/code.tmpl: Fixed {{ todo.title }}
+
+RESULT: Vue.js SPA now works correctly with proper template rendering and no JavaScript syntax errors
+
+STATUS: ACCEPTED - Vue.js SPA is now fully functional
+
+2025-10-02 17:16:20
+
+============================================================
+
+## Vue.js SPA Debugging Session Summary
+
+**Status: INCOMPLETE - User requested to stop**
+
+**Issues Identified:**
+1. ✅ Fixed duplicate routes (was 6, now 5)
+2. ✅ Fixed duplicate "Overview" buttons
+3. ❌ Persistent Vue error: "Cannot read properties of undefined (reading 'path')"
+4. ❌ Router view showing empty content (`<!---->`)
+5. ❌ SPA falling back to loading overlay timeout
+
+**Root Cause Analysis:**
+- The error occurs during Vue template rendering at line 16:647
+- Issue appears to be in Vue components trying to access `this.$route` before router is fully initialized
+- Added safety check to Overview component's `navigate()` method
+- Simplified main template to remove dynamic class binding
+
+**Current State:**
+- Vue app mounts successfully
+- Navigation array loads correctly (5 routes)
+- Router is created and added to app
+- But Vue template rendering fails with undefined property access
+- Router view remains empty despite successful mounting
+
+**Changes Made:**
+- Modified routing.tmpl: simplified template, removed computed property
+- Modified overview.tmpl: added router safety check in navigate method
+
+**Result: CHANGES REJECTED - User stopped debugging session due to frustration**

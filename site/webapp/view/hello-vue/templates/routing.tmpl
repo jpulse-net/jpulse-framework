@@ -2,15 +2,20 @@
 <!-- This file defines the routing structure for the Vue.js SPA -->
 
 <script type="text/javascript">
-// Route definitions - easily configurable
-const helloVueRoutes = [
-    {
-        path: '/',
-        component: 'Overview',
-        title: 'Overview',
-        icon: '🚀',
-        description: 'Welcome to the Vue.js SPA Demo'
-    },
+
+// Navigation configuration
+const helloVueNavigation = {
+    showOnOverview: true,  // Show navigation on overview page
+    showOnOtherPages: true, // Show navigation on other pages
+    style: 'buttons',      // 'buttons' or 'tabs'
+    layout: 'horizontal'   // 'horizontal' or 'vertical'
+};
+
+// Initialize SPA routes on window object
+window.jpSpaRoutes = window.jpSpaRoutes || {};
+
+// Define routes FIRST before any components
+window.helloVueRoutes = [
     {
         path: '/overview',
         component: 'Overview',
@@ -48,20 +53,158 @@ const helloVueRoutes = [
     }
 ];
 
-// Navigation configuration
-const helloVueNavigation = {
-    showOnOverview: true,  // Show navigation on overview page
-    showOnOtherPages: true, // Show navigation on other pages
-    style: 'buttons',      // 'buttons' or 'tabs'
-    layout: 'horizontal'   // 'horizontal' or 'vertical'
-};
-</script>
-
-<!-- Include all pages: -->
+// Include all page components as JavaScript
 {{file.include "hello-vue/templates/overview.tmpl"}}
 {{file.include "hello-vue/templates/todo-demo.tmpl"}}
 {{file.include "hello-vue/templates/features.tmpl"}}
 {{file.include "hello-vue/templates/code.tmpl"}}
 {{file.include "hello-vue/templates/about.tmpl"}}
 
-<!-- EOF site/webapp/view/hello-vue/templates/routing.tmpl -->
+// Wait for DOM to be ready and Vue/VueRouter to be available using jPulse
+jPulse.dom.ready(() => {
+    console.log('DOM loaded via jPulse, checking Vue availability...', typeof Vue);
+    console.log('Checking VueRouter availability...', typeof VueRouter);
+
+    if (typeof Vue === 'undefined') {
+        console.error('Vue is not loaded. Please check the script tag.');
+        return;
+    } else if (typeof VueRouter === 'undefined') {
+        console.error('Vue Router is not loaded. Please check the script tag.');
+        return;
+    }
+    console.log('Vue and VueRouter are available, starting SPA...');
+    // Extract Vue and Vue Router functions
+    const { createApp } = Vue;
+    const { createRouter, createWebHistory } = VueRouter;
+
+    console.log('Available components:', Object.keys(window.jpSpaRoutes));
+    console.log('Available routes:', window.helloVueRoutes);
+    console.log('Route details:', window.helloVueRoutes.map(r => ({ path: r.path, title: r.title })));
+
+    // Create router
+    const router = createRouter({
+        history: createWebHistory('/hello-vue/'),
+        routes: [
+            ...window.helloVueRoutes.map(route => ({
+                path: route.path,
+                component: window.jpSpaRoutes[route.component] || window.jpSpaRoutes.Overview
+            })),
+            // Add redirect for / to /overview
+            {
+                path: '/',
+                redirect: '/overview'
+            }
+        ]
+    });
+
+    console.log('Router created successfully');
+    console.log('Routes:', window.helloVueRoutes);
+
+    // Main Vue app
+    const app = createApp({
+        template: `
+            <div>
+                <h2>Vue.js SPA Working!</h2>
+                <p>Current path: {{ currentPath }}</p>
+                <nav class="hello-vue-nav">
+                    <button
+                        v-for="nav in navigation"
+                        :key="nav.path"
+                        @click="navigateTo(nav.path)"
+                        :class="['jp-btn', 'jp-btn-outline', { 'jp-btn-active': currentPath === nav.path }]"
+                    >
+                        {{ nav.label }}
+                    </button>
+                </nav>
+                <div class="hello-vue-content">
+                    <router-view></router-view>
+                </div>
+            </div>
+        `,
+        data() {
+            const navigation = window.helloVueRoutes.map(route => ({
+                path: route.path,
+                label: route.title
+            }));
+            console.log('Navigation array:', navigation);
+            return {
+                navigation: navigation,
+                currentPath: '/'
+            };
+        },
+        methods: {
+            navigateTo(path) {
+                this.currentPath = path;
+                this.$router.push(path);
+            }
+        },
+        mounted() {
+            // Wait for router to be ready
+            this.$nextTick(() => {
+                this.currentPath = this.$route ? this.$route.path : '/';
+                console.log('Vue app mounted, current route:', this.$route);
+                console.log('Current path:', this.currentPath);
+            });
+        },
+        watch: {
+            '$route'(to, from) {
+                this.currentPath = to.path;
+                console.log('Route changed to:', to.path);
+            }
+        }
+    });
+
+    // Use router
+    app.use(router);
+    console.log('Router added to app');
+
+    // Hide loading overlay
+    const loadingOverlay = document.getElementById('spaLoadingOverlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+
+    // Check if target element exists
+    const targetElement = document.getElementById('helloVueApp');
+    console.log('Target element:', targetElement);
+
+    if (!targetElement) {
+        console.error('Target element #helloVueApp not found!');
+    } else {
+
+    // Mount the app
+    try {
+        console.log('Attempting to mount Vue app...');
+        const mountedApp = app.mount('#helloVueApp');
+        console.log('App mounted successfully');
+        console.log('Mounted app instance:', mountedApp);
+
+        // Check if the router-view is working
+        setTimeout(() => {
+            const routerView = document.querySelector('.hello-vue-content');
+            console.log('Router view element:', routerView);
+            console.log('Router view content:', routerView ? routerView.innerHTML : 'Not found');
+
+            // Check the entire helloVueApp content
+            const appContent = document.getElementById('helloVueApp');
+            console.log('App content after mount:', appContent ? appContent.innerHTML : 'Not found');
+        }, 100);
+    } catch (error) {
+        console.error('Error mounting app:', error);
+        console.error('Error details:', error.message);
+        console.error('Error stack:', error.stack);
+    }
+    }
+});
+
+// Fallback: Hide loading overlay after 3 seconds regardless
+setTimeout(() => {
+    const loadingOverlay = document.getElementById('spaLoadingOverlay');
+    if (loadingOverlay) {
+        console.log('Fallback: Hiding loading overlay after timeout');
+        loadingOverlay.style.display = 'none';
+    }
+}, 3000);
+</script>
+
+<!-- EOF SPA routing configuration, site/webapp/view/hello-vue/templates/routing.tmpl -->

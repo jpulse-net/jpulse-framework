@@ -1,66 +1,158 @@
-<!-- To-do demo page template, site/webapp/view/hello-vue/templates/todo.tmpl -->
+// To-do page component, site/webapp/view/hello-vue/templates/todo-demo.tmpl
 
-<div class="jp-card">
-    <h2>Interactive To-Do Demo</h2>
-    <p class="jp-text">Experience Vue.js reactivity and API integration with real to-do management.</p>
+window.jpSpaRoutes.TodoDemo = {
+    template: `
+        <div class="jp-card">
+            <h2>Interactive To-Do Demo</h2>
+            <p class="jp-text">Experience Vue.js reactivity and API integration with real to-do management.</p>
 
-    <!-- Statistics Dashboard -->
-    <div class="jp-dashboard-grid local-stats-grid">
-        <div class="jp-card-dashboard local-stats-card local-non-clickable-card">
-            <div class="jp-icon-container local-icon-container">📊</div>
-            <h3 class="jp-card-title">{{ stats.totalTodos || 0 }}</h3>
-            <p class="jp-card-description">Total To-dos</p>
-        </div>
-        <div class="jp-card-dashboard local-stats-card local-non-clickable-card">
-            <div class="jp-icon-container local-icon-container">✅</div>
-            <h3 class="jp-card-title">{{ stats.completedTodos || 0 }}</h3>
-            <p class="jp-card-description">Completed</p>
-        </div>
-        <div class="jp-card-dashboard local-stats-card local-non-clickable-card">
-            <div class="jp-icon-container local-icon-container">⏳</div>
-            <h3 class="jp-card-title">{{ stats.pendingTodos || 0 }}</h3>
-            <p class="jp-card-description">Pending</p>
-        </div>
-    </div>
+            <!-- Statistics Dashboard -->
+            <div class="jp-dashboard-grid local-stats-grid">
+                <div class="jp-card-dashboard local-stats-card local-non-clickable-card">
+                    <div class="jp-icon-container local-icon-container">📊</div>
+                    <h3 class="jp-card-title">{{ stats.totalTodos || 0 }}</h3>
+                    <p class="jp-card-description">Total To-dos</p>
+                </div>
+                <div class="jp-card-dashboard local-stats-card local-non-clickable-card">
+                    <div class="jp-icon-container local-icon-container">✅</div>
+                    <h3 class="jp-card-title">{{ stats.completedTodos || 0 }}</h3>
+                    <p class="jp-card-description">Completed</p>
+                </div>
+                <div class="jp-card-dashboard local-stats-card local-non-clickable-card">
+                    <div class="jp-icon-container local-icon-container">⏳</div>
+                    <h3 class="jp-card-title">{{ stats.pendingTodos || 0 }}</h3>
+                    <p class="jp-card-description">Pending</p>
+                </div>
+            </div>
 
-    <!-- Add To-do Form -->
-    <div class="local-todo-form">
-        <div class="jp-form-group">
-            <input
-                v-model="newTodoTitle"
-                @keyup.enter="createTodo"
-                type="text"
-                placeholder="Add a new to-do to test Vue.js reactivity..."
-                class="jp-form-input"
-            >
-            <button @click="createTodo" class="jp-btn jp-btn-primary">
-                Add To-do
-            </button>
-        </div>
-    </div>
-
-    <!-- To-do List -->
-    <div class="local-todo-list">
-        <h3>To-do List</h3>
-        <div v-if="todos.length === 0" class="jp-text">
-            <p>No to-dos yet. Add one above to see Vue.js reactivity in action!</p>
-        </div>
-        <div v-else>
-            <div v-for="todo in todos" :key="todo._id" class="local-todo-item">
-                <label class="local-todo-checkbox">
+            <!-- Add To-do Form -->
+            <div class="local-todo-form">
+                <div class="jp-form-group">
                     <input
-                        type="checkbox"
-                        :checked="todo.completed"
-                        @change="toggleTodo(todo)"
+                        v-model="newTodoTitle"
+                        @keyup.enter="createTodo"
+                        type="text"
+                        placeholder="Add a new to-do to test Vue.js reactivity..."
+                        class="jp-form-input"
                     >
-                    <span class="local-todo-text" :class="{ completed: todo.completed }">
-                        {{ todo.title }}
-                    </span>
-                </label>
-                <span class="local-todo-date">{{ formatDate(todo.createdAt) }} by {{ todo.username || 'guest' }}</span>
+                    <button @click="createTodo" class="jp-btn jp-btn-primary">
+                        Add To-do
+                    </button>
+                </div>
+            </div>
+
+            <!-- To-do List -->
+            <div class="local-todo-list">
+                <h3>To-do List</h3>
+                <div v-if="todos.length === 0" class="jp-text">
+                    <p>No to-dos yet. Add one above to see Vue.js reactivity in action!</p>
+                </div>
+                <div v-else>
+                    <div v-for="todo in todos" :key="todo._id" class="local-todo-item">
+                        <label class="local-todo-checkbox">
+                            <input
+                                type="checkbox"
+                                :checked="todo.completed"
+                                @change="toggleTodo(todo)"
+                            >
+                            <span class="local-todo-text" :class="{ completed: todo.completed }">
+                                {{ todo.title }}
+                            </span>
+                        </label>
+                        <span class="local-todo-date">{{ formatDate(todo.createdAt) }} by {{ todo.username || 'guest' }}</span>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
+    `,
+    data() {
+        return {
+            newTodoTitle: '',
+            todos: [],
+            stats: {
+                totalTodos: 0,
+                completedTodos: 0,
+                pendingTodos: 0
+            }
+        };
+    },
+    methods: {
+        async createTodo() {
+            if (!this.newTodoTitle.trim()) return;
 
-<!-- EOF site/webapp/view/hello-vue/templates/todo.tmpl -->
+            try {
+                console.log('Creating todo with title:', this.newTodoTitle.trim());
+
+                const response = await jPulse.apiCall('/api/1/helloTodo', {
+                    method: 'POST',
+                    body: {
+                        title: this.newTodoTitle.trim()
+                    }
+                });
+
+                console.log('API response:', response);
+
+                if (response.success && response.data) {
+                    this.todos.unshift(response.data);
+                    this.newTodoTitle = '';
+                    jPulse.showSlideDownMessage('Todo created!', 'success');
+                    this.updateStats();
+                } else {
+                    throw new Error(response.message || 'Failed to add todo');
+                }
+            } catch (error) {
+                console.error('Error creating todo:', error);
+                jPulse.showSlideDownMessage('Failed to create todo: ' + error.message, 'error');
+            }
+        },
+
+        async toggleTodo(todo) {
+            try {
+                const response = await jPulse.apiCall('/api/1/helloTodo/' + todo._id + '/toggle', {
+                    method: 'PUT'
+                });
+
+                if (response.success && response.data) {
+                    const index = this.todos.findIndex(t => t._id === todo._id);
+                    if (index !== -1) {
+                        this.todos[index] = response.data;
+                    }
+                    this.updateStats();
+                }
+            } catch (error) {
+                jPulse.showSlideDownMessage('Failed to update todo', 'error');
+            }
+        },
+
+        async fetchTodos() {
+            try {
+                const response = await jPulse.apiCall('/api/1/helloTodo', {
+                    method: 'GET'
+                });
+
+                if (response.success && response.data) {
+                    this.todos = response.data.slice(0, 5);
+                    this.updateStats();
+                }
+            } catch (error) {
+                console.warn('Todo data not available - this is normal if hello-todo is not set up');
+            }
+        },
+
+        updateStats() {
+            this.stats.totalTodos = this.todos.length;
+            this.stats.completedTodos = this.todos.filter(t => t.completed).length;
+            this.stats.pendingTodos = this.todos.filter(t => !t.completed).length;
+        },
+
+        formatDate(date) {
+            return new Date(date).toLocaleDateString();
+        }
+    },
+
+    mounted() {
+        this.fetchTodos();
+    }
+};
+
+// EOF To-do page component, site/webapp/view/hello-vue/templates/todo-demo.tmpl -->

@@ -1,58 +1,62 @@
-<!-- Features page template, site/webapp/view/hello-vue/templates/routing.tmpl -->
+// Features page component, site/webapp/view/hello-vue/templates/features.tmpl
 
-<div class="jp-card">
-    <h2>⚡ SPA Features</h2>
-    <p class="jp-text">This Vue.js SPA demonstrates modern web development patterns and jPulse Framework integration.</p>
+window.jpSpaRoutes.Features = {
+    template: `
+        <div class="jp-card">
+            <h2>⚡ SPA Features</h2>
+            <p class="jp-text">This Vue.js SPA demonstrates modern web development patterns and jPulse Framework integration.</p>
 
-    <div class="jp-dashboard-grid local-features-grid">
-        <div class="jp-card-dashboard local-feature-card local-non-clickable-card">
-            <div class="jp-icon-container local-icon-container">🔄</div>
-            <h3 class="jp-card-title">Reactive Data</h3>
-            <p class="jp-card-description">Vue.js automatically updates the DOM when data changes. No manual DOM manipulation needed!</p>
+            <div class="jp-dashboard-grid local-features-grid">
+                <div class="jp-card-dashboard local-feature-card local-non-clickable-card">
+                    <div class="jp-icon-container local-icon-container">🔄</div>
+                    <h3 class="jp-card-title">Reactive Data</h3>
+                    <p class="jp-card-description">Vue.js automatically updates the DOM when data changes. No manual DOM manipulation needed!</p>
+                </div>
+
+                <div class="jp-card-dashboard local-feature-card local-non-clickable-card">
+                    <div class="jp-icon-container local-icon-container">🌐</div>
+                    <h3 class="jp-card-title">Client-Side Routing</h3>
+                    <p class="jp-card-description">URL changes without page reloads. Browser back/forward buttons work perfectly.</p>
+                </div>
+
+                <div class="jp-card-dashboard local-feature-card local-non-clickable-card">
+                    <div class="jp-icon-container local-icon-container">🔌</div>
+                    <h3 class="jp-card-title">API Integration</h3>
+                    <p class="jp-card-description">Seamless integration with jPulse Framework backend APIs using jPulse.apiCall().</p>
+                </div>
+
+                <div class="jp-card-dashboard local-feature-card local-non-clickable-card">
+                    <div class="jp-icon-container local-icon-container">⚡</div>
+                    <h3 class="jp-card-title">Fast Performance</h3>
+                    <p class="jp-card-description">Only loads once, then updates content dynamically. Much faster than traditional MPAs.</p>
+                </div>
+
+                <div class="jp-card-dashboard local-feature-card local-non-clickable-card">
+                    <div class="jp-icon-container local-icon-container">📱</div>
+                    <h3 class="jp-card-title">Mobile Friendly</h3>
+                    <p class="jp-card-description">Responsive design that works great on all devices and screen sizes.</p>
+                </div>
+
+                <div class="jp-card-dashboard local-feature-card local-non-clickable-card">
+                    <div class="jp-icon-container local-icon-container">🛠️</div>
+                    <h3 class="jp-card-title">Easy Maintenance</h3>
+                    <p class="jp-card-description">Component-based architecture makes code organization and maintenance simple.</p>
+                </div>
+            </div>
+
+            <div class="jp-text">
+                <h3>Technical Benefits</h3>
+                <ul class="jp-list">
+                    <li><strong>Better User Experience:</strong> No page reloads, instant navigation</li>
+                    <li><strong>Reduced Server Load:</strong> Only API calls, no full page requests</li>
+                    <li><strong>Offline Capability:</strong> Can work offline with proper caching</li>
+                    <li><strong>Rich Interactions:</strong> Smooth animations and transitions</li>
+                    <li><strong>State Management:</strong> Centralized application state</li>
+                    <li><strong>Code Reusability:</strong> Components can be reused across pages</li>
+                </ul>
+            </div>
         </div>
+    `
+};
 
-        <div class="jp-card-dashboard local-feature-card local-non-clickable-card">
-            <div class="jp-icon-container local-icon-container">🌐</div>
-            <h3 class="jp-card-title">Client-Side Routing</h3>
-            <p class="jp-card-description">URL changes without page reloads. Browser back/forward buttons work perfectly.</p>
-        </div>
-
-        <div class="jp-card-dashboard local-feature-card local-non-clickable-card">
-            <div class="jp-icon-container local-icon-container">🔌</div>
-            <h3 class="jp-card-title">API Integration</h3>
-            <p class="jp-card-description">Seamless integration with jPulse Framework backend APIs using jPulse.apiCall().</p>
-        </div>
-
-        <div class="jp-card-dashboard local-feature-card local-non-clickable-card">
-            <div class="jp-icon-container local-icon-container">⚡</div>
-            <h3 class="jp-card-title">Fast Performance</h3>
-            <p class="jp-card-description">Only loads once, then updates content dynamically. Much faster than traditional MPAs.</p>
-        </div>
-
-        <div class="jp-card-dashboard local-feature-card local-non-clickable-card">
-            <div class="jp-icon-container local-icon-container">📱</div>
-            <h3 class="jp-card-title">Mobile Friendly</h3>
-            <p class="jp-card-description">Responsive design that works great on all devices and screen sizes.</p>
-        </div>
-
-        <div class="jp-card-dashboard local-feature-card local-non-clickable-card">
-            <div class="jp-icon-container local-icon-container">🛠️</div>
-            <h3 class="jp-card-title">Easy Maintenance</h3>
-            <p class="jp-card-description">Component-based architecture makes code organization and maintenance simple.</p>
-        </div>
-    </div>
-
-    <div class="jp-text">
-        <h3>Technical Benefits</h3>
-        <ul class="jp-list">
-            <li><strong>Better User Experience:</strong> No page reloads, instant navigation</li>
-            <li><strong>Reduced Server Load:</strong> Only API calls, no full page requests</li>
-            <li><strong>Offline Capability:</strong> Can work offline with proper caching</li>
-            <li><strong>Rich Interactions:</strong> Smooth animations and transitions</li>
-            <li><strong>State Management:</strong> Centralized application state</li>
-            <li><strong>Code Reusability:</strong> Components can be reused across pages</li>
-        </ul>
-    </div>
-</div>
-
-<!-- EOF site/webapp/view/hello-vue/templates/features.tmpl -->
+// EOF Features page component, site/webapp/view/hello-vue/templates/features.tmpl

@@ -5,7 +5,9 @@
  * @file            site/webapp/model/helloTodo.js
  * @version         0.8.4
  * @release         2025-10-01
- * @author          Site Developer
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny
  * @license         AGPL v3, see LICENSE file
  * @genai           60%, Cursor 1.2, Claude Sonnet 4
  */

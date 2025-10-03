@@ -38,28 +38,23 @@ window.jpSpaRoutes.Overview = {
     computed: {
         routes() {
             const filtered = (this.availableRoutes || []).filter(r => {
-                console.log('Filtering route:', r);
                 return r && r.path && r.path !== '/overview';
             });
-            console.log('Filtered routes:', filtered);
             return filtered;
         }
     },
     methods: {
         navigate(path) {
-            console.log('Navigating to:', path);
+            console.log('- Navigating to:', path);
             if (this.$router) {
                 this.$router.push(path);
             } else {
-                console.warn('Router not available yet');
+                console.warn('- Router not available yet');
             }
         }
     },
     mounted() {
-        console.log('Overview mounting...');
-        console.log('window.helloVueRoutes:', window.helloVueRoutes);
         this.availableRoutes = window.helloVueRoutes || [];
-        console.log('Overview mounted, availableRoutes:', this.availableRoutes);
     }
 };
 

@@ -1,33 +1,37 @@
 // Code page component, site/webapp/view/hello-vue/templates/code.tmpl
-
 window.jpSpaRoutes.Code = {
     template: `
         <div class="jp-card">
-            <h2>✳️ Code Examples</h2>
+            <h2>💻 Code Examples</h2>
             <p class="jp-text">Learn the implementation patterns used in this Vue.js SPA.</p>
 
             <div class="code-section">
                 <h3>1. Vue Router Setup</h3>
-                <p class="jp-text">Each page is a separate template file for better organization:</p>
-                <pre><code class="language-javascript">// Router configuration
-const routes = [
-    { path: '/', component: Overview },
-    { path: '/todo-demo', component: TodoDemo },
-    { path: '/features', component: Features },
-    { path: '/code', component: Code },
-    { path: '/about', component: About }
+                <p class="jp-text">Define routes and create the router with History Mode:</p>
+                <pre><code class="language-javascript">// Define routes
+window.helloVueRoutes = [
+    { path: '/overview', component: 'Overview', title: 'Overview' },
+    { path: '/todo-demo', component: 'TodoDemo', title: 'Interactive Demo' },
+    // ... more routes
 ];
 
+// Create router
 const router = createRouter({
     history: createWebHistory('/hello-vue/'),
-    routes
+    routes: [
+        ...window.helloVueRoutes.map(route => ({
+            path: route.path,
+            component: window.jpSpaRoutes[route.component]
+        })),
+        { path: '/', redirect: '/overview' }
+    ]
 });</code></pre>
             </div>
 
             <div class="code-section">
                 <h3>2. Component Structure</h3>
-                <p class="jp-text">Clean separation of data, methods, and template:</p>
-                <pre><code class="language-javascript">const TodoDemo = {
+                <p class="jp-text">Components have data, computed properties, methods, and templates:</p>
+                <pre><code class="language-javascript">window.jpSpaRoutes.TodoDemo = {
     data() {
         return {
             todos: [],
@@ -36,79 +40,107 @@ const router = createRouter({
         };
     },
 
-    async mounted() {
-        await this.loadTodos();
-        await this.loadDemoData();
-    },
-
     methods: {
         async createTodo() {
             if (!this.newTodoTitle.trim()) return;
 
-            const response = await jPulse.apiCall('/api/1/helloTodo', 'POST', {
-                title: this.newTodoTitle.trim()
+            const response = await jPulse.apiCall('/api/1/helloTodo', {
+                method: 'POST',
+                body: { title: this.newTodoTitle.trim() }
             });
 
-            this.todos.unshift(response.data);
-            this.newTodoTitle = '';
+            if (response.success) {
+                this.todos.unshift(response.data);
+                this.newTodoTitle = '';
+                this.updateStats();
+            }
         }
     },
 
-    template: '&lt;div class="jp-card"&gt; &lt;!-- Component template --&gt; &lt;/div&gt;'
+    mounted() {
+        this.fetchTodos();
+    },
+
+    template: \`&lt;div&gt;...&lt;/div&gt;\`
 };</code></pre>
             </div>
 
             <div class="code-section">
-                <h3>3. Template Integration</h3>
-                <p class="jp-text">Templates can be loaded from separate files using jPulse's include system:</p>
-                <pre><code class="language-handlebars">&#123;&#123;#if file.exists "hello-vue/templates/todo-demo.tmpl"&#125;&#125;
-    &#123;&#123;file.include "hello-vue/templates/todo-demo.tmpl"&#125;&#125;
-&#123;&#123;/if&#125;&#125;</code></pre>
+                <h3>3. Template Organization</h3>
+                <p class="jp-text">Templates are loaded from separate .tmpl files using server-side includes:</p>
+                <pre><code class="language-handlebars">&lt;!-- In routing.tmpl --&gt;
+&#123;&#123;file.include "hello-vue/templates/overview.tmpl"&#125;&#125;
+&#123;&#123;file.include "hello-vue/templates/todo-demo.tmpl"&#125;&#125;
+&#123;&#123;file.include "hello-vue/templates/features.tmpl"&#125;&#125;</code></pre>
+                <p class="jp-text">Each .tmpl file defines a component in the window.jpSpaRoutes namespace:</p>
+                <pre><code class="language-javascript">// In todo-demo.tmpl
+window.jpSpaRoutes.TodoDemo = {
+    template: \`...\`,
+    data() { return {...}; },
+    methods: {...}
+};</code></pre>
             </div>
 
             <div class="code-section">
-                <h3>4. API Integration</h3>
-                <p class="jp-text">Using jPulse's built-in API utilities:</p>
-                <pre><code class="language-javascript">// Load data from backend
-async loadTodos() {
-    try {
-        const response = await jPulse.apiCall('/api/1/helloTodo', 'GET');
-        this.todos = response.data.slice(0, 5);
-    } catch (error) {
-        console.warn('Todo data not available');
-    }
-}
+                <h3>4. API Integration with jPulse</h3>
+                <p class="jp-text">jPulse.apiCall() uses an options object with method and body:</p>
+                <pre><code class="language-javascript">// GET request
+const response = await jPulse.apiCall('/api/1/helloTodo', {
+    method: 'GET'
+});
+this.todos = response.data;
 
-// Create new todo
-async createTodo() {
-    const response = await jPulse.apiCall('/api/1/helloTodo', 'POST', {
-        title: this.newTodoTitle.trim()
-    });
-    this.todos.unshift(response.data);
-}</code></pre>
+// POST request
+const response = await jPulse.apiCall('/api/1/helloTodo', {
+    method: 'POST',
+    body: { title: 'New todo' }
+});
+
+// PUT request
+const response = await jPulse.apiCall('/api/1/helloTodo/123/toggle', {
+    method: 'PUT'
+});</code></pre>
             </div>
 
             <div class="code-section">
                 <h3>5. Reactive Data Binding</h3>
-                <p class="jp-text">Vue.js automatically updates the DOM when data changes:</p>
-                <pre><code class="language-html">&lt;div v-for="todo in todos" :key="todo._id"&gt;
-    &lt;input type="checkbox"
-           :checked="todo.completed"
-           @change="toggleTodo(todo)"&gt;
+                <p class="jp-text">Vue automatically updates the DOM when data changes:</p>
+                <pre><code class="language-html">&lt;!-- v-for loops through arrays --&gt;
+&lt;div v-for="todo in todos" :key="todo._id"&gt;
+    &lt;!-- v-model for two-way binding --&gt;
+    &lt;input v-model="newTodoTitle" type="text"&gt;
+
+    &lt;!-- Event handlers with @ --&gt;
+    &lt;button @click="createTodo"&gt;Add&lt;/button&gt;
+
+    &lt;!-- Conditional classes --&gt;
     &lt;span :class="{ completed: todo.completed }"&gt;
         &#123;&#123; todo.title &#125;&#125;
     &lt;/span&gt;
 &lt;/div&gt;</code></pre>
             </div>
 
+            <div class="code-section">
+                <h3>6. Router Navigation</h3>
+                <p class="jp-text">Navigate programmatically using this.$router.push():</p>
+                <pre><code class="language-javascript">methods: {
+    navigate(path) {
+        this.$router.push(path);
+    }
+},
+
+// Or use router-link in templates:
+// &lt;router-link to="/overview"&gt;Overview&lt;/router-link&gt;</code></pre>
+            </div>
+
             <div class="jp-text">
-                <h3>Key Learning Points</h3>
+                <h3>Key Takeaways</h3>
                 <ul class="jp-list">
-                    <li><strong>Component-Based:</strong> Each page is a separate Vue component</li>
-                    <li><strong>Reactive Data:</strong> Data changes automatically update the UI</li>
-                    <li><strong>API Integration:</strong> Seamless backend communication</li>
-                    <li><strong>Template Separation:</strong> Templates can be in separate files</li>
-                    <li><strong>jPulse Integration:</strong> Uses framework utilities for consistency</li>
+                    <li><strong>History Mode:</strong> Clean URLs without # (requires server config)</li>
+                    <li><strong>Component Files:</strong> Each page is a separate .tmpl file</li>
+                    <li><strong>API Pattern:</strong> jPulse.apiCall(url, {method, body})</li>
+                    <li><strong>Reactive Updates:</strong> Change data, Vue updates DOM automatically</li>
+                    <li><strong>Template Syntax:</strong> Use v-for, v-if, v-model, @click, :class</li>
                 </ul>
             </div>
         </div>

@@ -79,10 +79,7 @@ window.jpSpaRoutes.TodoDemo = {
     methods: {
         async createTodo() {
             if (!this.newTodoTitle.trim()) return;
-
             try {
-                console.log('Creating todo with title:', this.newTodoTitle.trim());
-
                 const response = await jPulse.apiCall('/api/1/helloTodo', {
                     method: 'POST',
                     body: {
@@ -90,19 +87,17 @@ window.jpSpaRoutes.TodoDemo = {
                     }
                 });
 
-                console.log('API response:', response);
-
                 if (response.success && response.data) {
                     this.todos.unshift(response.data);
                     this.newTodoTitle = '';
-                    jPulse.showSlideDownMessage('Todo created!', 'success');
+                    jPulse.showSlideDownMessage('To-do created!', 'success');
                     this.updateStats();
                 } else {
-                    throw new Error(response.message || 'Failed to add todo');
+                    throw new Error(response.message || 'Failed to add to-do');
                 }
             } catch (error) {
-                console.error('Error creating todo:', error);
-                jPulse.showSlideDownMessage('Failed to create todo: ' + error.message, 'error');
+                console.error('- Error creating to-do:', error);
+                jPulse.showSlideDownMessage('Failed to create to-do: ' + error.message, 'error');
             }
         },
 
@@ -111,7 +106,6 @@ window.jpSpaRoutes.TodoDemo = {
                 const response = await jPulse.apiCall('/api/1/helloTodo/' + todo._id + '/toggle', {
                     method: 'PUT'
                 });
-
                 if (response.success && response.data) {
                     const index = this.todos.findIndex(t => t._id === todo._id);
                     if (index !== -1) {
@@ -120,7 +114,8 @@ window.jpSpaRoutes.TodoDemo = {
                     this.updateStats();
                 }
             } catch (error) {
-                jPulse.showSlideDownMessage('Failed to update todo', 'error');
+                console.error('- Error toggling to-do:', error);
+                jPulse.showSlideDownMessage('Failed to update to-do', 'error');
             }
         },
 
@@ -135,7 +130,7 @@ window.jpSpaRoutes.TodoDemo = {
                     this.updateStats();
                 }
             } catch (error) {
-                console.warn('Todo data not available - this is normal if hello-todo is not set up');
+                console.warn('- To-do data not available - this is normal if hello-todo is not set up');
             }
         },
 

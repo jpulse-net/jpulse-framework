@@ -19,25 +19,13 @@
     <title>WebSocket Test Tool - {{app.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
     <style>
-        .test-container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 2rem;
-        }
-        .test-section {
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .test-controls {
+        .local-controls {
             display: flex;
             gap: 1rem;
             margin-bottom: 1rem;
             flex-wrap: wrap;
         }
-        .test-log {
+        .local-log {
             background: #f8f9fa;
             border: 1px solid #dee2e6;
             border-radius: 4px;
@@ -47,37 +35,37 @@
             font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
             font-size: 0.875rem;
         }
-        .test-log-item {
+        .local-log-item {
             padding: 0.5rem;
             border-bottom: 1px solid #e0e0e0;
         }
-        .test-log-item:last-child {
+        .local-log-item:last-child {
             border-bottom: none;
         }
-        .test-log-timestamp {
+        .local-log-timestamp {
             color: #666;
             margin-right: 0.5rem;
         }
-        .test-status {
+        .local-status {
             display: inline-block;
             padding: 0.25rem 0.75rem;
             border-radius: 12px;
             font-size: 0.875rem;
             font-weight: 600;
         }
-        .test-status.connected {
+        .local-status.connected {
             background: #d4edda;
             color: #155724;
         }
-        .test-status.connecting {
+        .local-status.connecting {
             background: #fff3cd;
             color: #856404;
         }
-        .test-status.disconnected {
+        .local-status.disconnected {
             background: #f8d7da;
             color: #721c24;
         }
-        .test-input {
+        .local-input {
             flex: 1;
             min-width: 200px;
         }
@@ -85,7 +73,7 @@
 </head>
 <body>
     <div class="jp-main">
-        <div class="test-container">
+        <div class="jp-container-1200">
             <div class="jp-page-header">
                 <h1><a href="/home/">{{i18n.view.home.title}}</a> <span>❯</span>
                     <a href="/admin/">{{i18n.view.admin.index.shortTitle}}</a> <span>❯</span>
@@ -94,39 +82,43 @@
                 <p class="jp-subtitle">{{i18n.view.admin.websocketTest.subtitle}}</p>
             </div>
 
-            <!-- Connection Status -->
-            <div class="test-section">
-                <h2>{{i18n.view.admin.websocketTest.connectionStatus}}</h2>
-                <p>{{i18n.view.admin.websocketTest.status}}: <span id="connectionStatus" class="test-status disconnected">{{i18n.view.admin.websocketStatus.disconnected}}</span></p>
-                <p>{{i18n.view.admin.websocketTest.username}}: <code>{{user.username}}</code></p>
-                <p>{{i18n.view.admin.websocketTest.namespace}}: <code>/ws/jpulse-ws-test</code></p>
-                <p>{{i18n.view.admin.websocketTest.clientUuid}}: <code id="clientUuid">-</code></p>
-            </div>
+            <div class="jp-dashboard-grid">
+                <!-- Connection Controls -->
+                <div class="jp-card">
+                    <h2>{{i18n.view.admin.websocketTest.connectionControls}}</h2>
+                    <div class="local-controls">
+                        <button id="btnConnect" class="jp-btn jp-btn-primary">{{i18n.view.admin.websocketTest.connect}}</button>
+                        <button id="btnDisconnect" class="jp-btn jp-btn-secondary" disabled>{{i18n.view.admin.websocketTest.disconnect}}</button>
+                    </div>
+                </div>
 
-            <!-- Connection Controls -->
-            <div class="test-section">
-                <h2>{{i18n.view.admin.websocketTest.connectionControls}}</h2>
-                <div class="test-controls">
-                    <button id="btnConnect" class="jp-btn jp-btn-primary">{{i18n.view.admin.websocketTest.connect}}</button>
-                    <button id="btnDisconnect" class="jp-btn jp-btn-secondary" disabled>{{i18n.view.admin.websocketTest.disconnect}}</button>
+                <!-- Connection Status -->
+                <div class="jp-card">
+                    <h2>{{i18n.view.admin.websocketTest.connectionStatus}}</h2>
+                    <p>{{i18n.view.admin.websocketTest.status}}: <span id="connectionStatus" class="local-status disconnected">{{i18n.view.admin.websocketStatus.disconnected}}</span></p>
+                    <p>{{i18n.view.admin.websocketTest.username}}: <code>{{user.username}}</code></p>
+                    <p>{{i18n.view.admin.websocketTest.namespace}}: <code>/ws/jpulse-ws-test</code></p>
+                    <p>{{i18n.view.admin.websocketTest.clientUuid}}: <code id="clientUuid">-</code></p>
                 </div>
             </div>
 
             <!-- Send Custom Message -->
-            <div class="test-section">
-                <h2>{{i18n.view.admin.websocketTest.sendCustom}}</h2>
-                <p class="jp-info-text" style="margin-bottom: 1rem;">{{i18n.view.admin.websocketTest.sendCustomDesc}}</p>
-                <div class="test-controls">
-                    <input type="text" id="customMessage" class="jp-form-input test-input" placeholder="{{i18n.view.admin.websocketTest.customPlaceholder}}">
+            <div class="jp-card">
+                <h2>{{i18n.view.admin.websocketTest.sendCustom}}
+                    <span class="jp-subheading">{{i18n.view.admin.websocketTest.sendCustomDesc}}</span>
+                </h2>
+                <div class="local-controls">
+                    <input type="text" id="customMessage" class="jp-form-input local-input" placeholder="{{i18n.view.admin.websocketTest.customPlaceholder}}">
                     <button id="btnSendCustom" class="jp-btn jp-btn-primary" disabled>{{i18n.view.admin.websocketTest.sendMessage}}</button>
                 </div>
             </div>
 
             <!-- Send Test Message by Type -->
-            <div class="test-section">
-                <h2>{{i18n.view.admin.websocketTest.sendTestType}}</h2>
-                <p class="jp-info-text" style="margin-bottom: 1rem;">{{i18n.view.admin.websocketTest.sendTestTypeDesc}}</p>
-                <div class="test-controls">
+            <div class="jp-card">
+                <h2>{{i18n.view.admin.websocketTest.sendTestType}}
+                    <span class="jp-subheading">{{i18n.view.admin.websocketTest.sendTestTypeDesc}}</span>
+                </h2>
+                <div class="local-controls">
                     <button id="btnSendInfo" class="jp-btn jp-btn-secondary" disabled>{{i18n.view.admin.websocketTest.infoMessage}}</button>
                     <button id="btnSendSuccess" class="jp-btn jp-btn-secondary" disabled>{{i18n.view.admin.websocketTest.successMessage}}</button>
                     <button id="btnSendWarning" class="jp-btn jp-btn-secondary" disabled>{{i18n.view.admin.websocketTest.warningMessage}}</button>
@@ -135,11 +127,11 @@
             </div>
 
             <!-- Message Log -->
-            <div class="test-section">
+            <div class="jp-card">
                 <h2>{{i18n.view.admin.websocketTest.messageLog}}</h2>
-                <div id="messageLog" class="test-log">
-                    <div class="test-log-item">
-                        <span class="test-log-timestamp">--:--:--</span>
+                <div id="messageLog" class="local-log">
+                    <div class="local-log-item">
+                        <span class="local-log-timestamp">--:--:--</span>
                         <span>Ready to connect...</span>
                     </div>
                 </div>
@@ -147,7 +139,7 @@
             </div>
 
             <!-- Instructions -->
-            <div class="test-section">
+            <div class="jp-card">
                 <h2>{{i18n.view.admin.websocketTest.instructions}}</h2>
                 <ol>
                     <li>Click <strong>Connect</strong> to establish WebSocket connection</li>
@@ -177,6 +169,9 @@
         let wsConnection = null;
         let messageCount = 0;
 
+        // Current user
+        const currentUsername = '{{user.username}}';
+
         // i18n strings
         const i18n = {
             connecting: '{{i18n.view.admin.websocketStatus.connecting}}',
@@ -200,15 +195,28 @@
         const btnSendError = document.getElementById('btnSendError');
         const btnClearLog = document.getElementById('btnClearLog');
 
+        // Helper: Truncate long messages (75 chars ... 75 chars)
+        function truncateMessage(message) {
+            const maxLength = 150;
+            if (message.length <= maxLength) {
+                return message;
+            }
+            const firstPart = message.substring(0, 75);
+            const lastPart = message.substring(message.length - 75);
+            return `${firstPart} ... ${lastPart}`;
+        }
+
         // Helper: Add log entry
         function addLog(message, isReceived = false) {
             const timestamp = new Date().toLocaleTimeString();
             const direction = isReceived ? '← Received' : '→ Sent';
+            const messageStr = JSON.stringify(message);
+            const truncatedMessage = truncateMessage(messageStr);
             const logItem = document.createElement('div');
-            logItem.className = 'test-log-item';
+            logItem.className = 'local-log-item';
             logItem.innerHTML = `
-                <span class="test-log-timestamp">${timestamp}</span>
-                <strong>${direction}:</strong> ${JSON.stringify(message)}
+                <span class="local-log-timestamp">${timestamp}</span>
+                <strong>${direction}:</strong> ${truncatedMessage}
             `;
             logEl.appendChild(logItem);
             logEl.scrollTop = logEl.scrollHeight;
@@ -217,7 +225,7 @@
         // Helper: Update connection status
         function updateStatus(status) {
             statusEl.textContent = i18n[status] || status;
-            statusEl.className = `test-status ${status}`;
+            statusEl.className = `local-status ${status}`;
 
             const connected = status === 'connected';
             btnConnect.disabled = connected;
@@ -279,20 +287,20 @@
                     wsConnection.send({
                         type: 'custom',
                         message: message,
-                        username: '{{user.username}}',
+                        username: currentUsername,
                         timestamp: new Date().toISOString(),
                         count: ++messageCount
                     });
                     addLog({ type: 'custom', message: message });
                     customMessageInput.value = '';
-                    jPulse.showSlideDownMessage('Message sent successfully', 'success');
+                    jPulse.UI.toast.show('Message sent successfully', 'success');
                 } catch (error) {
-                    jPulse.showSlideDownMessage('Failed to send message: ' + error.message, 'error');
+                    jPulse.UI.toast.show('Failed to send message: ' + error.message, 'error');
                 }
             } else if (!message) {
-                jPulse.showSlideDownMessage('Please enter a message', 'error');
+                jPulse.UI.toast.show('Please enter a message', 'error');
             } else {
-                jPulse.showSlideDownMessage('Not connected to WebSocket', 'error');
+                jPulse.UI.toast.show('Not connected to WebSocket', 'error');
             }
         });
 
@@ -308,15 +316,15 @@
                 const msg = {
                     type: 'info',
                     message: 'This is an informational message',
-                    username: '{{user.username}}',
+                    username: currentUsername,
                     timestamp: new Date().toISOString(),
                     count: ++messageCount
                 };
                 wsConnection.send(msg);
                 addLog(msg);
-                jPulse.showSlideDownMessage('Info message sent', 'success');
+                jPulse.UI.toast.show('Info message sent', 'success');
             } catch (error) {
-                jPulse.showSlideDownMessage('Failed to send message', 'error');
+                jPulse.UI.toast.show('Failed to send message', 'error');
             }
         });
 
@@ -325,15 +333,15 @@
                 const msg = {
                     type: 'success',
                     message: 'Connection established successfully',
-                    username: '{{user.username}}',
+                    username: currentUsername,
                     timestamp: new Date().toISOString(),
                     count: ++messageCount
                 };
                 wsConnection.send(msg);
                 addLog(msg);
-                jPulse.showSlideDownMessage('Success message sent', 'success');
+                jPulse.UI.toast.show('Success message sent', 'success');
             } catch (error) {
-                jPulse.showSlideDownMessage('Failed to send message', 'error');
+                jPulse.UI.toast.show('Failed to send message', 'error');
             }
         });
 
@@ -342,15 +350,15 @@
                 const msg = {
                     type: 'warning',
                     message: 'This is a warning message - reconnecting...',
-                    username: '{{user.username}}',
+                    username: currentUsername,
                     timestamp: new Date().toISOString(),
                     count: ++messageCount
                 };
                 wsConnection.send(msg);
                 addLog(msg);
-                jPulse.showSlideDownMessage('Warning message sent', 'success');
+                jPulse.UI.toast.show('Warning message sent', 'success');
             } catch (error) {
-                jPulse.showSlideDownMessage('Failed to send message', 'error');
+                jPulse.UI.toast.show('Failed to send message', 'error');
             }
         });
 
@@ -359,21 +367,21 @@
                 const msg = {
                     type: 'error',
                     message: 'Error: Connection failed',
-                    username: '{{user.username}}',
+                    username: currentUsername,
                     timestamp: new Date().toISOString(),
                     count: ++messageCount
                 };
                 wsConnection.send(msg);
                 addLog(msg);
-                jPulse.showSlideDownMessage('Error message sent', 'success');
+                jPulse.UI.toast.show('Error message sent', 'success');
             } catch (error) {
-                jPulse.showSlideDownMessage('Failed to send message', 'error');
+                jPulse.UI.toast.show('Failed to send message', 'error');
             }
         });
 
         // Clear log
         btnClearLog.addEventListener('click', () => {
-            logEl.innerHTML = '<div class="test-log-item"><span class="test-log-timestamp">--:--:--</span><span>Log cleared</span></div>';
+            logEl.innerHTML = '<div class="local-log-item"><span class="local-log-timestamp">--:--:--</span><span>Log cleared</span></div>';
         });
 
         // Initialize

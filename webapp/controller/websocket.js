@@ -14,6 +14,7 @@
 
 import { WebSocketServer as WSServer } from 'ws';
 import { parse as parseUrl } from 'url';
+import AuthController from './auth.js';
 
 // Access global utilities
 const LogController = global.LogController;
@@ -50,6 +51,9 @@ class WebSocketController {
     // WebSocket server instance
     static wss = null;
 
+    // Session middleware (for parsing sessions during upgrade)
+    static sessionMiddleware = null;
+
     // Namespace registry
     static namespaces = new Map();
 
@@ -71,9 +75,13 @@ class WebSocketController {
     /**
      * Initialize WebSocket server
      * @param {http.Server} httpServer - HTTP server instance from Express
+     * @param {Function} sessionMiddleware - Express session middleware for parsing sessions
      */
-    static initialize(httpServer) {
+    static initialize(httpServer, sessionMiddleware) {
         try {
+            // Store session middleware
+            this.sessionMiddleware = sessionMiddleware;
+
             // Create WebSocket server attached to HTTP server
             this.wss = new WSServer({ noServer: true });
 
@@ -305,25 +313,41 @@ class WebSocketController {
                 return;
             }
 
-            // Extract user from session
-            const user = request.session?.user || null;
-            const username = user?.username || '';
+            // Parse session using middleware
+            const res = {}; // Dummy response object
+            this.sessionMiddleware(request, res, () => {
+                // Session is now available in request.session
+                const user = request.session?.user || null;
+                const username = user?.username || '';
 
-            // Check authentication if required
-            if (namespace.requireAuth && !user) {
-                LogController.logError(null, 'websocket._handleUpgrade', `error: Authentication required for ${pathname}`);
+                this._completeUpgrade(request, socket, head, namespace, user, username, query);
+            });
+
+        } catch (error) {
+            LogController.logError(null, 'websocket._handleUpgrade', `error: ${error.message}`);
+            socket.destroy();
+        }
+    }
+
+    /**
+     * Complete WebSocket upgrade after session is parsed
+     * @private
+     */
+    static _completeUpgrade(request, socket, head, namespace, user, username, query) {
+        try {
+
+            // Check authentication using AuthController for consistency
+            if (namespace.requireAuth && !AuthController.isAuthenticated(request)) {
+                LogController.logError(null, 'websocket._completeUpgrade', `error: Authentication required for ${namespace.path}`);
                 socket.destroy();
                 return;
             }
 
-            // Check roles if required
-            if (namespace.requireRoles.length > 0 && user) {
-                const hasRole = namespace.requireRoles.some(role => user.roles?.includes(role));
-                if (!hasRole) {
-                    LogController.logError(null, 'websocket._handleUpgrade', `error: Insufficient roles for ${pathname}`);
-                    socket.destroy();
-                    return;
-                }
+            // Check roles using AuthController for consistency
+            if (namespace.requireRoles.length > 0 && !AuthController.isAuthorized(request, namespace.requireRoles)) {
+                LogController.logError(null, 'websocket._completeUpgrade', `error: Insufficient roles for ${namespace.path}`);
+                socket.destroy();
+                return;
             }
 
             // Extract optional client-provided UUID
@@ -335,7 +359,7 @@ class WebSocketController {
             });
 
         } catch (error) {
-            LogController.logError(null, 'websocket._handleUpgrade', `error: ${error.message}`);
+            LogController.logError(null, 'websocket._completeUpgrade', `error: ${error.message}`);
             socket.destroy();
         }
     }
@@ -498,7 +522,8 @@ class WebSocketController {
      */
     static _registerAdminStatsNamespace() {
         this.registerNamespace('/ws/jpulse-ws-status', {
-            requireAuth: false, // TODO: Set to true and require admin role
+            requireAuth: true,
+            requireRoles: ['admin', 'root'],
             onConnect: (clientId, user) => {
                 // Send initial stats
                 const stats = this.getStats();
@@ -553,7 +578,7 @@ class WebSocketController {
      */
     static _registerTestNamespace() {
         this.registerNamespace('/ws/jpulse-ws-test', {
-            requireAuth: false,
+            requireAuth: true,
             onConnect: (clientId, user) => {
                 LogController.logInfo(null, 'websocket._registerTestNamespace', `Test client connected: ${clientId}`);
             },
@@ -567,7 +592,7 @@ class WebSocketController {
                     originalMessage: message,
                     serverTimestamp: new Date().toISOString(),
                     clientId: clientId
-                });
+                }, message.username || user?.username || '');
             },
             onDisconnect: (clientId, user) => {
                 LogController.logInfo(null, 'websocket._registerTestNamespace', `Test client disconnected: ${clientId}`);
@@ -630,11 +655,15 @@ class WebSocketController {
      * @private
      */
     static _addActivityLog(namespace, direction, message) {
+        const messageStr = JSON.stringify(message);
+        // Truncate to 500 chars for bandwidth conservation (client displays 150 chars)
+        const truncated = messageStr.length > 500 ? messageStr.substring(0, 500) : messageStr;
+
         this.stats.activityLog.push({
             timestamp: new Date().toISOString(),
             namespace,
             direction, // 'sent' or 'received'
-            message: JSON.stringify(message).substring(0, 100) // Truncate long messages
+            message: truncated
         });
 
         // Keep only last 100 entries

@@ -1042,22 +1042,25 @@ This is the doc to track work items, arranged in three sections:
 - see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
 - deliverables:
   - server:
-    - ✅ webapp/controller/websocket.js - WebSocket controller with namespace registration
-    - ✅ package.json - ws dependency added
-    - ✅ webapp/view/admin/websocket-status.shtml - Real-time monitoring page
+    - webapp/controller/websocket.js - WebSocket controller with namespace registration
+    - package.json - ws dependency added
+    - webapp/view/admin/websocket-status.shtml - Real-time monitoring page
       - per namespace: status, name, clients, active users, messages/min, total messages
       - overall: uptime, total messages, color-coded activity log (light theme)
-    - ✅ webapp/view/admin/websocket-test.shtml - Interactive test tool for developers
+    - webapp/view/admin/websocket-test.shtml - Interactive test tool for developers
   - browser view:
-    - ✅ webapp/view/jpulse-common.js - jPulse.ws.* client utilities
-    - ✅ Persistent client UUID (localStorage)
-    - ✅ Username tracking in all messages
+    - webapp/view/jpulse-common.js - jPulse.ws.* client utilities
+    - Persistent client UUID (localStorage)
+    - Username tracking in all messages
+    - common style, define cards with dialog-style heading:
+      - .jp-card > h2:first-child
+      - .jp-card > h2:first-child .jp-subheading
   - docs:
-    - ✅ docs/websockets.md - Complete WebSocket documentation
-    - ✅ docs/front-end-development.md - WebSocket section
+    - docs/websockets.md - Complete WebSocket documentation
+    - docs/front-end-development.md - WebSocket section
   - high availability:
-    - ✅ Bidirectional ping/pong health checks (30s interval)
-    - ✅ Progressive reconnection (5s to 30s max with backoff)
+    - Bidirectional ping/pong health checks (30s interval)
+    - Progressive reconnection (5s to 30s max with backoff)
 
 ### W-075: site: create example /hello-websocket/ app
 - status: 🕑 PENDING
@@ -1083,7 +1086,11 @@ questions:
 - activity log padding tweak
 - svg
 - mutiple ws?
-
+- bug: http://localhost:8080/jpulse-examples/
+  - vertical alignment issue
+- bug: http://localhost:8080/jpulse-examples/ui-widgets.shtml
+  - enter submits the modal dialog again, instead of dismiss
+  - confirm should show primary and secondary button; enter on primary
 
 - what about vue & i18n?
 

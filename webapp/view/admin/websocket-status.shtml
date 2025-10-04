@@ -184,12 +184,6 @@
             color: #c62828;
         }
 
-        .local-last-update {
-            color: #666;
-            font-size: 0.875rem;
-            text-align: right;
-            margin-top: 1rem;
-        }
     </style>
 </head>
 <body>
@@ -201,13 +195,6 @@
                     <a href="/admin/">{{i18n.view.admin.index.shortTitle}}</a> <span>❯</span>
                     {{i18n.view.admin.websocketStatus.title}}</h1>
                 <p id="wsConnectionStatus" class="jp-subtitle local-connection-status connecting">{{i18n.view.admin.websocketStatus.connecting}}</p>
-            </div>
-
-            <div class="jp-info-box" style="margin-bottom: 1.5rem;">
-                <p>{{i18n.view.admin.websocketStatus.description}}</p>
-                <p style="margin-top: 0.5rem;">
-                    <a href="/admin/websocket-test.shtml" class="jp-btn jp-btn-secondary">{{i18n.view.admin.websocketStatus.testTool}}</a>
-                </p>
             </div>
 
             <!-- Overview Statistics -->
@@ -240,14 +227,19 @@
 
             <!-- Activity Log -->
             <div class="jp-card">
-                <h2>{{i18n.view.admin.websocketStatus.activityLog}}</h2>
+                <h2>{{i18n.view.admin.websocketStatus.activityLog}}
+                    <span class="jp-subheading">{{i18n.view.admin.websocketStatus.lastUpdate}}: <span id="lastUpdate">-</span></span>
+                </h2>
                 <div id="activityLog" class="local-activity-log">
                     <p class="jp-info-text">{{i18n.view.admin.websocketStatus.noActivity}}</p>
                 </div>
             </div>
 
-            <div class="local-last-update">
-                {{i18n.view.admin.websocketStatus.lastUpdate}}: <span id="lastUpdate">-</span>
+            <div class="jp-info-box" style="margin-bottom: 1.5rem;">
+                <p>{{i18n.view.admin.websocketStatus.description}}</p>
+                <p style="margin-top: 0.5rem;">
+                    <a href="/admin/websocket-test.shtml" class="jp-btn jp-btn-secondary">{{i18n.view.admin.websocketStatus.testTool}}</a>
+                </p>
             </div>
 
           {{else}}
@@ -352,14 +344,14 @@
             `).join('');
         }
 
-        // Truncate long messages (50 chars ... 50 chars)
+        // Truncate long messages (75 chars ... 75 chars)
         function truncateMessage(message) {
-            const maxLength = 100;
+            const maxLength = 150;
             if (message.length <= maxLength) {
                 return message;
             }
-            const firstPart = message.substring(0, 50);
-            const lastPart = message.substring(message.length - 50);
+            const firstPart = message.substring(0, 75);
+            const lastPart = message.substring(message.length - 75);
             return `${firstPart} ... ${lastPart}`;
         }
 

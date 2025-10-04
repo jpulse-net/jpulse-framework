@@ -229,7 +229,7 @@ async function startApp() {
     app.use(bodyParser.json(appConfig.middleware.bodyParser.json));
 
     // Configure session with MongoDB store
-    app.use(session({
+    const sessionMiddleware = session({
         secret: appConfig.middleware.session.secret,
         resave: appConfig.middleware.session.resave,
         saveUninitialized: appConfig.middleware.session.saveUninitialized,
@@ -239,7 +239,8 @@ async function startApp() {
             collectionName: 'sessions',
             touchAfter: appConfig.middleware.session.touchAfter
         })
-    }));
+    });
+    app.use(sessionMiddleware);
 
     // All app routing is handled by routes.js
     app.use('/', routes);
@@ -256,8 +257,8 @@ async function startApp() {
         LogController.logInfo(null, 'app', `Database: ${appConfig.deployment[mode].db}`);
     });
 
-    // Initialize WebSocket server
-    WebSocketController.initialize(server);
+    // Initialize WebSocket server with session middleware
+    WebSocketController.initialize(server, sessionMiddleware);
 }
 
 // Start the application

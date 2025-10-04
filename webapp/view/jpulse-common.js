@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         0.8.5
- * @release         2025-10-03
+ * @version         0.8.6
+ * @release         2025-10-04
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -13,224 +13,80 @@
  */
 
 window.jPulse = {
-    // Slide-down message queue management
-    _slideDownQueue: [],
-
-    // ========================================
-    // PHASE 1: Core Slide-Down Messaging System
-    // ========================================
-
-    /**
-     * Show non-blocking slide-down message with consistent styling
-     * @param {string} message - The message to display
-     * @param {string} type - Message type: 'info', 'error', 'success', 'warning'
-     * @param {number} duration - Auto-hide duration in ms (0 = no auto-hide, uses config if not specified)
-     * @returns {Element} The created slide-down message element
-     */
-    showSlideDownMessage: (message, type = 'info', duration = null) => {
-        // Get duration from config if not specified
-        if (duration === null) {
-            const config = window.appConfig?.view?.slideDownMessage?.duration;
-            duration = config?.[type] || 5000;
-        }
-
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `jp-slide-down jp-slide-down-${type}`;
-        messageDiv.textContent = message;
-        messageDiv.dataset.type = type;
-        messageDiv.dataset.duration = duration;
-
-        // Add to queue
-        jPulse._slideDownQueue.push(messageDiv);
-
-        // Process only the new message
-        jPulse._processSlideDownMessage(messageDiv);
-
-        return messageDiv;
-    },
-
-    /**
-     * Process a single new slide-down message
-     * @param {Element} messageDiv - The message element to process
-     */
-    _processSlideDownMessage: (messageDiv) => {
-        const index = jPulse._slideDownQueue.indexOf(messageDiv);
-
-        // Add to DOM first so we can measure height
-        document.body.appendChild(messageDiv);
-
-        // Force reflow to ensure styles are applied
-        messageDiv.offsetHeight;
-
-        // Calculate dynamic stacking based on actual heights of previous messages
-        let stackOffset = 0;
-        if (index > 0) {
-            for (let i = 0; i < index; i++) {
-                const prevMessage = jPulse._slideDownQueue[i];
-                if (prevMessage && prevMessage.parentNode) {
-                    stackOffset += prevMessage.offsetHeight + 5; // 5px gap between messages
-                }
-            }
-        }
-
-        // Stack messages below header
-        messageDiv.dataset.stackIndex = index;
-        messageDiv.style.setProperty('--stack-offset', `${stackOffset}px`);
-
-        // Trigger slide-down animation
-        setTimeout(() => {
-            messageDiv.classList.add('jp-slide-down-show');
-        }, 100);
-
-        // Auto-hide after duration
-        const duration = parseInt(messageDiv.dataset.duration);
-        if (duration > 0) {
-            setTimeout(() => {
-                jPulse._hideSlideDownMessage(messageDiv);
-            }, duration);
-        }
-    },
-
-    /**
-     * Hide slide-down message with slide-up animation
-     * @param {Element} messageDiv - Message element to hide
-     */
-    _hideSlideDownMessage: (messageDiv) => {
-        if (!messageDiv || !messageDiv.parentNode) return;
-
-        // Trigger slide-up animation (back behind header)
-        messageDiv.classList.remove('jp-slide-down-show');
-        messageDiv.classList.add('jp-slide-down-hide');
-
-        // Remove from DOM after animation
-        setTimeout(() => {
-            if (messageDiv.parentNode) {
-                messageDiv.remove();
-            }
-            // Remove from queue
-            const index = jPulse._slideDownQueue.indexOf(messageDiv);
-            if (index > -1) {
-                jPulse._slideDownQueue.splice(index, 1);
-            }
-        }, 600); // Match the longer animation time
-    },
-
-    /**
-     * Show error slide-down message (red styling)
-     */
-    showSlideDownError: (message) => {
-        return jPulse.showSlideDownMessage(message, 'error');
-    },
-
-    /**
-     * Show success slide-down message (green styling)
-     */
-    showSlideDownSuccess: (message) => {
-        return jPulse.showSlideDownMessage(message, 'success');
-    },
-
-    /**
-     * Show info slide-down message (blue styling)
-     */
-    showSlideDownInfo: (message) => {
-        return jPulse.showSlideDownMessage(message, 'info');
-    },
-
-    /**
-     * Show warning slide-down message (yellow styling)
-     */
-    showSlideDownWarning: (message) => {
-        return jPulse.showSlideDownMessage(message, 'warning');
-    },
-
-    /**
-     * Clear all slide-down messages
-     */
-    clearSlideDownMessages: () => {
-        // Clear all messages in queue
-        jPulse._slideDownQueue.forEach(messageDiv => {
-            jPulse._hideSlideDownMessage(messageDiv);
-        });
-        jPulse._slideDownQueue = [];
-    },
-
-    // ========================================
-    // PHASE 2: API Call Standardization
-    // ========================================
-
-    /**
-     * Standardized API call with consistent error handling
-     * @param {string} endpoint - API endpoint URL
-     * @param {Object} options - Fetch options (method, body, headers, etc.)
-     * @returns {Object} { success: boolean, data: any, error: string, response: Response }
-     */
-    apiCall: async (endpoint, options = {}) => {
-        const defaultOptions = {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'same-origin'  // Include cookies for session auth
-        };
-
-        const config = { ...defaultOptions, ...options };
-
-        // Auto-stringify body if it's an object
-        if (config.body && typeof config.body === 'object' && !(config.body instanceof FormData)) {
-            config.body = JSON.stringify(config.body);
-        }
-
-        try {
-            const response = await fetch(endpoint, config);
-            let result;
-
-            // Try to parse JSON response
-            try {
-                result = await response.json();
-            } catch (parseError) {
-                // If not JSON, get text content
-                result = { message: await response.text() };
-            }
-
-            if (!response.ok) {
-                // For non-OK responses, if the result already has error structure, return it
-                // Otherwise, create a standardized error response
-                if (result && typeof result === 'object' && 'success' in result) {
-                    return result; // Controller already returned proper error format
-                } else {
-                    const errorMessage = result.error || result.message || `HTTP ${response.status}: ${response.statusText}`;
-                    return {
-                        success: false,
-                        error: errorMessage,
-                        code: 'HTTP_ERROR'
-                    };
-                }
-            }
-
-            // For successful responses, return the controller response directly
-            // Controllers already return { success, data, message } format
-            return result;
-
-        } catch (networkError) {
-            return {
-                success: false,
-                error: `Network error: ${networkError.message}`,
-                code: 'NETWORK_ERROR'
-            };
-        }
-    },
 
     /**
      * API helper methods for common HTTP verbs
      */
     api: {
         /**
+         * Standardized API call with consistent error handling
+         * @param {string} endpoint - API endpoint URL
+         * @param {Object} options - Fetch options (method, body, headers, etc.)
+         * @returns {Object} { success: boolean, data: any, error: string, response: Response }
+         */
+        call: async (endpoint, options = {}) => {
+            const defaultOptions = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'  // Include cookies for session auth
+            };
+
+            const config = { ...defaultOptions, ...options };
+
+            // Auto-stringify body if it's an object
+            if (config.body && typeof config.body === 'object' && !(config.body instanceof FormData)) {
+                config.body = JSON.stringify(config.body);
+            }
+
+            try {
+                const response = await fetch(endpoint, config);
+                let result;
+
+                // Try to parse JSON response
+                try {
+                    result = await response.json();
+                } catch (parseError) {
+                    // If not JSON, get text content
+                    result = { message: await response.text() };
+                }
+
+                if (!response.ok) {
+                    // For non-OK responses, if the result already has error structure, return it
+                    // Otherwise, create a standardized error response
+                    if (result && typeof result === 'object' && 'success' in result) {
+                        return result; // Controller already returned proper error format
+                    } else {
+                        const errorMessage = result.error || result.message || `HTTP ${response.status}: ${response.statusText}`;
+                        return {
+                            success: false,
+                            error: errorMessage,
+                            code: 'HTTP_ERROR'
+                        };
+                    }
+                }
+
+                // For successful responses, return the controller response directly
+                // Controllers already return { success, data, message } format
+                return result;
+
+            } catch (networkError) {
+                return {
+                    success: false,
+                    error: `Network error: ${networkError.message}`,
+                    code: 'NETWORK_ERROR'
+                };
+            }
+        },
+
+        /**
          * GET request
          * @param {string} endpoint - API endpoint
          * @param {Object} options - Additional fetch options
          */
         get: (endpoint, options = {}) => {
-            return jPulse.apiCall(endpoint, { ...options, method: 'GET' });
+            return jPulse.api.call(endpoint, { ...options, method: 'GET' });
         },
 
         /**
@@ -240,7 +96,7 @@ window.jPulse = {
          * @param {Object} options - Additional fetch options
          */
         post: (endpoint, data = null, options = {}) => {
-            return jPulse.apiCall(endpoint, { ...options, method: 'POST', body: data });
+            return jPulse.api.call(endpoint, { ...options, method: 'POST', body: data });
         },
 
         /**
@@ -250,7 +106,7 @@ window.jPulse = {
          * @param {Object} options - Additional fetch options
          */
         put: (endpoint, data = null, options = {}) => {
-            return jPulse.apiCall(endpoint, { ...options, method: 'PUT', body: data });
+            return jPulse.api.call(endpoint, { ...options, method: 'PUT', body: data });
         },
 
         /**
@@ -259,7 +115,7 @@ window.jPulse = {
          * @param {Object} options - Additional fetch options
          */
         delete: (endpoint, options = {}) => {
-            return jPulse.apiCall(endpoint, { ...options, method: 'DELETE' });
+            return jPulse.api.call(endpoint, { ...options, method: 'DELETE' });
         },
 
         /**
@@ -282,7 +138,7 @@ window.jPulse = {
             // Show user-friendly message
             if (showMessage) {
                 const message = `Could not ${action}. Please try again or check your connection.`;
-                jPulse.showSlideDownMessage(message, 'error');
+                jPulse.UI.toast.show(message, 'error');
             }
         }
     },
@@ -364,7 +220,7 @@ window.jPulse = {
                 });
 
                 if (hasErrors) {
-                    jPulse.showSlideDownError('Please fill in all required fields.');
+                    jPulse.UI.toast.error('Please fill in all required fields.');
                     return { success: false, error: 'Required fields missing' };
                 }
             }
@@ -379,7 +235,7 @@ window.jPulse = {
                 const formData = jPulse.form.serialize(formElement);
 
                 // Make API call
-                const result = await jPulse.apiCall(endpoint, {
+                const result = await jPulse.api.call(endpoint, {
                     method: config.method,
                     body: formData
                 });
@@ -387,7 +243,7 @@ window.jPulse = {
                 if (result.success) {
                     // Success handling
                     if (config.successMessage) {
-                        jPulse.showSlideDownSuccess(config.successMessage);
+                        jPulse.UI.toast.success(config.successMessage);
                     }
 
                     if (config.clearOnSuccess) {
@@ -412,7 +268,7 @@ window.jPulse = {
                     } else {
                         // Otherwise, show the default error message.
                         const errorMessage = config.errorMessage || result.error || 'Submission failed';
-                        jPulse.showSlideDownError(errorMessage);
+                        jPulse.UI.toast.error(errorMessage);
                     }
 
                     // Handle field-specific errors if provided by API
@@ -430,7 +286,7 @@ window.jPulse = {
 
             } catch (error) {
                 const errorMessage = `Submission error: ${error.message}`;
-                jPulse.showSlideDownError(errorMessage);
+                jPulse.UI.toast.error(errorMessage);
                 return { success: false, error: errorMessage };
 
             } finally {
@@ -506,7 +362,7 @@ window.jPulse = {
             });
 
             // Clear any existing alerts in the form
-            jPulse.clearSlideDownMessages();
+            jPulse.UI.toast.clearAll();
         },
 
         /**
@@ -697,6 +553,148 @@ window.jPulse = {
         _dialogStack: [],
         _baseZIndex: 1000,
         _alertZIndex: 2000,
+
+        // Toast notification queue management
+        _toastQueue: [],
+
+        /**
+         * Toast notification methods (formerly slide-down messages)
+         */
+        toast: {
+            /**
+             * Show non-blocking toast notification with consistent styling
+             * @param {string} message - The message to display
+             * @param {string} type - Message type: 'info', 'error', 'success', 'warning'
+             * @param {number} duration - Auto-hide duration in ms (0 = no auto-hide, uses config if not specified)
+             * @returns {Element} The created toast message element
+             */
+            show: (message, type = 'info', duration = null) => {
+                // Get duration from config if not specified
+                if (duration === null) {
+                    const config = window.appConfig?.view?.slideDownMessage?.duration;
+                    duration = config?.[type] || 5000;
+                }
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `jp-slide-down jp-slide-down-${type}`;
+                messageDiv.textContent = message;
+                messageDiv.dataset.type = type;
+                messageDiv.dataset.duration = duration;
+
+                // Add to queue
+                jPulse.UI._toastQueue.push(messageDiv);
+
+                // Process only the new message
+                jPulse.UI.toast._processToast(messageDiv);
+
+                return messageDiv;
+            },
+
+            /**
+             * Show error toast notification (red styling)
+             */
+            error: (message) => {
+                return jPulse.UI.toast.show(message, 'error');
+            },
+
+            /**
+             * Show success toast notification (green styling)
+             */
+            success: (message) => {
+                return jPulse.UI.toast.show(message, 'success');
+            },
+
+            /**
+             * Show info toast notification (blue styling)
+             */
+            info: (message) => {
+                return jPulse.UI.toast.show(message, 'info');
+            },
+
+            /**
+             * Show warning toast notification (yellow styling)
+             */
+            warning: (message) => {
+                return jPulse.UI.toast.show(message, 'warning');
+            },
+
+            /**
+             * Clear all toast notifications
+             */
+            clearAll: () => {
+                // Clear all messages in queue
+                jPulse.UI._toastQueue.forEach(messageDiv => {
+                    jPulse.UI.toast._hideToast(messageDiv);
+                });
+                jPulse.UI._toastQueue = [];
+            },
+
+            /**
+             * Process a single new toast notification (internal)
+             * @param {Element} messageDiv - The message element to process
+             */
+            _processToast: (messageDiv) => {
+                const index = jPulse.UI._toastQueue.indexOf(messageDiv);
+
+                // Add to DOM first so we can measure height
+                document.body.appendChild(messageDiv);
+
+                // Force reflow to ensure styles are applied
+                messageDiv.offsetHeight;
+
+                // Calculate dynamic stacking based on actual heights of previous messages
+                let stackOffset = 0;
+                if (index > 0) {
+                    for (let i = 0; i < index; i++) {
+                        const prevMessage = jPulse.UI._toastQueue[i];
+                        if (prevMessage && prevMessage.parentNode) {
+                            stackOffset += prevMessage.offsetHeight + 5; // 5px gap between messages
+                        }
+                    }
+                }
+
+                // Stack messages below header
+                messageDiv.dataset.stackIndex = index;
+                messageDiv.style.setProperty('--stack-offset', `${stackOffset}px`);
+
+                // Trigger slide-down animation
+                setTimeout(() => {
+                    messageDiv.classList.add('jp-slide-down-show');
+                }, 100);
+
+                // Auto-hide after duration
+                const duration = parseInt(messageDiv.dataset.duration);
+                if (duration > 0) {
+                    setTimeout(() => {
+                        jPulse.UI.toast._hideToast(messageDiv);
+                    }, duration);
+                }
+            },
+
+            /**
+             * Hide toast notification with slide-up animation (internal)
+             * @param {Element} messageDiv - Message element to hide
+             */
+            _hideToast: (messageDiv) => {
+                if (!messageDiv || !messageDiv.parentNode) return;
+
+                // Trigger slide-up animation (back behind header)
+                messageDiv.classList.remove('jp-slide-down-show');
+                messageDiv.classList.add('jp-slide-down-hide');
+
+                // Remove from DOM after animation
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        messageDiv.remove();
+                    }
+                    // Remove from queue
+                    const index = jPulse.UI._toastQueue.indexOf(messageDiv);
+                    if (index > -1) {
+                        jPulse.UI._toastQueue.splice(index, 1);
+                    }
+                }, 600); // Match the longer animation time
+            }
+        },
 
         /**
          * Show alert dialog with red header styling

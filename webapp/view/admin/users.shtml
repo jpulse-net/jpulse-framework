@@ -4,8 +4,8 @@
  * @tagline         Admin user management interface
  * @description     User management dashboard for site administrators
  * @file            webapp/view/admin/users.shtml
- * @version         0.8.5
- * @release         2025-10-03
+ * @version         0.8.6
+ * @release         2025-10-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -291,10 +291,10 @@
                     displayUsers(userData);
                     setupPagination(result.pagination);
                 } else {
-                    jPulse.showSlideDownError(result.error || '{{i18n.view.admin.users.failedToLoadUsers}}');
+                    jPulse.UI.toast.error(result.error || '{{i18n.view.admin.users.failedToLoadUsers}}');
                 }
             } catch (error) {
-                jPulse.showSlideDownError('{{i18n.view.admin.users.networkError}}');
+                jPulse.UI.toast.error('{{i18n.view.admin.users.networkError}}');
             } finally {
                 showLoading(false);
             }
@@ -464,11 +464,11 @@
                     // Restore selection
                     roleSelect.value = currentValue;
                 } else {
-                    jPulse.showSlideDownError('Failed to load role options: ' + (response.error || 'Unknown error'));
+                    jPulse.UI.toast.error('Failed to load role options: ' + (response.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Failed to load roles:', error);
-                jPulse.showSlideDownError('Failed to load role options. Please refresh the page.');
+                jPulse.UI.toast.error('Failed to load role options. Please refresh the page.');
             }
         }
 

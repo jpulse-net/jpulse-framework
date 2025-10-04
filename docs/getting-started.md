@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Getting Started with jPulse v0.8.5
+# jPulse Framework / Docs / Getting Started with jPulse v0.8.6
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the W-014 override system.
 
@@ -409,7 +409,7 @@ cat > site/webapp/view/welcome/index.shtml << 'EOF'
 
     <script>
     function testCustomAPI() {
-        jPulse.apiCall('/api/1/welcome', {}, function(data) {
+        jPulse.api.call('/api/1/welcome', {}, function(data) {
             document.getElementById('api-content').textContent = JSON.stringify(data, null, 2);
             document.getElementById('api-result').style.display = 'block';
         }, function(error) {

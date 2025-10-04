@@ -4,8 +4,8 @@
  * @tagline         API integration examples and patterns
  * @description     Comprehensive examples of API integration, data handling, and dynamic UX in jPulse
  * @file            webapp/view/jpulse-examples/api.shtml
- * @version         0.8.5
- * @release         2025-10-03
+ * @version         0.8.6
+ * @release         2025-10-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -34,13 +34,13 @@
         <!-- Basic API Call -->
         <div class="jp-card">
             <div class="jp-card-header">
-                <h3>Basic API Call with jPulse.apiCall</h3>
+                <h3>Basic API Call with jPulse.api.call</h3>
             </div>
             <div class="jp-card-body">
                 <div id="basic-api-tabs" class="jp-tabs"></div>
                 <div id="basic-api-example-panel" class="jp-panel">
                     <div class="jp-info-box">
-                        <p><strong>What you learn:</strong> How to use <code>jPulse.apiCall()</code> for consistent API handling with proper success/error feedback and user notifications.</p>
+                        <p><strong>What you learn:</strong> How to use <code>jPulse.api.call()</code> for consistent API handling with proper success/error feedback and user notifications.</p>
                         <p><strong>Test API Call:</strong> Calls <code>/api/1/status</code> (working endpoint) and shows green success message.</p>
                         <p><strong>Test Error Handling:</strong> Calls <code>/api/1/does-not-exist</code> and shows a red error message with proper user feedback.</p>
                     </div>
@@ -67,27 +67,27 @@
 
 &lt;script&gt;
 document.getElementById('testApiBtn').addEventListener('click', async () =&gt; {
-    // Use jPulse.apiCall for consistent API handling
+    // Use jPulse.api.call for consistent API handling
     const responseDiv = document.getElementById('apiResponse');
     const responseContent = document.getElementById('apiResponseContent');
     try {
-        const response = await jPulse.apiCall('/api/1/status', 'GET');
+        const response = await jPulse.api.call('/api/1/status', 'GET');
         responseDiv.style.display = 'block';
         responseDiv.style.background = '#e8f5e8';
         responseContent.textContent = JSON.stringify(response, null, 2);
 
         // Handle response success/error
         if (response.success) {
-            jPulse.showSlideDownSuccess('API call successful!');
+            jPulse.UI.toast.success('API call successful!');
         } else {
             responseDiv.style.background = '#ffebee';
-            jPulse.showSlideDownError('API returned an error: ' + response.error);
+            jPulse.UI.toast.error('API returned an error: ' + response.error);
         }
     } catch (error) {
         responseDiv.style.display = 'block';
         responseDiv.style.background = '#ffebee';
         responseContent.textContent = `Error: ${error.message}`;
-        jPulse.showSlideDownError('API call failed: ' + error.message);
+        jPulse.UI.toast.error('API call failed: ' + error.message);
     }
 });
 &lt;/script&gt;
@@ -175,10 +175,10 @@ document.getElementById('loadingTestBtn').addEventListener('click', async () =&g
         // Populate content
         populateContent(data);
 
-        jPulse.showSlideDownSuccess('Data loaded successfully!');
+        jPulse.UI.toast.success('Data loaded successfully!');
     } catch (error) {
         spinner.style.display = 'none';
-        jPulse.showSlideDownError('Failed to load data: ' + error.message);
+        jPulse.UI.toast.error('Failed to load data: ' + error.message);
     } finally {
         // Reset button state
         btn.disabled = false;
@@ -306,11 +306,11 @@ document.getElementById('apiForm').addEventListener('submit', async (e) =&gt; {
             timestamp: new Date().toISOString()
         };
 
-        jPulse.showSlideDownSuccess('Form submitted successfully! (Demo mode)');
+        jPulse.UI.toast.success('Form submitted successfully! (Demo mode)');
         e.target.reset(); // Clear form
         displaySubmissionResult(response);
     } catch (error) {
-        jPulse.showSlideDownError('Network error: ' + error.message);
+        jPulse.UI.toast.error('Network error: ' + error.message);
     } finally {
         // Reset button state
         submitBtn.disabled = false;
@@ -367,29 +367,29 @@ function displaySubmissionResult(data) {
 &lt;script&gt;
 async function handleApiCall(url, options = {}) {
     try {
-        const response = await jPulse.apiCall(url, 'GET', null, options);
+        const response = await jPulse.api.call(url, 'GET', null, options);
         return response;
     } catch (error) {
         // Categorize and handle different error types
         if (error.name === 'TypeError' && error.message.includes('fetch')) {
             // Network error
-            jPulse.showSlideDownError('Network connection failed. Please check your internet connection.');
+            jPulse.UI.toast.error('Network connection failed. Please check your internet connection.');
             throw new Error('NETWORK_ERROR');
         } else if (error.status === 404) {
             // Not found error
-            jPulse.showSlideDownError('The requested resource was not found.');
+            jPulse.UI.toast.error('The requested resource was not found.');
             throw new Error('NOT_FOUND');
         } else if (error.status >= 500) {
             // Server error
-            jPulse.showSlideDownError('Server error occurred. Please try again later.');
+            jPulse.UI.toast.error('Server error occurred. Please try again later.');
             throw new Error('SERVER_ERROR');
         } else if (error.status === 408 || error.name === 'AbortError') {
             // Timeout error
-            jPulse.showSlideDownError('Request timed out. Please try again.');
+            jPulse.UI.toast.error('Request timed out. Please try again.');
             throw new Error('TIMEOUT_ERROR');
         } else {
             // Generic error
-            jPulse.showSlideDownError('An unexpected error occurred: ' + error.message);
+            jPulse.UI.toast.error('An unexpected error occurred: ' + error.message);
             throw error;
         }
     }
@@ -544,7 +544,7 @@ class RealtimeDataManager {
 
     handlePollingError(error) {
         console.error('Real-time update failed:', error);
-        jPulse.showSlideDownWarning('Real-time updates temporarily unavailable');
+        jPulse.UI.toast.warning('Real-time updates temporarily unavailable');
     }
 }
 
@@ -582,7 +582,7 @@ function updateButtonStates(isRunning) {
             </div>
             <div class="jp-card-body">
                 <div class="jp-info-box">
-                    <h4>jPulse.apiCall() Features</h4>
+                    <h4>jPulse.api.call() Features</h4>
                     <ul>
                         <li>Consistent error handling across all API calls</li>
                         <li>Automatic JSON parsing and response formatting</li>
@@ -670,21 +670,21 @@ function updateButtonStates(isRunning) {
                 const responseDiv = document.getElementById('apiResponse');
                 const responseContent = document.getElementById('apiResponseContent');
                 try {
-                    const response = await jPulse.apiCall('/api/1/status', 'GET');
+                    const response = await jPulse.api.call('/api/1/status', 'GET');
                     responseDiv.style.display = 'block';
                     responseDiv.style.background = '#e8f5e8';
                     responseContent.textContent = JSON.stringify(response, null, 2);
                     if (response.success) {
-                        jPulse.showSlideDownSuccess('API call successful!');
+                        jPulse.UI.toast.success('API call successful!');
                     } else {
                         responseDiv.style.background = '#ffebee';
-                        jPulse.showSlideDownError('API returned an error: ' + response.error);
+                        jPulse.UI.toast.error('API returned an error: ' + response.error);
                     }
                 } catch (error) {
                     responseDiv.style.display = 'block';
                     responseDiv.style.background = '#ffebee';
                     responseContent.textContent = `Error: ${error.message}`;
-                    jPulse.showSlideDownError('API call failed: ' + error.message);
+                    jPulse.UI.toast.error('API call failed: ' + error.message);
                 }
             });
 
@@ -693,21 +693,21 @@ function updateButtonStates(isRunning) {
                 const responseDiv = document.getElementById('apiResponse');
                 const responseContent = document.getElementById('apiResponseContent');
                 try {
-                    const response = await jPulse.apiCall('/api/1/does-no-exist', 'GET');
+                    const response = await jPulse.api.call('/api/1/does-no-exist', 'GET');
                     responseDiv.style.display = 'block';
                     responseDiv.style.background = '#e8f5e8';
                     responseContent.textContent = JSON.stringify(response, null, 2);
                     if (response.success) {
-                        jPulse.showSlideDownSuccess('API call successful!');
+                        jPulse.UI.toast.success('API call successful!');
                     } else {
                         responseDiv.style.background = '#ffebee';
-                        jPulse.showSlideDownError('API returned an error: ' + response.error);
+                        jPulse.UI.toast.error('API returned an error: ' + response.error);
                     }
                 } catch (error) {
                     responseDiv.style.display = 'block';
                     responseDiv.style.background = '#ffebee';
                     responseContent.textContent = `Error: ${error.message}`;
-                    jPulse.showSlideDownError('API call failed: ' + error.message);
+                    jPulse.UI.toast.error('API call failed: ' + error.message);
                 }
             });
 
@@ -746,10 +746,10 @@ function updateButtonStates(isRunning) {
                     spinner.style.display = 'none';
                     content.style.display = 'block';
 
-                    jPulse.showSlideDownSuccess('Data loaded successfully! 📊');
+                    jPulse.UI.toast.success('Data loaded successfully! 📊');
                 } catch (error) {
                     spinner.style.display = 'none';
-                    jPulse.showSlideDownError('Failed to load data: ' + error.message);
+                    jPulse.UI.toast.error('Failed to load data: ' + error.message);
                 } finally {
                     // Reset button
                     btn.disabled = false;
@@ -801,10 +801,10 @@ function updateButtonStates(isRunning) {
                     resultDiv.style.display = 'block';
                     resultData.textContent = JSON.stringify(response, null, 2);
 
-                    jPulse.showSlideDownSuccess('Form submitted successfully! 📧 (Demo mode)');
+                    jPulse.UI.toast.success('Form submitted successfully! 📧 (Demo mode)');
                     e.target.reset();
                 } catch (error) {
-                    jPulse.showSlideDownError('Submission failed: ' + error.message);
+                    jPulse.UI.toast.error('Submission failed: ' + error.message);
                 } finally {
                     // Reset button
                     submitBtn.disabled = false;
@@ -840,7 +840,7 @@ function updateButtonStates(isRunning) {
                 errorDiv.style.display = 'block';
                 errorContent.textContent = JSON.stringify(errorInfo, null, 2);
 
-                jPulse.showSlideDownError(`Simulated ${errorType}: ${message}`);
+                jPulse.UI.toast.error(`Simulated ${errorType}: ${message}`);
             }
 
             // Real-time updates
@@ -858,7 +858,7 @@ function updateButtonStates(isRunning) {
                 document.getElementById('updateStatus').textContent = '(Running)';
                 document.getElementById('updateStatus').style.color = '#28a745';
 
-                jPulse.showSlideDownInfo('Real-time updates started 🔄');
+                jPulse.UI.toast.info('Real-time updates started 🔄');
             });
 
             document.getElementById('stopPollingBtn').addEventListener('click', () => {
@@ -872,7 +872,7 @@ function updateButtonStates(isRunning) {
                 document.getElementById('updateStatus').textContent = '(Stopped)';
                 document.getElementById('updateStatus').style.color = '#666';
 
-                jPulse.showSlideDownInfo('Real-time updates stopped ⏹️');
+                jPulse.UI.toast.info('Real-time updates stopped ⏹️');
             });
 
             function updateRealtimeData() {

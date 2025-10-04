@@ -3,8 +3,8 @@
  * @tagline         Demo Vue.js SPA Controller
  * @description     Example of Vue.js Single Page Application integration
  * @file            site/webapp/controller/helloVue.js
- * @version         0.8.5
- * @release         2025-10-03
+ * @version         0.8.6
+ * @release         2025-10-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -27,7 +27,7 @@ const CommonUtils = global.CommonUtils;
  * Key Learning Points:
  * - Vue.js SPA architecture with URL routing
  * - Component-based reactive data binding
- * - Integration with jPulse.apiCall() utilities
+ * - Integration with jPulse.api.call() utilities
  * - Browser history support (back/forward buttons)
  * - Clean separation of views within single component
  *
@@ -64,7 +64,7 @@ class HelloVueController {
                     'URL routing without page reloads',
                     'Reactive data binding',
                     'Component-based architecture',
-                    'API integration with jPulse.apiCall()',
+                    'API integration with jPulse.api.call()',
                     'Browser history support'
                 ]
             };

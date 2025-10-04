@@ -4,8 +4,8 @@
  * @tagline         Code examples of Hello Vue Single Page Application
  * @description     This page shows code examples of the Vue.js SPA
  * @file            site/webapp/view/hello-vue/templates/code.tmpl
- * @version         0.8.5
- * @release         2025-10-03
+ * @version         0.8.6
+ * @release         2025-10-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -58,7 +58,7 @@ const router = createRouter({
         async createTodo() {
             if (!this.newTodoTitle.trim()) return;
 
-            const response = await jPulse.apiCall('/api/1/helloTodo', {
+            const response = await jPulse.api.call('/api/1/helloTodo', {
                 method: 'POST',
                 body: { title: this.newTodoTitle.trim() }
             });
@@ -99,21 +99,21 @@ window.jpSpaRoutes.TodoDemo = {
 
             <div class="code-section">
                 <h3>4. API Integration with jPulse</h3>
-                <p class="jp-text">jPulse.apiCall() uses an options object with method and body:</p>
+                <p class="jp-text">jPulse.api.call() uses an options object with method and body:</p>
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>// GET request
-const response = await jPulse.apiCall('/api/1/helloTodo', {
+const response = await jPulse.api.call('/api/1/helloTodo', {
     method: 'GET'
 });
 this.todos = response.data;
 
 // POST request
-const response = await jPulse.apiCall('/api/1/helloTodo', {
+const response = await jPulse.api.call('/api/1/helloTodo', {
     method: 'POST',
     body: { title: 'New todo' }
 });
 
 // PUT request
-const response = await jPulse.apiCall('/api/1/helloTodo/123/toggle', {
+const response = await jPulse.api.call('/api/1/helloTodo/123/toggle', {
     method: 'PUT'
 });</pre></div>
             </div>
@@ -154,7 +154,7 @@ const response = await jPulse.apiCall('/api/1/helloTodo/123/toggle', {
                 <ul class="jp-list">
                     <li><strong>History Mode:</strong> Clean URLs without # (requires server config)</li>
                     <li><strong>Component Files:</strong> Each page is a separate .tmpl file</li>
-                    <li><strong>API Pattern:</strong> jPulse.apiCall(url, {method, body})</li>
+                    <li><strong>API Pattern:</strong> jPulse.api.call(url, {method, body})</li>
                     <li><strong>Reactive Updates:</strong> Change data, Vue updates DOM automatically</li>
                     <li><strong>Template Syntax:</strong> Use v-for, v-if, v-model, @click, :class</li>
                 </ul>

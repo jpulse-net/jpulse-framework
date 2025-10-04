@@ -976,18 +976,6 @@ This is the doc to track work items, arranged in three sections:
   - All 536 tests passing, production-ready code
 - release: v0.8.4, 2025-09-30
 
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-072: site: example /hello-vue/ SPA using vue.js - v0.8.5
 - status: ✅ COMPLETED
 - type: Feature
@@ -1006,7 +994,46 @@ This is the doc to track work items, arranged in three sections:
   - site/webapp/view/hello-vue/templates/about.tmpl     # About page
   - site/webapp/view/hello-vue/templates/code.tmpl      # Code Examples page
   - site/webapp/view/hello-vue/templates/features.tmpl  # Features page
+- accomplished:
+  - Vue.js SPA Demo - Complete Single Page Application with Vue.js 3 and Vue Router
+  - Enhanced jPulse Utilities - jPulse.date namespace and jPulse.api.handleError()
+  - Documentation Updates - README files highlighting MEVN stack and MPA/SPA flexibility
+  - MPA vs. SPA Guide - Comprehensive comparison with diagrams and MVC perspective
 
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-074: view: consistent jPulse.* utilities, all in buckets - v0.8.6
+- status: ✅ COMPLETED
+- type: Feature
+- objective: more consistent common utilities - all organized in logical namespaces
+- approach:
+  - no backwards compatibility concerns (pre 1.0.0 release)
+- deliverables:
+  - rename jPulse.apiCall() to jPulse.api.call()
+    - rename/change function scope
+    - fix all views and docs referencing jPulse.api.call() (14 usages, 4 files)
+    - remove jPulse.api.call()
+  - rename slide-down messages to jPulse.UI.toast.*
+    - jPulse.showSlideDownMessage() → jPulse.UI.toast.show()
+    - jPulse.showSlideDownError() → jPulse.UI.toast.error()
+    - jPulse.showSlideDownSuccess() → jPulse.UI.toast.success()
+    - jPulse.showSlideDownInfo() → jPulse.UI.toast.info()
+    - jPulse.showSlideDownWarning() → jPulse.UI.toast.warning()
+    - jPulse.clearSlideDownMessages() → jPulse.UI.toast.clearAll()
+    - fix all views and docs (98 usages, 11 files)
+    - remove old function names
+  - update documentation (front-end-development.md, etc.)
+  - update all example pages
 
 
 
@@ -1042,7 +1069,7 @@ finishing up work item: W-071:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-15 12:12
-- assume release: W-072, v0.8.5
+- assume release: W-074, v0.8.6
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
@@ -1053,7 +1080,7 @@ finishing up work item: W-071:
 npm test
 git add .
 git commit -F commit-message.txt
-git tag v0.8.5
+git tag v0.8.6
 git push origin main --tags
 
 (on failed package build on github)
@@ -1280,15 +1307,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - timer based, e.g. cache TTL?
   - file change detection?
   - on-demand via API?
-
-### W-0: view: rename jPulse.apiCall() to jPulse.api.call()
-- status: 🕑 PENDING
-- type: Feature
-- objective: more consistent common utilities
-- deliverables:
-  - rename/change function scope
-  - fix all views and docs referencing jPulse.apiCall()
-  - remove jPulse.apiCall() (no backwards compatibility)
 
 ### W-0: docs: syntax highlighting for preformatted sections
 - status: 🕑 PENDING

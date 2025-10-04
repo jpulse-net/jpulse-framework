@@ -72,7 +72,7 @@ The demo shows the "don't make me think" principle in action:
 - All values from `site/webapp/app.conf` are automatically available
 
 **Interactive Demo:**
-- Click "Test Site API" button to see `jPulse.apiCall()` in action
+- Click "Test Site API" button to see `jPulse.api.call()` in action
 - Live demonstration of site override API functionality
 
 ### Protected Files

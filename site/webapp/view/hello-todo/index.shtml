@@ -4,8 +4,8 @@
  * @tagline         Demo To-Do MVC Application for Learning
  * @description     Complete Model-View-Controller example with MongoDB integration
  * @file            site/webapp/view/hello-todo/index.shtml
- * @version         0.8.5
- * @release         2025-10-03
+ * @version         0.8.6
+ * @release         2025-10-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -290,7 +290,7 @@
             async loadTodos() {
                 try {
                     this.setLoading(true);
-                    const response = await jPulse.apiCall('/api/1/helloTodo', {
+                    const response = await jPulse.api.call('/api/1/helloTodo', {
                         method: 'GET'
                     });
 
@@ -303,7 +303,7 @@
                     }
                 } catch (error) {
                     console.error('Error loading to-dos:', error);
-                    jPulse.showSlideDownMessage('Failed to load to-dos: ' + error.message, 'error');
+                    jPulse.UI.toast.show('Failed to load to-dos: ' + error.message, 'error');
                 } finally {
                     this.setLoading(false);
                 }
@@ -318,7 +318,7 @@
                 console.log('📝 To-do title:', title);
 
                 if (!title) {
-                    jPulse.showSlideDownMessage('Please enter a to-do title', 'error');
+                    jPulse.UI.toast.show('Please enter a to-do title', 'error');
                     return;
                 }
 
@@ -339,7 +339,7 @@
                         }
                     });
 
-                    const response = await jPulse.apiCall('/api/1/helloTodo', {
+                    const response = await jPulse.api.call('/api/1/helloTodo', {
                         method: 'POST',
                         body: {
                             title: title,
@@ -353,14 +353,14 @@
 
                     if (response.success) {
                         titleInput.value = '';
-                        jPulse.showSlideDownMessage('To-do added successfully!', 'success');
+                        jPulse.UI.toast.show('To-do added successfully!', 'success');
                         await this.loadTodos(); // Reload to get updated stats
                     } else {
                         throw new Error(response.message || 'Failed to add to-do');
                     }
                 } catch (error) {
                     console.error('Error adding to-do:', error);
-                    jPulse.showSlideDownMessage('Failed to add to-do: ' + error.message, 'error');
+                    jPulse.UI.toast.show('Failed to add to-do: ' + error.message, 'error');
                 } finally {
                     const addButton = document.getElementById('addButton');
                     addButton.disabled = false;
@@ -370,7 +370,7 @@
 
             async toggleTodo(todoId) {
                 try {
-                    const response = await jPulse.apiCall(`/api/1/helloTodo/${todoId}/toggle`, {
+                    const response = await jPulse.api.call(`/api/1/helloTodo/${todoId}/toggle`, {
                         method: 'PUT'
                     });
 
@@ -387,7 +387,7 @@
                     }
                 } catch (error) {
                     console.error('Error toggling to-do:', error);
-                    jPulse.showSlideDownMessage('Failed to update to-do: ' + error.message, 'error');
+                    jPulse.UI.toast.show('Failed to update to-do: ' + error.message, 'error');
                 }
             }
 
@@ -402,19 +402,19 @@
                 }
 
                 try {
-                    const response = await jPulse.apiCall(`/api/1/helloTodo/${todoId}`, {
+                    const response = await jPulse.api.call(`/api/1/helloTodo/${todoId}`, {
                         method: 'DELETE'
                     });
 
                     if (response.success) {
-                        jPulse.showSlideDownMessage('To-do deleted successfully!', 'success');
+                        jPulse.UI.toast.show('To-do deleted successfully!', 'success');
                         await this.loadTodos(); // Reload to get updated list and stats
                     } else {
                         throw new Error(response.message || 'Failed to delete to-do');
                     }
                 } catch (error) {
                     console.error('Error deleting to-do:', error);
-                    jPulse.showSlideDownMessage('Failed to delete to-do: ' + error.message, 'error');
+                    jPulse.UI.toast.show('Failed to delete to-do: ' + error.message, 'error');
                 }
             }
 

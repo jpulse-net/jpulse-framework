@@ -4,8 +4,8 @@
  * @tagline         User profile view with edit capabilities
  * @description     User profile management with view and edit modes
  * @file            webapp/view/user/profile.shtml
- * @version         0.8.5
- * @release         2025-10-03
+ * @version         0.8.6
+ * @release         2025-10-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -321,7 +321,7 @@
                 const profileResult = await jPulse.api.put('/api/1/user/profile', profileData);
 
                 if (!profileResult.success) {
-                    jPulse.showSlideDownError(profileResult.error || '{{i18n.view.user.profile.failedToUpdateProfile}}');
+                    jPulse.UI.toast.error(profileResult.error || '{{i18n.view.user.profile.failedToUpdateProfile}}');
                     return;
                 }
 
@@ -330,17 +330,17 @@
 
                     // Validate password fields
                     if (!currentPassword || !newPassword || !confirmPassword) {
-                        jPulse.showSlideDownError('{{i18n.view.user.profile.allPasswordFieldsRequired}}');
+                        jPulse.UI.toast.error('{{i18n.view.user.profile.allPasswordFieldsRequired}}');
                         return;
                     }
 
                     if (newPassword !== confirmPassword) {
-                        jPulse.showSlideDownError('{{i18n.view.user.profile.passwordsDoNotMatch}}');
+                        jPulse.UI.toast.error('{{i18n.view.user.profile.passwordsDoNotMatch}}');
                         return;
                     }
 
                     if (newPassword.length < 8) {
-                        jPulse.showSlideDownError('{{i18n.view.user.profile.passwordTooShort}}');
+                        jPulse.UI.toast.error('{{i18n.view.user.profile.passwordTooShort}}');
                         return;
                     }
 
@@ -353,7 +353,7 @@
                     const passwordResult = await jPulse.api.put('/api/1/user/password', passwordData);
 
                     if (!passwordResult.success) {
-                        jPulse.showSlideDownError(passwordResult.error || '{{i18n.view.user.profile.failedToUpdatePassword}}');
+                        jPulse.UI.toast.error(passwordResult.error || '{{i18n.view.user.profile.failedToUpdatePassword}}');
                         return;
                     }
                 }
@@ -363,7 +363,7 @@
                     ? '{{i18n.view.user.profile.profileAndPasswordUpdatedSuccess}}'
                     : '{{i18n.view.user.profile.profileUpdatedSuccess}}';
 
-                jPulse.showSlideDownSuccess(successMessage);
+                jPulse.UI.toast.success(successMessage);
 
                 // Exit edit mode and reload data
                 editMode = false;
@@ -371,7 +371,7 @@
                 await loadProfile();
 
             } catch (error) {
-                jPulse.showSlideDownError('{{i18n.view.user.profile.networkError}}: ' + error.message);
+                jPulse.UI.toast.error('{{i18n.view.user.profile.networkError}}: ' + error.message);
             }
         }
 
@@ -399,10 +399,10 @@
                         statusBadge.className = `jp-status-badge jp-status-${user.status}`;
                     }
                 } else {
-                    jPulse.showSlideDownError(result.error || '{{i18n.view.user.profile.failedToLoadProfile}}');
+                    jPulse.UI.toast.error(result.error || '{{i18n.view.user.profile.failedToLoadProfile}}');
                 }
             } catch (error) {
-                jPulse.showSlideDownError('{{i18n.view.user.profile.networkErrorLoadingProfile}}: ' + error.message);
+                jPulse.UI.toast.error('{{i18n.view.user.profile.networkErrorLoadingProfile}}: ' + error.message);
             }
         }
 
@@ -426,16 +426,16 @@
                         });
                     } else {
                         console.error('Languages data is not an array:', languages);
-                        jPulse.showSlideDownError('Invalid language data format received from server');
+                        jPulse.UI.toast.error('Invalid language data format received from server');
                     }
 
                     languageSelect.value = currentValue;
                 } else {
-                    jPulse.showSlideDownError('Failed to load language options: ' + (response.error || 'Unknown error'));
+                    jPulse.UI.toast.error('Failed to load language options: ' + (response.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Failed to load languages:', error);
-                jPulse.showSlideDownError('Failed to load language options. Please refresh the page.');
+                jPulse.UI.toast.error('Failed to load language options. Please refresh the page.');
             }
         }
 
@@ -459,16 +459,16 @@
                         });
                     } else {
                         console.error('Themes data is not an array:', themes);
-                        jPulse.showSlideDownError('Invalid theme data format received from server');
+                        jPulse.UI.toast.error('Invalid theme data format received from server');
                     }
 
                     themeSelect.value = currentValue;
                 } else {
-                    jPulse.showSlideDownError('Failed to load theme options: ' + (response.error || 'Unknown error'));
+                    jPulse.UI.toast.error('Failed to load theme options: ' + (response.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Failed to load themes:', error);
-                jPulse.showSlideDownError('Failed to load theme options. Please refresh the page.');
+                jPulse.UI.toast.error('Failed to load theme options. Please refresh the page.');
             }
         }
 

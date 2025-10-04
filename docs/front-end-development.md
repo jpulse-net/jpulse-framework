@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Front-End Development Guide v0.8.5
+# jPulse Framework / Docs / Front-End Development Guide v0.8.6
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -40,7 +40,7 @@ const result = await jPulse.api.get('/api/1/user/profile');
 if (result.success) {
     console.log('User data:', result.data);
 } else {
-    jPulse.showSlideDownError(result.error);
+    jPulse.UI.toast.error(result.error);
 }
 
 // POST request with data
@@ -56,18 +56,18 @@ await jPulse.api.delete('/api/1/user/session');
 
 ### Advanced API Usage
 
-For custom requirements, use the lower-level `jPulse.apiCall` method:
+For custom requirements, use the lower-level `jPulse.api.call` method:
 
 ```javascript
 // Advanced usage with custom options
-const customResult = await jPulse.apiCall('/api/1/custom', {
+const customResult = await jPulse.api.call('/api/1/custom', {
     method: 'PATCH',
     body: data,
     headers: { 'Custom-Header': 'value' }
 });
 
 // With custom error handling
-const result = await jPulse.apiCall('/api/1/data', {
+const result = await jPulse.api.call('/api/1/data', {
     method: 'GET',
     onError: (error) => {
         // Custom error handling - prevents default error display
@@ -128,7 +128,7 @@ form.addEventListener('submit', async (event) => {
     const password = form.password.value;
     const confirmPassword = form.confirmPassword.value;
     if (password !== confirmPassword) {
-        jPulse.showSlideDownError('Passwords do not match');
+        jPulse.UI.toast.error('Passwords do not match');
         return;
     }
 
@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 redirectDelay: 1000,
                 beforeSubmit: (form) => {
                     // Clear any previous alerts
-                    jPulse.clearSlideDownMessages();
+                    jPulse.UI.toast.clearAll();
                     return true;
                 },
                 onError: (error) => {
@@ -223,16 +223,16 @@ Display non-blocking slide-down messages with smooth animations and intelligent 
 
 ```javascript
 // Basic slide-down messages with configurable auto-hide durations
-jPulse.showSlideDownSuccess('Operation completed successfully!'); // 3s duration
-jPulse.showSlideDownError('Please check your input and try again.'); // 6s duration
-jPulse.showSlideDownInfo('Your session will expire in 5 minutes.'); // 3s duration
-jPulse.showSlideDownWarning('This action cannot be undone.'); // 5s duration
+jPulse.UI.toast.success('Operation completed successfully!'); // 3s duration
+jPulse.UI.toast.error('Please check your input and try again.'); // 6s duration
+jPulse.UI.toast.info('Your session will expire in 5 minutes.'); // 3s duration
+jPulse.UI.toast.warning('This action cannot be undone.'); // 5s duration
 
 // Custom duration (overrides config defaults)
-jPulse.showSlideDownMessage('Custom message', 'info', 10000);
+jPulse.UI.toast.show('Custom message', 'info', 10000);
 
 // Clear all slide-down messages
-jPulse.clearSlideDownMessages();
+jPulse.UI.toast.clearAll();
 ```
 
 ### Features
@@ -254,7 +254,7 @@ jPulse.form.bindSubmission(form, '/api/1/user/profile', {
     },
     onError: (error) => {
         // Custom error handling (prevents default error message)
-        jPulse.showSlideDownError(`Update failed: ${error}`);
+        jPulse.UI.toast.error(`Update failed: ${error}`);
     }
 });
 ```
@@ -488,7 +488,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (error) {
         console.error('Application initialization failed:', error);
-        jPulse.showSlideDownError('Application failed to load properly');
+        jPulse.UI.toast.error('Application failed to load properly');
     }
 });
 
@@ -510,13 +510,13 @@ async function handleApiCall(endpoint, options = {}) {
             return result.data;
         } else {
             // Handle API errors gracefully
-            jPulse.showSlideDownError(result.error || 'Operation failed');
+            jPulse.UI.toast.error(result.error || 'Operation failed');
             return null;
         }
     } catch (error) {
         // Handle network/system errors
         console.error('API call failed:', error);
-        jPulse.showSlideDownError('Network error - please try again');
+        jPulse.UI.toast.error('Network error - please try again');
         return null;
     }
 }
@@ -692,7 +692,7 @@ class UserTable {
             this.renderTable(result.data);
             this.renderPagination(result.pagination);
         } else {
-            jPulse.showSlideDownError('Failed to load users');
+            jPulse.UI.toast.error('Failed to load users');
         }
     }
 

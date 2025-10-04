@@ -4,8 +4,8 @@
  * @tagline         Interactive UI widget examples and demonstrations
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
- * @version         0.8.5
- * @release         2025-10-03
+ * @version         0.8.6
+ * @release         2025-10-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -410,7 +410,7 @@ document.getElementById('confirmBtn').addEventListener('click', async () =&gt; {
     });
 
     if (result.confirmed) {
-        jPulse.showSlideDownSuccess('Action confirmed!');
+        jPulse.UI.toast.success('Action confirmed!');
     }
 });
 
@@ -460,7 +460,7 @@ document.getElementById('complexBtn').addEventListener('click', async () =&gt; {
                 });
 
                 if (confirmResult.confirmed) {
-                    jPulse.showSlideDownSuccess(`Deleted ${files.length} file(s)!`);
+                    jPulse.UI.toast.success(`Deleted ${files.length} file(s)!`);
                     return false; // Close both dialogs
                 }
                 return true; // Keep first dialog open
@@ -500,19 +500,19 @@ document.getElementById('complexBtn').addEventListener('click', async () =&gt; {
 &lt;!-- JavaScript Notifications --&gt;
 &lt;script&gt;
 // Success notification
-jPulse.showSlideDownSuccess('Operation completed successfully!');
+jPulse.UI.toast.success('Operation completed successfully!');
 
 // Error notification
-jPulse.showSlideDownError('An error occurred while processing your request.');
+jPulse.UI.toast.error('An error occurred while processing your request.');
 
 // Warning notification
-jPulse.showSlideDownWarning('Please review your input before continuing.');
+jPulse.UI.toast.warning('Please review your input before continuing.');
 
 // Info notification
-jPulse.showSlideDownInfo('Here is some helpful information.');
+jPulse.UI.toast.info('Here is some helpful information.');
 
 // Custom notification with options
-jPulse.showSlideDown('Custom message', 'info', {
+jPulse.UI.toast.show('Custom message', 'info', {
     duration: 5000,
     closable: true
 });
@@ -595,9 +595,9 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
     });
 
     if (isValid) {
-        jPulse.showSlideDownSuccess('Form validation passed!');
+        jPulse.UI.toast.success('Form validation passed!');
     } else {
-        jPulse.showSlideDownError('Please fix the errors above.');
+        jPulse.UI.toast.error('Please fix the errors above.');
     }
 });
 &lt;/script&gt;
@@ -940,9 +940,9 @@ jPulse.UI.sourceCode.initAll();
                 });
 
                 if (result.confirmed) {
-                    jPulse.showSlideDownSuccess('Action confirmed!');
+                    jPulse.UI.toast.success('Action confirmed!');
                 } else {
-                    jPulse.showSlideDownInfo('Action cancelled.');
+                    jPulse.UI.toast.info('Action cancelled.');
                 }
             });
 
@@ -1016,7 +1016,7 @@ jPulse.UI.sourceCode.initAll();
                                     'Yes, Delete': () => {
                                         // Simulate file deletion
                                         console.log('Deleting files:', selectedFiles);
-                                        jPulse.showSlideDownSuccess(`Deleted ${selectedFiles.length} file(s) successfully!`);
+                                        jPulse.UI.toast.success(`Deleted ${selectedFiles.length} file(s) successfully!`);
                                         return false; // Close second dialog
                                     }
                                 }
@@ -1067,27 +1067,27 @@ jPulse.UI.sourceCode.initAll();
                 }
 
                 if (isValid) {
-                    jPulse.showSlideDownSuccess('Form validation passed! ✅');
+                    jPulse.UI.toast.success('Form validation passed! ✅');
                 } else {
-                    jPulse.showSlideDownError('Please fix the errors above.');
+                    jPulse.UI.toast.error('Please fix the errors above.');
                 }
             });
 
             // Notification examples
             document.getElementById('successBtn').addEventListener('click', () => {
-                jPulse.showSlideDownSuccess('Operation completed successfully! 🎉');
+                jPulse.UI.toast.success('Operation completed successfully! 🎉');
             });
 
             document.getElementById('errorBtn').addEventListener('click', () => {
-                jPulse.showSlideDownError('An error occurred while processing your request. ❌');
+                jPulse.UI.toast.error('An error occurred while processing your request. ❌');
             });
 
             document.getElementById('warningBtn').addEventListener('click', () => {
-                jPulse.showSlideDownWarning('Please review your input before continuing. ⚠️');
+                jPulse.UI.toast.warning('Please review your input before continuing. ⚠️');
             });
 
             document.getElementById('infoNotifyBtn').addEventListener('click', () => {
-                jPulse.showSlideDownInfo('Here is some helpful information for you. ℹ️');
+                jPulse.UI.toast.info('Here is some helpful information for you. ℹ️');
             });
 
             // Initialize demo collapsible

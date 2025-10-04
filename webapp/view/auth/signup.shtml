@@ -4,8 +4,8 @@
  * @tagline         User registration and account creation page
  * @description     Signup form for internal user registration
  * @file            webapp/view/auth/signup.shtml
- * @version         0.8.5
- * @release         2025-10-03
+ * @version         0.8.6
+ * @release         2025-10-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -273,13 +273,13 @@
 
                 // Client-side validation for password match
                 if (formData.password !== formData.confirmPassword) {
-                    jPulse.showSlideDownError('{{i18n.view.auth.signup.passwordMismatch}}');
+                    jPulse.UI.toast.error('{{i18n.view.auth.signup.passwordMismatch}}');
                     return;
                 }
 
                 // Check terms acceptance
                 if (!formData.acceptTerms) {
-                    jPulse.showSlideDownError('{{i18n.view.auth.signup.termsAccept}}');
+                    jPulse.UI.toast.error('{{i18n.view.auth.signup.termsAccept}}');
                     return;
                 }
 
@@ -299,7 +299,7 @@
                     },
                     onError: (error) => {
                         const errorMessage = error || '{{i18n.view.auth.signup.signupFailed}}';
-                        jPulse.showSlideDownError(errorMessage);
+                        jPulse.UI.toast.error(errorMessage);
                     }
                 });
             });

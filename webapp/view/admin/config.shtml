@@ -4,8 +4,8 @@
  * @tagline         Site configuration management interface
  * @description     Edit site configuration, for administrators
  * @file            webapp/view/admin/config.shtml
- * @version         0.8.5
- * @release         2025-10-03
+ * @version         0.8.6
+ * @release         2025-10-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -262,17 +262,17 @@
 
             async function loadConfig() {
                 try {
-                    const result = await jPulse.apiCall('/api/1/config/site');
+                    const result = await jPulse.api.call('/api/1/config/site');
                     if (result.success && result.data) {
                         populateForm(result.data);
                         originalData = getFormData();
                         isDirty = false;
                         updateButtonStates();
                     } else {
-                        jPulse.showSlideDownError('{{i18n.view.admin.config.loadFailed}}');
+                        jPulse.UI.toast.error('{{i18n.view.admin.config.loadFailed}}');
                     }
                 } catch (error) {
-                    jPulse.showSlideDownError('{{i18n.view.admin.config.loadError}}');
+                    jPulse.UI.toast.error('{{i18n.view.admin.config.loadError}}');
                 }
             }
 
@@ -337,7 +337,7 @@
                 // Validate required fields
                 const adminEmail = document.getElementById('adminEmail').value.trim();
                 if (!adminEmail) {
-                    jPulse.showSlideDownError('{{i18n.view.admin.config.adminEmailRequired}}');
+                    jPulse.UI.toast.error('{{i18n.view.admin.config.adminEmailRequired}}');
                     document.getElementById('adminEmail').focus();
                     return;
                 }
@@ -349,7 +349,7 @@
                     saveBtn.classList.add('jp-btn-loading');
                     saveBtn.disabled = true;
 
-                    const result = await jPulse.apiCall(`/api/1/config/${defaultId}/upsert`, {
+                    const result = await jPulse.api.call(`/api/1/config/${defaultId}/upsert`, {
                         method: 'PUT',
                         body: formData
                     });
@@ -360,15 +360,15 @@
                         updateButtonStates();
 
                         // Show success message and redirect
-                        jPulse.showSlideDownSuccess('{{i18n.view.admin.config.saveSuccess}}');
+                        jPulse.UI.toast.success('{{i18n.view.admin.config.saveSuccess}}');
                         setTimeout(() => {
                             window.location.href = '/admin/';
                         }, 2000);
                     } else {
-                        jPulse.showSlideDownError(result.error || '{{i18n.view.admin.config.saveFailed}}');
+                        jPulse.UI.toast.error(result.error || '{{i18n.view.admin.config.saveFailed}}');
                     }
                 } catch (error) {
-                    jPulse.showSlideDownError('{{i18n.view.admin.config.saveError}}');
+                    jPulse.UI.toast.error('{{i18n.view.admin.config.saveError}}');
                 } finally {
                     saveBtn.classList.remove('jp-btn-loading');
                     saveBtn.disabled = false;
@@ -378,7 +378,7 @@
             // Cancel changes
             cancelBtn.addEventListener('click', () => {
                 if (isDirty) {
-                    jPulse.showSlideDownWarning('{{i18n.view.admin.config.unsavedChanges}}');
+                    jPulse.UI.toast.warning('{{i18n.view.admin.config.unsavedChanges}}');
                 } else {
                     window.location.href = '/admin/';
                 }

@@ -4,8 +4,8 @@
  * @tagline         Form handling examples and patterns
  * @description     Comprehensive examples of form handling, validation, and submission in jPulse
  * @file            webapp/view/jpulse-examples/forms.shtml
- * @version         0.8.5
- * @release         2025-10-03
+ * @version         0.8.6
+ * @release         2025-10-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -115,7 +115,7 @@ document.getElementById('basic-form').addEventListener('submit', (e) =&gt; {
     }
 
     if (isValid) {
-        jPulse.showSlideDownSuccess('Form submitted successfully!');
+        jPulse.UI.toast.success('Form submitted successfully!');
     }
 });
 &lt;/script&gt;
@@ -192,16 +192,16 @@ document.getElementById('ajax-form').addEventListener('submit', async (e) =&gt; 
         const data = Object.fromEntries(formData.entries());
 
         // Simulate API call
-        const response = await jPulse.apiCall('/api/1/contact', 'POST', data);
+        const response = await jPulse.api.call('/api/1/contact', 'POST', data);
 
         if (response.success) {
-            jPulse.showSlideDownSuccess('Message sent successfully!');
+            jPulse.UI.toast.success('Message sent successfully!');
             e.target.reset(); // Clear form
         } else {
-            jPulse.showSlideDownError('Failed to send message. Please try again.');
+            jPulse.UI.toast.error('Failed to send message. Please try again.');
         }
     } catch (error) {
-        jPulse.showSlideDownError('Network error. Please check your connection.');
+        jPulse.UI.toast.error('Network error. Please check your connection.');
     } finally {
         // Reset button state
         submitBtn.disabled = false;
@@ -500,10 +500,10 @@ function updateProgress(currentStep) {
                 }
 
                 if (isValid) {
-                    jPulse.showSlideDownSuccess('Form submitted successfully! ✅');
+                    jPulse.UI.toast.success('Form submitted successfully! ✅');
                     e.target.reset();
                 } else {
-                    jPulse.showSlideDownError('Please fix the errors below.');
+                    jPulse.UI.toast.error('Please fix the errors below.');
                 }
             });
 
@@ -525,10 +525,10 @@ function updateProgress(currentStep) {
                     await new Promise(resolve => setTimeout(resolve, 2000));
 
                     // Simulate success
-                    jPulse.showSlideDownSuccess('Message sent successfully! 📧');
+                    jPulse.UI.toast.success('Message sent successfully! 📧');
                     e.target.reset();
                 } catch (error) {
-                    jPulse.showSlideDownError('Failed to send message. Please try again.');
+                    jPulse.UI.toast.error('Failed to send message. Please try again.');
                 } finally {
                     // Reset button state
                     submitBtn.disabled = false;
@@ -540,7 +540,7 @@ function updateProgress(currentStep) {
             // Multi-step form submission
             document.getElementById('multistep-form').addEventListener('submit', (e) => {
                 e.preventDefault();
-                jPulse.showSlideDownSuccess('Application submitted successfully! 🎉');
+                jPulse.UI.toast.success('Application submitted successfully! 🎉');
                 // Reset form to step 1
                 nextStep(1);
                 e.target.reset();
@@ -589,12 +589,12 @@ function updateProgress(currentStep) {
                 const email = document.getElementById('step1-email').value.trim();
 
                 if (!name || !email) {
-                    jPulse.showSlideDownError('Please fill in all required fields.');
+                    jPulse.UI.toast.error('Please fill in all required fields.');
                     return false;
                 }
 
                 if (!/\S+@\S+\.\S+/.test(email)) {
-                    jPulse.showSlideDownError('Please enter a valid email address.');
+                    jPulse.UI.toast.error('Please enter a valid email address.');
                     return false;
                 }
             }

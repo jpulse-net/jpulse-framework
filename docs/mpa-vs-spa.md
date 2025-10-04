@@ -196,7 +196,7 @@ jPulse supports **all three patterns** in the same application:
     <script>
     // Dynamic content via API
     jPulse.dom.ready(async () => {
-        const response = await jPulse.apiCall('/api/1/helloTodo');
+        const response = await jPulse.api.call('/api/1/helloTodo');
         renderTodos(response.data);
     });
     </script>
@@ -241,11 +241,11 @@ class HelloTodoController {
 ```
 
 ### Shared Utilities
-All patterns use the same `jPulse.apiCall()`:
+All patterns use the same `jPulse.api.call()`:
 
 ```javascript
 // Works in both MPA and SPA contexts
-const response = await jPulse.apiCall('/api/1/helloTodo', {
+const response = await jPulse.api.call('/api/1/helloTodo', {
     method: 'POST',
     body: { title: 'New task' }
 });
@@ -281,7 +281,7 @@ You can mix patterns in the same application:
 - ✅ Use APIs for dynamic content
 - ✅ Keep JavaScript bundles small
 - ✅ Implement proper error handling
-- ✅ Use `jPulse.apiCall()` for consistency
+- ✅ Use `jPulse.api.call()` for consistency
 
 ### For SPA:
 - ✅ Implement loading states

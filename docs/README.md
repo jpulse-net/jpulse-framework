@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.8.5
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.8.6
 
 **For Site Administrators & Site Developers**
 
@@ -10,6 +10,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 
 ## Latest Release Highlights
 
+- ✅ **Consistent jPulse Utility Organization (v0.8.6)**: Complete refactoring of jPulse client-side utilities into consistent, logical namespaces. Moved `jPulse.apiCall()` to `jPulse.api.call()` for consistency with get/post/put/delete methods. Renamed slide-down messages to industry-standard `jPulse.UI.toast.*` (show/error/success/info/warning/clearAll) that better conveys their transient, non-blocking nature. All utilities now organized in clear buckets (api, form, dom, date, string, url, device, cookies, UI, clipboard) for improved developer experience and maintainability.
 - ✅ **Vue.js SPA Demo & Enhanced jPulse Utilities (v0.8.5)**: Complete Single Page Application demonstration with Vue.js 3, Vue Router, client-side routing, and real-time interactivity. Enhanced jPulse common utilities with `jPulse.date` namespace (formatLocalDate, formatLocalDateAndTime) and `jPulse.api.handleError()` for consistent error handling. Comprehensive educational example perfect for learning modern SPA development with jPulse Framework backend integration.
 - ✅ **Hello To-Do MVC Demo for Site Development Learning (v0.8.4)**: Complete Model-View-Controller demonstration with MongoDB integration, REST API patterns, user authentication context, and interactive UI. Perfect educational example for site developers learning jPulse Framework patterns with full CRUD operations, auto-registration, and "don't make me think" onboarding experience.
 - ✅ **Critical regression fix - site templates missing from npm package (v0.8.3)**: Fixed critical bug where site/ directory templates were missing from published packages, breaking W-014 site override system. Also fixed security vulnerability exposing sensitive config files. Improved maintainability with .npmignore approach.

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Development Guide v0.8.5
+# jPulse Framework / Docs / Dev / Development Guide v0.8.6
 
 **For Framework Contributors & Core Developers**
 
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     jPulse.form.bindSubmission(form, '/api/1/user/profile', {
         method: 'PUT',
         onSuccess: (data) => {
-            jPulse.showSlideDownSuccess('Profile updated successfully!');
+            jPulse.UI.toast.success('Profile updated successfully!');
             updateUI(data);
         }
     });
@@ -133,7 +133,7 @@ export default class ExampleController {
 ```javascript
 // Using jPulse framework utilities
 const data = await jPulse.api.get('/api/1/example/data');
-jPulse.showSlideDownSuccess('Data loaded successfully!');
+jPulse.UI.toast.success('Data loaded successfully!');
 
 // Form handling
 jPulse.form.bindSubmission(form, '/api/1/example/create', {

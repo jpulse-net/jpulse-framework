@@ -3,8 +3,8 @@
  * @tagline         Unit tests for jPulse date and API error handling utilities
  * @description     Unit tests for jPulse enhanced utilities (W-072)
  * @file            webapp/tests/unit/utils/jpulse-common-enhanced.test.js
- * @version         0.8.5
- * @release         2025-10-03
+ * @version         0.8.6
+ * @release         2025-10-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -52,7 +52,7 @@ describe('jPulse Enhanced Utilities (W-072)', () => {
             // Verify error handling logic exists
             expect(content).toContain('showMessage = true');
             expect(content).toContain('logError = true');
-            expect(content).toContain('jPulse.showSlideDownMessage');
+            expect(content).toContain('jPulse.UI.toast.show');
         });
     });
 

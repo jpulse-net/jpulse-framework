@@ -3,8 +3,8 @@
  * @tagline         Template for site-specific JavaScript customizations
  * @description     Template for site-specific JS - copy to site-common.js and customize
  * @file            site/webapp/view/site-common.js.tmpl
- * @version         0.8.5
- * @release         2025-10-03
+ * @version         0.8.6
+ * @release         2025-10-04
  * @author          Site Developer
  * @copyright       2025 Site Administrator
  * @license         AGPL v3, see LICENSE file
@@ -47,8 +47,8 @@ jPulse.site = {
          * @param {string} type - Message type: 'info', 'success', 'warning', 'error'
          */
         notify: (message, type = 'info') => {
-            if (typeof jPulse.showSlideDownMessage === 'function') {
-                jPulse.showSlideDownMessage(message, type);
+            if (typeof jPulse.UI.toast.show === 'function') {
+                jPulse.UI.toast.show(message, type);
             } else {
                 console.log(`Site notification [${type}]:`, message);
             }

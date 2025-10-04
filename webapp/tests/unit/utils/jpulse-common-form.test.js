@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse Common Client-Side Form Utilities
  * @description     Tests for client-side form submission utilities in jpulse-common.js
  * @file            webapp/tests/unit/utils/jpulse-common-form.test.js
- * @version         0.8.5
- * @release         2025-10-03
+ * @version         0.8.6
+ * @release         2025-10-04
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -54,13 +54,13 @@ describe('jPulse.form Submission Handling', () => {
 
         // Reset mocks before each test
         global.fetch.mockClear();
-        showSuccessMock = jest.spyOn(window.jPulse, 'showSlideDownSuccess').mockImplementation(() => {});
-        showErrorMock = jest.spyOn(window.jPulse, 'showSlideDownError').mockImplementation(() => {});
+        showSuccessMock = jest.spyOn(window.jPulse.UI.toast, 'success').mockImplementation(() => {});
+        showErrorMock = jest.spyOn(window.jPulse.UI.toast, 'error').mockImplementation(() => {});
         clearErrorsMock = jest.spyOn(window.jPulse.form, 'clearErrors').mockImplementation(() => {});
         setLoadingStateMock = jest.spyOn(window.jPulse.form, 'setLoadingState').mockImplementation(() => {});
 
         // Mock apiCall instead of fetch since handleSubmission uses apiCall
-        apiCallMock = jest.spyOn(window.jPulse, 'apiCall');
+        apiCallMock = jest.spyOn(window.jPulse.api, 'call');
 
         // Mock the serialize function to avoid FormData issues in JSDOM
         jest.spyOn(window.jPulse.form, 'serialize').mockReturnValue({

@@ -1000,18 +1000,6 @@ This is the doc to track work items, arranged in three sections:
   - Documentation Updates - README files highlighting MEVN stack and MPA/SPA flexibility
   - MPA vs. SPA Guide - Comprehensive comparison with diagrams and MVC perspective
 
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-074: view: consistent jPulse.* utilities, all in buckets - v0.8.6
 - status: ✅ COMPLETED
 - type: Feature
@@ -1040,7 +1028,63 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-073: site: create client & server websocket infrastructure
+- status: ✅ COMPLETED
+- type: Feature
+- objective: standard way where views can establish a persistent bi-directional communication with a controller, useful for single page apps, or concurrent edit of content
+- see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
+- deliverables:
+  - server:
+    - ✅ webapp/controller/websocket.js - WebSocket controller with namespace registration
+    - ✅ package.json - ws dependency added
+    - ✅ webapp/view/admin/websocket-status.shtml - Real-time monitoring page
+      - per namespace: status, name, clients, active users, messages/min, total messages
+      - overall: uptime, total messages, color-coded activity log (light theme)
+    - ✅ webapp/view/admin/websocket-test.shtml - Interactive test tool for developers
+  - browser view:
+    - ✅ webapp/view/jpulse-common.js - jPulse.ws.* client utilities
+    - ✅ Persistent client UUID (localStorage)
+    - ✅ Username tracking in all messages
+  - docs:
+    - ✅ docs/websockets.md - Complete WebSocket documentation
+    - ✅ docs/front-end-development.md - WebSocket section
+  - high availability:
+    - ✅ Bidirectional ping/pong health checks (30s interval)
+    - ✅ Progressive reconnection (5s to 30s max with backoff)
+
+### W-075: site: create example /hello-websocket/ app
+- status: 🕑 PENDING
+- type: Feature
+- objective: create a websocket client app to teach how to create an app with realtime communication
+- see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
+- deliverables:
+  - site/webapp/view/hello-websocket/index.shtml  # websocket demo view
+    - two apps in two tabs:
+      - emoji app
+      - to-do app
+    - extra two tabs for code examples
+
+
+
+
+
+
+
 questions:
+- i18n websocket-status
+- link to websocket-test
+- activity log padding tweak
+- svg
+- mutiple ws?
+
+
 - what about vue & i18n?
 
 
@@ -1052,7 +1096,6 @@ questions:
 - W-068: view: create responsive sidebar
 - W-069: view: create site navigation pulldown and hamburger
 - W-070: view: create breadcrumb navigation, optional
-- W-073: site: example /hello-websocket/ app
 - W-0: view: page headers with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific translations
 - W-0: controller: change search to cursor based paging API with limit & cursor
@@ -1230,19 +1273,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - or defined in configuration?
 - i18n?
 - desktop vs mobile
-
-### W-073: site: example /hello-websocket/ app
-- status: 🕑 PENDING
-- type: Feature
-- objective: standard way where views can establish a persistent bi-directional communication with a controller, useful for single page apps, or concurrent edit of content
-- see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
-- deliverables:
-  - high availability with ping pong initiated on both sides
-    - reestablish connection with progressive time interval
-  - a standard way for a controller to register a websocket server
-  - a standard way for a view to register a websocket client in webapp/view/jpulse-common.js
-  - site/webapp/view/hello-websocket/index.shtml  # websocket demo view
-  - site/webapp/controller/helloWebsocket.js      # websocket demo controller with API
 
 ### W-0: view: page headers with anchor links for copy & paste in browser URL bar
 - status: 🕑 PENDING

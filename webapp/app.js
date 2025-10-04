@@ -213,6 +213,9 @@ console.log(CommonUtils.formatLogMessage('app', `View registry built - [${global
 // Load routing
 const routes = await import('./routes.js').then(m => m.default);
 
+// Load WebSocket controller
+const WebSocketController = (await import('./controller/websocket.js')).default;
+
 // Main application function
 async function startApp() {
     // Core modules are already initialized by bootstrap
@@ -245,13 +248,16 @@ async function startApp() {
     const mode = appConfig.deployment.mode;
     const port = appConfig.deployment[mode].port;
 
-    // Start the server
-    app.listen(port, () => {
+    // Start the HTTP server
+    const server = app.listen(port, () => {
         // Use LogController for structured logging (no req object for server startup)
         LogController.logInfo(null, 'app', `jPulse Framework WebApp v${appConfig.app.version} (${appConfig.app.release})`);
         LogController.logInfo(null, 'app', `Server running in ${appConfig.deployment[mode].name} mode on port ${port}`);
         LogController.logInfo(null, 'app', `Database: ${appConfig.deployment[mode].db}`);
     });
+
+    // Initialize WebSocket server
+    WebSocketController.initialize(server);
 }
 
 // Start the application

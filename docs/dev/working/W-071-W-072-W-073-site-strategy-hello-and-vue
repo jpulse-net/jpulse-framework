@@ -564,16 +564,22 @@ During W-072 implementation, we discussed three approaches for integrating Vue.j
 
 ### Implementation Status
 
-- **W-072**: Vue.js SPA with routing ✅ Complete
-- **Grid Layout**: Fixed 4-column layout with proper vertical alignment ✅ Complete
-- **Integration**: Ready for shared utilities implementation
-- **Next**: Implement shared routing utilities in `jpulse-common.js`
+- **W-071**: Hello Todo MVC ✅ Complete (v0.8.6)
+- **W-072**: Vue.js SPA with routing ✅ Complete (v0.8.6)
+- **W-073**: WebSocket Infrastructure ✅ Complete (v0.8.7)
+  - `webapp/controller/websocket.js` - Server-side namespace management
+  - `jPulse.ws.*` client utilities in `jpulse-common.js`
+  - `/admin/websocket-stats` - Real-time monitoring page
+  - Complete documentation in `docs/websockets.md`
+- **W-075**: Hello WebSocket Examples 🕑 Pending
+  - Emoji reactions + collaborative todo list
+  - Two tabs per app: app view and code example
 
 ## Next Steps
 
-1. **W-071 Implementation**: Create HelloTodoModel and HelloTodoController
-2. **W-072 Implementation**: Build Vue.js SPA with routing ✅ Complete
-3. **Shared Utilities**: Implement Option A routing utilities in `jpulse-common.js`
-4. **W-073 Implementation**: Add WebSocket server and client utilities
-5. **Documentation**: Update installation and getting-started guides
-6. **Testing**: Create test suites for each example pattern
+1. **W-075 Implementation**: Create `/hello-websocket/` example app
+   - Emoji reactions (ephemeral, fun demo)
+   - Collaborative todo list (persistent, builds on W-071)
+   - Code examples for both patterns
+2. **Testing**: Create test suites for WebSocketController
+3. **Dashboard Integration**: Add `/hello-websocket/` to home dashboard (conditional)

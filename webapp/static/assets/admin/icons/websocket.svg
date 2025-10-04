@@ -1,0 +1,13 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outlet plate -->
+  <rect x="32" y="24" width="64" height="80" rx="8" fill="white"/>
+  
+  <!-- Left socket (eye) -->
+  <rect x="48" y="48" width="8" height="20" rx="4" fill="#333"/>
+  
+  <!-- Right socket (eye) -->
+  <rect x="72" y="48" width="8" height="20" rx="4" fill="#333"/>
+  
+  <!-- Ground hole (mouth) -->
+  <circle cx="64" cy="84" r="8" fill="#333"/>
+</svg>

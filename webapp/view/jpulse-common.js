@@ -2287,6 +2287,311 @@ window.jPulse = {
                 return false;
             }
         }
+    },
+
+    /**
+     * WebSocket utilities for real-time communication
+     *
+     * Provides clean API for connecting to WebSocket namespaces with:
+     * - Automatic reconnection with progressive backoff
+     * - Bidirectional ping/pong
+     * - Connection status tracking
+     * - Standard message format
+     * - Persistent client UUID (survives reconnections)
+     *
+     * Usage:
+     *   const ws = jPulse.ws.connect('/ws/my-app')
+     *     .onMessage(data => console.log(data))
+     *     .onStatusChange(status => console.log(status));
+     *   ws.send({ type: 'action', payload: {...} });
+     */
+    ws: {
+        // Active connections registry
+        _connections: new Map(),
+
+        // Configuration
+        _config: {
+            reconnectBaseInterval: 5000,  // 5 seconds
+            reconnectMaxInterval: 30000,  // 30 seconds max
+            maxReconnectAttempts: 10,
+            pingInterval: 30000           // 30 seconds
+        },
+
+        /**
+         * Generate UUID v4
+         * @private
+         */
+        _generateUUID: function() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        },
+
+        /**
+         * Get or create persistent client UUID
+         * @private
+         */
+        _getClientUUID: function() {
+            const storageKey = 'jPulse.ws.clientUUID';
+            let uuid = localStorage.getItem(storageKey);
+            if (!uuid) {
+                uuid = this._generateUUID();
+                localStorage.setItem(storageKey, uuid);
+            }
+            return uuid;
+        },
+
+        /**
+         * Connect to WebSocket namespace
+         * @param {string} path - Namespace path (e.g., '/ws/hello-emoji')
+         * @param {Object} options - Connection options (optional)
+         * @returns {Object} Connection handle with methods
+         */
+        connect: function(path, options = {}) {
+            // Check if already connected
+            if (this._connections.has(path)) {
+                return this._connections.get(path).handle;
+            }
+
+            // Merge options with defaults
+            const config = {
+                ...this._config,
+                ...options
+            };
+
+            // Get or create persistent client UUID
+            const clientUUID = this._getClientUUID();
+
+            // Create WebSocket connection with UUID query parameter
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const url = `${protocol}//${window.location.host}${path}?uuid=${encodeURIComponent(clientUUID)}`;
+
+            const connection = {
+                path,
+                url,
+                clientUUID,
+                ws: null,
+                config,
+                status: 'connecting',
+                reconnectAttempts: 0,
+                messageCallbacks: [],
+                statusCallbacks: [],
+                reconnectTimer: null,
+                pingTimer: null,
+                shouldReconnect: true
+            };
+
+            // Create connection handle (public API)
+            connection.handle = {
+                /**
+                 * Send message to server
+                 * @param {Object} data - Data to send
+                 * @returns {boolean} True if sent successfully
+                 */
+                send: (data) => {
+                    if (connection.ws && connection.ws.readyState === WebSocket.OPEN) {
+                        connection.ws.send(JSON.stringify(data));
+                        return true;
+                    }
+                    console.warn('jPulse.ws: Cannot send, connection not open');
+                    return false;
+                },
+
+                /**
+                 * Register message handler
+                 * @param {Function} callback - Handler function(data)
+                 * @returns {Object} Connection handle for chaining
+                 */
+                onMessage: (callback) => {
+                    connection.messageCallbacks.push(callback);
+                    return connection.handle;
+                },
+
+                /**
+                 * Register status change handler
+                 * @param {Function} callback - Handler function(status)
+                 * @returns {Object} Connection handle for chaining
+                 */
+                onStatusChange: (callback) => {
+                    connection.statusCallbacks.push(callback);
+                    return connection.handle;
+                },
+
+                /**
+                 * Get current connection status
+                 * @returns {string} 'connecting' | 'connected' | 'disconnected' | 'reconnecting'
+                 */
+                getStatus: () => {
+                    return connection.status;
+                },
+
+                /**
+                 * Disconnect and prevent auto-reconnect
+                 */
+                disconnect: () => {
+                    connection.shouldReconnect = false;
+                    if (connection.reconnectTimer) {
+                        clearTimeout(connection.reconnectTimer);
+                    }
+                    if (connection.pingTimer) {
+                        clearInterval(connection.pingTimer);
+                    }
+                    if (connection.ws) {
+                        connection.ws.close();
+                    }
+                    jPulse.ws._connections.delete(path);
+                },
+
+                /**
+                 * Check if currently connected
+                 * @returns {boolean} True if connected
+                 */
+                isConnected: () => {
+                    return connection.status === 'connected';
+                }
+            };
+
+            // Store connection
+            this._connections.set(path, connection);
+
+            // Initiate connection
+            this._createWebSocket(connection);
+
+            return connection.handle;
+        },
+
+        /**
+         * Create WebSocket and setup handlers
+         * @private
+         */
+        _createWebSocket: function(connection) {
+            try {
+                connection.ws = new WebSocket(connection.url);
+
+                // Connection opened
+                connection.ws.onopen = () => {
+                    console.log(`jPulse.ws: Connected to ${connection.path}`);
+                    connection.reconnectAttempts = 0;
+                    this._updateStatus(connection, 'connected');
+
+                    // Start ping timer
+                    connection.pingTimer = setInterval(() => {
+                        if (connection.ws && connection.ws.readyState === WebSocket.OPEN) {
+                            connection.ws.send(JSON.stringify({ type: 'ping' }));
+                        }
+                    }, connection.config.pingInterval);
+                };
+
+                // Message received
+                connection.ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+
+                        // Handle pong responses
+                        if (message.type === 'pong') {
+                            return; // Silent acknowledgment
+                        }
+
+                        // Call message handlers
+                        connection.messageCallbacks.forEach(callback => {
+                            try {
+                                // Pass data if success, or error object if failure
+                                if (message.success) {
+                                    callback(message.data, message);
+                                } else {
+                                    callback(null, message); // null data, full message for error handling
+                                }
+                            } catch (error) {
+                                console.error('jPulse.ws: Message handler error:', error);
+                            }
+                        });
+                    } catch (error) {
+                        console.error('jPulse.ws: Failed to parse message:', error);
+                    }
+                };
+
+                // Connection closed
+                connection.ws.onclose = () => {
+                    console.log(`jPulse.ws: Disconnected from ${connection.path}`);
+
+                    // Clear ping timer
+                    if (connection.pingTimer) {
+                        clearInterval(connection.pingTimer);
+                        connection.pingTimer = null;
+                    }
+
+                    // Attempt reconnection if appropriate
+                    if (connection.shouldReconnect &&
+                        connection.reconnectAttempts < connection.config.maxReconnectAttempts) {
+                        this._scheduleReconnect(connection);
+                    } else {
+                        this._updateStatus(connection, 'disconnected');
+                    }
+                };
+
+                // Connection error
+                connection.ws.onerror = (error) => {
+                    console.error(`jPulse.ws: Connection error on ${connection.path}:`, error);
+                };
+
+            } catch (error) {
+                console.error('jPulse.ws: Failed to create WebSocket:', error);
+                this._scheduleReconnect(connection);
+            }
+        },
+
+        /**
+         * Schedule reconnection with progressive backoff
+         * @private
+         */
+        _scheduleReconnect: function(connection) {
+            if (!connection.shouldReconnect) return;
+
+            connection.reconnectAttempts++;
+            this._updateStatus(connection, 'reconnecting');
+
+            // Calculate backoff delay: 5s, 10s, 15s, 20s, 25s, 30s (max)
+            const delay = Math.min(
+                connection.config.reconnectBaseInterval * connection.reconnectAttempts,
+                connection.config.reconnectMaxInterval
+            );
+
+            console.log(`jPulse.ws: Reconnecting to ${connection.path} in ${delay/1000}s (attempt ${connection.reconnectAttempts})`);
+
+            connection.reconnectTimer = setTimeout(() => {
+                this._createWebSocket(connection);
+            }, delay);
+        },
+
+        /**
+         * Update connection status and notify callbacks
+         * @private
+         */
+        _updateStatus: function(connection, newStatus) {
+            const oldStatus = connection.status;
+            connection.status = newStatus;
+
+            if (oldStatus !== newStatus) {
+                console.log(`jPulse.ws: Status changed: ${oldStatus} -> ${newStatus}`);
+                connection.statusCallbacks.forEach(callback => {
+                    try {
+                        callback(newStatus, oldStatus);
+                    } catch (error) {
+                        console.error('jPulse.ws: Status handler error:', error);
+                    }
+                });
+            }
+        },
+
+        /**
+         * Get all active connections (for debugging)
+         * @returns {Array} Array of connection paths
+         */
+        getConnections: function() {
+            return Array.from(this._connections.keys());
+        }
     }
 };
 

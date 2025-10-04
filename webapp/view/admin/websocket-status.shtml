@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / Admin / WebSocket Status
+ * @tagline         Real-time WebSocket server monitoring and status
+ * @description     Admin-only page showing live WebSocket namespace status
+ * @file            webapp/view/admin/websocket-status.shtml
+ * @version         0.8.6
+ * @release         2025-10-04
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4.5
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Status - {{app.shortName}}</title>
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .local-status-indicator.status-green {
+            background-color: #4caf50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+        }
+
+        .local-status-indicator.status-yellow {
+            background-color: #ff9800;
+            box-shadow: 0 0 8px rgba(255, 152, 0, 0.5);
+        }
+
+        .local-status-indicator.status-red {
+            background-color: #f44336;
+            box-shadow: 0 0 8px rgba(244, 67, 54, 0.5);
+        }
+
+        .local-namespace-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .local-namespace-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .local-namespace-path {
+            font-family: monospace;
+            color: #007acc;
+        }
+
+        .local-stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .local-stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .local-stat-label {
+            color: #666;
+        }
+
+        .local-stat-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .local-activity-log {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 0.875rem;
+        }
+
+        .local-activity-item {
+            padding: 0.5rem;
+            padding-left: 0.75rem;
+            border-bottom: 1px solid #e0e0e0;
+            display: grid;
+            grid-template-columns: auto minmax(180px, 1fr) minmax(400px, 3fr);
+            gap: 1rem;
+        }
+
+        .local-activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .local-activity-timestamp {
+            color: #666;
+        }
+
+        .local-activity-namespace {
+            color: #007acc;
+            font-weight: 600;
+        }
+
+        .local-activity-message {
+            word-break: break-all;
+            color: #333;
+        }
+
+        /* Color coding by event type - left border only */
+        .local-activity-item.success {
+            border-left: 3px solid #4caf50;
+        }
+        .local-activity-item.success .local-activity-message {
+            color: #2e7d32;
+        }
+
+        .local-activity-item.info {
+            border-left: 3px solid #2196f3;
+        }
+        .local-activity-item.info .local-activity-message {
+            color: #1565c0;
+        }
+
+        .local-activity-item.warning {
+            border-left: 3px solid #ff9800;
+        }
+        .local-activity-item.warning .local-activity-message {
+            color: #e65100;
+        }
+
+        .local-activity-item.error {
+            border-left: 3px solid #f44336;
+        }
+        .local-activity-item.error .local-activity-message {
+            color: #c62828;
+        }
+
+        .local-activity-item.default {
+            border-left: 3px solid #607d8b;
+        }
+        .local-activity-item.default .local-activity-message {
+            color: #455a64;
+        }
+
+        .local-connection-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .local-connection-status.connected {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .local-connection-status.connecting {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .local-connection-status.reconnecting {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .local-connection-status.disconnected {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .local-last-update {
+            color: #666;
+            font-size: 0.875rem;
+            text-align: right;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-container-1200">
+          {{#if user.authenticated}}
+            <div class="jp-page-header">
+                <h1><a href="/home/">{{i18n.view.home.title}}</a> <span>❯</span>
+                    <a href="/admin/">{{i18n.view.admin.index.shortTitle}}</a> <span>❯</span>
+                    {{i18n.view.admin.websocketStatus.title}}</h1>
+                <p id="wsConnectionStatus" class="jp-subtitle local-connection-status connecting">{{i18n.view.admin.websocketStatus.connecting}}</p>
+            </div>
+
+            <div class="jp-info-box" style="margin-bottom: 1.5rem;">
+                <p>{{i18n.view.admin.websocketStatus.description}}</p>
+                <p style="margin-top: 0.5rem;">
+                    <a href="/admin/websocket-test.shtml" class="jp-btn jp-btn-secondary">{{i18n.view.admin.websocketStatus.testTool}}</a>
+                </p>
+            </div>
+
+            <!-- Overview Statistics -->
+            <div class="jp-stats-grid" id="overviewStats">
+                <div class="jp-stat-card">
+                    <div class="jp-stat-number" id="statUptime">-</div>
+                    <div class="jp-stat-label">{{i18n.view.admin.websocketStatus.uptime}}</div>
+                </div>
+                <div class="jp-stat-card">
+                    <div class="jp-stat-number" id="statTotalMessages">-</div>
+                    <div class="jp-stat-label">{{i18n.view.admin.websocketStatus.totalMessages}}</div>
+                </div>
+                <div class="jp-stat-card">
+                    <div class="jp-stat-number" id="statNamespaces">-</div>
+                    <div class="jp-stat-label">{{i18n.view.admin.websocketStatus.activeNamespaces}}</div>
+                </div>
+                <div class="jp-stat-card">
+                    <div class="jp-stat-number" id="statClients">-</div>
+                    <div class="jp-stat-label">{{i18n.view.admin.websocketStatus.totalClients}}</div>
+                </div>
+            </div>
+
+            <!-- Namespace Statistics -->
+            <div class="jp-card">
+                <h2>{{i18n.view.admin.websocketStatus.namespaceStats}}</h2>
+                <div id="namespaceGrid" class="local-namespace-grid">
+                    <p class="jp-info-text">{{i18n.view.admin.websocketStatus.waitingForData}}</p>
+                </div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="jp-card">
+                <h2>{{i18n.view.admin.websocketStatus.activityLog}}</h2>
+                <div id="activityLog" class="local-activity-log">
+                    <p class="jp-info-text">{{i18n.view.admin.websocketStatus.noActivity}}</p>
+                </div>
+            </div>
+
+            <div class="local-last-update">
+                {{i18n.view.admin.websocketStatus.lastUpdate}}: <span id="lastUpdate">-</span>
+            </div>
+
+          {{else}}
+            <div class="jp-error-box">
+                <p>{{i18n.view.admin.accessDenied}}</p>
+            </div>
+          {{/if}}
+        </div>
+    </div>
+
+    {{#if file.exists "jpulse-footer.tmpl"}}
+        {{file.include "jpulse-footer.tmpl"}}
+    {{/if}}
+
+    <script>
+    (function() {
+        let wsConnection = null;
+
+        // i18n strings
+        const i18n = {
+            clients: '{{i18n.view.admin.websocketStatus.clients}}',
+            activeUsers: '{{i18n.view.admin.websocketStatus.activeUsers}}',
+            messagesPerMin: '{{i18n.view.admin.websocketStatus.messagesPerMin}}',
+            totalMessages: '{{i18n.view.admin.websocketStatus.totalMessagesLabel}}',
+            lastActivity: '{{i18n.view.admin.websocketStatus.lastActivity}}',
+            noActiveNamespaces: '{{i18n.view.admin.websocketStatus.noActiveNamespaces}}'
+        };
+
+        // Format uptime
+        function formatUptime(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+
+            if (days > 0) {
+                return `${days}d ${hours % 24}h ${minutes % 60}m`;
+            } else if (hours > 0) {
+                return `${hours}h ${minutes % 60}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${seconds % 60}s`;
+            } else {
+                return `${seconds}s`;
+            }
+        }
+
+        // Format timestamp
+        function formatTimestamp(isoString) {
+            const date = new Date(isoString);
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+
+        // Update overview statistics
+        function updateOverviewStats(stats) {
+            document.getElementById('statUptime').textContent = formatUptime(stats.uptime);
+            document.getElementById('statTotalMessages').textContent = stats.totalMessages.toLocaleString();
+            document.getElementById('statNamespaces').textContent = stats.namespaces.length;
+
+            const totalClients = stats.namespaces.reduce((sum, ns) => sum + ns.clientCount, 0);
+            document.getElementById('statClients').textContent = totalClients;
+        }
+
+        // Update namespace grid
+        function updateNamespaceGrid(namespaces) {
+            const grid = document.getElementById('namespaceGrid');
+
+            if (namespaces.length === 0) {
+                grid.innerHTML = `<p class="jp-info-text">${i18n.noActiveNamespaces}</p>`;
+                return;
+            }
+
+            grid.innerHTML = namespaces.map(ns => `
+                <div class="jp-card">
+                    <div class="local-namespace-header">
+                        <span class="local-status-indicator status-${ns.status}"></span>
+                        <span class="local-namespace-path">${ns.path}</span>
+                    </div>
+                    <div class="local-stat-row">
+                        <span class="local-stat-label">${i18n.clients}</span>
+                        <span class="local-stat-value">${ns.clientCount}</span>
+                    </div>
+                    <div class="local-stat-row">
+                        <span class="local-stat-label">${i18n.activeUsers}</span>
+                        <span class="local-stat-value">${ns.activeUsers}</span>
+                    </div>
+                    <div class="local-stat-row">
+                        <span class="local-stat-label">${i18n.messagesPerMin}</span>
+                        <span class="local-stat-value">${ns.messagesPerMin}</span>
+                    </div>
+                    <div class="local-stat-row">
+                        <span class="local-stat-label">${i18n.totalMessages}</span>
+                        <span class="local-stat-value">${ns.totalMessages.toLocaleString()}</span>
+                    </div>
+                    <div class="local-stat-row">
+                        <span class="local-stat-label">${i18n.lastActivity}</span>
+                        <span class="local-stat-value">${formatTimestamp(ns.lastActivity)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Truncate long messages (50 chars ... 50 chars)
+        function truncateMessage(message) {
+            const maxLength = 100;
+            if (message.length <= maxLength) {
+                return message;
+            }
+            const firstPart = message.substring(0, 50);
+            const lastPart = message.substring(message.length - 50);
+            return `${firstPart} ... ${lastPart}`;
+        }
+
+        // Determine activity type from message content
+        function getActivityType(message, direction) {
+            const msg = message.toLowerCase();
+
+            // Error indicators
+            if (msg.includes('error') || msg.includes('failed') || msg.includes('disconnect')) {
+                return 'error';
+            }
+
+            // Success indicators
+            if (msg.includes('connect') && !msg.includes('disconnect')) {
+                return 'success';
+            }
+
+            // Warning indicators
+            if (msg.includes('warning') || msg.includes('retry') || msg.includes('reconnect')) {
+                return 'warning';
+            }
+
+            // Info indicators (received messages)
+            if (direction === 'received' || msg.includes('broadcast') || msg.includes('sent')) {
+                return 'info';
+            }
+
+            return 'default';
+        }
+
+        // Update activity log
+        function updateActivityLog(activityLog) {
+            const logDiv = document.getElementById('activityLog');
+
+            // Filter out ping/pong messages
+            const filteredLog = activityLog.filter(item => {
+                try {
+                    const msg = item.message;
+                    // Skip if message contains ping or pong
+                    if (msg.includes('"type":"ping"') || msg.includes('"type":"pong"')) {
+                        return false;
+                    }
+                    return true;
+                } catch (e) {
+                    return true; // Keep if can't parse
+                }
+            });
+
+            if (filteredLog.length === 0) {
+                logDiv.innerHTML = '<p class="jp-info-text">No activity in last 5 minutes</p>';
+                return;
+            }
+
+            // Reverse to show most recent first
+            const reversedLog = [...filteredLog].reverse();
+
+            logDiv.innerHTML = reversedLog.map(item => {
+                const activityType = getActivityType(item.message, item.direction);
+                const truncatedMessage = truncateMessage(item.message);
+                return `
+                    <div class="local-activity-item ${activityType}">
+                        <span class="local-activity-timestamp">${formatTimestamp(item.timestamp)}</span>
+                        <span class="local-activity-namespace">${item.namespace}</span>
+                        <span class="local-activity-message">${item.direction}: ${truncatedMessage}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update all statistics
+        function updateStats(data) {
+            updateOverviewStats(data);
+            updateNamespaceGrid(data.namespaces);
+            updateActivityLog(data.activityLog);
+
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+
+        // Update connection status UI
+        function updateConnectionStatus(status) {
+            const statusEl = document.getElementById('wsConnectionStatus');
+            statusEl.className = `local-connection-status ${status}`;
+
+            switch(status) {
+                case 'connected':
+                    statusEl.textContent = '{{i18n.view.admin.websocketStatus.connected}}';
+                    break;
+                case 'connecting':
+                    statusEl.textContent = '{{i18n.view.admin.websocketStatus.connecting}}';
+                    break;
+                case 'reconnecting':
+                    statusEl.textContent = '{{i18n.view.admin.websocketStatus.reconnecting}}';
+                    break;
+                case 'disconnected':
+                    statusEl.textContent = '{{i18n.view.admin.websocketStatus.disconnected}}';
+                    break;
+            }
+        }
+
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            console.log('Connecting to WebSocket stats feed...');
+
+            wsConnection = jPulse.ws.connect('/ws/jpulse-ws-status')
+                .onMessage((data, message) => {
+                    if (data && data.type === 'stats-update') {
+                        updateStats(data.data);
+                    } else if (!message.success) {
+                        console.error('WebSocket error:', message.error);
+                        jPulse.showSlideDownMessage(`WebSocket error: ${message.error}`, 'error');
+                    }
+                })
+                .onStatusChange((status) => {
+                    updateConnectionStatus(status);
+
+                    // Send initial connected message
+                    if (status === 'connected') {
+                        wsConnection.send({
+                            type: 'admin-connected',
+                            message: 'Admin monitoring page connected'
+                        });
+                    }
+                });
+        }
+
+        // Initialize when DOM is ready
+        jPulse.dom.ready(() => {
+            initWebSocket();
+        });
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (wsConnection) {
+                wsConnection.disconnect();
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

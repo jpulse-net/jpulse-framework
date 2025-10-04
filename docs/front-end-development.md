@@ -92,6 +92,106 @@ All API calls return a standardized response format:
 
 > **See Also:** [REST API Reference](api-reference.md) for complete endpoint documentation and authentication requirements.
 
+## ⚡ Real-Time Communication with WebSocket
+
+The jPulse Framework provides enterprise-grade WebSocket infrastructure for real-time bidirectional communication between server and browser.
+
+### When to Use WebSocket
+
+Use WebSocket for:
+- **Live Collaboration**: Multiple users editing simultaneously
+- **Real-Time Dashboards**: Live data updates without polling
+- **Instant Notifications**: Push notifications from server
+- **Interactive Applications**: Chat, games, live tracking
+- **Presence Systems**: Who's online, who's viewing
+
+For simple request/response patterns, use REST API instead.
+
+### Quick Start
+
+**Connect to namespace:**
+
+```javascript
+const ws = jPulse.ws.connect('/ws/my-app')
+    .onMessage((data, message) => {
+        console.log('Received:', data);
+        updateUI(data);
+    })
+    .onStatusChange((status) => {
+        console.log('Status:', status);
+        updateConnectionIndicator(status);
+    });
+
+// Send message
+ws.send({
+    type: 'user-action',
+    action: 'click',
+    data: { x: 100, y: 200 }
+});
+
+// Check status
+if (ws.isConnected()) {
+    console.log('Ready!');
+}
+
+// Clean up
+ws.disconnect();
+```
+
+### Connection Status Handling
+
+Always handle connection status changes:
+
+```javascript
+ws.onStatusChange((status, oldStatus) => {
+    switch(status) {
+        case 'connected':
+            enableFeatures();
+            break;
+        case 'connecting':
+        case 'reconnecting':
+            showLoadingIndicator();
+            break;
+        case 'disconnected':
+            disableFeatures();
+            showReconnectButton();
+            break;
+    }
+});
+```
+
+### Vue.js Integration
+
+WebSocket integrates seamlessly with Vue.js reactive data:
+
+```javascript
+const MyApp = {
+    data() {
+        return {
+            connectionStatus: 'disconnected',
+            messages: [],
+            ws: null
+        };
+    },
+    mounted() {
+        this.ws = jPulse.ws.connect('/ws/my-app')
+            .onMessage((data) => {
+                this.messages.push(data); // Reactive!
+            })
+            .onStatusChange((status) => {
+                this.connectionStatus = status; // Reactive!
+            });
+    },
+    beforeUnmount() {
+        if (this.ws) {
+            this.ws.disconnect();
+        }
+    }
+};
+```
+
+> **See Complete Guide:** [WebSocket Documentation](websockets.md) for server-side setup, authentication, monitoring, and advanced patterns.
+
 ## 📝 Form Handling & Validation
 
 The jPulse Framework provides two distinct approaches for form handling, each optimized for different use cases.

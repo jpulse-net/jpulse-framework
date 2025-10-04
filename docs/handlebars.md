@@ -94,13 +94,16 @@ The jPulse Framework provides several context objects that are available in all 
 - `{{app.release}}` - Current application release date
 
 ### User Context
-- `{{user.authenticated}}` - Login status (true/false)
+- `{{user.username}}` - User's username
+- `{{user.loginId}}` - User's loginId
 - `{{user.firstName}}` - User's first name
+- `{{user.nickName}}` - User's nickname
 - `{{user.lastName}}` - User's last name
+- `{{user.initials}}` - User's initials
 - `{{user.email}}` - User's email address
 - `{{user.roles}}` - Comma-separated user roles
+- `{{user.authenticated}}` - Login status (true/false)
 - `{{user.isAdmin}}` - Admin status (true/false)
-- `{{user.initials}}` - User's initials for avatars
 
 ### URL Context
 - `{{url.protocol}}` - HTTP or HTTPS

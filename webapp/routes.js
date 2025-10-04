@@ -21,6 +21,7 @@ import AuthController from './controller/auth.js';
 import MarkdownController from './controller/markdown.js';
 import UserController from './controller/user.js';
 import ConfigController from './controller/config.js';
+import WebSocketController from './controller/websocket.js';
 import logController from './controller/log.js';
 import viewController from './controller/view.js';
 import CommonUtils from './utils/common.js';

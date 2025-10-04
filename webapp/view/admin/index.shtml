@@ -23,10 +23,9 @@
 <body>
     <div class="jp-main">
         <div class="jp-page-header">
-            <div>
-                <h1 class="jp-title">{{i18n.view.admin.index.title}}</h1>
-                <p class="jp-subtitle">{{i18n.view.admin.index.subtitle}}</p>
-            </div>
+            <h1><a href="/home/">{{i18n.view.home.title}}</a> <span>❯</span>
+                {{i18n.view.admin.index.title}}</h1>
+            <p class="jp-subtitle">{{i18n.view.admin.index.subtitle}}</p>
         </div>
 
         <div class="jp-dashboard-grid">
@@ -53,6 +52,14 @@
                 </div>
                 <h3 class="jp-card-title">{{i18n.view.admin.index.viewLogs}}</h3>
                 <p class="jp-card-description">{{i18n.view.admin.index.viewLogsDesc}}</p>
+            </a>
+
+            <a href="/admin/websocket-status.shtml" class="jp-card-dashboard jp-icon-btn">
+                <div class="jp-icon-container">
+                    <img src="/assets/admin/icons/websocket.svg" class="jp-icon" alt="">
+                </div>
+                <h3 class="jp-card-title">{{i18n.view.admin.index.websocketStatus}}</h3>
+                <p class="jp-card-description">{{i18n.view.admin.index.websocketStatusDesc}}</p>
             </a>
 
         </div>

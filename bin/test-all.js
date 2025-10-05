@@ -4,8 +4,8 @@
  * @tagline         Runs all tests (webapp + CLI) with unified output
  * @description     "Don't make me think" test runner for complete validation
  * @file            bin/test-all.js
- * @version         0.8.6
- * @release         2025-10-04
+ * @version         0.9.0
+ * @release         2025-10-05
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -263,7 +263,7 @@ async function runAllTests() {
 
     console.log('');
     console.log(`⏩ Grand Total:`);
-    console.log(`  - ${grandTotal.passed} passed, ${grandTotal.failed} failed, ${grandTotal.skipped} skipped, ${grandTotal.total} total, ${grandTotal.elapsed} sec total time`);
+    console.log(`  - ${grandTotal.passed} passed, ${grandTotal.failed} failed, ${grandTotal.skipped} skipped, ${grandTotal.total} total, ${Math.round(grandTotal.elapsed/100)/10} sec total time`);
     console.log('');
 
     if (totalFailed === 0) {

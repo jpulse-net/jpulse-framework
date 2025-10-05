@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for CommonUtils
  * @description     Tests for common utility functions
  * @file            webapp/tests/unit/utils/common-utils.test.js
- * @version         0.8.6
- * @release         2025-10-04
+ * @version         0.9.0
+ * @release         2025-10-05
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

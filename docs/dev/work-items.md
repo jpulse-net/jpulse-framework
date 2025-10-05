@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.8.5
+# jPulse Framework / Docs / Dev / Work Items v0.9.0
 
 This is the doc to track work items, arranged in three sections:
 
@@ -1035,7 +1035,7 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-073: site: create client & server websocket infrastructure
+### W-073: site: create client & server websocket infrastructure - 0.9.0
 - status: ✅ COMPLETED
 - type: Feature
 - objective: standard way where views can establish a persistent bi-directional communication with a controller, useful for single page apps, or concurrent edit of content
@@ -1043,24 +1043,44 @@ This is the doc to track work items, arranged in three sections:
 - deliverables:
   - server:
     - webapp/controller/websocket.js - WebSocket controller with namespace registration
+    - webapp/app.js - WebSocket server initialization with session middleware
     - package.json - ws dependency added
+    - webapp/app.conf - Redis pub/sub configuration for multi-instance coordination
     - webapp/view/admin/websocket-status.shtml - Real-time monitoring page
       - per namespace: status, name, clients, active users, messages/min, total messages
       - overall: uptime, total messages, color-coded activity log (light theme)
     - webapp/view/admin/websocket-test.shtml - Interactive test tool for developers
+    - webapp/view/admin/index.shtml - Dashboard link to WebSocket status
   - browser view:
     - webapp/view/jpulse-common.js - jPulse.ws.* client utilities
     - Persistent client UUID (localStorage)
     - Username tracking in all messages
-    - common style, define cards with dialog-style heading:
-      - .jp-card > h2:first-child
-      - .jp-card > h2:first-child .jp-subheading
+    - webapp/view/jpulse-common.css - Common styles for dashboard cards:
+      - .jp-card > h2:first-child - Dialog-style card heading
+      - .jp-card > h2:first-child .jp-subheading - Subheading with baseline alignment
+  - assets & i18n:
+    - webapp/static/assets/admin/icons/websocket.svg - WebSocket icon (electric outlet style)
+    - webapp/translations/en.conf - English i18n keys for WebSocket UI
+    - webapp/translations/de.conf - German i18n keys for WebSocket UI
   - docs:
     - docs/websockets.md - Complete WebSocket documentation
-    - docs/front-end-development.md - WebSocket section
+    - docs/front-end-development.md - WebSocket section with quick start
   - high availability:
     - Bidirectional ping/pong health checks (30s interval)
-    - Progressive reconnection (5s to 30s max with backoff)
+    - Progressive reconnection (5s to 30s max with exponential backoff)
+    - Redis pub/sub preparation for horizontal scaling (W-076 required for testing)
+  - authentication & authorization:
+    - Consolidated auth using AuthController.isAuthenticated/isAuthorized
+    - Manual session middleware invocation during WebSocket upgrade
+    - Namespace-level authentication and role-based access control
+  - testing:
+    - webapp/tests/unit/controller/websocket.test.js - 26 server-side tests
+    - webapp/tests/unit/utils/jpulse-websocket-simple.test.js - 39 client-side tests
+    - webapp/tests/helpers/websocket-test-utils.js - Test utilities and mocks
+    - 65 total tests with comprehensive coverage
+
+
+
 
 ### W-075: site: create example /hello-websocket/ app
 - status: 🕑 PENDING
@@ -1081,11 +1101,8 @@ This is the doc to track work items, arranged in three sections:
 
 
 questions:
-- i18n websocket-status
-- link to websocket-test
 - activity log padding tweak
 - svg
-- mutiple ws?
 - bug: http://localhost:8080/jpulse-examples/
   - vertical alignment issue
 - bug: http://localhost:8080/jpulse-examples/ui-widgets.shtml
@@ -1119,7 +1136,7 @@ finishing up work item: W-071:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-15 12:12
-- assume release: W-074, v0.8.6
+- assume release: W-073, v0.9.0
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
@@ -1281,6 +1298,13 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - i18n?
 - desktop vs mobile
 
+### W-076: model: create redis caching infrastrucure
+- status: 🕑 PENDING
+- type: Feature
+- redis to cache site config
+  - what else? sessions? cached files?
+- should work in multi node instances, and multi app server instances
+
 ### W-0: view: page headers with anchor links for copy & paste in browser URL bar
 - status: 🕑 PENDING
 - type: Feature
@@ -1380,13 +1404,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
     - pending steps in gray
   - example:
     | Step 1 | > | Step 2 | > | Step 3 |
-
-### W-0: model: create redis caching infrastrucure
-- status: 🕑 PENDING
-- type: Feature
-- redis to cache site config
-  - what else? sessions? cached files?
-- should work in multi node instances, and multi app server instances
 
 ### W-0: i18n: auto-discovery of changes with app update
 - status: 🕑 PENDING

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The jPulse Framework provides enterprise-grade WebSocket infrastructure for real-time bidirectional communication between server and browser. This enables use cases like:
+The jPulse Framework provides enterprise-grade WebSocket infrastructure for real-time bidirectional communication between server and browser. This enables use cases of MPAs and SPAs like:
 
 - Live collaboration (multiple users editing simultaneously)
 - Real-time dashboards and monitoring
@@ -458,7 +458,7 @@ onMessage: (clientId, data, user) => {
 Access real-time WebSocket statistics at:
 
 ```
-/admin/websocket-stats
+/admin/websocket-stats.shtml
 ```
 
 (Requires admin role)
@@ -472,7 +472,7 @@ The dashboard shows:
   - Messages per hour
   - Total messages processed
   - Last activity timestamp
-- **Activity Log**: Last 100 messages across all namespaces
+- **Activity Log**: Messages of last 5 minutes across all namespaces
 
 ### Status Indicators
 
@@ -809,7 +809,7 @@ This gives you full control over retry logic, timeouts, and failure handling bas
 See the following examples for complete implementations:
 
 - **Hello WebSocket** (`/hello-websocket/`) - Emoji reactions and collaborative todo list
-- **Admin Stats** (`/admin/websocket-stats`) - Real-time monitoring (meta example!)
+- **Admin Stats** (`/admin/websocket-stats.shtml`) - Real-time monitoring (meta example!)
 
 ---
 
@@ -889,7 +889,7 @@ jPulse.ws.getConnections()
 - Read [Front-End Development Guide](front-end-development.md) for MPA/SPA patterns
 - Explore `/hello-websocket/` example application
 - Check out [API Reference](api-reference.md) for complete API documentation
-- Visit `/admin/websocket-stats` to monitor your WebSocket namespaces
+- Visit `/admin/websocket-stats.shtml` to monitor your WebSocket namespaces
 
 ---
 

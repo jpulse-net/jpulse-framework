@@ -3,8 +3,8 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         0.8.6
- * @release         2025-10-04
+ * @version         0.9.0
+ * @release         2025-10-05
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -54,6 +54,13 @@ class WebSocketController {
     // Session middleware (for parsing sessions during upgrade)
     static sessionMiddleware = null;
 
+    // Redis clients for multi-instance coordination (optional)
+    static redis = {
+        publisher: null,
+        subscriber: null,
+        enabled: false
+    };
+
     // Namespace registry
     static namespaces = new Map();
 
@@ -89,6 +96,9 @@ class WebSocketController {
             httpServer.on('upgrade', (request, socket, head) => {
                 this._handleUpgrade(request, socket, head);
             });
+
+            // Initialize Redis pub/sub for multi-instance coordination (optional)
+            this._initializeRedis();
 
             // Register admin stats namespace
             this._registerAdminStatsNamespace();
@@ -179,6 +189,30 @@ class WebSocketController {
             username: fromUsername
         };
 
+        // Broadcast to local clients
+        this._localBroadcast(namespacePath, dataWithUsername);
+
+        // Publish to Redis for other instances (if enabled)
+        if (this.redis.enabled && this.redis.publisher) {
+            // TODO: Implement when W-076 (Redis infrastructure) is complete
+            // this.redis.publisher.publish('websocket:broadcast', JSON.stringify({
+            //     namespace: namespacePath,
+            //     data: dataWithUsername,
+            //     fromPid: process.pid
+            // }));
+        }
+    }
+
+    /**
+     * Broadcast to local clients only (called by broadcast and Redis subscriber)
+     * @private
+     */
+    static _localBroadcast(namespacePath, dataWithUsername) {
+        const namespace = this.namespaces.get(namespacePath);
+        if (!namespace) {
+            return;
+        }
+
         const message = this._formatMessage(true, dataWithUsername);
         const messageStr = JSON.stringify(message);
 
@@ -194,8 +228,8 @@ class WebSocketController {
         this._recordMessage(namespace);
 
         // Log activity (skip ping/pong)
-        if (data.type !== 'ping' && data.type !== 'pong') {
-            LogController.logInfo(null, 'websocket.broadcast', `Broadcast to ${sentCount} clients in ${namespacePath} (from: ${fromUsername || 'system'})`);
+        if (dataWithUsername.type !== 'ping' && dataWithUsername.type !== 'pong') {
+            LogController.logInfo(null, 'websocket._localBroadcast', `Broadcast to ${sentCount} clients in ${namespacePath} (from: ${dataWithUsername.username || 'system'})`);
         }
     }
 
@@ -514,6 +548,63 @@ class WebSocketController {
                 });
             });
         }, this.config.pingInterval);
+    }
+
+    /**
+     * Initialize Redis pub/sub for multi-instance WebSocket coordination
+     * Enables horizontal scaling with PM2 cluster mode
+     * @private
+     */
+    static _initializeRedis() {
+        const appConfig = global.appConfig;
+
+        // Check if Redis is enabled
+        if (!appConfig.redis?.enabled) {
+            LogController.logInfo(null, 'websocket._initializeRedis', 'Redis coordination disabled (single-instance mode)');
+            return;
+        }
+
+        try {
+            // TODO: Implement when W-076 (Redis infrastructure) is complete
+            // const redis = require('redis'); // or import from redis module
+            //
+            // this.redis.publisher = redis.createClient({
+            //     host: appConfig.redis.host,
+            //     port: appConfig.redis.port,
+            //     password: appConfig.redis.password,
+            //     db: appConfig.redis.db || 0
+            // });
+            //
+            // this.redis.subscriber = redis.createClient({
+            //     host: appConfig.redis.host,
+            //     port: appConfig.redis.port,
+            //     password: appConfig.redis.password,
+            //     db: appConfig.redis.db || 0
+            // });
+            //
+            // // Subscribe to broadcast channel
+            // this.redis.subscriber.subscribe('websocket:broadcast');
+            //
+            // // Handle messages from other instances
+            // this.redis.subscriber.on('message', (channel, message) => {
+            //     if (channel === 'websocket:broadcast') {
+            //         const { namespace, data, fromPid } = JSON.parse(message);
+            //         // Only broadcast if message came from different instance
+            //         if (fromPid !== process.pid) {
+            //             this._localBroadcast(namespace, data);
+            //         }
+            //     }
+            // });
+            //
+            // this.redis.enabled = true;
+            // LogController.logInfo(null, 'websocket._initializeRedis', 'Redis pub/sub initialized for multi-instance coordination');
+
+            LogController.logInfo(null, 'websocket._initializeRedis', 'Redis enabled in config but W-076 not yet implemented - running in single-instance mode');
+
+        } catch (error) {
+            LogController.logError(null, 'websocket._initializeRedis', `error: ${error.message} - falling back to single-instance mode`);
+            this.redis.enabled = false;
+        }
     }
 
     /**

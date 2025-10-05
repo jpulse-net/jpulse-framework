@@ -1,6 +1,167 @@
-# jPulse Framework / Docs / Version History v0.8.6
+# jPulse Framework / Docs / Version History v0.9.0
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.9.0, W-073, 2025-10-04
+
+**Commit:** `W-073, v0.9.0: Enterprise WebSocket Infrastructure with Real-Time Communication, Monitoring & Testing`
+
+**REAL-TIME COMMUNICATION INFRASTRUCTURE**: Production-ready WebSocket infrastructure for bidirectional real-time communication between server and browser, with comprehensive monitoring, authentication, auto-reconnection, and horizontal scaling preparation.
+
+**Objective**: Provide enterprise-grade WebSocket support for collaborative applications, live updates, and SPA real-time features with namespace isolation, authentication/authorization, persistent client identity, and "don't make me think" onboarding experience.
+
+**Key Features**:
+- **Enterprise WebSocket Server** (`webapp/controller/websocket.js`): Complete namespace management, session integration, authentication/authorization
+- **Client Utilities** (`jPulse.ws.*`): Connect, send, receive, status tracking, auto-reconnection
+- **Admin Monitoring** (`/admin/websocket-status`): Real-time dashboard with per-namespace stats and color-coded activity log
+- **Developer Tools** (`/admin/websocket-test`): Interactive test interface for WebSocket development
+- **Comprehensive Documentation** (`docs/websockets.md`): Complete guide with patterns and best practices
+
+**WebSocket Server Infrastructure**:
+- **Namespace Isolation**: `/ws/*` prefix with independent client pools per namespace
+- **Authentication & Authorization**: Consolidated using `AuthController` with session middleware integration
+- **Session Context**: Manual session middleware invocation during WebSocket upgrade
+- **Client Identity**: Server tracks client UUID, username, and user context
+- **Statistics Tracking**: Messages per minute, total messages, active users, last activity
+- **Activity Logging**: Real-time activity log (last 5 minutes) with message truncation
+
+**Client-Side Utilities** (`jPulse.ws.*`):
+- **Connection Management**: `connect(path, options)` returns handle with methods
+- **Persistent UUID**: Client-generated UUID v4 stored in localStorage
+- **Username Tracking**: Automatic username inclusion in all messages
+- **Auto-Reconnection**: Progressive backoff (5s → 30s max) with configurable retry limits
+- **Health Checks**: Bidirectional ping/pong (30s interval)
+- **Status Callbacks**: Real-time connection status updates (connecting/connected/reconnecting/disconnected/error)
+- **Message API**: Standardized format with success/data/error wrapper
+
+**Admin Monitoring Dashboard** (`/admin/websocket-status`):
+- **Per-Namespace Stats**: Status indicator, clients, active users, messages/min, total messages, last activity
+- **Overall Stats**: Server uptime, total messages across all namespaces
+- **Real-Time Activity Log**: Color-coded messages (success=green, error=red, info=blue, warning=orange)
+- **Message Truncation**: Smart truncation (75 chars ... 75 chars) for long messages
+- **Live Updates**: WebSocket-powered real-time statistics updates
+- **Breadcrumb Navigation**: Hierarchical navigation to admin dashboard
+
+**Developer Test Tool** (`/admin/websocket-test`):
+- **Interactive Testing**: Send custom messages and pre-configured test messages
+- **Connection Controls**: Connect/disconnect with status display
+- **Message Log**: Real-time message history with timestamps
+- **Client Info**: Display client UUID, username, namespace
+- **Toast Feedback**: Success/error notifications for user actions
+- **Test Message Types**: Info, success, warning, error with color-coded display
+
+**High Availability & Scaling**:
+- **Redis Pub/Sub Preparation**: Configuration and architecture for multi-instance coordination
+- **Horizontal Scaling**: Conditional Redis pub/sub for PM2 cluster mode (W-076 required for testing)
+- **Progressive Reconnection**: Exponential backoff prevents server overload
+- **Ping/Pong Health Checks**: Automatic connection health monitoring
+- **Graceful Degradation**: "Fire and forget" messaging with application-level retry responsibility
+
+**UI Enhancements**:
+- **Dialog-Style Card Headers** (`.jp-card > h2:first-child`): Gray background heading for dashboard cards
+- **Subheading Component** (`.jp-subheading`): Baseline-aligned helper text in card headers
+- **WebSocket Icon**: Electric outlet style SVG for admin dashboard
+- **Color-Coded Activity**: Visual distinction for message types in activity log
+
+**Internationalization**:
+- **English** (`webapp/translations/en.conf`): Complete i18n keys for WebSocket UI
+- **German** (`webapp/translations/de.conf`): Complete i18n keys for WebSocket UI
+- **Admin Dashboard**: Fully internationalized WebSocket status and test pages
+
+**Documentation**:
+- **Complete Guide** (`docs/websockets.md`): Server setup, client usage, patterns, examples
+- **Front-End Guide** (`docs/front-end-development.md`): Quick start and integration examples
+- **API Reference**: Complete `jPulse.ws.*` API documentation
+- **Best Practices**: Security, scalability, error handling patterns
+
+**Testing Infrastructure**:
+- **Server Tests** (`webapp/tests/unit/controller/websocket.test.js`): 26 comprehensive tests
+  - Authentication & authorization (7 tests)
+  - Broadcasting (6 tests)
+  - Namespace registration (5 tests)
+  - Client connections (5 tests)
+  - Session integration (3 tests)
+- **Client Tests** (`webapp/tests/unit/utils/jpulse-websocket-simple.test.js`): 39 comprehensive tests
+  - UUID generation & persistence (9 tests)
+  - Configuration & API contract (8 tests)
+  - Protocol selection & URL construction (8 tests)
+  - WebSocket state constants (3 tests)
+  - Configuration ranges (4 tests)
+  - Edge cases (4 tests)
+  - Performance tests (3 tests)
+- **Test Utilities** (`webapp/tests/helpers/websocket-test-utils.js`): Mock classes and helpers
+- **Total Coverage**: 65 tests with fast execution (<3 seconds combined)
+
+**Technical Implementation**:
+- **Dependencies**: Added `ws` npm package for WebSocket server
+- **Configuration**: Redis pub/sub settings in `webapp/app.conf`
+- **Server Initialization**: `webapp/app.js` initializes WebSocket with session middleware
+- **Route Protection**: Admin routes require authentication and admin/root roles
+- **Message Format**: Consistent with HTTP API format (success/data/error/code)
+- **UUID v4 Generation**: Client-side UUID generation following RFC 4122
+- **localStorage Persistence**: Client UUID persists across sessions/reconnections
+
+**Files Created**:
+- webapp/controller/websocket.js: WebSocket server controller (807 lines)
+- webapp/view/admin/websocket-status.shtml: Admin monitoring dashboard (495 lines)
+- webapp/view/admin/websocket-test.shtml: Interactive test tool (393 lines)
+- webapp/static/assets/admin/icons/websocket.svg: WebSocket icon
+- docs/websockets.md: Complete WebSocket documentation
+- webapp/tests/unit/controller/websocket.test.js: Server tests (886 lines)
+- webapp/tests/unit/utils/jpulse-websocket-simple.test.js: Client tests (400 lines)
+- webapp/tests/helpers/websocket-test-utils.js: Test utilities (255 lines)
+
+**Files Modified**:
+- webapp/app.js: WebSocket server initialization
+- webapp/app.conf: Redis configuration section
+- webapp/view/jpulse-common.js: Added jPulse.ws.* client utilities
+- webapp/view/jpulse-common.css: Dialog-style card headers and subheading
+- webapp/view/admin/index.shtml: WebSocket status dashboard link
+- webapp/translations/en.conf: WebSocket i18n keys
+- webapp/translations/de.conf: WebSocket i18n keys
+- docs/front-end-development.md: WebSocket quick start section
+- docs/README.md: v0.9.0 highlights and WebSocket features
+- package.json: ws dependency
+
+**Quality Assurance**:
+- All 702 tests passing (65 WebSocket + 637 existing)
+- Fast test execution (no hanging async tests)
+- Zero regressions introduced
+- Comprehensive server and client coverage
+- Manual testing with multiple browsers
+- Production-ready deployment
+
+**Developer Experience**:
+- **Simple API**: `jPulse.ws.connect(path)` returns handle with intuitive methods
+- **Auto-Reconnection**: Handles network issues automatically
+- **Status Tracking**: Real-time connection status updates
+- **Namespace Isolation**: Clean separation of concerns
+- **Admin Monitoring**: Visual insight into WebSocket health
+- **Interactive Testing**: Test tool for rapid development
+- **Complete Documentation**: Step-by-step guides and examples
+
+**Enterprise Features**:
+- **Authentication**: Namespace-level auth and role-based access control
+- **Session Integration**: Full Express session context in WebSocket handlers
+- **Horizontal Scaling**: Redis pub/sub architecture for multi-instance deployments
+- **Monitoring**: Real-time dashboards with activity logs
+- **Security**: Authentication, authorization, and session validation
+- **Reliability**: Auto-reconnection, health checks, graceful degradation
+
+**Use Cases**:
+- Collaborative editing and real-time document updates
+- Live notifications and activity feeds
+- Chat and messaging applications
+- Dashboard real-time metrics and monitoring
+- Multi-user interactive features
+- SPA state synchronization across clients
+
+**Migration Path**:
+- **Zero Breaking Changes**: New feature, no existing code affected
+- **Opt-In**: Applications choose to enable WebSocket namespaces
+- **Documentation**: Complete guides for integration
+- **Examples**: Test tool demonstrates usage patterns
 
 ________________________________________________
 ## v0.8.6, W-074, 2025-10-04

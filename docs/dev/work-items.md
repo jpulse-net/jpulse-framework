@@ -1023,18 +1023,6 @@ This is the doc to track work items, arranged in three sections:
   - update documentation (front-end-development.md, etc.)
   - update all example pages
 
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-073: site: create client & server websocket infrastructure - 0.9.0
 - status: ✅ COMPLETED
 - type: Feature
@@ -1082,11 +1070,24 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
 ### W-075: site: create example /hello-websocket/ app
-- status: 🕑 PENDING
+- status: 🚧 IN_PROGRESS
 - type: Feature
 - objective: create a websocket client app to teach how to create an app with realtime communication
 - see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
+- prerequistes:
+  - W-071: site: example /hello-todo/ MVC app with MongoDB collection - v0.8.4
+  - W-072: site: example /hello-vue/ SPA using vue.js - v0.8.5
+  - W-073: site: create client & server websocket infrastructure - 0.9.0
 - deliverables:
   - site/webapp/view/hello-websocket/index.shtml  # websocket demo view
     - two apps in two tabs:
@@ -1130,7 +1131,7 @@ next work item: W-0...
 - review task, ask questions if unclear
 - suggest change of spec if any, goal is good onboarding and learning experience for site admins and developers, using don't make me think paradigm
 - plan how to implement (wait for my go ahead)
-- current timestamp: 2025-09-30 13:14
+- current timestamp: 2025-10-04 17:55
 
 finishing up work item: W-071:
 - run tests, and fix issues

@@ -23409,3 +23409,615 @@ The deletion of the hanging test file resolved the issue perfectly.
 All 702 tests now execute quickly and reliably.
 
 Status: W-073 TESTING VERIFIED IN FULL SUITE! ✅
+
+
+============================================================
+2025-10-04 18:17
+
+PROMPT:
+W-075: site: create example /hello-websocket/ app
+- Review task, plan implementation
+- Emoji cursor demo (real-time mouse tracking)
+- Collaborative todo with WebSocket integration
+- Educational focus with code examples
+
+DECISIONS:
+1. Navigation: Button-based (consistent with hello-vue)
+2. Emoji Demo: Cursor follows mouse, DOM-based (educational)
+3. Todo Integration: Enhance existing helloTodo controller with WebSocket broadcasts
+4. Architecture: New site/webapp/controller/helloWebsocket.js
+5. Authentication: Public (requireAuth: false) for both demos
+
+IMPLEMENTATION STARTING:
+- Creating server-side controller with 2 namespaces
+- Creating Vue SPA with 5 views (Overview, Emoji, Todo, Code, Architecture)
+- 13 task items tracked in todo list
+
+IMPLEMENTATION COMPLETED:
+
+✅ Server-Side Components:
+1. site/webapp/controller/helloWebsocket.js - New WebSocket controller
+   - Registered /ws/hello-emoji namespace (cursor tracking)
+   - Registered /ws/hello-todo namespace (collaborative todo)
+   - Broadcast methods for todo events
+
+2. site/webapp/controller/helloTodo.js - Enhanced existing controller
+   - Added WebSocket broadcasts after create/update/delete
+   - Maintains REST API functionality unchanged
+   - Hybrid architecture: REST + WebSocket notifications
+
+✅ Client-Side Components:
+1. site/webapp/view/hello-websocket/index.shtml - Vue SPA main page
+   - 5-button navigation (Overview, Emoji, Todo, Code, Architecture)
+   - Emoji cursor tracking with throttling (50ms)
+   - Collaborative todo with WebSocket sync
+   - Connection status indicators
+   - Reactive Vue.js integration
+
+2. Templates created:
+   - templates/overview.tmpl - Learning goals, prerequisites
+   - templates/emoji-demo.tmpl - Interactive emoji cursor area
+   - templates/todo-demo.tmpl - Collaborative todo list
+   - templates/code-examples.tmpl - Copy-paste ready code samples
+   - templates/architecture.tmpl - System diagrams and explanations
+
+✅ Home Dashboard:
+- Updated webapp/view/home/index.shtml
+- Conditional display with file.exists check
+- Enhanced description for WebSocket demo
+
+Architecture Highlights:
+- DOM-based emoji cursors (educational, inspectable)
+- Hybrid REST + WebSocket pattern for todos
+- Throttled mouse events (20 msgs/second)
+- Auto-reconnect with progressive backoff
+- Public authentication (no login required)
+- Educational focus with comprehensive documentation
+
+Files Created/Modified:
+- NEW: site/webapp/controller/helloWebsocket.js (258 lines)
+- MODIFIED: site/webapp/controller/helloTodo.js (added WebSocket broadcasts)
+- NEW: site/webapp/view/hello-websocket/index.shtml (635 lines)
+- NEW: site/webapp/view/hello-websocket/templates/overview.tmpl
+- NEW: site/webapp/view/hello-websocket/templates/emoji-demo.tmpl
+- NEW: site/webapp/view/hello-websocket/templates/todo-demo.tmpl
+- NEW: site/webapp/view/hello-websocket/templates/code-examples.tmpl
+- NEW: site/webapp/view/hello-websocket/templates/architecture.tmpl
+- MODIFIED: webapp/view/home/index.shtml (enhanced description)
+
+Total: 9 files (6 new, 3 modified)
+Lines of code: ~2000+ lines
+
+STATUS: Implementation complete, ready for testing
+NEXT STEPS: Multi-user testing with multiple browser windows
+
+REFACTORING: Added routing.tmpl for Consistency
+
+User requested routing.tmpl file for:
+1. Consistency with hello-vue example
+2. Educational value (shows template inclusion pattern)
+
+Changes Made:
+✅ NEW: site/webapp/view/hello-websocket/templates/routing.tmpl (365 lines)
+   - Extracted all Vue.js logic from index.shtml
+   - Contains HelloWebSocketApp definition
+   - All methods, data, computed properties, template
+
+✅ MODIFIED: site/webapp/view/hello-websocket/index.shtml
+   - Removed inline <script> tag with Vue.js code
+   - Added: {{file.include "hello-websocket/templates/routing.tmpl"}}
+   - Now matches hello-vue structure exactly
+   - Reduced from 634 lines to 296 lines
+
+Benefits:
+- Separation of concerns (structure vs logic)
+- Easier to read and maintain
+- Demonstrates template inclusion pattern
+- Consistent with established hello-vue example
+
+Total Files Now:
+- 7 new files created
+- 3 files modified
+- 0 linter errors
+
+Structure now matches hello-vue:
+- index.shtml: HTML structure, styles, Vue mount point
+- templates/routing.tmpl: All Vue.js logic and routing
+- templates/*.tmpl: Individual view components
+
+CRITICAL ISSUE IDENTIFIED: Template Pattern Mismatch
+
+User correctly identified that hello-websocket templates don't follow hello-vue pattern.
+
+WRONG PATTERN (current hello-websocket):
+- Templates are HTML with Handlebars {{file.include}}
+- Content included directly in main template
+
+CORRECT PATTERN (hello-vue):
+- Templates are JavaScript Vue component definitions
+- Each defines window.jpSpaRoutes.ComponentName = { template, data, methods }
+
+NEED TO REFACTOR ALL TEMPLATES:
+- overview.tmpl → JavaScript Vue component
+- emoji-demo.tmpl → JavaScript Vue component
+- todo-demo.tmpl → JavaScript Vue component
+- code-examples.tmpl → JavaScript Vue component
+- architecture.tmpl → JavaScript Vue component
+- routing.tmpl → Update to load these components
+
+Starting refactor now...
+
+REFACTORING COMPLETE: All Templates Now JavaScript
+
+✅ Converted all .tmpl files from HTML to JavaScript components:
+
+1. overview.tmpl → window.helloWebSocketViews.Overview
+2. emoji-demo.tmpl → window.helloWebSocketViews.EmojiDemo
+3. todo-demo.tmpl → window.helloWebSocketViews.TodoDemo
+4. code-examples.tmpl → window.helloWebSocketViews.CodeExamples
+5. architecture.tmpl → window.helloWebSocketViews.Architecture
+
+Pattern Now Matches hello-vue:
+- All .tmpl files are JavaScript
+- Each defines a component with template string
+- Components stored in window.helloWebSocketViews namespace
+
+Changes Made:
+✅ index.shtml: Include all templates before routing.tmpl
+✅ routing.tmpl: Added getTemplate() method to render components
+✅ routing.tmpl: Changed from {{file.include}} to v-html="getTemplate()"
+✅ All 5 template files: Wrapped content in JavaScript component format
+
+Architecture:
+- Templates define: window.helloWebSocketViews.ComponentName = { template: `...` }
+- Main app calls: getTemplate('ComponentName') to get template string
+- Vue renders with v-html for dynamic content
+- Maintains shared state (WebSocket connections) in parent component
+
+Status: All .tmpl files are now JavaScript ✅
+Linter: No errors ✅
+Ready for testing ✅
+
+CORRECTED: Proper Server-Side Template Expansion Pattern
+
+User corrected my misunderstanding:
+- {{file.include}} is handled SERVER-SIDE, not client-side
+- Browser receives fully expanded HTML with all JavaScript inlined
+- No need to load templates dynamically or use v-html
+
+Fixed Pattern (matching hello-vue):
+✅ index.shtml includes routing.tmpl
+✅ routing.tmpl includes all component templates via {{file.include}}
+✅ Server recursively expands all includes
+✅ Browser receives ONE large file with all JavaScript
+
+Changes:
+1. routing.tmpl: Added {{file.include}} for all 5 templates
+2. index.shtml: Removed duplicate includes (routing.tmpl handles it)
+3. Components registered properly in HelloWebSocketApp
+
+Structure now matches hello-vue exactly:
+- Nested {{file.include}} handled server-side
+- All JavaScript concatenated before reaching browser
+- Clean, maintainable pattern
+
+Status: Pattern corrected, ready for testing ✅
+
+FINAL SOLUTION: Template String Composition Pattern
+
+Correct Architecture (after user guidance):
+1. All .tmpl files are JavaScript (educational ✓)
+2. They define template STRINGS (not full components)
+3. Stored in window.helloWebSocketTemplates
+4. Composed into parent template using ${getTemplate(...)}
+5. Server-side {{file.include}} expands recursively
+6. Browser receives ONE large file with all JavaScript
+
+Benefits:
+✅ All templates access parent data/methods directly
+✅ Full Vue reactivity (@click, v-if work properly)
+✅ Shared WebSocket state across all views
+✅ JavaScript files (educational, inspectable)
+✅ Clean separation (one file per view)
+✅ Server-side composition (no client-side loading)
+
+Pattern:
+- overview.tmpl → window.helloWebSocketTemplates.Overview
+- emoji-demo.tmpl → window.helloWebSocketTemplates.EmojiDemo
+- etc.
+- routing.tmpl composes them: template: `...${getTemplate('Overview')}...`
+
+This matches hello-vue educational goals while supporting shared state!
+
+Status: Architecture CORRECT and ready for testing ✅
+
+
+============================================================
+2025-10-04 20:05
+
+Prompt: user confirmed option 2 (props) for educational needs
+
+Summary: Refactored hello-websocket templates to complete Vue components with proper props/emits pattern
+
+Details:
+- Converted all 5 templates to complete Vue components:
+  1. overview.tmpl - static component (no props)
+  2. emoji-demo.tmpl - props: emojiWs, emojiStatus, selectedEmoji, availableEmojis, otherUsers, userCount
+                     - emits: connect, disconnect, selectEmoji, mouseMove
+  3. todo-demo.tmpl - props: todoWs, todoStatus, todos, todoUserCount
+                    - emits: connect, disconnect, addTodo, toggleTodo, deleteTodo
+                    - local data: newTodoTitle
+                    - methods: handleAddTodo, handleToggleTodo, handleDeleteTodo
+  4. code-examples.tmpl - static component (no props)
+  5. architecture.tmpl - static component (no props)
+- Updated routing.tmpl:
+  - Registered all components
+  - Changed from template string composition (${getTemplate(...)}) to proper component tags
+  - Parent passes props and handles emits
+  - All WebSocket logic remains in parent component
+- Benefits of props approach (vs provide/inject):
+  ✅ Explicit data flow (educational)
+  ✅ Self-documenting component API
+  ✅ Standard Vue pattern everyone knows
+  ✅ Vue devtools shows dependencies clearly
+  ✅ "Don't make me think" principle
+
+Status: Ready for testing
+Next: Test multi-user emoji cursor and collaborative todo demos
+
+
+============================================================
+2025-10-04 20:39
+
+Prompt: Syntax error in browser - "Unexpected identifier '$'" at line 632
+
+Issue: Template literals in code-examples.tmpl were not escaped
+- Vue template strings use backticks (template literals)
+- Code examples inside also used backticks with ${variable}
+- Inner ${} was being evaluated by JavaScript immediately, not shown as example code
+- Browser received invalid JavaScript syntax
+
+Fix: Escaped all template literals in code examples
+- Line 45: console.log(`${username} connected`) → console.log(\`\${username} connected\`)
+- Line 71: console.log(`${username} disconnected`) → console.log(\`\${username} disconnected\`)
+- Line 99: console.log(`Connection: ${oldStatus} → ${status}`) → console.log(\`Connection: \${oldStatus} → \${status}\`)
+
+Rule: When showing code examples inside Vue template strings, escape:
+- Backticks: ` → \`
+- Template expressions: ${} → \${}
+
+Status: Syntax error fixed, ready to test in browser
+
+
+============================================================
+2025-10-04 20:41
+
+Prompt: Syntax error at line 755 - "Unexpected token '<'"
+
+Issue: More unescaped backticks in Vue component code example
+- Line 166: template: ` (unescaped backtick)
+- Line 174: ` (closing backtick)
+- These were inside a <pre><code> block showing example Vue component
+- The backticks closed the outer component's template prematurely
+- HTML after that was treated as JavaScript, causing syntax error
+
+Fix: Escaped the template literal in Vue component example
+- Line 166: template: ` → template: \`
+- Line 174: ` → \`
+- Now properly displayed as example code without breaking outer template
+
+Verification: 
+- Searched all backticks: only line 19 has unescaped backtick (correct - actual component template)
+- All code example backticks are now escaped
+
+Status: All template literal syntax errors fixed, ready to test in browser
+
+
+============================================================
+2025-10-04 20:45
+
+Prompt: Syntax error at line 1247 - "Unexpected identifier 'Admin'"
+
+Issue: Another unescaped template literal in architecture.tmpl
+- Line 248: console.log(`Admin ${user.username} connected`)
+- Inside a <pre><code> block showing authentication example
+- Same root cause as previous errors
+
+Fix: Escaped the template literal
+- Line 248: console.log(`Admin ${user.username} connected`) → console.log(\`Admin \${user.username} connected\`)
+
+Verification:
+- Searched all WebSocket templates for ${} patterns
+- routing.tmpl has 5 instances of ${} - these are CORRECT (actual runtime template literals, not examples)
+- architecture.tmpl now has only 1 escaped instance (the one we fixed)
+- code-examples.tmpl already fixed earlier
+
+Status: All template literal syntax errors in code examples now fixed
+
+
+============================================================
+2025-10-04 21:06
+
+Prompt: Three issues found during testing:
+1. Overview and architecture pages load correctly
+2. Code-examples needs jp-* styles and Prism highlighting
+3. Emoji demo WebSocket connection failing
+
+Fixes Applied:
+
+1. **WebSocket Connection Failure** - CRITICAL FIX
+   - Root cause: HelloWebsocketController was never initialized!
+   - Modified webapp/app.js to initialize site WebSocket controllers after WebSocketController.initialize()
+   - Added try/catch to gracefully handle missing site controllers
+   - Code added at lines 263-270
+   - **ACTION REQUIRED: Restart server** for WebSocket namespaces to register
+
+2. **Code Examples Styling** - Pattern identified
+   - hello-vue uses: `<div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>code</pre></div>`
+   - Instead of: `<pre><code>code</code></pre>`
+   - Table styling: Use `jp-table-container` and `jp-table` classes
+   - **Note**: Large refactor needed (10+ code blocks to update)
+   - Pattern example from hello-vue/templates/code.tmpl provided
+
+Changes not yet applied:
+- code-examples.tmpl still needs full refactoring to jp-* styles
+- All `<pre><code>` blocks need conversion to jp-source-code format
+- Table at line 371 needs jp-table classes
+
+Status: Server restart required to fix WebSocket connection
+Next: After restart, test emoji and todo demos
+
+
+============================================================
+2025-10-04 21:11
+
+Prompt: Connection works but nothing shown in blue box
+
+Root Cause: Vue v-for doesn't iterate over Maps directly!
+- emoji-demo.tmpl line 102 had: v-for="(user, clientId) in otherUsers"
+- otherUsers is a Map, but v-for needs an array
+- The computed property otherUsersArray existed but wasn't being used in v-for
+- Result: No emoji cursors ever displayed, even when multiple users connected
+
+Fixes Applied:
+
+1. **Fixed v-for to use array** (emoji-demo.tmpl)
+   - Changed: v-for="(user, clientId) in otherUsers"
+   - To: v-for="user in otherUsersArray"
+   - Now uses the computed property that converts Map to array
+
+2. **Enhanced computed property** (emoji-demo.tmpl lines 28-36)
+   - Changed: Array.from(this.otherUsers.values())
+   - To: Array.from(this.otherUsers.entries()).map(([clientId, user]) => ({...user, clientId}))
+   - Now includes clientId in each object for use as :key
+
+3. **Added debug output** (emoji-demo.tmpl line 94-96)
+   - Shows "Debug: X other user(s) connected"
+   - Helps verify reactivity is working
+   - Can be removed after testing
+
+Expected Behavior:
+- When alone: Blue box shows "👋 Move your mouse!" (empty state)
+- With others: Shows their emoji cursors following their mouse
+- Your own cursor is NOT shown (correct - would be redundant)
+
+Status: Critical bug fixed, ready to test
+Next: Open two browser windows to test multi-user emoji tracking
+
+
+============================================================
+2025-10-04 21:15
+
+Prompt: Emoji demo works! Small improvement - center emoji on cursor tip
+
+Success: Multi-user emoji tracking working perfectly!
+- WebSocket connection established
+- Mouse movements tracked and broadcasted
+- Other users' emojis visible in real-time
+- Server logs confirm: cursor-move messages being received and broadcasted
+
+Improvement Applied:
+- Issue: Emoji positioned at upper-left of cursor (default for position: absolute)
+- Fix: Added `transform: translate(-50%, -50%)` to .local-emoji-cursor
+- Result: Emoji now centered on cursor tip
+- Line 142 in hello-websocket/index.shtml
+
+Also Cleaned Up:
+- Removed debug output ("Debug: X other user(s) connected")
+- Line 94-96 in emoji-demo.tmpl removed
+
+Status: Emoji cursor demo COMPLETE ✅
+Next: Test collaborative todo demo
+
+
+============================================================
+2025-10-04 21:22
+
+Prompt: Todo demo - can connect, but nothing happens when adding a todo
+
+Root Cause: Parameter mismatch between child component emit and parent handler
+- Child component (todo-demo.tmpl line 34): this.$emit('addTodo', this.newTodoTitle.trim())
+  → Emits the title string as a parameter
+- Parent handler (routing.tmpl line 244): async addTodo() { if (!this.newTodoTitle.trim())...
+  → Expected this.newTodoTitle to be set, but it doesn't exist in parent's data()
+- Result: addTodo() received the title parameter but ignored it, checking non-existent this.newTodoTitle
+
+Fix Applied (routing.tmpl):
+- Changed: async addTodo() { if (!this.newTodoTitle.trim()) return;
+- To: async addTodo(title) { if (!title || !title.trim()) return;
+- Changed: title: this.newTodoTitle.trim()
+- To: title: title.trim()
+- Removed: this.newTodoTitle = ''; (not needed, child component handles it)
+- Added: jPulse.UI.toast.show('Todo added!', 'success'); (user feedback)
+
+Pattern: This is the correct props/emits pattern
+- Child owns local state (newTodoTitle)
+- Child emits events with data as parameters
+- Parent receives parameters and acts on them
+- Parent doesn't duplicate child's local state
+
+Status: Todo add functionality fixed, ready to test
+Next: Test add/toggle/delete todos with multi-user sync
+
+
+============================================================
+2025-10-04 21:29
+
+Prompt: Todo works! Fix - two toast messages show for each add
+
+Root Cause: Double toast notification
+- Line 257: addTodo() shows "Todo added!" success toast after REST API call
+- Line 222: WebSocket broadcast handler shows "username added a todo" info toast
+- Result: User sees two toasts for their own action
+
+Fix Applied (routing.tmpl lines 255-258):
+- Removed: jPulse.UI.toast.show('Todo added!', 'success');
+- Kept: WebSocket broadcast toast (line 222)
+- Reason: WebSocket notification is consistent for all users (including the creator)
+
+Design Decision:
+- Single source of truth for notifications: WebSocket broadcast
+- Everyone sees the same notification: "username added a todo"
+- Consistent behavior whether it's your action or someone else's
+- Only show error toast if REST API fails (line 256)
+
+Status: Duplicate toast fixed
+Next: Test toggle and delete functionality
+
+
+============================================================
+2025-10-04 21:34
+
+Prompt: Routing inconsistency - hello-vue uses /hello-vue/todo, hello-websocket uses /hello-websocket/#todo
+Question: Keep both approaches for educational value, or standardize?
+
+Decision: KEEP BOTH APPROACHES
+
+Rationale:
+1. Different educational purposes:
+   - hello-vue: Teaches Vue SPA with routing as PRIMARY feature → Vue Router with History Mode
+   - hello-websocket: Teaches WebSocket concepts → Hash routing keeps it simple
+
+2. Progressive learning:
+   - Hash routing (#) is simpler, no server config needed
+   - Vue Router History Mode is more advanced, requires server fallback config
+
+3. Shows trade-offs:
+   - Hash routing: Works everywhere, simple setup, URLs have # symbol
+   - History Mode: Clean URLs, requires server config for SPA fallback
+
+4. Educational variety:
+   - Developers learn both approaches are valid
+   - Can choose based on project complexity
+
+Documentation Added (routing.tmpl lines 20-22):
+- Comment explaining hash-based routing choice
+- References hello-vue for Vue Router example
+- Clarifies this keeps focus on WebSocket concepts
+
+Status: Routing approach documented and justified
+Next: Continue with any remaining polish or testing
+
+
+============================================================
+2025-10-04 21:38
+
+Prompt: 1) Review hello-websocket for KISS & don't make me think, 2) Review websockets.md and add useful items
+
+KISS & "Don't Make Me Think" Improvements Applied:
+
+1. **Consistent Disconnect Icon** (emoji-demo.tmpl, todo-demo.tmpl)
+   - Changed: ⏸️ Disconnect (pause icon - confusing)
+   - To: 🔌 Disconnect (plug icon - consistent with Connect button)
+   - Reasoning: Same icon for connect/disconnect is clearer (plug in/unplug)
+
+websockets.md Documentation Enhancements:
+
+1. **Added Pattern 1: Ephemeral Real-Time Tracking** (lines 496-539)
+   - Use case: cursor positions, presence, live annotations
+   - Example: Emoji cursor tracking from hello-websocket
+   - Key insight: No database needed, lightweight, fast
+   - Shows throttling pattern for high-frequency events (50ms)
+
+2. **Added Pattern 2: Hybrid REST + WebSocket Architecture** (lines 541-597)
+   - Use case: Add real-time to existing REST API without breaking it
+   - Example: Collaborative todo from hello-websocket
+   - Complete code showing REST + WebSocket integration
+   - Benefits listed: REST works independently, all clients stay synced
+   - This is THE recommended pattern for adding real-time features
+
+3. **Renumbered Existing Patterns** (now 3-6)
+   - Real-Time Notifications → Pattern 3
+   - Live Data Updates → Pattern 4
+   - User Presence → Pattern 5
+   - Request/Response → Pattern 6
+
+4. **Enhanced Examples Section** (lines 910-944)
+   - Expanded hello-websocket description with details:
+     * Emoji cursor: ephemeral tracking, throttling, no database
+     * Collaborative todo: hybrid architecture, REST + WebSocket
+     * Links to pattern numbers for cross-reference
+   - Enhanced admin stats description with pattern reference
+
+Educational Benefits:
+- Developers now have two clear patterns with complete examples
+- Ephemeral pattern shows simplest approach (no database)
+- Hybrid pattern shows production-ready approach (REST + WebSocket)
+- Both patterns reference actual working code in hello-websocket
+- Cross-references between documentation and live demos
+
+Status: KISS improvements and documentation enhancements complete ✅
+
+
+============================================================
+2025-10-04 21:51
+
+Prompt: Fix current refactor issue - syntax error "Unexpected identifier '$'"
+
+Root Cause: File structure corruption during refactor attempt
+- Accidentally inserted `template: `` at line 107
+- This put all methods (lines 108-339) INSIDE a template string
+- JavaScript saw them as template content, not executable code
+- Real template was at line 348, creating double template definition
+
+Fixes Applied (routing.tmpl):
+
+1. **Removed bogus template line** (was at line 107)
+   - Deleted: `template: `` that was prematurely placed
+
+2. **Restored methods structure**
+   - All emoji demo methods now properly in methods: { } section
+   - All todo demo methods properly in methods: { } section
+   - navigateTo and all other methods in correct place
+
+3. **Restored demo state in data()**
+   - Added back: emojiWs, emojiStatus, selectedEmoji, availableEmojis, otherUsers
+   - Added back: todoWs, todoStatus, todos, todoUserCount
+   - Routes definition retained
+
+4. **Fixed computed property**
+   - Restored: otherUsersArray with clientId mapping
+   - This was lost during corruption
+
+5. **Added routes definition**
+   - window.helloWebSocketRoutes array created (lines 34-70)
+   - Similar to hello-vue pattern but using hash routing
+   - Includes: overview, emoji, todo, code, architecture
+
+Final Structure (CORRECT):
+- Lines 72-79: components registration
+- Lines 80-97: data() with all state
+- Lines 99-107: mounted() lifecycle
+- Lines 109-352: methods{ } with all demo logic
+- Lines 354-362: computed{ } with otherUsersArray
+- Lines 364-434: template with HTML
+- Line 438: Vue app initialization
+
+Template Literals Status:
+- Lines 265, 273, 280: Unescaped template literals in methods (CORRECT)
+- These are runtime JavaScript, NOT inside Vue template
+- They evaluate at runtime: `${data.username || 'Someone'}`
+- NO escaping needed
+
+Status: File structure restored, syntax error fixed ✅
+Next: User will do checkpoint commit, then I'll do full refactor

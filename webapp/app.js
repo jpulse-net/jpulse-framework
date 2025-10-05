@@ -259,6 +259,15 @@ async function startApp() {
 
     // Initialize WebSocket server with session middleware
     WebSocketController.initialize(server, sessionMiddleware);
+
+    // Initialize site WebSocket controllers
+    try {
+        const HelloWebsocketController = (await import('../site/webapp/controller/helloWebsocket.js')).default;
+        await HelloWebsocketController.initialize();
+    } catch (error) {
+        // Site controller may not exist - that's ok
+        LogController.logInfo(null, 'app', 'No site WebSocket controllers to initialize');
+    }
 }
 
 // Start the application

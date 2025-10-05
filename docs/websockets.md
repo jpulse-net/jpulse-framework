@@ -493,7 +493,110 @@ const stats = WebSocketController.getStats();
 
 ## Common Patterns
 
-### Pattern 1: Real-Time Notifications
+### Pattern 1: Ephemeral Real-Time Tracking (No Database)
+
+**Use Case:** Track temporary state that doesn't need persistence (cursor positions, presence, live annotations).
+
+**Example:** Emoji cursor tracking from `/hello-websocket/`
+
+```javascript
+// Server: Simply broadcast positions, no database
+onMessage: (clientId, data, user) => {
+    if (data.type === 'cursor-move') {
+        // Broadcast position to all other clients
+        wsHandle.broadcast({
+            type: 'cursor',
+            clientId: clientId,
+            username: user?.username || 'guest',
+            emoji: data.emoji,
+            x: data.x,
+            y: data.y
+        }, user?.username || '');
+    }
+}
+
+// Client: Throttle high-frequency events
+let lastSent = 0;
+function handleMouseMove(event) {
+    const now = Date.now();
+    if (now - lastSent >= 50) {  // 20 updates/second
+        lastSent = now;
+        ws.send({
+            type: 'cursor-move',
+            emoji: selectedEmoji,
+            x: calculateX(event),
+            y: calculateY(event)
+        });
+    }
+}
+```
+
+**Key Points:**
+- No database queries needed
+- Fast and lightweight
+- State lives only in memory
+- Perfect for transient data
+- Use throttling for high-frequency events (mouse movements, scroll positions)
+
+### Pattern 2: Hybrid REST + WebSocket Architecture
+
+**Use Case:** Add real-time updates to existing REST API without breaking it.
+
+**Example:** Collaborative todo list from `/hello-websocket/`
+
+```javascript
+// Server: Enhance existing REST controller with WebSocket broadcasts
+class TodoController {
+    static async apiCreate(req, res) {
+        // Existing REST API logic (validation, database, etc.)
+        const todo = await TodoModel.create(todoData);
+        res.json({ success: true, data: todo });
+
+        // NEW: Broadcast to WebSocket clients
+        if (HelloWebsocketController.broadcastTodoCreated) {
+            HelloWebsocketController.broadcastTodoCreated(todo, username);
+        }
+    }
+}
+
+// WebSocket controller: Just handle broadcasts, no business logic
+class HelloWebsocketController {
+    static broadcastTodoCreated(todo, username) {
+        this.wsHandles.todo.broadcast({
+            type: 'todo-created',
+            todo: todo,
+            username: username
+        });
+    }
+}
+
+// Client: Use REST for actions, WebSocket for notifications
+async function addTodo(title) {
+    // Use REST API for the action (validation, persistence)
+    const response = await jPulse.api.post('/api/1/todo', { title });
+
+    // WebSocket will notify everyone (including us) when it's saved
+    // No need to manually update UI here
+}
+
+// Client: Listen for WebSocket updates
+ws.onMessage((data) => {
+    if (data.type === 'todo-created') {
+        // Update UI reactively
+        todos.push(data.todo);
+    }
+});
+```
+
+**Benefits:**
+- ✅ REST API continues to work independently
+- ✅ Non-WebSocket clients (mobile apps, scripts) still work
+- ✅ Business logic stays in one place (controller)
+- ✅ WebSocket layer can be added/removed without breaking app
+- ✅ Validation and error handling already in REST API
+- ✅ All clients stay synchronized
+
+### Pattern 3: Real-Time Notifications
 
 ```javascript
 // Server: Broadcast notification to all clients
@@ -511,7 +614,7 @@ ws.onMessage((data) => {
 });
 ```
 
-### Pattern 2: Live Data Updates
+### Pattern 4: Live Data Updates
 
 ```javascript
 // Server: Send updates when data changes
@@ -530,7 +633,7 @@ ws.onMessage((data) => {
 });
 ```
 
-### Pattern 3: User Presence
+### Pattern 5: User Presence
 
 ```javascript
 // Server: Track connected users
@@ -556,13 +659,13 @@ onDisconnect: (clientId, user) => {
 // Client: Show user count
 ws.onMessage((data) => {
     if (data.type === 'user-joined' || data.type === 'user-left') {
-        document.getElementById('userCount').textContent = 
+        document.getElementById('userCount').textContent =
             `${data.count} users online`;
     }
 });
 ```
 
-### Pattern 4: Request/Response
+### Pattern 6: Request/Response
 
 ```javascript
 // Client: Send request with ID
@@ -808,8 +911,37 @@ This gives you full control over retry logic, timeouts, and failure handling bas
 
 See the following examples for complete implementations:
 
-- **Hello WebSocket** (`/hello-websocket/`) - Emoji reactions and collaborative todo list
-- **Admin Stats** (`/admin/websocket-stats.shtml`) - Real-time monitoring (meta example!)
+### Hello WebSocket Demo (`/hello-websocket/`)
+
+A comprehensive interactive demo with two real-world patterns:
+
+**1. Emoji Cursor Tracking** - Ephemeral real-time tracking
+- See other users' mouse cursors in real-time
+- No database persistence (ephemeral state)
+- Demonstrates throttling for high-frequency events (50ms)
+- Perfect example of lightweight real-time tracking
+- **Pattern:** Ephemeral tracking (Pattern 1)
+
+**2. Collaborative Todo List** - Hybrid REST + WebSocket
+- Add, complete, and delete todos with instant sync
+- REST API handles all CRUD operations
+- WebSocket broadcasts changes to all users
+- Shows how to layer real-time onto existing MVC
+- **Pattern:** Hybrid architecture (Pattern 2)
+
+**Also includes:**
+- Code examples (copy-paste ready)
+- Architecture explanation
+- Best practices
+
+### Admin WebSocket Stats (`/admin/websocket-stats.shtml`)
+
+Real-time monitoring dashboard (requires admin role):
+- Live namespace statistics
+- Active client counts
+- Message rates and activity logs
+- Connection health indicators
+- **Pattern:** Live data updates (Pattern 4)
 
 ---
 

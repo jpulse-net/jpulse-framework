@@ -1,0 +1,424 @@
+// Code examples component, site/webapp/view/hello-websocket/templates/code-examples.tmpl
+/**
+ * @name            jPulse Framework / Site / WebApp / View / Hello WebSocket / Templates / Code Examples
+ * @tagline         Code examples component of the WebSocket demo
+ * @description     This component shows code examples of the WebSocket demo
+ * @file            site/webapp/view/hello-websocket/templates/code-examples.tmpl
+ * @version         0.9.0
+ * @release         2025-10-05
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4.5
+ */
+
+window.helloWebSocketViews = window.helloWebSocketViews || {};
+
+window.helloWebSocketViews.CodeExamples = {
+    template: `
+<div class="jp-card">
+    <h2>💻 Code Examples</h2>
+
+    <p>Copy-paste ready code for implementing WebSocket patterns in your own applications.</p>
+
+    <!-- Server-Side Code -->
+    <div class="local-code-example">
+        <h3>🖥️ Server-Side: Register WebSocket Namespace</h3>
+        <p>Create a controller to handle WebSocket connections and messages:</p>
+
+        <h4>📄 site/webapp/controller/myWebsocket.js</h4>
+        <pre><code>import WebSocketController from '../../../webapp/controller/websocket.js';
+
+class MyWebsocketController {
+
+    static wsHandle = null;
+
+    static async initialize() {
+        // Register WebSocket namespace
+        this.wsHandle = WebSocketController.registerNamespace('/ws/my-app', {
+            requireAuth: false,      // Set true to require login
+            requireRoles: [],        // e.g., ['admin', 'user']
+
+            onConnect: (clientId, user) => {
+                const username = user?.username || 'guest';
+                console.log(\`\${username} connected\`);
+
+                // Send welcome message to this client
+                this.wsHandle.sendToClient(clientId, {
+                    type: 'welcome',
+                    message: 'Connected to my app!'
+                });
+            },
+
+            onMessage: (clientId, data, user) => {
+                const username = user?.username || 'guest';
+
+                // Handle different message types
+                if (data.type === 'chat-message') {
+                    // Broadcast to all clients
+                    this.wsHandle.broadcast({
+                        type: 'chat-message',
+                        username: username,
+                        message: data.message,
+                        timestamp: Date.now()
+                    }, username);
+                }
+            },
+
+            onDisconnect: (clientId, user) => {
+                const username = user?.username || 'guest';
+                console.log(\`\${username} disconnected\`);
+            }
+        });
+    }
+}
+
+export default MyWebsocketController;</code></pre>
+    </div>
+
+    <!-- Client-Side Code -->
+    <div class="local-code-example">
+        <h3>🌐 Client-Side: Connect and Communicate</h3>
+        <p>In your Vue.js component or vanilla JavaScript:</p>
+
+        <h4>Basic Connection</h4>
+        <pre><code>// Connect to WebSocket namespace
+const ws = jPulse.ws.connect('/ws/my-app')
+    .onMessage((data, message) => {
+        if (data) {
+            // Handle successful message
+            console.log('Received:', data);
+        } else {
+            // Handle error
+            console.error('Error:', message.error);
+        }
+    })
+    .onStatusChange((status, oldStatus) => {
+        // Status values: 'connecting', 'connected', 'reconnecting', 'disconnected'
+        console.log(\`Connection: \${oldStatus} → \${status}\`);
+    });
+
+// Send message
+ws.send({
+    type: 'chat-message',
+    message: 'Hello, world!'
+});
+
+// Check connection status
+if (ws.isConnected()) {
+    console.log('Ready to send messages');
+}
+
+// Disconnect when done
+ws.disconnect();</code></pre>
+    </div>
+
+    <!-- Vue.js Integration -->
+    <div class="local-code-example">
+        <h3>⚡ Vue.js Integration</h3>
+        <p>Using WebSocket in a Vue component with reactive data:</p>
+
+        <pre><code>const MyApp = {
+    data() {
+        return {
+            ws: null,
+            status: 'disconnected',
+            messages: []
+        };
+    },
+
+    mounted() {
+        this.connect();
+    },
+
+    beforeUnmount() {
+        if (this.ws) {
+            this.ws.disconnect();
+        }
+    },
+
+    methods: {
+        connect() {
+            this.ws = jPulse.ws.connect('/ws/my-app')
+                .onMessage((data) => {
+                    if (data.type === 'chat-message') {
+                        // Reactive update - UI updates automatically
+                        this.messages.push(data);
+                    }
+                })
+                .onStatusChange((status) => {
+                    // Reactive status update
+                    this.status = status;
+                });
+        },
+
+        sendMessage(text) {
+            if (this.ws && this.ws.isConnected()) {
+                this.ws.send({
+                    type: 'chat-message',
+                    message: text
+                });
+            }
+        }
+    },
+
+    template: \`
+        <div>
+            <div>Status: {{ status }}</div>
+            <div v-for="msg in messages">
+                {{ msg.username }}: {{ msg.message }}
+            </div>
+            <button @click="sendMessage('Hello!')">Send</button>
+        </div>
+    \`
+};</code></pre>
+    </div>
+
+    <!-- REST API + WebSocket Pattern -->
+    <div class="local-code-example">
+        <h3>🔄 Pattern: REST API + WebSocket Hybrid</h3>
+        <p>Best practice for adding real-time to existing applications:</p>
+
+        <h4>Server-Side Controller</h4>
+        <pre><code>// In your existing REST controller (e.g., todoController.js)
+import MyWebsocketController from './myWebsocket.js';
+
+class TodoController {
+
+    static async apiCreate(req, res) {
+        try {
+            // 1. Validate and create via REST API (existing code)
+            const todo = await TodoModel.create(req.body);
+
+            // 2. NEW: Broadcast to WebSocket clients
+            if (MyWebsocketController.wsHandle) {
+                MyWebsocketController.wsHandle.broadcast({
+                    type: 'todo-created',
+                    todo: todo,
+                    username: req.session?.user?.username || 'guest'
+                });
+            }
+
+            // 3. Return REST API response (existing code)
+            res.json({ success: true, data: todo });
+
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
+}
+
+export default TodoController;</code></pre>
+
+        <h4>Client-Side (Vue.js)</h4>
+        <pre><code>const TodoApp = {
+    data() {
+        return {
+            ws: null,
+            todos: []
+        };
+    },
+
+    async mounted() {
+        // 1. Load initial data via REST API
+        await this.loadTodos();
+
+        // 2. Connect to WebSocket for live updates
+        this.ws = jPulse.ws.connect('/ws/my-app')
+            .onMessage((data) => {
+                if (data.type === 'todo-created') {
+                    // Add new todo to list (if not already present)
+                    const exists = this.todos.find(t => t._id === data.todo._id);
+                    if (!exists) {
+                        this.todos.unshift(data.todo);
+                    }
+                }
+            });
+    },
+
+    methods: {
+        async loadTodos() {
+            // Use REST API for initial load
+            const response = await jPulse.api.get('/api/1/todos');
+            if (response.success) {
+                this.todos = response.data;
+            }
+        },
+
+        async addTodo(title) {
+            // Use REST API for mutations
+            const response = await jPulse.api.post('/api/1/todos', { title });
+            // No need to manually add to array - WebSocket will notify us!
+        }
+    }
+};</code></pre>
+
+        <p class="jp-help-text" style="margin-top: 10px;">
+            💡 <strong>Why this pattern?</strong> REST API does validation, persistence, and error handling.
+            WebSocket provides instant notifications. Best of both worlds!
+        </p>
+    </div>
+
+    <!-- Throttling Pattern -->
+    <div class="local-code-example">
+        <h3>⏱️ Pattern: Mouse/Position Throttling</h3>
+        <p>Essential for high-frequency events like mouse movement:</p>
+
+        <pre><code>class MyComponent {
+    data() {
+        return {
+            ws: null,
+            _lastSend: 0  // Track last send time
+        };
+    },
+
+    methods: {
+        handleMouseMove(event) {
+            if (!this.ws || !this.ws.isConnected()) return;
+
+            // Get mouse position
+            const rect = event.currentTarget.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / rect.width) * 100;
+            const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+            // Throttle: only send every 50ms
+            const now = Date.now();
+            if (now - this._lastSend >= 50) {
+                this._lastSend = now;
+
+                this.ws.send({
+                    type: 'cursor-move',
+                    x: Math.round(x * 10) / 10,  // Round to 1 decimal
+                    y: Math.round(y * 10) / 10
+                });
+            }
+        }
+    }
+}</code></pre>
+
+        <p class="jp-help-text" style="margin-top: 10px;">
+            💡 <strong>Important:</strong> Mouse events fire hundreds of times per second. Always throttle
+            or debounce high-frequency events before sending over WebSocket!
+        </p>
+    </div>
+
+    <!-- Error Handling -->
+    <div class="local-code-example">
+        <h3>🛡️ Pattern: Error Handling & Reconnection</h3>
+        <p>Handle connection failures gracefully:</p>
+
+        <pre><code>const ws = jPulse.ws.connect('/ws/my-app', {
+    reconnectBaseInterval: 5000,    // Start with 5 seconds
+    reconnectMaxInterval: 30000,    // Max 30 seconds
+    maxReconnectAttempts: 10        // Give up after 10 attempts
+})
+.onStatusChange((status, oldStatus) => {
+    if (status === 'disconnected') {
+        // Show warning to user
+        jPulse.UI.toast.show('Connection lost. Please reload page.', 'error');
+
+        // Disable features that require WebSocket
+        this.disableRealtimeFeatures();
+
+    } else if (status === 'connected' && oldStatus === 'reconnecting') {
+        // Reconnected!
+        jPulse.UI.toast.show('Connection restored!', 'success');
+
+        // Re-enable features
+        this.enableRealtimeFeatures();
+
+        // Optionally: reload fresh data
+        await this.loadTodos();
+    }
+});</code></pre>
+    </div>
+
+    <!-- Message Format -->
+    <div class="local-code-example">
+        <h3>📦 Message Format Convention</h3>
+        <p>All WebSocket messages follow the standard API format:</p>
+
+        <h4>Success Response</h4>
+        <pre><code>{
+    success: true,
+    data: {
+        type: 'chat-message',      // Your message type
+        username: 'john_doe',      // Automatically added by framework
+        message: 'Hello, world!',  // Your custom data
+        timestamp: 1677123456789
+    }
+}</code></pre>
+
+        <h4>Error Response</h4>
+        <pre><code>{
+    success: false,
+    error: 'Authentication required',
+    code: 401,
+    username: ''  // Empty for system messages
+}</code></pre>
+
+        <p class="jp-help-text" style="margin-top: 10px;">
+            💡 The <code>username</code> field is automatically added to all messages by the framework.
+            It contains the authenticated user's username, or an empty string if not authenticated.
+        </p>
+    </div>
+
+    <!-- Common Patterns Summary -->
+    <div class="jp-card" style="margin-top: 20px; background: #e3f2fd;">
+        <h3 style="margin-top: 0;">📚 Quick Reference</h3>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <tr style="background: #fff;">
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Task</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Code</strong></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;">Connect</td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><code>jPulse.ws.connect('/ws/path')</code></td>
+            </tr>
+            <tr style="background: #f8f9fa;">
+                <td style="padding: 8px; border: 1px solid #ddd;">Send message</td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.send({type: 'action', data: ...})</code></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;">Listen for messages</td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.onMessage((data) => {...})</code></td>
+            </tr>
+            <tr style="background: #f8f9fa;">
+                <td style="padding: 8px; border: 1px solid #ddd;">Check status</td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.getStatus() // 'connected', etc.</code></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;">Check if connected</td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.isConnected() // boolean</code></td>
+            </tr>
+            <tr style="background: #f8f9fa;">
+                <td style="padding: 8px; border: 1px solid #ddd;">Disconnect</td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.disconnect()</code></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;">Broadcast (server)</td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><code>wsHandle.broadcast({...})</code></td>
+            </tr>
+            <tr style="background: #f8f9fa;">
+                <td style="padding: 8px; border: 1px solid #ddd;">Send to one (server)</td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><code>wsHandle.sendToClient(clientId, {...})</code></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="jp-card" style="margin-top: 20px; background: #fff3cd; border-left: 4px solid #ffc107;">
+        <h3 style="margin-top: 0;">📖 Complete Documentation</h3>
+        <p style="margin: 0;">
+            For comprehensive API reference, advanced patterns, authentication, and troubleshooting,
+            see the <a href="/jpulse-docs/websockets" target="_blank">WebSocket Documentation</a>.
+        </p>
+    </div>
+</div>
+`
+
+    // No props needed - static content only
+};
+
+// EOF site/webapp/view/hello-websocket/templates/code-examples.tmpl

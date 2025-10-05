@@ -1,0 +1,219 @@
+// To-do demo component, site/webapp/view/hello-websocket/templates/todo-demo.tmpl
+/**
+ * @name            jPulse Framework / Site / WebApp / View / Hello WebSocket / Templates / To-do Demo
+ * @tagline         Collaborative to-do demo component
+ * @description     Collaborative to-do list demo component of the WebSocket demo
+ * @file            site/webapp/view/hello-websocket/templates/todo-demo.tmpl
+ * @version         0.9.0
+ * @release         2025-10-05
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4.5
+ */
+
+window.helloWebSocketViews = window.helloWebSocketViews || {};
+
+window.helloWebSocketViews.TodoDemo = {
+    props: {
+        todoWs: Object,
+        todoStatus: String,
+        todos: Array,
+        todoUserCount: Number
+    },
+    emits: ['connect', 'disconnect', 'addTodo', 'toggleTodo', 'deleteTodo'],
+    data() {
+        return {
+            newTodoTitle: ''
+        };
+    },
+    methods: {
+        handleAddTodo() {
+            if (!this.newTodoTitle.trim()) return;
+            this.$emit('addTodo', this.newTodoTitle.trim());
+            this.newTodoTitle = '';
+        },
+        handleToggleTodo(todo) {
+            this.$emit('toggleTodo', todo);
+        },
+        handleDeleteTodo(todoId) {
+            this.$emit('deleteTodo', todoId);
+        }
+    },
+    template: `
+<div class="jp-card">
+    <h2>✅ Collaborative Todo Demo</h2>
+
+    <div class="jp-info-box">
+        <h3>🎯 What This Demonstrates</h3>
+        <p>Real-time collaborative todo list powered by WebSocket + REST API. Changes made by anyone are instantly visible to everyone!</p>
+
+        <ul style="margin: 10px 0 0 20px; line-height: 1.6; font-size: 14px;">
+            <li><strong>Hybrid architecture</strong> - REST API for CRUD, WebSocket for notifications</li>
+            <li><strong>Database persistence</strong> - All todos stored in MongoDB</li>
+            <li><strong>Instant sync</strong> - Add/complete/delete todos, everyone sees it instantly</li>
+            <li><strong>Layered approach</strong> - WebSocket added to existing MVC without breaking it</li>
+        </ul>
+    </div>
+
+    <!-- Connection Status & Controls -->
+    <div style="display: flex; gap: 15px; align-items: center; margin: 20px 0; flex-wrap: wrap;">
+        <button v-if="!todoWs"
+                @click="$emit('connect')"
+                class="jp-btn jp-btn-primary">
+            🔌 Connect to Todo Demo
+        </button>
+
+        <button v-if="todoWs"
+                @click="$emit('disconnect')"
+                class="jp-btn jp-btn-danger">
+            🔌 Disconnect
+        </button>
+
+        <div :class="['local-connection-status', todoStatus]">
+            <span :class="['local-status-dot', todoStatus]"></span>
+            <span>{{ todoStatus.charAt(0).toUpperCase() + todoStatus.slice(1) }}</span>
+        </div>
+
+        <div v-if="todoWs && todoStatus === 'connected'" class="jp-help-text" style="margin: 0;">
+            👥 <strong>{{ todoUserCount }}</strong> {{ todoUserCount === 1 ? 'user' : 'users' }} online
+        </div>
+    </div>
+
+    <!-- Add Todo Form -->
+    <div v-if="todoWs && todoStatus === 'connected'" class="jp-card" style="background: #f8f9fa;">
+        <h3 style="margin-top: 0;">➕ Add New Todo</h3>
+        <form @submit.prevent="handleAddTodo" class="local-todo-form">
+            <input v-model="newTodoTitle"
+                    type="text"
+                    placeholder="What needs to be done?"
+                    maxlength="200"
+                    class="jp-form-input"
+                    required>
+            <button type="submit"
+                    :disabled="!newTodoTitle.trim()"
+                    class="jp-btn jp-btn-primary">
+                Add Todo
+            </button>
+        </form>
+        <p class="jp-help-text" style="margin: 10px 0 0 0;">
+            💡 Try adding a todo in another browser window - it appears here instantly!
+        </p>
+    </div>
+
+    <!-- Todo List -->
+    <div v-if="todoWs && todoStatus === 'connected'" class="jp-card local-todo-list-container">
+        <h3>📋 Collaborative Todo List</h3>
+        <p class="jp-help-text">All users see the same list in real-time. Check/uncheck or delete items to see live sync!</p>
+
+        <!-- Empty State -->
+        <div v-if="todos.length === 0" style="text-align: center; padding: 40px 20px; color: #6c757d;">
+            <div style="font-size: 48px; margin-bottom: 10px;">🎉</div>
+            <div style="font-size: 18px; font-weight: bold;">No todos yet!</div>
+            <div style="font-size: 14px; margin-top: 5px;">Add one above to get started.</div>
+        </div>
+
+        <!-- Todo Items -->
+        <div v-for="todo in todos"
+                :key="todo._id"
+                :class="['local-todo-item', { completed: todo.completed }]">
+            <input type="checkbox"
+                    :checked="todo.completed"
+                    @change="handleToggleTodo(todo)"
+                    class="checkbox">
+            <div :class="['title', { completed: todo.completed }]">
+                {{ todo.title }}
+            </div>
+            <div class="meta">
+                by {{ todo.userFirstName && todo.userLastName
+                    ? todo.userFirstName + ' ' + todo.userLastName
+                    : todo.username }}
+            </div>
+            <button @click="handleDeleteTodo(todo._id)"
+                    class="jp-btn jp-btn-danger jp-btn-sm">
+                ✕
+            </button>
+        </div>
+    </div>
+
+    <!-- Instructions when not connected -->
+    <div v-if="!todoWs || todoStatus !== 'connected'" class="jp-card" style="border-left: 4px solid #ffc107;">
+        <h3 style="margin-top: 0;">👆 Click "Connect" to Start</h3>
+        <p>Once connected, you can:</p>
+        <ol style="margin: 10px 0 0 20px; line-height: 1.6;">
+            <li>Add new todos</li>
+            <li>Check/uncheck to mark as complete</li>
+            <li>Delete todos you don't need</li>
+            <li>Open another browser window to see real-time sync!</li>
+        </ol>
+    </div>
+
+    <!-- Technical Details -->
+    <div class="jp-card" style="margin-top: 20px; background: #f0f0f0;">
+        <h3 style="margin-top: 0;">🔧 Technical Architecture</h3>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+            <div>
+                <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #666;">WebSocket Namespace</h4>
+                <code style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 13px;">/ws/hello-todo</code>
+            </div>
+
+            <div>
+                <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #666;">REST API</h4>
+                <code style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 13px;">/api/1/helloTodo</code>
+            </div>
+
+            <div>
+                <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #666;">Database</h4>
+                <span style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 13px;">MongoDB (helloTodos collection)</span>
+            </div>
+
+            <div>
+                <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #666;">Authentication</h4>
+                <span style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 13px;">Public (tracks username)</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 15px; padding: 12px; background: white; border-radius: 4px;">
+            <h4 style="margin: 0 0 8px 0;">Message Flow:</h4>
+            <ol style="margin: 5px 0 0 20px; font-size: 13px; line-height: 1.8;">
+                <li>User clicks "Add Todo" → Client calls REST API: <code>POST /api/1/helloTodo</code></li>
+                <li>Controller saves to MongoDB and responds with new todo</li>
+                <li>Controller broadcasts WebSocket message: <code>{type: 'todo-created', todo}</code></li>
+                <li>All connected clients receive broadcast and update their UI</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="jp-info-box" style="margin-top: 20px; background: #e3f2fd;">
+        <h3 style="margin-top: 0;">💡 Key Architectural Insight</h3>
+        <p style="margin: 0; line-height: 1.6;">
+            This demo shows the <strong>hybrid architecture pattern</strong>: REST API handles the
+            actual CRUD operations (with validation, persistence, error handling), while WebSocket
+            provides <em>instant notifications</em> to all clients. This is superior to doing everything
+            over WebSocket because:
+        </p>
+        <ul style="margin: 10px 0 0 20px; line-height: 1.6;">
+            <li>REST API continues to work even if WebSocket is down</li>
+            <li>Non-WebSocket clients (mobile apps, scripts) can still use the API</li>
+            <li>Validation and business logic stay in one place (the controller)</li>
+            <li>WebSocket layer can be added/removed without breaking the app</li>
+        </ul>
+    </div>
+
+    <div class="jp-card" style="margin-top: 20px; background: #fff3cd; border-left: 4px solid #ffc107;">
+        <h3 style="margin-top: 0;">🎓 Learning Takeaways</h3>
+        <ul style="margin: 5px 0 0 20px; line-height: 1.8;">
+            <li>WebSocket complements REST API, doesn't replace it</li>
+            <li>Hybrid architecture is more robust than pure WebSocket</li>
+            <li>Broadcast pattern keeps all clients synchronized</li>
+            <li>Real-time features can be added to existing MVCs without breaking them</li>
+        </ul>
+    </div>
+</div>
+`
+
+};
+
+// EOF site/webapp/view/hello-websocket/templates/todo-demo.tmpl

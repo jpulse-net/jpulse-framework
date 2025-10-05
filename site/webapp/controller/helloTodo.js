@@ -13,6 +13,7 @@
  */
 
 import HelloTodoModel from '../model/helloTodo.js';
+import HelloWebsocketController from './helloWebsocket.js';
 
 // Access global utilities
 const LogController = global.LogController;
@@ -100,6 +101,11 @@ class HelloTodoController {
 
             const todo = await HelloTodoModel.create(todoData);
 
+            // Broadcast to WebSocket clients if available
+            if (HelloWebsocketController.broadcastTodoCreated) {
+                HelloWebsocketController.broadcastTodoCreated(todo, username);
+            }
+
             res.json({
                 success: true,
                 data: todo,
@@ -133,6 +139,14 @@ class HelloTodoController {
             }
 
             const todo = await HelloTodoModel.toggleComplete(id);
+
+            // Get username for broadcast
+            const username = req.session?.user?.username || 'guest';
+
+            // Broadcast to WebSocket clients if available
+            if (HelloWebsocketController.broadcastTodoUpdated) {
+                HelloWebsocketController.broadcastTodoUpdated(todo, username);
+            }
 
             res.json({
                 success: true,
@@ -176,6 +190,14 @@ class HelloTodoController {
             }
 
             await HelloTodoModel.delete(id);
+
+            // Get username for broadcast
+            const username = req.session?.user?.username || 'guest';
+
+            // Broadcast to WebSocket clients if available
+            if (HelloWebsocketController.broadcastTodoDeleted) {
+                HelloWebsocketController.broadcastTodoDeleted(id, username);
+            }
 
             res.json({
                 success: true,

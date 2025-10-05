@@ -1,0 +1,136 @@
+// Overview page component, site/webapp/view/hello-websocket/templates/overview.tmpl
+/**
+ * @name            jPulse Framework / Site / WebApp / View / Hello WebSocket / Templates / Overview Page
+ * @tagline         Overview component of the WebSocket demo
+ * @description     This component gives an overview of the WebSocket demo
+ * @file            site/webapp/view/hello-websocket/templates/overview.tmpl
+ * @version         0.9.0
+ * @release         2025-10-05
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4.5
+ */
+
+window.helloWebSocketViews = window.helloWebSocketViews || {};
+
+window.helloWebSocketViews.Overview = {
+    template: `
+<div class="jp-card">
+    <h2>📖 Real-Time WebSocket Communication</h2>
+
+    <div class="jp-info-box">
+        <h3>🎓 What You'll Learn</h3>
+        <p>This demo teaches you how to build real-time features using WebSocket infrastructure in the jPulse Framework.</p>
+
+        <ul style="margin: 15px 0 0 20px; line-height: 1.8;">
+            <li><strong>Emoji Cursor</strong> - Real-time position tracking (ephemeral, no database)</li>
+            <li><strong>Collaborative Todo</strong> - Live updates with database persistence</li>
+            <li><strong>Server Integration</strong> - How to register WebSocket namespaces</li>
+            <li><strong>Client Patterns</strong> - Connection management, message handling</li>
+            <li><strong>MVC Enhancement</strong> - Layer WebSocket onto existing REST API</li>
+        </ul>
+    </div>
+
+    <div class="jp-card" style="margin-top: 20px;">
+        <h3>📚 Prerequisites</h3>
+        <p>Before diving into WebSockets, make sure you understand these concepts:</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 15px;">
+            <div class="jp-card" style="background: #f8f9fa;">
+                <h4 style="margin-top: 0;">✅ Basic jPulse</h4>
+                <p style="margin: 0; font-size: 14px;">
+                    Start with <a href="/hello/">/hello/</a> to understand the framework basics.
+                </p>
+            </div>
+
+            <div class="jp-card" style="background: #f8f9fa;">
+                <h4 style="margin-top: 0;">✅ MVC Pattern</h4>
+                <p style="margin: 0; font-size: 14px;">
+                    Review <a href="/hello-todo/">/hello-todo/</a> for Model-View-Controller architecture.
+                </p>
+            </div>
+
+            <div class="jp-card" style="background: #f8f9fa;">
+                <h4 style="margin-top: 0;">✅ Vue.js SPA</h4>
+                <p style="margin: 0; font-size: 14px;">
+                    Check <a href="/hello-vue/">/hello-vue/</a> for reactive single-page applications.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="jp-card" style="margin-top: 20px;">
+        <h3>🎯 Two Demo Patterns</h3>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 15px;">
+            <div class="jp-card" style="border-left: 4px solid #007acc;">
+                <h4 style="margin-top: 0;">😊 Emoji Cursor Demo</h4>
+                <p><strong>Pattern:</strong> Ephemeral real-time tracking</p>
+                <ul style="font-size: 14px; line-height: 1.6;">
+                    <li>No database persistence needed</li>
+                    <li>Pure broadcast pattern</li>
+                    <li>Position throttling (50ms)</li>
+                    <li>User presence tracking</li>
+                </ul>
+                <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;">
+                    <strong>Use cases:</strong> Collaborative cursors, live annotations, multiplayer games
+                </p>
+            </div>
+
+            <div class="jp-card" style="border-left: 4px solid #28a745;">
+                <h4 style="margin-top: 0;">✅ Collaborative Todo Demo</h4>
+                <p><strong>Pattern:</strong> WebSocket + REST API hybrid</p>
+                <ul style="font-size: 14px; line-height: 1.6;">
+                    <li>Database persistence (MongoDB)</li>
+                    <li>REST API handles CRUD operations</li>
+                    <li>WebSocket broadcasts changes</li>
+                    <li>All clients stay synchronized</li>
+                </ul>
+                <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;">
+                    <strong>Use cases:</strong> Collaborative editing, live dashboards, chat applications
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="jp-info-box" style="margin-top: 20px; background: #e8f5e9;">
+        <h3 style="margin-top: 0;">💡 Key Architectural Insight</h3>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6;">
+            The collaborative todo demo shows how to <strong>layer WebSocket onto an existing REST API</strong>
+            without breaking it. The REST API continues to work normally, and WebSocket provides real-time
+            updates as a bonus. This is the recommended pattern for adding real-time features to existing applications.
+        </p>
+    </div>
+
+    <div class="jp-card" style="margin-top: 20px;">
+        <h3>🚀 Ready to Explore?</h3>
+        <p>Click the buttons above to:</p>
+        <ol style="margin: 10px 0 0 20px; line-height: 1.8;">
+            <li><strong>Emoji Cursor</strong> - See real-time position tracking in action</li>
+            <li><strong>Collaborative Todo</strong> - Experience live updates across multiple browsers</li>
+            <li><strong>Code Examples</strong> - Get copy-paste ready implementation code</li>
+            <li><strong>Architecture</strong> - Understand how everything connects</li>
+        </ol>
+
+        <p style="margin-top: 15px;" class="jp-help-text">
+            💡 <strong>Pro Tip:</strong> Open this demo in multiple browser windows to see the real-time
+            magic happen! Changes in one window instantly appear in all others.
+        </p>
+    </div>
+
+    <div class="jp-card" style="margin-top: 20px; background: #fff3cd; border-left: 4px solid #ffc107;">
+        <h3 style="margin-top: 0;">📖 Complete Documentation</h3>
+        <p style="margin: 0;">
+            For in-depth API reference, best practices, and advanced patterns, see the
+            <a href="/jpulse-docs/websockets" target="_blank">WebSocket Documentation</a>.
+        </p>
+    </div>
+</div>
+`
+
+    // No props needed - static content only
+};
+
+// EOF Overview page component, site/webapp/view/hello-websocket/templates/overview.tmpl

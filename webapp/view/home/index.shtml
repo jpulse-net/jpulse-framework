@@ -181,8 +181,8 @@
                 {{/if}}
                 {{#if file.exists "hello-websocket/index.shtml"}}
                 <a href="/hello-websocket/" class="local-home-link-card">
-                    <div class="local-home-link-title">🔌 WebSocket Example</div>
-                    <div class="local-home-link-desc">Learn how to create a WebSocket real-time demo</div>
+                    <div class="local-home-link-title">🌐 WebSocket Real-Time Demo</div>
+                    <div class="local-home-link-desc">Learn real-time communication with emoji cursor tracking and collaborative todos</div>
                 </a>
                 {{/if}}
             </div>

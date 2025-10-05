@@ -1,0 +1,353 @@
+// Architecture component, site/webapp/view/hello-websocket/templates/architecture.tmpl
+/**
+ * @name            jPulse Framework / Site / WebApp / View / Hello WebSocket / Templates / Architecture
+ * @tagline         Architecture component of the WebSocket demo
+ * @description     This component describes the architecture of the WebSocket demo
+ * @file            site/webapp/view/hello-websocket/templates/architecture.tmpl
+ * @version         0.9.0
+ * @release         2025-10-05
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4.5
+ */
+
+window.helloWebSocketViews = window.helloWebSocketViews || {};
+
+window.helloWebSocketViews.Architecture = {
+    template: `
+<div class="jp-card">
+    <h2>🏗️ WebSocket Architecture</h2>
+
+    <p>Understanding how the jPulse Framework WebSocket system works under the hood.</p>
+
+    <!-- Overview -->
+    <div class="jp-info-box">
+        <h3>🎯 Architecture Goals</h3>
+        <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+            <li><strong>Namespace Isolation</strong> - Multiple independent WebSocket channels</li>
+            <li><strong>Enterprise Features</strong> - Auto-reconnect, health monitoring, statistics</li>
+            <li><strong>Security</strong> - Optional authentication and role-based access</li>
+            <li><strong>Scalability</strong> - Redis pub/sub for multi-server deployments</li>
+            <li><strong>Developer Experience</strong> - Clean APIs, automatic handling of edge cases</li>
+        </ul>
+    </div>
+
+    <!-- System Diagram -->
+    <div class="jp-card" style="margin-top: 20px; background: #f8f9fa;">
+        <h3 style="margin-top: 0;">📊 System Overview</h3>
+
+        <pre style="background: white; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 12px; line-height: 1.6;">
+┌─────────────────────────────────────────────────────────────────┐
+│                         CLIENT (Browser)                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Vue Component                                                  │
+│  ├─ jPulse.ws.connect('/ws/my-app')                             │
+│  ├─ .onMessage((data) => { ... })                               │
+│  ├─ .onStatusChange((status) => { ... })                        │
+│  └─ .send({ type: 'action', ... })                              │
+│                                                                 │
+│  WebSocket Client (jpulse-common.js)                            │
+│  ├─ Connection management                                       │
+│  ├─ Auto-reconnect with backoff                                 │
+│  ├─ Persistent client UUID                                      │
+│  ├─ Ping/pong health checks                                     │
+│  └─ Status tracking                                             │
+│                                                                 │
+└────────────────┬────────────────────────────────────────────────┘
+                 │ WebSocket Protocol (ws:// or wss://)
+                 │ Persistent bidirectional connection
+                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       SERVER (Node.js)                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  HTTP Server (Express.js)                                       │
+│  └─ Upgrade request → WebSocket                                 │
+│                                                                 │
+│  WebSocket Controller (webapp/controller/websocket.js)          │
+│  ├─ Namespace registry                                          │
+│  ├─ Client connection tracking                                  │
+│  ├─ Authentication & authorization                              │
+│  ├─ Message routing                                             │
+│  ├─ Ping/pong health monitoring                                 │
+│  └─ Statistics & activity logging                               │
+│                                                                 │
+│  Your Controller (site/webapp/controller/myController.js)       │
+│  ├─ Register namespace                                          │
+│  ├─ onConnect handler                                           │
+│  ├─ onMessage handler                                           │
+│  ├─ onDisconnect handler                                        │
+│  └─ Broadcast methods                                           │
+│                                                                 │
+│  [Optional] Redis Pub/Sub                                       │
+│  └─ Coordinate across multiple server instances                 │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+</pre>
+    </div>
+
+    <!-- Connection Lifecycle -->
+    <div class="jp-card" style="margin-top: 20px;">
+        <h3 style="margin-top: 0;">🔄 Connection Lifecycle</h3>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
+            <h4 style="margin: 0 0 10px 0;">1️⃣ Initial Connection</h4>
+            <ol style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.8;">
+                <li>Client generates or retrieves persistent UUID from localStorage</li>
+                <li>Client initiates WebSocket connection: <code>ws://host/ws/my-app?uuid=xxx</code></li>
+                <li>Server validates authentication (if required)</li>
+                <li>Server stores client in namespace registry</li>
+                <li><code>onConnect</code> handler called with clientId and user</li>
+                <li>Client receives <code>status: 'connected'</code></li>
+            </ol>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
+            <h4 style="margin: 0 0 10px 0;">2️⃣ Message Exchange</h4>
+            <ol style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.8;">
+                <li>Client sends: <code>ws.send({type: 'action', data: ...})</code></li>
+                <li>Server receives and validates message format</li>
+                <li><code>onMessage</code> handler called with clientId, data, and user</li>
+                <li>Handler processes and optionally broadcasts to other clients</li>
+                <li>Clients receive: <code>{success: true, data: {...}, username: 'john'}</code></li>
+            </ol>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
+            <h4 style="margin: 0 0 10px 0;">3️⃣ Health Monitoring</h4>
+            <p style="margin: 5px 0; font-size: 14px;">Bidirectional ping/pong keeps connection alive:</p>
+            <ul style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.8;">
+                <li><strong>Client → Server:</strong> Ping every 30s, expect pong within 5s</li>
+                <li><strong>Server → Client:</strong> Ping every 30s, expect pong within 5s</li>
+                <li>If no pong received, connection considered dead and terminated</li>
+            </ul>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
+            <h4 style="margin: 0 0 10px 0;">4️⃣ Disconnection & Reconnection</h4>
+            <ol style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.8;">
+                <li>Connection drops (network issue, server restart, etc.)</li>
+                <li>Client detects disconnection: <code>status: 'reconnecting'</code></li>
+                <li>Progressive backoff: 5s → 10s → 15s → ... → 30s (max)</li>
+                <li>Client attempts reconnection (up to 10 times by default)</li>
+                <li>On success: <code>status: 'connected'</code> + same client UUID</li>
+                <li>On failure: <code>status: 'disconnected'</code> (manual reload needed)</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Namespace System -->
+    <div class="jp-card" style="margin-top: 20px;">
+        <h3 style="margin-top: 0;">🗂️ Namespace Isolation</h3>
+        <p>Multiple independent channels on a single WebSocket server:</p>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
+            <pre style="background: white; padding: 12px; border-radius: 4px; margin: 0; font-size: 13px;"><code>// Each namespace is completely isolated
+/ws/chat           ← Chat messages
+/ws/notifications  ← System notifications
+/ws/dashboard      ← Live metrics
+/ws/game           ← Game state updates
+
+// Different authentication requirements
+/ws/public-chat         requireAuth: false
+/ws/admin-dashboard     requireAuth: true, requireRoles: ['admin']</code></pre>
+        </div>
+
+        <p style="margin-top: 10px; font-size: 14px;">
+            <strong>Benefits:</strong>
+        </p>
+        <ul style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.6;">
+            <li>Separate concerns (chat vs notifications vs dashboards)</li>
+            <li>Independent authentication requirements</li>
+            <li>Granular statistics and monitoring per namespace</li>
+            <li>Easy to add/remove features without affecting others</li>
+        </ul>
+    </div>
+
+    <!-- Message Flow Patterns -->
+    <div class="jp-card" style="margin-top: 20px;">
+        <h3 style="margin-top: 0;">📬 Message Flow Patterns</h3>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
+            <h4 style="margin: 0 0 10px 0;">Pattern 1: Broadcast to All</h4>
+            <pre style="background: white; padding: 12px; border-radius: 4px; margin: 5px 0 0 0; font-size: 12px;"><code>// Server broadcasts message to all connected clients in namespace
+wsHandle.broadcast({
+    type: 'notification',
+    message: 'New feature released!'
+});
+
+// All clients receive it
+ws.onMessage((data) => {
+    if (data.type === 'notification') {
+        showNotification(data.message);
+    }
+});</code></pre>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
+            <h4 style="margin: 0 0 10px 0;">Pattern 2: Send to Specific Client</h4>
+            <pre style="background: white; padding: 12px; border-radius: 4px; margin: 5px 0 0 0; font-size: 12px;"><code>// Server sends to one specific client
+wsHandle.sendToClient(clientId, {
+    type: 'private-message',
+    message: 'Just for you!'
+});
+
+// Only that client receives it</code></pre>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
+            <h4 style="margin: 0 0 10px 0;">Pattern 3: REST API + WebSocket Hybrid</h4>
+            <pre style="background: white; padding: 12px; border-radius: 4px; margin: 5px 0 0 0; font-size: 12px;"><code>// Client calls REST API
+const response = await jPulse.api.post('/api/1/todos', { title });
+
+// Server processes via REST endpoint
+static async apiCreate(req, res) {
+    const todo = await TodoModel.create(req.body);
+
+    // Broadcast via WebSocket
+    wsHandle.broadcast({ type: 'todo-created', todo });
+
+    // Return REST response
+    res.json({ success: true, data: todo });
+}
+
+// All clients receive WebSocket notification
+ws.onMessage((data) => {
+    if (data.type === 'todo-created') {
+        addTodoToList(data.todo);
+    }
+});</code></pre>
+        </div>
+    </div>
+
+    <!-- Security -->
+    <div class="jp-card" style="margin-top: 20px;">
+        <h3 style="margin-top: 0;">🔒 Authentication & Authorization</h3>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
+            <h4 style="margin: 0 0 10px 0;">Session-Based Authentication</h4>
+            <ol style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.8;">
+                <li>Client authenticates via standard login (sets session cookie)</li>
+                <li>WebSocket upgrade request includes session cookie</li>
+                <li>Server parses session during upgrade using Express session middleware</li>
+                <li>If <code>requireAuth: true</code>, server validates user is logged in</li>
+                <li>If <code>requireRoles: ['admin']</code>, server checks user has required role</li>
+                <li>Connection rejected if authentication/authorization fails</li>
+            </ol>
+
+            <pre style="background: white; padding: 12px; border-radius: 4px; margin: 10px 0 0 0; font-size: 12px;"><code>// Register namespace with authentication
+WebSocketController.registerNamespace('/ws/admin-panel', {
+    requireAuth: true,              // Must be logged in
+    requireRoles: ['admin', 'root'], // Must have admin or root role
+
+    onConnect: (clientId, user) => {
+        // user object is guaranteed to exist here
+        console.log(\`Admin \${user.username} connected\`);
+    }
+});</code></pre>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
+            <h4 style="margin: 0 0 10px 0;">Username Tracking</h4>
+            <p style="margin: 5px 0; font-size: 14px;">
+                All messages automatically include <code>username</code> field:
+            </p>
+            <ul style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.6;">
+                <li>Authenticated user: <code>username: 'john_doe'</code></li>
+                <li>Anonymous user: <code>username: ''</code> (empty string)</li>
+                <li>System messages: <code>username: ''</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Monitoring -->
+    <div class="jp-card" style="margin-top: 20px;">
+        <h3 style="margin-top: 0;">📊 Monitoring & Statistics</h3>
+        <p>Built-in monitoring for production operations:</p>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
+            <h4 style="margin: 0 0 10px 0;">Admin Dashboard</h4>
+            <p style="margin: 5px 0; font-size: 14px;">
+                View real-time statistics at <a href="/admin/websocket-stats.shtml" target="_blank">/admin/websocket-stats.shtml</a>
+            </p>
+            <ul style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.6;">
+                <li>Global uptime and total messages</li>
+                <li>Per-namespace statistics (clients, messages, activity)</li>
+                <li>Status indicators (active/idle/stale)</li>
+                <li>Activity log (last 100 messages)</li>
+            </ul>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
+            <h4 style="margin: 0 0 10px 0;">Programmatic Access</h4>
+            <pre style="background: white; padding: 12px; border-radius: 4px; margin: 5px 0 0 0; font-size: 12px;"><code>// Get global statistics
+const stats = WebSocketController.getStats();
+// { uptime, totalMessages, namespaces: [...], activityLog: [...] }
+
+// Get namespace-specific statistics
+const nsStats = wsHandle.getStats();
+// { clients, messages, lastActivity, activeUsers, ... }</code></pre>
+        </div>
+    </div>
+
+    <!-- Scalability -->
+    <div class="jp-card" style="margin-top: 20px;">
+        <h3 style="margin-top: 0;">⚡ Scalability: Multi-Server Support</h3>
+        <p>Redis pub/sub enables WebSocket coordination across multiple servers:</p>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
+            <pre style="background: white; padding: 12px; border-radius: 4px; margin: 0; font-size: 12px;"><code>┌──────────────┐       ┌──────────────┐       ┌──────────────┐
+│  Server 1    │       │  Server 2    │       │  Server 3    │
+│  Client A    │       │  Client B    │       │  Client C    │
+└──────┬───────┘       └──────┬───────┘       └──────┬───────┘
+       │                      │                      │
+       └──────────────────────┼──────────────────────┘
+                              │
+                    ┌─────────▼─────────┐
+                    │   Redis Pub/Sub   │
+                    └───────────────────┘
+
+Client A broadcasts → Server 1 publishes to Redis → All servers receive
+→ Server 2 sends to Client B, Server 3 sends to Client C</code></pre>
+
+            <p style="margin: 10px 0 0 0; font-size: 14px;">
+                <strong>Setup:</strong> Enable Redis in <code>app.conf</code> and the framework
+                automatically coordinates broadcasts across all server instances.
+            </p>
+        </div>
+    </div>
+
+    <!-- Performance Best Practices -->
+    <div class="jp-card" style="margin-top: 20px; background: #e3f2fd;">
+        <h3 style="margin-top: 0;">⚡ Performance Best Practices</h3>
+        <ul style="margin: 5px 0 0 20px; line-height: 1.8;">
+            <li><strong>Throttle high-frequency events</strong> (mouse, scroll) to 50-100ms</li>
+            <li><strong>Keep messages small</strong> - send only necessary data</li>
+            <li><strong>Use message types</strong> for efficient routing and handling</li>
+            <li><strong>Don't block handlers</strong> - use async/await for I/O operations</li>
+            <li><strong>Clean up on disconnect</strong> - remove references to prevent memory leaks</li>
+            <li><strong>Monitor statistics</strong> - watch for unusual patterns or high traffic</li>
+        </ul>
+    </div>
+
+    <!-- Next Steps -->
+    <div class="jp-card" style="margin-top: 20px; background: #fff3cd; border-left: 4px solid #ffc107;">
+        <h3 style="margin-top: 0;">🚀 Next Steps</h3>
+        <ol style="margin: 5px 0 0 20px; line-height: 1.8;">
+            <li>Try the <strong>Emoji Cursor</strong> and <strong>Collaborative Todo</strong> demos</li>
+            <li>Review the <strong>Code Examples</strong> tab for implementation patterns</li>
+            <li>Read the <a href="/jpulse-docs/websockets" target="_blank">complete WebSocket documentation</a></li>
+            <li>Build your own real-time feature using these patterns</li>
+            <li>Monitor your WebSocket namespaces at <a href="/admin/websocket-stats.shtml" target="_blank">/admin/websocket-stats</a> (requires admin role)</li>
+        </ol>
+    </div>
+</div>
+`
+
+    // No props needed - static content only
+};
+
+// EOF site/webapp/view/hello-websocket/templates/architecture.tmpl

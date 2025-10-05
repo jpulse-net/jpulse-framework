@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / Site / WebApp / View / Hello WebSocket Demo
+ * @tagline         Real-Time WebSocket Communication Examples
+ * @description     Interactive demos: emoji cursor tracking and collaborative todo
+ * @file            site/webapp/view/hello-websocket/index.shtml
+ * @version         0.9.0
+ * @release         2025-10-05
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4.5
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Real-Time Demo - {{app.shortName}}</title>
+
+    <!-- Vue.js 3 -->
+    <script src="/common/vue/vue.min.js"></script>
+{{#if file.exists "jpulse-header.tmpl"}}
+    {{file.include "jpulse-header.tmpl"}}
+{{/if}}
+<!-- Include routing and all templates (routing.tmpl includes the other templates): -->
+{{file.include "hello-websocket/templates/routing.tmpl"}}
+    <style>
+        /* Hello WebSocket Demo Styles */
+        .local-ws-app {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .local-ws-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .local-ws-nav .nav-arrow {
+            display: inline;
+            padding-top: 8px;
+            color: #007acc;
+        }
+
+        .local-ws-nav .jp-btn.jp-btn-active {
+            background-color: #007acc;
+            color: white;
+            border-color: #007acc;
+        }
+
+        .local-ws-content {
+            min-height: 400px;
+        }
+
+        /* Connection status indicator */
+        .local-connection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .local-connection-status.connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .local-connection-status.connecting {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .local-connection-status.reconnecting {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .local-connection-status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .local-status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .local-status-dot.connected {
+            background-color: #28a745;
+        }
+
+        .local-status-dot.connecting {
+            background-color: #ffc107;
+        }
+
+        .local-status-dot.reconnecting {
+            background-color: #fd7e14;
+        }
+
+        .local-status-dot.disconnected {
+            background-color: #dc3545;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Emoji cursor area */
+        .local-emoji-area {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            border: 2px solid #007acc;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .local-emoji-cursor {
+            position: absolute;
+            font-size: 32px;
+            pointer-events: none;
+            transition: left 0.1s ease-out, top 0.1s ease-out;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            transform: translate(-50%, -50%);
+        }
+
+        .local-emoji-cursor .username {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            white-space: nowrap;
+            margin-top: 2px;
+        }
+
+        /* Emoji selector */
+        .local-emoji-selector {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .local-emoji-btn {
+            font-size: 32px;
+            padding: 10px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .local-emoji-btn:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .local-emoji-btn.selected {
+            border-color: #007acc;
+            background: #e3f2fd;
+        }
+
+        /* Collaborative todo styles */
+        .local-todo-list-container {
+            margin: 20px 0;
+        }
+
+        .local-todo-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .local-todo-form input {
+            flex: 1;
+        }
+
+        .local-todo-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .local-todo-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .local-todo-item.completed {
+            opacity: 0.6;
+        }
+
+        .local-todo-item .checkbox {
+            margin-right: 12px;
+        }
+
+        .local-todo-item .title {
+            flex: 1;
+            font-size: 16px;
+        }
+
+        .local-todo-item .title.completed {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+
+        .local-todo-item .meta {
+            font-size: 12px;
+            color: #6c757d;
+            margin-right: 10px;
+        }
+
+        /* Code example styles */
+        .local-code-example {
+            margin: 20px 0;
+        }
+
+        .local-code-example h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .local-code-example pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            border-left: 4px solid #007acc;
+        }
+
+        .local-code-example code {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .local-emoji-area {
+                height: 400px;
+            }
+
+            .local-emoji-btn {
+                font-size: 24px;
+                padding: 8px;
+            }
+
+            .local-ws-nav {
+                gap: 5px;
+            }
+
+            .local-ws-nav .jp-btn {
+                font-size: 12px;
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="local-ws-app" id="wsApp">
+            <!-- Vue app will mount here -->
+        </div>
+    </div>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

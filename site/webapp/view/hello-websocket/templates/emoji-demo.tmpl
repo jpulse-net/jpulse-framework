@@ -1,0 +1,197 @@
+// Emoji demo component, site/webapp/view/hello-websocket/templates/emoji-demo.tmpl
+/**
+ * @name            jPulse Framework / Site / WebApp / View / Hello WebSocket / Templates / Emoji Demo
+ * @tagline         Emoji cursor demo component of the WebSocket demo
+ * @description     This component is a emoji cursor app to demo the WebSocket features
+ * @file            site/webapp/view/hello-websocket/templates/emoji-demo.tmpl
+ * @version         0.9.0
+ * @release         2025-10-05
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4.5
+ */
+
+window.helloWebSocketViews = window.helloWebSocketViews || {};
+
+window.helloWebSocketViews.EmojiDemo = {
+    props: {
+        emojiWs: Object,
+        emojiStatus: String,
+        selectedEmoji: String,
+        availableEmojis: Array,
+        otherUsers: Map,
+        userCount: Number
+    },
+    emits: ['connect', 'disconnect', 'selectEmoji', 'mouseMove'],
+    computed: {
+        otherUsersArray() {
+            // Convert Map to array, including clientId in each object
+            return Array.from(this.otherUsers.entries()).map(([clientId, user]) => ({
+                ...user,
+                clientId
+            }));
+        }
+    },
+    template: `
+<div class="jp-card">
+    <h2>😊 Emoji Cursor Demo</h2>
+
+    <div class="jp-info-box">
+        <h3>🎯 What This Demonstrates</h3>
+        <p>Real-time cursor position tracking across multiple users. Move your mouse in the colored area below and watch other users' emojis move too!</p>
+
+        <ul style="margin: 10px 0 0 20px; line-height: 1.6; font-size: 14px;">
+            <li><strong>Ephemeral tracking</strong> - No database, pure real-time broadcast</li>
+            <li><strong>Position throttling</strong> - Updates every 50ms (not every pixel)</li>
+            <li><strong>User presence</strong> - See who's connected right now</li>
+            <li><strong>Smooth animations</strong> - CSS transitions for fluid movement</li>
+        </ul>
+    </div>
+
+    <!-- Connection Status & Controls -->
+    <div style="display: flex; gap: 15px; align-items: center; margin: 20px 0; flex-wrap: wrap;">
+        <button v-if="!emojiWs"
+                @click="$emit('connect')"
+                class="jp-btn jp-btn-primary">
+            🔌 Connect to Emoji Demo
+        </button>
+
+        <button v-if="emojiWs"
+                @click="$emit('disconnect')"
+                class="jp-btn jp-btn-danger">
+            🔌 Disconnect
+        </button>
+
+        <div :class="['local-connection-status', emojiStatus]">
+            <span :class="['local-status-dot', emojiStatus]"></span>
+            <span>{{ emojiStatus.charAt(0).toUpperCase() + emojiStatus.slice(1) }}</span>
+        </div>
+
+        <div v-if="emojiWs && emojiStatus === 'connected'" class="jp-help-text" style="margin: 0;">
+            👥 <strong>{{ userCount }}</strong> {{ userCount === 1 ? 'user' : 'users' }} online
+        </div>
+    </div>
+
+    <!-- Emoji Selector -->
+    <div v-if="emojiWs" class="jp-card" style="background: #f8f9fa;">
+        <h3 style="margin-top: 0;">Select Your Emoji</h3>
+        <div class="local-emoji-selector">
+            <button v-for="emoji in availableEmojis"
+                    :key="emoji"
+                    @click="$emit('selectEmoji', emoji)"
+                    :class="['local-emoji-btn', { selected: selectedEmoji === emoji }]"
+                    :title="'Select ' + emoji">
+                {{ emoji }}
+            </button>
+        </div>
+        <p class="jp-help-text" style="margin: 10px 0 0 0;">
+            💡 Your selected emoji: <span style="font-size: 24px;">{{ selectedEmoji }}</span>
+        </p>
+    </div>
+
+    <!-- Emoji Cursor Area -->
+    <div v-if="emojiWs && emojiStatus === 'connected'" class="jp-card">
+        <h3>Move Your Mouse Here!</h3>
+        <p class="jp-help-text">See your emoji follow your cursor. Open another browser window to see other users!</p>
+
+        <div class="local-emoji-area"
+             @mousemove="$emit('mouseMove', $event)">
+
+            <!-- Other users' cursors -->
+            <div v-for="user in otherUsersArray"
+                 :key="user.clientId || user.username"
+                 class="local-emoji-cursor"
+                 :style="{
+                     left: user.x + '%',
+                     top: user.y + '%'
+                 }">
+                {{ user.emoji }}
+                <span class="username">{{ user.username || 'guest' }}</span>
+            </div>
+
+            <!-- Empty state -->
+            <div v-if="otherUsersArray.length === 0"
+                    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                <div style="font-size: 48px; margin-bottom: 10px;">👋</div>
+                <div style="font-size: 18px; font-weight: bold;">Move your mouse!</div>
+                <div style="font-size: 14px; margin-top: 5px;">Open another browser window to see multiplayer magic ✨</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions when not connected -->
+    <div v-if="!emojiWs || emojiStatus !== 'connected'" class="jp-card" style="border-left: 4px solid #ffc107;">
+        <h3 style="margin-top: 0;">👆 Click "Connect" to Start</h3>
+        <p>Once connected:</p>
+        <ol style="margin: 10px 0 0 20px; line-height: 1.6;">
+            <li>Select your favorite emoji</li>
+            <li>Move your mouse in the colored area</li>
+            <li>Open another browser window (or ask a friend!)</li>
+            <li>Watch everyone's emojis move in real-time!</li>
+        </ol>
+    </div>
+
+    <!-- Technical Details -->
+    <div class="jp-card" style="margin-top: 20px; background: #f0f0f0;">
+        <h3 style="margin-top: 0;">🔧 Technical Details</h3>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+            <div>
+                <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #666;">Namespace</h4>
+                <code style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 13px;">/ws/hello-emoji</code>
+            </div>
+
+            <div>
+                <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #666;">Authentication</h4>
+                <span style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 13px;">Public (no auth required)</span>
+            </div>
+
+            <div>
+                <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #666;">Update Frequency</h4>
+                <span style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 13px;">20 msgs/second (50ms throttle)</span>
+            </div>
+
+            <div>
+                <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #666;">Persistence</h4>
+                <span style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 13px;">None (ephemeral)</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 15px; padding: 12px; background: white; border-radius: 4px;">
+            <h4 style="margin: 0 0 8px 0;">Message Flow:</h4>
+            <ol style="margin: 5px 0 0 20px; font-size: 13px; line-height: 1.8;">
+                <li>Mouse moves → throttled to 50ms intervals</li>
+                <li>Client sends: <code>{type: 'cursor-move', emoji, x, y}</code></li>
+                <li>Server broadcasts to all connected clients</li>
+                <li>Other clients update their UI with your position</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="jp-info-box" style="margin-top: 20px; background: #e3f2fd;">
+        <h3 style="margin-top: 0;">💡 Why Throttle?</h3>
+        <p style="margin: 0; line-height: 1.6;">
+            Mouse events fire <strong>hundreds of times per second</strong>. Sending every single event
+            would overwhelm the server and network. By throttling to 50ms (20 updates/second), we get
+            smooth tracking while keeping bandwidth reasonable. This is a best practice for any
+            real-time position tracking system!
+        </p>
+    </div>
+
+    <div class="jp-card" style="margin-top: 20px; background: #fff3cd; border-left: 4px solid #ffc107;">
+        <h3 style="margin-top: 0;">🎓 Learning Takeaways</h3>
+        <ul style="margin: 5px 0 0 20px; line-height: 1.8;">
+            <li>WebSocket enables instant, bidirectional communication</li>
+            <li>Throttling is essential for high-frequency events</li>
+            <li>Ephemeral data doesn't need a database</li>
+            <li>User presence is tracked automatically by the framework</li>
+        </ul>
+    </div>
+</div>
+`
+
+};
+
+// EOF Emoji demo component, site/webapp/view/hello-websocket/templates/emoji-demo.tmpl

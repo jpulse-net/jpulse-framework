@@ -4,7 +4,7 @@
  * @tagline         Collaborative to-do demo component
  * @description     Collaborative to-do list demo component of the WebSocket demo
  * @file            site/webapp/view/hello-websocket/templates/todo-demo.tmpl
- * @version         0.9.0
+ * @version         0.9.1
  * @release         2025-10-05
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,29 +16,145 @@
 window.helloWebSocketViews = window.helloWebSocketViews || {};
 
 window.helloWebSocketViews.TodoDemo = {
-    props: {
-        todoWs: Object,
-        todoStatus: String,
-        todos: Array,
-        todoUserCount: Number
-    },
-    emits: ['connect', 'disconnect', 'addTodo', 'toggleTodo', 'deleteTodo'],
     data() {
         return {
+            todoWs: null,
+            todoStatus: 'disconnected',
+            todos: [],
+            todoUserCount: 0,
             newTodoTitle: ''
         };
     },
     methods: {
-        handleAddTodo() {
+        async connectTodoWs() {
+            if (this.todoWs) return;
+
+            // Load initial todos via REST API
+            await this.loadTodos();
+
+            // Connect to WebSocket for live updates
+            this.todoWs = jPulse.ws.connect('/ws/hello-todo')
+                .onMessage((data, message) => {
+                    if (data) {
+                        this.handleTodoMessage(data);
+                    } else {
+                        console.error('Todo WS error:', message.error);
+                    }
+                })
+                .onStatusChange((status, oldStatus) => {
+                    this.todoStatus = status;
+                });
+        },
+
+        disconnectTodoWs() {
+            if (this.todoWs) {
+                this.todoWs.disconnect();
+                this.todoWs = null;
+                this.todoStatus = 'disconnected';
+            }
+        },
+
+        async loadTodos() {
+            try {
+                const response = await jPulse.api.get('/api/1/helloTodo');
+                if (response.success) {
+                    this.todos = response.data || [];
+                }
+            } catch (error) {
+                console.error('Failed to load todos:', error);
+                jPulse.UI.toast.show('Failed to load todos', 'error');
+            }
+        },
+
+        handleTodoMessage(data) {
+            if (data.type === 'welcome') {
+                this.todoUserCount = data.userCount || 1;
+            } else if (data.type === 'todo-created') {
+                // Add new todo to list (if not already present)
+                const exists = this.todos.find(t => t._id === data.todo._id);
+                if (!exists) {
+                    this.todos.unshift(data.todo);
+                    jPulse.UI.toast.show(`${data.username || 'Someone'} added a todo`, 'info');
+                }
+            } else if (data.type === 'todo-updated') {
+                // Update existing todo
+                const index = this.todos.findIndex(t => t._id === data.todo._id);
+                if (index !== -1) {
+                    this.todos[index] = data.todo;
+                    const action = data.todo.completed ? 'completed' : 'reopened';
+                    jPulse.UI.toast.show(`${data.username || 'Someone'} ${action} a todo`, 'info');
+                }
+            } else if (data.type === 'todo-deleted') {
+                // Remove deleted todo
+                const index = this.todos.findIndex(t => t._id === data.todoId);
+                if (index !== -1) {
+                    this.todos.splice(index, 1);
+                    jPulse.UI.toast.show(`${data.username || 'Someone'} deleted a todo`, 'info');
+                }
+            } else if (data.type === 'user-left') {
+                this.todoUserCount = data.userCount || 0;
+            }
+        },
+
+        async handleAddTodo() {
             if (!this.newTodoTitle.trim()) return;
-            this.$emit('addTodo', this.newTodoTitle.trim());
-            this.newTodoTitle = '';
+
+            try {
+                const todoData = {
+                    title: this.newTodoTitle.trim()
+                };
+
+                const response = await jPulse.api.post('/api/1/helloTodo', todoData);
+
+                if (response.success) {
+                    this.newTodoTitle = '';
+                    // WebSocket will notify everyone (including us)
+                } else {
+                    jPulse.UI.toast.show('Failed to add todo', 'error');
+                }
+            } catch (error) {
+                console.error('Error adding todo:', error);
+                jPulse.UI.toast.show('Failed to add todo', 'error');
+            }
         },
-        handleToggleTodo(todo) {
-            this.$emit('toggleTodo', todo);
+
+        async handleToggleTodo(todo) {
+            try {
+                const response = await jPulse.api.call(`/api/1/helloTodo/${todo._id}/toggle`, {
+                    method: 'PUT'
+                });
+
+                if (!response.success) {
+                    jPulse.UI.toast.show('Failed to update todo', 'error');
+                }
+                // WebSocket will handle the update
+            } catch (error) {
+                console.error('Error toggling todo:', error);
+                jPulse.UI.toast.show('Failed to update todo', 'error');
+            }
         },
-        handleDeleteTodo(todoId) {
-            this.$emit('deleteTodo', todoId);
+
+        async handleDeleteTodo(todoId) {
+            const result = await jPulse.UI.confirmDialog({
+                message: 'Delete this todo?',
+                buttons: ['Cancel', 'Delete']
+            });
+
+            if (!result.confirmed) return;
+
+            try {
+                const response = await jPulse.api.call(`/api/1/helloTodo/${todoId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.success) {
+                    jPulse.UI.toast.show('Failed to delete todo', 'error');
+                }
+                // WebSocket will handle the deletion
+            } catch (error) {
+                console.error('Error deleting todo:', error);
+                jPulse.UI.toast.show('Failed to delete todo', 'error');
+            }
         }
     },
     template: `
@@ -60,13 +176,13 @@ window.helloWebSocketViews.TodoDemo = {
     <!-- Connection Status & Controls -->
     <div style="display: flex; gap: 15px; align-items: center; margin: 20px 0; flex-wrap: wrap;">
         <button v-if="!todoWs"
-                @click="$emit('connect')"
+                @click="connectTodoWs"
                 class="jp-btn jp-btn-primary">
             🔌 Connect to Todo Demo
         </button>
 
         <button v-if="todoWs"
-                @click="$emit('disconnect')"
+                @click="disconnectTodoWs"
                 class="jp-btn jp-btn-danger">
             🔌 Disconnect
         </button>
@@ -130,10 +246,10 @@ window.helloWebSocketViews.TodoDemo = {
                     ? todo.userFirstName + ' ' + todo.userLastName
                     : todo.username }}
             </div>
-            <button @click="handleDeleteTodo(todo._id)"
-                    class="jp-btn jp-btn-danger jp-btn-sm">
-                ✕
-            </button>
+                    <button @click="handleDeleteTodo(todo._id)"
+                            class="jp-btn jp-btn-danger jp-btn-sm">
+                        🗑️
+                    </button>
         </div>
     </div>
 

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / Site / WebApp / View / Hello To-Do / Architecture
+ * @tagline         Architecture Overview of To-Do MVC Demo
+ * @description     How Model, View, and Controller components connect
+ * @file            site/webapp/view/hello-todo/architecture.shtml
+ * @version         0.9.1
+ * @release         2025-10-05
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4.5
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do MVC Demo - Architecture - {{app.shortName}}</title>
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-todo-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .local-todo-nav .nav-arrow {
+            display: inline;
+            padding-top: 8px;
+            color: #007acc;
+        }
+
+        .local-todo-nav .jp-btn.jp-btn-active {
+            background-color: #007acc;
+            color: white;
+            border-color: #007acc;
+        }
+
+        .local-flow-diagram {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+            font-family: monospace;
+            line-height: 1.8;
+        }
+
+        .local-flow-step {
+            margin: 0.5rem 0;
+            padding-left: 1rem;
+        }
+
+        .local-flow-arrow {
+            color: #007acc;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-container-1000">
+            <div class="jp-page-header">
+                <h1><a href="/">Home</a> <span>❯</span>
+                    <a href="/hello/">Hello World Site Demos</a> <span>❯</span>
+                    📋 To-Do MVC Demo</h1>
+            </div>
+
+            <!-- Sub-navigation -->
+            <nav class="local-todo-nav">
+                <a href="/hello-todo/" class="jp-btn jp-btn-outline">📖 Overview</a>
+                <span class="nav-arrow">→</span>
+                <a href="/hello-todo/todo-app.shtml" class="jp-btn jp-btn-outline">✅ To-Do App</a>
+                <span class="nav-arrow">→</span>
+                <a href="/hello-todo/code-examples.shtml" class="jp-btn jp-btn-outline">💻 Code Examples</a>
+                <span class="nav-arrow">→</span>
+                <a href="/hello-todo/architecture.shtml" class="jp-btn jp-btn-outline jp-btn-active">🏗️ Architecture</a>
+            </nav>
+
+            <div class="jp-card">
+                <h2>🏗️ MVC Architecture</h2>
+
+                <div class="jp-info-box">
+                    <p>Understanding how the Model, View, and Controller work together to create a clean, maintainable application.</p>
+                </div>
+
+                <h3>📋 Request Flow Diagram</h3>
+                <p>Here's what happens when a user adds a new to-do:</p>
+
+                <div class="local-flow-diagram">
+                    <div class="local-flow-step">
+                        <strong>1. Browser (Client)</strong><br>
+                        User types "Buy milk" and clicks "Add To-Do"<br>
+                        JavaScript calls: <code>jPulse.api.post('/api/1/helloTodo', { title: 'Buy milk' })</code>
+                    </div>
+                    <div class="local-flow-arrow">↓</div>
+                    <div class="local-flow-step">
+                        <strong>2. Router (routes.js)</strong><br>
+                        Receives: <code>POST /api/1/helloTodo</code><br>
+                        Routes to: <code>HelloTodoController.apiCreate()</code>
+                    </div>
+                    <div class="local-flow-arrow">↓</div>
+                    <div class="local-flow-step">
+                        <strong>3. Controller (helloTodo.js)</strong><br>
+                        • Extracts data from request: <code>req.body.title</code><br>
+                        • Gets user info: <code>req.session.user</code><br>
+                        • Calls Model: <code>HelloTodoModel.create(todoData)</code>
+                    </div>
+                    <div class="local-flow-arrow">↓</div>
+                    <div class="local-flow-step">
+                        <strong>4. Model (model/helloTodo.js)</strong><br>
+                        • Creates todo object with defaults<br>
+                        • Inserts into MongoDB: <code>collection.insertOne(todo)</code><br>
+                        • Returns created todo with _id
+                    </div>
+                    <div class="local-flow-arrow">↑</div>
+                    <div class="local-flow-step">
+                        <strong>5. Controller</strong><br>
+                        • Receives todo from Model<br>
+                        • Sends JSON response: <code>res.json({ success: true, data: todo })</code>
+                    </div>
+                    <div class="local-flow-arrow">↑</div>
+                    <div class="local-flow-step">
+                        <strong>6. Browser</strong><br>
+                        • Receives success response<br>
+                        • Reloads page: <code>location.reload()</code><br>
+                        • New todo appears in list
+                    </div>
+                </div>
+
+                <h3>📁 File Structure</h3>
+                <div class="jp-source-code">
+                    <pre>site/webapp/
+├── controller/
+│   └── helloTodo.js          # Controller: Request handling & coordination
+├── model/
+│   └── helloTodo.js          # Model: Database operations
+└── view/
+    └── hello-todo/
+        ├── index.shtml        # Overview page
+        ├── todo-app.shtml     # Main app (View template)
+        ├── code-examples.shtml
+        └── architecture.shtml</pre>
+                </div>
+
+                <h3>🔄 Data Flow Patterns</h3>
+
+                <div class="jp-card" style="background: #e3f2fd; border-left: 4px solid #2196f3;">
+                    <h4 style="margin-top: 0;">Page Load (Traditional MPA)</h4>
+                    <p><strong>Request:</strong> User visits <code>/hello-todo/todo-app.shtml</code></p>
+                    <ol>
+                        <li>Router calls <code>HelloTodoController.index()</code></li>
+                        <li>Controller calls <code>HelloTodoModel.getAll(username)</code></li>
+                        <li>Model queries MongoDB and returns todos array</li>
+                        <li>Controller renders View with todos data</li>
+                        <li>Server sends complete HTML page to browser</li>
+                    </ol>
+                </div>
+
+                <div class="jp-card" style="background: #f3e5f5; border-left: 4px solid #9c27b0;">
+                    <h4 style="margin-top: 0;">API Request (AJAX)</h4>
+                    <p><strong>Request:</strong> User clicks "Add To-Do" button</p>
+                    <ol>
+                        <li>JavaScript makes AJAX POST to <code>/api/1/helloTodo</code></li>
+                        <li>Controller receives JSON, calls Model</li>
+                        <li>Model creates todo in MongoDB</li>
+                        <li>Controller returns JSON response</li>
+                        <li>JavaScript reloads page to show new todo</li>
+                    </ol>
+                </div>
+
+                <h3>🎯 Key Design Principles</h3>
+
+                <table class="jp-table">
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Responsibility</th>
+                            <th>What It Knows</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Model</strong></td>
+                            <td>Data & Business Logic</td>
+                            <td>MongoDB structure, validation rules, CRUD operations</td>
+                        </tr>
+                        <tr>
+                            <td><strong>View</strong></td>
+                            <td>User Interface</td>
+                            <td>HTML structure, styling, Handlebars templates</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Controller</strong></td>
+                            <td>Coordination</td>
+                            <td>HTTP requests, routing, which Model/View to use</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>✅ Benefits of MVC</h3>
+                <div class="jp-card" style="background: #f1f8e9; border-left: 4px solid #689f38;">
+                    <ul>
+                        <li><strong>Separation of Concerns</strong> - Each component has a single responsibility</li>
+                        <li><strong>Reusability</strong> - Model can be used by multiple Controllers</li>
+                        <li><strong>Testability</strong> - Components can be tested independently</li>
+                        <li><strong>Maintainability</strong> - Easy to find and fix bugs</li>
+                        <li><strong>Team Collaboration</strong> - Different developers can work on different layers</li>
+                    </ul>
+                </div>
+
+                <h3>🔀 Compare: MPA vs SPA</h3>
+                <div class="jp-card" style="background: #fff3cd; border-left: 4px solid #ff6b6b;">
+                    <h4 style="margin-top: 0;">This To-Do App (MPA)</h4>
+                    <ul>
+                        <li>✅ Server renders complete HTML pages</li>
+                        <li>✅ Browser reloads after each action</li>
+                        <li>✅ Simple, traditional approach</li>
+                        <li>✅ Works without JavaScript enabled</li>
+                        <li>❌ Full page reload on every action</li>
+                    </ul>
+                </div>
+
+                <div class="jp-card" style="background: #e8f5e9; border-left: 4px solid #4caf50; margin-top: 1rem;">
+                    <h4 style="margin-top: 0;">Vue.js SPA (Single Page App)</h4>
+                    <ul>
+                        <li>✅ Client renders UI dynamically</li>
+                        <li>✅ Instant UI updates, no page reloads</li>
+                        <li>✅ Smooth, app-like experience</li>
+                        <li>✅ Efficient data loading (only what changed)</li>
+                        <li>❌ More complex setup and architecture</li>
+                    </ul>
+                    <p class="jp-help-text">💡 See the <a href="/hello-vue/">Vue.js SPA Demo</a> to compare!</p>
+                </div>
+
+                <h3>📚 Next: Explore More Examples</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                    <a href="/hello-vue/" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                        <h4 style="margin-top: 0;">🎨 Vue.js SPA</h4>
+                        <p>See how a Single Page Application differs from this MPA</p>
+                    </a>
+                    <a href="/hello-websocket/" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                        <h4 style="margin-top: 0;">🌐 WebSocket Real-Time</h4>
+                        <p>Learn real-time communication with WebSockets</p>
+                    </a>
+                    <a href="/hello/" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                        <h4 style="margin-top: 0;">🏠 All Examples</h4>
+                        <p>Back to the examples dashboard</p>
+                    </a>
+                </div>
+
+                <!-- Navigation -->
+                <div class="jp-actions">
+                    <a href="/hello-todo/" class="jp-btn jp-btn-primary">← To-Do MVC Demo</a>
+                    <a href="/hello/" class="jp-btn jp-btn-outline">← Hello World Site Demos</a>
+                    <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

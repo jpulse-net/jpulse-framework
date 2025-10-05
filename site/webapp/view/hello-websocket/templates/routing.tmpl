@@ -4,7 +4,7 @@
  * @tagline         Routing and Vue.js Logic for WebSocket Demo SPA
  * @description     This file defines the Vue.js application logic for the WebSocket demo
  * @file            site/webapp/view/hello-websocket/templates/routing.tmpl
- * @version         0.9.0
+ * @version         0.9.1
  * @release         2025-10-05
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -80,19 +80,7 @@ const HelloWebSocketApp = {
     data() {
         return {
             currentView: 'overview',
-            routes: window.helloWebSocketRoutes,
-            // Emoji demo state
-            emojiWs: null,
-            emojiStatus: 'disconnected',
-            selectedEmoji: '❤️',
-            availableEmojis: ['❤️', '😂', '😮', '👍', '🎉', '🔥', '🚀', '✨'],
-            otherUsers: new Map(), // clientId -> {username, emoji, x, y}
-            userCount: 0,
-            // Todo demo state
-            todoWs: null,
-            todoStatus: 'disconnected',
-            todos: [],
-            todoUserCount: 0
+            routes: window.helloWebSocketRoutes
         };
     },
 
@@ -113,326 +101,31 @@ const HelloWebSocketApp = {
         navigateTo(view) {
             this.currentView = view;
             window.location.hash = view;
-        },
-
-        // Emoji Demo Methods
-        connectEmojiWs() {
-            if (this.emojiWs) return;
-
-            this.emojiWs = jPulse.ws.connect('/ws/hello-emoji')
-                .onMessage((data, message) => {
-                    if (data) {
-                        this.handleEmojiMessage(data);
-                    } else {
-                        console.error('Emoji WS error:', message.error);
-                    }
-                })
-                .onStatusChange((status, oldStatus) => {
-                    this.emojiStatus = status;
-                });
-
-            // Send initial emoji selection
-            setTimeout(() => {
-                if (this.emojiWs && this.emojiWs.isConnected()) {
-                    this.emojiWs.send({
-                        type: 'emoji-select',
-                        emoji: this.selectedEmoji
-                    });
-                }
-            }, 100);
-        },
-
-        disconnectEmojiWs() {
-            if (this.emojiWs) {
-                this.emojiWs.disconnect();
-                this.emojiWs = null;
-                this.emojiStatus = 'disconnected';
-                this.otherUsers.clear();
-            }
-        },
-
-        handleEmojiMessage(data) {
-            if (data.type === 'welcome') {
-                this.userCount = data.userCount || 1;
-            } else if (data.type === 'user-emoji') {
-                // Another user selected an emoji
-                if (data.clientId && data.username) {
-                    const existing = this.otherUsers.get(data.clientId) || {};
-                    this.otherUsers.set(data.clientId, {
-                        ...existing,
-                        username: data.username,
-                        emoji: data.emoji
-                    });
-                }
-            } else if (data.type === 'cursor') {
-                // Another user moved their cursor
-                if (data.clientId && data.username) {
-                    this.otherUsers.set(data.clientId, {
-                        username: data.username,
-                        emoji: data.emoji,
-                        x: data.x,
-                        y: data.y
-                    });
-                }
-            } else if (data.type === 'user-left') {
-                // Another user disconnected
-                if (data.clientId) {
-                    this.otherUsers.delete(data.clientId);
-                }
-                this.userCount = data.userCount || 0;
-            }
-        },
-
-        selectEmoji(emoji) {
-            this.selectedEmoji = emoji;
-            if (this.emojiWs && this.emojiWs.isConnected()) {
-                this.emojiWs.send({
-                    type: 'emoji-select',
-                    emoji: emoji
-                });
-            }
-        },
-
-        handleMouseMove(event) {
-            if (!this.emojiWs || !this.emojiWs.isConnected()) return;
-
-            const rect = event.currentTarget.getBoundingClientRect();
-            const x = ((event.clientX - rect.left) / rect.width) * 100;
-            const y = ((event.clientY - rect.top) / rect.height) * 100;
-
-            // Throttle: only send if enough time has passed
-            const now = Date.now();
-            if (!this._lastMouseSend || now - this._lastMouseSend > 50) {
-                this._lastMouseSend = now;
-                this.emojiWs.send({
-                    type: 'cursor-move',
-                    emoji: this.selectedEmoji,
-                    x: Math.round(x * 10) / 10,
-                    y: Math.round(y * 10) / 10
-                });
-            }
-        },
-
-        // Todo Demo Methods
-        async connectTodoWs() {
-            if (this.todoWs) return;
-
-            // Load initial todos via REST API
-            await this.loadTodos();
-
-            // Connect to WebSocket for live updates
-            this.todoWs = jPulse.ws.connect('/ws/hello-todo')
-                .onMessage((data, message) => {
-                    if (data) {
-                        this.handleTodoMessage(data);
-                    } else {
-                        console.error('Todo WS error:', message.error);
-                    }
-                })
-                .onStatusChange((status, oldStatus) => {
-                    this.todoStatus = status;
-                });
-        },
-
-        disconnectTodoWs() {
-            if (this.todoWs) {
-                this.todoWs.disconnect();
-                this.todoWs = null;
-                this.todoStatus = 'disconnected';
-            }
-        },
-
-        async loadTodos() {
-            try {
-                const response = await jPulse.api.get('/api/1/helloTodo');
-                if (response.success) {
-                    this.todos = response.data || [];
-                }
-            } catch (error) {
-                console.error('Failed to load todos:', error);
-                jPulse.UI.toast.show('Failed to load todos', 'error');
-            }
-        },
-
-        handleTodoMessage(data) {
-            if (data.type === 'welcome') {
-                this.todoUserCount = data.userCount || 1;
-            } else if (data.type === 'todo-created') {
-                // Add new todo to list (if not already present)
-                const exists = this.todos.find(t => t._id === data.todo._id);
-                if (!exists) {
-                    this.todos.unshift(data.todo);
-                    jPulse.UI.toast.show(`${data.username || 'Someone'} added a todo`, 'info');
-                }
-            } else if (data.type === 'todo-updated') {
-                // Update existing todo
-                const index = this.todos.findIndex(t => t._id === data.todo._id);
-                if (index !== -1) {
-                    this.todos[index] = data.todo;
-                    const action = data.todo.completed ? 'completed' : 'reopened';
-                    jPulse.UI.toast.show(`${data.username || 'Someone'} ${action} a todo`, 'info');
-                }
-            } else if (data.type === 'todo-deleted') {
-                // Remove deleted todo
-                const index = this.todos.findIndex(t => t._id === data.todoId);
-                if (index !== -1) {
-                    this.todos.splice(index, 1);
-                    jPulse.UI.toast.show(`${data.username || 'Someone'} deleted a todo`, 'info');
-                }
-            } else if (data.type === 'user-left') {
-                this.todoUserCount = data.userCount || 0;
-            }
-        },
-
-        async addTodo(title) {
-            if (!title || !title.trim()) return;
-
-            try {
-                const todoData = {
-                    title: title.trim()
-                };
-
-                // Add user info if available (will be handled server-side)
-                const response = await jPulse.api.post('/api/1/helloTodo', todoData);
-
-                if (!response.success) {
-                    jPulse.UI.toast.show('Failed to add todo', 'error');
-                }
-                // WebSocket will notify everyone (including us) when todo is added
-            } catch (error) {
-                console.error('Error adding todo:', error);
-                jPulse.UI.toast.show('Failed to add todo', 'error');
-            }
-        },
-
-        async toggleTodo(todo) {
-            try {
-                const response = await jPulse.api.call(`/api/1/helloTodo/${todo._id}/toggle`, {
-                    method: 'PUT'
-                });
-
-                if (!response.success) {
-                    jPulse.UI.toast.show('Failed to update todo', 'error');
-                }
-                // WebSocket will handle the update
-            } catch (error) {
-                console.error('Error toggling todo:', error);
-                jPulse.UI.toast.show('Failed to update todo', 'error');
-            }
-        },
-
-        async deleteTodo(todoId) {
-            const result = await jPulse.UI.confirmDialog({
-                message: 'Delete this todo?',
-                buttons: ['Cancel', 'Delete']
-            });
-
-            if (!result.confirmed) return;
-
-            try {
-                const response = await jPulse.api.call(`/api/1/helloTodo/${todoId}`, {
-                    method: 'DELETE'
-                });
-
-                if (!response.success) {
-                    jPulse.UI.toast.show('Failed to delete todo', 'error');
-                }
-                // WebSocket will handle the deletion
-            } catch (error) {
-                console.error('Error deleting todo:', error);
-                jPulse.UI.toast.show('Failed to delete todo', 'error');
-            }
-        },
-
-        escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-    },
-
-    computed: {
-        otherUsersArray() {
-            // Convert Map to array, including clientId in each object
-            return Array.from(this.otherUsers.entries()).map(([clientId, user]) => ({
-                ...user,
-                clientId
-            }));
         }
     },
 
     template: `
         <div>
-            <h1 class="jp-title">🌐 WebSocket Real-Time Demo</h1>
-
             <!-- Navigation -->
-            <div class="local-ws-nav">
-                <button @click="navigateTo('overview')"
-                        :class="['jp-btn', 'jp-btn-secondary', { 'jp-btn-active': currentView === 'overview' }]">
-                    📖 Overview
-                </button>
-                <button @click="navigateTo('emoji')"
-                        :class="['jp-btn', 'jp-btn-secondary', { 'jp-btn-active': currentView === 'emoji' }]">
-                    😊 Emoji Cursor
-                </button>
-                <button @click="navigateTo('todo')"
-                        :class="['jp-btn', 'jp-btn-secondary', { 'jp-btn-active': currentView === 'todo' }]">
-                    ✅ Collaborative Todo
-                </button>
-                <button @click="navigateTo('code')"
-                        :class="['jp-btn', 'jp-btn-secondary', { 'jp-btn-active': currentView === 'code' }]">
-                    💻 Code Examples
-                </button>
-                <button @click="navigateTo('architecture')"
-                        :class="['jp-btn', 'jp-btn-secondary', { 'jp-btn-active': currentView === 'architecture' }]">
-                    🏗️ Architecture
-                </button>
-            </div>
+            <nav class="local-ws-nav">
+                <template v-for="(route, index) in routes" :key="route.hash">
+                    <button
+                        @click="navigateTo(route.hash)"
+                        :class="['jp-btn', 'jp-btn-outline', { 'jp-btn-active': currentView === route.hash }]"
+                    >
+                        {{ route.icon }} {{ route.title }}
+                    </button>
+                    <span v-if="index < routes.length - 1" class="nav-arrow">→</span>
+                </template>
+            </nav>
 
-            <!-- Content Area - Dynamic components with props -->
+            <!-- Content Area - Self-contained components -->
             <div class="local-ws-content">
-                <!-- Overview -->
                 <overviewView v-if="currentView === 'overview'"></overviewView>
-
-                <!-- Emoji Demo -->
-                <emojiView v-if="currentView === 'emoji'"
-                    :emojiWs="emojiWs"
-                    :emojiStatus="emojiStatus"
-                    :selectedEmoji="selectedEmoji"
-                    :availableEmojis="availableEmojis"
-                    :otherUsers="otherUsers"
-                    :userCount="otherUsers.size + (emojiWs ? 1 : 0)"
-                    @connect="connectEmojiWs"
-                    @disconnect="disconnectEmojiWs"
-                    @selectEmoji="selectEmoji"
-                    @mouseMove="handleMouseMove">
-                </emojiView>
-
-                <!-- Todo Demo -->
-                <todoView v-if="currentView === 'todo'"
-                    :todoWs="todoWs"
-                    :todoStatus="todoStatus"
-                    :todos="todos"
-                    :todoUserCount="todoUserCount"
-                    @connect="connectTodoWs"
-                    @disconnect="disconnectTodoWs"
-                    @addTodo="addTodo"
-                    @toggleTodo="toggleTodo"
-                    @deleteTodo="deleteTodo">
-                </todoView>
-
-                <!-- Code Examples -->
+                <emojiView v-if="currentView === 'emoji'"></emojiView>
+                <todoView v-if="currentView === 'todo'"></todoView>
                 <codeView v-if="currentView === 'code'"></codeView>
-
-                <!-- Architecture -->
                 <architectureView v-if="currentView === 'architecture'"></architectureView>
-            </div>
-
-            <!-- Navigation Back -->
-            <div class="jp-actions">
-                <a href="/hello-todo/" class="jp-btn jp-btn-secondary">← Hello To-Do</a>
-                <a href="/hello-vue/" class="jp-btn jp-btn-secondary">← Hello Vue</a>
-                <a href="/" class="jp-btn jp-btn-secondary">🏠 Home</a>
             </div>
         </div>
     `

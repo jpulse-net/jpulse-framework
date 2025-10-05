@@ -3,7 +3,7 @@
  * @tagline         Integration tests for W-047 site-specific file loading
  * @description     Tests site-common.css/js loading and handlebars processing
  * @file            webapp/tests/integration/w047-site-files.test.js
- * @version         0.9.0
+ * @version         0.9.1
  * @release         2025-10-05
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -79,15 +79,17 @@ describe('W-047 Site-Specific Files Integration', () => {
 
         test('should have site-specific demo pages', () => {
             const helloIndexPath = path.join(process.cwd(), 'site/webapp/view/hello/index.shtml');
-            const siteDemoPath = path.join(process.cwd(), 'site/webapp/view/hello/site-demo.shtml');
+            const siteOverridePath = path.join(process.cwd(), 'site/webapp/view/hello/site-override.shtml');
+            const siteDevelopmentPath = path.join(process.cwd(), 'site/webapp/view/hello/site-development.shtml');
 
             // Verify demo pages exist
             expect(fs.existsSync(helloIndexPath)).toBe(true);
-            expect(fs.existsSync(siteDemoPath)).toBe(true);
+            expect(fs.existsSync(siteOverridePath)).toBe(true);
+            expect(fs.existsSync(siteDevelopmentPath)).toBe(true);
 
             // Verify demo content
-            const demoContent = fs.readFileSync(siteDemoPath, 'utf8');
-            expect(demoContent).toContain('W-047: Site Development Demo');
+            const demoContent = fs.readFileSync(siteDevelopmentPath, 'utf8');
+            expect(demoContent).toContain('W-047 Site Development Demo');
             expect(demoContent).toContain('site-btn');
             expect(demoContent).toContain('buttonFeedback');
         });

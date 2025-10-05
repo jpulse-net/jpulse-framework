@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.9.0
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.9.1
 
 **For Site Administrators & Site Developers**
 
@@ -10,6 +10,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 
 ## Latest Release Highlights
 
+- ✅ **WebSocket Real-Time Demo with Enhanced Navigation (v0.9.1)**: Complete `/hello-websocket/` educational demo teaching real-time communication with emoji cursor tracking (ephemeral) and collaborative todo list (hybrid REST+WebSocket). Includes unified 4-section navigation structure across all hello examples (Overview, Demo/App, Code Examples, Architecture), enhanced WebSocket documentation with implementation patterns, critical modal dialog focus trap bug fix, and 14 new hello-todo structure tests. Perfect progressive learning path: hello-todo (MPA) → hello-vue (SPA) → hello-websocket (Real-time SPA).
 - ✅ **Enterprise WebSocket Infrastructure (v0.9.0)**: Production-ready WebSocket support for real-time bidirectional communication with namespace isolation, authentication/authorization, auto-reconnection with exponential backoff, persistent client UUIDs, username tracking, admin monitoring dashboard with color-coded activity logs, interactive test tool, and comprehensive documentation. Includes `jPulse.ws.*` client utilities for MPA/SPA integration, Redis pub/sub preparation for horizontal scaling, and 65 comprehensive tests. Perfect for collaborative applications, live updates, and SPA real-time features with "don't make me think" onboarding.
 - ✅ **Consistent jPulse Utility Organization (v0.8.6)**: Complete refactoring of jPulse client-side utilities into consistent, logical namespaces. Moved `jPulse.apiCall()` to `jPulse.api.call()` for consistency with get/post/put/delete methods. Renamed slide-down messages to industry-standard `jPulse.UI.toast.*` (show/error/success/info/warning/clearAll) that better conveys their transient, non-blocking nature. All utilities now organized in clear buckets (api, form, dom, date, string, url, device, cookies, UI, clipboard) for improved developer experience and maintainability.
 - ✅ **Vue.js SPA Demo & Enhanced jPulse Utilities (v0.8.5)**: Complete Single Page Application demonstration with Vue.js 3, Vue Router, client-side routing, and real-time interactivity. Enhanced jPulse common utilities with `jPulse.date` namespace (formatLocalDate, formatLocalDateAndTime) and `jPulse.api.handleError()` for consistent error handling. Comprehensive educational example perfect for learning modern SPA development with jPulse Framework backend integration.
@@ -65,7 +66,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - Configuration merging system
 
 ### 🧪 **Testing & Quality**
-- 700+ comprehensive tests with 100% pass rate
+- 716+ comprehensive tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis

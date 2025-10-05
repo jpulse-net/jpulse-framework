@@ -4,7 +4,7 @@
  * @tagline         Real-Time WebSocket Communication Examples
  * @description     Interactive demos: emoji cursor tracking and collaborative todo
  * @file            site/webapp/view/hello-websocket/index.shtml
- * @version         0.9.0
+ * @version         0.9.1
  * @release         2025-10-05
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -286,11 +286,24 @@
 </head>
 <body>
     <div class="jp-main">
-        <div class="local-ws-app" id="wsApp">
-            <!-- Vue app will mount here -->
+        <div class="jp-container-1000">
+            <div class="jp-page-header">
+                <h1><a href="/home/">Home</a> <span>❯</span>
+                    <a href="/hello/">Hello World Site Demos</a> <span>❯</span>
+                    🌐 WebSocket Real-time Demo</h1>
+            </div>
+            <div class="local-ws-app" id="wsApp">
+                <!-- Vue app will mount here -->
+            </div>
+            <!-- Navigation -->
+            <div class="jp-actions">
+                <a href="/hello/" class="jp-btn jp-btn-primary">← Hello World Site Demos</a>
+                <a href="/hello-todo/" class="jp-btn jp-btn-outline">← To-Do MVC Demo</a>
+                <a href="/hello-vue/" class="jp-btn jp-btn-outline">← Vue.js SPA Demo</a>
+                <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+            </div>
         </div>
     </div>
-
     {{file.include "jpulse-footer.tmpl"}}
 </body>
 </html>

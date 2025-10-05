@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / Site / WebApp / View / Hello To-Do / Code Examples
+ * @tagline         Code Examples for To-Do MVC Demo
+ * @description     Model, View, and Controller code snippets
+ * @file            site/webapp/view/hello-todo/code-examples.shtml
+ * @version         0.9.1
+ * @release         2025-10-05
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4.5
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do MVC Demo - Code Examples - {{app.shortName}}</title>
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-todo-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .local-todo-nav .nav-arrow {
+            display: inline;
+            padding-top: 8px;
+            color: #007acc;
+        }
+
+        .local-todo-nav .jp-btn.jp-btn-active {
+            background-color: #007acc;
+            color: white;
+            border-color: #007acc;
+        }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-container-1000">
+            <div class="jp-page-header">
+                <h1><a href="/">Home</a> <span>❯</span>
+                    <a href="/hello/">Hello World Site Demos</a> <span>❯</span>
+                    📋 To-Do MVC Demo</h1>
+            </div>
+
+            <!-- Sub-navigation -->
+            <nav class="local-todo-nav">
+                <a href="/hello-todo/" class="jp-btn jp-btn-outline">📖 Overview</a>
+                <span class="nav-arrow">→</span>
+                <a href="/hello-todo/todo-app.shtml" class="jp-btn jp-btn-outline">✅ To-Do App</a>
+                <span class="nav-arrow">→</span>
+                <a href="/hello-todo/code-examples.shtml" class="jp-btn jp-btn-outline jp-btn-active">💻 Code Examples</a>
+                <span class="nav-arrow">→</span>
+                <a href="/hello-todo/architecture.shtml" class="jp-btn jp-btn-outline">🏗️ Architecture</a>
+            </nav>
+
+            <div class="jp-card">
+                <h2>💻 MVC Code Examples</h2>
+
+                <div class="jp-info-box">
+                    <p>See the actual implementation of Model, View, and Controller components in the To-Do app.</p>
+                </div>
+
+                <!-- Model Code -->
+                <h3 style="color: #007acc;">📊 Model: helloTodo.js (Model)</h3>
+                <p>The Model handles all database operations with MongoDB:</p>
+
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
+                    <pre>// site/webapp/model/helloTodo.js
+
+import { ObjectId } from 'mongodb';
+
+class HelloTodoModel {
+    // Get all todos for a user
+    static async getAll(username) {
+        const collection = global.dbCollections.helloTodos;
+        return await collection.find({ username })
+            .sort({ createdAt: -1 })
+            .toArray();
+    }
+
+    // Create a new todo
+    static async create(todoData) {
+        const collection = global.dbCollections.helloTodos;
+        const todo = {
+            title: todoData.title,
+            completed: false,
+            username: todoData.username,
+            userFirstName: todoData.userFirstName,
+            userLastName: todoData.userLastName,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        const result = await collection.insertOne(todo);
+        return { _id: result.insertedId, ...todo };
+    }
+
+    // Toggle todo completion
+    static async toggleComplete(id) {
+        const collection = global.dbCollections.helloTodos;
+        const todo = await collection.findOne({ _id: new ObjectId(id) });
+        if (!todo) return null;
+
+        const updated = await collection.findOneAndUpdate(
+            { _id: new ObjectId(id) },
+            {
+                $set: {
+                    completed: !todo.completed,
+                    updatedAt: new Date()
+                }
+            },
+            { returnDocument: 'after' }
+        );
+        return updated;
+    }
+
+    // Delete a todo
+    static async delete(id) {
+        const collection = global.dbCollections.helloTodos;
+        await collection.deleteOne({ _id: new ObjectId(id) });
+    }
+}
+
+export default HelloTodoModel;</pre>
+            </div>
+
+                <!-- Controller Code -->
+                <h3 style="color: #28a745; margin-top: 2rem;">🎮 Controller: helloTodo.js (Controller)</h3>
+                <p>The Controller handles HTTP requests and coordinates Model & View:</p>
+
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
+                    <pre>// site/webapp/controller/helloTodo.js
+
+import HelloTodoModel from '../model/helloTodo.js';
+
+class HelloTodoController {
+    // Show the main page
+    static async index(req, res) {
+        const username = req.session?.user?.username || 'guest';
+        const todos = await HelloTodoModel.getAll(username);
+
+        res.render('hello-todo/todo-app.shtml', {
+            todos: todos,
+            user: req.session?.user || null
+        });
+    }
+
+    // API: Get all todos (REST endpoint)
+    static async apiGetAll(req, res) {
+        const username = req.session?.user?.username || 'guest';
+        const todos = await HelloTodoModel.getAll(username);
+        res.json({ success: true, data: todos });
+    }
+
+    // API: Create a new todo
+    static async apiCreate(req, res) {
+        const { title } = req.body;
+        const user = req.session?.user || {};
+
+        const todoData = {
+            title,
+            username: user.username || 'guest',
+            userFirstName: user.firstName || '',
+            userLastName: user.lastName || ''
+        };
+
+        const todo = await HelloTodoModel.create(todoData);
+        res.json({ success: true, data: todo });
+    }
+
+    // API: Toggle todo completion
+    static async apiToggle(req, res) {
+        const { id } = req.params;
+        const todo = await HelloTodoModel.toggleComplete(id);
+        res.json({ success: true, data: todo });
+    }
+
+    // API: Delete a todo
+    static async apiDelete(req, res) {
+        const { id } = req.params;
+        await HelloTodoModel.delete(id);
+        res.json({ success: true });
+    }
+}
+
+export default HelloTodoController;</pre>
+            </div>
+
+                <!-- View Code -->
+                <h3 style="color: #ffc107; margin-top: 2rem;">🎨 View: todo-app.shtml (Template)</h3>
+                <p>The View displays data using Handlebars templates:</p>
+
+                <div class="jp-source-code" data-lang="html" data-show-lang="true">
+                    <pre>&lt;!-- site/webapp/view/hello-todo/todo-app.shtml --&gt;
+
+&lt;div class="local-todo-list"&gt;
+    {{#each todos}}
+    &lt;div class="local-todo-item {{#if completed}}completed{{/if}}"&gt;
+        &lt;input type="checkbox"
+               {{#if completed}}checked{{/if}}
+               onchange="toggleTodo('{{_id}}')"&gt;
+        &lt;span class="local-todo-title"&gt;{{title}}&lt;/span&gt;
+        &lt;button onclick="deleteTodo('{{_id}}')"
+                class="jp-btn jp-btn-danger jp-btn-sm"&gt;
+            Delete
+        &lt;/button&gt;
+    &lt;/div&gt;
+    {{else}}
+    &lt;p class="jp-help-text"&gt;No todos yet. Add one above!&lt;/p&gt;
+    {{/each}}
+&lt;/div&gt;
+
+&lt;script&gt;
+// Client-side JavaScript for API calls
+async function addTodo() {
+    const input = document.getElementById('todoInput');
+    const title = input.value.trim();
+    if (!title) return;
+
+    const response = await jPulse.api.post('/api/1/helloTodo', { title });
+    if (response.success) {
+        location.reload(); // Reload page to show new todo
+    }
+}
+
+async function toggleTodo(id) {
+    await jPulse.api.call(`/api/1/helloTodo/${id}/toggle`, {
+        method: 'PUT'
+    });
+    location.reload();
+}
+
+async function deleteTodo(id) {
+    const confirmed = await jPulse.UI.confirmDialog({
+        message: 'Delete this todo?',
+        buttons: ['Cancel', 'Delete']
+    });
+    if (confirmed.confirmed) {
+        await jPulse.api.call(`/api/1/helloTodo/${id}`, {
+            method: 'DELETE'
+        });
+        location.reload();
+    }
+}
+&lt;/script&gt;</pre>
+                </div>
+
+                <h3>🔗 Key Patterns</h3>
+                <div class="jp-card" style="background: #f8f9fa;">
+                    <ul>
+                        <li><strong>Separation of Concerns</strong> - Model, View, and Controller are separate files</li>
+                        <li><strong>REST API</strong> - Clean endpoints: GET, POST, PUT, DELETE</li>
+                        <li><strong>MongoDB ObjectId</strong> - Proper handling of MongoDB IDs</li>
+                        <li><strong>Session Management</strong> - Track todos per user via session</li>
+                        <li><strong>Client-Server Communication</strong> - API calls with jPulse.api helper</li>
+                        <li><strong>Page Reloads</strong> - Traditional MPA pattern (compare to SPA!)</li>
+                    </ul>
+                </div>
+
+                <div class="jp-card" style="background: #fff3cd; border-left: 4px solid #ffc107; margin-top: 1rem;">
+                    <p><strong>💡 MPA Pattern Note:</strong></p>
+                    <p>Notice how each action (add, toggle, delete) ends with <code>location.reload()</code>. This is the traditional MPA approach - the browser reloads the entire page to show updated data.</p>
+                    <p>Compare this to the <a href="/hello-vue/">Vue.js SPA</a> which updates the UI instantly without page reloads!</p>
+                </div>
+
+                <!-- Navigation -->
+                <div class="jp-actions">
+                    <a href="/hello-todo/" class="jp-btn jp-btn-primary">← To-Do MVC Demo</a>
+                    <a href="/hello/" class="jp-btn jp-btn-outline">← Hello World Site Demos</a>
+                    <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

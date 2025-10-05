@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Front-End Development Guide v0.9.0
+# jPulse Framework / Docs / Front-End Development Guide v0.9.1
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 

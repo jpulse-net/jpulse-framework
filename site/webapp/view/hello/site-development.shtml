@@ -4,7 +4,7 @@
  * @tagline         Comprehensive W-047 Site Development Demo
  * @description     Detailed demonstration of site-specific CSS and JavaScript features
  * @file            site/webapp/view/hello/site-demo.shtml
- * @version         0.9.0
+ * @version         0.9.1
  * @release         2025-10-05
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -22,8 +22,11 @@
 </head>
 <body>
     <div class="jp-main">
-        <h1 class="jp-title">🎨 W-047: Site Development Demo</h1>
-
+        <div class="jp-page-header">
+            <h1><a href="/home/">Home</a> <span>❯</span>
+                <a href="/hello/">Hello World Site Demos</a> <span>❯</span>
+                🔨 Site Development</h1>
+        </div>
         <div class="jp-info-box">
             <h2>Comprehensive Site Customization Showcase</h2>
             <p>This page demonstrates all aspects of site-specific development in the jPulse Framework.</p>
@@ -158,7 +161,7 @@
 
         <!-- Navigation -->
         <div class="jp-actions">
-            <a href="/hello/" class="jp-btn jp-btn-primary">← Back to Hello Demo</a>
+            <a href="/hello/" class="jp-btn jp-btn-primary">← Hello World Site Demos</a>
             <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
             <a href="https://github.com/peterthoeny/jpulse-framework/blob/main/site/README.md" class="jp-btn jp-btn-outline" target="_blank">📖 Documentation</a>
         </div>

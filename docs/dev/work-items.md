@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.9.0
+# jPulse Framework / Docs / Dev / Work Items v0.9.1
 
 This is the doc to track work items, arranged in three sections:
 
@@ -1079,8 +1079,8 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-075: site: create example /hello-websocket/ app
-- status: 🚧 IN_PROGRESS
+### W-075: site: create example /hello-websocket/ app - 0.9.1
+- status: ✅ COMPLETED
 - type: Feature
 - objective: create a websocket client app to teach how to create an app with realtime communication
 - see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
@@ -1089,28 +1089,47 @@ This is the doc to track work items, arranged in three sections:
   - W-072: site: example /hello-vue/ SPA using vue.js - v0.8.5
   - W-073: site: create client & server websocket infrastructure - 0.9.0
 - deliverables:
-  - site/webapp/view/hello-websocket/index.shtml  # websocket demo view
-    - two apps in two tabs:
-      - emoji app
-      - to-do app
-    - extra two tabs for code examples
+  - WebSocket Demo Application (/hello-websocket/)
+    - site/webapp/view/hello-websocket/index.shtml - main SPA page
+    - site/webapp/view/hello-websocket/templates/routing.tmpl - navigation controller
+    - site/webapp/view/hello-websocket/templates/overview.tmpl - overview component
+    - site/webapp/view/hello-websocket/templates/emoji-demo.tmpl - emoji cursor tracking demo
+    - site/webapp/view/hello-websocket/templates/todo-demo.tmpl - collaborative todo demo
+    - site/webapp/view/hello-websocket/templates/code-examples.tmpl - implementation examples
+    - site/webapp/view/hello-websocket/templates/architecture.tmpl - architecture explanation
+    - site/webapp/controller/helloWebsocket.js - WebSocket namespace management
+  - Enhanced Hello Examples Navigation
+    - site/webapp/view/hello/index.shtml - new dashboard for all hello examples
+    - site/webapp/view/hello/site-override.shtml - renamed from index.shtml
+    - site/webapp/view/hello/site-development.shtml - renamed from site-demo.shtml
+    - site/webapp/view/hello-todo/index.shtml - new overview page
+    - site/webapp/view/hello-todo/todo-app.shtml - renamed from index.shtml
+    - site/webapp/view/hello-todo/code-examples.shtml - new code examples page
+    - site/webapp/view/hello-todo/architecture.shtml - new architecture page
+    - site/webapp/view/hello-vue/templates/architecture.tmpl - new architecture page
+    - site/webapp/view/hello-vue/templates/code-examples.tmpl - renamed from code.tmpl
+  - Modal Dialog Bug Fix
+    - webapp/view/jpulse-common.js - enhanced focus trap with keyboard event interception
+  - CSS Improvements
+    - webapp/view/jpulse-common.css - fixed dashboard card vertical alignment
+  - Documentation
+    - docs/websockets.md - added Ephemeral and Hybrid REST+WebSocket patterns
+    - docs/README.md - updated to v0.9.1 with new release highlights
+    - docs/CHANGELOG.md - comprehensive v0.9.1 release notes
+  - Testing
+    - webapp/tests/unit/site/hello-todo-structure.test.js - 14 comprehensive structure tests
+    - webapp/tests/unit/utils/jpulse-common-enhanced.test.js - fixed for refactored hello-todo
+    - webapp/tests/integration/w047-site-files.test.js - updated for renamed hello files
+  - Integration
+    - site/webapp/controller/helloTodo.js - added WebSocket broadcast calls
+    - webapp/app.js - initialize HelloWebsocketController on startup
+    - webapp/view/home/index.shtml - updated hello-websocket description
 
 
 
 
 
 
-
-questions:
-- activity log padding tweak
-- svg
-- bug: http://localhost:8080/jpulse-examples/
-  - vertical alignment issue
-- bug: http://localhost:8080/jpulse-examples/ui-widgets.shtml
-  - enter submits the modal dialog again, instead of dismiss
-  - confirm should show primary and secondary button; enter on primary
-
-- what about vue & i18n?
 
 
 
@@ -1137,12 +1156,12 @@ finishing up work item: W-071:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste
   - current date: 2025-09-15 12:12
-- assume release: W-073, v0.9.0
+- assume release: W-075, v0.9.1
+- update deliverables in W-075 that reflects work done
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
 ### Misc
-- status: 🚧 IN_PROGRESS
 
 (normal package build on github)
 npm test
@@ -1413,10 +1432,10 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - when a new language file is added to webapp/translations, the app sould pick it up dynamically, or by an admin requesting a web-based resources reload
 - when a language file has been updated, the app should pick up the changes dynamically, or by an admin requesting a web-based resources reload
 
-### W-0: i18n: site specific translations
+### W-0: i18n: site specific translations & vue.js SPA support
 - status: 🕑 PENDING
 - type: Feature
-- objective: allow site admins/developers to define site-specific translations
+- objective: allow site admins/developers define site-specific translations for MPA and SPA
 - how: deep merge of site/webapp/translations/* files into webapp/translations/
 
 ### W-0: controller: change search to cursor based paging API with limit & cursor

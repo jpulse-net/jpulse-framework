@@ -1,0 +1,195 @@
+<!-- Vue.js SPA Architecture Component, site/webapp/view/hello-vue/templates/architecture.tmpl -->
+<!--
+ * @name            jPulse Framework / Site / WebApp / View / Hello Vue / Templates / Architecture
+ * @tagline         Architecture overview of Vue.js SPA
+ * @description     Explains SPA architecture and Vue.js benefits
+ * @file            site/webapp/view/hello-vue/templates/architecture.tmpl
+ * @version         0.9.1
+ * @release         2025-10-05
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4.5
+-->
+
+window.jpSpaRoutes = window.jpSpaRoutes || {};
+
+window.jpSpaRoutes.Architecture = {
+    template: `
+<div class="jp-card">
+    <h2>🏗️ SPA Architecture</h2>
+
+    <div class="jp-info-box">
+        <p><strong>Understanding Single Page Applications</strong></p>
+        <p>Learn how SPAs differ from traditional MPAs and why they provide better user experiences.</p>
+    </div>
+
+    <h3>🎯 What is a Single Page Application?</h3>
+    <p>A <strong>Single Page Application (SPA)</strong> loads a single HTML page and dynamically updates content as users interact with the app. Instead of loading new pages from the server, JavaScript handles routing and updates the UI in real-time.</p>
+
+    <div class="jp-card" style="background: #e3f2fd; border-left: 4px solid #2196f3;">
+        <h4 style="margin-top: 0;">Key Characteristics</h4>
+        <ul>
+            <li>✅ <strong>Single Page Load</strong> - Only one HTML page loads initially</li>
+            <li>✅ <strong>Client-side Routing</strong> - URL changes without page reloads</li>
+            <li>✅ <strong>Dynamic UI Updates</strong> - Only modified content changes</li>
+            <li>✅ <strong>API-driven</strong> - Data fetched via AJAX/REST APIs</li>
+            <li>✅ <strong>State Management</strong> - Application state lives in JavaScript</li>
+        </ul>
+    </div>
+
+    <h3>🔄 MPA vs SPA Comparison</h3>
+    <table class="jp-table">
+        <thead>
+            <tr>
+                <th>Aspect</th>
+                <th>MPA (Multi-Page App)</th>
+                <th>SPA (Single-Page App)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Page Loads</strong></td>
+                <td>Full reload on every navigation</td>
+                <td>Initial load only, then dynamic updates</td>
+            </tr>
+            <tr>
+                <td><strong>Routing</strong></td>
+                <td>Server-side (new HTML each time)</td>
+                <td>Client-side (JavaScript handles URLs)</td>
+            </tr>
+            <tr>
+                <td><strong>Data</strong></td>
+                <td>Embedded in HTML templates</td>
+                <td>Fetched via REST APIs</td>
+            </tr>
+            <tr>
+                <td><strong>Speed</strong></td>
+                <td>Slower (full page reloads)</td>
+                <td>Faster (partial updates only)</td>
+            </tr>
+            <tr>
+                <td><strong>SEO</strong></td>
+                <td>Better (server-rendered HTML)</td>
+                <td>Requires extra work (SSR/meta tags)</td>
+            </tr>
+            <tr>
+                <td><strong>Complexity</strong></td>
+                <td>Simpler architecture</td>
+                <td>More complex (build tools, state)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>🎨 Vue.js Architecture in This Demo</h3>
+    <div class="jp-source-code">
+        <pre>Hello Vue SPA Structure:
+┌─────────────────────────────────────────────────┐
+│  index.shtml (Single HTML Page)                 │
+│  ├─ Vue.js library                              │
+│  ├─ Vue Router (client-side routing)            │
+│  └─ templates/                                  │
+│      ├─ routing.tmpl (routes & app)             │
+│      ├─ overview.tmpl (Vue component)           │
+│      ├─ todo-demo.tmpl (Vue component)          │
+│      ├─ code-examples.tmpl (Vue component)      │
+│      └─ architecture.tmpl (this component!)     │
+└─────────────────────────────────────────────────┘
+
+When User Clicks Navigation:
+1. Vue Router intercepts link click
+2. Updates browser URL (without reload!)
+3. Vue renders new component
+4. DOM updates instantly
+5. Page never reloads</pre>
+    </div>
+
+    <h3>🚀 Why Vue.js?</h3>
+    <div class="jp-card" style="background: #f1f8e9; border-left: 4px solid #689f38;">
+        <ul>
+            <li><strong>Reactive Data Binding</strong> - UI updates automatically when data changes</li>
+            <li><strong>Component-Based</strong> - Reusable, self-contained UI pieces</li>
+            <li><strong>Lightweight</strong> - Small bundle size, fast performance</li>
+            <li><strong>Progressive Framework</strong> - Use as much or as little as you need</li>
+            <li><strong>Developer Experience</strong> - Intuitive API, great documentation</li>
+            <li><strong>Ecosystem</strong> - Vue Router, Vuex, DevTools, and more</li>
+        </ul>
+    </div>
+
+    <h3>⚡ Performance Benefits</h3>
+    <div class="jp-card" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+        <h4 style="margin-top: 0;">SPAs Are Faster Because:</h4>
+        <ul>
+            <li>✅ <strong>No Full Page Reloads</strong> - Only changed content updates</li>
+            <li>✅ <strong>Cached Assets</strong> - JavaScript/CSS loaded once</li>
+            <li>✅ <strong>Efficient Data Transfer</strong> - JSON is smaller than HTML</li>
+            <li>✅ <strong>Optimized Rendering</strong> - Vue's virtual DOM is fast</li>
+            <li>✅ <strong>Instant Transitions</strong> - No network delay for navigation</li>
+        </ul>
+    </div>
+
+    <h3>🎯 Real-World Use Cases</h3>
+    <table class="jp-table">
+        <thead>
+            <tr>
+                <th>Use MPA When...</th>
+                <th>Use SPA When...</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>SEO is critical (blogs, marketing sites)</td>
+                <td>User experience matters most (web apps)</td>
+            </tr>
+            <tr>
+                <td>Simple content-driven sites</td>
+                <td>Complex, interactive applications</td>
+            </tr>
+            <tr>
+                <td>Server-side rendering preferred</td>
+                <td>Need instant UI updates</td>
+            </tr>
+            <tr>
+                <td>Works without JavaScript</td>
+                <td>API-driven, data-heavy interfaces</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>🛠️ Technologies in This Demo</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        <div class="jp-card" style="background: #f8f9fa;">
+            <h4 style="margin-top: 0; color: #42b883;">Vue.js 3</h4>
+            <p>Progressive JavaScript framework for building UIs</p>
+        </div>
+        <div class="jp-card" style="background: #f8f9fa;">
+            <h4 style="margin-top: 0; color: #35495e;">Vue Router</h4>
+            <p>Official router for Vue.js with History Mode</p>
+        </div>
+        <div class="jp-card" style="background: #f8f9fa;">
+            <h4 style="margin-top: 0; color: #007acc;">jPulse.api</h4>
+            <p>Framework helper for REST API calls</p>
+        </div>
+    </div>
+
+    <h3>📚 Compare with Other Examples</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+        <a href="/hello-todo/" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+            <h4 style="margin-top: 0;">✅ To-Do MVC (MPA)</h4>
+            <p>Traditional Multi-Page Application for comparison</p>
+        </a>
+        <a href="/hello-websocket/" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+            <h4 style="margin-top: 0;">🌐 WebSocket Real-Time</h4>
+            <p>SPA + Real-time communication with WebSockets</p>
+        </a>
+        <a href="/hello/" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+            <h4 style="margin-top: 0;">🏠 All Examples</h4>
+            <p>Back to the examples dashboard</p>
+        </a>
+    </div>
+</div>
+    `
+};
+
+// EOF site/webapp/view/hello-vue/templates/architecture.tmpl

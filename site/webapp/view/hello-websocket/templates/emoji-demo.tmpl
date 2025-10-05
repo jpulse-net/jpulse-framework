@@ -4,7 +4,7 @@
  * @tagline         Emoji cursor demo component of the WebSocket demo
  * @description     This component is a emoji cursor app to demo the WebSocket features
  * @file            site/webapp/view/hello-websocket/templates/emoji-demo.tmpl
- * @version         0.9.0
+ * @version         0.9.1
  * @release         2025-10-05
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,15 +16,17 @@
 window.helloWebSocketViews = window.helloWebSocketViews || {};
 
 window.helloWebSocketViews.EmojiDemo = {
-    props: {
-        emojiWs: Object,
-        emojiStatus: String,
-        selectedEmoji: String,
-        availableEmojis: Array,
-        otherUsers: Map,
-        userCount: Number
+    data() {
+        return {
+            emojiWs: null,
+            emojiStatus: 'disconnected',
+            selectedEmoji: '❤️',
+            availableEmojis: ['❤️', '😂', '😮', '👍', '🎉', '🔥', '🚀', '✨'],
+            otherUsers: new Map(), // clientId -> {username, emoji, x, y}
+            userCount: 0,
+            _lastMouseSend: 0
+        };
     },
-    emits: ['connect', 'disconnect', 'selectEmoji', 'mouseMove'],
     computed: {
         otherUsersArray() {
             // Convert Map to array, including clientId in each object
@@ -32,6 +34,104 @@ window.helloWebSocketViews.EmojiDemo = {
                 ...user,
                 clientId
             }));
+        }
+    },
+    methods: {
+        connectEmojiWs() {
+            if (this.emojiWs) return;
+
+            this.emojiWs = jPulse.ws.connect('/ws/hello-emoji')
+                .onMessage((data, message) => {
+                    if (data) {
+                        this.handleEmojiMessage(data);
+                    } else {
+                        console.error('Emoji WS error:', message.error);
+                    }
+                })
+                .onStatusChange((status, oldStatus) => {
+                    this.emojiStatus = status;
+                });
+
+            // Send initial emoji selection
+            setTimeout(() => {
+                if (this.emojiWs && this.emojiWs.isConnected()) {
+                    this.emojiWs.send({
+                        type: 'emoji-select',
+                        emoji: this.selectedEmoji
+                    });
+                }
+            }, 100);
+        },
+
+        disconnectEmojiWs() {
+            if (this.emojiWs) {
+                this.emojiWs.disconnect();
+                this.emojiWs = null;
+                this.emojiStatus = 'disconnected';
+                this.otherUsers.clear();
+            }
+        },
+
+        handleEmojiMessage(data) {
+            if (data.type === 'welcome') {
+                this.userCount = data.userCount || 1;
+            } else if (data.type === 'user-emoji') {
+                // Another user selected an emoji
+                if (data.clientId && data.username) {
+                    const existing = this.otherUsers.get(data.clientId) || {};
+                    this.otherUsers.set(data.clientId, {
+                        ...existing,
+                        username: data.username,
+                        emoji: data.emoji
+                    });
+                }
+            } else if (data.type === 'cursor') {
+                // Another user moved their cursor
+                if (data.clientId && data.username) {
+                    this.otherUsers.set(data.clientId, {
+                        username: data.username,
+                        emoji: data.emoji,
+                        x: data.x,
+                        y: data.y
+                    });
+                }
+            } else if (data.type === 'user-left') {
+                // Another user disconnected
+                if (data.clientId) {
+                    this.otherUsers.delete(data.clientId);
+                }
+                this.userCount = data.userCount || 0;
+            }
+        },
+
+        selectEmoji(emoji) {
+            this.selectedEmoji = emoji;
+            if (this.emojiWs && this.emojiWs.isConnected()) {
+                this.emojiWs.send({
+                    type: 'emoji-select',
+                    emoji: emoji
+                });
+            }
+        },
+
+        handleMouseMove(event) {
+            if (!this.emojiWs || !this.emojiWs.isConnected()) return;
+
+            const rect = event.currentTarget.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / rect.width) * 100;
+            const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+            // Throttle: only send if enough time has passed
+            const now = Date.now();
+            if (!this._lastMouseSend || now - this._lastMouseSend > 50) {
+                this._lastMouseSend = now;
+                this.emojiWs.send({
+                    type: 'cursor-move',
+                    emoji: this.selectedEmoji,
+                    x: Math.round(x * 10) / 10,
+                    y: Math.round(y * 10) / 10
+                });
+            }
         }
     },
     template: `
@@ -53,13 +153,13 @@ window.helloWebSocketViews.EmojiDemo = {
     <!-- Connection Status & Controls -->
     <div style="display: flex; gap: 15px; align-items: center; margin: 20px 0; flex-wrap: wrap;">
         <button v-if="!emojiWs"
-                @click="$emit('connect')"
+                @click="connectEmojiWs"
                 class="jp-btn jp-btn-primary">
             🔌 Connect to Emoji Demo
         </button>
 
         <button v-if="emojiWs"
-                @click="$emit('disconnect')"
+                @click="disconnectEmojiWs"
                 class="jp-btn jp-btn-danger">
             🔌 Disconnect
         </button>
@@ -80,7 +180,7 @@ window.helloWebSocketViews.EmojiDemo = {
         <div class="local-emoji-selector">
             <button v-for="emoji in availableEmojis"
                     :key="emoji"
-                    @click="$emit('selectEmoji', emoji)"
+                    @click="selectEmoji(emoji)"
                     :class="['local-emoji-btn', { selected: selectedEmoji === emoji }]"
                     :title="'Select ' + emoji">
                 {{ emoji }}
@@ -97,7 +197,7 @@ window.helloWebSocketViews.EmojiDemo = {
         <p class="jp-help-text">See your emoji follow your cursor. Open another browser window to see other users!</p>
 
         <div class="local-emoji-area"
-             @mousemove="$emit('mouseMove', $event)">
+             @mousemove="handleMouseMove">
 
             <!-- Other users' cursors -->
             <div v-for="user in otherUsersArray"

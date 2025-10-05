@@ -3,7 +3,7 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         0.9.0
+ * @version         0.9.1
  * @release         2025-10-05
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -553,6 +553,7 @@ window.jPulse = {
         _dialogStack: [],
         _baseZIndex: 1000,
         _alertZIndex: 2000,
+        _previousFocus: null, // Store previous focus to restore on dialog close
 
         // Toast notification queue management
         _toastQueue: [],
@@ -827,7 +828,7 @@ window.jPulse = {
                 }
 
                 // Focus management
-                jPulse.UI._trapFocus(dialog);
+                jPulse.UI._trapFocus(dialog, overlay);
             });
         },
 
@@ -1926,7 +1927,7 @@ window.jPulse = {
                 document.addEventListener('keydown', handleEscape);
 
                 // Focus management
-                jPulse.UI._trapFocus(dialog);
+                jPulse.UI._trapFocus(dialog, overlay);
             });
         },
 
@@ -1994,10 +1995,27 @@ window.jPulse = {
          * @param {Element} dialog - Dialog element
          */
         _closeDialog: (overlay, dialog) => {
+            // Remove keydown event listener if it exists
+            if (overlay._keydownHandler) {
+                document.removeEventListener('keydown', overlay._keydownHandler, true);
+                overlay._keydownHandler = null;
+            }
+
             // Remove from stack
             const index = jPulse.UI._dialogStack.findIndex(item => item.overlay === overlay);
             if (index > -1) {
                 jPulse.UI._dialogStack.splice(index, 1);
+            }
+
+            // Restore focus to previously focused element if no more dialogs
+            if (jPulse.UI._dialogStack.length === 0 && jPulse.UI._previousFocus) {
+                // Restore focus after a small delay to ensure dialog is gone
+                setTimeout(() => {
+                    if (jPulse.UI._previousFocus && typeof jPulse.UI._previousFocus.focus === 'function') {
+                        jPulse.UI._previousFocus.focus();
+                    }
+                    jPulse.UI._previousFocus = null;
+                }, 50);
             }
 
             // Animate out
@@ -2016,14 +2034,59 @@ window.jPulse = {
         /**
          * Trap focus within dialog for accessibility
          * @param {Element} dialog - Dialog element
+         * @param {Element} overlay - Dialog overlay element
          */
-        _trapFocus: (dialog) => {
+        _trapFocus: (dialog, overlay) => {
+            // Store currently focused element to restore later
+            if (!jPulse.UI._previousFocus && document.activeElement) {
+                jPulse.UI._previousFocus = document.activeElement;
+            }
+
+            // Get all focusable elements in the dialog
             const focusableElements = dialog.querySelectorAll(
                 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
             );
 
             if (focusableElements.length > 0) {
+                // Focus the first element
                 focusableElements[0].focus();
+
+                // Prevent keyboard events from reaching background elements
+                const handleKeydown = (e) => {
+                    // Prevent Enter/Space from triggering background buttons
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        // Only allow these keys if focus is on a dialog element
+                        if (!dialog.contains(e.target)) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            return;
+                        }
+                    }
+
+                    // Trap Tab key within dialog
+                    if (e.key === 'Tab') {
+                        const firstElement = focusableElements[0];
+                        const lastElement = focusableElements[focusableElements.length - 1];
+
+                        if (e.shiftKey) {
+                            // Shift+Tab - if on first element, go to last
+                            if (document.activeElement === firstElement) {
+                                e.preventDefault();
+                                lastElement.focus();
+                            }
+                        } else {
+                            // Tab - if on last element, go to first
+                            if (document.activeElement === lastElement) {
+                                e.preventDefault();
+                                firstElement.focus();
+                            }
+                        }
+                    }
+                };
+
+                // Add event listener to document (will be removed when dialog closes)
+                overlay._keydownHandler = handleKeydown;
+                document.addEventListener('keydown', handleKeydown, true); // Use capture phase
             }
         },
 

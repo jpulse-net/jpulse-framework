@@ -6,7 +6,7 @@
  #                  - Run as root: sudo npm run jpulse-install
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/jpulse-install.sh
- # @version         0.9.0
+ # @version         0.9.1
  # @release         2025-10-05
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

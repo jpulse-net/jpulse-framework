@@ -4,7 +4,7 @@
  * @tagline         Routing of the Hello Vue Single Page Application
  * @description     This file defines the routing structure for the Vue.js SPA
  * @file            site/webapp/view/hello-vue/templates/routing.tmpl
- * @version         0.9.0
+ * @version         0.9.1
  * @release         2025-10-05
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -32,7 +32,7 @@ window.helloVueRoutes = [
         path: '/overview',
         component: 'Overview',
         title: 'Overview',
-        icon: '🚀',
+        icon: '📖',
         description: 'Welcome to the Vue.js SPA Demo'
     },
     {
@@ -43,34 +43,26 @@ window.helloVueRoutes = [
         description: 'Experience real to-do management with Vue.js reactivity and API integration'
     },
     {
-        path: '/features',
-        component: 'Features',
-        title: 'SPA Features',
-        icon: '⚡',
-        description: 'Learn about the technical benefits and implementation details'
-    },
-    {
-        path: '/code',
-        component: 'Code',
+        path: '/code-examples',
+        component: 'CodeExamples',
         title: 'Code Examples',
-        icon: '⚙️',
+        icon: '💻',
         description: 'See the actual implementation patterns and code snippets'
     },
     {
-        path: '/about',
-        component: 'About',
-        title: 'About',
-        icon: 'ℹ️',
-        description: 'Learn about the benefits of a Vue.js based SPA (single page application)'
+        path: '/architecture',
+        component: 'Architecture',
+        title: 'Architecture',
+        icon: '🏗️',
+        description: 'Understanding SPA architecture and Vue.js benefits'
     }
 ];
 
 // Include all page components as JavaScript
 {{file.include "hello-vue/templates/overview.tmpl"}}
 {{file.include "hello-vue/templates/todo-demo.tmpl"}}
-{{file.include "hello-vue/templates/features.tmpl"}}
-{{file.include "hello-vue/templates/code.tmpl"}}
-{{file.include "hello-vue/templates/about.tmpl"}}
+{{file.include "hello-vue/templates/code-examples.tmpl"}}
+{{file.include "hello-vue/templates/architecture.tmpl"}}
 
 // Wait for DOM to be ready and Vue/VueRouter to be available using jPulse
 jPulse.dom.ready(() => {
@@ -140,6 +132,8 @@ jPulse.dom.ready(() => {
             navigateTo(path) {
                 this.currentPath = path;
                 this.$router.push(path);
+                // Scroll to top on navigation
+                window.scrollTo(0, 0);
             }
         },
         mounted() {

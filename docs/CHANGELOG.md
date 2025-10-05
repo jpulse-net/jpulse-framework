@@ -1,6 +1,152 @@
-# jPulse Framework / Docs / Version History v0.9.0
+# jPulse Framework / Docs / Version History v0.9.1
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.9.1, W-075, 2025-10-05
+
+**Commit:** `W-075, v0.9.1: WebSocket Real-Time Demo, Enhanced Navigation & UI Bug Fixes`
+
+**WEBSOCKET EDUCATIONAL DEMO**: Complete `/hello-websocket/` demo application teaching real-time communication with emoji cursor tracking and collaborative to-do list. Includes enhanced navigation structure for all hello examples, comprehensive test suite additions, and critical modal dialog focus bug fix.
+
+**Objective**: Provide comprehensive WebSocket learning experience with interactive demos, clear separation of concerns, enhanced navigation across all hello examples, and improved UI widget reliability.
+
+**Key Features**:
+- **WebSocket Demo App** (`/hello-websocket/`): Complete SPA with emoji cursor tracking and collaborative todos
+- **Hello Examples Navigation**: Unified 4-section structure (Overview, Demo/App, Code Examples, Architecture) across all hello examples
+- **Modal Dialog Fix**: Critical focus trap bug preventing keyboard events from reaching background buttons
+- **Enhanced Testing**: +14 new tests for hello-todo structure validation
+
+**WebSocket Demo Application** (`/hello-websocket/`):
+- **Two Interactive Demos**: Emoji cursor tracking (ephemeral) and collaborative todo list (hybrid REST+WebSocket)
+- **Educational Structure**: 5-page SPA (Overview, Emoji Demo, Todo Demo, Code Examples, Architecture)
+- **Server-Side Controller** (`site/webapp/controller/helloWebsocket.js`): Manages two WebSocket namespaces
+- **Self-Contained Components**: Clean separation of concerns with emoji and todo logic in their own components
+- **Consistent Patterns**: Follows hello-vue educational approach with server-side template includes
+- **Hash-Based Routing**: Simple client-side routing for educational purposes (vs. Vue Router in hello-vue)
+
+**Emoji Cursor Demo**:
+- **Real-Time Tracking**: Mouse movements broadcast to all connected users with emoji indicators
+- **Throttled Updates**: 20 updates/second (50ms throttle) for smooth performance
+- **User Presence**: Shows all connected users' cursors with usernames and emoji
+- **No Persistence**: Purely ephemeral real-time communication (no database)
+- **Clean Disconnection**: Graceful cleanup when users disconnect
+
+**Collaborative Todo Demo**:
+- **Hybrid Architecture**: REST API for actions + WebSocket for notifications
+- **Live Updates**: Real-time synchronization across all connected clients
+- **Existing MVC Integration**: Enhances hello-todo controller with WebSocket broadcasts
+- **User Activity**: Shows which user created/toggled/deleted todos
+- **Educational Pattern**: Teaches how to add real-time features to existing MVC apps
+
+**Enhanced Navigation Structure**:
+- **Unified 4-Section Pattern**: Overview, Interactive Demo/App, Code Examples, Architecture
+- **Hello Dashboard** (`/hello/index.shtml`): New central hub for all hello examples
+- **Renamed Files**: hello/index.shtml → hello/site-override.shtml, hello/site-demo.shtml → hello/site-development.shtml
+- **Hello-Todo MPA**: Restructured into 4 pages (index, todo-app, code-examples, architecture)
+- **Hello-Vue SPA**: Standardized to 4-route structure matching hello-todo pattern
+- **Breadcrumb Navigation**: Consistent "Home ❯ Hello World Site Demos ❯ Example" across all pages
+- **Bottom Navigation**: Unified "← To-Do MVC Demo" and "← Hello World Site Demos" buttons
+
+**Modal Dialog Bug Fix**:
+- **Issue**: Enter key reopening dialogs by triggering background buttons
+- **Root Cause**: Focus trap not preventing keyboard events from reaching background elements
+- **Solution**: Enhanced `_trapFocus()` with event capture phase interception
+- **Focus Management**: Store and restore previous focus on dialog close
+- **Tab Cycling**: Proper Tab/Shift+Tab cycling within dialog elements
+- **Event Cleanup**: Keydown listeners properly removed on dialog close
+- **Backward Compatible**: No breaking changes to existing dialog code
+
+**Educational Content Improvements**:
+- **MPA vs SPA Distinction**: Clear explanation of Traditional MPA vs jPulse Hybrid MPA approach
+- **Documentation Links**: All hello-todo pages link to `/docs/mpa-vs-spa.html`
+- **Syntax Highlighting**: Prism.js integration for code examples in hello-todo
+- **Consistent Icons**: 📋 for todo MVC, 😊 for emoji demo, ✅ for todo app, 🌐 for WebSocket
+- **Info Boxes**: Educational call-outs explaining architectural differences
+
+**Enhanced Testing**:
+- **New Test Suite** (`webapp/tests/unit/hello-todo-structure.test.js`): 14 comprehensive tests
+  - File structure validation (4 tests)
+  - Navigation consistency (4 tests)
+  - Educational content verification (3 tests)
+  - Consistent styling checks (2 tests)
+  - Code structure validation (1 test)
+- **Test Fixes**: Updated 2 tests for refactored hello-todo structure
+- **Total Tests**: 716 passing (up from 702)
+
+**Documentation Enhancements**:
+- **WebSocket Patterns** (`docs/websockets.md`): Added Ephemeral Real-Time Tracking and Hybrid REST+WebSocket patterns
+- **Hello-WebSocket Examples**: Detailed breakdown of emoji and todo demos in websockets.md
+- **Code Examples**: Copy-paste ready implementation code for both patterns
+
+**UI/UX Improvements**:
+- **Dashboard Card Alignment**: Fixed `.jp-card-dashboard` to align content at top (not center)
+- **Navigation Arrows**: Added → arrows between navigation buttons for visual flow
+- **Active Button Styling**: `.jp-btn-active` highlights current page in navigation
+- **Scroll to Top**: Hello-vue routes now scroll to top on navigation
+- **Consistent Styling**: Unified button styles (primary, outline, active) across all hello examples
+
+**Files Created**:
+- site/webapp/view/hello-websocket/index.shtml: Main WebSocket demo page
+- site/webapp/view/hello-websocket/templates/routing.tmpl: Navigation controller
+- site/webapp/view/hello-websocket/templates/overview.tmpl: Overview component
+- site/webapp/view/hello-websocket/templates/emoji-demo.tmpl: Emoji cursor demo component
+- site/webapp/view/hello-websocket/templates/todo-demo.tmpl: Collaborative todo demo component
+- site/webapp/view/hello-websocket/templates/code-examples.tmpl: Code examples component
+- site/webapp/view/hello-websocket/templates/architecture.tmpl: Architecture explanation component
+- site/webapp/controller/helloWebsocket.js: WebSocket namespace controller (266 lines)
+- site/webapp/view/hello/index.shtml: New hello examples dashboard
+- site/webapp/view/hello-todo/index.shtml: Todo MVC overview page
+- site/webapp/view/hello-todo/code-examples.shtml: Todo code examples page
+- site/webapp/view/hello-todo/architecture.shtml: Todo architecture page
+- site/webapp/view/hello-vue/templates/architecture.tmpl: Vue architecture page
+- webapp/tests/unit/site/hello-todo-structure.test.js: Comprehensive structure tests (155 lines)
+
+**Files Renamed**:
+- site/webapp/view/hello-todo/index.shtml → site/webapp/view/hello-todo/todo-app.shtml (actual app moved)
+- site/webapp/view/hello/index.shtml → site/webapp/view/hello/site-override.shtml
+- site/webapp/view/hello/site-demo.shtml → site/webapp/view/hello/site-development.shtml
+- site/webapp/view/hello-vue/templates/code.tmpl → site/webapp/view/hello-vue/templates/code-examples.tmpl
+
+**Files Modified**:
+- site/webapp/controller/helloTodo.js: Added WebSocket broadcast calls (3 locations)
+- webapp/app.js: Initialize HelloWebsocketController on startup
+- webapp/view/jpulse-common.js: Enhanced modal dialog focus trap (+70 lines)
+- webapp/view/jpulse-common.css: Fixed dashboard card vertical alignment
+- webapp/view/home/index.shtml: Updated hello-websocket link description
+- site/webapp/view/hello-vue/templates/routing.tmpl: Standardized to 4-route structure, scroll to top
+- site/webapp/view/hello-vue/templates/overview.tmpl: Merged content from about.tmpl
+- site/webapp/view/hello-vue/templates/code-examples.tmpl: Merged content from features.tmpl
+- docs/websockets.md: Added Ephemeral and Hybrid patterns with hello-websocket examples
+- webapp/tests/unit/utils/jpulse-common-enhanced.test.js: Fixed path for refactored hello-todo
+- webapp/tests/integration/w047-site-files.test.js: Updated for renamed hello files
+
+**Quality Assurance**:
+- All 716 tests passing (14 new hello-todo structure tests + 2 fixed tests)
+- Zero regressions introduced
+- Manual testing: Modal dialog focus trap verified across browsers
+- WebSocket demos tested: Multi-user emoji tracking and collaborative todos
+- Navigation tested: All hello examples breadcrumbs and sub-navigation
+- Educational value: Comprehensive learning path from MPA → SPA → WebSocket
+
+**Developer Experience**:
+- **Progressive Learning**: hello-todo (MPA) → hello-vue (SPA) → hello-websocket (Real-time SPA)
+- **Consistent Navigation**: Same 4-section structure across all examples
+- **Clear Architecture**: Separation of concerns demonstrated in all demos
+- **Copy-Paste Code**: Ready-to-use examples for emoji tracking and collaborative features
+- **Comprehensive Docs**: WebSocket patterns documented with real-world examples
+
+**Use Cases Demonstrated**:
+- **Ephemeral Tracking**: Mouse cursors, presence indicators, typing indicators
+- **Collaborative Features**: Multi-user editing, shared state, activity feeds
+- **Hybrid Architecture**: REST for actions + WebSocket for notifications
+- **Educational Patterns**: How to structure SPAs with WebSocket integration
+
+**Migration Path**:
+- Zero Breaking Changes: New features, no existing code affected
+- Backward Compatible: Modal dialog fix maintains existing API
+- Documentation: Complete guides for WebSocket integration patterns
+- Examples: Three progressive examples (MPA, SPA, Real-time SPA)
 
 ________________________________________________
 ## v0.9.0, W-073, 2025-10-04

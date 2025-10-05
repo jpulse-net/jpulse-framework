@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / Site / WebApp / View / Hello World Override Demo
+ * @tagline         Demo Site View Override
+ * @description     Example of how to override framework views
+ * @file            site/webapp/view/hello/index.shtml
+ * @version         0.9.1
+ * @release         2025-10-05
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Override Demo - {{app.shortName}}</title>
+    {{file.include "jpulse-header.tmpl"}}
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-page-header">
+            <h1><a href="/home/">Home</a> <span>❯</span>
+                <a href="/hello/">Hello World Site Demos</a> <span>❯</span>
+                👋 Site Override</h1>
+        </div>
+
+        <div class="jp-info-box">
+            <h2>Hello from Site Override!</h2>
+            <p>This page demonstrates the W-014 site override system in action.</p>
+        </div>
+
+        <div class="jp-card">
+            <h3>Override Information</h3>
+            <ul>
+                <li><strong>Site Name:</strong> {{app.name}}</li>
+                <li><strong>Framework Version:</strong> {{app.version}}</li>
+                <li><strong>Custom Feature:</strong> {{#if app.customFeature}}✅ Enabled{{else}}❌ Disabled{{/if}}</li>
+                <li><strong>Override Type:</strong> Site Controller + View</li>
+            </ul>
+        </div>
+
+        <div class="jp-card">
+            <h3>How This Works</h3>
+            <p>This page is served by:</p>
+            <ol>
+                <li><code>site/webapp/controller/hello.js</code> (overrides framework controller)</li>
+                <li><code>site/webapp/view/hello/index.shtml</code> (overrides framework view)</li>
+                <li>Configuration merged from <code>site/webapp/app.conf</code></li>
+            </ol>
+        </div>
+
+        <div class="jp-card">
+            <h3>Path Resolution Priority</h3>
+            <ol>
+                <li>🥇 <strong>site/webapp/</strong> (highest priority - this file!)</li>
+                <li>🥈 <strong>webapp/</strong> (framework fallback)</li>
+                <li>❌ Error if neither found</li>
+            </ol>
+        </div>
+
+        {{#if user.authenticated}}
+        <div class="jp-info-box">
+            <p>👋 Hello {{user.firstName}}! You're seeing this as an authenticated user.</p>
+        </div>
+        {{else}}
+        <div class="jp-info-box">
+            <p>👤 You're viewing this as a guest. <a href="/auth/login.shtml">Sign in</a> to see personalized content.</p>
+        </div>
+        {{/if}}
+
+        <div class="jp-card">
+            <h3>Live API Demo</h3>
+            <p>Click the button below to test the site override API using jPulse.api.call():</p>
+            <button id="testApiBtn" class="jp-btn jp-btn-secondary">Test Site API</button>
+            <div id="apiResponse" style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px; display: none;">
+                <strong>API Response:</strong>
+                <pre id="apiResponseContent" style="margin: 10px 0; white-space: pre-wrap;"></pre>
+            </div>
+        </div>
+
+        <!-- W-047: Site-Specific Development Demo -->
+        <div class="jp-card">
+            <h3>🎨 W-047: Site-Specific Development</h3>
+            <p>This page demonstrates the site override system with clean separation between framework and site code.</p>
+
+            <div class="jp-info-box">
+                <h4>Site Customization Features:</h4>
+                <ul>
+                    <li><strong>CSS Styling:</strong> Site-specific styles with <code>site-*</code> prefix</li>
+                    <li><strong>JavaScript Extensions:</strong> Extends <code>jPulse</code> framework object</li>
+                    <li><strong>Automatic Loading:</strong> No configuration required</li>
+                    <li><strong>Template System:</strong> Copy templates and customize</li>
+                </ul>
+            </div>
+
+            <div class="jp-actions">
+                <a href="/hello/site-demo.shtml" class="jp-btn jp-btn-primary">🚀 View Comprehensive Site Demo</a>
+                <a href="https://github.com/peterthoeny/jpulse-framework/blob/main/site/README.md" class="jp-btn jp-btn-outline" target="_blank">📖 Read Documentation</a>
+            </div>
+        </div>
+
+        <div class="jp-actions">
+            <a href="/hello/" class="jp-btn jp-btn-primary">← Hello World Site Demos</a>
+            <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+            <a href="/api/1/hello" class="jp-btn jp-btn-outline" target="_blank">View Raw API Response</a>
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Original API test functionality
+                const testBtn = document.getElementById('testApiBtn');
+                const responseDiv = document.getElementById('apiResponse');
+                const responseContent = document.getElementById('apiResponseContent');
+
+                testBtn.addEventListener('click', async function() {
+                    testBtn.disabled = true;
+                    testBtn.textContent = 'Testing...';
+                    responseDiv.style.display = 'none';
+
+                    try {
+                        // Use jPulse.api.call to test the site override API
+                        const response = await jPulse.api.call('/api/1/hello', 'GET');
+
+                        responseDiv.style.display = 'block';
+                        responseContent.textContent = JSON.stringify(response, null, 2);
+                        responseDiv.style.background = '#e8f5e8'; // Success green
+
+                    } catch (error) {
+                        responseDiv.style.display = 'block';
+                        responseContent.textContent = `Error: ${error.message}`;
+                        responseDiv.style.background = '#ffebee'; // Error red
+                    }
+
+                    testBtn.disabled = false;
+                    testBtn.textContent = 'Test Site API';
+                });
+
+                // Simple demonstration that site JavaScript is loaded
+                setTimeout(() => {
+                    if (typeof jPulse.site !== 'undefined') {
+                        console.log('✅ Site JavaScript loaded successfully:', jPulse.site.config.name);
+                    } else {
+                        console.warn('⚠️ Site JavaScript not loaded');
+                    }
+                }, 100);
+            });
+        </script>
+    </div>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>
+
+<!-- EOF site/webapp/view/hello/index.shtml -->

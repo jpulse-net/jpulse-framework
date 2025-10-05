@@ -4,7 +4,7 @@
  * @tagline         Hello Vue Single Page Application using Vue.js
  * @description     Example of Vue.js SPA with URL routing and reactive components
  * @file            site/webapp/view/hello-vue/index.shtml
- * @version         0.9.0
+ * @version         0.9.1
  * @release         2025-10-05
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,9 +21,7 @@
     <!-- Vue.js 3 -->
     <script src="/common/vue/vue.min.js"></script>
     <script src="/common/vue/vue-router.min.js"></script>
-{{#if file.exists "jpulse-header.tmpl"}}
     {{file.include "jpulse-header.tmpl"}}
-{{/if}}
 <!-- Include all routing and all pages: -->
 {{file.include "hello-vue/templates/routing.tmpl"}}
     <style>
@@ -278,15 +276,23 @@
     </div>
 
     <div class="jp-container-1000">
-        <h1 class="jp-title">Vue.js SPA Demo</h1>
+        <div class="jp-page-header">
+            <h1><a href="/home/">Home</a> <span>❯</span>
+                <a href="/hello/">Hello World Site Demos</a> <span>❯</span>
+                🔄 Vue.js SPA Demo</h1>
+        </div>
         <div id="helloVueApp" class="hello-vue-app">
             <!-- Vue.js SPA content will be rendered here -->
+        </div>
+        <!-- Navigation -->
+        <div class="jp-actions">
+            <a href="/hello/" class="jp-btn jp-btn-primary">← Hello World Site Demos</a>
+            <a href="/hello-todo/" class="jp-btn jp-btn-outline">← To-Do MVC Demo</a>
+            <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
         </div>
     </div>
 </div>
 
-{{#if file.exists "jpulse-footer.tmpl"}}
-    {{file.include "jpulse-footer.tmpl"}}
-{{/if}}
+{{file.include "jpulse-footer.tmpl"}}
 </body>
 </html>

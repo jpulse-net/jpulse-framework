@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / Site / WebApp / View / Hello To-Do
+ * @tagline         Demo To-Do MVC Application for Learning
+ * @description     Complete Model-View-Controller example with MongoDB integration
+ * @file            site/webapp/view/hello-todo/index.shtml
+ * @version         0.9.1
+ * @release         2025-10-05
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello To-Do MVC Demo - {{app.shortName}}</title>
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-todo-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .local-todo-nav .nav-arrow {
+            display: inline;
+            padding-top: 8px;
+            color: #007acc;
+        }
+
+        .local-todo-nav .jp-btn.jp-btn-active {
+            background-color: #007acc;
+            color: white;
+            border-color: #007acc;
+        }
+
+        .local-todo-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .local-todo-form input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .local-todo-form button {
+            padding: 12px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .local-todo-form button:hover {
+            background: #0056b3;
+        }
+
+        .local-todo-form button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .local-todo-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .local-todo-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: white;
+            transition: all 0.2s ease;
+        }
+
+        .local-todo-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .local-todo-item.completed {
+            background: #f8f9fa;
+            opacity: 0.7;
+        }
+
+        .local-todo-checkbox {
+            margin-right: 15px;
+            transform: scale(1.2);
+        }
+
+        .local-todo-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .local-todo-title {
+            font-size: 16px;
+            margin: 0 0 5px 0;
+        }
+
+        .local-todo-title.completed {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+
+        .local-todo-meta {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .local-todo-delete {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .local-todo-delete:hover {
+            background: #c82333;
+        }
+
+        .local-todo-stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .local-todo-stat {
+            text-align: center;
+        }
+
+        .local-todo-stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .local-todo-stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+
+        .local-todo-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+
+        .local-todo-loading {
+            text-align: center;
+            padding: 20px;
+            color: #007bff;
+        }
+
+        @media (max-width: 600px) {
+            .local-todo-form {
+                flex-direction: column;
+            }
+
+            .local-todo-stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .local-todo-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .local-todo-delete {
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-container-1000">
+            <div class="jp-page-header">
+                <h1><a href="/">Home</a> <span>❯</span>
+                    <a href="/hello/">Hello World Site Demos</a> <span>❯</span>
+                    📋 To-Do MVC Demo</h1>
+            </div>
+
+            <!-- Sub-navigation -->
+            <nav class="local-todo-nav">
+                <a href="/hello-todo/" class="jp-btn jp-btn-outline">📖 Overview</a>
+                <span class="nav-arrow">→</span>
+                <a href="/hello-todo/todo-app.shtml" class="jp-btn jp-btn-outline jp-btn-active">✅ To-Do App</a>
+                <span class="nav-arrow">→</span>
+                <a href="/hello-todo/code-examples.shtml" class="jp-btn jp-btn-outline">💻 Code Examples</a>
+                <span class="nav-arrow">→</span>
+                <a href="/hello-todo/architecture.shtml" class="jp-btn jp-btn-outline">🏗️ Architecture</a>
+            </nav>
+
+            <!-- Educational Info Box -->
+            <div class="jp-info-box">
+                <h3>🎓 Learning: Complete Model-View-Controller Pattern</h3>
+                <p>This demonstrates a full MVC trio with MongoDB integration. Perfect for understanding jPulse Framework patterns!</p>
+
+                <div style="margin: 15px 0;">
+                    <strong>What you're seeing:</strong>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li><strong>Model:</strong> <code>site/webapp/model/helloTodo.js</code> - Database schema, validation, CRUD operations</li>
+                        <li><strong>Controller:</strong> <code>site/webapp/controller/helloTodo.js</code> - REST API endpoints (GET, POST, PUT, DELETE)</li>
+                        <li><strong>View:</strong> <code>site/webapp/view/hello-todo/index.shtml</code> - This interactive UI</li>
+                    </ul>
+                </div>
+
+                <div class="jp-help-text">
+                    <strong>🚀 Clone for Your Own MVC:</strong>
+                    <ol style="margin: 10px 0; padding-left: 20px; text-align: left;">
+                        <li>Copy the three files above and rename them (e.g., <code>myApp.js</code>)</li>
+                        <li>Change the collection name in the model (e.g., <code>myApps</code>)</li>
+                        <li>Update the API endpoints in the controller (e.g., <code>/api/1/my-app</code>)</li>
+                        <li>Customize the view for your data structure</li>
+                        <li>Add your new route to the navigation</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- User Context Display -->
+            {{#if user.authenticated}}
+            <div class="jp-card">
+                <h3>👋 Hello {{user.firstName}} {{user.lastName}}!</h3>
+                <p>Your to-dos will be tagged with your username: <strong>{{user.username}}</strong></p>
+            </div>
+            {{else}}
+            <div class="jp-card">
+                <h3>👤 Guest Mode</h3>
+                <p>You're using the demo as a guest. <a href="/auth/login.shtml">Sign in</a> to personalize your to-dos!</p>
+            </div>
+            {{/if}}
+
+            <!-- To-Do Statistics -->
+            <div class="local-todo-stats" id="todoStats" style="display: none;">
+                <div class="local-todo-stat">
+                    <div class="local-todo-stat-number" id="totalCount">0</div>
+                    <div class="local-todo-stat-label">Total</div>
+                </div>
+                <div class="local-todo-stat">
+                    <div class="local-todo-stat-number" id="completedCount">0</div>
+                    <div class="local-todo-stat-label">✅ Completed</div>
+                </div>
+                <div class="local-todo-stat">
+                    <div class="local-todo-stat-number" id="pendingCount">0</div>
+                    <div class="local-todo-stat-label">⬜ Pending</div>
+                </div>
+            </div>
+
+            <!-- Add To-do Form -->
+            <div class="jp-card">
+                <h3>➕ Add New To-Do</h3>
+                <form class="local-todo-form" id="todoForm">
+                    <input type="text"
+                           id="todoTitle"
+                           placeholder="What needs to be done?"
+                           maxlength="200"
+                           required>
+                    <button type="submit" id="addButton">Add To-Do</button>
+                </form>
+            </div>
+
+            <!-- To-do List -->
+            <div class="jp-card">
+                <h3>📋 All To-Dos</h3>
+                <p class="jp-help-text">💡 <strong>Tip:</strong> Click the checkbox to mark a to-do as completed. Click the ✕ button to delete it.</p>
+                <div class="local-todo-loading" id="loadingMessage">Loading todos...</div>
+                <div class="local-todo-empty" id="emptyMessage" style="display: none;">
+                    <p>🎉 No to-dos yet! Add one above to get started.</p>
+                </div>
+                <ul class="local-todo-list" id="todoList"></ul>
+            </div>
+
+            <!-- Navigation -->
+            <div class="jp-actions">
+                <a href="/hello-todo/" class="jp-btn jp-btn-primary">← To-Do MVC Demo</a>
+                <a href="/hello/" class="jp-btn jp-btn-outline">← Hello World Site Demos</a>
+                <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Hello Todo MVC Demo - Client-side JavaScript
+        class HelloTodoApp {
+            constructor() {
+                this.todos = [];
+                this.loading = false;
+                this.init();
+            }
+
+            async init() {
+                this.bindEvents();
+                await this.loadTodos();
+            }
+
+            bindEvents() {
+                const form = document.getElementById('todoForm');
+                form.addEventListener('submit', (e) => this.handleAddTodo(e));
+            }
+
+            async loadTodos() {
+                try {
+                    this.setLoading(true);
+                    const response = await jPulse.api.call('/api/1/helloTodo', {
+                        method: 'GET'
+                    });
+
+                    if (response.success) {
+                        this.todos = response.data || [];
+                        this.updateStats(response.stats || { total: 0, completed: 0, pending: 0 });
+                        this.renderTodos();
+                    } else {
+                        throw new Error(response.message || 'Failed to load to-dos');
+                    }
+                } catch (error) {
+                    console.error('Error loading to-dos:', error);
+                    jPulse.UI.toast.show('Failed to load to-dos: ' + error.message, 'error');
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            async handleAddTodo(e) {
+                e.preventDefault();
+                console.log('🚀 Form submitted - handleAddTodo called');
+
+                const titleInput = document.getElementById('todoTitle');
+                const title = titleInput.value.trim();
+                console.log('📝 To-do title:', title);
+
+                if (!title) {
+                    jPulse.UI.toast.show('Please enter a to-do title', 'error');
+                    return;
+                }
+
+                try {
+                    const addButton = document.getElementById('addButton');
+                    addButton.disabled = true;
+                    addButton.textContent = 'Adding...';
+                    console.log('🔄 Sending POST request to API...');
+                    console.log('🔍 API Call Details:', {
+                        url: '/api/1/helloTodo',
+                        method: 'POST',
+                        data: {
+                            title: title,
+                            {{#if user.authenticated}}
+                            userFirstName: '{{user.firstName}}',
+                            userLastName: '{{user.lastName}}'
+                            {{/if}}
+                        }
+                    });
+
+                    const response = await jPulse.api.call('/api/1/helloTodo', {
+                        method: 'POST',
+                        body: {
+                            title: title,
+                            {{#if user.authenticated}}
+                            userFirstName: '{{user.firstName}}',
+                            userLastName: '{{user.lastName}}'
+                            {{/if}}
+                        }
+                    });
+                    console.log('📡 API Response:', response);
+
+                    if (response.success) {
+                        titleInput.value = '';
+                        jPulse.UI.toast.show('To-do added successfully!', 'success');
+                        await this.loadTodos(); // Reload to get updated stats
+                    } else {
+                        throw new Error(response.message || 'Failed to add to-do');
+                    }
+                } catch (error) {
+                    console.error('Error adding to-do:', error);
+                    jPulse.UI.toast.show('Failed to add to-do: ' + error.message, 'error');
+                } finally {
+                    const addButton = document.getElementById('addButton');
+                    addButton.disabled = false;
+                    addButton.textContent = 'Add To-Do';
+                }
+            }
+
+            async toggleTodo(todoId) {
+                try {
+                    const response = await jPulse.api.call(`/api/1/helloTodo/${todoId}/toggle`, {
+                        method: 'PUT'
+                    });
+
+                    if (response.success) {
+                        // Update local state
+                        const todoIndex = this.todos.findIndex(t => t._id === todoId);
+                        if (todoIndex !== -1) {
+                            this.todos[todoIndex] = response.data;
+                            this.renderTodos();
+                            await this.loadTodos(); // Reload to get updated stats
+                        }
+                    } else {
+                        throw new Error(response.message || 'Failed to update to-do');
+                    }
+                } catch (error) {
+                    console.error('Error toggling to-do:', error);
+                    jPulse.UI.toast.show('Failed to update to-do: ' + error.message, 'error');
+                }
+            }
+
+            async deleteTodo(todoId) {
+                const result = await jPulse.UI.confirmDialog({
+                    message: 'Are you sure you want to delete this to-do?',
+                    buttons: ['Cancel', 'Delete']
+                });
+
+                if (!result.confirmed) {
+                    return;
+                }
+
+                try {
+                    const response = await jPulse.api.call(`/api/1/helloTodo/${todoId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.success) {
+                        jPulse.UI.toast.show('To-do deleted successfully!', 'success');
+                        await this.loadTodos(); // Reload to get updated list and stats
+                    } else {
+                        throw new Error(response.message || 'Failed to delete to-do');
+                    }
+                } catch (error) {
+                    console.error('Error deleting to-do:', error);
+                    jPulse.UI.toast.show('Failed to delete to-do: ' + error.message, 'error');
+                }
+            }
+
+            setLoading(loading) {
+                this.loading = loading;
+                const loadingMessage = document.getElementById('loadingMessage');
+                const todoList = document.getElementById('todoList');
+                const emptyMessage = document.getElementById('emptyMessage');
+
+                if (loading) {
+                    loadingMessage.style.display = 'block';
+                    todoList.style.display = 'none';
+                    emptyMessage.style.display = 'none';
+                } else {
+                    loadingMessage.style.display = 'none';
+                    todoList.style.display = 'block';
+                }
+            }
+
+            updateStats(stats) {
+                document.getElementById('totalCount').textContent = stats.total;
+                document.getElementById('completedCount').textContent = stats.completed;
+                document.getElementById('pendingCount').textContent = stats.pending;
+
+                const statsContainer = document.getElementById('todoStats');
+                statsContainer.style.display = stats.total > 0 ? 'flex' : 'none';
+            }
+
+            renderTodos() {
+                const todoList = document.getElementById('todoList');
+                const emptyMessage = document.getElementById('emptyMessage');
+
+                if (this.todos.length === 0) {
+                    todoList.innerHTML = '';
+                    emptyMessage.style.display = 'block';
+                    return;
+                }
+
+                emptyMessage.style.display = 'none';
+
+                todoList.innerHTML = this.todos.map(todo => {
+                    const createdDate = jPulse.date.formatLocalDate(todo.createdAt);
+                    const userName = todo.userFirstName && todo.userLastName
+                        ? `${todo.userFirstName} ${todo.userLastName}`
+                        : todo.username;
+
+                    return `
+                        <li class="local-todo-item ${todo.completed ? 'completed' : ''}">
+                            <input type="checkbox"
+                                   class="local-todo-checkbox"
+                                   ${todo.completed ? 'checked' : ''}
+                                   onchange="todoApp.toggleTodo('${todo._id}')">
+                            <div class="local-todo-content">
+                                <div class="local-todo-title ${todo.completed ? 'completed' : ''}">${this.escapeHtml(todo.title)}</div>
+                                <div class="local-todo-meta">
+                                    Created by ${this.escapeHtml(userName)} on ${createdDate}
+                                </div>
+                            </div>
+                            <button class="local-todo-delete" onclick="todoApp.deleteTodo('${todo._id}')">
+                                ✕ Delete
+                            </button>
+                        </li>
+                    `;
+                }).join('');
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Initialize the app when the page loads
+        let todoApp;
+        jPulse.dom.ready(() => {
+            todoApp = new HelloTodoApp();
+        });
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

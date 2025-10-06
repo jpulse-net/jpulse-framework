@@ -279,13 +279,23 @@ jPulse.dom.ready(() => {
 - **Current page**: Non-link, styled differently
 - **Responsive**: Collapse on mobile (show only parent + current)
 
+### Position
+- **Fixed location**: Between header and main content (industry standard)
+- **Rationale**:
+  - Don't make me think - one consistent location across all jPulse sites
+  - Standard web convention - users expect breadcrumbs here
+  - No configuration complexity needed
+- **Implementation**: Render in `jpulse-breadcrumb.tmpl` or append to `jpulse-header.tmpl`
+- **Mobile**: Smaller font, truncate with ellipsis if needed: `Home > ... > Current Page`
+
 ### i18n Integration
 - Labels already resolved by `view.load` controller
 - Consistent with navigation structure
 - Falls back to URL segment if no nav match
 
 ### Configuration
-- Enable/disable: `appConfig.view.pageDecoration.showBreadcrumbs`
+- **Simple boolean toggle**: `appConfig.view.pageDecoration.showBreadcrumbs`
+- **No position config**: Fixed position eliminates complexity
 - Auto-rendered in header area (below site nav)
 - No manual configuration per page needed
 

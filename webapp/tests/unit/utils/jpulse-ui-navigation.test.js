@@ -289,7 +289,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
     // ACTIVE STATE TESTS
     // ========================================
 
-    test('should mark current URL as active (exact match)', () => {
+    test('should not highlight active items in desktop dropdown (navigation is for going elsewhere)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/admin/config.shtml',
             userRoles: ['admin'],
@@ -299,10 +299,11 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         const dropdown = document.getElementById('jp-site-nav-dropdown');
         const activeItems = dropdown.querySelectorAll('.jp-nav-active');
 
-        expect(activeItems.length).toBeGreaterThan(0);
+        // No active highlighting in navigation dropdowns
+        expect(activeItems.length).toBe(0);
     });
 
-    test('should mark parent as active when on child page (parent match)', () => {
+    test('should not highlight parent items either (navigation shows where you can go)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/admin/config.shtml',
             userRoles: ['admin'],
@@ -311,7 +312,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
 
         const dropdown = document.getElementById('jp-site-nav-dropdown');
 
-        // Admin section should be active (parent of config)
+        // Admin section should NOT be active (active state removed for cleaner UX)
         const adminItem = Array.from(dropdown.querySelectorAll('.jp-nav-item')).find(
             item => {
                 const link = item.querySelector('.jp-nav-link');
@@ -320,7 +321,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         );
 
         expect(adminItem).not.toBeNull();
-        expect(adminItem.classList.contains('jp-nav-active')).toBe(true);
+        expect(adminItem.classList.contains('jp-nav-active')).toBe(false);
     });
 
     // ========================================
@@ -557,6 +558,250 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
 
         const nullIcon = window.jPulse.UI.navigation._renderIcon(null);
         expect(nullIcon).toBe('');
+    });
+
+});
+
+describe('jPulse.UI.navigation Mobile Menu (W-069-B)', () => {
+    beforeEach(() => {
+        // Reset DOM to include mobile menu elements
+        document.body.innerHTML = `
+            <header class="jp-header">
+                <div class="jp-logo"></div>
+                <button class="jp-hamburger" id="jp-hamburger"></button>
+            </header>
+            <div class="jp-mobile-menu-overlay" id="jp-mobile-menu-overlay"></div>
+            <nav class="jp-mobile-menu" id="jp-mobile-menu"></nav>
+        `;
+
+        // Reset navigation state
+        if (window.jPulse && window.jPulse.UI && window.jPulse.UI.navigation) {
+            window.jPulse.UI.navigation._initialized = false;
+            window.jPulse.UI.navigation._registeredPages = {};
+            window.jPulse.UI.navigation._navConfig = null;
+        }
+    });
+
+    afterEach(() => {
+        // Cleanup any navigation instances
+        if (window.jPulse && window.jPulse.UI && window.jPulse.UI.navigation && window.jPulse.UI.navigation._initialized) {
+            window.jPulse.UI.navigation._destroy();
+        }
+    });
+
+    test('should initialize mobile menu with hamburger and overlay', () => {
+        window.jPulse.UI.navigation.init({
+            currentUrl: '/',
+            userRoles: ['admin'],
+            navigation: window.appConfig.view.navigation
+        });
+
+        const hamburger = document.getElementById('jp-hamburger');
+        const overlay = document.getElementById('jp-mobile-menu-overlay');
+        const mobileMenu = document.getElementById('jp-mobile-menu');
+
+        expect(hamburger).toBeTruthy();
+        expect(overlay).toBeTruthy();
+        expect(mobileMenu).toBeTruthy();
+        expect(mobileMenu.innerHTML).toContain('jp-mobile-nav-list');
+    });
+
+    test('should render mobile navigation items', () => {
+        window.jPulse.UI.navigation.init({
+            currentUrl: '/',
+            userRoles: ['admin'],
+            navigation: window.appConfig.view.navigation
+        });
+
+        const mobileMenu = document.getElementById('jp-mobile-menu');
+        const navItems = mobileMenu.querySelectorAll('.jp-mobile-nav-item');
+
+        expect(navItems.length).toBeGreaterThan(0);
+    });
+
+    test('should render mobile navigation links', () => {
+        window.jPulse.UI.navigation.init({
+            currentUrl: '/',
+            userRoles: ['admin'],
+            navigation: window.appConfig.view.navigation
+        });
+
+        const mobileMenu = document.getElementById('jp-mobile-menu');
+        const navLinks = mobileMenu.querySelectorAll('.jp-mobile-nav-link');
+
+        expect(navLinks.length).toBeGreaterThan(0);
+    });
+
+    test('should render chevrons for expandable items', () => {
+        window.jPulse.UI.navigation.init({
+            currentUrl: '/',
+            userRoles: ['admin'],
+            navigation: window.appConfig.view.navigation
+        });
+
+        const mobileMenu = document.getElementById('jp-mobile-menu');
+        const chevrons = mobileMenu.querySelectorAll('.jp-mobile-nav-chevron');
+
+        expect(chevrons.length).toBeGreaterThan(0);
+    });
+
+    test('should open mobile menu when hamburger is clicked', () => {
+        window.jPulse.UI.navigation.init({
+            currentUrl: '/',
+            userRoles: ['admin'],
+            navigation: window.appConfig.view.navigation
+        });
+
+        const hamburger = document.getElementById('jp-hamburger');
+        const overlay = document.getElementById('jp-mobile-menu-overlay');
+        const mobileMenu = document.getElementById('jp-mobile-menu');
+
+        // Click hamburger to open
+        hamburger.click();
+
+        expect(hamburger.classList.contains('jp-menu-open')).toBe(true);
+        expect(overlay.classList.contains('jp-active')).toBe(true);
+        expect(mobileMenu.classList.contains('jp-active')).toBe(true);
+        expect(document.body.classList.contains('jp-mobile-menu-open')).toBe(true);
+    });
+
+    test('should close mobile menu when overlay is clicked', () => {
+        window.jPulse.UI.navigation.init({
+            currentUrl: '/',
+            userRoles: ['admin'],
+            navigation: window.appConfig.view.navigation
+        });
+
+        const hamburger = document.getElementById('jp-hamburger');
+        const overlay = document.getElementById('jp-mobile-menu-overlay');
+        const mobileMenu = document.getElementById('jp-mobile-menu');
+
+        // Open menu
+        hamburger.click();
+        expect(mobileMenu.classList.contains('jp-active')).toBe(true);
+
+        // Click overlay to close
+        overlay.click();
+
+        expect(hamburger.classList.contains('jp-menu-open')).toBe(false);
+        expect(overlay.classList.contains('jp-active')).toBe(false);
+        expect(mobileMenu.classList.contains('jp-active')).toBe(false);
+        expect(document.body.classList.contains('jp-mobile-menu-open')).toBe(false);
+    });
+
+    test('should toggle menu on repeated hamburger clicks', () => {
+        window.jPulse.UI.navigation.init({
+            currentUrl: '/',
+            userRoles: ['admin'],
+            navigation: window.appConfig.view.navigation
+        });
+
+        const hamburger = document.getElementById('jp-hamburger');
+        const mobileMenu = document.getElementById('jp-mobile-menu');
+
+        // Click to open
+        hamburger.click();
+        expect(mobileMenu.classList.contains('jp-active')).toBe(true);
+
+        // Click to close
+        hamburger.click();
+        expect(mobileMenu.classList.contains('jp-active')).toBe(false);
+
+        // Click to open again
+        hamburger.click();
+        expect(mobileMenu.classList.contains('jp-active')).toBe(true);
+    });
+
+    test('should expand submenu when expandable item is clicked', () => {
+        window.jPulse.UI.navigation.init({
+            currentUrl: '/',
+            userRoles: ['admin'],
+            navigation: window.appConfig.view.navigation
+        });
+
+        // Open menu
+        const hamburger = document.getElementById('jp-hamburger');
+        hamburger.click();
+
+        const mobileMenu = document.getElementById('jp-mobile-menu');
+        const expandableButton = mobileMenu.querySelector('.jp-mobile-nav-item.jp-has-submenu > .jp-mobile-nav-link');
+
+        if (expandableButton) {
+            const item = expandableButton.parentElement;
+
+            // Click to expand
+            expandableButton.click();
+            expect(item.classList.contains('jp-expanded')).toBe(true);
+
+            // Click to collapse
+            expandableButton.click();
+            expect(item.classList.contains('jp-expanded')).toBe(false);
+        }
+    });
+
+    test('should render icons in mobile menu', () => {
+        window.jPulse.UI.navigation.init({
+            currentUrl: '/',
+            userRoles: ['admin'],
+            navigation: window.appConfig.view.navigation
+        });
+
+        const mobileMenu = document.getElementById('jp-mobile-menu');
+        const icons = mobileMenu.querySelectorAll('.jp-mobile-nav-icon');
+
+        expect(icons.length).toBeGreaterThan(0);
+    });
+
+    test('should not highlight active items in mobile menu (navigation is for going elsewhere)', () => {
+        window.jPulse.UI.navigation.init({
+            currentUrl: '/admin/config.shtml',
+            userRoles: ['admin'],
+            navigation: window.appConfig.view.navigation
+        });
+
+        const mobileMenu = document.getElementById('jp-mobile-menu');
+        const activeLinks = mobileMenu.querySelectorAll('.jp-mobile-nav-link.jp-active');
+
+        // No active highlighting in navigation dropdowns
+        expect(activeLinks.length).toBe(0);
+    });
+
+    test('should respect role-based visibility in mobile menu', () => {
+        window.jPulse.UI.navigation.init({
+            currentUrl: '/',
+            userRoles: [],  // No admin role
+            navigation: window.appConfig.view.navigation
+        });
+
+        const mobileMenu = document.getElementById('jp-mobile-menu');
+        const adminLabel = mobileMenu.textContent;
+
+        // Admin section should not be visible
+        expect(adminLabel.includes('Admin')).toBe(false);
+    });
+
+    test('should include registered pages in mobile menu', async () => {
+        window.jPulse.UI.navigation.init({
+            currentUrl: '/jpulse-docs/',
+            userRoles: [],
+            navigation: window.appConfig.view.navigation
+        });
+
+        // Register dynamic pages
+        await window.jPulse.UI.navigation.registerPages('jPulseDocs', async () => {
+            return {
+                overview: { label: 'Overview', url: '/jpulse-docs/' },
+                installation: { label: 'Installation', url: '/jpulse-docs/installation' }
+            };
+        });
+
+        // Open mobile menu (which triggers re-render)
+        const hamburger = document.getElementById('jp-hamburger');
+        hamburger.click();
+
+        const mobileMenu = document.getElementById('jp-mobile-menu');
+        expect(mobileMenu.textContent).toContain('Overview');
+        expect(mobileMenu.textContent).toContain('Installation');
     });
 
 });

@@ -33,7 +33,10 @@
 <!-- jPulse Framework JavaScript -->
 <script>
     // User menu dropdown functionality
-    function toggleUserMenu() {
+    function toggleUserMenu(event) {
+        if (event) {
+            event.stopPropagation();  // Prevent click-outside handler from firing
+        }
         const dropdown = document.getElementById('userDropdown');
         dropdown.classList.toggle('show');
     }
@@ -41,6 +44,16 @@
     // Close dropdown when clicking outside
     document.addEventListener('DOMContentLoaded', function() {
         document.addEventListener('click', function(event) {
+            const userMenu = document.querySelector('.jp-user-menu');
+            const dropdown = document.getElementById('userDropdown');
+
+            if (userMenu && dropdown && !userMenu.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // Also handle touch events on mobile
+        document.addEventListener('touchstart', function(event) {
             const userMenu = document.querySelector('.jp-user-menu');
             const dropdown = document.getElementById('userDropdown');
 

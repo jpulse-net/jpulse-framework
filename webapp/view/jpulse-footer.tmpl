@@ -15,12 +15,21 @@
 <!-- Visual Header Banner (positioned at top via CSS) -->
 <header class="jp-header">
     <div class="jp-header-content">
+        <!-- Mobile Hamburger Menu Icon (W-069) -->
+        {{#if appConfig.view.pageDecoration.showSiteNavigation}}
+        <button class="jp-hamburger" id="jp-hamburger" aria-label="Menu" aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        {{/if}}
         <a href="/" class="jp-logo">
             <img src="/images/jpulse-logo/jpulse-logo-reverse.svg" alt="jPulse" height="22" width="22">
-            <span>{{app.name}}</span>
+            <span class="jp-logo-name">{{app.name}}</span>
+            <span class="jp-logo-shortname">{{app.shortName}}</span>
         </a>
         <div class="jp-user-menu">
-            <div class="jp-user-icon" onclick="toggleUserMenu()">
+            <div class="jp-user-icon" onclick="toggleUserMenu(event)">
               {{#if user.authenticated}}
                 <span>{{user.initials}}</span>
               {{else}}
@@ -43,6 +52,12 @@
         </div>
     </div>
 </header>
+
+<!-- Mobile Menu Overlay (W-069) -->
+{{#if appConfig.view.pageDecoration.showSiteNavigation}}
+<div class="jp-mobile-menu-overlay" id="jp-mobile-menu-overlay"></div>
+<nav class="jp-mobile-menu" id="jp-mobile-menu" aria-label="Mobile Navigation"></nav>
+{{/if}}
 
 <!-- Footer -->
 <footer class="jp-footer">

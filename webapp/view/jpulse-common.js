@@ -1905,6 +1905,9 @@ window.jPulse = {
                 // Setup event handlers
                 jPulse.UI.navigation._setupEventHandlers();
 
+                // Initialize mobile menu (W-069-B)
+                jPulse.UI.navigation._initMobileMenu();
+
                 jPulse.UI.navigation._initialized = true;
 
                 return {
@@ -2012,12 +2015,12 @@ window.jPulse = {
                     document.body.insertBefore(dropdown, document.body.firstChild);
                 }
 
-                // Position dropdown to align logo with menu text (account for menu padding)
-                const logo = document.querySelector('.jp-logo');
-                if (logo) {
-                    const logoRect = logo.getBoundingClientRect();
+                // Position dropdown to align logo icon with menu icon/bullet
+                const logoImg = document.querySelector('.jp-logo img');
+                if (logoImg) {
+                    const logoImgRect = logoImg.getBoundingClientRect();
                     const menuPaddingLeft = 16;  // .jp-nav-link padding-left
-                    dropdown.style.left = (logoRect.left - menuPaddingLeft) + 'px';
+                    dropdown.style.left = (logoImgRect.left - menuPaddingLeft) + 'px';
                 }
             },
 
@@ -2051,12 +2054,6 @@ window.jPulse = {
                     }
                     if (item.role) {
                         classes.push('jp-nav-role-' + item.role);
-                    }
-
-                    // Check if this item is active
-                    const isActive = jPulse.UI.navigation._isActive(item.url);
-                    if (isActive) {
-                        classes.push('jp-nav-active');
                     }
 
                     html += '<li class="' + classes.join(' ') + '">';
@@ -2095,7 +2092,7 @@ window.jPulse = {
              * @param {string} icon - Icon string (emoji or filename)
              * @returns {string} HTML for icon
              */
-            _renderIcon: (icon) => {
+            _renderIcon: (icon, wrapperClass = 'jp-nav-icon') => {
                 if (!icon) return '';
 
                 // Check if it's an image file (has known extension)
@@ -2106,10 +2103,10 @@ window.jPulse = {
                     // Image file - path relative to /static/ root (CDN'able in prod)
                     // Example: 'assets/admin/icons/config.svg' becomes '/assets/admin/icons/config.svg'
                     const iconPath = icon.startsWith('/') ? icon : '/' + icon;
-                    return '<img src="' + iconPath + '" alt="" class="jp-nav-icon jp-nav-icon-image">';
+                    return '<img src="' + iconPath + '" alt="" class="' + wrapperClass + ' ' + wrapperClass + '-image">';
                 } else {
                     // Assume emoji or single character
-                    return '<span class="jp-nav-icon jp-nav-icon-emoji">' + icon + '</span>';
+                    return '<span class="' + wrapperClass + ' ' + wrapperClass + '-emoji">' + icon + '</span>';
                 }
             },
 
@@ -2340,8 +2337,243 @@ window.jPulse = {
                     dropdown.remove();
                 }
 
+                // Clean up mobile menu
+                jPulse.UI.navigation._destroyMobileMenu();
+
                 jPulse.UI.navigation._initialized = false;
                 jPulse.UI.navigation._registeredPages = {};
+            },
+
+            // ========================================
+            // MOBILE MENU FUNCTIONS (W-069-B)
+            // ========================================
+
+            /**
+             * Initialize mobile menu (called from init)
+             */
+            _initMobileMenu: () => {
+                const hamburger = document.getElementById('jp-hamburger');
+                const overlay = document.getElementById('jp-mobile-menu-overlay');
+                const mobileMenu = document.getElementById('jp-mobile-menu');
+
+                if (!hamburger || !overlay || !mobileMenu) {
+                    return;
+                }
+
+                // Render mobile menu content
+                jPulse.UI.navigation._renderMobileMenu();
+
+                // Hamburger click handler
+                hamburger.addEventListener('click', () => {
+                    jPulse.UI.navigation._toggleMobileMenu();
+                });
+
+                // Overlay click handler (close menu)
+                overlay.addEventListener('click', () => {
+                    jPulse.UI.navigation._closeMobileMenu();
+                });
+
+                // Handle escape key
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        jPulse.UI.navigation._closeMobileMenu();
+                    }
+                });
+            },
+
+            /**
+             * Render mobile menu HTML
+             */
+            _renderMobileMenu: () => {
+                const mobileMenu = document.getElementById('jp-mobile-menu');
+                if (!mobileMenu) {
+                    return;
+                }
+
+                const navConfig = jPulse.UI.navigation._navConfig;
+                const mergedConfig = { ...navConfig };
+
+                // Merge registered pages into config
+                Object.keys(jPulse.UI.navigation._registeredPages).forEach(key => {
+                    if (mergedConfig[key]) {
+                        mergedConfig[key].pages = {
+                            ...mergedConfig[key].pages,
+                            ...jPulse.UI.navigation._registeredPages[key]
+                        };
+                    }
+                });
+
+                // Render navigation items
+                const html = jPulse.UI.navigation._renderMobileNavLevel(mergedConfig, 0);
+                mobileMenu.innerHTML = `<ul class="jp-mobile-nav-list">${html}</ul>`;
+
+                // Setup expand/collapse handlers
+                jPulse.UI.navigation._setupMobileEventHandlers();
+            },
+
+            /**
+             * Render mobile navigation level (recursive)
+             */
+            _renderMobileNavLevel: (navItems, depth) => {
+                if (depth > 15 || !navItems || typeof navItems !== 'object') {
+                    return '';
+                }
+
+                let html = '';
+                Object.entries(navItems).forEach(([key, item]) => {
+                    // Check role visibility
+                    if (item.role && !jPulse.UI.navigation._userRoles.includes(item.role)) {
+                        return;
+                    }
+
+                    const hasSubmenu = item.pages && Object.keys(item.pages).length > 0;
+
+                    html += `<li class="jp-mobile-nav-item${hasSubmenu ? ' jp-has-submenu' : ''}">`;
+
+                    if (hasSubmenu) {
+                        // Expandable item (button for accessibility)
+                        html += `<button class="jp-mobile-nav-link" data-url="${item.url || ''}">`;
+                    } else {
+                        // Regular link
+                        html += `<a href="${item.url || '#'}" class="jp-mobile-nav-link">`;
+                    }
+
+                    // Icon
+                    if (item.icon) {
+                        html += jPulse.UI.navigation._renderIcon(item.icon, 'jp-mobile-nav-icon');
+                    }
+
+                    // Label
+                    html += `<span class="jp-mobile-nav-label">${item.label || key}</span>`;
+
+                    // Chevron for expandable items
+                    if (hasSubmenu) {
+                        html += `<span class="jp-mobile-nav-chevron"></span>`;
+                    }
+
+                    html += hasSubmenu ? '</button>' : '</a>';
+
+                    // Submenu
+                    if (hasSubmenu) {
+                        html += `<ul class="jp-mobile-nav-submenu">`;
+                        html += jPulse.UI.navigation._renderMobileNavLevel(item.pages, depth + 1);
+                        html += `</ul>`;
+                    }
+
+                    html += '</li>';
+                });
+
+                return html;
+            },
+
+            /**
+             * Setup mobile menu event handlers (tap to expand)
+             */
+            _setupMobileEventHandlers: () => {
+                const mobileMenu = document.getElementById('jp-mobile-menu');
+                if (!mobileMenu) {
+                    return;
+                }
+
+                // Handle expand/collapse for items with submenus
+                const expandableItems = mobileMenu.querySelectorAll('.jp-mobile-nav-item.jp-has-submenu > .jp-mobile-nav-link');
+                expandableItems.forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const item = button.parentElement;
+
+                        // Toggle expanded state
+                        const isExpanded = item.classList.contains('jp-expanded');
+
+                        // Close all siblings
+                        const siblings = Array.from(item.parentElement.children);
+                        siblings.forEach(sibling => {
+                            if (sibling !== item) {
+                                sibling.classList.remove('jp-expanded');
+                            }
+                        });
+
+                        // Toggle this item
+                        item.classList.toggle('jp-expanded', !isExpanded);
+                    });
+                });
+
+                // Handle navigation link clicks (close menu)
+                const navLinks = mobileMenu.querySelectorAll('.jp-mobile-nav-link:not(.jp-has-submenu .jp-mobile-nav-link)');
+                navLinks.forEach(link => {
+                    link.addEventListener('click', () => {
+                        jPulse.UI.navigation._closeMobileMenu();
+                    });
+                });
+            },
+
+            /**
+             * Toggle mobile menu open/closed
+             */
+            _toggleMobileMenu: () => {
+                const hamburger = document.getElementById('jp-hamburger');
+                const overlay = document.getElementById('jp-mobile-menu-overlay');
+                const mobileMenu = document.getElementById('jp-mobile-menu');
+
+                if (!hamburger || !overlay || !mobileMenu) {
+                    return;
+                }
+
+                const isOpen = mobileMenu.classList.contains('jp-active');
+
+                if (isOpen) {
+                    jPulse.UI.navigation._closeMobileMenu();
+                } else {
+                    jPulse.UI.navigation._openMobileMenu();
+                }
+            },
+
+            /**
+             * Open mobile menu
+             */
+            _openMobileMenu: () => {
+                const hamburger = document.getElementById('jp-hamburger');
+                const overlay = document.getElementById('jp-mobile-menu-overlay');
+                const mobileMenu = document.getElementById('jp-mobile-menu');
+
+                if (!hamburger || !overlay || !mobileMenu) {
+                    return;
+                }
+
+                // Re-render to get latest registered pages
+                jPulse.UI.navigation._renderMobileMenu();
+
+                hamburger.classList.add('jp-menu-open');
+                hamburger.setAttribute('aria-expanded', 'true');
+                overlay.classList.add('jp-active');
+                mobileMenu.classList.add('jp-active');
+                document.body.classList.add('jp-mobile-menu-open');
+            },
+
+            /**
+             * Close mobile menu
+             */
+            _closeMobileMenu: () => {
+                const hamburger = document.getElementById('jp-hamburger');
+                const overlay = document.getElementById('jp-mobile-menu-overlay');
+                const mobileMenu = document.getElementById('jp-mobile-menu');
+
+                if (!hamburger || !overlay || !mobileMenu) {
+                    return;
+                }
+
+                hamburger.classList.remove('jp-menu-open');
+                hamburger.setAttribute('aria-expanded', 'false');
+                overlay.classList.remove('jp-active');
+                mobileMenu.classList.remove('jp-active');
+                document.body.classList.remove('jp-mobile-menu-open');
+            },
+
+            /**
+             * Destroy mobile menu (cleanup)
+             */
+            _destroyMobileMenu: () => {
+                jPulse.UI.navigation._closeMobileMenu();
             }
         },
 

@@ -64,7 +64,13 @@ export async function bootstrap(options = {}) {
             bootstrapLog('⏭️  Database: Skipped');
         }
 
-        // Step 5: Set up CommonUtils globally
+        // Step 5: ViewController (depends on LogController, i18n, database)
+        const ViewControllerModule = await import('../controller/view.js');
+        bootstrapLog('ViewController: Module loaded, ready for initialization');
+        await ViewControllerModule.default.initialize();
+        bootstrapLog('✅ ViewController: Initialized');
+
+        // Step 6: Set up CommonUtils globally
         global.CommonUtils = CommonUtils;
         bootstrapLog('✅ CommonUtils: Available globally');
 

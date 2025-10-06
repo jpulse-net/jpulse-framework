@@ -26,7 +26,7 @@ body {
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
     line-height: 1.6;
-    padding-top: 30px; /* Account for sticky header */
+    padding-top: {{appConfig.view.pageDecoration.headerHeight}}px; /* Account for sticky header */
 }
 
 /* Core Layout System - Framework structure */
@@ -96,7 +96,7 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    height: 30px;
+    height: {{appConfig.view.pageDecoration.headerHeight}}px;
     background: linear-gradient(135deg, #007acc, #005999);
     color: white;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
@@ -341,9 +341,9 @@ body {
     top: 0;
     left: 50%;
     transform: translateX(-50%) translateY(calc(-100% - var(--stack-offset, 0px)));
-    min-width: {{appConfig.view.slideDownMessage.minWidth}}px;
-    max-width: {{appConfig.view.slideDownMessage.maxWidth}}px;
-    width: calc(100vw - {{appConfig.view.slideDownMessage.minMarginLeftRight}}px * 2);
+    min-width: {{appConfig.view.toastMessage.minWidth}}px;
+    max-width: {{appConfig.view.toastMessage.maxWidth}}px;
+    width: calc(100vw - {{appConfig.view.toastMessage.minMarginLeftRight}}px * 2);
     z-index: 999;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     transition: transform 0.6s ease-out;
@@ -383,9 +383,9 @@ body {
 }
 
 /* Responsive adjustments for slide-down alerts */
-@media (max-width: calc({{appConfig.view.slideDownMessage.maxWidth}}px + {{appConfig.view.slideDownMessage.minMarginLeftRight}}px * 2)) {
+@media (max-width: calc({{appConfig.view.toastMessage.maxWidth}}px + {{appConfig.view.toastMessage.minMarginLeftRight}}px * 2)) {
     .jp-alert {
-        width: calc(100vw - {{appConfig.view.slideDownMessage.minMarginLeftRight}}px * 2);
+        width: calc(100vw - {{appConfig.view.toastMessage.minMarginLeftRight}}px * 2);
         max-width: none;
     }
 }
@@ -1715,6 +1715,218 @@ body {
 }
 
 /* ========================================
+ * SITE NAVIGATION (W-069)
+ * ======================================== */
+
+/* Navigation Dropdown Container */
+.jp-site-nav-dropdown {
+    position: absolute;
+    top: var(--jp-header-height, 50px);
+    left: 0;  /* Will be positioned dynamically via JS to align with logo */
+    z-index: 900;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 250px;
+    max-width: 400px;
+    max-height: calc(100vh - var(--jp-header-height, 50px) - 20px);  /* Limit to viewport height */
+    overflow: visible;  /* Allow submenus to extend outside! */
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.jp-site-nav-dropdown.jp-site-nav-hidden {
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+}
+
+/* Navigation Level (recursive) */
+.jp-nav-level {
+    list-style: none;
+    margin: 0;
+    padding: 8px 0;
+}
+
+.jp-nav-level-0 {
+    /* First level in main dropdown */
+    padding: 8px 0;
+}
+
+/* Navigation Item */
+.jp-nav-item {
+    position: relative;
+}
+
+/* Navigation Link */
+.jp-nav-link {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    color: #333;
+    text-decoration: none;
+    font-size: 14px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    gap: 8px;
+}
+
+/* Remove visited link styling */
+.jp-nav-link:visited {
+    color: #333;
+}
+
+.jp-nav-link:hover {
+    background-color: #e8ecef;  /* Slightly darker than default */
+    color: #007acc;
+}
+
+/* Active State */
+.jp-nav-item.jp-nav-active > .jp-nav-link {
+    background-color: #e7f3ff;
+    color: #007acc;
+    font-weight: 600;
+    border-left: 3px solid #007acc;
+    padding-left: 13px;
+}
+
+/* Navigation Label */
+.jp-nav-label {
+    flex: 1;
+}
+
+/* Navigation Arrow (for items with submenus) */
+.jp-nav-arrow {
+    margin-left: auto;
+    color: #6c757d;
+    font-size: 16px;
+}
+
+/* Navigation Icons */
+.jp-nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.jp-nav-icon-emoji {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.jp-nav-icon-image {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    padding: 2px;
+    background-color: #007acc;
+    border-radius: 4px;
+    box-sizing: content-box;  /* Makes total size 20x20 with padding */
+}
+
+/* Nested submenu (ul directly under li) */
+.jp-nav-item.jp-nav-has-submenu > .jp-nav-level {
+    position: absolute;
+    left: 99%;  /* Slight overlap to bridge the gap */
+    top: 0;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 220px;
+    max-width: 350px;
+    max-height: calc(100vh - var(--jp-header-height, 50px) - 20px);  /* Limit to viewport height */
+    overflow: visible;  /* Allow nested submenus to extend outside! */
+    opacity: 0;
+    transform: translateX(-10px);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 901;
+}
+
+/* Show nested submenu on hover */
+.jp-nav-item.jp-nav-has-submenu:hover > .jp-nav-level {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: all;
+}
+
+/* Nested level styling */
+.jp-nav-level-1,
+.jp-nav-level-2,
+.jp-nav-level-3,
+.jp-nav-level-4,
+.jp-nav-level-5,
+.jp-nav-level-6,
+.jp-nav-level-7,
+.jp-nav-level-8,
+.jp-nav-level-9,
+.jp-nav-level-10,
+.jp-nav-level-11,
+.jp-nav-level-12,
+.jp-nav-level-13,
+.jp-nav-level-14,
+.jp-nav-level-15 {
+    padding: 4px 0;
+}
+
+/* Role-based visibility (items hidden by default, shown by role-specific styles) */
+.jp-nav-role-admin,
+.jp-nav-role-root,
+.jp-nav-role-editor {
+    /* Items with role classes are visible by default - hiding is handled by JavaScript */
+}
+
+/* Mobile Responsive - Dropdown becomes full-width */
+@media (max-width: 768px) {
+    .jp-site-nav-dropdown {
+        left: 0;
+        right: 0;
+        max-width: 100%;
+        border-radius: 0;
+    }
+
+    .jp-nav-submenu {
+        position: relative;
+        left: 0;
+        transform: none;
+        opacity: 1;
+        pointer-events: all;
+        box-shadow: none;
+        border: none;
+        border-top: 1px solid #e9ecef;
+        border-radius: 0;
+        margin-left: 16px;
+    }
+
+    .jp-nav-item.jp-nav-has-submenu > .jp-nav-submenu {
+        display: none;
+    }
+
+    .jp-nav-item.jp-nav-has-submenu.jp-nav-expanded > .jp-nav-submenu {
+        display: block;
+    }
+
+    .jp-nav-arrow {
+        transform: rotate(90deg);
+    }
+
+    .jp-nav-item.jp-nav-expanded > .jp-nav-link > .jp-nav-arrow {
+        transform: rotate(-90deg);
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    .jp-site-nav-dropdown,
+    .jp-nav-submenu {
+        transition: none;
+    }
+}
+
+/* ========================================
  * UTILITY CLASSES (framework core)
  * ======================================== */
 
@@ -1839,9 +2051,9 @@ Example site customizations:
     top: 0;
     left: 50%;
     transform: translateX(-50%) translateY(calc(-100% - var(--stack-offset, 0px)));
-    min-width: {{appConfig.view.slideDownMessage.minWidth}}px;
-    max-width: {{appConfig.view.slideDownMessage.maxWidth}}px;
-    width: calc(100vw - {{appConfig.view.slideDownMessage.minMarginLeftRight}}px * 2);
+    min-width: {{appConfig.view.toastMessage.minWidth}}px;
+    max-width: {{appConfig.view.toastMessage.maxWidth}}px;
+    width: calc(100vw - {{appConfig.view.toastMessage.minMarginLeftRight}}px * 2);
     z-index: 999;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     transition: transform 0.6s ease-out;
@@ -1881,9 +2093,9 @@ Example site customizations:
 }
 
 /* Responsive adjustments for slide-down messages */
-@media (max-width: calc({{appConfig.view.slideDownMessage.maxWidth}}px + {{appConfig.view.slideDownMessage.minMarginLeftRight}}px * 2)) {
+@media (max-width: calc({{appConfig.view.toastMessage.maxWidth}}px + {{appConfig.view.toastMessage.minMarginLeftRight}}px * 2)) {
     .jp-slide-down {
-        width: calc(100vw - {{appConfig.view.slideDownMessage.minMarginLeftRight}}px * 2);
+        width: calc(100vw - {{appConfig.view.toastMessage.minMarginLeftRight}}px * 2);
         max-width: none;
     }
 }

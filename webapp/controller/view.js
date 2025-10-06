@@ -23,10 +23,7 @@ import AuthController from './auth.js';
 import fsPromises from 'fs/promises'; // New import
 
 // W-014: Import ContextExtensions at module level for performance
-let ContextExtensions = null;
-(async () => {
-    ContextExtensions = (await import('../utils/context-extensions.js')).default;
-})();
+let ContextExtensions = null;   // initilized by initialize()
 
 // Module-level cache
 // FIXME: cache invalidation on demand
@@ -38,11 +35,23 @@ const cache = {
     knownFiles: [
         'jpulse-header.tmpl',
         'jpulse-footer.tmpl'
-    ]
+    ],
+    globalConfig: {}    // initilized by initialize()
 };
 
-// Asynchronously pre-load known includes once when the module loads
-(async () => {
+/**
+ * Initialize view controller - load global config once
+ */
+async function initialize() {
+    // Load global config once
+    try {
+        cache.globalConfig = await configModel.findById('global');
+        LogController.logInfo(null, 'view.initialize', 'Global config cached');
+    } catch (error) {
+        LogController.logError(null, 'view.initialize', `Failed to cache global config: ${error.message}`);
+    }
+
+    // Pre-load known includes once when the module loads
     const viewDir = path.join(global.appConfig.app.dirName, 'view');
     for (const includePath of cache.knownFiles) {
         const fullPath = path.join(viewDir, includePath);
@@ -65,7 +74,10 @@ const cache = {
             LogController.logError(null, 'view', `error: Failed to pre-load ${includePath}: ${err.message}`);
         }
     }
-})();
+
+    // Asynchronously pre-load ContextExtensions once when the module loads
+    ContextExtensions = (await import('../utils/context-extensions.js')).default;
+}
 
 /**
  * Load and render .shtml template files with handlebars expansion
@@ -178,8 +190,11 @@ async function load(req, res) {
             }
         }
 
-        // Get global config for handlebars context
-        const globalConfig = await configModel.findById('global');
+        // Process navigation config to expand i18n handlebars per user language
+        // Note: We only process navigation (not entire appConfig) for performance.
+        // Most appConfig values are settings (numbers, paths) not display strings.
+        // If adding i18n to other appConfig sections, process them explicitly here.
+        const navigationConfig = global.i18n.processI18nHandlebarsObj(req, appConfig.view?.navigation || {});
 
         // Create base handlebars context
         const baseContext = {
@@ -198,8 +213,9 @@ async function load(req, res) {
                 authenticated: !!req.session?.user,
                 isAdmin: AuthController.isAuthorized(req, ['admin', 'root'])
             },
-            config: globalConfig?.data || {},
+            config: cache.globalConfig?.data || {},
             appConfig: appConfig, // Add app.conf configuration
+            navigation: navigationConfig,
             url: {
                 domain: `${req.protocol}://${req.get('host')}`,
                 protocol: req.protocol,
@@ -217,7 +233,7 @@ async function load(req, res) {
         const context = ContextExtensions
             ? await ContextExtensions.getExtendedContext(baseContext, req)
             : baseContext; // Fallback if not loaded yet
-        //console.log('DEBUG: user context:', JSON.stringify(context.user, null, 2));
+        //console.log('DEBUG: context:', JSON.stringify(context, null, 2));
 
         // Preprocess i18n handlebars first (only {{i18n.}} expressions),
         // it may return content with new handlebars
@@ -325,13 +341,23 @@ function processHandlebars(content, context, req, depth = 0) {
             default:
                 // Handle property access (no spaces)
                 if (!helper.includes(' ')) {
+                    let value;
                     if (helper.includes('.')) {
                         // Nested property access (e.g., user.name)
-                        return getNestedProperty(currentContext, helper) || '';
+                        value = getNestedProperty(currentContext, helper);
                     } else {
                         // Simple property access (e.g., mainNavActiveTab)
-                        return currentContext[helper] || '';
+                        value = currentContext[helper];
                     }
+
+                    // If value exists and is not a string, stringify it (arrays, objects, etc.)
+                    if (value !== undefined && value !== null) {
+                        if (typeof value !== 'string' && typeof value !== 'number') {
+                            return JSON.stringify(value);
+                        }
+                        return String(value);
+                    }
+                    return '';
                 }
                 // Unknown helper, return empty
                 LogController.logInfo(req, 'view.load', `DEBUG: Unknown helper: ${helper}`);
@@ -642,8 +668,8 @@ function processHandlebars(content, context, req, depth = 0) {
     return result;
 }
 
-
 export default {
+    initialize,
     load
 };
 

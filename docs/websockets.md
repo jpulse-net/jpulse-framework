@@ -609,7 +609,7 @@ wsHandle.broadcast({
 // Client: Display notification
 ws.onMessage((data) => {
     if (data.type === 'notification') {
-        jPulse.showSlideDownMessage(data.message, data.level);
+        jPulse.UI.toast.show(data.message, data.level);
     }
 });
 ```

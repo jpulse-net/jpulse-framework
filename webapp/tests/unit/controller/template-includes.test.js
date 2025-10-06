@@ -47,7 +47,7 @@ describe('Template Includes System', () => {
                         maxWidth: 1200,
                         minMarginLeftRight: 20
                     },
-                    slideDownMessage: {
+                    toastMessage: {
                         minWidth: 200,
                         maxWidth: 800,
                         duration: {

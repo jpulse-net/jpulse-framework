@@ -315,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 ```
 
-## 💬 Slide-Down Message System
+## 💬 Toast Message System
 
 Display non-blocking slide-down messages with smooth animations and intelligent stacking.
 
@@ -339,7 +339,7 @@ jPulse.UI.toast.clearAll();
 - **Non-blocking**: Messages overlay content without shifting page layout
 - **Smooth animations**: 0.6s slide transitions from behind header
 - **Dynamic stacking**: Multiple messages stack intelligently with 5px gaps
-- **Responsive design**: Adapts to screen size using `appConfig.view.slideDownMessage` settings
+- **Responsive design**: Adapts to screen size using `appConfig.view.toastMessage` settings
 - **Independent timing**: Each message respects its configured duration without interference
 
 ### Integration with Forms

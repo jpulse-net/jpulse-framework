@@ -383,6 +383,41 @@ class I18n {
             }
         });
     }
+
+    /**
+     * Process i18n handlebars in objects (recursive deep traversal)
+     * @param {object} req - Express request object (for user language preference)
+     * @param {object|array|string} obj - Object/array/string to process
+     * @returns {object|array|string} Processed object with i18n expanded
+     */
+    processI18nHandlebarsObj(req, obj) {
+        // Handle null/undefined
+        if (obj === null || obj === undefined) {
+            return obj;
+        }
+
+        // Handle strings - use existing processI18nHandlebars
+        if (typeof obj === 'string') {
+            return this.processI18nHandlebars(req, obj);
+        }
+
+        // Handle arrays - recursively process each element
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.processI18nHandlebarsObj(req, item));
+        }
+
+        // Handle objects - recursively process each property
+        if (typeof obj === 'object') {
+            const processed = {};
+            for (const [key, value] of Object.entries(obj)) {
+                processed[key] = this.processI18nHandlebarsObj(req, value);
+            }
+            return processed;
+        }
+
+        // Handle primitives (numbers, booleans, etc.) - return as-is
+        return obj;
+    }
 }
 
 let i18nInstance = null;

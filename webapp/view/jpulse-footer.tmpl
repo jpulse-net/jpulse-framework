@@ -1,8 +1,9 @@
+<!-- Start webapp/view/jpulse-footer.tmpl -->
 <!--
  * @name            jPulse Framework / WebApp / View / Footer Template
  * @tagline         Footer template for jPulse pages
  * @description     Footer included in all jPulse pages to provide a consistent page layout
- * @file            webapp/view/jpulse-nav-tabs.tmpl
+ * @file            webapp/view/jpulse-footer.tmpl
  * @version         0.9.1
  * @release         2025-10-05
  * @repository      https://github.com/peterthoeny/jpulse-framework
@@ -55,3 +56,23 @@
         </div>
     </div>
 </footer>
+
+<!-- Site Navigation Initialization (W-069) -->
+{{#if appConfig.view.pageDecoration.showSiteNavigation}}
+<style>
+:root {
+    --jp-header-height: {{appConfig.view.pageDecoration.headerHeight}}px;
+}
+</style>
+<script>
+jPulse.dom.ready(() => {
+    jPulse.UI.navigation.init({
+        currentUrl: '{{url.pathname}}',
+        userRoles: {{user.roles}},
+        navigation: {{navigation}}
+    });
+});
+</script>
+{{/if}}
+
+<!-- EOF webapp/view/jpulse-footer.tmpl -->

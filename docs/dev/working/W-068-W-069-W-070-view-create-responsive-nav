@@ -8,196 +8,403 @@ Design and implement a unified navigation system for the jPulse Framework consis
 - W-069: Site navigation pulldown and hamburger menu
 - W-070: Breadcrumb navigation
 
-## Architecture Decision: Template-Based Navigation
+## Architecture Decision: Configuration-Based Navigation
 
 ### Core Concept
-- Rename jpulse-nav-tabs.tmpl to jpulse-navigation.tmpl
-- Single data structure serves all navigation contexts
-- Site override via site/webapp/view/jpulse-navigation.tmpl
-- No appConfig access required for site developers
+- Navigation structure defined in `webapp/app.conf`
+- Site override via `site/webapp/app.conf`
+- Auto-initialization in `jpulse-footer.tmpl`
+- Keep `jpulse-nav-tabs.tmpl` separate for horizontal tab navigation
+- No JavaScript required from site developers (unless using SPAs)
 
 ### Navigation Data Structure
 
-Defined in webapp/view/jpulse-navigation.tmpl
+Defined in `webapp/app.conf`:
 
 ```javascript
-const siteNavigation = {
-    products: {
-        label: '{{i18n.navigation.products}}',
-        url: '/products/',
-        pages: {
-            software: {
-                label: '{{i18n.navigation.software}}',
-                url: '/products/software/'
-            },
-            services: {
-                label: '{{i18n.navigation.services}}',
-                url: '/products/services/'
-            }
-        }
-    },
-    about: {
-        label: '{{i18n.navigation.about}}',
-        url: '/about/',
-        pages: {
-            company: {
-                label: '{{i18n.navigation.company}}',
-                url: '/about/company/'
-            },
-            team: {
-                label: '{{i18n.navigation.team}}',
-                url: '/about/team/'
-            }
-        }
-    },
-    admin: {
-        label: '{{i18n.navigation.admin}}',
-        url: '/admin/',
-        classes: 'jp-admin-only',
-        pages: {
-            dashboard: {
-                label: '{{i18n.navigation.dashboard}}',
-                url: '/admin/'
-            },
-            users: {
-                label: '{{i18n.navigation.users}}',
-                url: '/admin/users/'
-            }
-        }
-    },
-    docs: {
-        label: '{{i18n.navigation.documentation}}',
-        url: '/jpulse-docs/',
-        pages: {
-            overview: { label: '{{i18n.navigation.overview}}', url: '/jpulse-docs/' }
+{
+    view: {
+        pageDecoration: {
+            headerHeight: 35,
+            showSiteNavigation: true,
+            showBreadcrumbs: true,
+            showSidebar: false
         },
-        // SPA callback replaces pages when on docs section
-        spaCallback: async function() {
-            const response = await fetch('/api/1/markdown/jpulse/');
-            const data = await response.json();
-            return convertMarkdownToNavPages(data.files);
+        navigation: {
+            products: {
+                label: '{{i18n.navigation.products}}',  // i18n resolved at request time by view.load
+                url: '/products/',
+                icon: '📦',  // Optional: emoji or filename (e.g., 'product-icon.svg')
+                pages: {
+                    software: {
+                        label: '{{i18n.navigation.products.software}}',
+                        url: '/products/software/'
+                    },
+                    services: {
+                        label: '{{i18n.navigation.products.services}}',
+                        url: '/products/services/'
+                    }
+                }
+            },
+            about: {
+                label: 'About',  // Plain text supported for non-i18n sites
+                url: '/about/',
+                pages: {
+                    company: {
+                        label: 'Company',
+                        url: '/about/company/'
+                    },
+                    team: {
+                        label: 'Team',
+                        url: '/about/team/'
+                    }
+                }
+            },
+            admin: {
+                label: '{{i18n.view.navigation.admin}}',
+                url: '/admin/',
+                role: 'admin',  // Role-based visibility
+                icon: '⚙️',
+                pages: {
+                    dashboard: {
+                        label: '{{i18n.view.navigation.admin.dashboard}}',
+                        url: '/admin/'
+                    },
+                    config: {
+                        label: '{{i18n.view.navigation.admin.config}}',
+                        url: '/admin/config.shtml'
+                    },
+                    users: {
+                        label: '{{i18n.view.navigation.admin.users}}',
+                        url: '/admin/users.shtml'
+                    },
+                    logs: {
+                        label: '{{i18n.view.navigation.admin.logs}}',
+                        url: '/admin/logs.shtml'
+                    },
+                    websocketStatus: {
+                        label: '{{i18n.view.navigation.admin.websocketStatus}}',
+                        url: '/admin/config.shtml'
+                    }
+                }
+            },
+            jPulseDocs: {
+                label: '{{i18n.view.navigation.jpulseDocs}}',
+                url: '/jpulse-docs/',
+                icon: 'docs-icon.svg',  // File-based icon (resolved via PathResolver)
+                pages: {
+                    // Pages will be dynamically loaded via registerPages() for SPA
+                }
+            }
         }
     }
-};
+}
 ```
 
-### API Pattern (Consistent with Existing Framework)
+**Key Features**:
+- **i18n support**: Use `{{i18n.*}}` placeholders, resolved at request time per user
+- **Plain text support**: Simple sites can use plain strings
+- **Unlimited nesting**: Recursive `pages` structure (no max depth needed in app.conf)
+- **Role-based visibility**: Optional `role` property hides items from unauthorized users
+- **Optional icons**: Emoji, image file, or omit
+
+### Icon Handling
+
+**Three icon types supported**:
+
+1. **Emoji**: Single character (e.g., `icon: '📦'` or `icon: '🔄'`)
+   - Rendered directly inline
+   - Scales with font size
+
+2. **Image file**: Known extensions (.jpg, .png, .svg, .gif)
+   - Example: `icon: 'docs-icon.svg'`
+   - Resolved via PathResolver (supports site override)
+   - Looks in `static/images/` or `static/icons/`
+   - Sized to 16×16px (or scaled to font size)
+
+3. **None**: Omit icon property
+   - No icon displayed
+
+### Auto-Initialization Pattern
+
+**In `jpulse-footer.tmpl`** (after header HTML, before closing body):
+
+```html
+<!-- Site Navigation Dropdown (if enabled) -->
+{{#if appConfig.view.pageDecoration.showSiteNavigation}}
+<script>
+jPulse.dom.ready(() => {
+    jPulse.UI.navigation.init({
+        currentUrl: '{{url.pathname}}',
+        userRoles: {{json user.roles}}
+    });
+});
+</script>
+{{/if}}
+```
+
+**No data passing needed**: `jPulse.UI.navigation` accesses `appConfig` directly.
+
+### SPA Dynamic Pages Registration
+
+For SPAs that load navigation structure dynamically (e.g., markdown docs, websocket demos):
+
+**In page JavaScript** (e.g., `jpulse-docs/index.shtml`):
 
 ```javascript
 jPulse.dom.ready(() => {
-    const navHandle = jPulse.UI.navigation.register('site-nav', siteNavigation, {
-        showSiteNav: true,
-        showSidebar: true,
-        showBreadcrumbs: false,
-        currentSection: 'docs'  // Triggers spaCallback for docs section
+    // Register dynamic pages for this navigation section
+    jPulse.UI.navigation.registerPages('jPulseDocs', async () => {
+        const response = await fetch('/api/1/markdown/jpulse/');
+        const data = await response.json();
+        // Return structure matching app.conf pages format
+        return {
+            overview: { label: 'Overview', url: '/jpulse-docs/' },
+            installation: { label: 'Installation', url: '/jpulse-docs/installation' },
+            gettingStarted: { label: 'Getting Started', url: '/jpulse-docs/getting-started' },
+            // ... dynamically generated from data.files
+        };
     });
 });
 ```
 
-### Page Includes
+**Or use helper for markdown conversion**:
 
 ```javascript
-// Conditional sidebar (jpulse.net style)
-{{file.include "jpulse-navigation.tmpl" showSidebar=false}}  // Regular page
-{{file.include "jpulse-navigation.tmpl" showSidebar=true sidebarContext="docs"}}  // Docs page
+jPulse.dom.ready(() => {
+    jPulse.UI.navigation.registerPages('jPulseDocs', async () => {
+        const response = await fetch('/api/1/markdown/jpulse/');
+        const data = await response.json();
+        return jPulse.UI.navigation.helpers.convertMarkdownFilesToPages(data.files);
+    });
+});
+```
 
-// Always-on sidebar sites
-{{file.include "jpulse-navigation.tmpl" showSidebar=true showSiteNav=true}}
+**Performance**: Registration only activates when current URL starts with the section's URL.
+
+### Page Includes
+
+**Standard pages** (no sidebar):
+```html
+{{file.include "jpulse-header.tmpl"}}
+<!-- page content -->
+{{file.include "jpulse-footer.tmpl"}}
+```
+
+**Pages with sidebar**:
+```html
+{{file.include "jpulse-header.tmpl"}}
+<!-- page content -->
+{{file.include "jpulse-footer.tmpl" showSidebar=true sidebarContext="jPulseDocs"}}
 ```
 
 ## W-068: Responsive Sidebar
 
-### Simple Sidebar Strategy
+### Sidebar Strategy
 
-**Conditional Sidebar Sites (jpulse.net style):**
-- Use showSidebar: true/false based on page type
+**Conditional Sidebar (jpulse.net style)**:
+- Control via `{{file.include "jpulse-footer.tmpl" showSidebar=true sidebarContext="jPulseDocs"}}`
 - Different pages control sidebar visibility
 - Performance: No sidebar overhead on pages that don't need it
 
-**Always-On Sidebar Sites:**
-- Single siteNavigation definition
-- Static navigation structure for performance
-- Dynamic sub-hierarchies only expanded when on SPA pages
-- Multiple SPA pages supported via spaCallback property
+**Always-On Sidebar Sites**:
+- Include sidebar in all pages via template override
+- Single navigation structure from `app.conf`
+- Dynamic pages loaded via `registerPages()` for SPAs
 
 ### Content Behavior Options
 - **Reflow**: Main content shifts right, sidebar pushes content
 - **Overlay**: Sidebar covers part of main content
-- **Auto**: Overlay on mobile (<768px), reflow on desktop (>=768px)
+- **Auto** (default): Overlay on mobile (<768px), reflow on desktop (≥768px)
 
 ### Configuration
-- Default: Auto mode for responsive behavior
-- CSS classes: jp-sidebar-reflow, jp-sidebar-overlay
-- Configurable via options object
+- CSS classes: `jp-sidebar-reflow`, `jp-sidebar-overlay`, `jp-sidebar-auto`
+- Configurable via options object or CSS class override
 
-### SPA Integration
-- spaCallback function property for dynamic content expansion
-- Only executes when user navigates to that section
-- Multiple SPA sections supported with different callbacks
-- Performance: Static structure until dynamic expansion needed
+### Sidebar Structure
+- Renders navigation hierarchy recursively (unlimited depth)
+- Follows `app.conf` view.navigation structure
+- Supports dynamic page expansion for SPAs
+- Role-based item visibility
 
 ## W-069: Site Navigation Pulldown & Hamburger
 
 ### Desktop Experience
-- Hover over site logo/name reveals dropdown
-- Nested menu structure with smooth animations
-- Keyboard navigation support
+- **Trigger**: Hover over site icon and app name in header
+- **1st level**: Dropdown panel shows top-level navigation items (from `app.conf`)
+- **2nd+ levels**: Hover over item with sub-pages → submenu appears to the right
+- **Recursive**: Unlimited nesting supported (follows `app.conf` structure)
+- **Smooth animations**: CSS transitions for dropdown reveal
+- **Keyboard navigation**: Arrow keys and Enter support
 
-### Mobile Experience
-- Hamburger menu consolidates:
+### Mobile Experience (<768px)
+- **Hamburger menu** consolidates:
   - Site navigation sections
-  - Sidebar content
   - User menu (login/profile/logout)
-- Touch-friendly spacing and interactions
+  - Optional: Sidebar content (if on page with sidebar)
+- **Touch-friendly**: Larger tap targets, adequate spacing
+- **Slide-in animation**: Smooth panel transition
+- **Backdrop overlay**: Semi-transparent overlay when menu open
+
+### URL Matching for Active States
+- **Exact match**: `/admin/config.shtml` matches navigation item
+- **Parent fallback**: `/admin/foo.shtml` not in nav → highlights parent `/admin/`
+- **Breadcrumb trail**: Shows path through navigation hierarchy
+- **No regex needed**: Simple "starts with" matching
+
+### Role-Based Visibility
+- Items with `role` property check user roles
+- Hidden if user lacks required role
+- CSS class: `jp-nav-role-{rolename}`
+- Default hidden, shown via CSS when role present
 
 ### No Home Duplication
-- Banner/header handles logo and home link
+- Header already has logo and app name linking to home
 - Site navigation focuses on content sections
-- Cleaner structure without redundancy
+- Cleaner UX without redundancy
 
 ## W-070: Breadcrumb Navigation
 
 ### Auto-Generation
-- Based on navigation hierarchy and current URL
-- Starts with "Home" (from header context)
-- Follows navigation structure for deeper pages
+- **Based on**: Navigation hierarchy from `app.conf` + current URL
+- **Starting point**: Home (icon + app name in header)
+- **URL matching**:
+  - Exact match: `/admin/config.shtml` → Home > Admin > Config
+  - Parent fallback: `/admin/foo.shtml` not in nav → Home > Admin > (current page)
+  - Deep nesting: Follows navigation hierarchy recursively
+
+### Display Format
+- **Separator**: `>` or custom icon
+- **Clickable**: All items except current page are links
+- **Current page**: Non-link, styled differently
+- **Responsive**: Collapse on mobile (show only parent + current)
 
 ### i18n Integration
-- Labels use existing translation system
+- Labels already resolved by `view.load` controller
 - Consistent with navigation structure
+- Falls back to URL segment if no nav match
+
+### Configuration
+- Enable/disable: `appConfig.view.pageDecoration.showBreadcrumbs`
+- Auto-rendered in header area (below site nav)
+- No manual configuration per page needed
 
 ## Implementation Benefits
 
 ### Developer Experience
-- Simple JSON structure, no complex handlebars conditionals
-- Single definition serves all navigation contexts
-- Template override system (no server restart needed)
-- Follows existing jPulse.UI.*.register() patterns
+- **Simple**: Navigation structure in familiar `app.conf` location
+- **Discoverable**: No hidden configuration files
+- **Override-friendly**: Site overrides via `site/webapp/app.conf`
+- **No JavaScript required**: Works out of the box for static sites
+- **SPA support**: Optional `registerPages()` for dynamic content
 
 ### Technical Advantages
-- Maintainable: Single source of truth
-- i18n-ready: Handlebars processes translations before JavaScript
-- Extensible: New navigation types just need new renderers
-- Performance: Lightweight, no duplicate definitions
-- No overengineering: Two clear patterns for different site needs
+- **Single source of truth**: `app.conf` navigation structure
+- **i18n-ready**: Handlebars resolves at request time per user
+- **Extensible**: Recursive structure supports unlimited nesting
+- **Performance**: Static navigation renders fast, dynamic loads only when needed
+- **Role-based**: Built-in visibility control
+- **Icon support**: Emoji or image files with site override
 
 ### Integration Points
-- Existing /jpulse-docs/ SPA: Use spaCallback for dynamic expansion
-- Current tab system: Represented as navigation sections
-- Role-based visibility: CSS classes for conditional display
-- Mobile responsive: Unified hamburger menu experience
+- **Existing SPA systems**: `/jpulse-docs/`, `/hello-websocket/` use `registerPages()`
+- **Tab navigation**: Keep `jpulse-nav-tabs.tmpl` for horizontal tabs
+- **Role-based access**: Integrated with existing auth system
+- **Mobile responsive**: Unified hamburger menu for all navigation
+- **PathResolver**: Icon images support site override
 
 ## Key Design Principles
 
-1. **Keep It Simple**: Avoid overengineering complex merge strategies
-2. **Performance First**: Dynamic content only loads when needed
-3. **Flexible Patterns**: Support both conditional and always-on sidebar sites
-4. **Backward Compatible**: Current jpulse.net behavior unchanged
-5. **Developer Friendly**: Template overrides, no server access needed
+1. **Don't Make Me Think**: Configuration in obvious place (`app.conf`)
+2. **Performance First**: Dynamic content only when on SPA URLs
+3. **Flexible**: Supports MPA, SPA, conditional sidebar, always-on sidebar
+4. **No Hardcoding**: URL patterns detected, not hardcoded
+5. **Separation of Concerns**: Keep tabs separate from site nav
+6. **Recursive from Start**: No artificial depth limits
 
-## Next Steps
-1. Create detailed technical specifications for each component
-2. Design CSS framework with jp-* prefixes
-3. Implement jPulse.UI.navigation.register() method
-4. Plan migration from existing jpulse-nav-tabs.tmpl
-5. Integration testing with /jpulse-docs/ SPA system
+## Implementation Phases
+
+### Phase 1: W-069-A (Site Nav Dropdown - Desktop)
+**Goal**: Replace need for complex tab navigation with clean dropdown
+
+**Deliverables**:
+1. Add navigation structure to `webapp/app.conf`
+2. Implement `jPulse.UI.navigation` in `jpulse-common.js`
+3. Add initialization to `jpulse-footer.tmpl`
+4. CSS styling in `jpulse-common.css`
+5. Icon rendering (emoji + image file support)
+6. Role-based visibility
+7. Recursive menu rendering (unlimited depth)
+8. Unit tests + integration tests
+
+**Files Modified**:
+- `webapp/app.conf` (add view.navigation)
+- `webapp/view/jpulse-footer.tmpl` (add nav init)
+- `webapp/view/jpulse-common.js` (add jPulse.UI.navigation)
+- `webapp/view/jpulse-common.css` (add nav styles)
+- `webapp/tests/unit/view/navigation.test.js` (new)
+
+**Estimate**: 6-8 hours
+
+### Phase 2: W-069-B (Mobile Hamburger Menu)
+**Goal**: Mobile-responsive navigation
+
+**Deliverables**:
+1. Hamburger icon in header (<768px)
+2. Slide-in menu panel
+3. Backdrop overlay
+4. Consolidate site nav + user menu
+5. Touch-friendly spacing
+6. Smooth animations
+
+**Estimate**: 3-4 hours
+
+### Phase 3: W-070 (Breadcrumbs)
+**Goal**: Auto-generated breadcrumb navigation
+
+**Deliverables**:
+1. URL path parsing
+2. Navigation hierarchy matching
+3. Parent fallback logic
+4. Breadcrumb rendering
+5. Mobile collapse behavior
+
+**Estimate**: 2-3 hours
+
+### Phase 4: W-068 (Sidebar Navigation)
+**Goal**: Optional left sidebar
+
+**Deliverables**:
+1. Sidebar rendering from navigation structure
+2. Per-page control via include params
+3. Reflow/overlay/auto modes
+4. Integration with hamburger menu
+5. SPA `registerPages()` support
+
+**Estimate**: 4-6 hours
+
+## Testing Strategy
+
+### Unit Tests
+- Navigation structure parsing
+- Icon type detection (emoji vs file)
+- Role visibility logic
+- URL matching (exact + parent fallback)
+- Recursive rendering
+- Helper functions
+
+### Integration Tests
+- Navigation renders from `app.conf`
+- i18n placeholders resolved
+- Role-based items hidden/shown
+- SPA `registerPages()` integration
+- Mobile responsive behavior
+- Keyboard navigation
+
+### Manual Testing
+- Desktop hover behavior
+- Mobile hamburger menu
+- Various screen sizes
+- Role-based scenarios
+- SPA page navigation
+- Site override testing

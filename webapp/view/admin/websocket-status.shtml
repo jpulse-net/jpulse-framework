@@ -462,7 +462,7 @@
                         updateStats(data.data);
                     } else if (!message.success) {
                         console.error('WebSocket error:', message.error);
-                        jPulse.showSlideDownMessage(`WebSocket error: ${message.error}`, 'error');
+                        jPulse.UI.toast.show(`WebSocket error: ${message.error}`, 'error');
                     }
                 })
                 .onStatusChange((status) => {

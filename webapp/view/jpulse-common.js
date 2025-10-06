@@ -572,7 +572,7 @@ window.jPulse = {
             show: (message, type = 'info', duration = null) => {
                 // Get duration from config if not specified
                 if (duration === null) {
-                    const config = window.appConfig?.view?.slideDownMessage?.duration;
+                    const config = window.appConfig?.view?.toastMessage?.duration;
                     duration = config?.[type] || 5000;
                 }
 
@@ -1856,6 +1856,492 @@ window.jPulse = {
                     // Clear content
                     element.innerHTML = '';
                 }
+            }
+        },
+
+        // ========================================
+        // SITE NAVIGATION (W-069)
+        // ========================================
+
+        /**
+         * Site navigation pulldown and mobile hamburger menu
+         * Reads navigation structure from appConfig.view.navigation
+         */
+        navigation: {
+            _initialized: false,
+            _currentUrl: '',
+            _userRoles: [],
+            _registeredPages: {},  // Dynamic pages registered by SPAs
+            _navConfig: null,  // Navigation structure from server
+
+            /**
+             * Initialize site navigation from appConfig
+             * @param {Object} options - Configuration
+             * @param {string} options.currentUrl - Current page URL for active state
+             * @param {Array} options.userRoles - User roles for visibility control
+             * @returns {Object} Handle object with navigation control methods
+             */
+            init: (options = {}) => {
+                if (jPulse.UI.navigation._initialized) {
+                    console.warn('jPulse.UI.navigation already initialized');
+                    return null;
+                }
+
+                // Store config
+                jPulse.UI.navigation._currentUrl = options.currentUrl || window.location.pathname;
+                jPulse.UI.navigation._userRoles = options.userRoles || [];
+
+                // Get navigation structure from options parameter (passed from server)
+                const navConfig = options.navigation;
+                if (!navConfig || Object.keys(navConfig).length === 0) {
+                    console.warn('No navigation structure provided');
+                    return null;
+                }
+                jPulse.UI.navigation._navConfig = navConfig;  // Store for use by other methods
+
+                // Create navigation dropdown element
+                jPulse.UI.navigation._createDropdown();
+
+                // Setup event handlers
+                jPulse.UI.navigation._setupEventHandlers();
+
+                jPulse.UI.navigation._initialized = true;
+
+                return {
+                    refresh: () => jPulse.UI.navigation._refresh(),
+                    destroy: () => jPulse.UI.navigation._destroy()
+                };
+            },
+
+            /**
+             * Register dynamic pages for a navigation section (for SPAs)
+             * @param {string} sectionKey - Key in navigation structure (e.g., 'jPulseDocs')
+             * @param {Function} callback - Async function returning pages structure
+             */
+            registerPages: async (sectionKey, callback) => {
+                if (typeof callback !== 'function') {
+                    console.error('registerPages: callback must be a function');
+                    return;
+                }
+
+                // Only register if current URL starts with this section's URL
+                const navConfig = jPulse.UI.navigation._navConfig;
+                const section = navConfig?.[sectionKey];
+
+                if (!section) {
+                    console.warn(`Navigation section '${sectionKey}' not found in navigation config`);
+                    return;
+                }
+
+                // Check if current URL starts with section URL
+                if (!jPulse.UI.navigation._currentUrl.startsWith(section.url)) {
+                    // Not on this section's URL, don't load dynamic pages
+                    return;
+                }
+
+                try {
+                    const pages = await callback();
+                    jPulse.UI.navigation._registeredPages[sectionKey] = pages;
+
+                    // Refresh navigation to show new pages
+                    if (jPulse.UI.navigation._initialized) {
+                        jPulse.UI.navigation._refresh();
+                    }
+                } catch (error) {
+                    console.error(`Failed to load dynamic pages for ${sectionKey}:`, error);
+                }
+            },
+
+            /**
+             * Helper functions for common page conversions
+             */
+            helpers: {
+                /**
+                 * Convert markdown file list to navigation pages structure
+                 * @param {Array} files - Array of file objects from markdown API
+                 * @param {number} depth - Current recursion depth
+                 * @returns {Object} Pages structure matching app.conf format
+                 */
+                convertMarkdownFilesToPages: (files, depth = 0) => {
+                    const MAX_DEPTH = 16;
+                    if (depth > MAX_DEPTH || !Array.isArray(files)) {
+                        return {};
+                    }
+
+                    const pages = {};
+                    files.forEach(file => {
+                        const key = file.name || file.path.replace('.md', '').replace(/[^a-zA-Z0-9]/g, '_');
+                        pages[key] = {
+                            label: file.title || file.name,
+                            url: file.url || file.path.replace('.md', '')
+                        };
+
+                        // Recursively convert subdirectories
+                        if (file.isDirectory && file.files && file.files.length > 0) {
+                            pages[key].pages = jPulse.UI.navigation.helpers.convertMarkdownFilesToPages(file.files, depth + 1);
+                        }
+                    });
+
+                    return pages;
+                }
+            },
+
+            // ========================================
+            // INTERNAL NAVIGATION FUNCTIONS
+            // ========================================
+
+            /**
+             * Create navigation dropdown element
+             */
+            _createDropdown: () => {
+                // Create dropdown container
+                const dropdown = document.createElement('div');
+                dropdown.id = 'jp-site-nav-dropdown';
+                dropdown.className = 'jp-site-nav-dropdown jp-site-nav-hidden';
+
+                // Render navigation structure (use stored config)
+                const navHTML = jPulse.UI.navigation._renderNavLevel(jPulse.UI.navigation._navConfig, 0);
+                dropdown.innerHTML = navHTML;
+
+                // Insert into page (after header)
+                const header = document.querySelector('.jp-header');
+                if (header) {
+                    header.parentNode.insertBefore(dropdown, header.nextSibling);
+                } else {
+                    // Fallback: insert at top of body
+                    document.body.insertBefore(dropdown, document.body.firstChild);
+                }
+
+                // Position dropdown to align logo with menu text (account for menu padding)
+                const logo = document.querySelector('.jp-logo');
+                if (logo) {
+                    const logoRect = logo.getBoundingClientRect();
+                    const menuPaddingLeft = 16;  // .jp-nav-link padding-left
+                    dropdown.style.left = (logoRect.left - menuPaddingLeft) + 'px';
+                }
+            },
+
+            /**
+             * Render a level of navigation hierarchy
+             * @param {Object} navStructure - Navigation structure object
+             * @param {number} depth - Current depth level
+             * @returns {string} HTML for this level
+             */
+            _renderNavLevel: (navStructure, depth) => {
+                if (!navStructure || typeof navStructure !== 'object') {
+                    return '';
+                }
+
+                let html = '<ul class="jp-nav-level jp-nav-level-' + depth + '">';
+
+                Object.entries(navStructure).forEach(([key, item]) => {
+                    // Check role-based visibility
+                    if (item.role && !jPulse.UI.navigation._userRoles.includes(item.role)) {
+                        return;  // Skip this item
+                    }
+
+                    // Check for registered dynamic pages
+                    const pages = jPulse.UI.navigation._registeredPages[key] || item.pages;
+                    const hasPages = pages && Object.keys(pages).length > 0;
+
+                    // Build CSS classes
+                    const classes = ['jp-nav-item'];
+                    if (hasPages) {
+                        classes.push('jp-nav-has-submenu');
+                    }
+                    if (item.role) {
+                        classes.push('jp-nav-role-' + item.role);
+                    }
+
+                    // Check if this item is active
+                    const isActive = jPulse.UI.navigation._isActive(item.url);
+                    if (isActive) {
+                        classes.push('jp-nav-active');
+                    }
+
+                    html += '<li class="' + classes.join(' ') + '">';
+
+                    // Render icon if present
+                    let iconHTML = '';
+                    if (item.icon) {
+                        iconHTML = jPulse.UI.navigation._renderIcon(item.icon);
+                    }
+
+                    // Render item link
+                    html += '<a href="' + (item.url || '#') + '" class="jp-nav-link">';
+                    if (iconHTML) {
+                        html += iconHTML;
+                    }
+                    html += '<span class="jp-nav-label">' + item.label + '</span>';
+                    if (hasPages) {
+                        html += '<span class="jp-nav-arrow">›</span>';
+                    }
+                    html += '</a>';
+
+                    // Recursively render sub-pages (nested ul directly, no div wrapper)
+                    if (hasPages) {
+                        html += jPulse.UI.navigation._renderNavLevel(pages, depth + 1);
+                    }
+
+                    html += '</li>';
+                });
+
+                html += '</ul>';
+                return html;
+            },
+
+            /**
+             * Render icon (emoji or image file)
+             * @param {string} icon - Icon string (emoji or filename)
+             * @returns {string} HTML for icon
+             */
+            _renderIcon: (icon) => {
+                if (!icon) return '';
+
+                // Check if it's an image file (has known extension)
+                const imageExtensions = ['.jpg', '.jpeg', '.png', '.svg', '.gif'];
+                const isImageFile = imageExtensions.some(ext => icon.toLowerCase().endsWith(ext));
+
+                if (isImageFile) {
+                    // Image file - path relative to /static/ root (CDN'able in prod)
+                    // Example: 'assets/admin/icons/config.svg' becomes '/assets/admin/icons/config.svg'
+                    const iconPath = icon.startsWith('/') ? icon : '/' + icon;
+                    return '<img src="' + iconPath + '" alt="" class="jp-nav-icon jp-nav-icon-image">';
+                } else {
+                    // Assume emoji or single character
+                    return '<span class="jp-nav-icon jp-nav-icon-emoji">' + icon + '</span>';
+                }
+            },
+
+            /**
+             * Check if a URL is active (exact match or parent match)
+             * @param {string} url - URL to check
+             * @returns {boolean} True if active
+             */
+            _isActive: (url) => {
+                if (!url) return false;
+
+                const currentUrl = jPulse.UI.navigation._currentUrl;
+
+                // Exact match
+                if (currentUrl === url) {
+                    return true;
+                }
+
+                // Parent match (current URL starts with this URL)
+                if (currentUrl.startsWith(url) && url !== '/') {
+                    return true;
+                }
+
+                return false;
+            },
+
+            /**
+             * Setup event handlers for navigation
+             */
+            _setupEventHandlers: () => {
+                const header = document.querySelector('.jp-header');
+                const logo = header?.querySelector('.jp-logo');
+                const dropdown = document.getElementById('jp-site-nav-dropdown');
+
+                if (!header || !logo || !dropdown) {
+                    return;
+                }
+
+                // Show dropdown on hover over logo/app name
+                logo.addEventListener('mouseenter', () => {
+                    dropdown.classList.remove('jp-site-nav-hidden');
+                });
+
+                // Hide dropdown when mouse leaves dropdown area
+                dropdown.addEventListener('mouseleave', () => {
+                    dropdown.classList.add('jp-site-nav-hidden');
+                });
+
+                // Keep dropdown visible when hovering over it
+                dropdown.addEventListener('mouseenter', () => {
+                    dropdown.classList.remove('jp-site-nav-hidden');
+                });
+
+                // Hide dropdown when mouse leaves header area entirely
+                header.addEventListener('mouseleave', (e) => {
+                    // Check if mouse moved outside header and dropdown
+                    const rect = header.getBoundingClientRect();
+                    const dropdownRect = dropdown.getBoundingClientRect();
+
+                    if (e.clientY > Math.max(rect.bottom, dropdownRect.bottom)) {
+                        dropdown.classList.add('jp-site-nav-hidden');
+                    }
+                });
+
+                // Add hover event listeners for submenu positioning
+                const items = dropdown.querySelectorAll('.jp-nav-item.jp-nav-has-submenu');
+                items.forEach((item, i) => {
+                    const label = item.querySelector('.jp-nav-label')?.textContent;
+                    const submenu = item.querySelector('.jp-nav-level');  // Direct child ul
+                    let hideTimeout = null;
+
+                    item.addEventListener('mouseenter', () => {
+                        // Clear any pending hide
+                        if (hideTimeout) {
+                            clearTimeout(hideTimeout);
+                            hideTimeout = null;
+                        }
+                        jPulse.UI.navigation._positionSubmenu(item);
+                    });
+
+                    // Keep submenu visible when hovering over it
+                    if (submenu) {
+                        submenu.addEventListener('mouseenter', () => {
+                            if (hideTimeout) {
+                                clearTimeout(hideTimeout);
+                                hideTimeout = null;
+                            }
+                        });
+
+                        submenu.addEventListener('mouseleave', () => {
+                            hideTimeout = setTimeout(() => {
+                                submenu.style.setProperty('opacity', '0', 'important');
+                                submenu.style.setProperty('pointer-events', 'none', 'important');
+                                submenu.style.setProperty('transform', 'translateX(-10px)', 'important');
+                            }, 300);  // 300ms when leaving submenu
+                        });
+                    }
+
+                    // Hide submenu when mouse leaves item
+                    item.addEventListener('mouseleave', (e) => {
+                        if (submenu && !submenu.contains(e.relatedTarget)) {
+                            hideTimeout = setTimeout(() => {
+                                submenu.style.setProperty('opacity', '0', 'important');
+                                submenu.style.setProperty('pointer-events', 'none', 'important');
+                                submenu.style.setProperty('transform', 'translateX(-10px)', 'important');
+                            }, 1000);  // 1 second grace period for accidental mouse movements
+                        }
+                    });
+                });
+            },
+
+            /**
+             * Position submenu to prevent overflow (shift up if needed)
+             * @param {HTMLElement} item - The nav item with submenu
+             */
+            _positionSubmenu: (item) => {
+                const submenu = item.querySelector('.jp-nav-level');  // Direct child ul (no div wrapper!)
+                if (!submenu) {
+                    return;
+                }
+
+                // Start with top: 0 (align with parent)
+                submenu.style.top = '0';
+
+                // DISABLE TRANSITIONS FIRST
+                submenu.style.setProperty('transition', 'none', 'important');
+
+                // Force visibility immediately
+                submenu.style.setProperty('opacity', '1', 'important');
+                submenu.style.setProperty('pointer-events', 'all', 'important');
+                submenu.style.setProperty('transform', 'translateX(0)', 'important');
+
+                // Force reflow to apply styles immediately
+                void submenu.offsetHeight;
+
+                // Wait for next frame to get accurate measurements
+                requestAnimationFrame(() => {
+                    const submenuRect = submenu.getBoundingClientRect();
+                    const viewportHeight = window.innerHeight;
+                    const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--jp-header-height') || '50');
+
+                    // Calculate how much the submenu overflows the viewport
+                    const bottomOverflow = submenuRect.bottom - viewportHeight + 10; // 10px padding from bottom
+                    const topLimit = headerHeight + 10; // Don't go above header
+
+                    if (bottomOverflow > 0) {
+                        // Submenu goes below viewport - need to shift it up
+                        const currentTop = submenuRect.top;
+                        const newTop = currentTop - bottomOverflow;
+
+                        // Make sure we don't shift above the header
+                        if (newTop < topLimit) {
+                            // Too tall to fit - align with header and let it scroll
+                            const shiftAmount = currentTop - topLimit;
+                            submenu.style.setProperty('top', `-${shiftAmount}px`, 'important');
+                        } else {
+                            // Shift up by overflow amount
+                            submenu.style.setProperty('top', `-${bottomOverflow}px`, 'important');
+                        }
+                    }
+                });
+            },
+
+            /**
+             * Refresh navigation (re-render)
+             */
+            _refresh: () => {
+                const dropdown = document.getElementById('jp-site-nav-dropdown');
+                if (!dropdown) return;
+
+                // Re-render navigation (use stored config)
+                const navHTML = jPulse.UI.navigation._renderNavLevel(jPulse.UI.navigation._navConfig, 0);
+                dropdown.innerHTML = navHTML;
+
+                // Re-setup event handlers for new submenu items
+                const items = dropdown.querySelectorAll('.jp-nav-item.jp-nav-has-submenu');
+                items.forEach((item, i) => {
+                    const label = item.querySelector('.jp-nav-label')?.textContent;
+                    const submenu = item.querySelector('.jp-nav-level');  // Direct child ul
+                    let hideTimeout = null;
+
+                    item.addEventListener('mouseenter', () => {
+                        // Clear any pending hide
+                        if (hideTimeout) {
+                            clearTimeout(hideTimeout);
+                            hideTimeout = null;
+                        }
+                        jPulse.UI.navigation._positionSubmenu(item);
+                    });
+
+                    // Keep submenu visible when hovering over it
+                    if (submenu) {
+                        submenu.addEventListener('mouseenter', () => {
+                            if (hideTimeout) {
+                                clearTimeout(hideTimeout);
+                                hideTimeout = null;
+                            }
+                        });
+
+                        submenu.addEventListener('mouseleave', () => {
+                            hideTimeout = setTimeout(() => {
+                                submenu.style.setProperty('opacity', '0', 'important');
+                                submenu.style.setProperty('pointer-events', 'none', 'important');
+                                submenu.style.setProperty('transform', 'translateX(-10px)', 'important');
+                            }, 300);  // 300ms when leaving submenu
+                        });
+                    }
+
+                    // Hide submenu when mouse leaves item
+                    item.addEventListener('mouseleave', (e) => {
+                        if (submenu && !submenu.contains(e.relatedTarget)) {
+                            hideTimeout = setTimeout(() => {
+                                submenu.style.setProperty('opacity', '0', 'important');
+                                submenu.style.setProperty('pointer-events', 'none', 'important');
+                                submenu.style.setProperty('transform', 'translateX(-10px)', 'important');
+                            }, 1000);  // 1 second grace period for accidental mouse movements
+                        }
+                    });
+                });
+            },
+
+            /**
+             * Destroy navigation instance
+             */
+            _destroy: () => {
+                const dropdown = document.getElementById('jp-site-nav-dropdown');
+                if (dropdown) {
+                    dropdown.remove();
+                }
+
+                jPulse.UI.navigation._initialized = false;
+                jPulse.UI.navigation._registeredPages = {};
             }
         },
 

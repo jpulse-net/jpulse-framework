@@ -51,7 +51,8 @@
                 // Auto-detect namespace from URL path
                 this.namespace = this.getNamespaceFromUrl();
                 this.currentPath = this.getPathFromUrl();
-                this.init();
+                this.files = null; // Cache for file structure (shared with site nav)
+                // Note: init() called explicitly outside constructor for async/await
             }
 
             getNamespaceFromUrl() {
@@ -75,6 +76,7 @@
                     const response = await fetch(`/api/1/markdown/${this.namespace}/`);
                     const data = await response.json();
                     //console.log('DEBUG: data.files:', JSON.stringify(data.files, null, 2));
+                    this.files = data.files; // Cache file structure for sharing
                     this.renderNavigation(data.files);
                 } catch (error) {
                     console.error('Failed to load navigation:', error);
@@ -194,8 +196,32 @@
         }
 
         // Initialize when DOM is ready
-        jPulse.dom.ready(() => {
-            new jPulseDocsViewer();
+        jPulse.dom.ready(async () => {
+            // Create docs viewer instance (fetches markdown structure once)
+            const docsViewer = new jPulseDocsViewer();
+
+            // Wait for navigation to load, then share with site nav dropdown (W-069)
+            if (jPulse.UI && jPulse.UI.navigation) {
+                // Wait for files to be loaded
+                await docsViewer.init();
+
+                // Register using cached file structure (no second fetch)
+                jPulse.UI.navigation.registerPages('jPulseDocs', async () => {
+                    if (docsViewer.files) {
+                        const pages = jPulse.UI.navigation.helpers.convertMarkdownFilesToPages(docsViewer.files);
+
+                        // Flatten: if first item is "jPulse Docs" folder, promote its children
+                        const firstKey = Object.keys(pages)[0];
+                        if (firstKey && pages[firstKey].pages && Object.keys(pages[firstKey].pages).length > 0) {
+                            // Return the nested pages directly (flatten one level)
+                            return pages[firstKey].pages;
+                        }
+
+                        return pages;
+                    }
+                    return {};
+                });
+            }
         });
     </script>
 

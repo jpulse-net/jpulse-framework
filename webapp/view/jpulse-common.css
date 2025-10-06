@@ -215,6 +215,113 @@ body {
     [class*="sub-header"] {
         display: none !important;
     }
+
+    /* Mobile Responsive Fixes - Prevent Horizontal Scroll (W-069) */
+    body {
+        overflow-x: hidden;
+        max-width: 100vw;
+    }
+
+    .jp-main {
+        margin: 20px 10px;
+        padding: 15px;
+        overflow-x: hidden;
+        max-width: calc(100vw - 20px);
+        box-sizing: border-box;
+    }
+
+    /* Fix search section */
+    .jp-search-section {
+        padding: 12px !important;
+        overflow-x: hidden;
+        max-width: 100%;
+    }
+
+    /* Fix search form to single column */
+    .jp-search-form {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Force search fields to stack on mobile */
+    .jp-search-fields {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px;
+        max-width: 100%;
+        box-sizing: border-box;
+        width: 100%;
+    }
+
+    /* Fix form groups to not overflow */
+    .jp-search-fields .jp-form-group {
+        max-width: 100%;
+        box-sizing: border-box;
+        width: 100%;
+        margin: 0;
+    }
+
+    /* Remove button group alignment override on mobile */
+    .jp-search-fields .jp-form-group:has(.jp-btn-group) {
+        display: block;
+    }
+
+    /* Fix form inputs to not overflow */
+    .jp-form-input,
+    .jp-form-select {
+        max-width: 100%;
+        box-sizing: border-box;
+        width: 100%;
+    }
+
+    /* Allow button groups to wrap on mobile if needed */
+    .jp-btn-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-start;
+        margin-top: 0;
+    }
+
+    /* Ensure tables scroll horizontally, not page */
+    .jp-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+    }
+
+    .jp-table {
+        min-width: 600px;
+    }
+
+    /* Fix page header to not overflow */
+    .jp-page-header {
+        overflow-x: hidden;
+        max-width: 100%;
+    }
+
+    .jp-page-header h1 {
+        font-size: 1.5em;
+        overflow-wrap: break-word;
+    }
+
+    /* Fix stats grid */
+    .jp-stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+        gap: 10px;
+    }
+
+    /* Ensure all containers respect viewport */
+    .jp-container-400,
+    .jp-container-600,
+    .jp-container-800,
+    .jp-container-1000,
+    .jp-container-1200 {
+        max-width: calc(100vw - 20px);
+        margin: 0 10px;
+        padding: 0 10px;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
 }
 
 .jp-logo {
@@ -1500,111 +1607,29 @@ body {
 
 /* Search Fields Component */
 .jp-search-fields {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 15px;
-    align-items: end;
+    align-items: flex-end;
 }
 
-
-@media (max-width: 768px) {
-    .jp-search-fields {
-        grid-template-columns: 1fr;
-    }
+.jp-search-fields .jp-form-group {
+    flex: 1 1 180px;
+    min-width: 180px;
+    margin-bottom: 0; /* Remove default margin, using flexbox gap instead */
 }
 
-/* Mobile Responsive Fixes - Prevent Horizontal Scroll (W-069) */
-@media (max-width: 600px) {
-    body {
-        overflow-x: hidden;
-        max-width: 100vw;
-    }
+/* Button group in search fields should not grow and align at bottom */
+.jp-search-fields .jp-form-group:has(.jp-btn-group) {
+    flex: 0 1 auto;
+    min-width: auto;
+    display: flex;
+    align-items: flex-end;
+}
 
-    .jp-main {
-        margin: 20px 10px;
-        padding: 15px;
-        overflow-x: hidden;
-        max-width: calc(100vw - 20px);
-        box-sizing: border-box;
-    }
-
-    /* Fix search section */
-    .jp-search-section {
-        padding: 15px;
-        overflow-x: hidden;
-        max-width: 100%;
-    }
-
-
-    /* Fix search form to single column */
-    .jp-search-form {
-        grid-template-columns: 1fr !important;
-    }
-    /* Force search fields to stack on mobile */
-    .jp-search-fields {
-        grid-template-columns: 1fr !important;
-        gap: 10px;
-    }
-
-    /* Fix form inputs to not overflow */
-    .jp-form-input,
-    .jp-form-select {
-        max-width: 100%;
-        box-sizing: border-box;
-    }
-
-    /* Fix button groups to stack on very narrow screens */
-    .jp-btn-group {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-
-    .jp-btn-group .jp-btn {
-        flex: 1 1 auto;
-        min-width: 100px;
-    }
-
-    /* Ensure tables scroll horizontally, not page */
-    .jp-table-container {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        max-width: 100%;
-    }
-
-    .jp-table {
-        min-width: 600px;
-    }
-
-    /* Fix page header to not overflow */
-    .jp-page-header {
-        overflow-x: hidden;
-        max-width: 100%;
-    }
-
-    .jp-page-header h1 {
-        font-size: 1.5em;
-        overflow-wrap: break-word;
-    }
-
-    /* Fix stats grid */
-    .jp-stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
-        gap: 10px;
-    }
-
-    /* Ensure all containers respect viewport */
-    .jp-container-400,
-    .jp-container-600,
-    .jp-container-800,
-    .jp-container-1000,
-    .jp-container-1200 {
-        max-width: calc(100vw - 20px);
-        margin: 0 10px;
-        padding: 0 10px;
-        box-sizing: border-box;
-        overflow-x: hidden;
-    }
+.jp-search-fields .jp-btn-group {
+    white-space: nowrap;
+    margin: 0;
 }
 
 /* Container Responsive Adjustments */

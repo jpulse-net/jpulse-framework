@@ -21,33 +21,6 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         /* Page-specific styles only - common styles are in jpulse-common.css */
-        /* FORCE override - disable responsive grid and use fixed widths */
-        .local-admin-users .jp-search-section .jp-search-form .jp-search-fields {
-            grid-template-columns: 180px 180px auto auto 160px !important;
-            gap: 15px !important;
-            align-items: end !important;
-            grid-auto-flow: column !important;
-        }
-
-        .local-admin-users .jp-search-fields input,
-        .local-admin-users .jp-search-fields select {
-            width: 100%;
-            min-width: 0;
-        }
-
-        /* FORCE button alignment - match input field baseline */
-        .local-admin-users .jp-search-section .jp-search-form .jp-search-fields .jp-form-group:last-child {
-            display: flex !important;
-            align-items: flex-end !important;
-        }
-
-        .local-admin-users .jp-search-section .jp-search-form .jp-search-fields .jp-btn-group {
-            display: flex !important;
-            gap: 10px !important;
-            white-space: nowrap !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
 
         .local-users-actions {
             display: flex;
@@ -145,7 +118,6 @@
                               </select>
                           </div>
                           <div class="jp-form-group">
-                              <label>&nbsp;</label> <!-- Empty label for alignment -->
                               <div class="jp-btn-group">
                                   <button type="submit" class="jp-btn jp-btn-primary">{{i18n.view.admin.users.search}}</button>
                                   <button type="button" class="jp-btn jp-btn-secondary" onclick="clearSearch()">{{i18n.view.admin.users.clear}}</button>

@@ -1180,10 +1180,10 @@ This is the doc to track work items, arranged in three sections:
 
 
 
-questions:
+pending:
 - site override for icons
-
-
+- fix websocket.svg
+- can't use {{#if}} in appConfig.view.navigation for conditional menu (such as signed in/out)
 
 
 ### Potential next items:

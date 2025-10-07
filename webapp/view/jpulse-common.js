@@ -1873,6 +1873,7 @@ window.jPulse = {
             _userRoles: [],
             _registeredPages: {},  // Dynamic pages registered by SPAs
             _navConfig: null,  // Navigation structure from server
+            _hideTimeouts: new Map(),  // Map of submenu -> timeout for tracking individual hide operations
 
             /**
              * Initialize site navigation from appConfig
@@ -1882,9 +1883,18 @@ window.jPulse = {
              * @returns {Object} Handle object with navigation control methods
              */
             init: (options = {}) => {
-                if (jPulse.UI.navigation._initialized) {
-                    console.warn('jPulse.UI.navigation already initialized');
+                // Allow re-initialization if user roles have changed
+                const newRoles = JSON.stringify(options.userRoles || []);
+                const oldRoles = JSON.stringify(jPulse.UI.navigation._userRoles);
+
+                if (jPulse.UI.navigation._initialized && newRoles === oldRoles) {
+                    console.warn('jPulse.UI.navigation already initialized with same roles');
                     return null;
+                }
+
+                // If re-initializing, destroy old navigation first
+                if (jPulse.UI.navigation._initialized) {
+                    jPulse.UI.navigation._destroy();
                 }
 
                 // Store config
@@ -2146,73 +2156,130 @@ window.jPulse = {
                 }
 
                 // Show dropdown on hover over logo/app name
+                let dropdownHideTimeout = null;
                 logo.addEventListener('mouseenter', () => {
+                    // Clear any pending hide timeout
+                    if (dropdownHideTimeout) {
+                        clearTimeout(dropdownHideTimeout);
+                        dropdownHideTimeout = null;
+                    }
                     dropdown.classList.remove('jp-site-nav-hidden');
                 });
 
-                // Hide dropdown when mouse leaves dropdown area
+                // Hide dropdown when mouse leaves logo (with delay)
+                // Allows user to move from logo to dropdown without closing
+                logo.addEventListener('mouseleave', (e) => {
+                    if (dropdown.contains(e.relatedTarget)) {
+                        return;
+                    }
+                    dropdownHideTimeout = setTimeout(() => {
+                        dropdown.classList.add('jp-site-nav-hidden');
+                        dropdownHideTimeout = null;
+                    }, 600);
+                });
+
+                // Hide dropdown when mouse leaves dropdown area (with delay to prevent accidental closure)
                 dropdown.addEventListener('mouseleave', () => {
-                    dropdown.classList.add('jp-site-nav-hidden');
+                    dropdownHideTimeout = setTimeout(() => {
+                        dropdown.classList.add('jp-site-nav-hidden');
+                    }, 500);  // 500ms delay before closing
                 });
 
-                // Keep dropdown visible when hovering over it
+                // Keep dropdown visible when hovering over it (cancel hide timeout)
                 dropdown.addEventListener('mouseenter', () => {
+                    if (dropdownHideTimeout) {
+                        clearTimeout(dropdownHideTimeout);
+                        dropdownHideTimeout = null;
+                    }
                     dropdown.classList.remove('jp-site-nav-hidden');
                 });
 
-                // Hide dropdown when mouse leaves header area entirely
+                // Hide dropdown when mouse leaves header area entirely (with delay)
                 header.addEventListener('mouseleave', (e) => {
                     // Check if mouse moved outside header and dropdown
                     const rect = header.getBoundingClientRect();
                     const dropdownRect = dropdown.getBoundingClientRect();
 
                     if (e.clientY > Math.max(rect.bottom, dropdownRect.bottom)) {
-                        dropdown.classList.add('jp-site-nav-hidden');
+                        // Add delay before closing
+                        if (dropdownHideTimeout) {
+                            clearTimeout(dropdownHideTimeout);
+                        }
+                        dropdownHideTimeout = setTimeout(() => {
+                            dropdown.classList.add('jp-site-nav-hidden');
+                        }, 500);  // 500ms delay
                     }
                 });
 
-                // Add hover event listeners for submenu positioning
-                const items = dropdown.querySelectorAll('.jp-nav-item.jp-nav-has-submenu');
-                items.forEach((item, i) => {
-                    const label = item.querySelector('.jp-nav-label')?.textContent;
-                    const submenu = item.querySelector('.jp-nav-level');  // Direct child ul
-                    let hideTimeout = null;
+                // Setup hover handlers for nested submenus (L2, L3, etc.)
+                // Each submenu gets independent timeout tracking via _hideTimeouts Map
+                const allItems = dropdown.querySelectorAll('.jp-nav-item.jp-nav-has-submenu');
+                allItems.forEach((item) => {
+                    const submenu = item.querySelector(':scope > .jp-nav-level');
 
                     item.addEventListener('mouseenter', () => {
-                        // Clear any pending hide
-                        if (hideTimeout) {
-                            clearTimeout(hideTimeout);
-                            hideTimeout = null;
+                        if (submenu && jPulse.UI.navigation._hideTimeouts.has(submenu)) {
+                            clearTimeout(jPulse.UI.navigation._hideTimeouts.get(submenu));
+                            jPulse.UI.navigation._hideTimeouts.delete(submenu);
                         }
                         jPulse.UI.navigation._positionSubmenu(item);
                     });
 
-                    // Keep submenu visible when hovering over it
                     if (submenu) {
                         submenu.addEventListener('mouseenter', () => {
-                            if (hideTimeout) {
-                                clearTimeout(hideTimeout);
-                                hideTimeout = null;
+                            if (jPulse.UI.navigation._hideTimeouts.has(submenu)) {
+                                clearTimeout(jPulse.UI.navigation._hideTimeouts.get(submenu));
+                                jPulse.UI.navigation._hideTimeouts.delete(submenu);
                             }
                         });
 
-                        submenu.addEventListener('mouseleave', () => {
-                            hideTimeout = setTimeout(() => {
+                        submenu.addEventListener('mouseleave', (e) => {
+                            if (submenu.contains(e.relatedTarget)) {
+                                return;
+                            }
+                            if (jPulse.UI.navigation._hideTimeouts.has(submenu)) {
+                                clearTimeout(jPulse.UI.navigation._hideTimeouts.get(submenu));
+                            }
+                            const timeout = setTimeout(() => {
                                 submenu.style.setProperty('opacity', '0', 'important');
                                 submenu.style.setProperty('pointer-events', 'none', 'important');
                                 submenu.style.setProperty('transform', 'translateX(-10px)', 'important');
-                            }, 300);  // 300ms when leaving submenu
+                                submenu.querySelectorAll('.jp-nav-level').forEach(s => {
+                                    s.style.setProperty('opacity', '0', 'important');
+                                    s.style.setProperty('pointer-events', 'none', 'important');
+                                    s.style.setProperty('transform', 'translateX(-10px)', 'important');
+                                    if (jPulse.UI.navigation._hideTimeouts.has(s)) {
+                                        clearTimeout(jPulse.UI.navigation._hideTimeouts.get(s));
+                                        jPulse.UI.navigation._hideTimeouts.delete(s);
+                                    }
+                                });
+                                jPulse.UI.navigation._hideTimeouts.delete(submenu);
+                            }, 600);
+                            jPulse.UI.navigation._hideTimeouts.set(submenu, timeout);
                         });
                     }
 
-                    // Hide submenu when mouse leaves item
                     item.addEventListener('mouseleave', (e) => {
                         if (submenu && !submenu.contains(e.relatedTarget)) {
-                            hideTimeout = setTimeout(() => {
+                            if (jPulse.UI.navigation._hideTimeouts.has(submenu)) {
+                                clearTimeout(jPulse.UI.navigation._hideTimeouts.get(submenu));
+                            }
+                            const timeout = setTimeout(() => {
                                 submenu.style.setProperty('opacity', '0', 'important');
                                 submenu.style.setProperty('pointer-events', 'none', 'important');
                                 submenu.style.setProperty('transform', 'translateX(-10px)', 'important');
-                            }, 1000);  // 1 second grace period for accidental mouse movements
+                                submenu.querySelectorAll('.jp-nav-level').forEach(s => {
+                                    s.style.setProperty('opacity', '0', 'important');
+                                    s.style.setProperty('pointer-events', 'none', 'important');
+                                    s.style.setProperty('transform', 'translateX(-10px)', 'important');
+                                    if (jPulse.UI.navigation._hideTimeouts.has(s)) {
+                                        clearTimeout(jPulse.UI.navigation._hideTimeouts.get(s));
+                                        jPulse.UI.navigation._hideTimeouts.delete(s);
+                                    }
+                                });
+                                jPulse.UI.navigation._hideTimeouts.delete(submenu);
+                            }, 600);
+                            jPulse.UI.navigation._hideTimeouts.set(submenu, timeout);
                         }
                     });
                 });
@@ -2281,48 +2348,74 @@ window.jPulse = {
                 const navHTML = jPulse.UI.navigation._renderNavLevel(jPulse.UI.navigation._navConfig, 0);
                 dropdown.innerHTML = navHTML;
 
-                // Re-setup event handlers for new submenu items
-                const items = dropdown.querySelectorAll('.jp-nav-item.jp-nav-has-submenu');
-                items.forEach((item, i) => {
-                    const label = item.querySelector('.jp-nav-label')?.textContent;
-                    const submenu = item.querySelector('.jp-nav-level');  // Direct child ul
-                    let hideTimeout = null;
+                // Re-setup event handlers after refresh (same as init)
+                const allItems = dropdown.querySelectorAll('.jp-nav-item.jp-nav-has-submenu');
+                allItems.forEach((item) => {
+                    const submenu = item.querySelector(':scope > .jp-nav-level');
 
                     item.addEventListener('mouseenter', () => {
-                        // Clear any pending hide
-                        if (hideTimeout) {
-                            clearTimeout(hideTimeout);
-                            hideTimeout = null;
+                        if (submenu && jPulse.UI.navigation._hideTimeouts.has(submenu)) {
+                            clearTimeout(jPulse.UI.navigation._hideTimeouts.get(submenu));
+                            jPulse.UI.navigation._hideTimeouts.delete(submenu);
                         }
                         jPulse.UI.navigation._positionSubmenu(item);
                     });
 
-                    // Keep submenu visible when hovering over it
                     if (submenu) {
                         submenu.addEventListener('mouseenter', () => {
-                            if (hideTimeout) {
-                                clearTimeout(hideTimeout);
-                                hideTimeout = null;
+                            if (jPulse.UI.navigation._hideTimeouts.has(submenu)) {
+                                clearTimeout(jPulse.UI.navigation._hideTimeouts.get(submenu));
+                                jPulse.UI.navigation._hideTimeouts.delete(submenu);
                             }
                         });
 
-                        submenu.addEventListener('mouseleave', () => {
-                            hideTimeout = setTimeout(() => {
+                        submenu.addEventListener('mouseleave', (e) => {
+                            if (submenu.contains(e.relatedTarget)) {
+                                return;
+                            }
+                            if (jPulse.UI.navigation._hideTimeouts.has(submenu)) {
+                                clearTimeout(jPulse.UI.navigation._hideTimeouts.get(submenu));
+                            }
+                            const timeout = setTimeout(() => {
                                 submenu.style.setProperty('opacity', '0', 'important');
                                 submenu.style.setProperty('pointer-events', 'none', 'important');
                                 submenu.style.setProperty('transform', 'translateX(-10px)', 'important');
-                            }, 300);  // 300ms when leaving submenu
+                                submenu.querySelectorAll('.jp-nav-level').forEach(s => {
+                                    s.style.setProperty('opacity', '0', 'important');
+                                    s.style.setProperty('pointer-events', 'none', 'important');
+                                    s.style.setProperty('transform', 'translateX(-10px)', 'important');
+                                    if (jPulse.UI.navigation._hideTimeouts.has(s)) {
+                                        clearTimeout(jPulse.UI.navigation._hideTimeouts.get(s));
+                                        jPulse.UI.navigation._hideTimeouts.delete(s);
+                                    }
+                                });
+                                jPulse.UI.navigation._hideTimeouts.delete(submenu);
+                            }, 600);
+                            jPulse.UI.navigation._hideTimeouts.set(submenu, timeout);
                         });
                     }
 
-                    // Hide submenu when mouse leaves item
                     item.addEventListener('mouseleave', (e) => {
                         if (submenu && !submenu.contains(e.relatedTarget)) {
-                            hideTimeout = setTimeout(() => {
+                            if (jPulse.UI.navigation._hideTimeouts.has(submenu)) {
+                                clearTimeout(jPulse.UI.navigation._hideTimeouts.get(submenu));
+                            }
+                            const timeout = setTimeout(() => {
                                 submenu.style.setProperty('opacity', '0', 'important');
                                 submenu.style.setProperty('pointer-events', 'none', 'important');
                                 submenu.style.setProperty('transform', 'translateX(-10px)', 'important');
-                            }, 1000);  // 1 second grace period for accidental mouse movements
+                                submenu.querySelectorAll('.jp-nav-level').forEach(s => {
+                                    s.style.setProperty('opacity', '0', 'important');
+                                    s.style.setProperty('pointer-events', 'none', 'important');
+                                    s.style.setProperty('transform', 'translateX(-10px)', 'important');
+                                    if (jPulse.UI.navigation._hideTimeouts.has(s)) {
+                                        clearTimeout(jPulse.UI.navigation._hideTimeouts.get(s));
+                                        jPulse.UI.navigation._hideTimeouts.delete(s);
+                                    }
+                                });
+                                jPulse.UI.navigation._hideTimeouts.delete(submenu);
+                            }, 600);
+                            jPulse.UI.navigation._hideTimeouts.set(submenu, timeout);
                         }
                     });
                 });

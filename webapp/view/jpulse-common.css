@@ -258,6 +258,13 @@ body {
         box-sizing: border-box;
         width: 100%;
         margin: 0;
+        flex: 0 0 auto !important;
+        min-width: 0 !important;
+    }
+
+    /* Reduce label spacing on mobile */
+    .jp-search-fields .jp-form-label {
+        margin-bottom: 3px;
     }
 
     /* Remove button group alignment override on mobile */
@@ -271,6 +278,9 @@ body {
         max-width: 100%;
         box-sizing: border-box;
         width: 100%;
+        padding: 8px 12px;
+        font-size: 14px;
+        height: auto;
     }
 
     /* Allow button groups to wrap on mobile if needed */

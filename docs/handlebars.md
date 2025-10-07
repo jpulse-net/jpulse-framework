@@ -133,7 +133,17 @@ The jPulse Framework provides special helpers for file operations:
 Include other template files:
 ```handlebars
 {{file.include "jpulse-header.tmpl"}}
-{{file.include "jpulse-nav-tabs.tmpl" showExamplesNav=true}}
+{{file.include "jpulse-navigation.tmpl"}}
+{{file.include "my-own-stuff.tmpl" someKey="some value" sleepy=true}}
+```
+
+You can define parameters, and use them in the included template, such as this in above example:
+```handlebars
+{{#if sleepy}}
+    ...
+{{else}}
+    ...
+{{/if}}
 ```
 
 ### File Timestamps
@@ -204,7 +214,7 @@ Follow consistent naming conventions for CSS classes and IDs:
 ### Site Structure
 - **Framework templates**: Located in `webapp/view/`
 - **Site-specific templates**: Located in `site/webapp/view/`
-- **Common includes**: `jpulse-header.tmpl`, `jpulse-footer.tmpl`, `jpulse-nav-tabs.tmpl`
+- **Common includes**: `jpulse-header.tmpl`, `jpulse-footer.tmpl`, `jpulse-navigation.tmpl`
 
 ### Template Types
 - **`.shtml` files**: Complete HTML pages

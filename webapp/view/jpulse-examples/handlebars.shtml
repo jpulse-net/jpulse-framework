@@ -22,7 +22,8 @@
 <body>
     <div class="jp-main">
         <!-- Navigation Tabs -->
-        {{file.include "jpulse-nav-tabs.tmpl" showExamplesNav=true mainNavActiveTab="jp-tab-examples" examplesNavActiveTab="jp-tab-handlebars"}}
+        <div id="jpulse-docs-examples-tabs" class="jp-tabs"></div>
+        <div id="jpulse-examples-sub-tabs" class="jp-tabs"></div>
 
         <h1 class="jp-title">📝 Handlebars Examples</h1>
 
@@ -144,7 +145,7 @@
                         <ul>
                             <li><code>jpulse-header.tmpl</code> - Contains CSS, meta tags, and navigation</li>
                             <li><code>jpulse-footer.tmpl</code> - Contains JavaScript libraries and closing tags</li>
-                            <li><code>jpulse-nav-tabs.tmpl</code> - Contains the navigation tabs for this page</li>
+                            <li><code>.tmpl</code> - Contains the navigation tabs for this page</li>
                         </ul>
                         <p>File timestamp: Used for browser cache busting</p>
                         <ul>
@@ -159,7 +160,7 @@
 &#123;&#123;file.include "jpulse-header.tmpl"&#125;&#125;
 
 &lt;!-- Server side include in the &lt;body&gt; section --&gt;
-&#123;&#123;file.include "jpulse-nav-tabs.tmpl" showExamplesNav=true mainNavActiveTab="jp-tab-examples" examplesNavActiveTab="jp-tab-handlebars"&#125;&#125;
+&#123;&#123;file.include ".tmpl" showExamplesNav=true mainNavActiveTab="jp-tab-examples" examplesNavActiveTab="jp-tab-handlebars"&#125;&#125;
 
 &lt;!-- Server side include at the end of &lt;body&gt; --&gt;
 &#123;&#123;file.include "jpulse-footer.tmpl"&#125;&#125;
@@ -514,6 +515,19 @@
     <script>
         // Initialize all tab interfaces on this page
         jPulse.dom.ready(() => {
+
+            // Initialize main navigation tab row
+            jPulse.UI.tabs.register(
+                'jpulse-docs-examples-tabs',
+                window.jPulseTabsNavigation.jPulseDocsExamplesTabs
+            );
+
+            // Initialize examples navigation tab row
+            jPulse.UI.tabs.register(
+                'jpulse-examples-sub-tabs',
+                window.jPulseTabsNavigation.jPulseExamplesSubTabs
+            );
+
             // Variables example tabs
             jPulse.UI.tabs.register('variables-tabs', {
                 tabs: [

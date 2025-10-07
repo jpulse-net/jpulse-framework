@@ -13,6 +13,7 @@
  */
 
 import path from 'path';
+import fs from 'fs';
 import express from 'express';
 const router = express.Router();
 
@@ -97,7 +98,25 @@ router.get('/', (req, res) => {
 
 // Anything else will fall through to Express static middleware (.txt, .ico, .png, .json, etc.)
 // This is handled by nginx if the app is running behind a reverse proxy
-router.use('/', express.static(path.join(appConfig.app.dirName, 'static')));
+// In development, we need to check site overrides first (mimics nginx try_files behavior)
+router.use('/', (req, res, next) => {
+    const projectRoot = path.dirname(appConfig.app.dirName);
+    const siteStaticPath = path.join(projectRoot, 'site/webapp/static', req.path);
+    const frameworkStaticPath = path.join(appConfig.app.dirName, 'static', req.path);
+
+    // Try site override first
+    if (fs.existsSync(siteStaticPath) && fs.statSync(siteStaticPath).isFile()) {
+        return res.sendFile(siteStaticPath);
+    }
+
+    // Fall back to framework static
+    if (fs.existsSync(frameworkStaticPath) && fs.statSync(frameworkStaticPath).isFile()) {
+        return res.sendFile(frameworkStaticPath);
+    }
+
+    // Not a static file, continue to 404 handler
+    next();
+});
 
 // Catch-all 404 handler
 router.use('*', (req, res) => {

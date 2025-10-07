@@ -69,8 +69,8 @@
 </head>
 <body>
     <div class="jp-main">
+      {{#if user.authenticated}}
         <div class="jp-container-800 local-user-profile">
-          {{#if user.authenticated}}
             <div class="local-profile-header">
                 <div class="jp-user-avatar-large">
                     {{user.initials}}
@@ -165,13 +165,14 @@
                 <button id="saveBtn" class="jp-btn jp-btn-success jp-hidden" onclick="saveProfile()">{{i18n.view.user.profile.save}}</button>
                 <button id="cancelBtn" class="jp-btn jp-btn-secondary jp-hidden" onclick="cancelEdit()">{{i18n.view.user.profile.cancel}}</button>
             </div>
-          {{else}}
-            <div class="jp-alert jp-alert-error">
-                {{i18n.view.auth.common.notAuthenticated}}
-            </div>
-          {{/if}}
         </div>
+      {{else}}
+        <div class="jp-error-box">
+            {{i18n.view.auth.common.notAuthenticated}}
+        </div>
+      {{/if}}
     </div>
+</div>
 
     <script>
         let editMode = false;
@@ -180,6 +181,7 @@
         // Enhanced profile management using jPulse utilities
         let securityCollapsible = null;
 
+        {{#if user.authenticated}}
         jPulse.dom.ready(() => {
             loadProfile();
             loadLanguages();
@@ -203,6 +205,7 @@
                 }
             });
         });
+        {{/if}}
 
         function toggleEditMode() {
             editMode = !editMode;
@@ -471,13 +474,6 @@
                 jPulse.UI.toast.error('Failed to load theme options. Please refresh the page.');
             }
         }
-
-        // Update initialization
-        document.addEventListener('DOMContentLoaded', function() {
-            loadProfile();
-            loadLanguages();
-            loadThemes();
-        });
     </script>
 
     {{file.include "jpulse-footer.tmpl"}}

@@ -73,6 +73,7 @@
 </footer>
 
 <!-- Site Navigation Initialization (W-069) -->
+{{file.include "jpulse-navigation.tmpl"}}
 {{#if appConfig.view.pageDecoration.showSiteNavigation}}
 <style>
 :root {
@@ -80,11 +81,12 @@
 }
 </style>
 <script>
+// Initialize site navigation when DOM is ready
 jPulse.dom.ready(() => {
     jPulse.UI.navigation.init({
         currentUrl: '{{url.pathname}}',
         userRoles: {{user.roles}},
-        navigation: {{navigation}}
+        navigation: window.jPulseSiteNavigation
     });
 });
 </script>

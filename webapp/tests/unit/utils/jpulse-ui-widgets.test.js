@@ -581,6 +581,97 @@ describe('jPulse.UI Tabs Widget (W-064)', () => {
         });
     });
 
+    describe('Active Tab Parameter Handling (W-069)', () => {
+        test('should accept optional activeTabId parameter (3rd argument)', () => {
+            document.body.innerHTML = `<div id="navTabs1" class="jp-tabs"></div>`;
+
+            // Test with explicit activeTabId
+            const handle = window.jPulse.UI.tabs.register('navTabs1', {
+                tabs: [
+                    { id: 'home', label: 'Home', url: '/home/' },
+                    { id: 'about', label: 'About', url: '/about/' }
+                ]
+            }, 'about');
+
+            expect(handle.getActiveTab()).toBe('about');
+        });
+
+        test('should work when activeTabId is null (optional parameter)', () => {
+            document.body.innerHTML = `<div id="navTabs2" class="jp-tabs"></div>`;
+
+            // Test with null activeTabId (should not crash)
+            const handle = window.jPulse.UI.tabs.register('navTabs2', {
+                tabs: [
+                    { id: 'home', label: 'Home', url: '/home/' },
+                    { id: 'about', label: 'About', url: '/about/' }
+                ]
+            }, null);
+
+            expect(handle).toBeTruthy();
+            expect(handle.getActiveTab()).toBeTruthy();
+        });
+
+        test('should work when activeTabId is undefined (omitted parameter)', () => {
+            document.body.innerHTML = `<div id="navTabs3" class="jp-tabs"></div>`;
+
+            // Test without activeTabId parameter
+            const handle = window.jPulse.UI.tabs.register('navTabs3', {
+                tabs: [
+                    { id: 'home', label: 'Home', url: '/home/' },
+                    { id: 'about', label: 'About', url: '/about/' }
+                ]
+            });
+
+            expect(handle).toBeTruthy();
+            expect(handle.getActiveTab()).toBeTruthy();
+        });
+
+        test('should prioritize explicit activeTabId over options.activeTab', () => {
+            document.body.innerHTML = `<div id="navTabs4" class="jp-tabs"></div>`;
+
+            const handle = window.jPulse.UI.tabs.register('navTabs4', {
+                tabs: [
+                    { id: 'home', label: 'Home', url: '/home/' },
+                    { id: 'about', label: 'About', url: '/about/' },
+                    { id: 'contact', label: 'Contact', url: '/contact/' }
+                ],
+                activeTab: 'about'  // Set in options
+            }, 'contact');  // Override with parameter
+
+            // Parameter should take precedence
+            expect(handle.getActiveTab()).toBe('contact');
+        });
+
+        test('should fall back to options.activeTab when activeTabId is null', () => {
+            document.body.innerHTML = `<div id="navTabs5" class="jp-tabs"></div>`;
+
+            const handle = window.jPulse.UI.tabs.register('navTabs5', {
+                tabs: [
+                    { id: 'home', label: 'Home', url: '/home/' },
+                    { id: 'about', label: 'About', url: '/about/' }
+                ],
+                activeTab: 'about'
+            }, null);
+
+            expect(handle.getActiveTab()).toBe('about');
+        });
+
+        test('should handle invalid activeTabId gracefully', () => {
+            document.body.innerHTML = `<div id="navTabs6" class="jp-tabs"></div>`;
+
+            const handle = window.jPulse.UI.tabs.register('navTabs6', {
+                tabs: [
+                    { id: 'home', label: 'Home', url: '/home/' },
+                    { id: 'about', label: 'About', url: '/about/' }
+                ]
+            }, 'nonexistent');
+
+            // Should still create tabs, just won't activate the invalid tab
+            expect(handle).toBeTruthy();
+            expect(handle.tabType).toBe('navigation');
+        });
+    });
+
     describe('Tab Structure Creation', () => {
         test('should create proper tab structure for navigation tabs', () => {
             document.body.innerHTML = `<div id="navTabs" class="jp-tabs"></div>`;

@@ -1,0 +1,207 @@
+<!-- Start webapp/view/jpulse-navigation.tmpl -->
+<!--
+ * @name            jPulse Framework / WebApp / View / Navigation Template
+ * @tagline         Site navigation and multi-level navigation tabs definition
+ * @description     Reusable template for consistent navigation across the jPulse Framework.
+ *                  This file defines two types structures:
+ *                  - window.jPulseSiteNavigation -- site navigation structure, used by:
+ *                    - site navigation:
+ *                      - on desktop: hovering over app icon shows pulldown site structure
+ *                      - on mobile:  ☰ hamburger menu showing site structure
+ *                    - breadcrumbs: shows path to home from current page
+ *                    - sidebar navigation: if enabled
+ *                  - window.jPulseTabsNavigation -- tabs navigation structures
+ * @file            webapp/view/jpulse-navigation.tmpl
+ * @version         0.9.1
+ * @release         2025-10-05
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+-->
+
+<script>
+
+    /**
+    * ========================================
+    *         jPulse Site Navigation
+    * ========================================
+    */
+    window.jPulseSiteNavigation = {
+        admin: {
+            label:              '{{i18n.view.navigation.admin._index}}',
+            url:                '/admin/',
+            role:               'admin',  // role-based visibility
+            icon:               '⚙️',
+            pages: {
+                dashboard: {
+                    label:      '{{i18n.view.navigation.admin.dashboard}}',
+                    url:        '/admin/',
+                    icon:       '⚙️'
+                },
+                config: {
+                    label:      '{{i18n.view.navigation.admin.config}}',
+                    url:        '/admin/config.shtml',
+                    icon:       'assets/admin/icons/config.svg'
+                },
+                users: {
+                    label:      '{{i18n.view.navigation.admin.users}}',
+                    url:        '/admin/users.shtml',
+                    icon:       'assets/admin/icons/users.svg'
+                },
+                logs: {
+                    label:      '{{i18n.view.navigation.admin.logs}}',
+                    url:        '/admin/logs.shtml',
+                    icon:       'assets/admin/icons/logs.svg'
+                },
+                websocket: {
+                    label:      '{{i18n.view.navigation.admin.websocket._index}}',
+                    url:        '/admin/websocket-status.shtml',
+                    icon:       'assets/admin/icons/websocket.svg',
+                    pages: {
+                        websocketStatus: {
+                            label:    '{{i18n.view.navigation.admin.websocket.websocketStatus}}',
+                            url:      '/admin/websocket-status.shtml',
+                            icon:     'assets/admin/icons/websocket.svg'
+                        },
+                        websocketTest: {
+                            label:    '{{i18n.view.navigation.admin.websocket.websocketTest}}',
+                            url:      '/admin/websocket-test.shtml',
+                            icon:     '🧪'
+                        }
+                    }
+                }
+            }
+        },
+        auth: {
+            label:              '{{i18n.view.navigation.auth._index}}',
+            url:                '/auth/login.shtml',
+            icon:               '🔑',
+            pages: {
+              {{#if user.authenticated}}
+                logout: {
+                    label:      '{{i18n.view.navigation.auth.logout}}',
+                    url:        '/auth/logout.shtml'
+                },
+              {{else}}
+                login: {
+                    label:      '{{i18n.view.navigation.auth.login}}',
+                    url:        '/auth/login.shtml'
+                },
+                signup: {
+                    label:      '{{i18n.view.navigation.auth.signup}}',
+                    url:        '/auth/signup.shtml'
+                },
+              {{/if}}
+            }
+        },
+        {{#if user.authenticated}}
+        user: {
+            label:              '{{i18n.view.navigation.user._index}}',
+            url:                '/user/',
+            icon:               '👤',
+            pages: {
+                overview: {
+                    label:      '{{i18n.view.navigation.user.overview}}',
+                    url:        '/user/'
+                },
+                profile: {
+                    label:      '{{i18n.view.navigation.user.profile}}',
+                    url:        '/user/profile.shtml'
+                },
+            }
+        },
+        {{/if}}
+        jPulseDocs: {
+            label:              '{{i18n.view.navigation.jPulseDocs}}',
+            url:                '/jpulse-docs/',
+            icon:               '📖',
+            pages: {
+                // Data load dynamically via jPulse.UI.navigation.registerPages()
+            }
+        },
+        jPulseExamples: {
+            label:              '{{i18n.view.navigation.jPulseExamples._index}}',
+            url:                '/jpulse-examples/',
+            icon:               '🚀',
+            pages: {
+                overview: {
+                    label:      '{{i18n.view.navigation.jPulseExamples.overview}}',
+                    url:        '/jpulse-examples/'
+                },
+                api: {
+                    label:      '{{i18n.view.navigation.jPulseExamples.api}}',
+                    url:        '/jpulse-examples/api.shtml'
+                },
+                handlebars: {
+                    label:      '{{i18n.view.navigation.jPulseExamples.handlebars}}',
+                    url:        '/jpulse-examples/handlebars.shtml'
+                },
+                uiWidgets: {
+                    label:      '{{i18n.view.navigation.jPulseExamples.uiWidgets}}',
+                    url:        '/jpulse-examples/ui-widgets.shtml'
+                },
+                layout: {
+                    label:      '{{i18n.view.navigation.jPulseExamples.layout}}',
+                    url:        '/jpulse-examples/layout.shtml'
+                },
+                forms: {
+                    label:      '{{i18n.view.navigation.jPulseExamples.forms}}',
+                    url:        '/jpulse-examples/forms.shtml'
+                },
+            }
+        },
+    };
+
+    /**
+    * ========================================
+    *         jPulse Tabs Navigation
+    * ========================================
+    * usage in pages:
+    * - example for page /jpulse-examples/layout.shtml:
+    * - define two divs at the desired location:
+    *     <!-- First tab row: Main navigation (jPulse Documentation | jPulse Examples) -->
+    *     <div id="jpulse-docs-examples-tabs"></div>
+    *     <!-- Second tab row: Examples navigation (only on examples pages) -->
+    *     <div id="jpulse-examples-sub-tabs"></div>
+    * - register tab(s) in script section:
+    *     jPulse.dom.ready(() => {
+    *         // Initialize main navigation tab row
+    *         jPulse.UI.tabs.register(
+    *             'jpulse-docs-examples-tabs',      // div ID in page
+    *              window.jPulseTabsNavigation.jPulseDocsExamplesTabs, // defined below
+    *              'jp-tab-examples'                // active tab
+    *         );
+    *         // Initialize examples navigation tabs (only on examples pages)
+    *         jPulse.UI.tabs.register(
+    *             'jpulse-examples-sub-tabs',
+    *              window.jPulseTabsNavigation.jPulseExamplesSubTabs,
+    *              'jp-tab-layout'
+    *         );
+    *     });
+    */
+    window.jPulseTabsNavigation = {
+        jPulseDocsExamplesTabs: {
+            tabs: [
+                { id: 'jp-tab-docs', label: 'jPulse Documentation', url: '/jpulse-docs/' },
+                { id: 'jp-tab-examples', label: 'jPulse Examples', url: '/jpulse-examples/' }
+            ],
+            linkActiveTab: true
+        },
+        jPulseExamplesSubTabs: {
+            tabs: [
+                { id: 'jp-tab-overview', label: 'Overview', url: '/jpulse-examples/' },
+                { id: 'jp-tab-api-integration', label: 'API', url: '/jpulse-examples/api.shtml' },
+                { id: 'jp-tab-handlebars', label: 'Handlebars', url: '/jpulse-examples/handlebars.shtml' },
+                { id: 'jp-tab-ui-widgets', label: 'UI Widgets', url: '/jpulse-examples/ui-widgets.shtml' },
+                { id: 'jp-tab-layout', label: 'Layout', url: '/jpulse-examples/layout.shtml' },
+                { id: 'jp-tab-forms', label: 'Forms', url: '/jpulse-examples/forms.shtml' }
+            ],
+            linkActiveTab: true
+        }
+    };
+
+</script>
+
+<!-- End webapp/view/jpulse-navigation.tmpl -->

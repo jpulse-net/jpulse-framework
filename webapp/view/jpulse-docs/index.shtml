@@ -25,7 +25,7 @@
 
     <div class="jp-main">
         <!-- Navigation Tabs -->
-        {{file.include "jpulse-nav-tabs.tmpl" mainNavActiveTab="jp-tab-docs"}}
+        <div id="jpulse-docs-examples-tabs" class="jp-tabs"></div>
         <div class="jp-docs-container">
             <nav class="jp-docs-nav local-docs-nav">
                 <h3>{{i18n.view.jpulseDocs.documentation}}</h3>
@@ -197,6 +197,13 @@
 
         // Initialize when DOM is ready
         jPulse.dom.ready(async () => {
+            // Initialize main navigation tab row
+            jPulse.UI.tabs.register(
+                'jpulse-docs-examples-tabs',
+                window.jPulseTabsNavigation.jPulseDocsExamplesTabs,
+                //'jp-tab-docs'
+            );
+
             // Create docs viewer instance (fetches markdown structure once)
             const docsViewer = new jPulseDocsViewer();
 

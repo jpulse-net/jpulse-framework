@@ -6,7 +6,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 
 ## What is jPulse?
 
-![Logo](./images/jpulse-logo-16.png) jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application framework built on **MVC architecture**. It uniquely supports **both Multi-Page Applications (MPA) and Single Page Applications (SPA)**, letting you choose the right pattern for each part of your application - from traditional server-rendered pages to modern Vue.js SPAs.
+![Logo](./images/jpulse-logo-16.png) jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application framework built on **MVC architecture**. It uniquely supports **both Multi-Page Applications (MPA) and Single Page Applications (SPA)**, letting you mox and match the right pattern for each part of your application - from traditional server-rendered pages to modern Vue.js SPAs.
 
 ## Latest Release Highlights
 

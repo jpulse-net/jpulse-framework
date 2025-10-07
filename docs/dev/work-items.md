@@ -1134,32 +1134,29 @@ This is the doc to track work items, arranged in three sections:
 - objective: configurable site navigaton for quick access that works on desktop and mobile, easy to overload by site owners
 - brainstorming:
   docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
-- define site menu in appConfig.view.siteMenu
-  - or define in i18n?
-  - with optional nesting
-  - i18n (how?)
+- define site menu in webapp/view/jpulse-navigation.tmpl
 - on desktop:
   - on hover over site logo and site name,
   - show pulldown with nested pages
 - on mobile:
   - show hamburger menu (where? to the left of app icon?)
 - deliverables:
-  - docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav -- updated spec with configuration-based navigation architecture
+  - docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav -- updated spec with template-based navigation architecture
+  - webapp/view/jpulse-navigation.tmpl -- unified site navigation and tabs definition template, renamed from webapp/view/jpulse-nav-tabs.tmpl
   - webapp/controller/view.js:
     - optimize performance by caching the global config instead of reading the database each time
     - new initialize() method, called by bootstrap
-    - add navigation object to handlebar context, with resolved i18n handlebars
     - handlebars automatically stringify objects and arrays if specified object path is not a string or number
   - webapp/translations/en.conf and webapp/translations/de.conf -- add navigation translations for admin and jpulseDocs sections
   - webapp/utils/bootstrap.js -- initialize view controller at startup
-  - webapp/utils/i18n.js -- add processI18nHandlebarsObj() method to recursively resolve i18n handlebars in objects
   - webapp/view/admin/websocket-status.shtml -- fix remaining deprecated jPulse.showSlideDownMessage()
   - webapp/view/jpulse-docs/index.shtml -- register doc pages dynamically with jPulse.UI.navigation.registerPages(), optimize markdown data fetching
-  - webapp/view/jpulse-common.css -- site navigation dropdown styles with nested submenus, hover effects, SVG icon blue backgrounds, overflow:visible for unlimited nesting
-  - webapp/view/jpulse-common.js -- jPulse.UI.navigation module with init(), registerPages(), smart submenu positioning, 1s hover delays, helpers.convertMarkdownFilesToPages()
-  - webapp/view/jpulse-footer.tmpl -- initialize navigation on pages with showSiteNavigation, set --jp-header-height CSS variable
-  - webapp/app.conf -- added view.navigation structure with admin and jPulseDocs sections
-  - webapp/tests/unit/utils/jpulse-ui-navigation.test.js -- comprehensive unit tests, updated for new .jp-nav-level structure
+  - webapp/view/jpulse-common.css -- site navigation dropdown styles with nested submenus, hover effects, SVG icon blue backgrounds, overflow:visible for unlimited nesting, mobile support
+  - webapp/view/jpulse-common.js:
+    - jPulse.UI.navigation module with init(), registerPages(), smart submenu positioning, hover delays, mobile hamburger, helpers.convertMarkdownFilesToPages()
+    - jPulse.UI.tabs.register() -- enhanced with auto-detect active tab from URL
+  - webapp/view/jpulse-footer.tmpl -- initialize navigation on pages, set --jp-header-height CSS variable
+  - webapp/tests/unit/utils/jpulse-ui-navigation.test.js -- comprehensive navigation tests
 - checkpoint 1 complete (2025-10-06):
   - desktop navigation pulldown with unlimited nested submenus
   - configuration-based navigation in app.conf
@@ -1171,19 +1168,20 @@ This is the doc to track work items, arranged in three sections:
   - role-based visibility
   - alignment with logo text
   - all tests passing (738 passed)
-- remaining work for W-069:
-  - ❌ mobile hamburger menu implementation
-  - ❌ responsive CSS for mobile devices
-  - ❌ touch-friendly mobile navigation UI
+
+
+
 
 
 
 
 
 pending:
-- site override for icons
+- define nav based on all pages
 - fix websocket.svg
-- can't use {{#if}} in appConfig.view.navigation for conditional menu (such as signed in/out)
+
+
+
 
 
 ### Potential next items:

@@ -39,7 +39,8 @@
 <body>
     <div class="jp-main">
         <!-- Navigation Tabs -->
-        {{file.include "jpulse-nav-tabs.tmpl" showExamplesNav=true mainNavActiveTab="jp-tab-examples" examplesNavActiveTab="jp-tab-ui-widgets"}}
+        <div id="jpulse-docs-examples-tabs" class="jp-tabs"></div>
+        <div id="jpulse-examples-sub-tabs" class="jp-tabs"></div>
 
         <h1 class="jp-title">🎨 UI Widget Examples</h1>
 
@@ -813,6 +814,19 @@ jPulse.UI.sourceCode.initAll();
 
     <script>
         jPulse.dom.ready(() => {
+
+            // Initialize main navigation tab row
+            jPulse.UI.tabs.register(
+                'jpulse-docs-examples-tabs',
+                window.jPulseTabsNavigation.jPulseDocsExamplesTabs
+            );
+
+            // Initialize examples navigation tab row
+            jPulse.UI.tabs.register(
+                'jpulse-examples-sub-tabs',
+                window.jPulseTabsNavigation.jPulseExamplesSubTabs
+            );
+
             // Initialize all tab interfaces
             jPulse.UI.tabs.register('tabs-demo-tabs', {
                 tabs: [

@@ -1311,7 +1311,9 @@ window.jPulse = {
              * Register a tab interface with automatic type detection
              * @param {string} elementId - The ID of the .jp-tabs element
              * @param {Object} options - Configuration options
-             * @param {string} activeTabId - Active tab ID (overrides options.activeTab)
+             * @param {string} activeTabId - Active tab ID (optional)
+             *                 - auto-detects active tab from URL if not specified
+             *                 - overrides options.activeTab
              * @returns {Object} Handle object with methods for controlling the tabs
              */
             register: (elementId, options = {}, activeTabId = null) => {
@@ -1319,6 +1321,17 @@ window.jPulse = {
                 if (!element) {
                     console.warn(`Tab element with ID '${elementId}' not found`);
                     return null;
+                }
+
+                // Auto-detect active tab from URL if not specified
+                if (!activeTabId && options.tabs) {
+                    const currentPath = window.location.pathname;
+                    const matchingTab = options.tabs
+                        .slice().reverse() // reverse to prioritize longer URLs
+                        .find(tab => tab.url && currentPath.startsWith(tab.url));
+                    if (matchingTab) {
+                        activeTabId = matchingTab.id;
+                    }
                 }
 
                 const defaultOptions = {

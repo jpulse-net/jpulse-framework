@@ -1664,6 +1664,11 @@ body {
     position: relative;
 }
 
+/* Reserve space for empty tabs to prevent content jump on page load */
+.jp-tabs:empty {
+    min-height: 55px;
+}
+
 /* Tab List - Horizontal Layout */
 .jp-tabs-list {
     display: flex;

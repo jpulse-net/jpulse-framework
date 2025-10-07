@@ -11,98 +11,56 @@ Design and implement a unified navigation system for the jPulse Framework consis
 ## Architecture Decision: Configuration-Based Navigation
 
 ### Core Concept
-- Navigation structure defined in `webapp/app.conf`
-- Site override via `site/webapp/app.conf`
+- Navigation structure defined in `webapp/view/jpulse-navigation.tmpl` template
+- Site override via `site/webapp/view/jpulse-navigation.tmpl`
+- Tab structures also defined in `jpulse-navigation.tmpl` for consistency
 - Auto-initialization in `jpulse-footer.tmpl`
-- Keep `jpulse-nav-tabs.tmpl` separate for horizontal tab navigation
+- Full Handlebars support with `{{#if}}` conditionals for dynamic navigation
 - No JavaScript required from site developers (unless using SPAs)
 
 ### Navigation Data Structure
 
-Defined in `webapp/app.conf`:
+Defined in `webapp/view/jpulse-navigation.tmpl`:
 
 ```javascript
-{
-    view: {
-        pageDecoration: {
-            headerHeight: 35,
-            showSiteNavigation: true,
-            showBreadcrumbs: true,
-            showSidebar: false
-        },
-        navigation: {
-            products: {
-                label: '{{i18n.navigation.products}}',  // i18n resolved at request time by view.load
-                url: '/products/',
-                icon: '📦',  // Optional: emoji or filename (e.g., 'product-icon.svg')
-                pages: {
-                    software: {
-                        label: '{{i18n.navigation.products.software}}',
-                        url: '/products/software/'
-                    },
-                    services: {
-                        label: '{{i18n.navigation.products.services}}',
-                        url: '/products/services/'
-                    }
-                }
-            },
-            about: {
-                label: 'About',  // Plain text supported for non-i18n sites
-                url: '/about/',
-                pages: {
-                    company: {
-                        label: 'Company',
-                        url: '/about/company/'
-                    },
-                    team: {
-                        label: 'Team',
-                        url: '/about/team/'
-                    }
-                }
-            },
-            admin: {
-                label: '{{i18n.view.navigation.admin}}',
+window.jPulseSiteNavigation = {
+    {{#if user.authenticated}}
+    admin: {
+        label: '{{i18n.navigation.admin}}',  // i18n resolved server-side
+        url: '/admin/',
+        role: 'admin',  // Role-based visibility
+        icon: '⚙️',  // Optional: emoji or filename (e.g., 'config.svg')
+        pages: {
+            dashboard: {
+                label: '{{i18n.navigation.admin.dashboard}}',
                 url: '/admin/',
-                role: 'admin',  // Role-based visibility
-                icon: '⚙️',
-                pages: {
-                    dashboard: {
-                        label: '{{i18n.view.navigation.admin.dashboard}}',
-                        url: '/admin/'
-                    },
-                    config: {
-                        label: '{{i18n.view.navigation.admin.config}}',
-                        url: '/admin/config.shtml'
-                    },
-                    users: {
-                        label: '{{i18n.view.navigation.admin.users}}',
-                        url: '/admin/users.shtml'
-                    },
-                    logs: {
-                        label: '{{i18n.view.navigation.admin.logs}}',
-                        url: '/admin/logs.shtml'
-                    },
-                    websocketStatus: {
-                        label: '{{i18n.view.navigation.admin.websocketStatus}}',
-                        url: '/admin/config.shtml'
-                    }
-                }
+                icon: '⚙️'
             },
-            jPulseDocs: {
-                label: '{{i18n.view.navigation.jpulseDocs}}',
-                url: '/jpulse-docs/',
-                icon: 'docs-icon.svg',  // File-based icon (resolved via PathResolver)
-                pages: {
-                    // Pages will be dynamically loaded via registerPages() for SPA
-                }
+            config: {
+                label: '{{i18n.navigation.admin.config}}',
+                url: '/admin/config.shtml',
+                icon: 'assets/admin/icons/config.svg'
+            },
+            users: {
+                label: '{{i18n.navigation.admin.users}}',
+                url: '/admin/users.shtml',
+                icon: 'assets/admin/icons/users.svg'
             }
         }
+    },
+    {{/if}}
+    jPulseDocs: {
+        label: '{{i18n.navigation.jpulseDocs}}',
+        url: '/jpulse-docs/',
+        icon: '📖',
+        pages: {}  // Dynamically loaded via registerPages() for SPA
     }
-}
+};
 ```
 
 **Key Features**:
-- **i18n support**: Use `{{i18n.*}}` placeholders, resolved at request time per user
+- **Full Handlebars support**: Use `{{#if}}`, `{{#each}}`, `{{i18n.*}}` for dynamic navigation
+- **Conditional visibility**: Use `{{#if user.authenticated}}` for auth-based sections
 - **Plain text support**: Simple sites can use plain strings
 - **Unlimited nesting**: Recursive `pages` structure (no max depth needed in app.conf)
 - **Role-based visibility**: Optional `role` property hides items from unauthorized users
@@ -130,20 +88,22 @@ Defined in `webapp/app.conf`:
 **In `jpulse-footer.tmpl`** (after header HTML, before closing body):
 
 ```html
-<!-- Site Navigation Dropdown (if enabled) -->
-{{#if appConfig.view.pageDecoration.showSiteNavigation}}
+<!-- Include navigation structure definition -->
+{{file.include "jpulse-navigation.tmpl"}}
+
+<!-- Site Navigation Initialization -->
 <script>
 jPulse.dom.ready(() => {
     jPulse.UI.navigation.init({
         currentUrl: '{{url.pathname}}',
-        userRoles: {{json user.roles}}
+        userRoles: {{json user.roles}},
+        navigation: window.jPulseSiteNavigation
     });
 });
 </script>
-{{/if}}
 ```
 
-**No data passing needed**: `jPulse.UI.navigation` accesses `appConfig` directly.
+**Navigation structure passed from template**: `jpulse-navigation.tmpl` defines `window.jPulseSiteNavigation` with full Handlebars support for conditional rendering.
 
 ### SPA Dynamic Pages Registration
 
@@ -309,27 +269,28 @@ jPulse.dom.ready(() => {
 - **SPA support**: Optional `registerPages()` for dynamic content
 
 ### Technical Advantages
-- **Single source of truth**: `app.conf` navigation structure
-- **i18n-ready**: Handlebars resolves at request time per user
+- **Single source of truth**: `jpulse-navigation.tmpl` for both site nav and tab structures
+- **Full Handlebars power**: Use `{{#if}}`, `{{#each}}`, `{{i18n.*}}` for dynamic navigation
+- **Conditional rendering**: Auth-based sections with `{{#if user.authenticated}}`
 - **Extensible**: Recursive structure supports unlimited nesting
 - **Performance**: Static navigation renders fast, dynamic loads only when needed
-- **Role-based**: Built-in visibility control
+- **Role-based**: Built-in visibility control via `role` property
 - **Icon support**: Emoji or image files with site override
 
 ### Integration Points
 - **Existing SPA systems**: `/jpulse-docs/`, `/hello-websocket/` use `registerPages()`
-- **Tab navigation**: Keep `jpulse-nav-tabs.tmpl` for horizontal tabs
+- **Tab navigation**: Tab structures defined in `jpulse-navigation.tmpl` using `window.jPulseTabsNavigation`
 - **Role-based access**: Integrated with existing auth system
 - **Mobile responsive**: Unified hamburger menu for all navigation
-- **PathResolver**: Icon images support site override
+- **Auto-detect active tab**: `jPulse.UI.tabs.register()` auto-detects from URL
 
 ## Key Design Principles
 
-1. **Don't Make Me Think**: Configuration in obvious place (`app.conf`)
+1. **Don't Make Me Think**: Navigation structure in single template (`jpulse-navigation.tmpl`)
 2. **Performance First**: Dynamic content only when on SPA URLs
-3. **Flexible**: Supports MPA, SPA, conditional sidebar, always-on sidebar
+3. **Flexible**: Supports MPA, SPA, conditional sidebar, always-on sidebar, full Handlebars conditionals
 4. **No Hardcoding**: URL patterns detected, not hardcoded
-5. **Separation of Concerns**: Keep tabs separate from site nav
+5. **Unified Structure**: Site nav and tabs in same template for consistency
 6. **Recursive from Start**: No artificial depth limits
 
 ## Implementation Phases
@@ -338,7 +299,7 @@ jPulse.dom.ready(() => {
 **Goal**: Replace need for complex tab navigation with clean dropdown
 
 **Deliverables**:
-1. Add navigation structure to `webapp/app.conf`
+1. Create `webapp/view/jpulse-navigation.tmpl` for navigation structure
 2. Implement `jPulse.UI.navigation` in `jpulse-common.js`
 3. Add initialization to `jpulse-footer.tmpl`
 4. CSS styling in `jpulse-common.css`
@@ -348,11 +309,11 @@ jPulse.dom.ready(() => {
 8. Unit tests + integration tests
 
 **Files Modified**:
-- `webapp/app.conf` (add view.navigation)
+- `webapp/view/jpulse-navigation.tmpl` (new - navigation structure)
 - `webapp/view/jpulse-footer.tmpl` (add nav init)
 - `webapp/view/jpulse-common.js` (add jPulse.UI.navigation)
 - `webapp/view/jpulse-common.css` (add nav styles)
-- `webapp/tests/unit/view/navigation.test.js` (new)
+- `webapp/tests/unit/utils/jpulse-ui-navigation.test.js` (new)
 
 **Estimate**: 6-8 hours
 

@@ -190,12 +190,6 @@ async function load(req, res) {
             }
         }
 
-        // Process navigation config to expand i18n handlebars per user language
-        // Note: We only process navigation (not entire appConfig) for performance.
-        // Most appConfig values are settings (numbers, paths) not display strings.
-        // If adding i18n to other appConfig sections, process them explicitly here.
-        const navigationConfig = global.i18n.processI18nHandlebarsObj(req, appConfig.view?.navigation || {});
-
         // Create base handlebars context
         const baseContext = {
             app: appConfig.app,
@@ -215,7 +209,6 @@ async function load(req, res) {
             },
             config: cache.globalConfig?.data || {},
             appConfig: appConfig, // Add app.conf configuration
-            navigation: navigationConfig,
             url: {
                 domain: `${req.protocol}://${req.get('host')}`,
                 protocol: req.protocol,

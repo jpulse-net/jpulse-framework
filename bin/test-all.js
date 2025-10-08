@@ -266,7 +266,7 @@ async function runAllTests() {
     console.log(`  - ${grandTotal.passed} passed, ${grandTotal.failed} failed, ${grandTotal.skipped} skipped, ${grandTotal.total} total, ${Math.round(grandTotal.elapsed/100)/10} sec total time`);
     console.log('');
 
-    if (totalFailed === 0) {
+    if (grandTotal.failed === 0) {
         console.log(`🎉 ${colors.green}All tests passed! Framework is ready for use.${colors.reset}`);
         process.exit(0);
     } else {

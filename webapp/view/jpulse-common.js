@@ -1316,21 +1316,15 @@ window.jPulse = {
              * Auto-initializes on DOM ready if enabled in appConfig
              */
             init: () => {
-                console.log('jPulse.UI.breadcrumbs: init() called');
-
                 // Bail out unless enabled
                 if (!{{appConfig.view.pageDecoration.showBreadcrumbs}}) {
-                    console.log('jPulse.UI.breadcrumbs: Disabled in appConfig');
                     return;
                 }
 
                 // Prevent double initialization
                 if (jPulse.UI.breadcrumbs._initialized) {
-                    console.log('jPulse.UI.breadcrumbs: Already initialized');
                     return;
                 }
-
-                console.log('jPulse.UI.breadcrumbs: Initializing...');
 
                 // Find or create breadcrumb container
                 let breadcrumbDiv = document.querySelector('.jp-breadcrumb');
@@ -1345,10 +1339,43 @@ window.jPulse = {
                 // Add class to body to enable breadcrumb-specific styling
                 document.body.classList.add('jp-breadcrumbs-enabled');
 
+                // Listen for URL changes (for SPA navigation)
+                jPulse.UI.breadcrumbs._setupUrlChangeListener();
+
                 // Generate breadcrumb content
                 jPulse.UI.breadcrumbs._generateBreadcrumb();
 
                 jPulse.UI.breadcrumbs._initialized = true;
+            },
+
+            /**
+             * Setup URL change listener for SPA navigation
+             */
+            _setupUrlChangeListener: () => {
+                let currentUrl = window.location.pathname;
+
+                // Listen for popstate events (back/forward button)
+                window.addEventListener('popstate', () => {
+                    jPulse.UI.breadcrumbs._generateBreadcrumb();
+                });
+
+                // Override pushState and replaceState to catch programmatic navigation
+                const originalPushState = history.pushState;
+                const originalReplaceState = history.replaceState;
+
+                history.pushState = function(...args) {
+                    originalPushState.apply(history, args);
+                    setTimeout(() => {
+                        jPulse.UI.breadcrumbs._generateBreadcrumb();
+                    }, 100); // Small delay to ensure DOM is updated
+                };
+
+                history.replaceState = function(...args) {
+                    originalReplaceState.apply(history, args);
+                    setTimeout(() => {
+                        jPulse.UI.breadcrumbs._generateBreadcrumb();
+                    }, 100);
+                };
             },
 
             /**
@@ -1357,15 +1384,11 @@ window.jPulse = {
             _generateBreadcrumb: () => {
                 const breadcrumbDiv = jPulse.UI.breadcrumbs._breadcrumbElement;
                 if (!breadcrumbDiv) {
-                    console.log('jPulse.UI.breadcrumbs: No breadcrumb element found');
                     return;
                 }
 
                 const currentUrl = window.location.pathname;
                 const navConfig = window.jPulseSiteNavigation;
-
-                console.log('jPulse.UI.breadcrumbs: Generating breadcrumb for URL:', currentUrl);
-                console.log('jPulse.UI.breadcrumbs: Registered pages:', jPulse.UI.navigation._registeredPages);
 
                 if (!navConfig) {
                     console.warn('jPulse.UI.breadcrumbs: No navigation structure found');
@@ -1374,8 +1397,6 @@ window.jPulse = {
 
                 // Find breadcrumb trail
                 const trail = jPulse.UI.breadcrumbs._findBreadcrumbTrail(currentUrl, navConfig);
-                console.log('jPulse.UI.breadcrumbs: Generated trail:', trail);
-                console.log('jPulse.UI.breadcrumbs: Trail details:', JSON.stringify(trail, null, 2));
 
                 if (trail.length === 0) {
                     breadcrumbDiv.style.display = 'none';
@@ -1443,83 +1464,89 @@ window.jPulse = {
                     icon: '🏠'
                 });
 
-                // Use bottom-up search to find the most specific match first
-                let bestMatch = null;
-                let bestMatchLength = 0;
-                let bestMatchSection = null;
+                // BOTTOM-UP DIRECTORY-LEVEL SEARCH ALGORITHM
+                // Start from the deepest URL path and work backwards through directory levels
 
-                // Search all sections and their pages - prioritize exact matches globally
-                let exactMatch = null;
-                let exactMatchSection = null;
+                // Generate directory levels from deepest to shallowest
+                const urlParts = currentUrl.split('/').filter(part => part.length > 0);
+                const directoryLevels = [];
 
-                // First pass: look for exact matches only
-                for (const [sectionKey, section] of Object.entries(navConfig)) {
-                    // Check for registered dynamic pages (like jPulseDocs)
-                    const pages = jPulse.UI.navigation._registeredPages[sectionKey] || section.pages;
-                    console.log(`jPulse.UI.breadcrumbs: Checking section "${sectionKey}" with pages:`, pages);
+                // Add full URL
+                directoryLevels.push(currentUrl);
 
-                    if (sectionKey === 'jPulseDocs') {
-                        console.log('jPulse.UI.breadcrumbs: jPulseDocs pages detailed:', JSON.stringify(pages, null, 2));
-                    }
-
-                    if (pages) {
-                        const pageMatch = jPulse.UI.breadcrumbs._findDeepestMatch(currentUrl, pages, section);
-                        if (pageMatch && currentUrl === pageMatch.url) {
-                            console.log(`jPulse.UI.breadcrumbs: EXACT MATCH found in section "${sectionKey}":`, pageMatch);
-                            exactMatch = pageMatch;
-                            exactMatchSection = sectionKey;
-                            break; // Stop on first exact match
-                        }
-                    }
-
-                    // Check section itself for exact match
-                    if (currentUrl === section.url) {
-                        exactMatch = { item: section, isSection: true };
-                        exactMatchSection = sectionKey;
-                        break;
-                    }
+                // Add progressively shorter paths
+                for (let i = urlParts.length - 1; i > 0; i--) {
+                    const pathParts = urlParts.slice(0, i);
+                    directoryLevels.push('/' + pathParts.join('/') + '/');
                 }
 
-                // If exact match found, use it
-                if (exactMatch) {
-                    bestMatch = exactMatch;
-                    bestMatchSection = exactMatchSection;
-                    bestMatchLength = exactMatch.url || exactMatch.item.url.length;
-                } else {
-                    // Second pass: look for prefix matches if no exact match
+                // Add root
+                directoryLevels.push('/');
+
+                let bestMatch = null;
+                let bestMatchSection = null;
+
+                // Check each directory level from deepest to shallowest
+                for (const dirLevel of directoryLevels) {
+                    // Search all sections for matches at this directory level
                     for (const [sectionKey, section] of Object.entries(navConfig)) {
                         // Check for registered dynamic pages (like jPulseDocs)
                         const pages = jPulse.UI.navigation._registeredPages[sectionKey] || section.pages;
 
                         if (pages) {
-                            const pageMatch = jPulse.UI.breadcrumbs._findDeepestMatch(currentUrl, pages, section);
-                            if (pageMatch && pageMatch.url.length > bestMatchLength) {
-                                bestMatch = pageMatch;
-                                bestMatchLength = pageMatch.url.length;
+                            // For directory-level search, only check for EXACT matches
+                            const exactPageMatch = jPulse.UI.breadcrumbs._findExactMatch(dirLevel, pages, section);
+                            if (exactPageMatch) {
+                                bestMatch = exactPageMatch;
                                 bestMatchSection = sectionKey;
+                                break; // Found exact match at this directory level, stop searching sections
                             }
                         }
 
-                        // Check section itself for prefix match
-                        if (currentUrl.startsWith(section.url) && section.url !== '/' && section.url.length > bestMatchLength) {
+                        // Check section itself for match at this directory level
+                        if (dirLevel === section.url) {
                             bestMatch = { item: section, isSection: true };
-                            bestMatchLength = section.url.length;
                             bestMatchSection = sectionKey;
+                            break;
                         }
+                    }
+
+                    // If we found a match at this directory level, stop going up
+                    if (bestMatch) {
+                        break;
                     }
                 }
 
                 // Build trail from the best match
                 if (bestMatch) {
                     if (bestMatch.isSection) {
-                        // Just the section
+                        // Just the section - add section and try to extract page name from URL
                         trail.push({
                             label: bestMatch.item.label,
                             url: bestMatch.item.url,
                             icon: bestMatch.item.icon
                         });
+
+                        // If current URL is deeper than section URL, extract page name
+                        if (currentUrl !== bestMatch.item.url && currentUrl.startsWith(bestMatch.item.url)) {
+                            const pagePath = currentUrl.replace(bestMatch.item.url, '').replace(/^\/+|\/+$/g, '');
+                            if (pagePath) {
+                                // Extract filename and convert to readable label
+                                const filename = pagePath.split('/').pop().replace(/\.(shtml|html)$/, '');
+                                const pageLabel = filename
+                                    .split(/[-_]/)
+                                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                    .join(' ');
+
+                                trail.push({
+                                    label: pageLabel,
+                                    url: currentUrl,
+                                    icon: null
+                                });
+                            }
+                        }
                     } else {
-                        // Section + pages trail
+                        // Section + pages trail - but check if we need to extract unknown page
                         const section = navConfig[bestMatchSection];
                         trail.push({
                             label: section.label,
@@ -1527,12 +1554,88 @@ window.jPulse = {
                             icon: section.icon
                         });
 
-                        // Add the page trail
-                        trail.push(...bestMatch.trail);
+                        // Check if the matched page URL is the same as section URL (like dashboard)
+                        // but current URL is different - this means we have an unknown page in this section
+                        if (bestMatch.trail.length === 1 &&
+                            bestMatch.trail[0].url === section.url &&
+                            currentUrl !== section.url &&
+                            currentUrl.startsWith(section.url)) {
+
+                            // Extract page name from current URL instead of using the matched page
+                            const pagePath = currentUrl.replace(section.url, '').replace(/^\/+|\/+$/g, '');
+                            if (pagePath) {
+                                const filename = pagePath.split('/').pop().replace(/\.(shtml|html)$/, '');
+                                const pageLabel = filename
+                                    .split(/[-_]/)
+                                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                    .join(' ');
+
+                                trail.push({
+                                    label: pageLabel,
+                                    url: currentUrl,
+                                    icon: null
+                                });
+                            } else {
+                                // Add the matched trail as fallback
+                                trail.push(...bestMatch.trail);
+                            }
+                        } else {
+                            // Add the matched trail normally
+                            trail.push(...bestMatch.trail);
+                        }
                     }
                 }
 
                 return trail;
+            },
+
+            /**
+             * Find exact URL match in pages (no prefix matching)
+             * @param {string} currentUrl - Current page URL
+             * @param {Object} pages - Pages object to search
+             * @param {Object} parentSection - Parent section for context
+             * @returns {Object|null} Exact match with trail or null
+             */
+            _findExactMatch: (currentUrl, pages, parentSection) => {
+                for (const [pageKey, page] of Object.entries(pages)) {
+                    // Handle both absolute and relative URLs
+                    let pageUrl = page.url;
+
+                    // If page URL is relative and we're in a section, make it absolute
+                    if (parentSection && !pageUrl.startsWith('/')) {
+                        pageUrl = parentSection.url + pageUrl;
+                    }
+
+                    // Only exact matches
+                    if (currentUrl === pageUrl) {
+                        return {
+                            url: pageUrl,
+                            trail: [{
+                                label: page.label,
+                                url: pageUrl,
+                                icon: page.icon
+                            }]
+                        };
+                    }
+
+                    // Check nested pages recursively for exact matches only
+                    if (page.pages) {
+                        const nestedMatch = jPulse.UI.breadcrumbs._findExactMatch(currentUrl, page.pages, parentSection);
+                        if (nestedMatch) {
+                            // Prepend current page to the trail
+                            return {
+                                url: nestedMatch.url,
+                                trail: [{
+                                    label: page.label,
+                                    url: pageUrl,
+                                    icon: page.icon
+                                }, ...nestedMatch.trail]
+                            };
+                        }
+                    }
+                }
+
+                return null; // No exact match found
             },
 
             /**
@@ -1556,11 +1659,8 @@ window.jPulse = {
                         pageUrl = parentSection.url + pageUrl;
                     }
 
-                    console.log(`jPulse.UI.breadcrumbs: Comparing "${currentUrl}" with "${pageUrl}" (original: "${page.url}")`);
-
                     // Prioritize exact matches
                     if (currentUrl === pageUrl) {
-                        console.log(`jPulse.UI.breadcrumbs: EXACT MATCH found for "${pageKey}"`);
                         exactMatch = {
                             url: pageUrl,
                             trail: [{

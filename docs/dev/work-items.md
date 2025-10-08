@@ -1198,7 +1198,9 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
 pending:
+- fix bug in http://localhost:8080/auth/login.shtml when authenticated
 
 
 

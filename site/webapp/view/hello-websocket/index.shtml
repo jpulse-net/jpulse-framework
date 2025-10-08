@@ -4,8 +4,8 @@
  * @tagline         Real-Time WebSocket Communication Examples
  * @description     Interactive demos: emoji cursor tracking and collaborative todo
  * @file            site/webapp/view/hello-websocket/index.shtml
- * @version         0.9.1
- * @release         2025-10-05
+ * @version         0.9.2
+ * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -30,27 +30,6 @@
         .local-ws-app {
             max-width: 1000px;
             margin: 0 auto;
-        }
-
-        .local-ws-nav {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 15px;
-            flex-wrap: wrap;
-        }
-
-        .local-ws-nav .nav-arrow {
-            display: inline;
-            padding-top: 8px;
-            color: #007acc;
-        }
-
-        .local-ws-nav .jp-btn.jp-btn-active {
-            background-color: #007acc;
-            color: white;
-            border-color: #007acc;
         }
 
         .local-ws-content {
@@ -272,15 +251,6 @@
                 font-size: 24px;
                 padding: 8px;
             }
-
-            .local-ws-nav {
-                gap: 5px;
-            }
-
-            .local-ws-nav .jp-btn {
-                font-size: 12px;
-                padding: 8px 12px;
-            }
         }
     </style>
 </head>
@@ -290,17 +260,22 @@
             <div class="jp-page-header">
                 <h1><a href="/home/">Home</a> <span>❯</span>
                     <a href="/hello/">Hello World Site Demos</a> <span>❯</span>
-                    🌐 WebSocket Real-time Demo</h1>
+                    🔌 WebSocket Real-time Demo</h1>
             </div>
             <div class="local-ws-app" id="wsApp">
                 <!-- Vue app will mount here -->
             </div>
             <!-- Navigation -->
-            <div class="jp-actions">
-                <a href="/hello/" class="jp-btn jp-btn-primary">← Hello World Site Demos</a>
-                <a href="/hello-todo/" class="jp-btn jp-btn-outline">← To-Do MVC Demo</a>
-                <a href="/hello-vue/" class="jp-btn jp-btn-outline">← Vue.js SPA Demo</a>
+            <div class="jp-btn-nav-group">
                 <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello/" class="jp-btn jp-btn-outline">🌐 Hello World Site Demos</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-todo/" class="jp-btn jp-btn-outline">📋 To-Do MVC Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-vue/" class="jp-btn jp-btn-outline">🔄 Vue.js SPA Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-websocket/" class="jp-btn jp-btn-active">� WebSocket Real-Time Demo</a>
             </div>
         </div>
     </div>

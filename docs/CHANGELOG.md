@@ -1,6 +1,149 @@
-# jPulse Framework / Docs / Version History v0.9.1
+# jPulse Framework / Docs / Version History v0.9.2
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.9.2, W-069, 2025-10-08
+
+**Commit:** `W-069, v0.9.2: Responsive Navigation System with Template-Based Architecture`
+
+**RESPONSIVE NAVIGATION SYSTEM**: Complete implementation of responsive site navigation with desktop pulldown menus and mobile hamburger support, migrated from app.conf to template-based architecture for full Handlebars power.
+
+**Objective**: Configurable site navigation for quick access that works on desktop and mobile, easy to override by site owners, with authentication-aware menu rendering and enhanced tab navigation.
+
+**Key Features**:
+- **Template-Based Navigation**: Migrated from `app.conf` to `webapp/view/jpulse-navigation.tmpl` with full Handlebars support
+- **Desktop Pulldown Menus**: Hover over logo for nested navigation with unlimited levels
+- **Per-Submenu Timeouts**: Independent hover delays using Map for smooth interactions
+- **Role-Based Visibility**: Auto-re-initialization when user authentication state changes
+- **Enhanced Tab Navigation**: Auto-detect active tab from URL with partial matching for SPAs
+- **Responsive CSS Fixes**: Mobile search forms, flexbox layouts, content jump prevention
+
+**Template-Based Navigation Architecture**:
+- **Full Handlebars Power**: Use `{{#if}}`, `{{#each}}`, `{{i18n.*}}` in navigation definitions
+- **Unified Definition**: Site navigation and tab structures in single `jpulse-navigation.tmpl`
+- **Auto-Initialization**: Loaded via `jpulse-footer.tmpl` on all pages
+- **Role-Based Filtering**: Conditionals like `{{#if user.roles.admin}}` for menu visibility
+- **Easy Override**: Site can override entire template or extend framework navigation
+
+**Desktop Navigation**:
+- **Pulldown on Hover**: Show nested navigation when hovering over logo and site name
+- **Unlimited Nesting**: CSS `overflow:visible` allows L1, L2, L3+ submenus
+- **Smart Positioning**: Submenus positioned to prevent viewport overflow
+- **Hover Delays**: 800ms delays for smooth interaction without accidental triggers
+- **Icon Support**: Blue circular backgrounds for SVG icons in navigation items
+
+**Mobile Navigation**:
+- **Hamburger Menu**: Responsive design for mobile viewports
+- **Touch-Friendly**: Optimized spacing and sizing for mobile interactions
+- **Vertical Stacking**: Mobile-first layout with proper field sizing
+
+**Per-Submenu Timeout System**:
+- **Independent Timeouts**: Map-based system for tracking each submenu's hide timeout
+- **No Competing Delays**: Each submenu manages its own show/hide timing
+- **Smooth Interactions**: Mouse enter clears pending hide timeout for that specific submenu
+- **Bug Fix**: Resolved complex delay issues where submenus closed prematurely
+
+**Authentication-Aware Navigation**:
+- **Auto-Re-initialization**: Navigation updates when user logs in/out or roles change
+- **Role-Based Menus**: Admin menu appears immediately after admin login
+- **Seamless UX**: No page reload needed for navigation updates
+- **Bug Fix**: Fixed issue where admin menu didn't appear after login until page reload
+
+**Enhanced Tab Navigation** (`jPulse.UI.tabs.register()`):
+- **Optional 3rd Parameter**: Active tab ID is now optional
+- **Auto-Detection**: Automatically determines active tab from current URL
+- **Partial URL Matching**: Matches `/jpulse-docs/api-reference` to `api-reference` tab
+- **SPA Support**: Works seamlessly for both MPA and SPA architectures
+- **Backward Compatible**: Existing code with explicit 3rd parameter still works
+
+**Responsive CSS Improvements**:
+- **Consolidated Media Queries**: Merged 7 separate `@media (max-width: 600px)` blocks into one
+- **Mobile Search Forms**: Fixed unusable search form layout on mobile (fields now stack vertically)
+- **Flexbox Desktop Forms**: Proper wrapping and field sizing with `flex: 1 1 180px`
+- **Reduced Mobile Padding**: Better space utilization on small screens
+- **Tab Content Jump Fix**: Added `.jp-tabs:empty { min-height: 55px; }` for MPA pages
+
+**Bug Fixes**:
+- **Auth Bug**: Navigation now updates immediately after login (no page reload needed)
+- **Pulldown Delays**: Fixed competing timeouts with per-submenu Map system
+- **Logo Hover**: Fixed L1 menu disappearing unexpectedly when leaving logo
+- **Mobile Search**: Fixed unusable search form layout on mobile devices
+- **Profile Page**: Fixed API calls and toast messages showing for logged-out users
+- **Tab Jump**: Fixed content jumping down ~55px on MPA page loads
+
+**Site Override Support**:
+- **Static File Overrides**: Added custom middleware in `routes.js` for development mode
+- **Mimics nginx**: Matches production `try_files` behavior for consistent dev/prod
+- **Icon Overrides**: Site can override framework icons in `/assets/admin/icons/`
+
+**CSS Components**:
+- **`.jp-btn-nav-group`**: Navigation button rows with arrow separators
+- **Responsive Flexbox**: Wraps buttons with proper spacing and alignment
+- **Active Button Styling**: `.jp-btn-active` highlights current page
+- **Arrow Separators**: Uses `<span class="jp-btn-nav-arrow">→</span>`
+
+**Files Created**:
+- webapp/view/jpulse-navigation.tmpl: Unified navigation and tabs definition (177 lines)
+
+**Files Modified** (Major Changes):
+- webapp/view/jpulse-common.js: Navigation module with per-submenu timeouts, tab auto-detect (~300 lines modified)
+- webapp/view/jpulse-common.css: Responsive navigation styles, search form fixes, tab jump fix (~200 lines modified)
+- webapp/view/jpulse-footer.tmpl: Navigation initialization
+- webapp/controller/view.js: Removed obsolete navigation context processing
+- webapp/utils/i18n.js: Removed obsolete processI18nHandlebarsObj() method
+- webapp/routes.js: Added site override middleware for static files
+- webapp/view/user/profile.shtml: Added `{{#if user.authenticated}}` wrapper
+- webapp/view/admin/users.shtml: Removed conflicting page-specific CSS
+- webapp/view/jpulse-examples/*.shtml: Added `.jp-tabs` class to prevent jump (6 files)
+- webapp/translations/en.conf & de.conf: Added navigation translations
+- webapp/tests/unit/utils/jpulse-ui-navigation.test.js: Updated for template-based architecture
+- webapp/tests/unit/utils/jpulse-ui-widgets.test.js: Added 6 tab parameter tests, removed 6 JSDOM-limited tests
+- docs/handlebars.md: Updated template include examples
+- docs/style-reference.md: Added `.jp-btn-nav-group` documentation
+- docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav: Updated spec
+
+**Quality Assurance**:
+- ✅ All 716 tests passing
+- ✅ Zero regressions
+- ✅ Manual testing across desktop and mobile viewports
+- ✅ Authentication state changes tested
+- ✅ Navigation hover interactions verified
+- ✅ Search form layout tested on multiple screen sizes
+
+**Developer Experience**:
+- Clean separation of structure (template) from behavior (JavaScript)
+- Full Handlebars templating power for navigation definition
+- Easy to override at site level
+- Comprehensive documentation and examples
+- "Don't make me think" initialization (automatic)
+
+**Technical Implementation**:
+- Per-Submenu Map: `_hideTimeouts: new Map()` for independent timeout management
+- Role Change Detection: Compares stringified user roles to detect authentication changes
+- URL Matching: Iterates through tabs to find URL matches (exact or partial)
+- Bootstrap Sequence: Proper module initialization order maintained
+- Site Override Pattern: `try_files`-like behavior in Express middleware
+
+**Lines of Code Impact**:
+- Created: ~400 lines (jpulse-navigation.tmpl, new middleware, CSS)
+- Modified: ~800 lines (navigation JS, CSS fixes, tests, docs)
+- Removed: ~200 lines (obsolete methods, page-specific CSS, duplicate media queries)
+- Net Impact: ~1,000 lines
+
+**Use Cases Demonstrated**:
+- Desktop hover navigation with nested menus
+- Mobile-friendly hamburger menu
+- Role-based navigation visibility
+- Authentication-aware menu updates
+- Auto-detecting active tabs from URLs
+- Site-specific navigation overrides
+
+**Migration Path**:
+- Zero Breaking Changes: Existing navigation still works
+- Backward Compatible: Tab navigation with explicit active tab still works
+- Documentation: Complete guides for template-based navigation
+- Examples: Framework navigation demonstrates all features
 
 ________________________________________________
 ## v0.9.1, W-075, 2025-10-05

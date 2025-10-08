@@ -4,8 +4,8 @@
  * @tagline         Hello Vue Single Page Application using Vue.js
  * @description     Example of Vue.js SPA with URL routing and reactive components
  * @file            site/webapp/view/hello-vue/index.shtml
- * @version         0.9.1
- * @release         2025-10-05
+ * @version         0.9.2
+ * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -29,26 +29,6 @@
         .local-vue-app {
             max-width: 1000px;
             margin: 0 auto;
-        }
-
-        .local-vue-nav {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 15px;
-        }
-
-        .local-vue-nav .nav-arrow {
-            display: inline;
-            padding-top: 8px;
-            color: #007acc;
-        }
-
-        .local-vue-nav .jp-btn.jp-btn-active {
-            background-color: #007acc;
-            color: white;
-            border-color: #007acc;
         }
 
         .local-vue-content {
@@ -285,10 +265,12 @@
             <!-- Vue.js SPA content will be rendered here -->
         </div>
         <!-- Navigation -->
-        <div class="jp-actions">
-            <a href="/hello/" class="jp-btn jp-btn-primary">← Hello World Site Demos</a>
-            <a href="/hello-todo/" class="jp-btn jp-btn-outline">← To-Do MVC Demo</a>
+        <div class="jp-btn-nav-group">
             <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+            <span class="jp-btn-nav-arrow">→</span>
+            <a href="/hello/" class="jp-btn jp-btn-outline">🌐 Hello World Site Demos</a>
+            <span class="jp-btn-nav-arrow">→</span>
+            <a href="/hello-vue/" class="jp-btn jp-btn-active">� Vue.js SPA Demo</a>
         </div>
     </div>
 </div>

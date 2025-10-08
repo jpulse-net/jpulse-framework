@@ -3,8 +3,8 @@
  * @tagline         Demo Todo Model for MVC Learning
  * @description     Example of complete MVC pattern with MongoDB integration
  * @file            site/webapp/model/helloTodo.js
- * @version         0.9.1
- * @release         2025-10-05
+ * @version         0.9.2
+ * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny

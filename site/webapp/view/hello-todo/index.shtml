@@ -4,8 +4,8 @@
  * @tagline         Overview of the To-Do MVC Demo
  * @description     Introduction to Model-View-Controller architecture with MongoDB
  * @file            site/webapp/view/hello-todo/index.shtml
- * @version         0.9.1
- * @release         2025-10-05
+ * @version         0.9.2
+ * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,28 +18,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>To-Do MVC Demo - Overview - {{app.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
-    <style>
-        .local-todo-nav {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 15px;
-            flex-wrap: wrap;
-        }
-
-        .local-todo-nav .nav-arrow {
-            display: inline;
-            padding-top: 8px;
-            color: #007acc;
-        }
-
-        .local-todo-nav .jp-btn.jp-btn-active {
-            background-color: #007acc;
-            color: white;
-            border-color: #007acc;
-        }
-    </style>
 </head>
 <body>
     <div class="jp-main">
@@ -51,13 +29,13 @@
             </div>
 
             <!-- Sub-navigation -->
-            <nav class="local-todo-nav">
+            <nav class="jp-btn-nav-group">
                 <a href="/hello-todo/" class="jp-btn jp-btn-outline jp-btn-active">📖 Overview</a>
-                <span class="nav-arrow">→</span>
+                <span class="jp-btn-nav-arrow">→</span>
                 <a href="/hello-todo/todo-app.shtml" class="jp-btn jp-btn-outline">✅ To-Do App</a>
-                <span class="nav-arrow">→</span>
+                <span class="jp-btn-nav-arrow">→</span>
                 <a href="/hello-todo/code-examples.shtml" class="jp-btn jp-btn-outline">💻 Code Examples</a>
-                <span class="nav-arrow">→</span>
+                <span class="jp-btn-nav-arrow">→</span>
                 <a href="/hello-todo/architecture.shtml" class="jp-btn jp-btn-outline">🏗️ Architecture</a>
             </nav>
 
@@ -153,9 +131,10 @@
                 </div>
             </div>
             <!-- Navigation -->
-            <div class="jp-actions">
-                <a href="/hello/" class="jp-btn jp-btn-primary">← Hello World Site Demos</a>
+            <div class="jp-btn-nav-group">
                 <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello/" class="jp-btn jp-btn-active">🌐 Hello World Site Demos</a>
             </div>
         </div>
     </div>

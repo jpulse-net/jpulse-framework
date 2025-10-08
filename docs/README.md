@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.9.1
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.9.2
 
 **For Site Administrators & Site Developers**
 
@@ -10,6 +10,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 
 ## Latest Release Highlights
 
+- ✅ **Responsive Navigation System with Template-Based Architecture (v0.9.2)**: Complete implementation of responsive site navigation with desktop pulldown menus and mobile hamburger support. Migrated navigation definition from `app.conf` to `webapp/view/jpulse-navigation.tmpl` for full Handlebars power with conditionals, loops, and i18n. Features per-submenu timeout system for smooth hover interactions, role-based menu visibility with auto-re-initialization on login, enhanced tab navigation with URL auto-detection, and comprehensive responsive CSS fixes. Includes bug fixes for mobile search forms, authentication-aware menu updates, and MPA tab content jumping. All 716 tests passing with enhanced navigation and tab parameter testing.
 - ✅ **WebSocket Real-Time Demo with Enhanced Navigation (v0.9.1)**: Complete `/hello-websocket/` educational demo teaching real-time communication with emoji cursor tracking (ephemeral) and collaborative todo list (hybrid REST+WebSocket). Includes unified 4-section navigation structure across all hello examples (Overview, Demo/App, Code Examples, Architecture), enhanced WebSocket documentation with implementation patterns, critical modal dialog focus trap bug fix, and 14 new hello-todo structure tests. Perfect progressive learning path: hello-todo (MPA) → hello-vue (SPA) → hello-websocket (Real-time SPA).
 - ✅ **Enterprise WebSocket Infrastructure (v0.9.0)**: Production-ready WebSocket support for real-time bidirectional communication with namespace isolation, authentication/authorization, auto-reconnection with exponential backoff, persistent client UUIDs, username tracking, admin monitoring dashboard with color-coded activity logs, interactive test tool, and comprehensive documentation. Includes `jPulse.ws.*` client utilities for MPA/SPA integration, Redis pub/sub preparation for horizontal scaling, and 65 comprehensive tests. Perfect for collaborative applications, live updates, and SPA real-time features with "don't make me think" onboarding.
 - ✅ **Consistent jPulse Utility Organization (v0.8.6)**: Complete refactoring of jPulse client-side utilities into consistent, logical namespaces. Moved `jPulse.apiCall()` to `jPulse.api.call()` for consistency with get/post/put/delete methods. Renamed slide-down messages to industry-standard `jPulse.UI.toast.*` (show/error/success/info/warning/clearAll) that better conveys their transient, non-blocking nature. All utilities now organized in clear buckets (api, form, dom, date, string, url, device, cookies, UI, clipboard) for improved developer experience and maintainability.
@@ -66,7 +67,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - Configuration merging system
 
 ### 🧪 **Testing & Quality**
-- 716+ comprehensive tests with 100% pass rate
+- 716 comprehensive tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis

@@ -1129,11 +1129,10 @@ This is the doc to track work items, arranged in three sections:
 ## 🚧 IN_PROGRESS Work Items
 
 ### W-069, v0.9.2: view: create site navigation pulldown and hamburger menu
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: configurable site navigaton for quick access that works on desktop and mobile, easy to overload by site owners
-- brainstorming:
-  docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
+- spec discussions: docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
 - define site menu in webapp/view/jpulse-navigation.tmpl
 - on desktop:
   - on hover over site logo and site name,
@@ -1150,26 +1149,29 @@ This is the doc to track work items, arranged in three sections:
   - webapp/translations/en.conf and webapp/translations/de.conf -- add navigation translations for admin and jpulseDocs sections
   - webapp/utils/bootstrap.js -- initialize view controller at startup
   - webapp/view/admin/websocket-status.shtml -- fix remaining deprecated jPulse.showSlideDownMessage()
+  - webapp/view/admin/users.shtml -- removed page-specific CSS overrides that conflicted with framework responsive styles
   - webapp/view/jpulse-docs/index.shtml -- register doc pages dynamically with jPulse.UI.navigation.registerPages(), optimize markdown data fetching
-  - webapp/view/jpulse-common.css -- site navigation dropdown styles with nested submenus, hover effects, SVG icon blue backgrounds, overflow:visible for unlimited nesting, mobile support
+  - webapp/view/jpulse-common.css:
+    - add site navigation dropdown styles with nested submenus, hover effects, SVG icon blue backgrounds, overflow:visible for unlimited nesting, mobile support
+    - add .jp-btn-nav-group component with arrow separators
+    - consolidated 7 separate @media (max-width: 600px) blocks into one for better maintainability
+    - fixed mobile search form layout (fields now stack vertically and size properly)
+    - added flexbox-based desktop search form with proper wrapping and field sizing
+    - reduced mobile padding and spacing for better space utilization
+    - added .jp-tabs:empty { min-height: 55px; } to prevent content jump on MPA page loads
   - webapp/view/jpulse-common.js:
     - jPulse.UI.navigation module with init(), registerPages(), smart submenu positioning, hover delays, mobile hamburger, helpers.convertMarkdownFilesToPages()
-    - jPulse.UI.tabs.register() -- enhanced with auto-detect active tab from URL
+    - per-submenu timeout system using Map for independent hover delays (fixes competing timeout bugs)
+    - allow re-initialization when user roles change (fixes auth bug where admin menu doesn't appear after login)
+    - jPulse.UI.tabs.register() -- enhanced with optional 3rd parameter and auto-detect active tab from URL (partial URL matching for SPAs)
   - webapp/view/jpulse-footer.tmpl -- initialize navigation on pages, set --jp-header-height CSS variable
-  - webapp/tests/unit/utils/jpulse-ui-navigation.test.js -- comprehensive navigation tests
-- checkpoint 1 complete (2025-10-06):
-  - desktop navigation pulldown with unlimited nested submenus
-  - configuration-based navigation in app.conf
-  - i18n support with automatic handlebar resolution
-  - dynamic SPA page registration API
-  - icon support (emoji and SVG files with blue backgrounds for light theme)
-  - smart positioning to prevent viewport overflow
-  - hover-based interaction with 1s grace period
-  - role-based visibility
-  - alignment with logo text
-  - all tests passing (738 passed)
-
-
+  - webapp/view/jpulse-examples/*.shtml -- added class="jp-tabs" to tab placeholder divs to prevent content jump (6 files)
+  - webapp/view/user/profile.shtml -- wrapped API calls in {{#if user.authenticated}} to prevent toast messages when logged out
+  - webapp/routes.js -- added custom middleware for site override of static files in development mode (mimics nginx try_files behavior)
+  - webapp/tests/unit/utils/jpulse-ui-navigation.test.js -- comprehensive navigation tests for template-based architecture
+  - webapp/tests/unit/utils/jpulse-ui-widgets.test.js -- added 6 new tab parameter handling tests, removed 6 JSDOM-limited tests
+  - docs/handlebars.md -- updated template include examples to reflect jpulse-navigation.tmpl and parameter passing
+  - docs/style-reference.md -- documentation for .jp-btn-nav-group
 
 
 
@@ -1177,10 +1179,6 @@ This is the doc to track work items, arranged in three sections:
 
 
 pending:
-- define nav based on all pages
-- fix websocket.svg
-
-
 
 
 
@@ -1188,7 +1186,6 @@ pending:
 - W-045: architecture: create plugin infrastructure
 - W-040: view: create view logs page for site admins
 - W-068: view: create responsive sidebar
-- W-069: view: create site navigation pulldown and hamburger
 - W-0: view: page headers with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific translations
 - W-0: controller: change search to cursor based paging API with limit & cursor
@@ -1203,10 +1200,9 @@ next work item: W-0...
 
 finishing up work item: W-071:
 - run tests, and fix issues
-- show me cursor_log.txt update text I can copy & paste
-  - current date: 2025-09-15 12:12
-- assume release: W-075, v0.9.1
-- update deliverables in W-075 that reflects work done
+- show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
+- assume release: W-069, v0.9.2
+- add to deliverables in W-069 to document additional work done (don't remove from existing deliverables list)
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
@@ -1222,9 +1218,10 @@ git push
 npm test
 git diff
 git status
+node bin/bump-version.js 0.9.2
 git add .
 git commit -F commit-message.txt
-git tag v0.9.1
+git tag v0.9.2
 git push origin main --tags
 
 === on failed package build on github ===

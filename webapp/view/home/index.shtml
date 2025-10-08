@@ -4,8 +4,8 @@
  * @tagline         Home page of jPulse Framework
  * @description     This is the home page of jPulse Framework
  * @file            webapp/view/home/index.shtml
- * @version         0.9.1
- * @release         2025-10-05
+ * @version         0.9.2
+ * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -116,7 +116,7 @@
 <body>
     <div class="jp-main">
         <div class="local-home-container">
-            <h1 class="local-home-title"><img src="/images/jpulse-logo/jpulse-logo.svg" alt="jPulse Framework" class="local-home-logo" width="40" height="40"> Welcome to jPulse Framework v0.9.1</h1>
+            <h1 class="local-home-title"><img src="/images/jpulse-logo/jpulse-logo.svg" alt="jPulse Framework" class="local-home-logo" width="40" height="40"> Welcome to jPulse Framework v0.9.2</h1>
             <p class="local-home-subtitle">A modern, lightweight web application framework</p>
 
             <div class="local-home-success">
@@ -161,15 +161,21 @@
                     <div class="local-home-link-title">📝 Template Reference</div>
                     <div class="local-home-link-desc">Handlebars templating system documentation and examples</div>
                 </a>
-                {{#if file.exists "hello/index.shtml"}}
-                <a href="/hello/" class="local-home-link-card">
-                    <div class="local-home-link-title">👋 Basic Hello Example</div>
+                {{#if file.exists "hello/site-override.shtml"}}
+                <a href="/hello/site-override.shtml" class="local-home-link-card">
+                    <div class="local-home-link-title">👋 Site Override Example</div>
                     <div class="local-home-link-desc">Learn how site files override framework files</div>
+                </a>
+                {{/if}}
+                {{#if file.exists "hello/site-development.shtml"}}
+                <a href="/hello/site-development.shtml" class="local-home-link-card">
+                    <div class="local-home-link-title">🔨 Site Development Example</div>
+                    <div class="local-home-link-desc">Learn how to develop a site using the jPulse Framework</div>
                 </a>
                 {{/if}}
                 {{#if file.exists "hello-todo/index.shtml"}}
                 <a href="/hello-todo/" class="local-home-link-card">
-                    <div class="local-home-link-title">💡 To-Do MVC Example</div>
+                    <div class="local-home-link-title">📋 To-Do MVC Example</div>
                     <div class="local-home-link-desc">Learn how to create a to-do application with a full MVC (Model-View-Controller) trio</div>
                 </a>
                 {{/if}}

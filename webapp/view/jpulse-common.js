@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         0.9.1
- * @release         2025-10-05
+ * @version         0.9.2
+ * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -577,7 +577,7 @@ window.jPulse = {
                 }
 
                 const messageDiv = document.createElement('div');
-                messageDiv.className = `jp-slide-down jp-slide-down-${type}`;
+                messageDiv.className = `jp-toast jp-toast-${type}`;
                 messageDiv.textContent = message;
                 messageDiv.dataset.type = type;
                 messageDiv.dataset.duration = duration;
@@ -660,7 +660,7 @@ window.jPulse = {
 
                 // Trigger slide-down animation
                 setTimeout(() => {
-                    messageDiv.classList.add('jp-slide-down-show');
+                    messageDiv.classList.add('jp-toast-show');
                 }, 100);
 
                 // Auto-hide after duration
@@ -680,8 +680,8 @@ window.jPulse = {
                 if (!messageDiv || !messageDiv.parentNode) return;
 
                 // Trigger slide-up animation (back behind header)
-                messageDiv.classList.remove('jp-slide-down-show');
-                messageDiv.classList.add('jp-slide-down-hide');
+                messageDiv.classList.remove('jp-toast-show');
+                messageDiv.classList.add('jp-toast-hide');
 
                 // Remove from DOM after animation
                 setTimeout(() => {

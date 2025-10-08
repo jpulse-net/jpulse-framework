@@ -3,8 +3,8 @@
  * @tagline         Unit tests for refactored hello-todo MPA structure
  * @description     Tests for the 4-page hello-todo MPA structure (W-075 refactor)
  * @file            webapp/tests/unit/hello-todo-structure.test.js
- * @version         0.9.1
- * @release         2025-10-05
+ * @version         0.9.2
+ * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -76,7 +76,7 @@ describe('Hello-Todo MPA Structure', () => {
 
             pages.forEach(page => {
                 const content = fs.readFileSync(path.join(helloTodoDir, page), 'utf-8');
-                expect(content).toContain('local-todo-nav');
+                expect(content).toContain('jp-btn-nav-group');
                 expect(content).toContain('📖 Overview');
                 expect(content).toContain('✅ To-Do App');
                 expect(content).toContain('💻 Code Examples');
@@ -89,7 +89,7 @@ describe('Hello-Todo MPA Structure', () => {
 
             pages.forEach(page => {
                 const content = fs.readFileSync(path.join(helloTodoDir, page), 'utf-8');
-                expect(content).toContain('jp-actions');
+                expect(content).toContain('jp-btn-nav-group');
                 expect(content).toContain('Hello World Site Demos');
             });
         });
@@ -99,7 +99,7 @@ describe('Hello-Todo MPA Structure', () => {
 
             subPages.forEach(page => {
                 const content = fs.readFileSync(path.join(helloTodoDir, page), 'utf-8');
-                expect(content).toContain('← To-Do MVC Demo');
+                expect(content).toContain('To-Do MVC Demo');
                 expect(content).toContain('/hello-todo/');
             });
         });
@@ -139,13 +139,13 @@ describe('Hello-Todo MPA Structure', () => {
             });
         });
 
-        test('all pages should have local-todo-nav CSS', () => {
+        test('all pages should have jp-btn-nav-group CSS', () => {
             const pages = ['index.shtml', 'todo-app.shtml', 'code-examples.shtml', 'architecture.shtml'];
 
             pages.forEach(page => {
                 const content = fs.readFileSync(path.join(helloTodoDir, page), 'utf-8');
-                expect(content).toContain('.local-todo-nav');
-                expect(content).toContain('nav-arrow');
+                expect(content).toContain('jp-btn-nav-group');
+                expect(content).toContain('jp-btn-nav-arrow');
             });
         });
     });

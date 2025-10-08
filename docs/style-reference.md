@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Style Reference v0.9.1
+# jPulse Framework / Docs / Style Reference v0.9.2
 
 Comprehensive CSS framework documentation for the jPulse `jp-*` styling system, providing consistent, responsive, and enterprise-ready components for web applications.
 
@@ -260,6 +260,63 @@ Grouped buttons with responsive stacking:
     <button class="jp-btn jp-btn-outline">Preview</button>
 </div>
 ```
+
+#### Button Navigation Groups
+Navigation-specific button group with arrows showing hierarchy:
+
+```css
+.jp-btn-nav-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 15px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.jp-btn-nav-group .jp-btn-active {
+    background-color: #007acc;
+    color: white;
+    border-color: #007acc;
+}
+
+.jp-btn-nav-arrow {
+    color: #007acc;
+    font-size: 1.2em;
+    user-select: none;
+}
+```
+
+**Example with buttons:**
+```html
+<nav class="jp-btn-nav-group">
+    <button class="jp-btn jp-btn-outline jp-btn-active">📋 Overview</button>
+    <span class="jp-btn-nav-arrow">→</span>
+    <button class="jp-btn jp-btn-outline">😀 Emoji Cursor</button>
+    <span class="jp-btn-nav-arrow">→</span>
+    <button class="jp-btn jp-btn-outline">✅ Collaborative Todo</button>
+    <span class="jp-btn-nav-arrow">→</span>
+    <button class="jp-btn jp-btn-outline">💻 Code Examples</button>
+</nav>
+```
+
+**Example with links:**
+```html
+<nav class="jp-btn-nav-group">
+    <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+    <span class="jp-btn-nav-arrow">→</span>
+    <a href="/hello/" class="jp-btn jp-btn-active">🌐 Hello World Site Demos</a>
+    <span class="jp-btn-nav-arrow">→</span>
+    <a href="/hello-todo/" class="jp-btn jp-btn-outline">📋 To-Do MVC Demo</a>
+    <span class="jp-btn-nav-arrow">→</span>
+    <a href="/hello-vue/" class="jp-btn jp-btn-outline">🔄 Vue.js SPA Demo</a>
+</nav>
+```
+
+This example renders like this:
+
+![Button navigation example](./images/style-ref-button-nav-group.png)
 
 #### Loading States
 Button loading states with spinner animation:

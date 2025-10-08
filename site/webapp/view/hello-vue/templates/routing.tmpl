@@ -4,8 +4,8 @@
  * @tagline         Routing of the Hello Vue Single Page Application
  * @description     This file defines the routing structure for the Vue.js SPA
  * @file            site/webapp/view/hello-vue/templates/routing.tmpl
- * @version         0.9.1
- * @release         2025-10-05
+ * @version         0.9.2
+ * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -101,7 +101,7 @@ jPulse.dom.ready(() => {
     const app = createApp({
         template: `
             <div>
-                <nav class="local-vue-nav">
+                <nav class="jp-btn-nav-group">
                     <template v-for="(nav, index) in navigation" :key="nav.path">
                         <button
                             @click="navigateTo(nav.path)"
@@ -109,7 +109,7 @@ jPulse.dom.ready(() => {
                         >
                             {{ nav.icon }} {{ nav.label }}
                         </button>
-                        <span v-if="index < navigation.length - 1" class="nav-arrow">→</span>
+                        <span v-if="index < navigation.length - 1" class="jp-btn-nav-arrow">→</span>
                     </template>
                 </nav>
                 <div class="local-vue-content">

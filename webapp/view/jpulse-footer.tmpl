@@ -4,7 +4,7 @@
  * @tagline         Footer template for jPulse pages
  * @description     Footer included in all jPulse pages to provide a consistent page layout
  * @file            webapp/view/jpulse-footer.tmpl
- * @version         0.9.2
+ * @version         0.9.3
  * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -74,22 +74,32 @@
 
 <!-- Site Navigation Initialization (W-069) -->
 {{file.include "jpulse-navigation.tmpl"}}
-{{#if appConfig.view.pageDecoration.showSiteNavigation}}
 <style>
+{{#if appConfig.view.pageDecoration.showSiteNavigation}}
 :root {
     --jp-header-height: {{appConfig.view.pageDecoration.headerHeight}}px;
 }
+{{/if}}
 </style>
 <script>
-// Initialize site navigation when DOM is ready
 jPulse.dom.ready(() => {
+    {{#if appConfig.view.pageDecoration.showSiteNavigation}}
+    // Initialize site navigation when DOM is ready
     jPulse.UI.navigation.init({
         currentUrl: '{{url.pathname}}',
         userRoles: {{user.roles}},
         navigation: window.jPulseSiteNavigation
     });
+    {{/if}}
+    {{#if appConfig.view.pageDecoration.showBreadcrumbs}}
+    // Initialize breadcrumbs when DOM is ready
+    jPulse.UI.breadcrumbs.init({
+        currentUrl: '{{url.pathname}}',
+        navigation: window.jPulseSiteNavigation,
+        homeLabel: '{{i18n.view.home.title}}'
+    });
+    {{/if}}
 });
 </script>
-{{/if}}
 
 <!-- EOF webapp/view/jpulse-footer.tmpl -->

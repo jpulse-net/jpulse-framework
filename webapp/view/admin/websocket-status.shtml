@@ -4,7 +4,7 @@
  * @tagline         Real-time WebSocket server monitoring and status
  * @description     Admin-only page showing live WebSocket namespace status
  * @file            webapp/view/admin/websocket-status.shtml
- * @version         0.9.2
+ * @version         0.9.3
  * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

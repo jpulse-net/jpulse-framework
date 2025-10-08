@@ -4,7 +4,7 @@
  * @tagline         Demo To-Do MVC Application for Learning
  * @description     Complete Model-View-Controller example with MongoDB integration
  * @file            site/webapp/view/hello-todo/index.shtml
- * @version         0.9.2
+ * @version         0.9.3
  * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

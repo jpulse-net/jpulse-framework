@@ -1,6 +1,66 @@
-# jPulse Framework / Docs / Version History v0.9.2
+# jPulse Framework / Docs / Version History v0.9.3
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.9.3, W-070, 2025-10-08
+
+**Commit:** `W-070, v0.9.3: Hierarchical Breadcrumb Navigation System`
+
+**HIERARCHICAL BREADCRUMB NAVIGATION**: Complete breadcrumb navigation implementation with bottom-up directory-level search algorithm for accurate URL matching, server-side template integration, and SPA compatibility.
+
+**Objective**: Hierarchical breadcrumb navigation system that shows the path from home to current page, works with both MPA and SPA patterns, and provides intuitive navigation for users.
+
+**Key Features**:
+- **Bottom-Up Directory Search**: Advanced algorithm that searches from deepest to shallowest URL paths for most specific matches
+- **Clean Architecture**: Consistent initialization pattern with site navigation using options object
+- **Server-Side Integration**: Template-based initialization with Handlebars i18n support
+- **SPA Compatibility**: Real-time updates via History API monitoring (pushState, replaceState, popstate)
+- **Smart Page Extraction**: Automatic page name extraction for 404/unknown pages from URL
+- **Responsive Design**: Overflow ellipsis handling and mobile-friendly styling
+- **Independent Operation**: Works correctly when site navigation is disabled
+
+**Breadcrumb Algorithm**:
+- **Two-Pass Exact Match Priority**: First finds exact URL matches globally, then falls back to prefix matching
+- **Bottom-Up Directory-Level Search**: Generates directory levels from deepest to shallowest for precise matching
+- **Dynamic Page Integration**: Incorporates SPA-registered pages for comprehensive navigation coverage
+- **Unknown Page Handling**: Extracts readable page names from URLs for pages not in navigation structure
+
+**Template Integration**:
+- **Handlebars i18n**: Uses `{{i18n.view.home.title}}` for localized "Home" label
+- **Configuration-Driven**: Controlled by `appConfig.view.pageDecoration.showBreadcrumbs`
+- **Clean Separation**: Server-side data passed via options object, no Handlebars in JavaScript
+- **Consistent Pattern**: Follows same initialization approach as `jPulse.UI.navigation.init()`
+
+**SPA Navigation Support**:
+- **History API Monitoring**: Listens for `popstate`, `pushState`, and `replaceState` events
+- **Dynamic Page Registration**: Integrates with `jPulse.UI.navigation.registerPages()` for SPA content
+- **Real-Time Updates**: Breadcrumb refreshes automatically on URL changes without page reload
+- **Timeout Handling**: Small delay ensures DOM updates complete before breadcrumb regeneration
+
+**Responsive Design**:
+- **Overflow Handling**: Ellipsis class when content exceeds container width
+- **Mobile Optimization**: Appropriate padding and margins for different screen sizes
+- **Visual Integration**: Matches site navigation styling with consistent icon rendering
+- **Body Class Management**: Adds `jp-breadcrumbs-enabled` for conditional CSS styling
+
+**Bug Fixes**:
+- **Site Navigation Independence**: Fixed critical bug where breadcrumbs wouldn't show when site navigation was disabled
+- **Test Wrapper Accuracy**: Fixed `bin/test-all.js` to correctly report failed test counts
+- **Location Mocking Issues**: Resolved JSDOM window.location mocking problems in unit tests
+- **Template Syntax Compatibility**: Proper handling of Handlebars syntax in test environments
+
+**Test Coverage**:
+- **22 Breadcrumb Tests**: Comprehensive coverage of initialization, trail generation, edge cases
+- **56 Total Navigation Tests**: All navigation and breadcrumb tests passing
+- **Architecture Testing**: Consistent initialization patterns and error handling
+- **Edge Case Coverage**: Empty navigation, null structures, element removal scenarios
+
+**Technical Implementation**:
+- **Internal Variables**: Clean encapsulation with `_homeLabel`, `_navConfig`, `_breadcrumbElement`
+- **Method Consistency**: No parameter passing between internal methods, uses stored state
+- **Error Handling**: Graceful degradation when navigation structure missing or invalid
+- **Performance**: Efficient URL matching with early termination on exact matches
 
 ________________________________________________
 ## v0.9.2, W-069, 2025-10-08

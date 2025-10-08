@@ -3,7 +3,7 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         0.9.2
+ * @version         0.9.3
  * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1310,20 +1310,30 @@ window.jPulse = {
         breadcrumbs: {
             _initialized: false,
             _breadcrumbElement: null,
+            _homeLabel: 'Home',
+            _navConfig: null,
 
             /**
              * Initialize breadcrumb navigation
-             * Auto-initializes on DOM ready if enabled in appConfig
+             * @param {Object} options - Configuration options
+             * @param {string} options.currentUrl - Current page URL
+             * @param {Object} options.navigation - Navigation structure
+             * @param {string} options.homeLabel - Label for home breadcrumb
+             * @returns {Object} Handle object with breadcrumb control methods
              */
-            init: () => {
-                // Bail out unless enabled
-                if (!{{appConfig.view.pageDecoration.showBreadcrumbs}}) {
-                    return;
-                }
-
+            init: (options = {}) => {
                 // Prevent double initialization
                 if (jPulse.UI.breadcrumbs._initialized) {
                     return;
+                }
+
+                // Store config in internal variables
+                jPulse.UI.breadcrumbs._homeLabel = options.homeLabel || 'Home';
+                jPulse.UI.breadcrumbs._navConfig = options.navigation;
+
+                if (!jPulse.UI.breadcrumbs._navConfig) {
+                    console.warn('jPulse.UI.breadcrumbs: No navigation structure provided');
+                    return null;
                 }
 
                 // Find or create breadcrumb container
@@ -1346,6 +1356,11 @@ window.jPulse = {
                 jPulse.UI.breadcrumbs._generateBreadcrumb();
 
                 jPulse.UI.breadcrumbs._initialized = true;
+
+                return {
+                    refresh: () => jPulse.UI.breadcrumbs.refresh(),
+                    destroy: () => jPulse.UI.breadcrumbs.destroy()
+                };
             },
 
             /**
@@ -1388,7 +1403,7 @@ window.jPulse = {
                 }
 
                 const currentUrl = window.location.pathname;
-                const navConfig = window.jPulseSiteNavigation;
+                const navConfig = jPulse.UI.breadcrumbs._navConfig || window.jPulseSiteNavigation;
 
                 if (!navConfig) {
                     console.warn('jPulse.UI.breadcrumbs: No navigation structure found');
@@ -1459,7 +1474,7 @@ window.jPulse = {
 
                 // Always start with Home (implicitly prepended)
                 trail.push({
-                    label: '{{i18n.view.home.title}}',
+                    label: jPulse.UI.breadcrumbs._homeLabel,
                     url: '/',
                     icon: '🏠'
                 });
@@ -3959,13 +3974,6 @@ window.jPulse = {
 // Auto-initialize source code components when DOM is ready
 jPulse.dom.ready(() => {
     jPulse.UI.sourceCode.initAll();
-    // Initialize breadcrumbs if available
-    if (jPulse.UI.breadcrumbs) {
-        // Wait a bit for navigation structure to be loaded
-        setTimeout(() => {
-            jPulse.UI.breadcrumbs.init();
-        }, 100);
-    }
 });
 
 // EOF webapp/view/jpulse-common.js

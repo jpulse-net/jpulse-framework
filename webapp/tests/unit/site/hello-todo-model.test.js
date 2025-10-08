@@ -3,7 +3,7 @@
  * @tagline         Unit tests for HelloTodo MVC demonstration model
  * @description     Unit tests for HelloTodo MVC demonstration model
  * @file            webapp/tests/unit/site/hello-todo-model.test.js
- * @version         0.9.2
+ * @version         0.9.3
  * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

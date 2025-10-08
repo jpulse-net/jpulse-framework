@@ -3,7 +3,7 @@
  * @tagline         Demo Vue.js SPA Controller
  * @description     Example of Vue.js Single Page Application integration
  * @file            site/webapp/controller/helloVue.js
- * @version         0.9.2
+ * @version         0.9.3
  * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

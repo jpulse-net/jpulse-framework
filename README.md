@@ -1,4 +1,4 @@
-# jPulse Framework v0.9.2
+# jPulse Framework v0.9.3
 
 A modern **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application framework designed for enterprise and government organizations. Built on **MVC architecture**, jPulse uniquely supports **both MPA and SPA patterns**, giving you the flexibility to choose the right architecture for each part of your application.
 

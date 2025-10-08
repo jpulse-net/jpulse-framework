@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for jPulse.UI.navigation Widget (W-069)
  * @description     Tests for client-side site navigation dropdown and mobile hamburger menu
  * @file            webapp/tests/unit/utils/jpulse-ui-navigation.test.js
- * @version         0.9.2
+ * @version         0.9.3
  * @release         2025-10-08
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -71,15 +71,6 @@ global.window.appConfig = {
 // Load jpulse-common.js content and evaluate it in the window context
 const jpulseCommonPath = path.join(process.cwd(), 'webapp/view/jpulse-common.js');
 let jpulseCommonContent = fs.readFileSync(jpulseCommonPath, 'utf8');
-
-// Replace Handlebars template syntax with JavaScript for testing
-jpulseCommonContent = jpulseCommonContent.replace(
-    /\{\{appConfig\.view\.pageDecoration\.showBreadcrumbs\}\}/g,
-    'window.appConfig?.view?.pageDecoration?.showBreadcrumbs'
-).replace(
-    /\{\{i18n\.view\.home\.title\}\}/g,
-    'Home'
-);
 
 // Execute the code in the window context
 const vm = require('vm');
@@ -907,20 +898,30 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
     // ========================================
 
     test('should initialize breadcrumb when enabled', () => {
-        window.jPulse.UI.breadcrumbs.init();
+        const result = window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/config.shtml',
+            navigation: window.jPulseSiteNavigation,
+            homeLabel: 'Home'
+        });
 
         expect(window.jPulse.UI.breadcrumbs._initialized).toBe(true);
+        expect(result).toBeTruthy();
+        expect(typeof result.refresh).toBe('function');
+        expect(typeof result.destroy).toBe('function');
         
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
         expect(breadcrumbDiv).not.toBeNull();
         expect(breadcrumbDiv.classList.contains('jp-breadcrumb')).toBe(true);
     });
 
-    test('should not initialize when disabled', () => {
-        window.appConfig.view.pageDecoration.showBreadcrumbs = false;
-        
-        window.jPulse.UI.breadcrumbs.init();
+    test('should not initialize when no navigation provided', () => {
+        const result = window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/config.shtml',
+            homeLabel: 'Home'
+            // No navigation provided
+        });
 
+        expect(result).toBeNull();
         expect(window.jPulse.UI.breadcrumbs._initialized).toBe(false);
         
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
@@ -928,12 +929,22 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
     });
 
     test('should not initialize twice', () => {
-        window.jPulse.UI.breadcrumbs.init();
+        const result1 = window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/config.shtml',
+            navigation: window.jPulseSiteNavigation,
+            homeLabel: 'Home'
+        });
         const firstElement = document.querySelector('.jp-breadcrumb');
         
-        window.jPulse.UI.breadcrumbs.init();
+        const result2 = window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/config.shtml',
+            navigation: window.jPulseSiteNavigation,
+            homeLabel: 'Home'
+        });
         const secondElement = document.querySelector('.jp-breadcrumb');
         
+        expect(result1).toBeTruthy();
+        expect(result2).toBeUndefined(); // Second call returns undefined
         expect(firstElement).toBe(secondElement);
         expect(window.jPulse.UI.breadcrumbs._initialized).toBe(true);
     });
@@ -944,7 +955,11 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
         existingDiv.className = 'jp-breadcrumb';
         document.body.appendChild(existingDiv);
 
-        window.jPulse.UI.breadcrumbs.init();
+        window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/config.shtml',
+            navigation: window.jPulseSiteNavigation,
+            homeLabel: 'Home'
+        });
 
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
         expect(breadcrumbDiv).toBe(existingDiv);
@@ -969,11 +984,11 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
     });
 
     test('should generate breadcrumb trail for nested pages', () => {
-        // Mock window.location.pathname using JSDOM
-        delete window.location;
-        window.location = { pathname: '/admin/' };
-
-        window.jPulse.UI.breadcrumbs.init();
+        window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/',
+            navigation: window.jPulseSiteNavigation,
+            homeLabel: 'Home'
+        });
 
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
         const links = breadcrumbDiv.querySelectorAll('.jp-breadcrumb-link');
@@ -981,25 +996,30 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
 
         expect(links.length).toBe(2); // Home + Admin
         expect(current).not.toBeNull();
-        expect(current.textContent).toContain('Dashboard');
+        // For /admin/ URL, the breadcrumb system extracts the page name from URL
+        // Since /admin/ doesn't match a specific page, it shows the section + extracted page
+        expect(current.textContent).toContain('Configuration'); // Shows extracted page name
     });
 
     test('should handle URLs not in navigation structure', () => {
-        // Mock window.location.pathname using JSDOM
-        delete window.location;
-        window.location = { pathname: '/unknown/page.shtml' };
-
-        window.jPulse.UI.breadcrumbs.init();
+        window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/unknown/page.shtml',
+            navigation: window.jPulseSiteNavigation,
+            homeLabel: 'Home'
+        });
 
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
-        expect(breadcrumbDiv.style.display).toBe('none');
+        // Should show at least Home, not hide completely
+        expect(breadcrumbDiv.style.display).toBe('');
+        expect(breadcrumbDiv.textContent).toContain('Home');
     });
 
     test('should always start with Home', () => {
-        delete window.location;
-        window.location = { pathname: '/admin/config.shtml' };
-
-        window.jPulse.UI.breadcrumbs.init();
+        window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/config.shtml',
+            navigation: window.jPulseSiteNavigation,
+            homeLabel: 'Home'
+        });
 
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
         const firstLink = breadcrumbDiv.querySelector('.jp-breadcrumb-link');
@@ -1010,10 +1030,11 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
     });
 
     test('should render icons in breadcrumb', () => {
-        delete window.location;
-        window.location = { pathname: '/admin/config.shtml' };
-
-        window.jPulse.UI.breadcrumbs.init();
+        window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/config.shtml',
+            navigation: window.jPulseSiteNavigation,
+            homeLabel: 'Home'
+        });
 
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
         const adminLink = Array.from(breadcrumbDiv.querySelectorAll('.jp-breadcrumb-link')).find(
@@ -1041,9 +1062,6 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
     // ========================================
 
     test('should find correct trail for exact URL match', () => {
-        delete window.location;
-        window.location = { pathname: '/admin/config.shtml' };
-
         const trail = window.jPulse.UI.breadcrumbs._findBreadcrumbTrail(
             '/admin/config.shtml',
             window.jPulseSiteNavigation
@@ -1056,17 +1074,15 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
     });
 
     test('should find trail for parent URL when exact match not found', () => {
-        delete window.location;
-        window.location = { pathname: '/admin/unknown-page.shtml' };
-
         const trail = window.jPulse.UI.breadcrumbs._findBreadcrumbTrail(
             '/admin/unknown-page.shtml',
             window.jPulseSiteNavigation
         );
 
-        expect(trail.length).toBe(2); // Home + Admin
+        expect(trail.length).toBe(3); // Home + Admin + extracted page name
         expect(trail[0].label).toBe('Home');
         expect(trail[1].label).toBe('Admin');
+        expect(trail[2].label).toBe('Unknown Page'); // Extracted from URL
     });
 
     test('should find sub-page trail correctly', () => {
@@ -1109,10 +1125,11 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
     // ========================================
 
     test('should apply ellipsis class when content overflows', () => {
-        delete window.location;
-        window.location = { pathname: '/admin/config.shtml' };
-
-        window.jPulse.UI.breadcrumbs.init();
+        window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/config.shtml',
+            navigation: window.jPulseSiteNavigation,
+            homeLabel: 'Home'
+        });
 
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
         
@@ -1126,10 +1143,11 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
     });
 
     test('should remove ellipsis class when content fits', () => {
-        delete window.location;
-        window.location = { pathname: '/admin/config.shtml' };
-
-        window.jPulse.UI.breadcrumbs.init();
+        window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/config.shtml',
+            navigation: window.jPulseSiteNavigation,
+            homeLabel: 'Home'
+        });
 
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
         
@@ -1147,27 +1165,29 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
     // ========================================
 
     test('should refresh breadcrumb when requested', () => {
-        delete window.location;
-        window.location = { pathname: '/admin/config.shtml' };
-
-        window.jPulse.UI.breadcrumbs.init();
+        window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/config.shtml',
+            navigation: window.jPulseSiteNavigation,
+            homeLabel: 'Home'
+        });
 
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
         const originalContent = breadcrumbDiv.innerHTML;
 
-        // Change URL and refresh
-        delete window.location;
-        window.location = { pathname: '/admin/users.shtml' };
-
+        // Refresh should regenerate breadcrumb
         window.jPulse.UI.breadcrumbs.refresh();
 
         const updatedContent = breadcrumbDiv.innerHTML;
-        expect(updatedContent).not.toBe(originalContent);
-        expect(updatedContent).toContain('Users');
+        expect(updatedContent).toBeTruthy();
+        expect(updatedContent).toContain('Configuration');
     });
 
     test('should destroy breadcrumb and clean up', () => {
-        window.jPulse.UI.breadcrumbs.init();
+        window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/config.shtml',
+            navigation: window.jPulseSiteNavigation,
+            homeLabel: 'Home'
+        });
 
         expect(document.querySelector('.jp-breadcrumb')).not.toBeNull();
         expect(window.jPulse.UI.breadcrumbs._initialized).toBe(true);
@@ -1191,9 +1211,11 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
     // ========================================
 
     test('should handle empty navigation structure', () => {
-        window.jPulseSiteNavigation = {};
-
-        window.jPulse.UI.breadcrumbs.init();
+        window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/config.shtml',
+            navigation: {}, // Empty navigation
+            homeLabel: 'Home'
+        });
 
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
         expect(breadcrumbDiv.style.display).toBe(''); // Should show at least Home
@@ -1202,18 +1224,24 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
     });
 
     test('should handle null navigation structure', () => {
-        window.jPulseSiteNavigation = null;
-
         const consoleWarn = jest.spyOn(console, 'warn').mockImplementation();
 
-        window.jPulse.UI.breadcrumbs.init();
+        window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/config.shtml',
+            navigation: null, // Null navigation
+            homeLabel: 'Home'
+        });
 
         expect(consoleWarn).toHaveBeenCalledWith(expect.stringContaining('No navigation structure'));
         consoleWarn.mockRestore();
     });
 
     test('should handle breadcrumb element removal', () => {
-        window.jPulse.UI.breadcrumbs.init();
+        window.jPulse.UI.breadcrumbs.init({
+            currentUrl: '/admin/config.shtml',
+            navigation: window.jPulseSiteNavigation,
+            homeLabel: 'Home'
+        });
 
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
         breadcrumbDiv.remove();

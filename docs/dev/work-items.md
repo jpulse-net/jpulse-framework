@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.9.1
+# jPulse Framework / Docs / Dev / Work Items v0.9.3
 
 This is the doc to track work items, arranged in three sections:
 
@@ -1173,8 +1173,8 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-070: view: create hierarchical breadcrumb navigation
-- status: 🚧 IN_PROGRESS
+### W-070, v0.9.3: view: create hierarchical breadcrumb navigation
+- status: ✅ COMPLETED
 - type: Feature
 - objective: let users know where they are on a big site
 - spec discussions: docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
@@ -1187,11 +1187,18 @@ This is the doc to track work items, arranged in three sections:
   - remove once automated breadcrumbs are in place
 - all parents should be links for quick access
 - should parents have on hover pulldowns to show siblings for quick navigation?
-  - overkill because site nav pulldown exists (W-069)
-- automatic breadcrumb based on appConfig.view.navigation structure and current URL
-- desktop vs mobile?
+  - bo, overkill because site nav pulldown exists (W-069)
+- automatic breadcrumb based on navigation structure (in webapp/view/jpulse-navigation.tmpl) and current URL
+- responsive design: desktop & mobile
 - deliverables:
-  - tbd
+  - Hierarchical breadcrumb navigation system (W-070)
+  - Bottom-up directory-level search algorithm for accurate URL matching
+  - Clean initialization pattern consistent with site navigation
+  - Server-side template integration with i18n support
+  - SPA navigation compatibility with real-time updates
+  - Comprehensive test coverage (22 breadcrumb tests, 56 total navigation tests)
+  - Production-ready breadcrumb feature with responsive design
+  - Updated test wrapper for accurate failure reporting
 
 
 
@@ -1208,6 +1215,7 @@ pending:
 - W-045: architecture: create plugin infrastructure
 - W-040: view: create view logs page for site admins
 - W-068: view: create responsive sidebar
+- W-076: model: create redis caching infrastrucure
 - W-0: view: page headers with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific translations
 - W-0: controller: change search to cursor based paging API with limit & cursor
@@ -1220,11 +1228,11 @@ next work item: W-0...
 - plan how to implement (wait for my go ahead)
 - current timestamp: 2025-10-04 17:55
 
-finishing up work item: W-071:
+finishing up work item: W-070:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-069, v0.9.2
-- add to deliverables in W-069 to document additional work done (don't remove from existing deliverables list)
+- assume release: W-070, v0.9.3
+- update deliverables in W-070 to document work done (don't remove from existing deliverables list)
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
@@ -1236,16 +1244,16 @@ git add .
 git commit -m 'Checkpoint commit 1 for: W-069, v0.9.2: view: create site navigation pulldown and hamburger menu'
 git push
 
-=== normal package build on github ===
+=== normal release & package build on github ===
 npm test
 git diff
 git status
-node bin/bump-version.js 0.9.2
+node bin/bump-version.js 0.9.3
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v0.9.2
+git tag v0.9.3
 git push origin main --tags
 
 === on failed package build on github ===

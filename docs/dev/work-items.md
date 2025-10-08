@@ -1113,21 +1113,6 @@ This is the doc to track work items, arranged in three sections:
     - webapp/app.js - initialize HelloWebsocketController on startup
     - webapp/view/home/index.shtml - updated hello-websocket description
 
-
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-069, v0.9.2: view: create site navigation pulldown and hamburger menu
 - status: ✅ DONE
 - type: Feature
@@ -1178,6 +1163,41 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-070: view: create hierarchical breadcrumb navigation
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: let users know where they are on a big site
+- spec discussions: docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
+- prerequisites:
+  - W-069, v0.9.2: view: create site navigation pulldown and hamburger menu
+- example:
+  - Home > Admin > Site Configuration
+- currently solved manually in /admin/ and /hello-*/ site demos
+  - good user experience, but a manual process that can result in inconsistencies
+  - remove once automated breadcrumbs are in place
+- all parents should be links for quick access
+- should parents have on hover pulldowns to show siblings for quick navigation?
+  - overkill because site nav pulldown exists (W-069)
+- automatic breadcrumb based on appConfig.view.navigation structure and current URL
+- desktop vs mobile?
+- deliverables:
+  - tbd
+
+
+
+
+
+
 pending:
 
 
@@ -1219,6 +1239,8 @@ npm test
 git diff
 git status
 node bin/bump-version.js 0.9.2
+git diff
+git status
 git add .
 git commit -F commit-message.txt
 git tag v0.9.2
@@ -1339,27 +1361,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - closed by default
   - open on command (hamburger menu?)
 - fix /jpulse-docs/ markdown SPA to be based on common sidebar
-
-### W-070: view: create hierarchical breadcrumb navigation
-- status: 🕑 PENDING
-- type: Idea
-- objective: let users know where they are on a big site
-- brainstorming:
-  docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
-- prerequisites:
-  - W-069, v0.9.2: view: create site navigation pulldown and hamburger menu
-- example:
-  - Home > Admin > Site Configuration
-- currently solved manually in /admin/ and /hello-*/ site demos
-  - good user experience, but a manual process that can result in inconsistencies
-  - remove once automated breadcrumbs are in place
-- all parents should be links for quick access
-- should parents have on hover pulldowns to show siblings for quick navigation?
-  - overkill because site nav pulldown exists (W-069)
-- automatic breadcrumb based on appConfig.view.navigation structure and current URL
-- desktop vs mobile?
-- deliverables:
-  - tbd
 
 ### W-076: model: create redis caching infrastrucure
 - status: 🕑 PENDING

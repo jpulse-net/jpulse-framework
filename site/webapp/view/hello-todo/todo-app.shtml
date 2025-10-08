@@ -180,9 +180,7 @@
     <div class="jp-main">
         <div class="jp-container-1000">
             <div class="jp-page-header">
-                <h1><a href="/">Home</a> <span>❯</span>
-                    <a href="/hello/">Hello World Site Demos</a> <span>❯</span>
-                    📋 To-Do MVC Demo</h1>
+                <h1>📋 To-Do MVC Demo</h1>
             </div>
 
             <!-- Sub-navigation -->

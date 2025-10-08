@@ -66,9 +66,7 @@
         <div class="jp-container-1200 local-admin-users">
           {{#if user.authenticated}}
             <div class="jp-page-header">
-                <h1><a href="/home/">{{i18n.view.home.title}}</a> <span>❯</span>
-                    <a href="/admin/">{{i18n.view.admin.index.shortTitle}}</a> <span>❯</span>
-                    {{i18n.view.admin.users.title}}</h1>
+                <h1>{{i18n.view.admin.users.title}}</h1>
             </div>
 
             <!-- Admin user management content -->

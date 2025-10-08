@@ -23,9 +23,7 @@
 <body>
     <div class="jp-main">
         <div class="jp-page-header">
-            <h1><a href="/home/">Home</a> <span>❯</span>
-                <a href="/hello/">Hello World Site Demos</a> <span>❯</span>
-                🔨 Site Development</h1>
+            <h1>🔨 Site Development</h1>
         </div>
         <div class="jp-info-box">
             <h2>Comprehensive Site Customization Showcase</h2>

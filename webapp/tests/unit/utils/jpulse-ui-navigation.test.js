@@ -463,7 +463,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         };
 
         const actualDepth = getMaxDepth(pages);
-        
+
         // Should be limited to reasonable depth (MAX_DEPTH = 16)
         // At depth 16, the function returns empty {} so actual nested depth is ~15-16
         expect(actualDepth).toBeLessThanOrEqual(16);
@@ -802,6 +802,418 @@ describe('jPulse.UI.navigation Mobile Menu (W-069-B)', () => {
         const mobileMenu = document.getElementById('jp-mobile-menu');
         expect(mobileMenu.textContent).toContain('Overview');
         expect(mobileMenu.textContent).toContain('Installation');
+    });
+
+});
+
+describe('jPulse.UI.navigation.breadcrumbs (W-070)', () => {
+    beforeEach(() => {
+        // Reset DOM
+        document.body.innerHTML = `
+            <header class="jp-header">
+                <div class="jp-logo"></div>
+            </header>
+        `;
+
+        // Reset breadcrumb state
+        if (window.jPulse && window.jPulse.UI && window.jPulse.UI.navigation && window.jPulse.UI.navigation.breadcrumbs) {
+            window.jPulse.UI.navigation.breadcrumbs._initialized = false;
+            window.jPulse.UI.navigation.breadcrumbs._breadcrumbElement = null;
+        }
+
+        // Clear any existing breadcrumb
+        const existing = document.querySelector('.jp-breadcrumb');
+        if (existing) {
+            existing.remove();
+        }
+
+        // Mock appConfig with breadcrumbs enabled
+        window.appConfig = {
+            view: {
+                pageDecoration: {
+                    showBreadcrumbs: true
+                }
+            }
+        };
+
+        // Mock navigation structure
+        window.jPulseSiteNavigation = {
+            admin: {
+                label: 'Admin',
+                url: '/admin/',
+                icon: '⚙️',
+                pages: {
+                    dashboard: {
+                        label: 'Dashboard',
+                        url: '/admin/',
+                        icon: '⚙️'
+                    },
+                    config: {
+                        label: 'Configuration',
+                        url: '/admin/config.shtml',
+                        icon: 'assets/admin/icons/config.svg'
+                    },
+                    users: {
+                        label: 'Users',
+                        url: '/admin/users.shtml',
+                        icon: 'assets/admin/icons/users.svg'
+                    }
+                }
+            },
+            jPulseDocs: {
+                label: 'Documentation',
+                url: '/jpulse-docs/',
+                icon: '📖',
+                pages: {}
+            }
+        };
+
+        // Ensure jPulse object exists and breadcrumbs are accessible
+        if (!window.jPulse) {
+            window.jPulse = {};
+        }
+        if (!window.jPulse.UI) {
+            window.jPulse.UI = {};
+        }
+        if (!window.jPulse.UI.navigation) {
+            window.jPulse.UI.navigation = {};
+        }
+        if (!window.jPulse.UI.navigation.breadcrumbs) {
+            // Re-evaluate the jpulse-common.js content to ensure breadcrumbs are loaded
+            const vm = require('vm');
+            const context = vm.createContext(window);
+            vm.runInContext(jpulseCommonContent, context);
+        }
+    });
+
+    afterEach(() => {
+        // Clean up breadcrumb
+        if (window.jPulse && window.jPulse.UI && window.jPulse.UI.navigation && window.jPulse.UI.navigation.breadcrumbs) {
+            window.jPulse.UI.navigation.breadcrumbs.destroy();
+        }
+    });
+
+    // ========================================
+    // INITIALIZATION TESTS
+    // ========================================
+
+    test('should initialize breadcrumb when enabled', () => {
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        expect(window.jPulse.UI.navigation.breadcrumbs._initialized).toBe(true);
+
+        const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
+        expect(breadcrumbDiv).not.toBeNull();
+        expect(breadcrumbDiv.classList.contains('jp-breadcrumb')).toBe(true);
+    });
+
+    test('should not initialize when disabled', () => {
+        window.appConfig.view.pageDecoration.showBreadcrumbs = false;
+
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        expect(window.jPulse.UI.navigation.breadcrumbs._initialized).toBe(false);
+
+        const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
+        expect(breadcrumbDiv).toBeNull();
+    });
+
+    test('should not initialize twice', () => {
+        window.jPulse.UI.navigation.breadcrumbs.init();
+        const firstElement = document.querySelector('.jp-breadcrumb');
+
+        window.jPulse.UI.navigation.breadcrumbs.init();
+        const secondElement = document.querySelector('.jp-breadcrumb');
+
+        expect(firstElement).toBe(secondElement);
+        expect(window.jPulse.UI.navigation.breadcrumbs._initialized).toBe(true);
+    });
+
+    test('should use existing breadcrumb div if present', () => {
+        // Create existing breadcrumb div
+        const existingDiv = document.createElement('div');
+        existingDiv.className = 'jp-breadcrumb';
+        document.body.appendChild(existingDiv);
+
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
+        expect(breadcrumbDiv).toBe(existingDiv);
+        expect(window.jPulse.UI.navigation.breadcrumbs._breadcrumbElement).toBe(existingDiv);
+    });
+
+    // ========================================
+    // BREADCRUMB GENERATION TESTS
+    // ========================================
+
+    test('should generate breadcrumb trail for admin section', () => {
+        // Set current URL to admin config
+        delete window.location;
+        window.location = { pathname: '/admin/config.shtml' };
+
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
+        const links = breadcrumbDiv.querySelectorAll('.jp-breadcrumb-link');
+        const current = breadcrumbDiv.querySelector('.jp-breadcrumb-current');
+        const separators = breadcrumbDiv.querySelectorAll('.jp-breadcrumb-separator');
+
+        expect(links.length).toBe(2); // Home + Admin
+        expect(current).not.toBeNull();
+        expect(current.textContent).toContain('Configuration');
+        expect(separators.length).toBe(2); // Home > Admin > Config
+    });
+
+    test('should generate breadcrumb trail for nested pages', () => {
+        // Set current URL to admin dashboard
+        delete window.location;
+        window.location = { pathname: '/admin/' };
+
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
+        const links = breadcrumbDiv.querySelectorAll('.jp-breadcrumb-link');
+        const current = breadcrumbDiv.querySelector('.jp-breadcrumb-current');
+
+        expect(links.length).toBe(2); // Home + Admin
+        expect(current).not.toBeNull();
+        expect(current.textContent).toContain('Dashboard');
+    });
+
+    test('should handle URLs not in navigation structure', () => {
+        // Set current URL to unknown page
+        delete window.location;
+        window.location = { pathname: '/unknown/page.shtml' };
+
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
+        expect(breadcrumbDiv.style.display).toBe('none');
+    });
+
+    test('should always start with Home', () => {
+        delete window.location;
+        window.location = { pathname: '/admin/config.shtml' };
+
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
+        const firstLink = breadcrumbDiv.querySelector('.jp-breadcrumb-link');
+
+        expect(firstLink).not.toBeNull();
+        expect(firstLink.textContent).toContain('Home');
+        expect(firstLink.getAttribute('href')).toBe('/');
+    });
+
+    test('should render icons in breadcrumb', () => {
+        delete window.location;
+        window.location = { pathname: '/admin/config.shtml' };
+
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
+        const adminLink = Array.from(breadcrumbDiv.querySelectorAll('.jp-breadcrumb-link')).find(
+            link => link.textContent.includes('Admin')
+        );
+
+        expect(adminLink).not.toBeNull();
+        expect(adminLink.innerHTML).toContain('⚙️');
+    });
+
+    test('should handle missing navigation structure', () => {
+        // Remove navigation structure
+        delete window.jPulseSiteNavigation;
+
+        const consoleWarn = jest.spyOn(console, 'warn').mockImplementation();
+
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        expect(consoleWarn).toHaveBeenCalledWith(expect.stringContaining('No navigation structure'));
+        consoleWarn.mockRestore();
+    });
+
+    // ========================================
+    // BREADCRUMB TRAIL FINDING TESTS
+    // ========================================
+
+    test('should find correct trail for exact URL match', () => {
+        delete window.location;
+        window.location = { pathname: '/admin/config.shtml' };
+
+        const trail = window.jPulse.UI.navigation.breadcrumbs._findBreadcrumbTrail(
+            '/admin/config.shtml',
+            window.jPulseSiteNavigation
+        );
+
+        expect(trail.length).toBe(3); // Home + Admin + Config
+        expect(trail[0].label).toBe('Home');
+        expect(trail[1].label).toBe('Admin');
+        expect(trail[2].label).toBe('Configuration');
+    });
+
+    test('should find trail for parent URL when exact match not found', () => {
+        delete window.location;
+        window.location = { pathname: '/admin/unknown-page.shtml' };
+
+        const trail = window.jPulse.UI.navigation.breadcrumbs._findBreadcrumbTrail(
+            '/admin/unknown-page.shtml',
+            window.jPulseSiteNavigation
+        );
+
+        expect(trail.length).toBe(2); // Home + Admin
+        expect(trail[0].label).toBe('Home');
+        expect(trail[1].label).toBe('Admin');
+    });
+
+    test('should find sub-page trail correctly', () => {
+        const subTrail = window.jPulse.UI.navigation.breadcrumbs._findSubPageTrail(
+            '/admin/config.shtml',
+            window.jPulseSiteNavigation.admin.pages,
+            '/admin/'
+        );
+
+        expect(subTrail.length).toBe(1);
+        expect(subTrail[0].label).toBe('Configuration');
+        expect(subTrail[0].url).toBe('/admin/config.shtml');
+    });
+
+    test('should handle nested sub-pages', () => {
+        // Add nested structure
+        window.jPulseSiteNavigation.admin.pages.config.pages = {
+            general: {
+                label: 'General Settings',
+                url: '/admin/config/general.shtml',
+                icon: '⚙️'
+            }
+        };
+
+        const subTrail = window.jPulse.UI.navigation.breadcrumbs._findSubPageTrail(
+            '/admin/config/general.shtml',
+            window.jPulseSiteNavigation.admin.pages,
+            '/admin/'
+        );
+
+        expect(subTrail.length).toBe(2); // Config + General
+        expect(subTrail[0].label).toBe('Configuration');
+        expect(subTrail[1].label).toBe('General Settings');
+    });
+
+    // ========================================
+    // ELLIPSIS HANDLING TESTS
+    // ========================================
+
+    test('should apply ellipsis class when content overflows', () => {
+        delete window.location;
+        window.location = { pathname: '/admin/config.shtml' };
+
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
+
+        // Mock scrollWidth > clientWidth
+        Object.defineProperty(breadcrumbDiv, 'scrollWidth', { value: 1000 });
+        Object.defineProperty(breadcrumbDiv, 'clientWidth', { value: 500 });
+
+        window.jPulse.UI.navigation.breadcrumbs._applyEllipsis();
+
+        expect(breadcrumbDiv.classList.contains('jp-breadcrumb-ellipsis')).toBe(true);
+    });
+
+    test('should remove ellipsis class when content fits', () => {
+        delete window.location;
+        window.location = { pathname: '/admin/config.shtml' };
+
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
+
+        // Mock scrollWidth <= clientWidth
+        Object.defineProperty(breadcrumbDiv, 'scrollWidth', { value: 500 });
+        Object.defineProperty(breadcrumbDiv, 'clientWidth', { value: 1000 });
+
+        window.jPulse.UI.navigation.breadcrumbs._applyEllipsis();
+
+        expect(breadcrumbDiv.classList.contains('jp-breadcrumb-ellipsis')).toBe(false);
+    });
+
+    // ========================================
+    // REFRESH AND DESTROY TESTS
+    // ========================================
+
+    test('should refresh breadcrumb when requested', () => {
+        delete window.location;
+        window.location = { pathname: '/admin/config.shtml' };
+
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
+        const originalContent = breadcrumbDiv.innerHTML;
+
+        // Change URL and refresh
+        delete window.location;
+        window.location = { pathname: '/admin/users.shtml' };
+
+        window.jPulse.UI.navigation.breadcrumbs.refresh();
+
+        const updatedContent = breadcrumbDiv.innerHTML;
+        expect(updatedContent).not.toBe(originalContent);
+        expect(updatedContent).toContain('Users');
+    });
+
+    test('should destroy breadcrumb and clean up', () => {
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        expect(document.querySelector('.jp-breadcrumb')).not.toBeNull();
+        expect(window.jPulse.UI.navigation.breadcrumbs._initialized).toBe(true);
+
+        window.jPulse.UI.navigation.breadcrumbs.destroy();
+
+        expect(document.querySelector('.jp-breadcrumb')).toBeNull();
+        expect(window.jPulse.UI.navigation.breadcrumbs._initialized).toBe(false);
+        expect(window.jPulse.UI.navigation.breadcrumbs._breadcrumbElement).toBeNull();
+    });
+
+    test('should handle destroy when not initialized', () => {
+        // Should not throw error
+        expect(() => {
+            window.jPulse.UI.navigation.breadcrumbs.destroy();
+        }).not.toThrow();
+    });
+
+    // ========================================
+    // EDGE CASE TESTS
+    // ========================================
+
+    test('should handle empty navigation structure', () => {
+        window.jPulseSiteNavigation = {};
+
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
+        expect(breadcrumbDiv.style.display).toBe('none');
+    });
+
+    test('should handle null navigation structure', () => {
+        window.jPulseSiteNavigation = null;
+
+        const consoleWarn = jest.spyOn(console, 'warn').mockImplementation();
+
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        expect(consoleWarn).toHaveBeenCalledWith(expect.stringContaining('No navigation structure'));
+        consoleWarn.mockRestore();
+    });
+
+    test('should handle breadcrumb element removal', () => {
+        window.jPulse.UI.navigation.breadcrumbs.init();
+
+        const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
+        breadcrumbDiv.remove();
+
+        // Should handle gracefully
+        expect(() => {
+            window.jPulse.UI.navigation.breadcrumbs._generateBreadcrumb();
+        }).not.toThrow();
     });
 
 });

@@ -1304,6 +1304,375 @@ window.jPulse = {
         },
 
         /**
+         * Breadcrumb navigation system
+         * Auto-generates breadcrumb trail based on navigation hierarchy and current URL
+         */
+        breadcrumbs: {
+            _initialized: false,
+            _breadcrumbElement: null,
+
+            /**
+             * Initialize breadcrumb navigation
+             * Auto-initializes on DOM ready if enabled in appConfig
+             */
+            init: () => {
+                console.log('jPulse.UI.breadcrumbs: init() called');
+
+                // Bail out unless enabled
+                if (!{{appConfig.view.pageDecoration.showBreadcrumbs}}) {
+                    console.log('jPulse.UI.breadcrumbs: Disabled in appConfig');
+                    return;
+                }
+
+                // Prevent double initialization
+                if (jPulse.UI.breadcrumbs._initialized) {
+                    console.log('jPulse.UI.breadcrumbs: Already initialized');
+                    return;
+                }
+
+                console.log('jPulse.UI.breadcrumbs: Initializing...');
+
+                // Find or create breadcrumb container
+                let breadcrumbDiv = document.querySelector('.jp-breadcrumb');
+                if (!breadcrumbDiv) {
+                    breadcrumbDiv = document.createElement('div');
+                    breadcrumbDiv.className = 'jp-breadcrumb';
+                    document.body.insertBefore(breadcrumbDiv, document.body.firstChild);
+                }
+
+                jPulse.UI.breadcrumbs._breadcrumbElement = breadcrumbDiv;
+
+                // Add class to body to enable breadcrumb-specific styling
+                document.body.classList.add('jp-breadcrumbs-enabled');
+
+                // Generate breadcrumb content
+                jPulse.UI.breadcrumbs._generateBreadcrumb();
+
+                jPulse.UI.breadcrumbs._initialized = true;
+            },
+
+            /**
+             * Generate breadcrumb trail based on current URL and navigation structure
+             */
+            _generateBreadcrumb: () => {
+                const breadcrumbDiv = jPulse.UI.breadcrumbs._breadcrumbElement;
+                if (!breadcrumbDiv) {
+                    console.log('jPulse.UI.breadcrumbs: No breadcrumb element found');
+                    return;
+                }
+
+                const currentUrl = window.location.pathname;
+                const navConfig = window.jPulseSiteNavigation;
+
+                console.log('jPulse.UI.breadcrumbs: Generating breadcrumb for URL:', currentUrl);
+                console.log('jPulse.UI.breadcrumbs: Registered pages:', jPulse.UI.navigation._registeredPages);
+
+                if (!navConfig) {
+                    console.warn('jPulse.UI.breadcrumbs: No navigation structure found');
+                    return;
+                }
+
+                // Find breadcrumb trail
+                const trail = jPulse.UI.breadcrumbs._findBreadcrumbTrail(currentUrl, navConfig);
+                console.log('jPulse.UI.breadcrumbs: Generated trail:', trail);
+                console.log('jPulse.UI.breadcrumbs: Trail details:', JSON.stringify(trail, null, 2));
+
+                if (trail.length === 0) {
+                    breadcrumbDiv.style.display = 'none';
+                    return;
+                }
+
+                // Clear existing content
+                breadcrumbDiv.innerHTML = '';
+                breadcrumbDiv.style.display = '';
+
+                // Build breadcrumb HTML
+                trail.forEach((item, index) => {
+                    const isLast = index === trail.length - 1;
+
+                    if (isLast) {
+                        // Current page - no link
+                        const span = document.createElement('span');
+                        span.className = 'jp-breadcrumb-current';
+                        if (item.icon) {
+                            const iconHTML = jPulse.UI.navigation._renderIcon(item.icon, 'jp-breadcrumb-icon');
+                            span.innerHTML = `${iconHTML} ${item.label}`;
+                        } else {
+                            span.textContent = item.label;
+                        }
+                        breadcrumbDiv.appendChild(span);
+                    } else {
+                        // Parent pages - with links
+                        const link = document.createElement('a');
+                        link.href = item.url;
+                        link.className = 'jp-breadcrumb-link';
+                        if (item.icon) {
+                            const iconHTML = jPulse.UI.navigation._renderIcon(item.icon, 'jp-breadcrumb-icon');
+                            link.innerHTML = `${iconHTML} ${item.label}`;
+                        } else {
+                            link.textContent = item.label;
+                        }
+                        breadcrumbDiv.appendChild(link);
+
+                        // Add separator
+                        const separator = document.createElement('span');
+                        separator.className = 'jp-breadcrumb-separator';
+                        separator.textContent = '❯';
+                        breadcrumbDiv.appendChild(separator);
+                    }
+                });
+
+                // Apply ellipsis if content overflows
+                jPulse.UI.breadcrumbs._applyEllipsis();
+            },
+
+            /**
+             * Find breadcrumb trail for current URL
+             * Uses bottom-up search like site navigation
+             * @param {string} currentUrl - Current page URL
+             * @param {Object} navConfig - Navigation structure
+             * @returns {Array} Breadcrumb trail items
+             */
+            _findBreadcrumbTrail: (currentUrl, navConfig) => {
+                const trail = [];
+
+                // Always start with Home (implicitly prepended)
+                trail.push({
+                    label: '{{i18n.view.home.title}}',
+                    url: '/',
+                    icon: '🏠'
+                });
+
+                // Use bottom-up search to find the most specific match first
+                let bestMatch = null;
+                let bestMatchLength = 0;
+                let bestMatchSection = null;
+
+                // Search all sections and their pages - prioritize exact matches globally
+                let exactMatch = null;
+                let exactMatchSection = null;
+
+                // First pass: look for exact matches only
+                for (const [sectionKey, section] of Object.entries(navConfig)) {
+                    // Check for registered dynamic pages (like jPulseDocs)
+                    const pages = jPulse.UI.navigation._registeredPages[sectionKey] || section.pages;
+                    console.log(`jPulse.UI.breadcrumbs: Checking section "${sectionKey}" with pages:`, pages);
+
+                    if (sectionKey === 'jPulseDocs') {
+                        console.log('jPulse.UI.breadcrumbs: jPulseDocs pages detailed:', JSON.stringify(pages, null, 2));
+                    }
+
+                    if (pages) {
+                        const pageMatch = jPulse.UI.breadcrumbs._findDeepestMatch(currentUrl, pages, section);
+                        if (pageMatch && currentUrl === pageMatch.url) {
+                            console.log(`jPulse.UI.breadcrumbs: EXACT MATCH found in section "${sectionKey}":`, pageMatch);
+                            exactMatch = pageMatch;
+                            exactMatchSection = sectionKey;
+                            break; // Stop on first exact match
+                        }
+                    }
+
+                    // Check section itself for exact match
+                    if (currentUrl === section.url) {
+                        exactMatch = { item: section, isSection: true };
+                        exactMatchSection = sectionKey;
+                        break;
+                    }
+                }
+
+                // If exact match found, use it
+                if (exactMatch) {
+                    bestMatch = exactMatch;
+                    bestMatchSection = exactMatchSection;
+                    bestMatchLength = exactMatch.url || exactMatch.item.url.length;
+                } else {
+                    // Second pass: look for prefix matches if no exact match
+                    for (const [sectionKey, section] of Object.entries(navConfig)) {
+                        // Check for registered dynamic pages (like jPulseDocs)
+                        const pages = jPulse.UI.navigation._registeredPages[sectionKey] || section.pages;
+
+                        if (pages) {
+                            const pageMatch = jPulse.UI.breadcrumbs._findDeepestMatch(currentUrl, pages, section);
+                            if (pageMatch && pageMatch.url.length > bestMatchLength) {
+                                bestMatch = pageMatch;
+                                bestMatchLength = pageMatch.url.length;
+                                bestMatchSection = sectionKey;
+                            }
+                        }
+
+                        // Check section itself for prefix match
+                        if (currentUrl.startsWith(section.url) && section.url !== '/' && section.url.length > bestMatchLength) {
+                            bestMatch = { item: section, isSection: true };
+                            bestMatchLength = section.url.length;
+                            bestMatchSection = sectionKey;
+                        }
+                    }
+                }
+
+                // Build trail from the best match
+                if (bestMatch) {
+                    if (bestMatch.isSection) {
+                        // Just the section
+                        trail.push({
+                            label: bestMatch.item.label,
+                            url: bestMatch.item.url,
+                            icon: bestMatch.item.icon
+                        });
+                    } else {
+                        // Section + pages trail
+                        const section = navConfig[bestMatchSection];
+                        trail.push({
+                            label: section.label,
+                            url: section.url,
+                            icon: section.icon
+                        });
+
+                        // Add the page trail
+                        trail.push(...bestMatch.trail);
+                    }
+                }
+
+                return trail;
+            },
+
+            /**
+             * Find deepest matching page in a pages structure (recursive)
+             * @param {string} currentUrl - Current page URL
+             * @param {Object} pages - Pages object to search
+             * @param {Object} parentSection - Parent section for context
+             * @returns {Object|null} Best match with trail
+             */
+            _findDeepestMatch: (currentUrl, pages, parentSection) => {
+                let bestMatch = null;
+                let bestMatchLength = 0;
+                let exactMatch = null;  // Prioritize exact matches
+
+                for (const [pageKey, page] of Object.entries(pages)) {
+                    // Handle both absolute and relative URLs
+                    let pageUrl = page.url;
+
+                    // If page URL is relative and we're in a section, make it absolute
+                    if (parentSection && !pageUrl.startsWith('/')) {
+                        pageUrl = parentSection.url + pageUrl;
+                    }
+
+                    console.log(`jPulse.UI.breadcrumbs: Comparing "${currentUrl}" with "${pageUrl}" (original: "${page.url}")`);
+
+                    // Prioritize exact matches
+                    if (currentUrl === pageUrl) {
+                        console.log(`jPulse.UI.breadcrumbs: EXACT MATCH found for "${pageKey}"`);
+                        exactMatch = {
+                            url: pageUrl,
+                            trail: [{
+                                label: page.label,
+                                url: pageUrl,
+                                icon: page.icon
+                            }]
+                        };
+                        bestMatchLength = pageUrl.length;
+                        break; // Exact match found, stop searching
+                    }
+
+                    // Check prefix match only if no exact match found
+                    if (!exactMatch && currentUrl.startsWith(pageUrl) && pageUrl !== '/') {
+                        if (pageUrl.length > bestMatchLength) {
+                            bestMatch = {
+                                url: pageUrl,
+                                trail: [{
+                                    label: page.label,
+                                    url: pageUrl,
+                                    icon: page.icon
+                                }]
+                            };
+                            bestMatchLength = pageUrl.length;
+                        }
+                    }
+
+                    // Check nested pages recursively
+                    if (page.pages) {
+                        const nestedMatch = jPulse.UI.breadcrumbs._findDeepestMatch(currentUrl, page.pages, parentSection);
+                        if (nestedMatch && nestedMatch.url.length > bestMatchLength) {
+                            // Prepend current page to the trail
+                            bestMatch = {
+                                url: nestedMatch.url,
+                                trail: [{
+                                    label: page.label,
+                                    url: pageUrl,
+                                    icon: page.icon
+                                }, ...nestedMatch.trail]
+                            };
+                            bestMatchLength = nestedMatch.url.length;
+                        }
+                    }
+                }
+
+                // Return exact match if found, otherwise best prefix match
+                if (exactMatch) {
+                    return exactMatch;
+                }
+
+                // Fallback: try filename matching if no URL match found
+                if (!bestMatch) {
+                    const fileName = currentUrl.split('/').pop().replace('.shtml', '');
+                    for (const [pageKey, page] of Object.entries(pages)) {
+                        if (pageKey === fileName || page.url.includes(fileName)) {
+                            let pageUrl = page.url;
+                            if (parentSection && !pageUrl.startsWith('/')) {
+                                pageUrl = parentSection.url + pageUrl;
+                            }
+                            bestMatch = {
+                                url: pageUrl,
+                                trail: [{
+                                    label: page.label,
+                                    url: pageUrl,
+                                    icon: page.icon
+                                }]
+                            };
+                            break;
+                        }
+                    }
+                }
+
+                return bestMatch;
+            },
+
+            /**
+             * Apply ellipsis if breadcrumb content overflows window width
+             */
+            _applyEllipsis: () => {
+                const breadcrumbDiv = jPulse.UI.breadcrumbs._breadcrumbElement;
+                if (!breadcrumbDiv) return;
+
+                // Check if content overflows
+                if (breadcrumbDiv.scrollWidth > breadcrumbDiv.clientWidth) {
+                    breadcrumbDiv.classList.add('jp-breadcrumb-ellipsis');
+                } else {
+                    breadcrumbDiv.classList.remove('jp-breadcrumb-ellipsis');
+                }
+            },
+
+            /**
+             * Refresh breadcrumb (useful when navigation changes or dynamic pages are registered)
+             */
+            refresh: () => {
+                if (jPulse.UI.breadcrumbs._initialized) {
+                    jPulse.UI.breadcrumbs._generateBreadcrumb();
+                }
+            },
+
+            /**
+             * Destroy breadcrumb
+             */
+            destroy: () => {
+                if (jPulse.UI.breadcrumbs._breadcrumbElement) {
+                    jPulse.UI.breadcrumbs._breadcrumbElement.remove();
+                    jPulse.UI.breadcrumbs._breadcrumbElement = null;
+                }
+                jPulse.UI.breadcrumbs._initialized = false;
+            }
+        },
+
+        /**
          * Tab interface widget for navigation and panel switching
          */
         tabs: {
@@ -1972,6 +2341,11 @@ window.jPulse = {
                     // Refresh navigation to show new pages
                     if (jPulse.UI.navigation._initialized) {
                         jPulse.UI.navigation._refresh();
+                    }
+
+                    // Refresh breadcrumb to show new pages
+                    if (jPulse.UI.breadcrumbs && jPulse.UI.breadcrumbs._initialized) {
+                        jPulse.UI.breadcrumbs.refresh();
                     }
                 } catch (error) {
                     console.error(`Failed to load dynamic pages for ${sectionKey}:`, error);
@@ -3485,6 +3859,13 @@ window.jPulse = {
 // Auto-initialize source code components when DOM is ready
 jPulse.dom.ready(() => {
     jPulse.UI.sourceCode.initAll();
+    // Initialize breadcrumbs if available
+    if (jPulse.UI.breadcrumbs) {
+        // Wait a bit for navigation structure to be loaded
+        setTimeout(() => {
+            jPulse.UI.breadcrumbs.init();
+        }, 100);
+    }
 });
 
 // EOF webapp/view/jpulse-common.js

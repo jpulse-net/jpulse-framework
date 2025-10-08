@@ -23,8 +23,7 @@
 <body>
     <div class="jp-main">
         <div class="jp-page-header">
-            <h1><a href="/home/">{{i18n.view.home.title}}</a> <span>❯</span>
-                {{i18n.view.admin.index.title}}</h1>
+            <h1>{{i18n.view.admin.index.title}}</h1>
             <p class="jp-subtitle">{{i18n.view.admin.index.subtitle}}</p>
         </div>
 

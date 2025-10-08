@@ -52,6 +52,11 @@ body {
     min-height: calc(100vh - 30px);
 }
 
+/* Reduce jp-main top margin when breadcrumbs are present */
+body.jp-breadcrumbs-enabled .jp-main {
+    margin-top: -12px;  /* Move up even more for tighter positioning */
+}
+
 /* Core Responsive Breakpoints */
 @media (max-width: calc({{appConfig.view.mainContainer.maxWidth}}px + {{appConfig.view.mainContainer.minMarginLeftRight}}px * 2)) {
     .jp-container {
@@ -73,10 +78,21 @@ body {
     }
 }
 
+/* Mobile responsive breakpoints for jp-main with breadcrumbs */
+@media (max-width: 800px) {
+    body.jp-breadcrumbs-enabled .jp-main {
+        margin-top: -14px;  /* Move up even more on smaller screens */
+    }
+}
+
 @media (max-width: 600px) {
     .jp-main {
         margin: 10px 10px;
         padding: 15px;
+    }
+
+    body.jp-breadcrumbs-enabled .jp-main {
+        margin-top: -14px;  /* Consistent close margin on mobile */
     }
 }
 
@@ -1652,6 +1668,142 @@ body {
         flex-direction: column;
         gap: 15px;
         align-items: flex-start;
+    }
+}
+
+/* Breadcrumb Navigation Component */
+.jp-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 30px;       /* Match jp-header-content padding */
+    background: transparent; /* Match window background */
+    font-size: 0.8em;       /* Smaller, less intrusive font */
+    overflow-x: auto;
+    white-space: nowrap;
+    color: #6c757d;          /* Restored to darker gray for readability */
+    opacity: 0.85;           /* Overall opacity for better blending */
+
+    /* Position breadcrumb right after header */
+    margin-top: 0px;         /* Move closer to header for better centering */
+    margin-bottom: 8px;      /* Small bottom margin to match top spacing */
+
+    /* Align with jp-header-content (same as site logo) */
+    max-width: calc({{appConfig.view.mainContainer.maxWidth}}px - {{appConfig.view.mainContainer.minMarginLeftRight}}px * 2);
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.jp-breadcrumb-link {
+    color: inherit;          /* Inherit dark gray from parent */
+    text-decoration: none;
+    transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+
+.jp-breadcrumb-link:hover {
+    color: #007acc;          /* Blue on hover */
+    text-decoration: underline; /* Underline on hover */
+    opacity: 1;              /* Full opacity on hover for better visibility */
+}
+
+.jp-breadcrumb-current {
+    color: inherit;          /* Inherit dark gray from parent */
+    font-weight: 500;
+}
+
+.jp-breadcrumb-separator {
+    color: #adb5bd;          /* Slightly lighter gray for separators */
+    font-size: 0.8em;
+    margin: 0 4px;
+}
+
+/* Breadcrumb Icons (same styling as site navigation) */
+.jp-breadcrumb-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 16px;  /* Slightly smaller than nav icons */
+    margin-right: 6px;
+}
+
+.jp-breadcrumb-icon-emoji {
+    font-size: 14px;  /* Smaller emoji for breadcrumbs */
+    line-height: 1;
+    opacity: 0.7;  /* Reduce icon opacity for better blending */
+}
+
+.jp-breadcrumb-icon-image {
+    width: 12px;   /* Smaller SVG icons for breadcrumbs */
+    height: 12px;
+    object-fit: contain;
+    padding: 2px;
+    background-color: #007acc;  /* Blue background like site nav */
+    border-radius: 3px;
+    box-sizing: content-box;
+    opacity: 0.8;  /* Slightly reduced opacity for better blending */
+}
+
+/* Ellipsis handling for overflow */
+.jp-breadcrumb-ellipsis {
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.jp-breadcrumb-ellipsis::-webkit-scrollbar {
+    height: 4px;
+}
+
+.jp-breadcrumb-ellipsis::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+}
+
+.jp-breadcrumb-ellipsis::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 2px;
+}
+
+.jp-breadcrumb-ellipsis::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Mobile responsive breadcrumb */
+@media (max-width: calc({{appConfig.view.mainContainer.maxWidth}}px + {{appConfig.view.mainContainer.minMarginLeftRight}}px * 2)) {
+    .jp-breadcrumb {
+        margin-left: {{appConfig.view.mainContainer.minMarginLeftRight}}px;
+        margin-right: {{appConfig.view.mainContainer.minMarginLeftRight}}px;
+        max-width: none;
+        padding: 8px 30px;  /* Keep header padding */
+    }
+}
+
+@media (max-width: 800px) {
+    .jp-breadcrumb {
+        padding: 8px 20px;  /* Reduce padding on smaller screens */
+    }
+}
+
+@media (max-width: 768px) {
+    .jp-breadcrumb {
+        padding: 8px 15px;
+        font-size: 0.75em;  /* Smaller on mobile */
+        gap: 6px;
+    }
+
+    .jp-breadcrumb-separator {
+        margin: 0 2px;
+    }
+}
+
+@media (max-width: 600px) {
+    .jp-breadcrumb {
+        margin-left: 10px;     /* Match jp-main mobile margins */
+        margin-right: 10px;    /* Match jp-main mobile margins */
+        padding: 8px 15px;     /* Match jp-main mobile padding */
+        font-size: 0.7em;      /* Even smaller on mobile */
     }
 }
 

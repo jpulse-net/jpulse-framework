@@ -257,9 +257,7 @@
 
     <div class="jp-container-1000">
         <div class="jp-page-header">
-            <h1><a href="/home/">Home</a> <span>❯</span>
-                <a href="/hello/">Hello World Site Demos</a> <span>❯</span>
-                🔄 Vue.js SPA Demo</h1>
+            <h1>🔄 Vue.js SPA Demo</h1>
         </div>
         <div id="helloVueApp" class="hello-vue-app">
             <!-- Vue.js SPA content will be rendered here -->

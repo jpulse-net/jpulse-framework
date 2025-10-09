@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         0.9.3
- * @release         2025-10-08
+ * @version         0.9.4
+ * @release         2025-10-09
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -309,6 +309,8 @@ function processHandlebars(content, context, req, depth = 0) {
         switch (blockType) {
             case 'if':
                 return _handleBlockIf(params, blockContent, currentContext);
+            case 'unless':
+                return _handleBlockUnless(params, blockContent, currentContext);
             case 'each':
                 return _handleBlockEach(params, blockContent, currentContext);
             default:
@@ -391,13 +393,24 @@ function processHandlebars(content, context, req, depth = 0) {
      */
     function _handleBlockIf(params, blockContent, currentContext) {
         const condition = _evaluateCondition(params, currentContext);
-
-        // Split content on {{else}}
-        const elseParts = blockContent.split('{{else}}');
-        const ifContent = elseParts[0] || '';
-        const elseContent = elseParts[1] || '';
-
+        const parts = blockContent
+            .replace(/\{\{#if:~(\d+)~.*?\{\{\/if:~\1~\}\}/gs, (m) => {  // match nested {{#if}} ... {{/if}}
+                return m.replace(/\{\{else\}\}/g, '{~{~else~}~}');      // escape {{else}} in nested {{#if}}
+            })
+            .split('{{else}}')                                          // split at {{else}} outside nested {{#if}}
+            .map(part => part.replace(/\{~\{~else~\}~\}/g, '{{else}}')); // restore {{else}} in nested {{#if}}
+        const ifContent = parts[0] || '';
+        const elseContent = parts[1] || '';
         return condition ? ifContent : elseContent;
+    }
+
+    /**
+     * Handle {{#unless}} blocks
+     */
+    function _handleBlockUnless(params, blockContent, currentContext) {
+        const condition = _evaluateCondition(params, currentContext);
+        // no {{else}}
+        return condition ? '' : blockContent;
     }
 
     /**
@@ -446,7 +459,7 @@ function processHandlebars(content, context, req, depth = 0) {
      */
     function _handleFileInclude(parsedArgs, currentContext) {
         // Check include depth to prevent infinite recursion
-        const maxDepth = global.appConfig?.controller?.view?.maxIncludeDepth || 10;
+        const maxDepth = global.appConfig?.controller?.view?.maxIncludeDepth || 16;
         if (depth >= maxDepth) {
             throw new Error(`Maximum include depth (${maxDepth}) exceeded`);
         }
@@ -663,7 +676,8 @@ function processHandlebars(content, context, req, depth = 0) {
 
 export default {
     initialize,
-    load
+    load,
+    processHandlebars  // Export for unit testing
 };
 
 // EOF webapp/controller/view.js

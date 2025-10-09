@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Template Reference v0.9.3
+# jPulse Framework / Docs / Template Reference v0.9.4
 
 Complete reference for server-side template development with the jPulse Handlebars system, covering template variables, file operations, security features, and best practices for building dynamic web pages.
 
@@ -28,9 +28,10 @@ The jPulse Framework uses a custom Handlebars implementation for server-side tem
 Templates use the `.shtml` extension and follow the MVC directory structure:
 
 ```
-webapp/view/                 # Framework templates
-├── jpulse-header.tmpl      # Common header include
-├── jpulse-footer.tmpl      # Common footer include
+webapp/view/                # Framework templates
+├── jpulse-header.tmpl      # Include for common head section
+├── jpulse-footer.tmpl      # Include for common footer (page decoration, JavaScript)
+├── jpulse-navigation.tmpl  # Include for common site navigation, breadcrumbs, tab navigation
 ├── home/
 │   └── index.shtml         # Home page template
 ├── auth/
@@ -651,8 +652,8 @@ Prevents infinite recursion with maximum include depth:
 <!-- Level 1 --> {{file.include "header.tmpl"}}
 <!-- Level 2 -->   {{file.include "nav.tmpl"}}
 <!-- Level 3 -->     {{file.include "menu.tmpl"}}
-<!-- ... up to level 10 -->
-<!-- Level 11+ --> ❌ Blocked to prevent infinite recursion
+<!-- ... up to level 16 -->
+<!-- Level 17+ --> ❌ Blocked to prevent infinite recursion
 ```
 
 ### View Root Jail

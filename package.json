@@ -1,6 +1,6 @@
 {
     "name": "@peterthoeny/jpulse-framework",
-    "version": "0.9.3",
+    "version": "0.9.4",
     "description": "Generic web application framework using MongoDB, Node.js, Express",
     "type": "module",
     "main": "webapp/app.js",

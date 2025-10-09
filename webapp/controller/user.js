@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         0.9.3
- * @release         2025-10-08
+ * @version         0.9.4
+ * @release         2025-10-09
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -33,6 +33,13 @@ class UserController {
         const startTime = Date.now();
         try {
             LogController.logRequest(req, 'user.signup', JSON.stringify({ username: req.body.username, email: req.body.email }));
+
+             // Bail out if signup is disabled
+             if (global.appConfig.controller.user.disableSignup) {
+                LogController.logError(req, 'user.signup', 'error: signup is disabled');
+                const message = global.i18n.translate(req, 'controller.user.signup.signupDisabled');
+                return global.CommonUtils.sendError(req, res, 403, message, 'SIGNUP_DISABLED');
+            }
 
             const { firstName, lastName, username, email, password, confirmPassword, acceptTerms } = req.body;
 

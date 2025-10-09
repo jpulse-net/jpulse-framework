@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Handlebars Templating v0.9.3
+# jPulse Framework / Docs / Handlebars Templating v0.9.4
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -21,6 +21,29 @@ Use double curly braces to output variables:
 ### Conditionals
 Use `#if` blocks for conditional rendering:
 ```handlebars
+{{#if user.authenticated}}
+    <p>Welcome back, {{user.firstName}}!</p>
+{{else}}
+    <p>Please log in to continue.</p>
+{{/if}}
+```
+
+Use `#unless` blocks for inverse conditional rendering (when condition is false):
+```handlebars
+{{#unless user.authenticated}}
+    <p>Please log in to continue.</p>
+{{/unless}}
+```
+
+**Note:** The `{{#unless}}` helper does not support `{{else}}` blocks. If you need else functionality, use `{{#if}}` with `{{else}}` instead:
+
+```handlebars
+<!-- Using unless (no else support) -->
+{{#unless user.authenticated}}
+    <p>Please log in to continue.</p>
+{{/unless}}
+
+<!-- Equivalent using if/else -->
 {{#if user.authenticated}}
     <p>Welcome back, {{user.firstName}}!</p>
 {{else}}

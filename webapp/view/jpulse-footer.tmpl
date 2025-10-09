@@ -4,8 +4,8 @@
  * @tagline         Footer template for jPulse pages
  * @description     Footer included in all jPulse pages to provide a consistent page layout
  * @file            webapp/view/jpulse-footer.tmpl
- * @version         0.9.3
- * @release         2025-10-08
+ * @version         0.9.4
+ * @release         2025-10-09
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -29,7 +29,7 @@
             <span class="jp-logo-shortname">{{app.shortName}}</span>
         </a>
         <div class="jp-user-menu">
-            <div class="jp-user-icon" onclick="toggleUserMenu(event)">
+            <div class="jp-user-icon" id="jp-user-icon">
               {{#if user.authenticated}}
                 <span>{{user.initials}}</span>
               {{else}}
@@ -42,8 +42,12 @@
                 <a href="/user/profile.shtml">{{i18n.view.auth.common.profile}}</a>
                 <a href="/auth/logout.shtml">{{i18n.view.auth.common.signout}}</a>
               {{else}}
+                {{#unless appConfig.view.auth.hideLogin}}
                 <a href="/auth/login.shtml">{{i18n.view.auth.common.signin}}</a>
+                {{/unless}}
+                {{#unless appConfig.view.auth.hideSignup}}
                 <a href="/auth/signup.shtml">{{i18n.view.auth.common.signup}}</a>
+                {{/unless}}
               {{/if}}
               {{#if user.isAdmin}}
                 <a href="/admin/">{{i18n.view.user.index.adminDashboard}}</a>
@@ -99,6 +103,82 @@ jPulse.dom.ready(() => {
         homeLabel: '{{i18n.view.home.title}}'
     });
     {{/if}}
+
+    // Enhanced user menu - hover behavior like site navigation with mobile fallback
+    const userIcon = document.getElementById('jp-user-icon');
+    const dropdown = document.getElementById('userDropdown');
+    const userMenu = document.querySelector('.jp-user-menu');
+
+    if (userIcon && dropdown && userMenu) {
+        let hideTimeout = null;
+        const isMobileDevice = jPulse.device.isMobile() || jPulse.device.isTouchDevice();
+
+        if (isMobileDevice) {
+            // Mobile: tap to toggle behavior ONLY
+            userIcon.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                dropdown.classList.toggle('show');
+            });
+
+            // Close on outside tap
+            document.addEventListener('click', (event) => {
+                if (!userMenu.contains(event.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+
+            // Close on menu item selection
+            dropdown.addEventListener('click', (event) => {
+                if (event.target.tagName === 'A') {
+                    dropdown.classList.remove('show');
+                }
+            });
+
+            // Prevent mouse events from interfering on mobile
+            userIcon.addEventListener('mouseenter', (e) => e.preventDefault());
+            userIcon.addEventListener('mouseleave', (e) => e.preventDefault());
+            dropdown.addEventListener('mouseenter', (e) => e.preventDefault());
+            dropdown.addEventListener('mouseleave', (e) => e.preventDefault());
+
+        } else {
+            // Desktop: hover behavior like site navigation ONLY
+            userIcon.addEventListener('mouseenter', () => {
+                if (hideTimeout) {
+                    clearTimeout(hideTimeout);
+                    hideTimeout = null;
+                }
+                dropdown.classList.add('show');
+            });
+
+            userIcon.addEventListener('mouseleave', (e) => {
+                if (!dropdown.contains(e.relatedTarget)) {
+                    hideTimeout = setTimeout(() => {
+                        dropdown.classList.remove('show');
+                        hideTimeout = null;
+                    }, 600); // Match site menu delay
+                }
+            });
+
+            dropdown.addEventListener('mouseenter', () => {
+                if (hideTimeout) {
+                    clearTimeout(hideTimeout);
+                    hideTimeout = null;
+                }
+                dropdown.classList.add('show');
+            });
+
+            dropdown.addEventListener('mouseleave', () => {
+                hideTimeout = setTimeout(() => {
+                    dropdown.classList.remove('show');
+                    hideTimeout = null;
+                }, 500); // Slightly shorter delay for dropdown
+            });
+
+            // Prevent click events from interfering on desktop hover
+            userIcon.addEventListener('click', (e) => e.preventDefault());
+        }
+    }
 });
 </script>
 

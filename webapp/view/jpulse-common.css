@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         0.9.3
- * @release         2025-10-08
+ * @version         0.9.4
+ * @release         2025-10-09
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -152,7 +152,7 @@ body {
     .jp-header-content {
         padding: 0 10px;  /* Match main container margin */
         gap: 8px;
-        justify-content: flex-start;
+        justify-content: space-between;
         width: 100%;
         max-width: 100%;
         margin: 0;
@@ -167,7 +167,7 @@ body {
     }
 
     .jp-logo {
-        flex: 1 1 auto;
+        flex: 0 1 auto;
         margin: 0;
         min-width: 0;
         overflow: hidden;
@@ -195,6 +195,7 @@ body {
         margin-left: 0;
         position: relative;
         z-index: 1102;
+        margin-right: 20px;  /* Match desktop header padding */
     }
 
     .jp-user-icon {
@@ -224,11 +225,8 @@ body {
         top: 100%;
     }
 
-    /* Hide any sub-headers/breadcrumbs on mobile */
-    .jp-breadcrumb,
-    .jp-sub-header,
-    [class*="breadcrumb"],
-    [class*="sub-header"] {
+    /* Hide any sub-headers on mobile */
+    .jp-sub-header {
         display: none !important;
     }
 
@@ -386,8 +384,11 @@ body {
 }
 
 @media (max-width: 600px) {
-    .jp-logo span {
-        display: none;
+    .jp-logo {
+        flex: 0 1 auto;
+        margin: 0;
+        min-width: 0;
+        overflow: hidden;
     }
 }
 
@@ -437,7 +438,7 @@ body {
     }
 
     .jp-logo {
-        flex: 1 1 auto;  /* Can grow AND shrink */
+        flex: 0 1 auto;  /* Prevent grow to keep right padding consistent */
         min-width: 0;
         overflow: hidden;
     }
@@ -453,6 +454,8 @@ body {
         flex-shrink: 0;
         flex-grow: 0;
         margin-left: 0;
+        margin-right: 0;
+        padding-right: 35px;
     }
 
     .jp-user-icon {
@@ -464,6 +467,13 @@ body {
     .jp-hamburger {
         flex-shrink: 0;
         flex-grow: 0;
+    }
+}
+
+@media (max-width: 600px) {
+    .jp-user-menu {
+        margin-right: 0;
+        padding-right: 12px;
     }
 }
 

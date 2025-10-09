@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.9.3
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v0.9.4
 
 **For Site Administrators & Site Developers**
 
@@ -10,6 +10,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 
 ## Latest Release Highlights
 
+- ✅ **Authentication Control & User Menu Enhancement (v0.9.4)**: Complete implementation of configurable authentication controls with four new app.conf flags: `controller.user.disableSignup`, `controller.auth.disableLogin`, `view.auth.hideSignup`, and `view.auth.hideLogin` for granular control over public sites. Enhanced user menu with site navigation-consistent hover behavior (desktop) and tap-to-toggle (mobile) using device detection. Added `{{#unless}}` Handlebars helper with comprehensive documentation and examples. Fixed nested `{{#if}}` with `{{else}}` bug that affected complex template logic. Improved login error handling with proper toast messages for server errors. Enhanced view controller testing with 28 comprehensive unit tests covering all handlebars functionality, made release-agnostic for maintenance-free CI/CD.
 - ✅ **Hierarchical Breadcrumb Navigation System (v0.9.3)**: Complete breadcrumb navigation implementation with bottom-up directory-level search algorithm for accurate URL matching. Features clean initialization pattern consistent with site navigation, server-side template integration with i18n support, SPA compatibility with real-time updates via History API monitoring, responsive design with overflow ellipsis handling, and comprehensive test coverage (22 breadcrumb tests). Includes critical bug fix for breadcrumb visibility when site navigation is disabled, enhanced test wrapper for accurate failure reporting, and production-ready implementation with smart page name extraction for 404/unknown pages.
 - ✅ **Responsive Navigation System with Template-Based Architecture (v0.9.2)**: Complete implementation of responsive site navigation with desktop pulldown menus and mobile hamburger support. Migrated navigation definition from `app.conf` to `webapp/view/jpulse-navigation.tmpl` for full Handlebars power with conditionals, loops, and i18n. Features per-submenu timeout system for smooth hover interactions, role-based menu visibility with auto-re-initialization on login, enhanced tab navigation with URL auto-detection, and comprehensive responsive CSS fixes. Includes bug fixes for mobile search forms, authentication-aware menu updates, and MPA tab content jumping. All 716 tests passing with enhanced navigation and tab parameter testing.
 - ✅ **WebSocket Real-Time Demo with Enhanced Navigation (v0.9.1)**: Complete `/hello-websocket/` educational demo teaching real-time communication with emoji cursor tracking (ephemeral) and collaborative todo list (hybrid REST+WebSocket). Includes unified 4-section navigation structure across all hello examples (Overview, Demo/App, Code Examples, Architecture), enhanced WebSocket documentation with implementation patterns, critical modal dialog focus trap bug fix, and 14 new hello-todo structure tests. Perfect progressive learning path: hello-todo (MPA) → hello-vue (SPA) → hello-websocket (Real-time SPA).
@@ -68,7 +69,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - Configuration merging system
 
 ### 🧪 **Testing & Quality**
-- 716 comprehensive tests with 100% pass rate
+- 740 comprehensive tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis

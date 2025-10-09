@@ -3,8 +3,8 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         0.9.3
- * @release         2025-10-08
+ * @version         0.9.4
+ * @release         2025-10-09
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -163,6 +163,13 @@ class AuthController {
         const startTime = Date.now();
         try {
             global.LogController.logRequest(req, 'auth.login', JSON.stringify({ identifier: req.body.identifier }));
+
+             // Bail out if login is disabled
+             if (global.appConfig.controller.auth.disableLogin) {
+                LogController.logError(req, 'auth.login', 'error: login is disabled');
+                const message = global.i18n.translate(req, 'controller.auth.loginDisabled');
+                return global.CommonUtils.sendError(req, res, 403, message, 'LOGIN_DISABLED');
+            }
 
             const { identifier, password } = req.body;
 

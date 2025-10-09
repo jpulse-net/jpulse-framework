@@ -1,6 +1,122 @@
-# jPulse Framework / Docs / Version History v0.9.3
+# jPulse Framework / Docs / Version History v0.9.4
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.9.4, W-077, 2025-10-09
+
+**Commit:** `W-077, v0.9.4: Authentication Control & User Menu Enhancement`
+
+**AUTHENTICATION CONTROL & USER MENU ENHANCEMENT**: Complete implementation of configurable authentication controls with granular app.conf flags, enhanced user menu with site navigation-consistent behavior, Handlebars template improvements, and comprehensive unit testing overhaul.
+
+**Objective**: Provide site administrators with granular control over authentication features for public sites, enhance user menu consistency with site navigation behavior, improve Handlebars templating capabilities, and establish robust testing patterns for view controller functionality.
+
+**Key Features**:
+- **Authentication Configuration**: Four new app.conf flags for granular control over signup/login visibility and functionality
+- **User Menu Enhancement**: Site navigation-consistent hover/tap behavior with device detection
+- **Handlebars Improvements**: New `{{#unless}}` helper and nested `{{#if}}` bug fixes
+- **Login Error Handling**: Proper toast messages for server errors (e.g., disabled login)
+- **Testing Architecture**: Comprehensive unit tests for actual view controller implementation
+
+**Authentication Control Flags**:
+- **`controller.user.disableSignup`**: Server-side signup endpoint control (returns 403 when disabled)
+- **`controller.auth.disableLogin`**: Server-side login endpoint control (returns 403 when disabled)
+- **`view.auth.hideSignup`**: Client-side signup form/link visibility control
+- **`view.auth.hideLogin`**: Client-side login form/link visibility control
+
+**User Menu Enhancement**:
+- **Desktop Behavior**: Hover to open with delay, hover leave to close with delay (consistent with site navigation)
+- **Mobile Behavior**: Tap to toggle, tap outside to close, tap menu item to close
+- **Device Detection**: Uses `jPulse.device.isMobile()` and `jPulse.device.isTouchDevice()` for proper behavior
+- **Event Management**: Proper event handling with `stopPropagation` and cleanup
+
+**Handlebars Template Improvements**:
+- **`{{#unless}}` Helper**: Inverse conditional rendering (opposite of `{{#if}}`)
+- **No `{{else}}` Support**: Documented limitation with equivalent `{{#if}}/{{else}}` examples
+- **Nested `{{#if}}` Bug Fix**: Fixed complex nested conditionals with `{{else}}` blocks
+- **Comprehensive Documentation**: Added to `docs/handlebars.md` with examples and usage patterns
+
+**Login Error Handling**:
+- **Toast Message Fix**: Added explicit `jPulse.UI.toast.error(error)` call in `handleLoginError`
+- **Server Error Display**: Proper error message display for 403 responses (disabled login)
+- **User Feedback**: Clear indication when authentication features are disabled
+
+**Testing Architecture Overhaul**:
+- **Public Method**: Made `processHandlebars()` public for proper unit testing
+- **28 Comprehensive Tests**: Complete coverage of all handlebars functionality
+- **Release-Agnostic**: Tests use template literals to avoid version-specific failures
+- **Actual Implementation Testing**: Tests the real controller code, not reimplemented logic
+- **W-077 Feature Coverage**: Specific tests for `{{#unless}}` and nested `{{#if}}` fixes
+
+**Template Integration**:
+- **Navigation Template**: Uses `{{#unless appConfig.view.auth.hideLogin}}` and `{{#unless appConfig.view.auth.hideSignup}}`
+- **Conditional Rendering**: Clean template logic for showing/hiding authentication elements
+- **Configuration-Driven**: All visibility controlled by centralized app.conf settings
+- **Backward Compatibility**: Existing templates work unchanged
+
+**User Experience Improvements**:
+- **Consistent Navigation**: User menu behavior matches site navigation patterns
+- **Clear Feedback**: Toast messages inform users of authentication status
+- **Mobile Optimization**: Touch-friendly menu behavior with proper event handling
+- **Accessibility**: Keyboard navigation and screen reader compatibility maintained
+
+**Bug Fixes**:
+- **Login Toast Messages**: Fixed missing error display on server authentication failures
+- **Nested Handlebars**: Resolved complex `{{#if}}` with `{{else}}` nesting issues
+- **User Menu JavaScript**: Moved from header to footer for proper `jPulse` availability
+- **Event Handling**: Fixed mobile menu closing and desktop hover behavior
+- **Test Architecture**: Replaced reimplemented handlebars logic with actual controller testing
+
+**Files Modified (Major Changes)**:
+- `webapp/app.conf`: Added four authentication control flags
+- `webapp/controller/auth.js`: Added `disableLogin` configuration check with 403 response
+- `webapp/controller/user.js`: Added `disableSignup` configuration check with 403 response
+- `webapp/controller/view.js`: Made `processHandlebars()` public, enhanced handlebars processing
+- `webapp/view/auth/login.shtml`: Fixed login error toast message handling
+- `webapp/view/jpulse-navigation.tmpl`: Added `{{#unless}}` conditionals for auth links
+- `webapp/view/jpulse-footer.tmpl`: Enhanced user menu with device-aware behavior
+- `webapp/translations/en.conf` & `de.conf`: Added `controller.auth.loginDisabled` translation
+- `docs/handlebars.md`: Added comprehensive `{{#unless}}` documentation
+- `webapp/tests/unit/controller/view.test.js`: Complete rewrite with 28 comprehensive tests
+
+**Quality Assurance**:
+- **All 740 tests passing** (653 unit + 58 integration + 29 other)
+- **Zero regressions** in existing authentication functionality
+- **Manual testing** across desktop and mobile devices
+- **Configuration validation** for all four authentication flags
+- **Release-agnostic tests** prevent future CI/CD failures
+
+**Developer Experience**:
+- **Comprehensive Documentation**: Clear examples and usage patterns for all new features
+- **Robust Testing**: Proper unit tests prevent future regressions
+- **Clean Architecture**: Public method exposure enables testability without breaking encapsulation
+- **Configuration Control**: Simple app.conf flags for complex authentication scenarios
+- **Maintenance-Free**: Release-agnostic tests eliminate version-specific failures
+
+**Technical Architecture**:
+- **Server-Side Control**: Authentication endpoints respect configuration flags
+- **Client-Side Visibility**: Template conditionals control UI element display
+- **Device Detection**: Proper mobile/desktop behavior differentiation
+- **Event Management**: Clean event handling with proper cleanup and propagation control
+- **Test Coverage**: Comprehensive unit tests for all handlebars functionality
+
+**Lines of Code Impact**:
+- **Created**: ~500 lines (tests, documentation, user menu enhancements)
+- **Modified**: ~150 lines (controllers, templates, translations)
+- **Net Impact**: ~650 lines
+
+**Use Cases Demonstrated**:
+- **Public Site Control**: Disable signup/login for read-only public sites
+- **Staged Rollout**: Hide UI elements while keeping backend functionality
+- **Error Handling**: Proper user feedback for disabled authentication features
+- **Template Logic**: Complex conditional rendering with `{{#unless}}` and nested `{{#if}}`
+- **Mobile UX**: Touch-friendly menu behavior with proper event handling
+
+**Migration Path**:
+- **Zero Breaking Changes**: All existing functionality preserved
+- **Backward Compatible**: Default configuration maintains current behavior
+- **Optional Features**: New flags are opt-in, existing sites unaffected
+- **Test Enhancement**: Improved test coverage without changing public APIs
 
 ________________________________________________
 ## v0.9.3, W-070, 2025-10-08

@@ -3,8 +3,8 @@
  * @tagline         Unit tests for markdown controller ignore functionality
  * @description     Tests for .jpulse-ignore pattern matching and filtering
  * @file            webapp/tests/unit/controller/markdown-ignore.test.js
- * @version         0.9.3
- * @release         2025-10-08
+ * @version         0.9.4
+ * @release         2025-10-09
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.9.3
+# jPulse Framework / Docs / Dev / Work Items v0.9.4
 
 This is the doc to track work items, arranged in three sections:
 
@@ -1158,23 +1158,8 @@ This is the doc to track work items, arranged in three sections:
   - docs/handlebars.md -- updated template include examples to reflect jpulse-navigation.tmpl and parameter passing
   - docs/style-reference.md -- documentation for .jp-btn-nav-group
 
-
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-070, v0.9.3: view: create hierarchical breadcrumb navigation
-- status: ✅ COMPLETED
+- status: ✅ DONE
 - type: Feature
 - objective: let users know where they are on a big site
 - spec discussions: docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
@@ -1206,16 +1191,84 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-077, v0.9.4: auth controller & view: disable user signup & login with app configuration
+- status: ✅ DONE
+- type: Feature
+- objective: admin can disable user signup and/or login, mainly for public sites
+- spec:
+  - user signup:
+    - new appConf.controller.auth.disableSignup flag
+      - if true:
+        - disable signup in controller
+    - new appConf.view.auth.hideSignup flag
+      - if true:
+        - hide signup in site nav
+        - hide signup in user menu
+  - user login:
+    - new appConf.controller.auth.disableLogin flag
+      - if true:
+        - keep login in controller (for secret login via known url, intended for public sites)
+    - new appConf.view.auth.hideLogin flag
+      - if true:
+        - hide login in site nav
+        - hide login in user menu
+  - deliverables:
+    - webapp/app.conf: new flags:
+      - controller.user.disableSignup   // prevent signup
+      - controller.auth.disableLogin    // prevent login
+      - view.auth.hideSignup            // hide signup in navigation
+      - view.auth.hideLogin             // hide login in navigation
+    - docs/handlebars.md
+      - document {{#unless}} ... {{/unless}}
+    - webapp/controller/view.js:
+      - new handlebar: {{#unless}} ... {{/unless}}
+      - fix bug with nested {{#if}} ... {{else}} ... {{/if}}
+    - webapp/controller/user.js:
+      - disable signup based on controller.user.disableSignup flag
+    - webapp/controller/auth.js:
+      - disable login based on controller.auth.disableLogin flag
+    - webapp/view/jpulse-navigation.tmpl:
+      - add {{#if}} conditionals based on view.auth.hideSignup and view.auth.hideLogin
+    - webapp/view/jpulse-footer.tmpl:
+      - add {{#if}} conditionals based on view.auth.hideSignup and view.auth.hideLogin
+    - webapp/view/auth/login.shtml: fix JavaScript bug when already logged in
+    - webapp/tests/unit/controller/view.test.js:
+      - add integration tests for {{#unless}} helper functionality
+      - add integration tests for nested {{#if}} with {{else}} bug fix
+      - replaced old reimplemented handlebars processor with actual view controller tests
+    - pending:
+      - fix responsive style issue with user icon position (released without fix!)
+
+
+
+
+
+
+
+
 pending:
-- fix bug in http://localhost:8080/auth/login.shtml when authenticated
+- fix responsive style issue with user icon
+
+- offer file.timestamp and file.exists also for static files (but not file.include)
+
 
 
 
 ### Potential next items:
-- W-045: architecture: create plugin infrastructure
 - W-040: view: create view logs page for site admins
-- W-068: view: create responsive sidebar
 - W-076: model: create redis caching infrastrucure
+
+- W-045: architecture: create plugin infrastructure
+- W-068: view: create responsive sidebar
 - W-0: view: page headers with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific translations
 - W-0: controller: change search to cursor based paging API with limit & cursor
@@ -1283,11 +1336,21 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
 
+### W-078: app api: provide health and metrics endpoints
+- status: 🕑 PENDING
+- type: Feature
+- objective: provide health and metrics endpoint for load-balancer and system monitoring
+- apis:
+  - /api/1/health
+  - /api/1/metrics
+
 ### W-055: deployment: load balancer and multi-server setup
 - status: 🕑 PENDING
 - type: Feature
 - objective: automated setup for load-balanced multi-server deployments
-- depends on: W-053 (configuration templates)
+- prerequisits:
+  - W-053, v0.7.3: deployment: configuration templates and validation - ✅ DONE
+  - W-078: app api: provide health and metrics endpoints
 - deliverables:
   - nginx load balancer configuration templates
   - multi-server deployment orchestration scripts

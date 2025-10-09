@@ -12,8 +12,8 @@
  *                    - sidebar navigation: if enabled
  *                  - window.jPulseTabsNavigation -- tabs navigation structures
  * @file            webapp/view/jpulse-navigation.tmpl
- * @version         0.9.3
- * @release         2025-10-08
+ * @version         0.9.4
+ * @release         2025-10-09
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -74,28 +74,35 @@
                 }
             }
         },
+        {{#unless user.authenticated}}
+            {{#if appConfig.view.auth.hideLogin}}
+                {{#unless appConfig.view.auth.hideSignup}}
+        auth: {
+            label:              '{{i18n.view.navigation.auth.signup}}',
+            url:                '/auth/signup.shtml',
+            icon:               '🔑',
+        },
+                {{/unless}}
+            {{else}}
         auth: {
             label:              '{{i18n.view.navigation.auth._index}}',
             url:                '/auth/login.shtml',
             icon:               '🔑',
             pages: {
-              {{#if user.authenticated}}
-                logout: {
-                    label:      '{{i18n.view.navigation.auth.logout}}',
-                    url:        '/auth/logout.shtml'
-                },
-              {{else}}
                 login: {
                     label:      '{{i18n.view.navigation.auth.login}}',
                     url:        '/auth/login.shtml'
                 },
+                {{#unless appConfig.view.auth.hideSignup}}
                 signup: {
                     label:      '{{i18n.view.navigation.auth.signup}}',
                     url:        '/auth/signup.shtml'
                 },
-              {{/if}}
+                {{/unless}}
             }
         },
+            {{/if}}
+        {{/unless}}
         {{#if user.authenticated}}
         user: {
             label:              '{{i18n.view.navigation.user._index}}',
@@ -109,6 +116,11 @@
                 profile: {
                     label:      '{{i18n.view.navigation.user.profile}}',
                     url:        '/user/profile.shtml'
+                },
+                auth: {
+                    label:      '{{i18n.view.navigation.auth.logout}}',
+                    url:        '/auth/logout.shtml',
+                    icon:       '🔑',
                 },
             }
         },

@@ -4,8 +4,8 @@
  * @tagline         Header template for jPulse pages
  * @description     Common header included in all jPulse pages
  * @file            webapp/view/jpulse-header.tmpl
- * @version         0.9.3
- * @release         2025-10-08
+ * @version         0.9.4
+ * @release         2025-10-09
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -29,40 +29,6 @@
 {{#if file.exists "site-common.css"}}
 <link rel="stylesheet" href="/site-common.css?t={{file.timestamp "site-common.css"}}">
 {{/if}}
-
-<!-- jPulse Framework JavaScript -->
-<script>
-    // User menu dropdown functionality
-    function toggleUserMenu(event) {
-        if (event) {
-            event.stopPropagation();  // Prevent click-outside handler from firing
-        }
-        const dropdown = document.getElementById('userDropdown');
-        dropdown.classList.toggle('show');
-    }
-
-    // Close dropdown when clicking outside
-    document.addEventListener('DOMContentLoaded', function() {
-        document.addEventListener('click', function(event) {
-            const userMenu = document.querySelector('.jp-user-menu');
-            const dropdown = document.getElementById('userDropdown');
-
-            if (userMenu && dropdown && !userMenu.contains(event.target)) {
-                dropdown.classList.remove('show');
-            }
-        });
-
-        // Also handle touch events on mobile
-        document.addEventListener('touchstart', function(event) {
-            const userMenu = document.querySelector('.jp-user-menu');
-            const dropdown = document.getElementById('userDropdown');
-
-            if (userMenu && dropdown && !userMenu.contains(event.target)) {
-                dropdown.classList.remove('show');
-            }
-        });
-    });
-</script>
 
 <!-- Prism.js Syntax Highlighting -->
 <script src="/common/prism/prism.js"></script>

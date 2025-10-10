@@ -3,8 +3,8 @@
  * @tagline         Unit tests for HelloTodo MVC demonstration model
  * @description     Unit tests for HelloTodo MVC demonstration model
  * @file            webapp/tests/unit/site/hello-todo-model.test.js
- * @version         0.9.4
- * @release         2025-10-09
+ * @version         0.9.5
+ * @release         2025-10-10
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -357,6 +357,130 @@ describe('HelloTodo Model (W-071)', () => {
             expect(schema.title.required).toBe(true);
             expect(schema.username.required).toBe(true);
             expect(schema.completed.default).toBe(false);
+        });
+    });
+
+    describe('findById() - Enhanced in v0.9.5', () => {
+        test('should find todo by valid ObjectId string', async () => {
+            const todoId = new ObjectId();
+            const mockTodo = {
+                _id: todoId,
+                title: 'Test Todo',
+                username: 'testuser',
+                completed: false,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+
+            mockCollection.findOne.mockResolvedValue(mockTodo);
+
+            const result = await HelloTodoModel.findById(todoId.toString());
+
+            expect(mockCollection.findOne).toHaveBeenCalledWith({ _id: todoId });
+            expect(result).toEqual(mockTodo);
+        });
+
+        test('should return null for non-existent todo', async () => {
+            const todoId = new ObjectId();
+            mockCollection.findOne.mockResolvedValue(null);
+
+            const result = await HelloTodoModel.findById(todoId.toString());
+
+            expect(mockCollection.findOne).toHaveBeenCalledWith({ _id: todoId });
+            expect(result).toBeNull();
+        });
+
+        test('should handle invalid ObjectId format', async () => {
+            const invalidId = 'invalid-object-id';
+
+            await expect(HelloTodoModel.findById(invalidId)).rejects.toThrow(/Failed to find todo by ID:/);
+            expect(mockCollection.findOne).not.toHaveBeenCalled();
+        });
+
+        test('should handle database errors gracefully', async () => {
+            const todoId = new ObjectId();
+            mockCollection.findOne.mockRejectedValue(new Error('Database connection failed'));
+
+            await expect(HelloTodoModel.findById(todoId.toString())).rejects.toThrow(/Failed to find todo by ID: Database connection failed/);
+        });
+
+        test('should work with ObjectId instance (not just string)', async () => {
+            const todoId = new ObjectId();
+            const mockTodo = {
+                _id: todoId,
+                title: 'Test Todo',
+                username: 'testuser'
+            };
+
+            mockCollection.findOne.mockResolvedValue(mockTodo);
+
+            const result = await HelloTodoModel.findById(todoId);
+
+            expect(mockCollection.findOne).toHaveBeenCalledWith({ _id: todoId });
+            expect(result).toEqual(mockTodo);
+        });
+
+        test('should support controller logging workflow for toggle operation', async () => {
+            const todoId = new ObjectId();
+            const originalTodo = {
+                _id: todoId,
+                title: 'Test Todo',
+                username: 'testuser',
+                completed: false,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+
+            const updatedTodo = {
+                ...originalTodo,
+                completed: true,
+                updatedAt: new Date()
+            };
+
+            // Simulate controller workflow: findById -> toggleComplete
+            mockCollection.findOne
+                .mockResolvedValueOnce(originalTodo)  // findById call
+                .mockResolvedValueOnce(originalTodo)  // toggleComplete internal call
+                .mockResolvedValueOnce(updatedTodo);  // toggleComplete result call
+
+            mockCollection.updateOne.mockResolvedValue({ matchedCount: 1, modifiedCount: 1 });
+
+            // Step 1: Controller calls findById to get original state for logging
+            const oldTodo = await HelloTodoModel.findById(todoId.toString());
+            expect(oldTodo).toEqual(originalTodo);
+
+            // Step 2: Controller calls toggleComplete
+            const result = await HelloTodoModel.toggleComplete(todoId.toString());
+            expect(result).toEqual(updatedTodo);
+
+            // Verify the sequence of calls
+            expect(mockCollection.findOne).toHaveBeenCalledTimes(3);
+            expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+        });
+
+        test('should support controller logging workflow for delete operation', async () => {
+            const todoId = new ObjectId();
+            const originalTodo = {
+                _id: todoId,
+                title: 'Todo to Delete',
+                username: 'testuser',
+                completed: false
+            };
+
+            // Simulate controller workflow: findById -> delete
+            mockCollection.findOne.mockResolvedValue(originalTodo);
+            mockCollection.deleteOne.mockResolvedValue({ deletedCount: 1 });
+
+            // Step 1: Controller calls findById to get original state for logging
+            const oldTodo = await HelloTodoModel.findById(todoId.toString());
+            expect(oldTodo).toEqual(originalTodo);
+
+            // Step 2: Controller calls delete
+            const result = await HelloTodoModel.delete(todoId.toString());
+            expect(result).toBe(true);
+
+            expect(mockCollection.findOne).toHaveBeenCalledWith({ _id: todoId });
+            expect(mockCollection.deleteOne).toHaveBeenCalledWith({ _id: todoId });
         });
     });
 });

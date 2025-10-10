@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.9.4
+# jPulse Framework / Docs / Dev / Work Items v0.9.5
 
 This is the doc to track work items, arranged in three sections:
 
@@ -1323,7 +1323,7 @@ finishing up work item: W-070:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
 - assume release: W-070, v0.9.3
-- update deliverables in W-070 to document work done (don't remove from existing deliverables list)
+- update deliverables in W-040 to document work done (don't remove from existing deliverables list)
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 

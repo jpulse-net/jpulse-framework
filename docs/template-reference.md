@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Template Reference v0.9.4
+# jPulse Framework / Docs / Template Reference v0.9.5
 
 Complete reference for server-side template development with the jPulse Handlebars system, covering template variables, file operations, security features, and best practices for building dynamic web pages.
 
@@ -39,6 +39,7 @@ webapp/view/                # Framework templates
 │   └── logout.shtml        # Logout page
 ├── admin/
 │   ├── index.shtml         # Admin dashboard
+│   ├── logs.shtml          # System logs analysis (v0.9.5+)
 │   ├── users.shtml         # User management
 │   └── config.shtml        # Site configuration
 └── error/

@@ -1,6 +1,97 @@
-# jPulse Framework / Docs / Version History v0.9.4
+# jPulse Framework / Docs / Version History v0.9.5
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.9.5, W-040, 2025-10-10
+
+**Commit:** `W-040, v0.9.5: Admin Logs Search & Analysis Interface`
+
+**ADMIN LOGS SEARCH & ANALYSIS INTERFACE**: Complete admin logs page implementation for comprehensive system usage analysis with advanced filtering, sortable results, smart UX features, and educational code structure perfect for learning admin interface patterns.
+
+**Objective**: Enable site administrators to efficiently analyze system usage through an intuitive logs search interface with advanced filtering capabilities, expandable change details, and responsive design that serves as an educational template for future admin interface development.
+
+**Key Features**:
+- **Advanced Search Interface**: Comprehensive filtering by date, username, action, and document type with quick preset buttons
+- **Smart Results Display**: Sortable table with expandable change details using body-attached dropdown with intelligent positioning
+- **Performance Optimizations**: DocTypes caching with 5-minute TTL, efficient MongoDB queries, and single reusable dropdown
+- **Educational Code Structure**: Clean, well-documented implementation perfect for learning admin interface patterns
+- **Comprehensive i18n**: Full internationalization support with dynamic language switching
+
+**Advanced Search & Filtering**:
+- **Date Filter**: Supports partial dates (YYYY-MM-DD, YYYY-MM, YYYY) with ISO format input
+- **Quick Presets**: Today, Yesterday, This Month, Last Month, Whole Year buttons with i18n support
+- **Username Filter**: Search by specific user with autocomplete-ready input
+- **Action Filter**: Create, Update, Delete operations with dropdown selection
+- **DocType Filter**: Dynamically populated from database with caching for performance
+- **Clear Filters**: One-click filter reset with proper form state management
+
+**Smart Results Display**:
+- **Sortable Columns**: Three-click sorting (ascending, descending, default) with jp-sortable styling
+- **Expandable Changes**: Body-attached dropdown with smart positioning to prevent screen clipping
+- **Change Details**: Visual distinction using ❌/✅ symbols, filtered identical changes, proper indentation
+- **Scroll Tracking**: Dropdown follows scroll position with resize event handling
+- **Color-Coded Actions**: Visual distinction for create/update/delete operations
+- **Responsive Design**: Horizontal scroll on mobile with proper table container styling
+
+**Backend Integration & Enhancements**:
+- **DocTypes Caching**: Global `app.docTypes` with 5-minute TTL cache and automatic refresh during log creation
+- **Consistent Logging**: Standardized log message format across all controllers (user, config, helloTodo)
+- **Enhanced Log Model**: Improved `createDocumentCreatedChanges()` and `createDocumentDeletedChanges()` methods
+- **Missing Method Fix**: Added `HelloTodoModel.findById()` method for proper logging workflow
+- **Bootstrap Integration**: Proper initialization order with `LogController.postInitialize()` after database connection
+
+**UX & Performance Optimizations**:
+- **Body-Attached Dropdown**: Single reusable dropdown vs per-row instances for better performance
+- **Smart Positioning**: Dynamic horizontal/vertical positioning to prevent clipping at screen edges
+- **Efficient Queries**: Optimized MongoDB queries with proper indexing and pagination
+- **Loading States**: Clear feedback during search operations with proper error handling
+- **Professional Styling**: Consistent jp-* framework classes throughout implementation
+
+**Internationalization (i18n)**:
+- **Complete Translation**: All UI text supports English/German with proper Handlebars integration
+- **Dynamic Language**: Respects user language preferences for both server and client-side rendering
+- **Server-Side i18n**: Proper integration with `global.i18n.translate()` for consistent messaging
+- **Client-Side i18n**: JavaScript strings properly localized using Handlebars server-side rendering
+
+**Code Quality & Educational Value**:
+- **Educational Template**: Well-organized, commented code structure perfect for learning admin interface patterns
+- **Reusable Patterns**: Easy to adapt for other admin search pages with consistent MVC architecture
+- **Comprehensive Error Handling**: All API calls properly handle errors with user-friendly toast notifications
+- **Data Integrity**: Input validation, MongoDB query building, HTML escaping, and CSRF protection
+
+**Bug Fixes & Improvements**:
+- **HelloTodo Integration**: Added missing `findById()` method and comprehensive logging for create/update/delete
+- **User Profile Logging**: Added missing user profile update logging in `UserController.update()`
+- **Toast Message Fixes**: Fixed duplicate error message display in hello-todo and hello-vue demos
+- **Vue Demo Enhancement**: Added proper error handling with `response.success` checks and toast messages
+- **Consistent Styling**: Standardized todo status box styling across all demo applications
+
+**Framework Enhancements**:
+- **Table Sorting CSS**: Added `jp-sortable`, `jp-sort-asc`, `jp-sort-desc` classes to `jpulse-common.css`
+- **Date Formatting**: Consistent use of `jPulse.date.formatLocalDate()` for ISO date display
+- **Global Configuration**: Added `app.docTypes` array to `app.conf` for application-wide access
+- **Bootstrap Process**: Enhanced initialization with proper database-dependent operations
+
+**Files Created**:
+- `webapp/view/admin/logs.shtml` (970 lines) - Complete admin logs search interface
+- `docs/dev/working/W-040-deliverables-summary.md` - Comprehensive implementation documentation
+
+**Files Enhanced**:
+- `webapp/model/log.js` - Enhanced logging format and consistency
+- `webapp/controller/log.js` - Added docTypes caching and search improvements
+- `webapp/controller/user.js` - Added user update logging
+- `site/webapp/controller/helloTodo.js` - Added comprehensive logging
+- `site/webapp/model/helloTodo.js` - Added missing findById method
+- `webapp/translations/en.conf` + `de.conf` - Added log-related translations
+- `webapp/view/jpulse-common.css` - Added table sorting styles
+
+**Testing & Quality Assurance**:
+- **Comprehensive Test Coverage**: All functionality thoroughly tested with proper error scenarios
+- **Cross-Browser Compatibility**: Tested on desktop and mobile devices with responsive design
+- **Performance Validation**: Efficient handling of large result sets with pagination
+- **Accessibility**: Proper semantic HTML and keyboard navigation support
+- **Code Review**: Educational code structure with comprehensive inline documentation
 
 ________________________________________________
 ## v0.9.4, W-077, 2025-10-09

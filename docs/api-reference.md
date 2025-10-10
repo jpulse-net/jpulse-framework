@@ -711,7 +711,7 @@ GET /api/1/markdown/jpulse-docs/dev/architecture.md
 GET /api/1/markdown/docs/
 ```
 
-## 🏥 System Health API
+## 🏥 System Health and Metrics API
 
 ### Health Check Endpoint
 
@@ -728,12 +728,12 @@ Get application health status and basic information.
     "success": true,
     "status": "ok",
     "data": {
-        "version": "0.5.2",
-        "release": "2025-09-07",
+        "version": "0.9.6",
+        "release": "2025-10-10",
         "uptime": 3600,
         "environment": "development",
         "database": "connected",
-        "timestamp": "2025-09-07T21:30:00.000Z"
+        "timestamp": "2025-10-10T21:30:00.000Z"
     }
 }
 ```
@@ -742,6 +742,112 @@ Get application health status and basic information.
 - `ok` - All systems operational
 - `degraded` - Some non-critical issues
 - `error` - Critical system issues
+
+### Metrics Endpoint
+
+#### Get System Metrics
+Get comprehensive system metrics with role-based access control.
+
+**Route:** `GET /api/1/metrics`
+**Middleware:** None (public endpoint with role-based response)
+**Authentication:** Optional (affects response detail level)
+
+**Guest/Regular User Response (200):**
+```json
+{
+    "success": true,
+    "data": {
+        "status": "ok",
+        "version": "0.9.6",
+        "release": "2025-10-10",
+        "uptime": 3600,
+        "uptimeFormatted": "1h 0m 0s",
+        "environment": "development",
+        "database": {
+            "status": "connected",
+            "name": "jp-dev"
+        },
+        "memory": {
+            "used": 45,
+            "total": 128
+        },
+        "timestamp": "2025-10-10T21:30:00.000Z"
+    }
+}
+```
+
+**Admin User Response (200):**
+```json
+{
+    "success": true,
+    "data": {
+        "status": "ok",
+        "version": "0.9.6",
+        "release": "2025-10-10",
+        "uptime": 3600,
+        "uptimeFormatted": "1h 0m 0s",
+        "environment": "development",
+        "database": {
+            "status": "connected",
+            "name": "jp-dev"
+        },
+        "memory": {
+            "used": 45,
+            "total": 128
+        },
+        "system": {
+            "platform": "darwin",
+            "arch": "x64",
+            "nodeVersion": "v18.17.0",
+            "cpus": 8,
+            "hostname": "server-01",
+            "loadAverage": [0.5, 0.4, 0.3],
+            "freeMemory": 2048,
+            "totalMemory": 8192
+        },
+        "websockets": {
+            "uptime": 3600000,
+            "totalMessages": 1500,
+            "namespaces": 3,
+            "activeConnections": 12
+        },
+        "process": {
+            "pid": 12345,
+            "ppid": 1,
+            "memoryUsage": {
+                "rss": 67108864,
+                "heapTotal": 33554432,
+                "heapUsed": 16777216,
+                "external": 1048576,
+                "arrayBuffers": 524288
+            },
+            "resourceUsage": {
+                "userCPUTime": 123456,
+                "systemCPUTime": 78910
+            }
+        },
+        "deployment": {
+            "mode": "development",
+            "config": {
+                "name": "Development Environment",
+                "db": "jp-dev"
+            }
+        },
+        "timestamp": "2025-10-10T21:30:00.000Z"
+    }
+}
+```
+
+**Memory Values:**
+- All memory values are in megabytes (MB)
+- `memory.used` and `memory.total` refer to Node.js heap memory
+- `system.freeMemory` and `system.totalMemory` refer to system RAM
+
+**Admin Status Page:**
+- Human-readable status dashboard available at `/admin/status.shtml`
+- Requires admin authentication
+- Provides visual indicators and real-time system information
+- Includes WebSocket namespace details and performance metrics
 
 ## 📝 Error Handling
 

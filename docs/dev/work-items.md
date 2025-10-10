@@ -1233,21 +1233,6 @@ This is the doc to track work items, arranged in three sections:
     - pending:
       - fix responsive style issue with user icon position (released without fix!)
 
-
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-040, v0.9.5: view: create view logs page for site admins
 - status: DONE ✅
 - type: Feature
@@ -1294,8 +1279,37 @@ This is the doc to track work items, arranged in three sections:
 
 
 
-pending:
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-078, v0.9.6: app api: provide health and metrics endpoints
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: provide health and metrics endpoint for load-balancer and system monitoring
+- apis:
+  - /api/1/health
+  - /api/1/metrics
+- deliverables:
+  - webapp/controller/FIXME - FIXME
+  - webapp/view/admin/status.shtml - human-readable status page
+
+
+
+
+
+
+
+
+
+pending:
+- app.conf: rename app ==> jpulse & site
+- pm2 metrics
+- navigation.tmpl: remove jPulse Tabs Navigation help, add to docs
+
+old pending:
 - fix responsive style issue with user icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 
@@ -1303,13 +1317,16 @@ pending:
 
 
 ### Potential next items:
-- W-076: model: create redis caching infrastrucure
+- W-078, v0.9.6: app api: provide health and metrics endpoints
+- W-079, v0.9.7: view controller: strategy for cache invalidation
+- W-080, v0.9.8: controller: change search to cursor based paging API with limit & cursor
+- W-076, v1.0.0: model: create redis caching infrastrucure
+
 
 - W-045: architecture: create plugin infrastructure
 - W-068: view: create responsive sidebar
 - W-0: view: page headers with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific translations
-- W-0: controller: change search to cursor based paging API with limit & cursor
 
 ### Chat instructions
 
@@ -1339,12 +1356,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 0.9.3
+node bin/bump-version.js 0.9.5
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v0.9.3
+git tag v0.9.5
 git push origin main --tags
 
 === on failed package build on github ===
@@ -1374,20 +1391,28 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
 
-### W-076: model: create redis caching infrastrucure
+### W-079, v0.9.7: view controller: strategy for cache invalidation
+- status: 🕑 PENDING
+- type: Feature
+- objective:
+  - ability to invalidate template load cache (.shtml, .tmpl, .css, .js) so that the app does not need to be restarted
+  - should work in multi node instances, and multi app server instances
+- automated way across all node instances of the app
+  - timer based, e.g. cache TTL?
+  - file change detection?
+  - on-demand via API?
+
+### W-080, v0.9.8: controller: change search to cursor based paging API with limit & cursor
+- status: 🕑 PENDING
+- type: Feature
+- objective: paged queries that do not miss or duplicate docs between calls
+
+### W-076, v1.0.0: model: create redis caching infrastrucure
 - status: 🕑 PENDING
 - type: Feature
 - redis to cache site config
   - what else? sessions? cached files?
 - should work in multi node instances, and multi app server instances
-
-### W-078: app api: provide health and metrics endpoints
-- status: 🕑 PENDING
-- type: Feature
-- objective: provide health and metrics endpoint for load-balancer and system monitoring
-- apis:
-  - /api/1/health
-  - /api/1/metrics
 
 ### W-055: deployment: load balancer and multi-server setup
 - status: 🕑 PENDING
@@ -1528,17 +1553,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - type: Idea
 - new jpulse-docker project?
 
-### W-0: view controller: strategy for cache invalidation
-- status: 🕑 PENDING
-- type: Feature
-- objective:
-  - ability to invalidate template load cache (.shtml, .tmpl, .css, .js) so that the app does not need to be restarted
-  - should work in multi node instances, and multi app server instances
-- automated way across all node instances of the app
-  - timer based, e.g. cache TTL?
-  - file change detection?
-  - on-demand via API?
-
 ### W-0: docs: syntax highlighting for preformatted sections
 - status: 🕑 PENDING
 - type: Feature
@@ -1587,11 +1601,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - type: Feature
 - objective: allow site admins/developers define site-specific translations for MPA and SPA
 - how: deep merge of site/webapp/translations/* files into webapp/translations/
-
-### W-0: controller: change search to cursor based paging API with limit & cursor
-- status: 🕑 PENDING
-- type: Feature
-- objective: paged queries that do not miss or duplicate docs between calls
 
 ### W-0: controller: extract Handlebars processing to dedicated controller
 - status: 🕑 PENDING

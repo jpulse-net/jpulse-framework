@@ -19,6 +19,7 @@ const router = express.Router();
 
 // Load controllers
 import AuthController from './controller/auth.js';
+import HealthController from './controller/health.js';
 import MarkdownController from './controller/markdown.js';
 import UserController from './controller/user.js';
 import ConfigController from './controller/config.js';
@@ -28,19 +29,9 @@ import viewController from './controller/view.js';
 import CommonUtils from './utils/common.js';
 
 // API routes (must come before catch-all route)
-router.get('/api/1/status', (req, res) => {
-    const startTime = Date.now();
-    LogController.logRequest(req, 'api.status', '');
-    res.json({
-        status: 'ok',
-        version: appConfig.app.version,
-        release: appConfig.app.release,
-        mode: appConfig.deployment[appConfig.deployment.mode].name,
-        database: appConfig.deployment[appConfig.deployment.mode].db
-    });
-    const duration = Date.now() - startTime;
-    LogController.logInfo(req, 'api.status', `success: completed in ${duration}ms`);
-});
+// Health and metrics endpoints
+router.get('/api/1/health', HealthController.health);
+router.get('/api/1/metrics', HealthController.metrics);
 
 // Config API routes
 router.get('/api/1/config', ConfigController.list);

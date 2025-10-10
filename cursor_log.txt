@@ -29205,3 +29205,186 @@ W-040 DELIVERABLES:
 - GitHub build ready ✅
 
 Changes were accepted by user.
+
+
+============================================================
+2025-10-10 01:00
+
+Review W-078 health and metrics endpoints work item
+
+## Chain of Thought Process
+
+### 1. Work Item Analysis
+I reviewed the W-078 work item which requires implementing health and metrics endpoints at `/api/1/health` and `/api/1/metrics`. The objective is to provide endpoints for load-balancer and system monitoring. This is part of the v0.9.6 release and is marked as IN_PROGRESS.
+
+### 2. Context Understanding from W-076
+The W-076 document shows this is the first step in a strategic release sequence leading to v1.0. The health endpoints are prioritized as a "quick win" that's essential for production monitoring. This makes sense as it enables production deployment readiness without breaking changes.
+
+### 3. Existing API Structure Analysis
+I found that the framework already has a well-established API pattern:
+- Existing `/api/1/status` endpoint in routes.js provides basic status info
+- Controllers follow consistent patterns (AuthController, ConfigController, etc.)
+- API responses use standard JSON format with success/error patterns
+- Logging is integrated via LogController for all API endpoints
+
+### 4. Current Monitoring Capabilities
+The framework already has some monitoring infrastructure:
+- WebSocketController has comprehensive statistics tracking via `getStats()`
+- LogController provides structured logging with request tracking
+- Existing `/api/1/status` endpoint shows basic app info
+- WebSocket admin dashboard at `/admin/websocket-stats.shtml`
+
+### 5. Load Balancer Requirements
+From the deployment documentation, I can see the framework is designed for:
+- PM2 clustering support
+- nginx reverse proxy setup
+- Production health monitoring needs
+- Multi-instance coordination (future Redis integration)
+
+### 6. API Documentation Pattern
+The existing API reference shows a health endpoint is already documented at `/api/1/health` with a specific response format including version, uptime, environment, database status, etc.
+
+### 7. Metrics Considerations
+For the metrics endpoint, I need to consider what would be most useful for:
+- Load balancers (simple health checks)
+- System administrators (performance metrics)
+- Developers (application-specific metrics)
+- Monitoring tools (structured data)
+
+### 8. Don't Make Me Think Principle
+Following this principle, the endpoints should:
+- Return clear, actionable information
+- Use standard HTTP status codes appropriately
+- Provide consistent response formats
+- Include essential metrics without overwhelming detail
+- Be fast and lightweight for frequent polling
+
+### 9. Implementation Strategy
+Based on the existing patterns, I should:
+- Create a dedicated controller for health/metrics
+- Follow the existing API route registration pattern
+- Integrate with existing logging infrastructure
+- Leverage existing WebSocket and system statistics
+- Ensure consistency with current API documentation
+
+### 10. User Clarifications Received
+1. **Health Endpoint**: Rename existing `/api/1/status` to `/api/1/health` - simple change
+2. **Metrics Endpoint**: Create `/api/1/metrics` with role-based access:
+   - Guest/regular users: Basic status info (non-sensitive)
+   - Admin users: Detailed metrics including sensitive implementation details
+3. **Admin Status Page**: Create `/admin/status.shtml` human-readable status page similar to existing `/admin/websocket-status.shtml`
+
+## Implementation Plan Summary
+- Rename /api/1/status to /api/1/health
+- Create role-based /api/1/metrics endpoint
+- Create HealthController for both endpoints
+- Add /admin/status.shtml human-readable status page
+- Follow security best practices for sensitive data exposure
+
+
+============================================================
+2025-10-10 01:20
+
+W-078 IMPLEMENTATION COMPLETED:
+
+✅ Created HealthController (webapp/controller/health.js)
+- health() method for /api/1/health endpoint
+- metrics() method with role-based access control
+- adminStatus() method for admin status page
+- Helper method _formatUptime() for human-readable uptime
+
+✅ Updated routes (webapp/routes.js)
+- Replaced /api/1/status with /api/1/health endpoint
+- Added /api/1/metrics endpoint
+- Added /admin/status.shtml route with admin authentication
+
+✅ Created admin status page (webapp/view/admin/status.shtml)
+- Responsive grid layout with status cards
+- Visual indicators for system health
+- Memory usage progress bars
+- WebSocket namespace details table
+- Real-time refresh functionality
+
+✅ Comprehensive test coverage
+- Unit tests (webapp/tests/unit/controller/health.test.js)
+- Integration tests (webapp/tests/integration/health-api.test.js)
+- Role-based access testing
+- Performance and error handling tests
+
+✅ Updated API documentation (docs/api-reference.md)
+- Complete /api/1/health endpoint documentation
+- Detailed /api/1/metrics with role-based examples
+- Admin status page documentation
+- Memory value explanations
+
+SECURITY FEATURES:
+- Role-based metrics disclosure (sensitive data admin-only)
+- Public health endpoint for load balancers
+- Admin-only status dashboard
+- No sensitive implementation details exposed to guests
+
+PERFORMANCE OPTIMIZED:
+- Lightweight health checks for frequent polling
+- Efficient memory usage reporting
+- Fast response times for load balancer health checks
+
+Changes were accepted by user.
+
+
+============================================================
+2025-10-10 01:30
+
+W-078 FIXES IMPLEMENTED:
+
+✅ System Status Page Improvements:
+- Renamed to system-status.shtml following user's convention
+- Implemented proper jPulse page structure with jpulse-header/footer includes [[memory:9755701]]
+- Used jp-* CSS classes for consistency, prefixed custom styles with local- [[memory:9755703]]
+- Fixed HTML structure to match logs.shtml pattern
+- Added proper JavaScript for REST API calls
+- Implemented loading states, error handling, and refresh functionality
+
+✅ i18n Internationalization:
+- Added complete translations in en.conf and de.conf
+- Used proper object path view.admin.systemStatus.*
+- All user-facing text properly internationalized
+- API data remains untranslated as requested
+
+✅ Routing Fixes:
+- Removed duplicate admin route middleware (already covered by existing regex)
+- Updated adminStatus method to handle system-status.shtml path
+- Fixed method signature to include next() parameter
+
+✅ Health Logging Configuration:
+- Added support for appConfig.controller.health.omitHealthLogs
+- Implemented in both health() and metrics() endpoints
+- Reduces log noise when enabled by sysadmins
+- Error logging still occurs regardless of setting
+
+✅ Code Quality Improvements:
+- Fixed Handlebars syntax issues
+- Proper indentation throughout
+- Added comprehensive error handling
+- Consistent EOF markers
+
+The system status page now follows jPulse Framework conventions and provides a proper admin dashboard for system monitoring.
+
+
+============================================================
+2025-10-10 01:40
+
+W-078 FINAL FIXES:
+
+✅ Logging Configuration Refined:
+- Only health endpoint respects omitHealthLogs (load balancer noise reduction)
+- Metrics endpoint always logs (admin usage tracking important)
+- Error logging always occurs regardless of setting
+
+✅ Page Structure Fixed:
+- Added missing jpulse-navigation.tmpl include
+- Fixed page container structure to match logs.shtml pattern
+- Used jp-main and jp-container-1200 wrapper classes
+- Proper authentication check with jp-error-box fallback
+- Consistent with other admin pages
+
+The system status page now has proper jPulse styling and structure, matching the existing admin page patterns.

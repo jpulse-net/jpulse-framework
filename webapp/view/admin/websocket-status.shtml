@@ -249,9 +249,7 @@
         </div>
     </div>
 
-    {{#if file.exists "jpulse-footer.tmpl"}}
-        {{file.include "jpulse-footer.tmpl"}}
-    {{/if}}
+    {{file.include "jpulse-footer.tmpl"}}
 
     <script>
     (function() {

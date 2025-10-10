@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / Admin / Logs
+ * @tagline         Admin logs viewer interface
+ * @description     Log analysis and search interface for site administrators
+ * @file            webapp/view/admin/logs.shtml
+ * @version         0.9.5
+ * @release         2025-10-09
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{i18n.view.admin.logs.title}} - {{app.shortName}}</title>
+
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        /* Page-specific styles only - common styles are in jpulse-common.css */
+
+        .local-filter-presets {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .jp-preset-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f8f9fa;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .jp-preset-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .jp-preset-btn.active {
+            background: #007acc;
+            color: white;
+            border-color: #007acc;
+        }
+
+        /* Remove local table styles - using jp-* styles now */
+        .local-logs-table {
+            width: 100%;
+        }
+
+        /* Remove local sorting styles - using jp-* styles now */
+
+        /* Force table visibility for debugging */
+        #logsTableContainer {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            height: auto !important;
+            margin-bottom: 200px; /* Extra space for dropdowns */
+        }
+
+        /* Changes dropdown */
+        .local-changes-cell {
+            position: relative;
+        }
+
+        .local-changes-dropdown {
+            position: fixed;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10000;
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+            min-width: 500px;
+            max-width: 600px;
+        }
+
+        .local-changes-dropdown.show {
+            display: block;
+        }
+
+        .local-changes-dropdown-content {
+            padding: 12px;
+        }
+
+        .local-changes-dropdown-content .local-change-item {
+            margin-bottom: 6px;
+            padding: 6px 8px;
+            background: #f8f9fa;
+            border-radius: 3px;
+            user-select: text;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .local-changes-dropdown-content .local-change-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .local-changes-dropdown-content .local-change-item strong {
+            display: block;
+            margin-bottom: 2px;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .local-changes-dropdown-content .local-change-item .local-change-value {
+            margin-left: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .local-changes-dropdown-content pre {
+            white-space: pre-wrap;
+            margin: 0;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 3px;
+            user-select: text;
+            font-size: 12px;
+            line-height: 1.3;
+        }
+
+        .local-changes-summary {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .local-action-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .local-action-create {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .local-action-update {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .local-action-delete {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .local-changes-cell {
+            max-width: 300px;
+            position: relative;
+        }
+
+        .local-changes-summary {
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .local-changes-full {
+            display: none;
+            white-space: pre-wrap;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid #e9ecef;
+        }
+
+        .local-changes-cell.expanded .local-changes-summary {
+            white-space: normal;
+        }
+
+        .local-changes-cell.expanded .local-changes-full {
+            display: block;
+        }
+
+        .local-timestamp {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .local-username {
+            font-weight: 500;
+        }
+
+        .local-results-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .local-page-size-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .local-page-size-selector select {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .local-filter-count {
+            background: #007acc;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+
+        .local-clear-filters {
+            color: #dc3545;
+            text-decoration: none;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .local-clear-filters:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .local-filter-presets {
+                justify-content: center;
+            }
+
+            .local-results-info {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+
+            .local-changes-cell {
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-container-1200 local-admin-logs">
+          {{#if user.authenticated}}
+            <div class="jp-page-header">
+                <h1>{{i18n.view.admin.logs.title}}</h1>
+                <p class="jp-subtitle">{{i18n.view.admin.logs.subtitle}}</p>
+            </div>
+
+            <!-- Filter presets -->
+            <div class="jp-filter-presets">
+                <button type="button" class="jp-preset-btn" data-preset="today">{{i18n.view.admin.logs.presetToday}}</button>
+                <button type="button" class="jp-preset-btn" data-preset="yesterday">{{i18n.view.admin.logs.presetYesterday}}</button>
+                <button type="button" class="jp-preset-btn" data-preset="thisMonth">{{i18n.view.admin.logs.presetThisMonth}}</button>
+                <button type="button" class="jp-preset-btn" data-preset="lastMonth">{{i18n.view.admin.logs.presetLastMonth}}</button>
+                <button type="button" class="jp-preset-btn" data-preset="wholeYear">{{i18n.view.admin.logs.presetWholeYear}}</button>
+                <small class="jp-form-help" style="margin-left: 15px; align-self: center;">{{i18n.view.admin.logs.searchDateExamples}}</small>
+            </div>
+
+            <!-- Search filters -->
+            <div class="jp-search-section">
+                <form class="jp-search-form" id="logsSearchForm">
+                    <div class="jp-search-fields">
+                        <div class="jp-form-group">
+                            <label for="searchDate" class="jp-form-label">{{i18n.view.admin.logs.searchDate}}</label>
+                            <input type="text" id="searchDate" name="createdAt" class="jp-form-input" placeholder="YYYY-MM-DD, YYYY-MM, or YYYY">
+                        </div>
+                        <div class="jp-form-group">
+                            <label for="searchUsername" class="jp-form-label">{{i18n.view.admin.logs.searchUsername}}</label>
+                            <input type="text" id="searchUsername" name="createdBy" class="jp-form-input" placeholder="{{i18n.view.admin.logs.searchUsernamePlaceholder}}">
+                        </div>
+                        <div class="jp-form-group">
+                            <label for="searchAction" class="jp-form-label">{{i18n.view.admin.logs.searchAction}}</label>
+                            <select id="searchAction" name="data.action" class="jp-form-select">
+                                <option value="">{{i18n.view.admin.logs.allActions}}</option>
+                                <option value="create">Create</option>
+                                <option value="update">Update</option>
+                                <option value="delete">Delete</option>
+                            </select>
+                        </div>
+                        <div class="jp-form-group">
+                            <label for="searchDocType" class="jp-form-label">{{i18n.view.admin.logs.searchDocType}}</label>
+                            <select id="searchDocType" name="data.docType" class="jp-form-select">
+                                <option value="">{{i18n.view.admin.logs.allDocTypes}}</option>
+                                {{#each app.docTypes}}
+                                <option value="{{this}}">{{this}}</option>
+                                {{/each}}
+                            </select>
+                        </div>
+                        <div class="jp-form-group">
+                            <div class="jp-btn-group">
+                                <button type="submit" class="jp-btn jp-btn-primary">{{i18n.view.admin.logs.search}}</button>
+                                <button type="button" class="jp-btn jp-btn-secondary" onclick="clearFilters()">{{i18n.view.admin.logs.clear}}</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Results info and controls -->
+            <div class="local-results-info" id="resultsInfo" style="display: none;">
+                <div>
+                    <span id="resultsCount">0 results</span>
+                    <span id="activeFiltersCount" class="local-filter-count" style="display: none;">0</span>
+                    <a href="#" class="local-clear-filters" onclick="clearFilters(); return false;" id="clearFiltersLink" style="display: none;">{{i18n.view.admin.logs.clearAllFilters}}</a>
+                </div>
+                <div class="local-page-size-selector">
+                    <label for="pageSize">{{i18n.view.admin.logs.resultsPerPage}}</label>
+                    <select id="pageSize" onchange="changePageSize()">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Results table -->
+            <div class="jp-table-container" id="logsTableContainer">
+                <table class="jp-table" id="logsTable">
+                    <thead>
+                        <tr>
+                            <th class="jp-sortable" data-sort="createdAt">{{i18n.view.admin.logs.date}}</th>
+                            <th class="jp-sortable" data-sort="createdBy">{{i18n.view.admin.logs.username}}</th>
+                            <th class="jp-sortable" data-sort="data.action">{{i18n.view.admin.logs.action}}</th>
+                            <th class="jp-sortable" data-sort="data.docType">{{i18n.view.admin.logs.docType}}</th>
+                            <th>{{i18n.view.admin.logs.changes}}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody">
+                        <!-- Logs will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Loading and no results states -->
+            <div class="jp-loading" id="loading" style="display: none;">
+                {{i18n.view.admin.logs.loading}}
+            </div>
+
+            <div class="jp-no-results" id="noResults" style="display: none;">
+                {{i18n.view.admin.logs.noResults}}
+            </div>
+
+            <!-- Pagination -->
+            <div class="jp-pagination" id="pagination" style="display: none;">
+                <button id="prevPage" disabled>{{i18n.view.admin.logs.previous}}</button>
+                <span id="pageInfo">Page 1 of 1</span>
+                <button id="nextPage" disabled>{{i18n.view.admin.logs.next}}</button>
+            </div>
+
+          {{else}}
+            <div class="jp-error-box">
+                {{i18n.view.auth.common.notAuthenticated}}
+            </div>
+          {{/if}}
+        </div>
+    </div>
+
+    <script>
+        // i18n strings for JavaScript - dynamically populated based on user language
+        const i18nStrings = {
+            noChangesRecorded: '{{i18n.view.admin.logs.noChangesRecorded}}',
+            fieldsChanged: '{{i18n.view.admin.logs.fieldsChanged}}',
+            fieldUpdated: '{{i18n.view.admin.logs.fieldUpdated}}',
+            fieldsUpdated: '{{i18n.view.admin.logs.fieldsUpdated}}',
+            fieldsCreated: '{{i18n.view.admin.logs.fieldsCreated}}',
+            fieldsDeleted: '{{i18n.view.admin.logs.fieldsDeleted}}',
+            documentAction: '{{i18n.view.admin.logs.documentAction}}',
+            created: '{{i18n.view.admin.logs.created}}',
+            deleted: '{{i18n.view.admin.logs.deleted}}',
+            noResultsFound: '{{i18n.view.admin.logs.noResultsFound}}',
+            loadingResults: '{{i18n.view.admin.logs.loadingResults}}',
+            resultsPerPage: '{{i18n.view.admin.logs.resultsPerPage}}',
+            result: '{{i18n.view.admin.logs.result}}',
+            results: '{{i18n.view.admin.logs.results}}',
+            showingResults: '{{i18n.view.admin.logs.showingResults}}'
+        };
+
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentFilters = {};
+        let currentSort = { field: 'createdAt', order: 'desc' };
+        let pageSize = 50;
+        let allLogs = [];
+
+        // Initialize logs page
+        jPulse.dom.ready(() => {
+            setupEventListeners();
+            initializeSorting();
+            setDefaultDate();
+            loadLogs(); // Load all logs by default (no filters)
+        });
+
+        function initializeSorting() {
+            document.querySelectorAll('.jp-sortable').forEach(header => {
+                header.addEventListener('click', () => {
+                    const field = header.getAttribute('data-sort');
+                    handleSortClick(field, header);
+                });
+            });
+            updateSortingUI(); // Set initial sort state
+        }
+
+        function handleSortClick(field, headerElement) {
+            // Three-click cycle: asc -> desc -> disabled (default)
+            if (currentSort.field === field) {
+                if (currentSort.order === 'asc') {
+                    currentSort.order = 'desc';
+                } else if (currentSort.order === 'desc') {
+                    // Reset to default sorting (createdAt desc)
+                    currentSort = { field: 'createdAt', order: 'desc' };
+                } else {
+                    currentSort.order = 'asc';
+                }
+            } else {
+                currentSort = { field: field, order: 'asc' };
+            }
+
+            updateSortingUI();
+            loadLogs(currentFilters);
+        }
+
+        function updateSortingUI() {
+            // Clear all sorting classes
+            document.querySelectorAll('.jp-sortable').forEach(header => {
+                header.classList.remove('jp-sort-asc', 'jp-sort-desc');
+            });
+
+            // Add appropriate class to current sort field
+            const currentHeader = document.querySelector(`[data-sort="${currentSort.field}"]`);
+            if (currentHeader) {
+                if (currentSort.order === 'asc') {
+                    currentHeader.classList.add('jp-sort-asc');
+                } else if (currentSort.order === 'desc') {
+                    currentHeader.classList.add('jp-sort-desc');
+                }
+            }
+        }
+
+        function setupEventListeners() {
+            // Search form
+            const searchForm = document.getElementById('logsSearchForm');
+            searchForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                searchLogs();
+            });
+
+            // Filter presets
+            document.querySelectorAll('.jp-preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => setDatePreset(btn.dataset.preset));
+            });
+
+            // Table sorting
+            document.querySelectorAll('.sortable').forEach(th => {
+                th.addEventListener('click', () => sortTable(th.dataset.sort));
+            });
+
+            // Pagination
+            document.getElementById('prevPage').addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    loadLogs(currentFilters);
+                }
+            });
+
+            document.getElementById('nextPage').addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    loadLogs(currentFilters);
+                }
+            });
+        }
+
+        function setDefaultDate() {
+            // Don't set a default date - show all results by default
+            // const today = new Date().toISOString().split('T')[0];
+            // document.getElementById('searchDate').value = today;
+            // setPresetActive('today');
+        }
+
+        function setDatePreset(preset) {
+            const dateInput = document.getElementById('searchDate');
+            const today = new Date();
+            let dateValue;
+
+            switch (preset) {
+                case 'today':
+                    dateValue = today.toISOString().split('T')[0]; // YYYY-MM-DD
+                    break;
+                case 'yesterday':
+                    const yesterday = new Date(today);
+                    yesterday.setDate(today.getDate() - 1);
+                    dateValue = yesterday.toISOString().split('T')[0]; // YYYY-MM-DD
+                    break;
+                case 'thisMonth':
+                    // Current month - YYYY-MM
+                    dateValue = today.toISOString().substring(0, 7); // YYYY-MM
+                    break;
+                case 'lastMonth':
+                    // Previous month - YYYY-MM
+                    const lastMonth = new Date(today);
+                    lastMonth.setMonth(today.getMonth() - 1);
+                    dateValue = lastMonth.toISOString().substring(0, 7); // YYYY-MM
+                    break;
+                case 'wholeYear':
+                    // Current year - YYYY
+                    dateValue = today.getFullYear().toString(); // YYYY
+                    break;
+            }
+
+            if (dateValue) {
+                dateInput.value = dateValue;
+                setPresetActive(preset);
+                searchLogs(); // Auto-search on preset selection
+            }
+        }
+
+        function setPresetActive(preset) {
+            document.querySelectorAll('.jp-preset-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.preset === preset);
+            });
+        }
+
+        function searchLogs() {
+            currentPage = 1;
+            const formData = new FormData(document.getElementById('logsSearchForm'));
+            currentFilters = {};
+
+            for (const [key, value] of formData.entries()) {
+                if (value.trim()) {
+                    currentFilters[key] = value.trim();
+                }
+            }
+
+            loadLogs(currentFilters);
+            updateActiveFiltersDisplay();
+        }
+
+        function clearFilters() {
+            document.getElementById('logsSearchForm').reset();
+            setDefaultDate();
+            currentFilters = {};
+            currentPage = 1;
+            loadLogs();
+            updateActiveFiltersDisplay();
+        }
+
+        function updateActiveFiltersDisplay() {
+            const filterCount = Object.keys(currentFilters).length;
+            const countEl = document.getElementById('activeFiltersCount');
+            const clearEl = document.getElementById('clearFiltersLink');
+
+            if (filterCount > 0) {
+                countEl.textContent = filterCount;
+                countEl.style.display = 'inline';
+                clearEl.style.display = 'inline';
+            } else {
+                countEl.style.display = 'none';
+                clearEl.style.display = 'none';
+            }
+        }
+
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('pageSize').value);
+            currentPage = 1;
+            loadLogs(currentFilters);
+        }
+
+        function sortTable(field) {
+            if (currentSort.field === field) {
+                currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.order = 'desc';
+            }
+
+            updateSortHeaders();
+            loadLogs(currentFilters);
+        }
+
+        function updateSortHeaders() {
+            document.querySelectorAll('.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (th.dataset.sort === currentSort.field) {
+                    th.classList.add(`sort-${currentSort.order}`);
+                }
+            });
+        }
+
+        async function loadLogs(filters = {}) {
+            const loading = document.getElementById('loading');
+            const noResults = document.getElementById('noResults');
+            const tableContainer = document.getElementById('logsTableContainer');
+            const resultsInfo = document.getElementById('resultsInfo');
+            const pagination = document.getElementById('pagination');
+
+            // Show loading state
+            loading.style.display = 'block';
+            noResults.style.display = 'none';
+            tableContainer.style.display = 'none';
+            resultsInfo.style.display = 'none';
+            pagination.style.display = 'none';
+
+            try {
+                // Build query parameters
+                const queryParams = new URLSearchParams({
+                    ...filters,
+                    limit: pageSize,
+                    page: currentPage,
+                    sort: currentSort.order === 'desc' ? `-${currentSort.field}` : currentSort.field
+                });
+
+                const response = await fetch(`/api/1/log/search?${queryParams}`);
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || 'Failed to load logs');
+                }
+
+                allLogs = result.data;
+                displayLogs(result.data);
+                updatePagination(result.pagination);
+                updateResultsInfo(result.pagination);
+
+                // Show appropriate sections
+                loading.style.display = 'none';
+                if (result.data.length > 0) {
+                    tableContainer.style.display = 'block';
+                    resultsInfo.style.display = 'flex';
+                    if (result.pagination.pages > 1) {
+                        pagination.style.display = 'block';
+                    }
+                } else {
+                    noResults.style.display = 'block';
+                    resultsInfo.style.display = 'flex'; // Still show results info even with no results
+                }
+
+            } catch (error) {
+                console.error('Error loading logs:', error);
+                loading.style.display = 'none';
+                jPulse.ui.showToast('Error loading logs: ' + error.message, 'error');
+            }
+        }
+
+        function displayLogs(logs) {
+            const tbody = document.getElementById('logsTableBody');
+            tbody.innerHTML = '';
+
+            logs.forEach(log => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div class="local-timestamp" title="${new Date(log.createdAt).toLocaleString()}">
+                            ${formatRelativeTime(log.createdAt)}
+                        </div>
+                        <div style="font-size: 11px; color: #999;">
+                            ${jPulse.date.formatLocalDate(log.createdAt)}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="local-username">${escapeHtml(log.createdBy || '(system)')}</div>
+                    </td>
+                    <td>
+                        <span class="local-action-badge local-action-${log.data.action}">
+                            ${log.data.action}
+                        </span>
+                    </td>
+                    <td>${escapeHtml(log.data.docType)}</td>
+                    <td>
+                        <div class="local-changes-cell">
+                            <div class="local-changes-summary" onclick="toggleChangesDropdown(this)" data-changes='${JSON.stringify(log.data.changes).replace(/'/g, "&apos;")}' data-action='${log.data.action}'>
+                                ${formatChanges(log.data.changes, log.data.action)}
+                            </div>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function formatRelativeTime(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+
+            if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
+            if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+            if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+            if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+
+            return jPulse.date.formatLocalDate(date);
+        }
+
+        function formatChanges(changes, action) {
+            // Handle case where changes is a string (legacy format)
+            if (typeof changes === 'string') {
+                return `<span style="cursor: pointer;">▶ ${changes.substring(0, 50)}${changes.length > 50 ? '...' : ''}</span>`;
+            }
+            
+            // Handle case where changes is an array (new format)
+            if (!changes || !Array.isArray(changes) || changes.length === 0) {
+                return `<em>${i18nStrings.noChangesRecorded}</em>`;
+            }
+
+            // Use the action field to determine operation type - much simpler!
+            const changeCount = changes.length;
+            
+            if (action === 'create') {
+                const fieldsText = changeCount === 1 ? i18nStrings.fieldsCreated : i18nStrings.fieldsCreated;
+                return `<span style="cursor: pointer;">▶ ${changeCount} ${fieldsText}</span>`;
+            } else if (action === 'delete') {
+                const fieldsText = changeCount === 1 ? i18nStrings.fieldsDeleted : i18nStrings.fieldsDeleted;
+                return `<span style="cursor: pointer;">▶ ${changeCount} ${fieldsText}</span>`;
+            } else if (action === 'update') {
+                // Filter out unchanged values for updates
+                const actualChanges = changes.filter(([field, oldVal, newVal]) => {
+                    return JSON.stringify(oldVal) !== JSON.stringify(newVal);
+                });
+
+                if (actualChanges.length === 0) {
+                    return `<em>${i18nStrings.noChangesRecorded}</em>`;
+                }
+
+                const count = actualChanges.length;
+                const fieldsText = count === 1 ? i18nStrings.fieldUpdated : i18nStrings.fieldsUpdated;
+                return `<span style="cursor: pointer;">▶ ${count} ${fieldsText}</span>`;
+            }
+
+            // Fallback for unknown actions
+            return `<span style="cursor: pointer;">▶ ${changeCount} ${i18nStrings.fieldsChanged}</span>`;
+        }
+
+        function formatDetailedChanges(changes) {
+            // Handle case where changes is a string (legacy format)
+            if (typeof changes === 'string') {
+                return `<pre>${changes}</pre>`;
+            }
+            
+            // Handle case where changes is an array (new format)
+            if (!changes || !Array.isArray(changes) || changes.length === 0) {
+                return `<div class="local-change-item">${i18nStrings.noChangesRecorded}</div>`;
+            }
+
+            // Filter out unchanged values and action field (action is obvious from context)
+            const actualChanges = changes.filter(([field, oldVal, newVal]) => {
+                return field !== 'action' && JSON.stringify(oldVal) !== JSON.stringify(newVal);
+            });
+
+            if (actualChanges.length === 0) {
+                return `<div class="local-change-item">${i18nStrings.noChangesRecorded}</div>`;
+            }
+
+            const formattedChanges = actualChanges.map(([field, oldVal, newVal]) => {
+                // Handle creation (null -> value)
+                if (oldVal === null && newVal !== null) {
+                    return `<div class="local-change-item"><strong>${field}:</strong><div class="local-change-value">✅ ${newVal || '(empty)'}</div></div>`;
+                }
+                
+                // Handle deletion (value -> null)
+                if (oldVal !== null && newVal === null) {
+                    return `<div class="local-change-item"><strong>${field}:</strong><div class="local-change-value">❌ ${oldVal || '(empty)'}</div></div>`;
+                }
+                
+                // Handle update (value -> different value)
+                return `<div class="local-change-item"><strong>${field}:</strong><div class="local-change-value">❌ ${oldVal || '(empty)'}</div><div class="local-change-value">✅ ${newVal || '(empty)'}</div></div>`;
+            }).join('');
+
+            return formattedChanges;
+        }
+
+        function toggleChanges(cell) {
+            const summary = cell.querySelector('.local-changes-summary');
+            const details = cell.querySelector('.local-changes-full');
+            
+            if (!details) return;
+            
+            const isExpanded = details.style.display !== 'none';
+            
+            if (isExpanded) {
+                details.style.display = 'none';
+                summary.innerHTML = summary.innerHTML.replace('▼', '▶');
+            } else {
+                details.style.display = 'block';
+                summary.innerHTML = summary.innerHTML.replace('▶', '▼');
+            }
+        }
+
+        function toggleChangesDropdown(summaryElement) {
+            // Prevent event bubbling
+            event.stopPropagation();
+            
+            const dropdown = document.getElementById('globalChangesDropdown');
+            const content = dropdown.querySelector('.local-changes-dropdown-content');
+            const isOpen = dropdown.classList.contains('show');
+            
+            if (isOpen) {
+                // Close dropdown
+                dropdown.classList.remove('show');
+                summaryElement.innerHTML = summaryElement.innerHTML.replace('▼', '▶');
+                document.removeEventListener('click', handleOutsideClick);
+                window.removeEventListener('scroll', handleScroll);
+                window.removeEventListener('resize', handleResize);
+                dropdown.currentTarget = null;
+            } else {
+                // Open dropdown
+                const changesData = summaryElement.getAttribute('data-changes');
+                if (changesData && changesData !== 'null') {
+                    let changes;
+                    try {
+                        changes = JSON.parse(changesData);
+                    } catch (e) {
+                        changes = changesData; // Fallback to string
+                    }
+                    
+                    // Update content
+                    content.innerHTML = formatDetailedChanges(changes);
+                    
+                    // Store reference to target element for scroll tracking
+                    dropdown.currentTarget = summaryElement;
+                    
+                    // Position dropdown relative to the clicked element
+                    positionDropdown(dropdown, summaryElement);
+                    
+                    // Show dropdown
+                    dropdown.classList.add('show');
+                    summaryElement.innerHTML = summaryElement.innerHTML.replace('▶', '▼');
+                    
+                    // Add event listeners
+                    setTimeout(() => {
+                        document.addEventListener('click', handleOutsideClick);
+                        window.addEventListener('scroll', handleScroll, { passive: true });
+                        window.addEventListener('resize', handleResize, { passive: true });
+                    }, 100);
+                }
+            }
+        }
+
+        function positionDropdown(dropdown, targetElement) {
+            const rect = targetElement.getBoundingClientRect();
+            const dropdownRect = dropdown.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            let left = rect.left;
+            let top = rect.bottom + 5; // 5px gap below the target
+            
+            // Horizontal positioning - prevent right clipping
+            const dropdownWidth = 500; // min-width from CSS
+            if (left + dropdownWidth > viewportWidth) {
+                // Move to the left if not enough space on the right
+                left = Math.max(10, viewportWidth - dropdownWidth - 10);
+            }
+            
+            // Vertical positioning - prevent bottom clipping
+            const dropdownHeight = Math.min(400, dropdown.scrollHeight); // max-height from CSS
+            if (top + dropdownHeight > viewportHeight) {
+                // Show above the target if not enough space below
+                top = rect.top - dropdownHeight - 5;
+                
+                // If still doesn't fit, position at top of viewport
+                if (top < 10) {
+                    top = 10;
+                }
+            }
+            
+            dropdown.style.left = left + 'px';
+            dropdown.style.top = top + 'px';
+        }
+
+        function handleOutsideClick(event) {
+            // Check if click is inside the global dropdown or a summary element
+            if (event.target.closest('#globalChangesDropdown') || event.target.closest('.local-changes-summary')) {
+                return;
+            }
+            
+            // Close dropdown and update all summaries
+            const dropdown = document.getElementById('globalChangesDropdown');
+            dropdown.classList.remove('show');
+            
+            // Reset all summary arrows
+            document.querySelectorAll('.local-changes-summary').forEach(summary => {
+                summary.innerHTML = summary.innerHTML.replace('▼', '▶');
+            });
+            
+            document.removeEventListener('click', handleOutsideClick);
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('resize', handleResize);
+            dropdown.currentTarget = null;
+        }
+
+        function handleScroll() {
+            const dropdown = document.getElementById('globalChangesDropdown');
+            if (dropdown.currentTarget && dropdown.classList.contains('show')) {
+                positionDropdown(dropdown, dropdown.currentTarget);
+            }
+        }
+
+        function handleResize() {
+            const dropdown = document.getElementById('globalChangesDropdown');
+            if (dropdown.currentTarget && dropdown.classList.contains('show')) {
+                positionDropdown(dropdown, dropdown.currentTarget);
+            }
+        }
+
+        function updatePagination(pagination) {
+            currentPage = pagination.page;
+            totalPages = pagination.pages;
+
+            document.getElementById('prevPage').disabled = currentPage <= 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+        }
+
+        function updateResultsInfo(pagination) {
+            const resultsCount = document.getElementById('resultsCount');
+            const total = pagination.total;
+            const showing = pagination.limit;
+            const start = (pagination.page - 1) * showing + 1;
+            const end = Math.min(start + showing - 1, total);
+
+            if (total === 0) {
+                resultsCount.textContent = i18nStrings.noResultsFound;
+            } else if (total <= showing) {
+                resultsCount.textContent = `${total} ${total === 1 ? i18nStrings.result : i18nStrings.results}`;
+            } else {
+                resultsCount.textContent = `${i18nStrings.showingResults} ${start}-${end} of ${total} ${i18nStrings.results}`;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+
+    <!-- Global changes dropdown (attached to body) -->
+    <div id="globalChangesDropdown" class="local-changes-dropdown">
+        <div class="local-changes-dropdown-content">
+            <!-- Content will be populated dynamically -->
+        </div>
+    </div>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

@@ -124,9 +124,12 @@ window.jpSpaRoutes.TodoDemo = {
                         this.todos[index] = response.data;
                     }
                     this.updateStats();
+                } else {
+                    throw new Error(response.message || 'Failed to update to-do');
                 }
             } catch (error) {
-                jPulse.api.handleError(error, 'update to-do');
+                console.error('Error toggling to-do:', error);
+                jPulse.UI.toast.show(error.message || 'Failed to update to-do', 'error');
             }
         },
 
@@ -139,9 +142,12 @@ window.jpSpaRoutes.TodoDemo = {
                 if (response.success && response.data) {
                     this.todos = response.data.slice(0, 5);
                     this.updateStats();
+                } else {
+                    throw new Error(response.message || 'Failed to load to-dos');
                 }
             } catch (error) {
                 console.warn('- To-do data not available - this is normal if hello-todo is not set up');
+                // Don't show toast for fetch errors as this is often expected during development
             }
         },
 

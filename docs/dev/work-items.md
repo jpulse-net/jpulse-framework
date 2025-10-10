@@ -1185,21 +1185,6 @@ This is the doc to track work items, arranged in three sections:
   - Production-ready breadcrumb feature with responsive design
   - Updated test wrapper for accurate failure reporting
 
-
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-077, v0.9.4: auth controller & view: disable user signup & login with app configuration
 - status: ✅ DONE
 - type: Feature
@@ -1255,16 +1240,69 @@ This is the doc to track work items, arranged in three sections:
 
 
 
-pending:
-- fix responsive style issue with user icon
 
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-040, v0.9.5: view: create view logs page for site admins
+- status: DONE ✅
+- type: Feature
+- objectives: admin can analyze usage
+- create search logs page for admins
+  - filter:
+    - date: use text field, expected format YYYY-MM-DD (supports partial dates)
+      - default: today
+    - username: text field
+    - action: select (hard-coded list ['create', 'update', 'delete'])
+    - docType: select (dynamically populated from database with caching)
+  - result in table:
+    - sortable columns with three-click sorting (asc, desc, default)
+    - rows: Date, Username, Action, Doc Type, Changes
+    - expandable changes with smart body-attached dropdown
+    - responsive design with mobile support
+  - additional features implemented:
+    - date presets: Today, Yesterday, This Month, Last Month, Whole Year
+    - full i18n support (English/German)
+    - scroll tracking for dropdown positioning
+    - comprehensive error handling
+    - pagination with configurable page size
+- deliverables:
+  - webapp/app.conf - Added docTypes array for global access
+  - webapp/model/log.js - Enhanced logging with consistent format
+  - webapp/controller/log.js - Added docTypes caching and improved search
+  - webapp/controller/view.js - Added docTypes context for templates
+  - webapp/controller/user.js - Added missing user update logging
+  - webapp/controller/config.js - Standardized log message format
+  - webapp/translations/en.conf - Added all log-related translations
+  - webapp/translations/de.conf - Added German translations
+  - webapp/utils/bootstrap.js - Added docTypes population during startup
+  - webapp/view/jpulse-common.css - Added table sorting styles
+  - webapp/view/admin/logs.shtml - Search logs interface
+  - site/webapp/controller/helloTodo.js - Added comprehensive logging
+  - site/webapp/model/helloTodo.js - Added missing findById method
+
+
+
+
+
+
+
+
+
+
+pending:
+
+- fix responsive style issue with user icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 
 
 
 
 ### Potential next items:
-- W-040: view: create view logs page for site admins
 - W-076: model: create redis caching infrastrucure
 
 - W-045: architecture: create plugin infrastructure
@@ -1277,7 +1315,7 @@ pending:
 
 next work item: W-0...
 - review task, ask questions if unclear
-- suggest change of spec if any, goal is a good UX, good usability, onboarding, and learning experience for site admins and developers, using the don't make me think paradigm
+- suggest change of spec if any, goal is a good UX, good usability, onboarding, and learning experience for site admins and developers; use the don't make me think paradigm
 - plan how to implement (wait for my go ahead)
 - current timestamp: 2025-10-04 17:55
 
@@ -1335,6 +1373,13 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
+
+### W-076: model: create redis caching infrastrucure
+- status: 🕑 PENDING
+- type: Feature
+- redis to cache site config
+  - what else? sessions? cached files?
+- should work in multi node instances, and multi app server instances
 
 ### W-078: app api: provide health and metrics endpoints
 - status: 🕑 PENDING
@@ -1409,11 +1454,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - way to define new themes
   - drop in a directory, with auto discovery
 
-### W-040: view: create view logs page for site admins
-- status: 🕑 PENDING
-- type: Feature
-- create webapp/view/admin/logs.shtml -- search logs
-
 ### W-068: view: create responsive sidebar
 - status: 🕑 PENDING
 - type: Feature
@@ -1434,13 +1474,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - closed by default
   - open on command (hamburger menu?)
 - fix /jpulse-docs/ markdown SPA to be based on common sidebar
-
-### W-076: model: create redis caching infrastrucure
-- status: 🕑 PENDING
-- type: Feature
-- redis to cache site config
-  - what else? sessions? cached files?
-- should work in multi node instances, and multi app server instances
 
 ### W-0: view: page headers with anchor links for copy & paste in browser URL bar
 - status: 🕑 PENDING

@@ -60,6 +60,12 @@ export async function bootstrap(options = {}) {
             global.Database = databaseModule.default;
             bootstrapLog(`✅ Database: ${connected ? 'Connected' : 'Failed (continuing without)'}`);
             database = databaseModule.default;
+
+            // Step 4.1: Post-initialize LogController now that database is ready
+            if (connected) {
+                await LogControllerModule.default.postInitialize();
+                bootstrapLog('✅ LogController: Post-initialized with database');
+            }
         } else {
             bootstrapLog('⏭️  Database: Skipped');
         }

@@ -154,6 +154,21 @@ class HelloTodoModel {
     }
 
     /**
+     * Find a todo by ID
+     * @param {string} id - Todo ID to find
+     * @returns {Promise<object|null>} Todo document or null if not found
+     */
+    static async findById(id) {
+        try {
+            const collection = this.getCollection();
+            const objectId = new ObjectId(id);
+            return await collection.findOne({ _id: objectId });
+        } catch (error) {
+            throw new Error(`Failed to find todo by ID: ${error.message}`);
+        }
+    }
+
+    /**
      * Create a new todo
      * @param {object} todoData - Todo data to create
      * @returns {Promise<object>} Created todo document

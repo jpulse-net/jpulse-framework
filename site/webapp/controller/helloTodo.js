@@ -62,7 +62,7 @@ class HelloTodoController {
             });
 
             const duration = Date.now() - startTime;
-            LogController.logInfo(req, 'helloTodo.api', `success: retrieved ${todos.length} todos in ${duration}ms`);
+            LogController.logInfo(req, 'helloTodo.api', `success: ${todos.length} docs found in ${duration}ms`);
 
         } catch (error) {
             LogController.logError(req, 'helloTodo.api', `error: ${error.message}`);
@@ -101,6 +101,9 @@ class HelloTodoController {
 
             const todo = await HelloTodoModel.create(todoData);
 
+            // Log the creation
+            await LogController.logChange(req, 'helloTodo', 'create', todo._id, null, todo);
+
             // Broadcast to WebSocket clients if available
             if (HelloWebsocketController.broadcastTodoCreated) {
                 HelloWebsocketController.broadcastTodoCreated(todo, username);
@@ -113,7 +116,7 @@ class HelloTodoController {
             });
 
             const duration = Date.now() - startTime;
-            LogController.logInfo(req, 'helloTodo.apiCreate', `success: created todo "${title}" for user ${username} in ${duration}ms`);
+            LogController.logInfo(req, 'helloTodo.apiCreate', `success: 1 doc created in ${duration}ms`);
 
         } catch (error) {
             LogController.logError(req, 'helloTodo.apiCreate', `error: ${error.message}`);
@@ -138,7 +141,17 @@ class HelloTodoController {
                 return CommonUtils.sendError(req, res, 400, 'Todo ID is required', 'VALIDATION_ERROR');
             }
 
+            // Get old todo for logging
+            const oldTodo = await HelloTodoModel.findById(id);
+            if (!oldTodo) {
+                LogController.logError(req, 'helloTodo.apiToggle', `error: todo not found for id: ${id}`);
+                return CommonUtils.sendError(req, res, 404, 'Todo not found', 'HELLO_TODO_NOT_FOUND');
+            }
+
             const todo = await HelloTodoModel.toggleComplete(id);
+
+            // Log the update
+            await LogController.logChange(req, 'helloTodo', 'update', id, oldTodo, todo);
 
             // Get username for broadcast
             const username = req.session?.user?.username || 'guest';
@@ -155,7 +168,7 @@ class HelloTodoController {
             });
 
             const duration = Date.now() - startTime;
-            LogController.logInfo(req, 'helloTodo.apiToggle', `success: toggled todo ${id} to ${todo.completed ? 'completed' : 'pending'} in ${duration}ms`);
+            LogController.logInfo(req, 'helloTodo.apiToggle', `success: 1 doc updated in ${duration}ms`);
 
         } catch (error) {
             LogController.logError(req, 'helloTodo.apiToggle', `error: ${error.message}`);
@@ -189,7 +202,17 @@ class HelloTodoController {
                 return CommonUtils.sendError(req, res, 400, 'Todo ID is required', 'VALIDATION_ERROR');
             }
 
+            // Get old todo for logging
+            const oldTodo = await HelloTodoModel.findById(id);
+            if (!oldTodo) {
+                LogController.logError(req, 'helloTodo.apiDelete', `error: todo not found for id: ${id}`);
+                return CommonUtils.sendError(req, res, 404, 'Todo not found', 'HELLO_TODO_NOT_FOUND');
+            }
+
             await HelloTodoModel.delete(id);
+
+            // Log the deletion
+            await LogController.logChange(req, 'helloTodo', 'delete', id, oldTodo, null);
 
             // Get username for broadcast
             const username = req.session?.user?.username || 'guest';
@@ -206,7 +229,7 @@ class HelloTodoController {
             });
 
             const duration = Date.now() - startTime;
-            LogController.logInfo(req, 'helloTodo.apiDelete', `success: deleted todo ${id} in ${duration}ms`);
+            LogController.logInfo(req, 'helloTodo.apiDelete', `success: 1 doc deleted in ${duration}ms`);
 
         } catch (error) {
             LogController.logError(req, 'helloTodo.apiDelete', `error: ${error.message}`);

@@ -21,6 +21,13 @@ import os from 'os';
  */
 class LogController {
 
+    // Cache for docTypes with TTL
+    static docTypesCache = {
+        data: [],
+        timestamp: 0,
+        ttl: 300000 // 5 minutes
+    };
+
     /**
      * Initialize LogController
      * @returns {object} LogController instance
@@ -29,7 +36,53 @@ class LogController {
         // LogController doesn't need complex initialization, but this provides consistency
         // Future enhancements could add log configuration, log level setup, etc.
         console.log(CommonUtils.formatLogMessage('LogController', 'Initialized and ready'));
+
+        // Note: docTypes population happens later in postInitialize() after database is ready
+
         return LogController;
+    }
+
+    /**
+     * Post-initialization after database is ready
+     * @returns {Promise<void>}
+     */
+    static async postInitialize() {
+        // Populate app.docTypes after database is available
+        await LogController.populateDocTypes();
+    }
+
+    /**
+     * Populate app.docTypes with caching
+     * @returns {Promise<void>}
+     */
+    static async populateDocTypes() {
+        try {
+            const docTypes = await LogModel.getDistinctDocTypes();
+            global.appConfig.app.docTypes = docTypes;
+
+            // Update cache
+            LogController.docTypesCache = {
+                data: docTypes,
+                timestamp: Date.now(),
+                ttl: 300000 // 5 minutes
+            };
+
+            console.log(CommonUtils.formatLogMessage('LogController', `Populated app.docTypes with ${docTypes.length} types: ${docTypes.join(', ')}`));
+        } catch (error) {
+            console.log(CommonUtils.formatLogMessage('LogController', `Failed to populate docTypes: ${error.message}`));
+            global.appConfig.app.docTypes = ['config', 'user']; // Fallback
+        }
+    }
+
+    /**
+     * Refresh docTypes cache if needed
+     * @returns {Promise<void>}
+     */
+    static async refreshDocTypesCache() {
+        const now = Date.now();
+        if (now - LogController.docTypesCache.timestamp > LogController.docTypesCache.ttl) {
+            await LogController.populateDocTypes();
+        }
     }
 
     /**
@@ -46,9 +99,8 @@ class LogController {
             const results = await LogModel.search(req.query);
             const elapsed = Date.now() - startTime;
 
-            LogController.logInfo(req, 'log.search', `success: completed in ${elapsed}ms`);
-
-            const message = i18n.translate(req, 'controller.log.searchSuccess', { count: results.data.length });
+            LogController.logInfo(req, 'log.search', `success: ${results.count} docs found in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.log.searchSuccess', { count: results.count });
             res.json({
                 success: true,
                 message: message,
@@ -160,6 +212,9 @@ class LogController {
 
             // Log to database
             const logEntry = await LogModel.logChange(docType, action, docId, oldDoc, newDoc, createdBy);
+
+            // Refresh docTypes cache if needed (new docType might have been added)
+            await LogController.refreshDocTypesCache();
 
             // Also log to console
             let message = `${docType} ${action}: ${docId}`;

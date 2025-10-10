@@ -92,6 +92,78 @@ class LogModel {
     }
 
     /**
+     * Create changes array for document creation
+     * @param {object} newDoc - New document
+     * @returns {array} Array of changes showing all fields as created
+     */
+    static createDocumentCreatedChanges(newDoc) {
+        if (!newDoc || typeof newDoc !== 'object') {
+            return [];
+        }
+
+        const changes = [];
+
+        // Add all fields from the new document as "created"
+        const addFieldChanges = (obj, prefix = '') => {
+            for (const [key, value] of Object.entries(obj)) {
+                // Skip metadata fields
+                if (['_id', 'createdAt', 'updatedAt', 'saveCount', 'passwordHash'].includes(key)) {
+                    continue;
+                }
+
+                const fieldPath = prefix ? `${prefix}.${key}` : key;
+
+                if (typeof value === 'object' && value !== null && !Array.isArray(value) && !(value instanceof Date)) {
+                    // Handle nested objects
+                    addFieldChanges(value, fieldPath);
+                } else {
+                    // Add field as created (null -> value)
+                    changes.push([fieldPath, null, value]);
+                }
+            }
+        };
+
+        addFieldChanges(newDoc);
+        return changes;
+    }
+
+    /**
+     * Create changes array for document deletion
+     * @param {object} oldDoc - Document being deleted
+     * @returns {array} Array of changes showing all fields as deleted
+     */
+    static createDocumentDeletedChanges(oldDoc) {
+        if (!oldDoc || typeof oldDoc !== 'object') {
+            return [];
+        }
+
+        const changes = [];
+
+        // Add all fields from the old document as "deleted"
+        const addFieldChanges = (obj, prefix = '') => {
+            for (const [key, value] of Object.entries(obj)) {
+                // Skip metadata fields
+                if (['_id', 'createdAt', 'updatedAt', 'saveCount', 'passwordHash'].includes(key)) {
+                    continue;
+                }
+
+                const fieldPath = prefix ? `${prefix}.${key}` : key;
+
+                if (typeof value === 'object' && value !== null && !Array.isArray(value) && !(value instanceof Date)) {
+                    // Handle nested objects
+                    addFieldChanges(value, fieldPath);
+                } else {
+                    // Add field as deleted (value -> null)
+                    changes.push([fieldPath, value, null]);
+                }
+            }
+        };
+
+        addFieldChanges(oldDoc);
+        return changes;
+    }
+
+    /**
      * Create field-by-field diff between two documents
      * @param {object} oldDoc - Original document
      * @param {object} newDoc - Updated document
@@ -238,6 +310,7 @@ class LogModel {
             // Get total count for pagination
             const collection = LogModel.getCollection();
             const totalCount = await collection.countDocuments(query);
+            const pagesCount = Math.ceil(totalCount / limit);
             return {
                 success: true,
                 data: results,
@@ -246,12 +319,27 @@ class LogModel {
                     limit,
                     skip: options.skip || 0,
                     page: Math.floor((options.skip || 0) / limit) + 1,
-                    pages: Math.ceil(totalCount / limit)
+                    pages: pagesCount
                 },
-                query: query
+                query: query,
+                count: results.length
             };
         } catch (error) {
             throw new Error(`Failed to search log entries: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get distinct document types from logs
+     * @returns {Promise<array>} Array of distinct document types
+     */
+    static async getDistinctDocTypes() {
+        try {
+            const collection = LogModel.getCollection();
+            const docTypes = await collection.distinct('data.docType');
+            return docTypes.sort();
+        } catch (error) {
+            throw new Error(`Failed to get distinct document types: ${error.message}`);
         }
     }
 
@@ -268,9 +356,9 @@ class LogModel {
     static async logChange(docType, action, docId, oldDoc = null, newDoc = null, createdBy = '') {
         let changes = [];
         if (action === 'create') {
-            changes = [['action', null, 'created']];
+            changes = LogModel.createDocumentCreatedChanges(newDoc);
         } else if (action === 'delete') {
-            changes = [['action', 'exists', 'deleted']];
+            changes = LogModel.createDocumentDeletedChanges(oldDoc);
         } else if (action === 'update' && oldDoc && newDoc) {
             changes = LogModel.createFieldDiff(oldDoc, newDoc);
         }

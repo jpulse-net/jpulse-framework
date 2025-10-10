@@ -1531,6 +1531,39 @@ body {
     background: #e3f2fd !important;
 }
 
+/* Table Sorting Styles */
+.jp-table th.jp-sortable {
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.jp-table th.jp-sortable:hover {
+    background: #c8d6e5;
+}
+
+.jp-table th.jp-sortable::after {
+    content: '↕';
+    position: absolute;
+    right: 8px;
+    color: #999;
+    font-size: 12px;
+    opacity: 0.6;
+}
+
+.jp-table th.jp-sort-asc::after {
+    content: '↑';
+    color: #007acc;
+    opacity: 1;
+}
+
+.jp-table th.jp-sort-desc::after {
+    content: '↓';
+    color: #007acc;
+    opacity: 1;
+}
+
 @media (max-width: 768px) {
     .jp-table-container {
         overflow-x: auto;

@@ -205,6 +205,14 @@ class UserController {
                 return global.CommonUtils.sendError(req, res, 400, message, 'NO_UPDATE_DATA');
             }
 
+            // Get old user data for logging
+            const oldUser = await UserModel.findById(req.session.user.id);
+            if (!oldUser) {
+                LogController.logError(req, 'user.update', `error: user not found for session ID: ${req.session.user.id}`);
+                const message = global.i18n.translate(req, 'controller.user.profile.userNotFound');
+                return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
+            }
+
             const updatedUser = await UserModel.updateById(req.session.user.id, filteredData);
 
             if (!updatedUser) {
@@ -212,6 +220,9 @@ class UserController {
                 const message = global.i18n.translate(req, 'controller.user.profile.userNotFound');
                 return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
             }
+
+            // Log the update
+            await LogController.logChange(req, 'user', 'update', req.session.user.username, oldUser, updatedUser);
 
             // Update session data using AuthController helper
             AuthController.updateUserSession(req, updatedUser);

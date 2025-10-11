@@ -89,8 +89,14 @@ describe('Application Startup Integration', () => {
                         port: 9999
                     }
                 },
-                i18n: {
-                    default: 'en'
+                utils: {
+                    i18n: {
+                        default: 'en',
+                        cache: {
+                            enabled: true,
+                            checkInterval: 5000
+                        }
+                    }
                 }
             }`;
 
@@ -103,7 +109,7 @@ describe('Application Startup Integration', () => {
             expect(config).toBeDefined();
             expect(config.app.jPulse.version).toBe('0.9.5');
             expect(config.deployment.mode).toBe('test');
-            expect(config.i18n.default).toBe('en');
+            expect(config.utils.i18n.default).toBe('en');
         });
 
         test('should handle configuration loading errors gracefully', async () => {
@@ -179,8 +185,14 @@ describe('Application Startup Integration', () => {
 
         test('should validate default language from configuration', async () => {
             const appConfig = `{
-                i18n: {
-                    default: 'en'
+                utils: {
+                    i18n: {
+                        default: 'en',
+                        cache: {
+                            enabled: true,
+                            checkInterval: 5000
+                        }
+                    }
                 }
             }`;
 
@@ -193,7 +205,7 @@ describe('Application Startup Integration', () => {
                 TestUtils.createTempFile(appConfig, '.conf')
             );
 
-            const i18n = TestUtils.createMockI18n(translations, config.i18n.default);
+            const i18n = TestUtils.createMockI18n(translations, config.utils.i18n.default);
 
             expect(i18n.default).toBe('en');
             expect(i18n.t('lang')).toBe('English');
@@ -201,8 +213,14 @@ describe('Application Startup Integration', () => {
 
         test('should handle missing default language', async () => {
             const appConfig = `{
-                i18n: {
-                    default: 'fr'
+                utils: {
+                    i18n: {
+                        default: 'fr',
+                        cache: {
+                            enabled: true,
+                            checkInterval: 5000
+                        }
+                    }
                 }
             }`;
 
@@ -217,7 +235,7 @@ describe('Application Startup Integration', () => {
 
             // This should fail because 'fr' is not available
             expect(translations.fr).toBeUndefined();
-            expect(config.i18n.default).toBe('fr');
+            expect(config.utils.i18n.default).toBe('fr');
         });
     });
 
@@ -238,8 +256,14 @@ describe('Application Startup Integration', () => {
                         port: 9999
                     }
                 },
-                i18n: {
-                    default: 'en'
+                utils: {
+                    i18n: {
+                        default: 'en',
+                        cache: {
+                            enabled: true,
+                            checkInterval: 5000
+                        }
+                    }
                 }
             }`;
 
@@ -279,7 +303,7 @@ describe('Application Startup Integration', () => {
             expect(translations.langs.en).toBeDefined();
 
             // 4. Create i18n with translation function
-            const i18n = TestUtils.createMockI18n(translations.langs, config.i18n.default);
+            const i18n = TestUtils.createMockI18n(translations.langs, config.utils.i18n.default);
 
             expect(i18n.t('lang')).toBe('English');
         });
@@ -290,7 +314,7 @@ describe('Application Startup Integration', () => {
                     jPulse: { version: '0.9.5' },
                     site: { version: '1.0.0' }
                 },
-                i18n: { default: 'en' }
+                utils: { i18n: { default: 'en' } }
             };
 
             const i18n = TestUtils.createMockI18n({
@@ -315,7 +339,7 @@ describe('Application Startup Integration', () => {
                     jPulse: { version: '0.9.5' },
                     site: { version: '1.0.0' }
                 },
-                i18n: { default: 'en' }
+                utils: { i18n: { default: 'en' } }
             }`;
 
             mockFiles['./webapp/app.conf'] = appConfig;
@@ -489,7 +513,7 @@ describe('Application Startup Integration', () => {
             expect(translations.langs.de.lang).toBe('Deutsch');
 
             // Create working i18n
-            const i18n = TestUtils.createMockI18n(translations.langs, config.i18n.default);
+            const i18n = TestUtils.createMockI18n(translations.langs, config.utils.i18n.default);
 
             expect(i18n.t('test.simple')).toBe('Simple test message');
             expect(i18n.t('test.withParam', 'World')).toBe('Hello World!');

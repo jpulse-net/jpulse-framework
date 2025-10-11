@@ -15,6 +15,7 @@
 // Load required modules for path resolution and file system operations
 import { join } from 'node:path';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import FileCache from './file-cache.js';
 
 /**
  * Deep clone an object
@@ -156,8 +157,9 @@ function auditAndFixTranslations(defaultLang, targetLang, langCode) {
 /**
  * Function to dynamically discover and load all translation files
  * Automatically finds all *.conf files in the translations directory
+ * W-079: Enhanced with FileCache for automatic refresh on file changes
  */
-function loadTranslations() {
+async function loadTranslations() {
     // Handle case where appConfig might not be available yet (e.g., in tests)
     const config = global.appConfig;
 
@@ -165,10 +167,17 @@ function loadTranslations() {
         throw new Error('appConfig must be available before loading translations. Set up global.appConfig first.');
     }
 
+    // W-079: Initialize translation cache if not already done
+    if (!translationCache) {
+        const cacheConfig = config.utils?.i18n?.cache || { enabled: true };
+        translationCache = new FileCache(cacheConfig, 'TranslationCache');
+    }
+
     const i18n = {
         langs: {},
-        default: config.i18n?.default || 'en'
+        default: config.utils?.i18n?.default || 'en'
     };
+
     try {
         // Dynamically discover all language files
         const translationsDir = join(config.app.dirName, 'translations');
@@ -178,6 +187,7 @@ function loadTranslations() {
             global.LogController.logError(null, 'i18n', `error: Translations directory not found: ${translationsDir}`);
             process.exit(1);
         }
+
         // Read directory and filter for *.conf files
         const allFiles = readdirSync(translationsDir);
         const langFiles = allFiles
@@ -186,10 +196,12 @@ function loadTranslations() {
                 filePath: join(translationsDir, file),
                 name: file
             }));
+
         if (langFiles.length === 0) {
             global.LogController.logError(null, 'i18n', `error: No translation files found in ${translationsDir}`);
             process.exit(1);
         }
+
         // Sort files to load default language first
         const defaultFile = `${i18n.default}.conf`;
         const sortedFiles = langFiles.sort((a, b) => {
@@ -197,18 +209,29 @@ function loadTranslations() {
             if (b.name === defaultFile) return 1;
             return a.name.localeCompare(b.name);
         });
+
         global.LogController.logInfo(null, 'i18n', `Loading ${sortedFiles.length} translation files...`);
         let defaultLangData = null;
-        // Load each translation file
+
+        // W-079: Load each translation file using FileCache
         for (const file of sortedFiles) {
             try {
-                const content = readFileSync(file.filePath, 'utf8');
+                const content = await translationCache.get(file.filePath, async (filePath) => {
+                    return readFileSync(filePath, 'utf8');
+                });
+
+                if (content === null) {
+                    global.LogController.logError(null, 'i18n', `warning: Translation file not found: ${file.filePath}`);
+                    continue;
+                }
+
                 // Safely evaluate the translation file content
                 const fn = new Function(`return (
                     ${content}
                 )`); // extra newlines in case content ends in a // comment
                 const obj = fn();
                 const lang = Object.keys(obj)[0];
+
                 if (lang && obj[lang]) {
                     i18n.langs[lang] = obj[lang];
                     global.LogController.logInfo(null, 'i18n', `✓ Loaded language: ${lang} (${obj[lang].lang || lang})`);
@@ -386,6 +409,7 @@ class I18n {
 }
 
 let i18nInstance = null;
+let translationCache = null;  // W-079: FileCache for translation files
 
 /**
  * Initialize i18n (LogController must be globally available)
@@ -402,7 +426,7 @@ export async function initialize() {
     }
 
     // Load translations using existing functionality
-    const translationData = loadTranslations();
+    const translationData = await loadTranslations();
     i18nInstance = new I18n(translationData);
 
     // Validate that we have at least one language
@@ -428,11 +452,64 @@ export function getInstance() {
     return i18nInstance;
 }
 
+/**
+ * W-079: Refresh translation cache (for API endpoints)
+ * @param {string} filePath - Optional specific file path to refresh
+ * @returns {Object} Refresh result
+ */
+export async function refreshTranslationCache(filePath = null) {
+    if (!translationCache) {
+        return { success: false, message: 'Translation cache not initialized' };
+    }
+
+    try {
+        if (filePath) {
+            // Refresh specific file
+            await translationCache.refreshFile(filePath, async (path) => {
+                return readFileSync(path, 'utf8');
+            });
+            global.LogController.logInfo(null, 'i18n.refreshTranslationCache', `Refreshed translation: ${filePath}`);
+
+            // Reload i18n instance to pick up changes
+            await initialize();
+
+            return { success: true, message: `Refreshed translation: ${filePath}` };
+        } else {
+            // Clear all translation cache and reinitialize
+            translationCache.clearAll();
+            global.LogController.logInfo(null, 'i18n.refreshTranslationCache', 'Cleared all translation cache');
+
+            // Reload i18n instance
+            await initialize();
+
+            return { success: true, message: 'Cleared all translation cache and reloaded' };
+        }
+    } catch (error) {
+        global.LogController.logError(null, 'i18n.refreshTranslationCache', `Error refreshing translation cache: ${error.message}`);
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * W-079: Get translation cache statistics
+ * @returns {Object} Cache statistics
+ */
+export function getTranslationCacheStats() {
+    return translationCache ? translationCache.getStats() : {
+        name: 'TranslationCache',
+        fileCount: 0,
+        directoryCount: 0,
+        config: { enabled: false }
+    };
+}
+
 // Module is ready for initialization - call initialize() to set up i18n
 
 export default {
     initialize,
-    getInstance
+    getInstance,
+    refreshTranslationCache,    // W-079: Cache refresh API
+    getTranslationCacheStats    // W-079: Cache statistics API
 };
 
 // EOF webapp/utils/i18n.js

@@ -283,7 +283,7 @@ File operations leverage caching for performance:
 - **Template Includes**: `{{file.include}}` results are cached
 - **File Timestamps**: `{{file.timestamp}}` results are cached
 - **Pre-loading**: Common includes are asynchronously pre-loaded at startup
-- **Configurable**: Caching behavior controlled via `appConfig.controller.view.cacheIncludeFiles`
+- **Configurable**: Caching behavior controlled via `appConfig.controller.view.cacheIncludes.enabled`
 
 ## 🔀 Block Helpers
 

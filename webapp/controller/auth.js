@@ -27,22 +27,11 @@ class AuthController {
     /**
      * Get user's preferred language from session with fallback to default
      * @param {object} req - Express request object
-     * @param {string} defaultLang - Default language code (optional, defaults to i18n.default)
+     * @param {string} defaultLang - Default language code (optional, defaults to utils.i18n.default)
      * @returns {string} Language code
      */
     static getUserLanguage(req, defaultLang = null) {
-        // Dynamically import i18n to avoid circular dependency and top-level await issues
-        let fallback = defaultLang || 'en'; // Default fallback
-        try {
-            // Use dynamic import to get i18n default language
-            if (typeof global !== 'undefined' && global.i18n) {
-                fallback = defaultLang || global.i18n.default;
-            }
-        } catch (error) {
-            // Fallback to 'en' if i18n is not available
-        }
-
-        // Return user's preferred language or fallback
+        let fallback = defaultLang || global.appConfig?.utils?.i18n?.default || 'en';
         return req.session?.user?.preferences?.language || fallback;
     }
 

@@ -21,58 +21,34 @@ import CommonUtils from '../utils/common.js';
 import PathResolver from '../utils/path-resolver.js';
 import AuthController from './auth.js';
 import fsPromises from 'fs/promises'; // New import
+import FileCache from '../utils/file-cache.js';
 
 // W-014: Import ContextExtensions at module level for performance
 let ContextExtensions = null;   // initilized by initialize()
 
-// Module-level cache
-// FIXME: cache invalidation on demand
-// FIXME: cache based on appConfig.controller.view.cacheTemplateFiles and appConfig.controller.view.cacheIncludeFiles flags
-const cache = {
-    templateFiles: {},
-    includeFiles: {},
-    fileTimestamp: {},
-    knownFiles: [
-        'jpulse-header.tmpl',
-        'jpulse-footer.tmpl'
-    ],
-    globalConfig: {}    // initilized by initialize()
-};
+// W-079: File-based caches with automatic refresh
+let templateCache = null;       // initialized by initialize()
+let includeCache = null;        // initialized by initialize()
+
+// Global config from database (loaded once at startup)
+let globalConfig = null;
 
 /**
  * Initialize view controller - load global config once
  */
 async function initialize() {
-    // Load global config once
+    // W-079: Initialize file caches with configuration
+    const templateCacheConfig = global.appConfig.controller.view.cacheTemplates || { enabled: true };
+    const includeCacheConfig = global.appConfig.controller.view.cacheIncludes || { enabled: true };
+    templateCache = new FileCache(templateCacheConfig, 'TemplateCache');
+    includeCache = new FileCache(includeCacheConfig, 'IncludeCache');
+
+    // Load global config once (not file-based, keep as-is)
     try {
-        cache.globalConfig = await configModel.findById('global');
-        LogController.logInfo(null, 'view.initialize', 'Global config cached');
+        globalConfig = await configModel.findById('global');
+        LogController.logInfo(null, 'view.initialize', 'Global config loaded');
     } catch (error) {
-        LogController.logError(null, 'view.initialize', `Failed to cache global config: ${error.message}`);
-    }
-
-    // Pre-load known includes once when the module loads
-    const viewDir = path.join(global.appConfig.app.dirName, 'view');
-    for (const includePath of cache.knownFiles) {
-        const fullPath = path.join(viewDir, includePath);
-        try {
-            // Pre-load only if include file caching is enabled
-            if (global.appConfig.controller.view.cacheIncludeFiles) {
-                // Read file and remove header comments with @name attribute
-                const content = await fsPromises.readFile(fullPath, 'utf8');
-                cache.includeFiles[includePath] = content.replace(/<!--.*? \@name .*?-->/gs, '');
-
-                const stats = await fsPromises.stat(fullPath);
-                const timestamp = stats.mtime.valueOf();
-                cache.fileTimestamp[includePath] = timestamp;
-
-                LogController.logInfo(null, 'view', `Pre-loaded ${includePath} and its timestamp ${timestamp}`);
-            } else {
-                LogController.logInfo(null, 'view', `Include file caching disabled, skipped pre-loading ${includePath}`);
-            }
-        } catch (err) {
-            LogController.logError(null, 'view', `error: Failed to pre-load ${includePath}: ${err.message}`);
-        }
+        LogController.logError(null, 'view.initialize', `Failed to load global config: ${error.message}`);
     }
 
     // Asynchronously pre-load ContextExtensions once when the module loads
@@ -175,20 +151,10 @@ async function load(req, res) {
             }
         }
 
-        // Read the file asynchronously, utilizing cache.templateFiles
-        let content;
-        if (global.appConfig.controller.view.cacheTemplateFiles && cache.templateFiles[filePath]) {
-            content = cache.templateFiles[filePath];
-            //LogController.logInfo(req, 'view.load', `Template cache hit for ${filePath}`);
-        } else {
-            content = await fsPromises.readFile(fullPath, 'utf8');
-            if (global.appConfig.controller.view.cacheTemplateFiles) {
-                cache.templateFiles[filePath] = content;
-                //LogController.logInfo(req, 'view.load', `Loaded template ${filePath} and added to cache`);
-            } else {
-                //LogController.logInfo(req, 'view.load', `Loaded template ${filePath} (caching disabled)`);
-            }
-        }
+        // W-079: Read template file using FileCache with automatic refresh
+        let content = await templateCache.get(fullPath, async (filePath) => {
+            return await fsPromises.readFile(filePath, 'utf8');
+        });
 
         // Create base handlebars context
         const baseContext = {
@@ -207,7 +173,7 @@ async function load(req, res) {
                 authenticated: !!req.session?.user,
                 isAdmin: AuthController.isAuthorized(req, ['admin', 'root'])
             },
-            config: cache.globalConfig?.data || {},
+            config: globalConfig?.data || {},
             appConfig: appConfig, // Add app.conf configuration
             url: {
                 domain: `${req.protocol}://${req.get('host')}`,
@@ -229,11 +195,11 @@ async function load(req, res) {
         //console.log('DEBUG: context:', JSON.stringify(context, null, 2));
 
         // Preprocess i18n handlebars first (only {{i18n.}} expressions),
-        // it may return content with new handlebars
+        // because it may return content with new handlebars
         content = global.i18n.processI18nHandlebars(req, content);
 
-        // Process all other handlebars (including file.include with context variables)
-        content = processHandlebars(content, context, req, 0);
+        // W-079: Process all other handlebars (now async due to file.include)
+        content = await processHandlebars(content, context, req, 0);
 
         // Send response with appropriate content type
         // Use original file path for content type detection when serving template files
@@ -276,9 +242,9 @@ async function load(req, res) {
  * @param {Object} context - Handlebars context data
  * @param {Object} req - Express request object for logging
  * @param {number} depth - Current include depth for recursion protection
- * @returns {string} Processed content
+ * @returns {Promise<string>} Processed content
  */
-function processHandlebars(content, context, req, depth = 0) {
+async function processHandlebars(content, context, req, depth = 0) {
     // Prevent infinite recursion
     const MAX_DEPTH = 16;
     if (depth > MAX_DEPTH) {
@@ -305,14 +271,14 @@ function processHandlebars(content, context, req, depth = 0) {
     /**
      * Evaluate a block handlebars expression ({{#type}}...{{/type}})
      */
-    function _evaluateBlockHandlebar(blockType, params, blockContent, currentContext) {
+     async function _evaluateBlockHandlebar(blockType, params, blockContent, currentContext) {
         switch (blockType) {
             case 'if':
                 return _handleBlockIf(params, blockContent, currentContext);
             case 'unless':
                 return _handleBlockUnless(params, blockContent, currentContext);
             case 'each':
-                return _handleBlockEach(params, blockContent, currentContext);
+                return await _handleBlockEach(params, blockContent, currentContext);
             default:
                 throw new Error(`Unknown block type: #${blockType}`);
         }
@@ -321,18 +287,18 @@ function processHandlebars(content, context, req, depth = 0) {
     /**
      * Evaluate a single handlebars expression
      */
-    function _evaluateHandlebar(expression, currentContext) {
+    async function _evaluateHandlebar(expression, currentContext) {
         const parsedArgs = _parseArguments(expression);
         const helper = parsedArgs._helper;
 
         // Handle helper functions first (before property access)
         switch (helper) {
             case 'file.include':
-                return _handleFileInclude(parsedArgs, currentContext);
+                return await _handleFileInclude(parsedArgs, currentContext);
             case 'file.timestamp':
-                return _handleFileTimestamp(parsedArgs._target);
+                return await _handleFileTimestamp(parsedArgs._target);
             case 'file.exists':
-                return _handleFileExists(parsedArgs._target);
+                return await _handleFileExists(parsedArgs._target);
             default:
                 // Handle property access (no spaces)
                 if (!helper.includes(' ')) {
@@ -416,7 +382,7 @@ function processHandlebars(content, context, req, depth = 0) {
     /**
      * Handle {{#each}} blocks
      */
-    function _handleBlockEach(params, blockContent, currentContext) {
+    async function _handleBlockEach(params, blockContent, currentContext) {
         const items = getNestedProperty(currentContext, params.trim());
 
         if (!items || (!Array.isArray(items) && typeof items !== 'object')) {
@@ -446,7 +412,7 @@ function processHandlebars(content, context, req, depth = 0) {
 
             // Process handlebars in block content with iteration context
             // Use _resolveHandlebars with local context for efficiency (no re-annotation)
-            let processedContent = _resolveHandlebars(blockContent, iterationContext);
+            let processedContent = await _resolveHandlebars(blockContent, iterationContext);
 
             result += processedContent;
         }
@@ -457,7 +423,7 @@ function processHandlebars(content, context, req, depth = 0) {
     /**
      * Handle file.include helper with optional context variables
      */
-    function _handleFileInclude(parsedArgs, currentContext) {
+    async function _handleFileInclude(parsedArgs, currentContext) {
         // Check include depth to prevent infinite recursion
         const maxDepth = global.appConfig?.controller?.view?.maxIncludeDepth || 16;
         if (depth >= maxDepth) {
@@ -494,40 +460,30 @@ function processHandlebars(content, context, req, depth = 0) {
             }
         }
 
-        // Get template content (cache unexpanded content, apply context on each use)
-        let content;
+        // W-079: Get template content using FileCache with automatic refresh
         const hasContextVars = Object.keys(parsedArgs).some(key => key !== '_helper' && key !== '_target');
+        const content = await includeCache.get(fullPath, async (filePath) => {
+            const rawContent = await fsPromises.readFile(filePath, 'utf8');
+            return rawContent.replace(/(<!--|\/\*\*)\s+\* +\@name .*?(\*\/|-->)\r?\n?/gs, '');
+        });
 
-        if (global.appConfig.controller.view.cacheIncludeFiles && cache.includeFiles[includePath]) {
-            // Cache hit: get cached unexpanded content
-            LogController.logInfo(req, 'view.load', `Include cache hit for ${includePath}${hasContextVars ? ' (with context vars)' : ''}`);
-            content = cache.includeFiles[includePath];
-        } else {
-            // Cache miss: read file and cache unexpanded content
-            content = fs.readFileSync(fullPath, 'utf8').replace(/(<!--|\/\*\*)\s+\* +\@name .*?(\*\/|-->)\r?\n?/gs, '');
-            LogController.logInfo(req, 'view.load', `Loaded ${includePath}${hasContextVars ? ' (with context vars)' : ''}`);
-
-            // Cache the unexpanded template content (always cache if caching enabled)
-            if (global.appConfig.controller.view.cacheIncludeFiles) {
-                cache.includeFiles[includePath] = content;
-            }
+        if (content === null) {
+            throw new Error(`Include file not found or deleted: ${includePath}`);
         }
 
+        LogController.logInfo(req, 'view.load', `Include processed: ${includePath}${hasContextVars ? ' (with context vars)' : ''}`);
+
         // Process handlebars with the include context
-        return processHandlebars(content, includeContext, req, depth + 1);
+        return await processHandlebars(content, includeContext, req, depth + 1);
     }
 
     /**
      * Handle file.timestamp helper
      */
-    function _handleFileTimestamp(filePath) {
+    async function _handleFileTimestamp(filePath) {
         const includePath = filePath.replace(/^["']|["']$/g, '');
 
-        // Check cache first for file timestamp
-        if (global.appConfig.controller.view.cacheIncludeFiles && cache.fileTimestamp[includePath]) {
-            return cache.fileTimestamp[includePath];
-        }
-
+        // W-079: Use FileCache for timestamp caching (cache busting needs this!)
         let fullPath;
         try {
             const relativePath = `view/${includePath}`;
@@ -547,31 +503,28 @@ function processHandlebars(content, context, req, depth = 0) {
             }
         }
 
-        const stats = fs.statSync(fullPath);
-        const timestamp = stats.mtime.valueOf();
-        // Cache the timestamp, if caching is enabled
-        if (global.appConfig.controller.view.cacheIncludeFiles) {
-            cache.fileTimestamp[includePath] = timestamp;
-        }
-        return timestamp;
+        // Use FileCache to get timestamp efficiently
+        const timestampResult = await includeCache.get(fullPath, async (path) => {
+            const stats = await fsPromises.stat(path);
+            return stats.mtime.valueOf();
+        });
+
+        return timestampResult || Date.now(); // Fallback to current time if file doesn't exist
     }
 
     /**
      * Handle file.exists helper
      */
-    function _handleFileExists(filePath) {
+    async function _handleFileExists(filePath) {
         const includePath = filePath.replace(/^["']|["']$/g, '');
 
-        // Check cache first for file existence
-        const cacheKey = `exists_${includePath}`;
-        if (global.appConfig.controller.view.cacheIncludeFiles && cache.fileTimestamp[cacheKey] !== undefined) {
-            return cache.fileTimestamp[cacheKey] ? 'true' : 'false';
-        }
-
+        // W-079: Use FileCache for existence caching (used frequently!)
+        let fullPath;
         let fileExists = false;
+
         try {
             const relativePath = `view/${includePath}`;
-            PathResolver.resolveModule(relativePath);
+            fullPath = PathResolver.resolveModule(relativePath);
             fileExists = true;
         } catch (error) {
             // Try .tmpl fallback for CSS and JS files (same logic as main file resolution)
@@ -579,7 +532,7 @@ function processHandlebars(content, context, req, depth = 0) {
             if (fileExtension === '.css' || fileExtension === '.js') {
                 try {
                     const templatePath = `view/${includePath}.tmpl`;
-                    PathResolver.resolveModule(templatePath);
+                    fullPath = PathResolver.resolveModule(templatePath);
                     fileExists = true;
                 } catch (templateError) {
                     fileExists = false;
@@ -589,12 +542,17 @@ function processHandlebars(content, context, req, depth = 0) {
             }
         }
 
-        // Cache the result, if caching is enabled
-        if (global.appConfig.controller.view.cacheIncludeFiles) {
-            cache.fileTimestamp[cacheKey] = fileExists;
+        if (!fileExists) {
+            return 'false';
         }
 
-        return fileExists ? 'true' : 'false';
+        // Use FileCache to cache the existence check result
+        const existsResult = await includeCache.get(fullPath, async (path) => {
+            // Just return a marker that the file exists (we already resolved the path)
+            return 'exists';
+        });
+
+        return existsResult ? 'true' : 'false';
     }
 
     /**
@@ -636,15 +594,15 @@ function processHandlebars(content, context, req, depth = 0) {
     }
 
     // Phase 2: Left-to-right resolution using single regex for both regular and block handlebars
-    function _resolveHandlebars(text, localContext = null, blockType, blockLevel, blockParams, blockContent, regularHandlebar) {
+    async function _resolveHandlebars(text, localContext = null, blockType, blockLevel, blockParams, blockContent, regularHandlebar) {
         const currentContext = localContext || context;
 
         if (blockType) {
             // Block handlebars: {{#type:~level~ params}}content{{/type:~level~}}
             try {
-                const evaluatedContent = _evaluateBlockHandlebar(blockType, blockParams.trim(), blockContent, currentContext);
+                const evaluatedContent = await _evaluateBlockHandlebar(blockType, blockParams.trim(), blockContent, currentContext);
                 // Recursively process the evaluated content (without re-annotating)
-                return _resolveHandlebars(evaluatedContent, localContext);
+                return await _resolveHandlebars(evaluatedContent, localContext);
             } catch (error) {
                 LogController.logError(req, 'view.load', `error: Handlebar "#${blockType} ${blockParams}": ${error.message}`);
                 return `<!-- Error: Handlebar "#${blockType} ${blockParams}": ${error.message} -->`;
@@ -652,21 +610,31 @@ function processHandlebars(content, context, req, depth = 0) {
         } else if (regularHandlebar) {
             // Regular handlebars: {{name params}}
             try {
-                return _evaluateHandlebar(regularHandlebar, currentContext);
+                return await _evaluateHandlebar(regularHandlebar, currentContext);
             } catch (error) {
                 LogController.logError(req, 'view.load', `error: Handlebar "${regularHandlebar}": ${error.message}`);
                 return `<!-- Error: Handlebar "${regularHandlebar}": ${error.message} -->`;
             }
         } else {
             // Recursive text processing - this is the entry point
-            return text.replace(/\{\{#([a-z]+):~(\d+)~ ?(.*?)\}\}(.*?)\{\{\/\1:~\2~\}\}|\{\{(\@?[a-z][a-z0-9.]*.*?)\}\}/gs,
-                (match, bType, bLevel, bParams, bContent, rHandlebar) => {
-                    return _resolveHandlebars(match, localContext, bType, bLevel, bParams, bContent, rHandlebar);
-                });
+            const regex = /\{\{#([a-z]+):~(\d+)~ ?(.*?)\}\}(.*?)\{\{\/\1:~\2~\}\}|\{\{(\@?[a-z][a-z0-9.]*.*?)\}\}/gs;
+            let result = text;
+
+            // Find all matches first
+            const matches = [...text.matchAll(regex)];
+
+            // Process matches sequentially to handle async operations
+            for (const match of matches) {
+                const [fullMatch, bType, bLevel, bParams, bContent, rHandlebar] = match;
+                const replacement = await _resolveHandlebars(fullMatch, localContext, bType, bLevel, bParams, bContent, rHandlebar);
+                result = result.replace(fullMatch, replacement);
+            }
+
+            return result;
         }
     }
 
-    let result = _resolveHandlebars(annotated, context);
+    let result = await _resolveHandlebars(annotated, context);
 
     // Phase 3: Clean up any remaining unbalanced annotations
     result = result.replace(/\{\{([#\/][a-z]+):~\d+~(.*?)\}\}/g, '<!-- Error: Unbalanced handlebar "$1$2" removed -->');
@@ -674,10 +642,86 @@ function processHandlebars(content, context, req, depth = 0) {
     return result;
 }
 
+/**
+ * W-079: Refresh template cache (for API endpoints)
+ * @param {string} filePath - Optional specific file path to refresh
+ * @returns {Object} Refresh result
+ */
+async function refreshTemplateCache(filePath = null) {
+    if (!templateCache) {
+        return { success: false, message: 'Template cache not initialized' };
+    }
+
+    try {
+        if (filePath) {
+            // Refresh specific file
+            await templateCache.refreshFile(filePath, async (path) => {
+                return await fsPromises.readFile(path, 'utf8');
+            });
+            LogController.logInfo(null, 'view.refreshTemplateCache', `Refreshed template: ${filePath}`);
+            return { success: true, message: `Refreshed template: ${filePath}` };
+        } else {
+            // Clear all template cache
+            templateCache.clearAll();
+            LogController.logInfo(null, 'view.refreshTemplateCache', 'Cleared all template cache');
+            return { success: true, message: 'Cleared all template cache' };
+        }
+    } catch (error) {
+        LogController.logError(null, 'view.refreshTemplateCache', `Error refreshing template cache: ${error.message}`);
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * W-079: Refresh include cache (for API endpoints)
+ * @param {string} filePath - Optional specific file path to refresh
+ * @returns {Object} Refresh result
+ */
+async function refreshIncludeCache(filePath = null) {
+    if (!includeCache) {
+        return { success: false, message: 'Include cache not initialized' };
+    }
+
+    try {
+        if (filePath) {
+            // Refresh specific file
+            await includeCache.refreshFile(filePath, async (path) => {
+                const rawContent = await fsPromises.readFile(path, 'utf8');
+                return rawContent.replace(/(<!--|\/\*\*)\s+\* +\@name .*?(\*\/|-->)\r?\n?/gs, '');
+            });
+            LogController.logInfo(null, 'view.refreshIncludeCache', `Refreshed include: ${filePath}`);
+            return { success: true, message: `Refreshed include: ${filePath}` };
+        } else {
+            // Clear all include cache
+            includeCache.clearAll();
+            LogController.logInfo(null, 'view.refreshIncludeCache', 'Cleared all include cache');
+            return { success: true, message: 'Cleared all include cache' };
+        }
+    } catch (error) {
+        LogController.logError(null, 'view.refreshIncludeCache', `Error refreshing include cache: ${error.message}`);
+        return { success: false, message: error.message };
+    }
+}
+
+/**
+ * W-079: Get cache statistics
+ * @returns {Object} Cache statistics
+ */
+function getCacheStats() {
+    const stats = {
+        template: templateCache ? templateCache.getStats() : { name: 'TemplateCache', fileCount: 0, directoryCount: 0, config: { enabled: false } },
+        include: includeCache ? includeCache.getStats() : { name: 'IncludeCache', fileCount: 0, directoryCount: 0, config: { enabled: false } }
+    };
+    return stats;
+}
+
 export default {
     initialize,
     load,
-    processHandlebars  // Export for unit testing
+    processHandlebars,  // Export for unit testing
+    refreshTemplateCache,   // W-079: Cache refresh API
+    refreshIncludeCache,    // W-079: Cache refresh API
+    getCacheStats           // W-079: Cache statistics API
 };
 
 // EOF webapp/controller/view.js

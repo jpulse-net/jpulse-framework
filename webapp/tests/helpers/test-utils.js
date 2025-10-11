@@ -194,7 +194,7 @@ export class TestUtils {
                     dirName: path.join(projectRoot, 'webapp') // Critical for i18n to find translations
                 },
                 deployment: { mode: 'test', test: { port: 9999 } },
-                i18n: { default: 'en' }, // Critical for i18n default language
+                i18n: { default: 'en' }, // Critical for i18n default language (legacy test support)
                 // Add other critical config sections that modules might need
                 database: { mode: 'standalone' },
                 controller: {

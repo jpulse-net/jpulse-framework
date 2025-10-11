@@ -1270,21 +1270,6 @@ This is the doc to track work items, arranged in three sections:
   - site/webapp/controller/helloTodo.js - Added comprehensive logging
   - site/webapp/model/helloTodo.js - Added missing findById method
 
-
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-078, v0.9.6: app api: provide health and metrics endpoints
 - status: ✅ DONE
 - type: Feature
@@ -1315,9 +1300,60 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-079, v0.9.7: cache: strategy for cache invalidation in controllers & utitities
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective:
+  - ability to invalidate caches (.shtml, .tmpl, .css, .js, i18n .conf), so that the app does not need to be restarted
+  - should work in multi node instances, and multi app server instances
+- automated way across all node instances of the app
+  - timer based, e.g. cache TTL?
+  - file change detection?
+  - on-demand via API?
+- caches:
+  - view controller caches:
+    - file: webapp/controller/view.js
+    - cache: local
+    - target:
+      - webapp/view/**/*css
+      - webapp/view/**/*js
+      - webapp/view/**/*tmpl
+      - site/webapp/view/**/*css
+      - site/webapp/view/**/*js
+      - site/webapp/view/**/*tmpl
+  - i18n utility caches:
+    - file: webapp/utils/i18n.js
+    - cache: local
+    - target:
+      - webapp/translations/*.conf
+  - markdown controller caches:
+    - file: webapp/controller/markdown.js
+    - cache: local
+    - markdown file contents with timestamp tracking
+    - directory listings for API responses
+    - target:
+      - docs/**/*md
+
+
+
+
+
+
+
 pending:
+- site config change is not recorded in logs
+- site override is gone!
 - install pm2, test
 - navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
+- grab gh jpulse.net
 
 old pending:
 - fix responsive style issue with user icon
@@ -1327,9 +1363,6 @@ old pending:
 
 
 ### Potential next items:
-- W-078, v0.9.6: app api: provide health and metrics endpoints
-- W-079, v0.9.7: view controller: strategy for cache invalidation
-- W-080, v0.9.8: controller: change search to cursor based paging API with limit & cursor
 - W-076, v1.0.0: model: create redis caching infrastrucure
 
 
@@ -1350,7 +1383,7 @@ finishing up work item: W-070:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
 - assume release: W-078, v0.9.6
-- update deliverables in W-078 to document work done (don't remove from existing deliverables list)
+- update deliverables in W-078 to document work done (don't make any other changes to this file)
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
@@ -1371,7 +1404,7 @@ git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v0.9.5
+git tag v0.9.6
 git push origin main --tags
 
 === on failed package build on github ===
@@ -1400,17 +1433,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
-
-### W-079, v0.9.7: view controller: strategy for cache invalidation
-- status: 🕑 PENDING
-- type: Feature
-- objective:
-  - ability to invalidate template load cache (.shtml, .tmpl, .css, .js) so that the app does not need to be restarted
-  - should work in multi node instances, and multi app server instances
-- automated way across all node instances of the app
-  - timer based, e.g. cache TTL?
-  - file change detection?
-  - on-demand via API?
 
 ### W-080, v0.9.8: controller: change search to cursor based paging API with limit & cursor
 - status: 🕑 PENDING

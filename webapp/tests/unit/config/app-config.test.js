@@ -61,8 +61,14 @@ describe('App Configuration Loading', () => {
                         port: 8080
                     }
                 },
-                i18n: {
-                    default: 'en'
+                utils: {
+                    i18n: {
+                        default: 'en',
+                        cache: {
+                            enabled: true,
+                            checkInterval: 5000
+                        }
+                    }
                 }
             }`;
 
@@ -74,7 +80,7 @@ describe('App Configuration Loading', () => {
             expect(config.app.site.version).toBe('1.0.0');
             expect(config.deployment.mode).toBe('dev');
             expect(config.deployment.dev.port).toBe(8080);
-            expect(config.i18n.default).toBe('en');
+            expect(config.utils.i18n.default).toBe('en');
         });
 
         test('should handle configuration with comments', async () => {
@@ -309,8 +315,14 @@ describe('App Configuration Loading', () => {
                         port: 8080
                     }
                 },
-                i18n: {
-                    default: 'en'
+                utils: {
+                    i18n: {
+                        default: 'en',
+                        cache: {
+                            enabled: true,
+                            checkInterval: 5000
+                        }
+                    }
                 }
             }`;
 
@@ -321,7 +333,7 @@ describe('App Configuration Loading', () => {
             // Validate required sections exist
             expect(config).toHaveProperty('app');
             expect(config).toHaveProperty('deployment');
-            expect(config).toHaveProperty('i18n');
+            expect(config).toHaveProperty('utils');
 
             // Validate required app properties
             expect(config.app).toHaveProperty('jPulse');
@@ -335,8 +347,8 @@ describe('App Configuration Loading', () => {
             expect(config.deployment).toHaveProperty('mode');
             expect(config.deployment).toHaveProperty(config.deployment.mode);
 
-            // Validate i18n configuration
-            expect(config.i18n).toHaveProperty('default');
+            // Validate utils configuration
+            expect(config.utils.i18n).toHaveProperty('default');
         });
 
         test('should handle configuration with extra properties', async () => {
@@ -456,7 +468,7 @@ describe('App Configuration Loading', () => {
             expect(config.app.site.version).toBe('0.1.0-test');
             expect(config.deployment.mode).toBe('test');
             expect(config.deployment.test.port).toBe(9999);
-            expect(config.i18n.default).toBe('en');
+            expect(config.utils.i18n.default).toBe('en');
         });
 
         test('should validate production-like configuration structure', async () => {

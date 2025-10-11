@@ -170,7 +170,7 @@ class UserModel {
 
         // Apply preferences defaults
         if (!result.preferences) result.preferences = {};
-        if (result.preferences.language === undefined) result.preferences.language = appConfig.i18n.default || 'en';
+        if (result.preferences.language === undefined) result.preferences.language = appConfig.utils?.i18n?.default || 'en';
         if (result.preferences.theme === undefined) result.preferences.theme = 'light';
 
         // Apply status and metadata defaults

@@ -19,6 +19,7 @@ const router = express.Router();
 
 // Load controllers
 import AuthController from './controller/auth.js';
+import CacheController from './controller/cache.js';
 import HealthController from './controller/health.js';
 import MarkdownController from './controller/markdown.js';
 import UserController from './controller/user.js';
@@ -51,6 +52,13 @@ router.get('/api/1/auth/themes', AuthController.getThemes);
 
 // Markdown API routes
 router.get('/api/1/markdown/*', MarkdownController.api);
+
+// W-079: Cache API routes (require admin role)
+router.post('/api/1/cache/refresh', CacheController.refreshAll);
+router.post('/api/1/cache/refresh/view', CacheController.refreshView);
+router.post('/api/1/cache/refresh/i18n', CacheController.refreshI18n);
+router.post('/api/1/cache/refresh/markdown', CacheController.refreshMarkdown);
+router.get('/api/1/cache/stats', CacheController.getStats);
 
 // User API routes (with authentication middleware where needed)
 router.post('/api/1/user/signup', UserController.signup);

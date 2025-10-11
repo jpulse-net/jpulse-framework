@@ -29681,3 +29681,215 @@ User reported:
 - Preserved all existing functionality and styling
 
 The generateStatusContent function significantly reduces code duplication and makes the system status page much more maintainable.
+
+
+============================================================
+2025-10-10 22:25
+
+Implemented Multi-Instance Metrics API Structure (W-078 continuation)
+
+User requested implementation of new API structure for future Redis-based multi-instance support:
+- Document changes in W-076-redis-caching-and-1o-release-prep.md
+- Code the API changes in HealthController
+- Update system-status.shtml UI to work with new structure
+- Update cursor log
+
+✅ Updated Documentation (W-076-redis-caching-and-1o-release-prep.md):
+- Replaced old appInstances.cluster structure with new format
+- Documented statistics section with cluster-wide aggregated data
+- Documented servers array with per-server system data and per-instance PM2 data
+- Added WebSocket statistics split: cluster-wide in statistics, instance-specific in instances
+- Showed serverId extraction from hostname (web01 -> 1)
+- Provided complete API response example with new structure
+
+✅ Implemented New API Structure (HealthController.metrics):
+- Removed old flat structure (system, websockets, process, deployment, pm2)
+- Added statistics object with cluster-wide aggregated data:
+  - totalServers, totalInstances, totalProcesses, runningProcesses, etc.
+  - totalWebSocketConnections, totalWebSocketMessages, totalWebSocketNamespaces
+  - webSocketNamespaces array with aggregated namespace stats
+- Added servers array with per-server structure:
+  - serverName (hostname), serverId (extracted number)
+  - system (platform, arch, nodeVersion, cpus, loadAverage, memory)
+  - deployment (mode, config)
+  - instances array with per-PM2-process data and instance-specific WebSocket stats
+- Added helper methods:
+  - _buildStatistics(): Aggregates cluster-wide stats
+  - _buildServersArray(): Builds server/instance hierarchy
+  - _extractServerIdFromHostname(): Extracts number from hostname
+
+✅ Updated UI (system-status.shtml):
+- Modified all render functions to work with new API structure:
+  - renderSystemResourcesMetrics(): Gets system data from servers[0].system
+  - renderMemoryMetrics(): Uses servers[0].system for system memory data
+  - renderWebSocketMetrics(): Uses statistics for cluster-wide WS data
+  - renderLoadMetrics(): Gets loadAverage from servers[0].system
+  - renderHostMetrics(): Gets hostname from servers[0].system
+  - renderPM2Metrics(): Uses statistics for aggregated PM2 data
+  - renderPM2ProcessDetails(): Gets instance details from servers[0].instances
+- Maintains backward compatibility during transition
+- Preserves all existing functionality and styling
+
+✅ Key Architecture Benefits:
+- Future-ready for Redis clustering without breaking changes
+- Clear separation: statistics = cluster-wide, servers = per-server, instances = per-process
+- Avoids data duplication (system info per server, not per instance)
+- WebSocket data properly split between cluster stats and instance details
+- Supports current single-server deployment while preparing for multi-server
+
+✅ Single-Server Implementation (Current):
+- statistics aggregates data from all local PM2 instances
+- servers array contains single server with all local instances
+- WebSocket stats distributed appropriately between levels
+- PM2 process details preserved in instances array
+- Graceful fallback when PM2 not available
+
+The new API structure is ready for production use and provides a solid foundation for future Redis-based multi-instance coordination while maintaining full functionality for current single-server deployments.
+
+
+============================================================
+2025-10-10 22:39
+
+Fixed API Structure Inconsistencies (W-078 refinement)
+
+User identified inconsistencies in the new metrics API structure:
+- Top-level fields were misplaced (some server-specific, some instance-specific)
+- Duplicate data (serverName vs system.hostname)
+- Deployment was at wrong level
+
+✅ Identified Issues:
+1. Top-level data fields were inconsistent:
+   - status, version, release, timestamp → Framework level (correct)
+   - uptime, memory → Instance-specific (misplaced)
+   - environment, database → Server-specific (misplaced)
+2. Duplicate hostname data (serverName vs system.hostname)
+3. system.* nested unnecessarily when it should be server-level
+4. deployment should be server-level, not instance-level
+
+✅ Corrected API Structure:
+**Top-level (data):**
+- Only framework/application level: status, version, release, timestamp
+- Removed: uptime, environment, database, memory (moved to proper levels)
+
+**Server-level (servers[n]):**
+- Flattened system info: platform, arch, nodeVersion, cpus, loadAverage, freeMemory, totalMemory
+- Added server-level: environment, database, deployment
+- Removed duplicate: system.hostname (kept serverName)
+
+**Instance-level (instances[n]):**
+- Added instance-specific: uptime, uptimeFormatted, memory{used, total}
+- Kept PM2-specific: pid, pm2ProcessName, status, cpu, restarts
+- Kept instance WebSocket and process info
+
+✅ Updated Implementation:
+**HealthController.metrics():**
+- Cleaned top-level baseMetrics to only include framework data
+- Modified _buildServersArray() to flatten system data to server level
+- Moved deployment, environment, database to server level
+- Added uptime and memory to instance level
+- Fixed PM2 uptime calculation (was using wrong timestamp)
+
+**UI Updates (system-status.shtml):**
+- Updated renderSystemMetrics() to get uptime from instances[0]
+- Updated renderSystemResourcesMetrics() to use server.* instead of server.system.*
+- Updated renderMemoryMetrics() to get memory from instances[0].memory
+- Updated renderDatabaseMetrics() to use server.database
+- Updated renderLoadMetrics() to use server.loadAverage
+- Updated renderHostMetrics() to use server.serverName
+
+✅ Documentation Updated:
+- W-076-redis-caching-and-1o-release-prep.md reflects corrected structure
+- Removed nested system object, flattened to server level
+- Showed proper data placement: framework → statistics → servers → instances
+- Clear separation of concerns at each level
+
+✅ Benefits of Corrected Structure:
+- Logical data placement: each field at appropriate level
+- No data duplication (single hostname, proper memory placement)
+- Clean hierarchy: framework → cluster → server → instance
+- Future Redis-ready with proper data separation
+- Easier to understand and maintain
+
+The API structure now properly separates framework-level, cluster-level, server-level, and instance-level data without inconsistencies or duplication.
+
+
+============================================================
+2025-10-10 22:57
+
+Final API Structure Refinement - Moved Deployment to Instance Level
+
+User identified final inconsistency: servers[n].deployment should be at instance level, not server level.
+
+✅ Issue Analysis:
+- servers[n].deployment.mode and instances[m].environment were redundant
+- deployment contains instance-specific config (port, database, etc.)
+- In multi-instance scenarios: same server runs different deployment configs
+- Server-level deployment doesn't make sense for mixed dev/prod instances
+
+✅ Final Structure Refinement:
+**Moved deployment from server-level to instance-level:**
+- Each instance now has its own deployment config
+- Supports different ports, database configs per instance
+- Eliminates redundancy between deployment.mode and environment
+
+**Final Clean Structure:**
+```javascript
+{
+    "data": {
+        "status": "ok",
+        "timestamp": "...",
+        "statistics": { /* cluster-wide */ },
+        "servers": [{
+            "serverName": "web01",
+            "serverId": 1,
+            // Server-level: hardware/OS only
+            "platform": "linux", "cpus": 16, "loadAverage": [...],
+            "mongodb": { "status": "running", "version": "6.0.8" },
+
+            "instances": [{
+                "pid": 12345,
+                // Instance-specific application data
+                "version": "0.9.5",
+                "environment": "dev",
+                "database": { "name": "jp-dev" },
+                "deployment": {
+                    "mode": "dev",
+                    "config": { "port": 8080, "db": "jp-dev" }
+                },
+                "uptime": 123, "memory": {...}, "websockets": {...}
+            }, {
+                "pid": 12346,
+                // Different instance, different deployment!
+                "version": "0.9.4",
+                "environment": "production",
+                "database": { "name": "jp-prod" },
+                "deployment": {
+                    "mode": "production",
+                    "config": { "port": 8081, "db": "jp-prod" }
+                }
+            }]
+        }]
+    }
+}
+```
+
+✅ Implementation Changes:
+**HealthController._buildServersArray():**
+- Added deployment object to each instance (both PM2 and non-PM2 cases)
+- Removed deployment from server-level return object
+- Each instance gets its own deployment configuration
+
+**Data Hierarchy Finalized:**
+- **Framework level**: status, timestamp
+- **Statistics level**: cluster-wide aggregated data
+- **Server level**: hardware/OS + MongoDB server status
+- **Instance level**: application data (version, environment, database, deployment, memory, etc.)
+
+✅ Benefits of Final Structure:
+- **No redundancy**: deployment.mode and environment can coexist (or be same)
+- **Multi-instance ready**: different deployments per instance on same server
+- **Logical separation**: server = infrastructure, instance = application
+- **Future Redis-ready**: clear data ownership at each level
+- **Real-world accurate**: matches user's 3 servers × 10 instances scenario
+
+The API structure now perfectly supports mixed environments and deployments per server, with clean separation of concerns at each level.

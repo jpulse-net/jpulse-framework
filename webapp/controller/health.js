@@ -86,27 +86,12 @@ class HealthController {
 
         try {
             const isAdmin = AuthController.isAuthorized(req, ['admin', 'root']);
-            const uptime = Math.floor(process.uptime());
-            const memUsage = process.memoryUsage();
 
-            // Base metrics available to all users
+            // Base metrics available to all users (framework level only)
             const baseMetrics = {
                 success: true,
                 data: {
                     status: 'ok',
-                    version: global.appConfig.app.version,
-                    release: global.appConfig.app.release,
-                    uptime: uptime,
-                    uptimeFormatted: HealthController._formatUptime(uptime),
-                    environment: global.appConfig.deployment.mode,
-                    database: {
-                        status: 'connected', // TODO: Add actual database health check
-                        name: global.appConfig.deployment[global.appConfig.deployment.mode].db
-                    },
-                    memory: {
-                        used: Math.round(memUsage.heapUsed / 1024 / 1024), // MB
-                        total: Math.round(memUsage.heapTotal / 1024 / 1024) // MB
-                    },
                     timestamp: new Date().toISOString()
                 }
             };
@@ -125,26 +110,16 @@ class HealthController {
                     totalMemory: Math.round(os.totalmem() / 1024 / 1024) // MB
                 };
 
-                baseMetrics.data.system = systemInfo;
-                baseMetrics.data.websockets = {
-                    uptime: wsStats.uptime,
-                    totalMessages: wsStats.totalMessages,
-                    namespaces: wsStats.namespaces.length,
-                    activeConnections: wsStats.namespaces.reduce((total, ns) => total + ns.clientCount, 0)
-                };
-                baseMetrics.data.process = {
-                    pid: process.pid,
-                    ppid: process.ppid,
-                    memoryUsage: memUsage,
-                    resourceUsage: process.resourceUsage ? process.resourceUsage() : null
-                };
-                baseMetrics.data.deployment = {
-                    mode: global.appConfig.deployment.mode,
-                    config: global.appConfig.deployment[global.appConfig.deployment.mode]
-                };
+                // Get PM2 status
+                const pm2Status = await HealthController._getPM2Status();
 
-                // Add PM2 status (always include for admin, even if null)
-                baseMetrics.data.pm2 = await HealthController._getPM2Status();
+                // Build cluster-wide statistics
+                const statistics = HealthController._buildStatistics(pm2Status, wsStats, baseMetrics.data.timestamp);
+                baseMetrics.data.statistics = statistics;
+
+                // Build servers array
+                const servers = HealthController._buildServersArray(systemInfo, wsStats, pm2Status, baseMetrics.data.timestamp);
+                baseMetrics.data.servers = servers;
             }
 
             res.json(baseMetrics);
@@ -239,6 +214,193 @@ class HealthController {
     }
 
     /**
+     * Build cluster-wide statistics
+     * @param {Object|null} pm2Status - PM2 status data
+     * @param {Object} wsStats - WebSocket statistics
+     * @param {string} timestamp - Current timestamp
+     * @returns {Object} Statistics object
+     * @private
+     */
+    static _buildStatistics(pm2Status, wsStats, timestamp) {
+        // For single server deployment, aggregate local data
+        const totalWebSocketConnections = wsStats.namespaces.reduce((total, ns) => total + ns.clientCount, 0);
+
+        // Build WebSocket namespace statistics
+        const webSocketNamespaces = wsStats.namespaces.map(ns => ({
+            path: ns.path,
+            totalConnections: ns.clientCount,
+            totalMessages: ns.totalMessages,
+            instanceCount: 1, // Single instance for now
+            serverCount: 1,   // Single server for now
+            status: ns.status,
+            lastActivity: ns.lastActivity
+        }));
+
+        return {
+            totalServers: 1,
+            totalInstances: pm2Status ? pm2Status.totalProcesses : 1,
+            totalProcesses: pm2Status ? pm2Status.totalProcesses : 1,
+            runningProcesses: pm2Status ? pm2Status.running : 1,
+            stoppedProcesses: pm2Status ? pm2Status.stopped : 0,
+            erroredProcesses: pm2Status ? pm2Status.errored : 0,
+            totalWebSocketConnections: totalWebSocketConnections,
+            totalWebSocketMessages: wsStats.totalMessages,
+            totalWebSocketNamespaces: wsStats.namespaces.length,
+            webSocketNamespaces: webSocketNamespaces,
+            lastUpdated: timestamp
+        };
+    }
+
+    /**
+     * Build servers array
+     * @param {Object} systemInfo - System information
+     * @param {Object} wsStats - WebSocket statistics
+     * @param {Object|null} pm2Status - PM2 status data
+     * @param {string} timestamp - Current timestamp
+     * @returns {Array} Servers array
+     * @private
+     */
+    static _buildServersArray(systemInfo, wsStats, pm2Status, timestamp) {
+        const hostname = systemInfo.hostname;
+        const serverId = HealthController._extractServerIdFromHostname(hostname);
+
+        // Build instances array
+        const instances = [];
+
+        if (pm2Status && pm2Status.processes) {
+            // Multiple PM2 instances
+            pm2Status.processes.forEach(p => {
+                const uptime = Math.floor((Date.now() - p.uptime) / 1000);
+                const memUsage = process.memoryUsage();
+
+                instances.push({
+                    pid: p.pid,
+                    pm2Available: true,
+                    pm2ProcessName: p.name,
+                    status: p.status,
+
+                    // Instance-specific data (moved from top-level and server-level)
+                    version: global.appConfig.app.version,
+                    release: global.appConfig.app.release,
+                    environment: global.appConfig.deployment.mode,
+                    database: {
+                        status: 'connected', // TODO: Add actual database health check
+                        name: global.appConfig.deployment[global.appConfig.deployment.mode].db
+                    },
+                    deployment: {
+                        mode: global.appConfig.deployment.mode,
+                        config: global.appConfig.deployment[global.appConfig.deployment.mode]
+                    },
+
+                    uptime: uptime,
+                    uptimeFormatted: HealthController._formatUptime(uptime),
+                    memory: {
+                        used: p.memory,
+                        total: Math.round(memUsage.heapTotal / 1024 / 1024) // MB
+                    },
+                    cpu: p.cpu,
+                    restarts: p.restarts,
+                    websockets: {
+                        uptime: wsStats.uptime,
+                        localConnections: Math.floor(wsStats.namespaces.reduce((total, ns) => total + ns.clientCount, 0) / pm2Status.processes.length),
+                        localMessages: Math.floor(wsStats.totalMessages / pm2Status.processes.length),
+                        namespaces: wsStats.namespaces.map(ns => ({
+                            path: ns.path,
+                            clientCount: Math.floor(ns.clientCount / pm2Status.processes.length),
+                            localMessages: Math.floor(ns.totalMessages / pm2Status.processes.length),
+                            messagesPerMin: ns.messagesPerMin,
+                            lastActivity: ns.lastActivity
+                        }))
+                    },
+                    processInfo: {
+                        ppid: process.ppid,
+                        memoryUsage: memUsage,
+                        resourceUsage: process.resourceUsage ? process.resourceUsage() : null
+                    }
+                });
+            });
+        } else {
+            // Single instance (no PM2 or PM2 not available)
+            const uptime = Math.floor(process.uptime());
+            const memUsage = process.memoryUsage();
+
+            instances.push({
+                pid: process.pid,
+                pm2Available: false,
+                reason: pm2Status === null ? "PM2 not installed or not in PATH" : null,
+
+                // Instance-specific data (moved from top-level and server-level)
+                version: global.appConfig.app.version,
+                release: global.appConfig.app.release,
+                environment: global.appConfig.deployment.mode,
+                database: {
+                    status: 'connected', // TODO: Add actual database health check
+                    name: global.appConfig.deployment[global.appConfig.deployment.mode].db
+                },
+                deployment: {
+                    mode: global.appConfig.deployment.mode,
+                    config: global.appConfig.deployment[global.appConfig.deployment.mode]
+                },
+
+                uptime: uptime,
+                uptimeFormatted: HealthController._formatUptime(uptime),
+                memory: {
+                    used: Math.round(memUsage.heapUsed / 1024 / 1024), // MB
+                    total: Math.round(memUsage.heapTotal / 1024 / 1024) // MB
+                },
+                websockets: {
+                    uptime: wsStats.uptime,
+                    localConnections: wsStats.namespaces.reduce((total, ns) => total + ns.clientCount, 0),
+                    localMessages: wsStats.totalMessages,
+                    namespaces: wsStats.namespaces.map(ns => ({
+                        path: ns.path,
+                        clientCount: ns.clientCount,
+                        localMessages: ns.totalMessages,
+                        messagesPerMin: ns.messagesPerMin,
+                        lastActivity: ns.lastActivity
+                    }))
+                },
+                processInfo: {
+                    ppid: process.ppid,
+                    memoryUsage: memUsage,
+                    resourceUsage: process.resourceUsage ? process.resourceUsage() : null
+                }
+            });
+        }
+
+        return [{
+            serverName: hostname,
+            serverId: serverId,
+
+            // Server-level (hardware/OS only)
+            platform: systemInfo.platform,
+            arch: systemInfo.arch,
+            nodeVersion: systemInfo.nodeVersion,
+            cpus: systemInfo.cpus,
+            loadAverage: systemInfo.loadAverage,
+            freeMemory: systemInfo.freeMemory,
+            totalMemory: systemInfo.totalMemory,
+
+            // MongoDB server status (separate from app database config)
+            mongodb: HealthController._getMongoDBStatus(),
+
+            instances: instances
+        }];
+    }
+
+    /**
+     * Extract server ID from hostname
+     * @param {string} hostname - Server hostname
+     * @returns {number} Server ID extracted from hostname
+     * @private
+     */
+    static _extractServerIdFromHostname(hostname) {
+        // Extract number from hostname like 'web01' -> 1, 'app-server-3' -> 3
+        const match = hostname.match(/(\d+)/);
+        return match ? parseInt(match[1], 10) : 1;
+    }
+
+    /**
      * Format uptime in human-readable format
      * @param {number} seconds - Uptime in seconds
      * @returns {string} Formatted uptime string
@@ -258,6 +420,32 @@ class HealthController {
             return `${minutes}m ${secs}s`;
         } else {
             return `${secs}s`;
+        }
+    }
+
+    /**
+     * Get MongoDB server status
+     * @returns {Object|null} MongoDB server status or null if not available
+     * @private
+     */
+    static _getMongoDBStatus() {
+        try {
+            // TODO: Implement actual MongoDB server status check
+            // This would query MongoDB admin database for server status
+            // For now, return basic placeholder structure
+            return {
+                status: 'unknown', // TODO: Check actual MongoDB server status
+                version: 'unknown', // TODO: Get MongoDB version
+                connections: {
+                    current: 0, // TODO: Get current connections
+                    available: 0 // TODO: Get available connections
+                },
+                uptime: 0, // TODO: Get MongoDB uptime
+                host: global.appConfig.deployment[global.appConfig.deployment.mode].db || 'unknown'
+            };
+        } catch (error) {
+            // MongoDB server status not available
+            return null;
         }
     }
 

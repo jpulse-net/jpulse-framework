@@ -18,35 +18,108 @@
 {
     success: true,
     data: {
-        // ... existing fields ...
-        appInstances: {
-            // Aggregated cluster-wide stats
-            cluster: {
-                totalInstances: 3,
-                totalProcesses: 12,
-                runningProcesses: 10,
-                stoppedProcesses: 1,
-                erroredProcesses: 1,
-                lastUpdated: "2025-10-10T10:30:00.000Z"
-            },
-            // Individual instance details
-            instances: [
+        // Framework/API level only
+        status: 'ok',
+        timestamp: '2025-10-10T21:43:00.000Z',
+
+        // Cluster-wide aggregated statistics
+        statistics: {
+            totalServers: 1,
+            totalInstances: 4,
+            totalProcesses: 4,
+            runningProcesses: 3,
+            stoppedProcesses: 0,
+            erroredProcesses: 1,
+            // WebSocket cluster-wide statistics
+            totalWebSocketConnections: 25,
+            totalWebSocketMessages: 5000,
+            totalWebSocketNamespaces: 3,
+            webSocketNamespaces: [
                 {
-                    serverId: "app-server-1",
-                    hostname: "web01.example.com",
-                    pm2Available: true,
-                    totalProcesses: 4,
-                    processes: [/* PM2 process details */]
-                },
-                // ... more instances
-                {
-                    serverId: "app-server-3",
-                    pm2Available: false,
-                    reason: "PM2 not installed",
-                    processes: []
+                    path: '/ws/chat',
+                    totalConnections: 15,
+                    totalMessages: 2500,
+                    instanceCount: 3,
+                    serverCount: 1,
+                    status: 'green',
+                    lastActivity: '2025-10-10T21:43:00.000Z'
                 }
-            ]
-        }
+            ],
+            lastUpdated: '2025-10-10T21:43:00.000Z'
+        },
+
+        // Per-server details (hardware/OS + MongoDB server)
+        servers: [
+            {
+                serverName: 'web01.example.com',
+                serverId: 1, // extracted from hostname
+
+                // Server-level: hardware/OS only
+                platform: 'linux',
+                arch: 'x64',
+                nodeVersion: 'v18.17.0',
+                cpus: 4,
+                loadAverage: [1.2, 1.1, 0.9],
+                freeMemory: 2048,
+                totalMemory: 8192,
+
+                // MongoDB server status (separate from app database config)
+                mongodb: {
+                    status: 'running',
+                    version: '6.0.8',
+                    connections: { current: 12, available: 838 },
+                    uptime: 86400,
+                    host: 'mongodb.example.com:27017'
+                },
+
+                instances: [
+                    {
+                        pid: 12345,
+                        pm2Available: true,
+                        pm2ProcessName: 'jpulse-web-0',
+                        status: 'online',
+
+                        // Instance-specific application data
+                        version: '0.9.6',
+                        release: '2025-10-10',
+                        environment: 'production',
+                        database: { status: 'connected', name: 'jp-prod' },
+                        deployment: {
+                            mode: 'production',
+                            config: { port: 8080, db: 'jp-prod' }
+                        },
+
+                        uptime: 12345,
+                        uptimeFormatted: '3h 25m 45s',
+                        memory: { used: 128, total: 256 },
+                        cpu: 15.2,
+                        restarts: 2,
+
+                        websockets: {
+                            uptime: 12345,
+                            localConnections: 8,
+                            localMessages: 1200,
+                            namespaces: [/* instance-specific WS data */]
+                        },
+                        processInfo: { ppid: 1234, memoryUsage: {...} }
+                    },
+                    {
+                        pid: 12346,
+                        // Different instance, different deployment on same server
+                        version: '0.9.5',
+                        environment: 'dev',
+                        database: { status: 'connected', name: 'jp-dev' },
+                        deployment: {
+                            mode: 'dev',
+                            config: { port: 8081, db: 'jp-dev' }
+                        }
+                        // ... more instance data
+                    }
+                    // ... more PM2 instances on this server
+                ]
+            }
+            // ... more servers in load-balanced setup
+        ]
     }
 }
 ```

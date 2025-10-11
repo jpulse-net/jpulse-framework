@@ -1293,9 +1293,9 @@ This is the doc to track work items, arranged in three sections:
   - /api/1/health
   - /api/1/metrics
 - deliverables:
-  - webapp/controller/FIXME - FIXME
+  - webapp/controller/health.js - handles aggregation of system and health data, provies API endpoints
   - webapp/view/admin/status.shtml - human-readable status page
-
+  - webapp/app.conf - modify appConfig.app for better framework & site separation
 
 
 
@@ -1306,7 +1306,6 @@ This is the doc to track work items, arranged in three sections:
 
 pending:
 - install pm2, test
-- make metrics aware of pool of load-balanced servers (new work item)
 - app.conf: rename app ==> jpulse & site
 - navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
 

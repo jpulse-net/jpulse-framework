@@ -342,17 +342,23 @@
         }
 
         function renderSystemMetrics(data) {
+            // Get data from first instance (version/environment now at instance level)
+            const instance = data.servers && data.servers[0] && data.servers[0].instances && data.servers[0].instances[0] ? data.servers[0].instances[0] : null;
+
             const html = generateStatusContent([
-                [ '{{i18n.view.admin.systemStatus.version}}',       data.version ],
-                [ '{{i18n.view.admin.systemStatus.release}}',       data.release ],
-                [ '{{i18n.view.admin.systemStatus.environment}}',   data.environment ],
-                [ '{{i18n.view.admin.systemStatus.uptime}}',        data.uptimeFormatted ]
+                [ '{{i18n.view.admin.systemStatus.version}}',       instance ? instance.version : 'N/A' ],
+                [ '{{i18n.view.admin.systemStatus.release}}',       instance ? instance.release : 'N/A' ],
+                [ '{{i18n.view.admin.systemStatus.environment}}',   instance ? instance.environment : 'N/A' ],
+                [ '{{i18n.view.admin.systemStatus.uptime}}',        instance ? instance.uptimeFormatted : 'N/A' ]
             ]);
             document.getElementById('systemMetrics').innerHTML = html;
         }
 
         function renderSystemResourcesMetrics(data) {
-            if (!data.system) {
+            // Get system data from first server (single server deployment)
+            const server = data.servers && data.servers[0] ? data.servers[0] : null;
+
+            if (!server) {
                 document.getElementById('systemResourcesMetrics').innerHTML =
                     generateStatusContent([['{{i18n.view.admin.systemStatus.notAvailable}}', '']]);
                 updateCardStatus('systemResourcesCard', 'systemResourcesIndicator', 'warning');
@@ -360,11 +366,11 @@
             }
 
             const html = generateStatusContent([
-                [ '{{i18n.view.admin.systemStatus.platform}}', `${data.system.platform} (${data.system.arch})` ],
-                [ '{{i18n.view.admin.systemStatus.nodeVersion}}', data.system.nodeVersion ],
-                [ '{{i18n.view.admin.systemStatus.cpus}}', data.system.cpus ],
-                [ '{{i18n.view.admin.systemStatus.totalMemory}}', formatBytes(data.system.totalMemory * 1024 * 1024) ],
-                [ '{{i18n.view.admin.systemStatus.availableMemory}}', formatBytes(data.system.freeMemory * 1024 * 1024) ]
+                [ '{{i18n.view.admin.systemStatus.platform}}', `${server.platform} (${server.arch})` ],
+                [ '{{i18n.view.admin.systemStatus.nodeVersion}}', server.nodeVersion ],
+                [ '{{i18n.view.admin.systemStatus.cpus}}', server.cpus ],
+                [ '{{i18n.view.admin.systemStatus.totalMemory}}', formatBytes(server.totalMemory * 1024 * 1024) ],
+                [ '{{i18n.view.admin.systemStatus.availableMemory}}', formatBytes(server.freeMemory * 1024 * 1024) ]
             ]);
 
             document.getElementById('systemResourcesMetrics').innerHTML = html;
@@ -372,24 +378,35 @@
         }
 
         function renderMemoryMetrics(data) {
-            const heapPercentage = Math.round((data.memory.used / data.memory.total) * 100);
-            const systemPercentage = data.system ?
-                Math.round(((data.system.totalMemory - data.system.freeMemory) / data.system.totalMemory) * 100) : 0;
+            // Get memory data from first instance
+            const instance = data.servers && data.servers[0] && data.servers[0].instances && data.servers[0].instances[0] ? data.servers[0].instances[0] : null;
+            const server = data.servers && data.servers[0] ? data.servers[0] : null;
+
+            if (!instance || !instance.memory) {
+                document.getElementById('memoryMetrics').innerHTML =
+                    generateStatusContent([['{{i18n.view.admin.systemStatus.notAvailable}}', '']]);
+                updateCardStatus('memoryCard', 'memoryIndicator', 'warning');
+                return;
+            }
+
+            const heapPercentage = Math.round((instance.memory.used / instance.memory.total) * 100);
+            const systemPercentage = server ?
+                Math.round(((server.totalMemory - server.freeMemory) / server.totalMemory) * 100) : 0;
 
             const rows = [
                 {
                     type: 'progress',
                     label: '{{i18n.view.admin.systemStatus.heapUsed}}',
-                    value: `${data.memory.used} MB`,
+                    value: `${instance.memory.used} MB`,
                     percentage: heapPercentage,
                     progressClass: heapPercentage > 80 ? 'jp-warning' : ''
                 },
-                [ '{{i18n.view.admin.systemStatus.heapTotal}}', `${data.memory.total} MB` ]
+                [ '{{i18n.view.admin.systemStatus.heapTotal}}', `${instance.memory.total} MB` ]
             ];
 
-            if (data.system) {
+            if (server) {
                 rows.push(
-                    [ '{{i18n.view.admin.systemStatus.systemMemory}}', `${data.system.freeMemory} MB {{i18n.view.admin.systemStatus.free}} / ${data.system.totalMemory} MB {{i18n.view.admin.systemStatus.total}}` ],
+                    [ '{{i18n.view.admin.systemStatus.systemMemory}}', `${server.freeMemory} MB {{i18n.view.admin.systemStatus.free}} / ${server.totalMemory} MB {{i18n.view.admin.systemStatus.total}}` ],
                     {
                         type: 'progress',
                         label: '',
@@ -407,15 +424,26 @@
         }
 
         function renderDatabaseMetrics(data) {
+            // Get database data from first instance (database now at instance level)
+            const instance = data.servers && data.servers[0] && data.servers[0].instances && data.servers[0].instances[0] ? data.servers[0].instances[0] : null;
+
+            if (!instance || !instance.database) {
+                document.getElementById('databaseMetrics').innerHTML =
+                    generateStatusContent([['{{i18n.view.admin.systemStatus.notAvailable}}', '']]);
+                updateCardStatus('databaseCard', 'databaseIndicator', 'warning');
+                return;
+            }
+
             const html = generateStatusContent([
-                [ '{{i18n.view.admin.systemStatus.status}}', data.database.status ],
-                [ '{{i18n.view.admin.systemStatus.database}}', data.database.name ]
+                [ '{{i18n.view.admin.systemStatus.status}}', instance.database.status ],
+                [ '{{i18n.view.admin.systemStatus.database}}', instance.database.name ]
             ]);
             document.getElementById('databaseMetrics').innerHTML = html;
         }
 
         function renderWebSocketMetrics(data) {
-            if (!data.websockets) {
+            // Use statistics data for WebSocket metrics
+            if (!data.statistics || !data.statistics.totalWebSocketConnections) {
                 const html = generateStatusContent([
                     [ '{{i18n.view.admin.systemStatus.status}}', '{{i18n.view.admin.systemStatus.limitedInfo}}' ]
                 ]);
@@ -423,17 +451,20 @@
                 return;
             }
 
+            const stats = data.statistics;
             const html = generateStatusContent([
-                [ '{{i18n.view.admin.systemStatus.activeConnections}}', data.websockets.activeConnections ],
-                [ '{{i18n.view.admin.systemStatus.totalMessages}}', data.websockets.totalMessages ],
-                [ '{{i18n.view.admin.systemStatus.namespaces}}', data.websockets.namespaces ],
-                [ '{{i18n.view.admin.systemStatus.uptime}}', formatUptime(data.websockets.uptime) ]
+                [ '{{i18n.view.admin.systemStatus.activeConnections}}', stats.totalWebSocketConnections ],
+                [ '{{i18n.view.admin.systemStatus.totalMessages}}', stats.totalWebSocketMessages ],
+                [ '{{i18n.view.admin.systemStatus.namespaces}}', stats.totalWebSocketNamespaces ],
+                [ '{{i18n.view.admin.systemStatus.uptime}}', data.uptimeFormatted ]
             ]);
             document.getElementById('websocketMetrics').innerHTML = html;
         }
 
         function renderLoadMetrics(data) {
-            if (!data.system || !data.system.loadAverage) {
+            const server = data.servers && data.servers[0] ? data.servers[0] : null;
+
+            if (!server || !server.loadAverage) {
                 const html = generateStatusContent([
                     [ '{{i18n.view.admin.systemStatus.status}}', '{{i18n.view.admin.systemStatus.limitedInfo}}' ]
                 ]);
@@ -441,11 +472,11 @@
                 return;
             }
 
-            const load1 = data.system.loadAverage[0];
+            const load1 = server.loadAverage[0];
             const html = generateStatusContent([
                 [ '{{i18n.view.admin.systemStatus.oneMinute}}', load1.toFixed(2) ],
-                [ '{{i18n.view.admin.systemStatus.fiveMinutes}}', data.system.loadAverage[1].toFixed(2) ],
-                [ '{{i18n.view.admin.systemStatus.fifteenMinutes}}', data.system.loadAverage[2].toFixed(2) ]
+                [ '{{i18n.view.admin.systemStatus.fiveMinutes}}', server.loadAverage[1].toFixed(2) ],
+                [ '{{i18n.view.admin.systemStatus.fifteenMinutes}}', server.loadAverage[2].toFixed(2) ]
             ]);
             document.getElementById('loadMetrics').innerHTML = html;
 
@@ -456,8 +487,10 @@
 
         function renderHostMetrics(data) {
             const rows = [];
-            if (data.system) {
-                rows.push([ '{{i18n.view.admin.systemStatus.hostname}}', data.system.hostname ]);
+            const server = data.servers && data.servers[0] ? data.servers[0] : null;
+
+            if (server) {
+                rows.push([ '{{i18n.view.admin.systemStatus.hostname}}', server.serverName ]);
             }
             rows.push([ '{{i18n.view.admin.systemStatus.lastUpdated}}', `<span class="jp-timestamp">${formatDateTime(data.timestamp)}</span>` ]);
 
@@ -468,7 +501,8 @@
             // Always show PM2 card for admin users
             document.getElementById('pm2Card').style.display = 'block';
 
-            if (!data.pm2) {
+            // Use statistics data for PM2 metrics
+            if (!data.statistics || data.statistics.totalProcesses === 0) {
                 // PM2 not available
                 const html = generateStatusContent([
                     [ '{{i18n.view.admin.systemStatus.status}}', '{{i18n.view.admin.systemStatus.pm2NotAvailable}}' ],
@@ -480,36 +514,48 @@
                 return;
             }
 
-            const pm2 = data.pm2;
+            const stats = data.statistics;
             const html = generateStatusContent([
-                [ '{{i18n.view.admin.systemStatus.totalProcesses}}', pm2.totalProcesses ],
-                [ '{{i18n.view.admin.systemStatus.running}}', pm2.running ],
-                [ '{{i18n.view.admin.systemStatus.stopped}}', pm2.stopped ],
-                [ '{{i18n.view.admin.systemStatus.errored}}', pm2.errored ]
+                [ '{{i18n.view.admin.systemStatus.totalProcesses}}', stats.totalProcesses ],
+                [ '{{i18n.view.admin.systemStatus.running}}', stats.runningProcesses ],
+                [ '{{i18n.view.admin.systemStatus.stopped}}', stats.stoppedProcesses ],
+                [ '{{i18n.view.admin.systemStatus.errored}}', stats.erroredProcesses ]
             ]);
             document.getElementById('pm2Metrics').innerHTML = html;
 
             // Update status indicator
-            const status = pm2.errored > 0 ? 'error' : pm2.stopped > 0 ? 'warning' : 'ok';
+            const status = stats.erroredProcesses > 0 ? 'error' : stats.stoppedProcesses > 0 ? 'warning' : 'ok';
             updateCardStatus('pm2Card', 'pm2Indicator', status);
 
-            // Show process details table if there are processes
-            if (pm2.processes && pm2.processes.length > 0) {
+            // Show detailed process table if we have instance data
+            renderPM2ProcessDetails(data);
+        }
+
+        function renderPM2ProcessDetails(data) {
+            // Get instances from servers array
+            const instances = [];
+            if (data.servers && data.servers[0] && data.servers[0].instances) {
+                instances.push(...data.servers[0].instances);
+            }
+
+            if (instances.length > 0 && instances.some(inst => inst.pm2Available)) {
                 document.getElementById('pm2ProcessesCard').style.display = 'block';
 
-                const processRows = pm2.processes.map(proc => `
+                const processRows = instances
+                    .filter(inst => inst.pm2Available)
+                    .map(inst => `
                     <tr>
-                        <td><code>${proc.name}</code></td>
-                        <td>${proc.pid || 'N/A'}</td>
+                        <td><code>${inst.pm2ProcessName || 'N/A'}</code></td>
+                        <td>${inst.pid || 'N/A'}</td>
                         <td>
-                            <span class="jp-badge jp-badge-${proc.status === 'online' ? 'success' : proc.status === 'stopped' ? 'warning' : 'danger'}">
-                                ${proc.status}
+                            <span class="jp-badge jp-badge-${inst.status === 'online' ? 'success' : inst.status === 'stopped' ? 'warning' : 'danger'}">
+                                ${inst.status || 'unknown'}
                             </span>
                         </td>
-                        <td>${proc.uptimeFormatted}</td>
-                        <td>${proc.memory} MB</td>
-                        <td>${proc.cpu}%</td>
-                        <td>${proc.restarts}</td>
+                        <td>${inst.uptimeFormatted || 'N/A'}</td>
+                        <td>${inst.memory || 0} MB</td>
+                        <td>${inst.cpu || 0}%</td>
+                        <td>${inst.restarts || 0}</td>
                     </tr>
                 `).join('');
 

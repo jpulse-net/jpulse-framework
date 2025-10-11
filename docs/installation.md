@@ -282,8 +282,7 @@ For development deployment, `site/webapp/app.conf` contains minimal overrides:
 {
     app: {
         name: 'My Site Name',
-        shortName: 'My Site',
-        siteId: 'my-site-id'
+        shortName: 'My Site'
     },
 
     deployment: {

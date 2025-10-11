@@ -45,12 +45,12 @@
                 <p class="jp-card-description">{{i18n.view.admin.index.usersDesc}}</p>
             </a>
 
-            <a href="/admin/logs.shtml" class="jp-card-dashboard jp-icon-btn">
+            <a href="/admin/system-status.shtml" class="jp-card-dashboard jp-icon-btn">
                 <div class="jp-icon-container">
-                    <img src="/assets/admin/icons/logs.svg" class="jp-icon" alt="">
+                    <img src="/assets/admin/icons/system-status.svg" class="jp-icon" alt="">
                 </div>
-                <h3 class="jp-card-title">{{i18n.view.admin.index.viewLogs}}</h3>
-                <p class="jp-card-description">{{i18n.view.admin.index.viewLogsDesc}}</p>
+                <h3 class="jp-card-title">{{i18n.view.admin.index.systemStatus}}</h3>
+                <p class="jp-card-description">{{i18n.view.admin.index.systemStatusDesc}}</p>
             </a>
 
             <a href="/admin/websocket-status.shtml" class="jp-card-dashboard jp-icon-btn">
@@ -59,6 +59,14 @@
                 </div>
                 <h3 class="jp-card-title">{{i18n.view.admin.index.websocketStatus}}</h3>
                 <p class="jp-card-description">{{i18n.view.admin.index.websocketStatusDesc}}</p>
+            </a>
+
+            <a href="/admin/logs.shtml" class="jp-card-dashboard jp-icon-btn">
+                <div class="jp-icon-container">
+                    <img src="/assets/admin/icons/logs.svg" class="jp-icon" alt="">
+                </div>
+                <h3 class="jp-card-title">{{i18n.view.admin.index.viewLogs}}</h3>
+                <p class="jp-card-description">{{i18n.view.admin.index.viewLogsDesc}}</p>
             </a>
 
         </div>

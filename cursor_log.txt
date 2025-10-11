@@ -29388,3 +29388,296 @@ W-078 FINAL FIXES:
 - Consistent with other admin pages
 
 The system status page now has proper jPulse styling and structure, matching the existing admin page patterns.
+
+
+============================================================
+2025-10-10 01:50
+
+PM2 STATUS INTEGRATION COMPLETED:
+
+✅ Backend Implementation:
+- Added _getPM2Status() helper method using `pm2 jlist` system call
+- Integrated PM2 status into /api/1/metrics endpoint for admin users
+- Graceful fallback when PM2 not available (dev environments)
+- Proper error handling with 2-second timeout
+
+✅ Frontend Implementation:
+- Added PM2 Processes card to system status page
+- PM2 Process Details table showing individual process info
+- Visual status indicators (green/yellow/red) based on process states
+- Automatic hide/show based on PM2 availability
+
+✅ Data Provided:
+- Total/running/stopped/errored process counts
+- Per-process details: name, PID, status, uptime, memory, CPU, restarts
+- Formatted uptime display (e.g., "1d 2h 30m 15s")
+- Memory usage in MB, CPU percentage
+
+✅ i18n Support:
+- Complete translations in English and German
+- All UI text properly internationalized
+
+✅ Security:
+- Admin-only visibility (same as other sensitive metrics)
+- Safe system call execution with timeout protection
+
+PM2 integration adds production process monitoring to the health dashboard with ~15 minutes implementation time as estimated.
+
+
+============================================================
+2025-10-10 02:00
+
+PM2 UX IMPROVEMENT:
+
+✅ Always Show PM2 Card:
+- PM2 card now always visible for admin users
+- Shows "Not Available" message when PM2 not installed
+- Yellow warning indicator when PM2 unavailable
+- Better UX - users can see what monitoring capabilities exist
+
+✅ API Response Updated:
+- Always includes pm2 field in metrics response (null when unavailable)
+- Consistent API structure regardless of PM2 availability
+
+✅ Clear Status Messages:
+- "Not Available" status when PM2 not found
+- "PM2 not installed or not in PATH" reason
+- Proper i18n for both English and German
+
+This provides better visibility and user understanding of the monitoring capabilities.
+
+
+============================================================
+2025-10-10 02:05
+
+SYNTAX ERROR FIX:
+
+✅ Fixed Variable Declaration Conflict:
+- Removed duplicate pm2Status variable declaration
+- Directly assign await result to baseMetrics.data.pm2
+- Eliminated SyntaxError: Identifier 'pm2Status' has already been declared
+
+Runtime error resolved - server should start properly now.
+
+
+============================================================
+2025-10-10 02:10
+
+UI STYLING IMPROVEMENTS:
+
+✅ Status Card Left Borders:
+- Green border (28a745) for healthy status (ok)
+- Yellow border (ffc107) for warning status
+- Red border (dc3545) for error status
+- All cards now have visual health indicators via colored left borders
+
+✅ Text Padding Fixed:
+- Added horizontal padding (8px 12px) to metric rows
+- Proper spacing between left and right text
+- Added margin-left: 15px to metric values for better separation
+- Text no longer touching in PM2 box
+
+✅ Card Status Initialization:
+- All cards start with proper status classes
+- Memory and Load cards start as 'ok' and get updated by JavaScript
+- Better CSS class management in updateCardStatus function
+
+The status dashboard now has clear visual health indicators and proper text spacing.
+
+
+============================================================
+2025-10-10 02:15
+
+CSS FRAMEWORK INTEGRATION:
+
+✅ Moved Status/Metrics Styles to Framework:
+- Added jp-status-grid, jp-status-card, jp-status-header, jp-status-title
+- Added jp-status-indicator with jp-warning, jp-error variants
+- Added jp-metric-row, jp-metric-label, jp-metric-value classes
+- Added jp-metric-progress-bar and jp-metric-progress-fill components
+- Reduced padding from 8px to 6px for better vertical density
+
+✅ Updated System Status Page:
+- Replaced all local-* classes with jp-* framework classes
+- Maintained page-specific styles for unique elements only
+- All status cards now use consistent framework styling
+- Progress bars and metric rows follow framework patterns
+
+✅ Framework Benefits:
+- Status/metrics components now reusable across admin pages
+- Consistent styling patterns for health indicators
+- Better separation between framework and page-specific styles
+- Reduced code duplication in admin interface
+
+
+============================================================
+2025-10-10 02:25
+
+SYSTEM STATUS PAGE IMPROVEMENTS:
+
+✅ Split Status into Two Sections:
+- jPulse Application Status: version, database, websockets, PM2 processes
+- System Resources: memory usage, load average, host information
+- Better logical organization of monitoring data
+
+✅ Auto-Refresh Implementation:
+- Removed manual refresh button
+- Added configurable refresh interval (appConfig.view.admin.systemStatus.refreshInterval)
+- Default 30-second auto-refresh when page is visible
+- Pauses refresh when tab is hidden (Page Visibility API)
+- Smart resource management
+
+✅ Navigation Integration:
+- Added system status to jpulse-navigation.tmpl
+- Created system-status.svg icon for admin dashboard
+- Added i18n translations for English and German
+- Integrated into admin dashboard index.shtml
+
+✅ Configuration Enhancement:
+- Added appConfig.view.admin.systemStatus.refreshInterval setting
+- Configurable refresh timing for different environments
+- Maintains user experience while allowing customization
+
+
+============================================================
+2025-10-10 02:30
+
+CONFIGURATION FIX & WEBSOCKET STATUS UPDATE:
+
+✅ Fixed Configuration Path Error:
+- Removed duplicate/incorrect refreshInterval config from wrong location
+- Kept correct appConfig.view.admin.systemStatus.refreshInterval setting
+- Configuration now properly placed in view section
+
+✅ Updated WebSocket Status Page:
+- Replaced local-status-indicator with jp-status-indicator
+- Replaced local-stat-row/label/value with jp-metric-row/label/value
+- Now uses common framework status components
+- Consistent styling with system status page
+- Removed duplicate CSS that's now in jpulse-common.css
+
+✅ Framework Consistency:
+- Both admin status pages now use same jp-* components
+- Reduced code duplication across admin interface
+- Consistent visual patterns for status indicators and metrics
+
+
+============================================================
+2025-10-10 02:45
+
+MAJOR FIXES & IMPROVEMENTS:
+
+✅ Fixed Critical JavaScript Error:
+- Changed fetchData() calls to loadStatus() in system-status.shtml
+- Fixed auto-refresh functionality that was broken
+- Page now loads and refreshes properly
+
+✅ Fixed Showstopper Navigation Bug:
+- Changed site nav dropdown from position: absolute to position: fixed
+- Navigation pulldown now stays accessible when scrolling
+- Critical UX issue resolved
+
+✅ Enhanced Auto-Refresh:
+- Removed manual refresh button completely
+- Added "Refreshed every X seconds" text in header
+- Added missing i18n translations (refreshEvery, seconds)
+- Auto-refresh works properly with Page Visibility API
+
+✅ Split System Status Box:
+- Moved Platform and CPUs from System Status to new System Resources box
+- Added Total Memory and Available Memory to System Resources
+- Better logical organization with version/release vs hardware info
+- Created renderSystemResourcesMetrics() function
+
+✅ Updated WebSocket Status Styling:
+- Added colored left borders (green/yellow/red) to namespace cards
+- Moved status indicators from left to right side of headers
+- Consistent with system status page styling
+- Uses jp-status-card classes
+
+✅ Enhanced System Status SVG:
+- Changed from 24x24 to 128x128 native resolution
+- Changed lines from currentColor to white for better visibility
+- Scaled all elements proportionally for higher resolution
+
+
+============================================================
+2025-10-10 03:00
+
+WINDOW FOCUS DETECTION & SMART REFRESH:
+
+✅ Added jPulse.UI.windowFocus Framework Feature:
+- New jPulse.UI.windowFocus.registerWindowFocus(callback) function
+- jPulse.UI.windowFocus.hasFocus property for current state
+- Combines visibilitychange and focus/blur events for comprehensive detection
+- Guards against double firing of callbacks
+- Auto-initialization and cleanup functionality
+- Returns unregister function for callback management
+
+✅ Enhanced System Status Auto-Refresh:
+- Integrates with new window focus detection system
+- Stops refreshing when window loses focus (saves resources)
+- Resumes refreshing when window regains focus
+- Configurable via appConfig.view.admin.systemStatus.refreshInBackground
+- Smart initialization based on current focus state
+
+✅ Configuration Enhancement:
+- Added refreshInBackground: false option to app.conf
+- When true: continues refreshing even when window loses focus
+- When false: pauses refresh to save bandwidth and CPU
+- Default false for better resource management
+
+✅ Framework Benefits:
+- Reusable window focus detection across all jPulse applications
+- Consistent behavior for focus-aware features
+- Reduced resource usage when pages are not visible
+- Better user experience with smart refresh management
+
+
+============================================================
+2025-10-10 21:43
+
+User reported jPulse.UI.windowFocus bug fix and system-status.shtml improvements
+
+User reported:
+1. Fixed jPulse.UI.windowFocus bug - was at top level instead of under jPulse.UI
+2. Made extensive edits to system-status.shtml:
+   - Fixed init bug with auto-refresh
+   - Removed duplicate DOM ready (jPulse.dom.ready)
+   - Consolidated first two sections into one
+   - Replaced "loading..." text with GIF spinner (added to icons/)
+   - Rearranged status tiles
+   - Unhid pm2ProcessesCard and wsNamespacesCard for testing
+   - Pending: Replace hard-coded <div class="jp-metric-row">...</div> with function
+
+✅ Created generateStatusContent() Utility Function:
+- Supports simple [label, value] pairs for basic metrics
+- Supports progress bar objects with type: 'progress', percentage, and progressClass
+- Supports raw HTML content with type: 'html'
+- Consolidates all hard-coded jp-metric-row div generation
+- Makes code more maintainable and consistent
+
+✅ Updated All Render Functions:
+- renderSystemMetrics(): Now uses generateStatusContent with simple arrays
+- renderSystemResourcesMetrics(): Uses generateStatusContent with proper error handling
+- renderDatabaseMetrics(): Simplified using generateStatusContent
+- renderWebSocketMetrics(): Clean conditional logic with generateStatusContent
+- renderLoadMetrics(): Proper error handling and status updates
+- renderHostMetrics(): Dynamic row building with conditional hostname
+- renderPM2Metrics(): Both error and success cases use generateStatusContent
+- renderMemoryMetrics(): Complex progress bars using new object format
+
+✅ Progress Bar Integration:
+- Memory usage bars for heap and system memory
+- Proper CSS class application (jp-warning, jp-danger)
+- Percentage calculation and status color coding
+- Seamless integration with generateStatusContent function
+
+✅ Code Quality Improvements:
+- Eliminated ~200+ lines of repetitive HTML template strings
+- Centralized metric row generation logic
+- Consistent error handling across all render functions
+- Better maintainability for future metric additions
+- Preserved all existing functionality and styling
+
+The generateStatusContent function significantly reduces code duplication and makes the system status page much more maintainable.

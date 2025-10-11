@@ -142,6 +142,9 @@ class HealthController {
                     mode: global.appConfig.deployment.mode,
                     config: global.appConfig.deployment[global.appConfig.deployment.mode]
                 };
+
+                // Add PM2 status (always include for admin, even if null)
+                baseMetrics.data.pm2 = await HealthController._getPM2Status();
             }
 
             res.json(baseMetrics);
@@ -255,6 +258,49 @@ class HealthController {
             return `${minutes}m ${secs}s`;
         } else {
             return `${secs}s`;
+        }
+    }
+
+    /**
+     * Get PM2 process information
+     * @returns {Promise<Object|null>} PM2 status or null if not available
+     * @private
+     */
+    static async _getPM2Status() {
+        try {
+            const { exec } = await import('child_process');
+            const { promisify } = await import('util');
+            const execAsync = promisify(exec);
+
+            const { stdout } = await execAsync('pm2 jlist', { timeout: 2000 });
+            const processes = JSON.parse(stdout);
+
+            // Find jPulse processes (name contains 'jpulse')
+            const jpulseProcesses = processes.filter(p =>
+                p.name && p.name.toLowerCase().includes('jpulse')
+            );
+
+            if (jpulseProcesses.length === 0) return null;
+
+            return {
+                totalProcesses: jpulseProcesses.length,
+                running: jpulseProcesses.filter(p => p.pm2_env.status === 'online').length,
+                stopped: jpulseProcesses.filter(p => p.pm2_env.status === 'stopped').length,
+                errored: jpulseProcesses.filter(p => p.pm2_env.status === 'errored').length,
+                processes: jpulseProcesses.map(p => ({
+                    name: p.name,
+                    pid: p.pid,
+                    status: p.pm2_env.status,
+                    uptime: Date.now() - p.pm2_env.created_at,
+                    uptimeFormatted: HealthController._formatUptime(Math.floor((Date.now() - p.pm2_env.created_at) / 1000)),
+                    memory: p.monit ? Math.round(p.monit.memory / 1024 / 1024) : 0, // MB
+                    cpu: p.monit ? p.monit.cpu : 0,
+                    restarts: p.pm2_env.restart_time || 0
+                }))
+            };
+        } catch (error) {
+            // PM2 not available or error occurred
+            return null;
         }
     }
 }

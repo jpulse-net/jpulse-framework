@@ -3599,6 +3599,132 @@ window.jPulse = {
                     button.classList.remove('jp-copy-success');
                 }, 2000);
             }
+        },
+
+        // ========================================
+        // Window Focus Detection
+        // ========================================
+
+        /**
+         * Window focus detection and callback management
+         * Provides a centralized way to track window focus state and register callbacks
+         */
+        windowFocus: {
+            // Private properties
+            _callbacks: [],
+            _hasFocus: true,
+            _initialized: false,
+
+            /**
+             * Register a callback to be called when window focus changes
+             * @param {Function} callback - Function to call with (hasFocus) parameter
+             * @returns {Function} Unregister function
+             */
+            register: function(callback) {
+                if (typeof callback !== 'function') {
+                    console.error('jPulse.UI.windowFocus.register: callback must be a function');
+                    return () => {};
+                }
+
+                // Initialize if not already done
+                if (!jPulse.UI.windowFocus._initialized) {
+                    jPulse.UI.windowFocus._init();
+                }
+
+                // Add callback to list
+                jPulse.UI.windowFocus._callbacks.push(callback);
+
+                // Call immediately with current state
+                try {
+                    callback(jPulse.UI.windowFocus._hasFocus);
+                } catch (error) {
+                    console.error('jPulse.UI.windowFocus: callback error:', error);
+                }
+
+                // Return unregister function
+                return function() {
+                    const index = jPulse.UI.windowFocus._callbacks.indexOf(callback);
+                    if (index > -1) {
+                        jPulse.UI.windowFocus._callbacks.splice(index, 1);
+                    }
+                };
+            },
+
+            /**
+             * Get current focus state
+             * @returns {boolean} True if window has focus
+             */
+            get hasFocus() {
+                return jPulse.UI.windowFocus._hasFocus;
+            },
+
+            /**
+             * Initialize focus detection (called automatically)
+             * @private
+             */
+            _init: function() {
+                if (jPulse.UI.windowFocus._initialized) {
+                    return;
+                }
+
+                // Set initial state
+                jPulse.UI.windowFocus._hasFocus = !document.hidden;
+
+                // Listen for visibility changes (covers most cases including tab switching)
+                document.addEventListener('visibilitychange', jPulse.UI.windowFocus._handleVisibilityChange);
+
+                // Listen for focus/blur events (covers window switching)
+                window.addEventListener('focus', jPulse.UI.windowFocus._handleFocus);
+                window.addEventListener('blur', jPulse.UI.windowFocus._handleBlur);
+
+                jPulse.UI.windowFocus._initialized = true;
+            },
+
+            /**
+             * Handle visibility change events
+             * @private
+             */
+            _handleVisibilityChange: function() {
+                jPulse.UI.windowFocus._updateFocus(!document.hidden);
+            },
+
+            /**
+             * Handle window focus events
+             * @private
+             */
+            _handleFocus: function() {
+                jPulse.UI.windowFocus._updateFocus(true);
+            },
+
+            /**
+             * Handle window blur events
+             * @private
+             */
+            _handleBlur: function() {
+                jPulse.UI.windowFocus._updateFocus(false);
+            },
+
+            /**
+             * Update focus state and notify callbacks
+             * @param {boolean} newFocus - New focus state
+             * @private
+             */
+            _updateFocus: function(newFocus) {
+                if (jPulse.UI.windowFocus._hasFocus === newFocus) {
+                    return; // No change, prevent double firing
+                }
+
+                jPulse.UI.windowFocus._hasFocus = newFocus;
+
+                // Notify all callbacks
+                jPulse.UI.windowFocus._callbacks.forEach(callback => {
+                    try {
+                        callback(newFocus);
+                    } catch (error) {
+                        console.error('jPulse.UI.windowFocus: callback error:', error);
+                    }
+                });
+            }
         }
     },
 

@@ -1305,9 +1305,10 @@ This is the doc to track work items, arranged in three sections:
 
 
 pending:
+- install pm2, test
+- make metrics aware of pool of load-balanced servers (new work item)
 - app.conf: rename app ==> jpulse & site
-- pm2 metrics
-- navigation.tmpl: remove jPulse Tabs Navigation help, add to docs
+- navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
 
 old pending:
 - fix responsive style issue with user icon

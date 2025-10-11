@@ -64,7 +64,7 @@
 <body>
     <div class="jp-main">
         <div class="jp-container-1200 local-admin-users">
-          {{#if user.authenticated}}
+          {{#if user.isAdmin}}
             <div class="jp-page-header">
                 <h1>{{i18n.view.admin.users.title}}</h1>
             </div>
@@ -160,7 +160,7 @@
 
           {{else}}
             <div class="jp-error-box">
-                {{i18n.view.auth.common.notAuthenticated}}
+                {{i18n.view.auth.common.accessDenied}}
             </div>
           {{/if}}
         </div>

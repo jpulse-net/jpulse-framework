@@ -19,29 +19,8 @@
     <title>WebSocket Status - {{app.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
     <style>
-        .local-status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-
-        .local-status-indicator.status-green {
-            background-color: #4caf50;
-            box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
-        }
-
-        .local-status-indicator.status-yellow {
-            background-color: #ff9800;
-            box-shadow: 0 0 8px rgba(255, 152, 0, 0.5);
-        }
-
-        .local-status-indicator.status-red {
-            background-color: #f44336;
-            box-shadow: 0 0 8px rgba(244, 67, 54, 0.5);
-        }
-
+        /* Page-specific styles only - status styles moved to jpulse-common.css */
+        
         .local-namespace-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -52,6 +31,7 @@
         .local-namespace-header {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             margin-bottom: 1rem;
             font-weight: 600;
             font-size: 1.1rem;
@@ -60,26 +40,6 @@
         .local-namespace-path {
             font-family: monospace;
             color: #007acc;
-        }
-
-        .local-stat-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .local-stat-row:last-child {
-            border-bottom: none;
-        }
-
-        .local-stat-label {
-            color: #666;
-        }
-
-        .local-stat-value {
-            font-weight: 600;
-            color: #333;
         }
 
         .local-activity-log {
@@ -190,7 +150,7 @@
 <body>
     <div class="jp-main">
         <div class="jp-container-1200">
-          {{#if user.authenticated}}
+          {{#if user.isAdmin}}
             <div class="jp-page-header">
                 <h1>{{i18n.view.admin.websocketStatus.title}}</h1>
                 <p id="wsConnectionStatus" class="jp-subtitle local-connection-status connecting">{{i18n.view.admin.websocketStatus.connecting}}</p>
@@ -312,30 +272,30 @@
             }
 
             grid.innerHTML = namespaces.map(ns => `
-                <div class="jp-card">
+                <div class="jp-card jp-status-card ${ns.status === 'green' ? 'jp-status-ok' : ns.status === 'yellow' ? 'jp-status-warning' : 'jp-status-error'}">
                     <div class="local-namespace-header">
-                        <span class="local-status-indicator status-${ns.status}"></span>
                         <span class="local-namespace-path">${ns.path}</span>
+                        <span class="jp-status-indicator ${ns.status === 'green' ? '' : ns.status === 'yellow' ? 'jp-warning' : 'jp-error'}"></span>
                     </div>
-                    <div class="local-stat-row">
-                        <span class="local-stat-label">${i18n.clients}</span>
-                        <span class="local-stat-value">${ns.clientCount}</span>
+                    <div class="jp-metric-row">
+                        <span class="jp-metric-label">${i18n.clients}</span>
+                        <span class="jp-metric-value">${ns.clientCount}</span>
                     </div>
-                    <div class="local-stat-row">
-                        <span class="local-stat-label">${i18n.activeUsers}</span>
-                        <span class="local-stat-value">${ns.activeUsers}</span>
+                    <div class="jp-metric-row">
+                        <span class="jp-metric-label">${i18n.activeUsers}</span>
+                        <span class="jp-metric-value">${ns.activeUsers}</span>
                     </div>
-                    <div class="local-stat-row">
-                        <span class="local-stat-label">${i18n.messagesPerMin}</span>
-                        <span class="local-stat-value">${ns.messagesPerMin}</span>
+                    <div class="jp-metric-row">
+                        <span class="jp-metric-label">${i18n.messagesPerMin}</span>
+                        <span class="jp-metric-value">${ns.messagesPerMin}</span>
                     </div>
-                    <div class="local-stat-row">
-                        <span class="local-stat-label">${i18n.totalMessages}</span>
-                        <span class="local-stat-value">${ns.totalMessages.toLocaleString()}</span>
+                    <div class="jp-metric-row">
+                        <span class="jp-metric-label">${i18n.totalMessages}</span>
+                        <span class="jp-metric-value">${ns.totalMessages.toLocaleString()}</span>
                     </div>
-                    <div class="local-stat-row">
-                        <span class="local-stat-label">${i18n.lastActivity}</span>
-                        <span class="local-stat-value">${formatTimestamp(ns.lastActivity)}</span>
+                    <div class="jp-metric-row">
+                        <span class="jp-metric-label">${i18n.lastActivity}</span>
+                        <span class="jp-metric-value">${formatTimestamp(ns.lastActivity)}</span>
                     </div>
                 </div>
             `).join('');

@@ -5,6 +5,66 @@
 - **Timeline**: Days, not weeks
 - **Requirements**: Support PM2 clustering (multiple instances), no load balancing needed initially
 
+## Multi-Instance Metrics Design Summary
+
+### Current Challenge
+- Health/metrics API returns data from single PM2 instance (whichever handles the request)
+- In load-balanced environments, incomplete picture of cluster health
+- Need aggregated view across all app server instances
+
+### Proposed Redis-Based Solution
+**API Response Structure** (`/api/1/metrics`):
+```javascript
+{
+    success: true,
+    data: {
+        // ... existing fields ...
+        appInstances: {
+            // Aggregated cluster-wide stats
+            cluster: {
+                totalInstances: 3,
+                totalProcesses: 12,
+                runningProcesses: 10,
+                stoppedProcesses: 1,
+                erroredProcesses: 1,
+                lastUpdated: "2025-10-10T10:30:00.000Z"
+            },
+            // Individual instance details
+            instances: [
+                {
+                    serverId: "app-server-1",
+                    hostname: "web01.example.com",
+                    pm2Available: true,
+                    totalProcesses: 4,
+                    processes: [/* PM2 process details */]
+                },
+                // ... more instances
+                {
+                    serverId: "app-server-3",
+                    pm2Available: false,
+                    reason: "PM2 not installed",
+                    processes: []
+                }
+            ]
+        }
+    }
+}
+```
+
+**Implementation Strategy**:
+1. Background metrics collector stores instance data in Redis (TTL: 60s)
+2. Health controller aggregates all Redis data for cluster view
+3. Graceful fallback to single-instance when Redis unavailable
+4. UI shows cluster overview + expandable instance details
+
+**Benefits**:
+- Complete cluster visibility from any load-balanced request
+- Fault-tolerant with Redis unavailable fallback
+- Backward compatible with existing single-instance deployments
+- Foundation for production monitoring and alerting
+
+---
+
 ## Release Sequence Strategy
 
 ### Pre-1.0 Releases (0.9.x series)
@@ -27,7 +87,7 @@ Build production readiness incrementally, saving Redis for the 1.0 milestone:
 
 ### W-076, v1.0.0: Redis Caching Infrastructure ⭐⭐⭐⭐⭐
 **The Big One**: True production clustering capability
-**Why Last**: 
+**Why Last**:
 - Makes 1.0 a meaningful milestone (production clustering)
 - All other features work in single-instance mode first
 - Redis becomes the "unlock" for true scalability

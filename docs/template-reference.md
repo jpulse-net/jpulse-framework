@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Template Reference v0.9.5
+# jPulse Framework / Docs / Template Reference v0.9.6
 
 Complete reference for server-side template development with the jPulse Handlebars system, covering template variables, file operations, security features, and best practices for building dynamic web pages.
 
@@ -75,9 +75,9 @@ Templates have access to a rich context object with application data, user infor
 
 ```html
 <!-- Application metadata -->
-<title>{{app.name}} v{{app.version}}</title>
-<meta name="generator" content="{{app.name}} {{app.version}}">
-<span class="version">Version {{app.version}} ({{app.release}})</span>
+<title>{{app.jPulse.name}} v{{app.jPulse.version}}</title>
+<meta name="generator" content="{{app.jPulse.name}} {{app.jPulse.version}}">
+<span class="version">Version {{app.jPulse.version}} ({{app.jPulse.release}})</span>
 
 <!-- Example output -->
 <title>jPulse Framework v1.0.0</title>
@@ -160,21 +160,33 @@ Templates have access to a rich context object with application data, user infor
 
 ```html
 <!-- Simple translations -->
-<h1>{{i18n.app.name}}</h1>                    <!-- jPulse Framework -->
-<button>{{i18n.header.signin}}</button>       <!-- Sign In -->
-<p>{{i18n.welcome.message}}</p>               <!-- Welcome to jPulse -->
+<title>{{i18n.view.home.title}}</title>             <!-- 'Home' -->
+<h1>{{i18n.view.auth.signup.title}}</h1>            <!-- 'Create Account' -->
+<button>{{i18n.view.auth.signup.signin}}</button>   <!-- 'Sign In' -->
+{{i18n.controller.*}}                               <!-- all controller messages -->
+{{i18n.view.*}}                                     <!-- all view messages -->
 
 <!-- Navigation translations -->
-<nav>
-    <a href="/home/">{{i18n.nav.home}}</a>
-    <a href="/about/">{{i18n.nav.about}}</a>
-    {{#if user.authenticated}}
-        <a href="/dashboard/">{{i18n.nav.dashboard}}</a>
-        <a href="/auth/logout.shtml">{{i18n.nav.logout}}</a>
-    {{else}}
-        <a href="/auth/login.shtml">{{i18n.nav.login}}</a>
-    {{/if}}
-</nav>
+window.jPulseSiteNavigation = {
+    admin: {
+        label:              '{{i18n.view.navigation.admin}}',
+        url:                '/admin/',
+        role:               'admin'     // role-based visibility
+    },
+    about: {
+        label:              '{{i18n.view.navigation.about}}',
+        url:                '/home/about.shtml'
+    }
+    user: {
+        {{#if user.authenticated}}
+        label:              '{{i18n.view.navigation.user.overview}}',
+        url:                '/user/',
+        {{else}}
+        label:      '{{i18n.view.navigation.auth.login}}',
+        url:        '/auth/login.shtml'
+        {{/if}}
+    }
+}
 ```
 
 ### Variable Substitution in Translations
@@ -189,9 +201,9 @@ The i18n system supports handlebars-style variable substitution within translati
 
 <!-- Template usage: -->
 <div class="welcome-message">
-    <h2>{{i18n.login.welcome}}</h2>           <!-- Welcome back, John! -->
-    <p>{{i18n.user.lastLogin}}</p>            <!-- Last login: 2025-09-07 -->
-    <small>{{i18n.notifications.emailNotification}}</small>  <!-- Email sent to john@example.com -->
+    <h2>{{i18n.view.home.welcomeBack}}</h2>     <!-- Welcome back, John! -->
+    <p>{{i18n.view.user.index.lastLogin}}</p>   <!-- Last login: 2025-09-07 -->
+    <small>{{i18n.view.contact.emailNotification}}</small> <!-- Email sent to john@example.com -->
 </div>
 ```
 
@@ -213,7 +225,7 @@ The i18n system supports handlebars-style variable substitution within translati
 {{url.domain}}, {{url.pathname}}
 
 <!-- Application context -->
-{{app.version}}, {{app.release}}
+{{app.jPulse.version}}, {{app.jPulse.release}}
 ```
 
 ## 🔗 File Operations
@@ -980,7 +992,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="jp-container">
             <div class="jp-flex-between">
                 <div class="jp-logo">
-                    <a href="/home/">{{app.name}}</a>
+                    <a href="/home/">{{app.site.name}}</a>
                 </div>
 
                 <nav class="jp-nav">
@@ -1026,7 +1038,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="jp-container">
             <div class="jp-flex-between">
                 <div class="jp-footer-info">
-                    <p>&copy; 2025 {{app.name}} v{{app.version}}</p>
+                    <p>{{app.site.copyright}} v{{app.site.version}}</p>
                     {{#if config.email.adminEmail}}
                         <p>Contact: <a href="mailto:{{config.email.adminEmail}}">{{config.email.adminName}}</a></p>
                     {{/if}}

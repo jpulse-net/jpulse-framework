@@ -4,8 +4,8 @@
  * @tagline         Comprehensive Handlebars templating examples
  * @description     Interactive examples and source code for Handlebars templating in jPulse
  * @file            webapp/view/jpulse-examples/handlebars.shtml
- * @version         0.9.5
- * @release         2025-10-10
+ * @version         0.9.6
+ * @release         2025-10-11
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -43,8 +43,8 @@
                 <div id="variables-example-panel" class="jp-panel">
                     <div class="jp-info-box">
                         <ul>
-                            <li><strong>App Name:</strong> {{app.name}}</li>
-                            <li><strong>Version:</strong> {{app.version}}</li>
+                            <li><strong>App Name:</strong> {{app.site.name}}</li>
+                            <li><strong>Version:</strong> {{app.site.version}}</li>
                             <li><strong>Current User:</strong> {{#if user.authenticated}}{{user.firstName}} {{user.lastName}}{{else}}Guest{{/if}}</li>
                             <li><strong>Current URL:</strong> {{url.domain}}{{url.pathname}}</li>
                             <li><strong>Admin Email:</strong> {{config.email.adminEmail}}</li>
@@ -54,8 +54,8 @@
                 <div id="variables-source-panel" class="jp-panel">
                     <div class="jp-source-code" data-lang="html">
 &lt;ul&gt;
-    &lt;li&gt;&lt;strong&gt;App Name:&lt;/strong&gt; &#123;&#123;app.name&#125;&#125;&lt;/li&gt;
-    &lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; &#123;&#123;app.version&#125;&#125;&lt;/li&gt;
+    &lt;li&gt;&lt;strong&gt;App Name:&lt;/strong&gt; &#123;&#123;app.site.name&#125;&#125;&lt;/li&gt;
+    &lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; &#123;&#123;app.site.version&#125;&#125;&lt;/li&gt;
     &lt;li&gt;&lt;strong&gt;Current User:&lt;/strong&gt; &#123;&#123;#if user.authenticated&#125;&#125;&#123;&#123;user.firstName&#125;&#125; &#123;&#123;user.lastName&#125;&#125;&#123;&#123;else&#125;&#125;Guest&#123;&#123;/if&#125;&#125;&lt;/li&gt;
     &lt;li&gt;&lt;strong&gt;Current URL:&lt;/strong&gt; &#123;&#123;url.domain&#125;&#125;&#123;&#123;url.pathname&#125;&#125;&lt;/li&gt;
     &lt;li&gt;&lt;strong&gt;Admin Email:&lt;/strong&gt; &#123;&#123;config.email.adminEmail&#125;&#125;&lt;/li&gt;
@@ -322,18 +322,18 @@
                             </tr>
                             <tr>
                                 <td>Application name</td>
-                                <td><code>&#123;&#123;app.name&#125;&#125;</code></td>
-                                <td><code>{{app.name}}</code></td>
+                                <td><code>&#123;&#123;app.site.name&#125;&#125;</code></td>
+                                <td><code>{{app.site.name}}</code></td>
                             </tr>
                             <tr>
                                 <td>Current application version</td>
-                                <td><code>&#123;&#123;app.version&#125;&#125;</code></td>
-                                <td><code>{{app.version}}</code></td>
+                                <td><code>&#123;&#123;app.site.version&#125;&#125;</code></td>
+                                <td><code>{{app.site.version}}</code></td>
                             </tr>
                             <tr>
                                 <td>Current application release</td>
-                                <td><code>&#123;&#123;app.release&#125;&#125;</code></td>
-                                <td><code>{{app.release}}</code></td>
+                                <td><code>&#123;&#123;app.site.release&#125;&#125;</code></td>
+                                <td><code>{{app.site.release}}</code></td>
                             </tr>
                         </table>
                     </div>

@@ -3,8 +3,8 @@
  * @tagline         Template for site-specific configuration overrides
  * @description     Template for site customizations - copy to app.conf and customize
  * @file            site/webapp/app.conf.tmpl
- * @version         0.9.5
- * @release         2025-10-10
+ * @version         0.9.6
+ * @release         2025-10-11
  * @author          Site Administrator
  * @copyright       2025 Site Administrator
  * @license         AGPL v3, see LICENSE file
@@ -15,10 +15,15 @@
 // Copy this file to app.conf and customize for your deployment
 {
     app: {
-        name:           'jPulse Framework - Custom Site',
-        shortName:      'jPulse Custom Site',
-        customFeature:  true,
-        siteId:         'demo-site-001'
+        site: {
+            name:       'My jPulse Framework Site',
+            shortName:  'My jPulse Site',
+            copyright:  '© 1970 My Company',
+            version:    '0.1.0',
+            release:    '1970-01-01',
+        },
+        customField:    'The sky is the limit!',
+        customFlag:     true
     },
 
     // Override some middleware settings

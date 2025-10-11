@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.9.5
+# jPulse Framework / Docs / Dev / Work Items v0.9.6
 
 This is the doc to track work items, arranged in three sections:
 
@@ -1286,16 +1286,27 @@ This is the doc to track work items, arranged in three sections:
 ## 🚧 IN_PROGRESS Work Items
 
 ### W-078, v0.9.6: app api: provide health and metrics endpoints
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: provide health and metrics endpoint for load-balancer and system monitoring
 - apis:
   - /api/1/health
   - /api/1/metrics
 - deliverables:
-  - webapp/controller/health.js - handles aggregation of system and health data, provies API endpoints
-  - webapp/view/admin/status.shtml - human-readable status page
-  - webapp/app.conf - modify appConfig.app for better framework & site separation
+ - webapp/controller/health.js - health controller with API endpoints and helper methods
+ - webapp/routes.js - added /api/1/health and /api/1/metrics routes
+ - webapp/view/admin/system-status.shtml - comprehensive admin dashboard with auto-refresh
+ - webapp/static/assets/admin/icons/system-status.svg - SVG icon for system status page
+ - webapp/view/jpulse-common.css - moved status styling to framework (jp-* classes)
+ - webapp/view/jpulse-common.js - added jPulse.UI.windowFocus for tab focus detection
+ - webapp/view/admin/index.shtml - added system status dashboard card
+ - webapp/view/jpulse-navigation.tmpl - added system status navigation entry
+ - webapp/app.conf - restructured appConfig.app (jPulse vs site), added health config
+ - webapp/translations/en.conf & de.conf - i18n for system status page
+ - webapp/tests/unit/controller/health.test.js - unit tests for utility functions
+ - webapp/tests/integration/health-api.test.js - integration tests for API structure
+ - site/webapp/controller/hello.js - updated to use appConfig.app.jPulse.version
+ - site/webapp/view/hello/site-override.shtml - updated framework version display
 
 
 
@@ -1306,7 +1317,6 @@ This is the doc to track work items, arranged in three sections:
 
 pending:
 - install pm2, test
-- app.conf: rename app ==> jpulse & site
 - navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
 
 old pending:
@@ -1339,8 +1349,8 @@ next work item: W-0...
 finishing up work item: W-070:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-070, v0.9.3
-- update deliverables in W-040 to document work done (don't remove from existing deliverables list)
+- assume release: W-078, v0.9.6
+- update deliverables in W-078 to document work done (don't remove from existing deliverables list)
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 

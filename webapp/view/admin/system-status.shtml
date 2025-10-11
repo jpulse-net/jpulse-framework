@@ -5,7 +5,7 @@
  * @description     System monitoring and health dashboard for site administrators
  * @file            webapp/view/admin/system-status.shtml
  * @version         0.9.6
- * @release         2025-10-10
+ * @release         2025-10-11
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -67,7 +67,7 @@
                         <!-- jPulse Status -->
                         <div class="jp-card jp-status-card jp-status-ok" id="systemCard">
                             <div class="jp-status-header">
-                                <h3 class="jp-status-title">{{appConfig.app.name}}</h3>
+                                <h3 class="jp-status-title">{{app.site.name}}</h3>
                                 <div class="jp-status-indicator" id="systemIndicator"></div>
                             </div>
                             <div id="systemMetrics">

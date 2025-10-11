@@ -1,6 +1,67 @@
-# jPulse Framework / Docs / Version History v0.9.5
+# jPulse Framework / Docs / Version History v0.9.6
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.9.6, W-078, 2025-10-11
+
+**Commit:** `W-078, v0.9.6: Health & Metrics API with System Status Dashboard`
+
+**HEALTH & METRICS API WITH SYSTEM STATUS DASHBOARD**: Complete health monitoring infrastructure with REST API endpoints for load balancer integration, comprehensive admin dashboard with auto-refresh capabilities, and multi-instance metrics design for future Redis integration.
+
+**Objective**: Provide production-ready health and metrics endpoints for load balancer health checks and system monitoring, with a human-readable admin dashboard for site administrators to monitor system status, PM2 processes, WebSocket activity, and system resources.
+
+**Key Features**:
+- **Health & Metrics API**: `/api/1/health` for load balancer health checks and `/api/1/metrics` for detailed system monitoring
+- **Admin Status Dashboard**: Comprehensive `/admin/system-status.shtml` with auto-refresh and window focus detection
+- **Role-Based Access**: Basic metrics for guests/regular users, detailed metrics for admin users
+- **PM2 Integration**: Process monitoring with status, memory, CPU, and restart tracking
+- **Multi-Instance Design**: API structure prepared for Redis-based metrics aggregation across multiple servers
+- **Smart Refresh**: Configurable auto-refresh with background pause when window loses focus
+
+**API Endpoints**:
+- **`/api/1/health`**: Basic health status for load balancer health checks with configurable logging
+- **`/api/1/metrics`**: Comprehensive system metrics with role-based access control
+  - **Guest/Regular**: Basic status (version, uptime, memory, database connectivity)
+  - **Admin**: Full metrics (CPU, load average, PM2 processes, WebSocket stats, system info)
+
+**Admin Dashboard Features**:
+- **Auto-Refresh**: Configurable refresh interval with smart pause when window loses focus
+- **System Status**: jPulse version, release, environment, uptime tracking
+- **System Resources**: Platform, CPU count, memory usage, load average, hostname
+- **Database Status**: Connection status and database name
+- **WebSocket Metrics**: Total connections, messages, namespaces with activity status
+- **PM2 Process Monitoring**: Process status, memory, CPU, restarts with detailed table view
+- **Smart UX**: Loading spinners, error handling, responsive design with colored status indicators
+
+**Framework Enhancements**:
+- **`jPulse.UI.windowFocus`**: New utility for detecting browser tab focus/blur events with callback registration
+- **Enhanced CSS Framework**: Moved status-related styles from `local-*` to `jp-*` classes for reusability
+- **Fixed Navigation**: Site navigation pulldown now uses `position: fixed` to remain visible on scroll
+- **AppConfig Restructure**: Split `appConfig.app` into `appConfig.app.jPulse` (framework) and `appConfig.app.site` (site-specific)
+
+**Multi-Instance Metrics Design**:
+- **API Structure**: Prepared for Redis-based aggregation with `statistics`, `servers[]`, and `instances[]` hierarchy
+- **Server-Level Data**: System info (CPU, memory, load) and MongoDB server status at server level
+- **Instance-Level Data**: Application data (version, environment, database config, PM2 status) at instance level
+- **WebSocket Data**: Split between cluster-wide statistics and instance-specific details
+- **MongoDB Integration**: Placeholder for MongoDB server status monitoring
+
+**Configuration & Logging**:
+- **Health Logging Control**: `appConfig.controller.health.omitHealthLogs` to reduce log noise
+- **Auto-Refresh Settings**: `appConfig.view.admin.systemStatus.refreshInterval` and `refreshInBackground`
+- **Consistent Logging**: Always log `/api/1/metrics` requests, configurable for `/api/1/health`
+
+**Testing & Quality**:
+- **Unit Tests**: Comprehensive testing of utility functions (`_formatUptime`, `_extractServerIdFromHostname`, etc.)
+- **Integration Tests**: API structure validation and configuration testing
+- **All Tests Passing**: Maintained 100% test pass rate with enhanced coverage
+
+**UI & UX Improvements**:
+- **Professional Styling**: Consistent `jp-*` framework classes with colored status indicators
+- **Responsive Design**: Mobile-friendly layout with proper spacing and typography
+- **Error Handling**: Graceful degradation when PM2 or other services are unavailable
+- **Loading States**: Clear feedback during data fetching with spinner animations
 
 ________________________________________________
 ## v0.9.5, W-040, 2025-10-10

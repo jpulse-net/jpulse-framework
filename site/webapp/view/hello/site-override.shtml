@@ -4,8 +4,8 @@
  * @tagline         Demo Site View Override
  * @description     Example of how to override framework views
  * @file            site/webapp/view/hello/index.shtml
- * @version         0.9.5
- * @release         2025-10-10
+ * @version         0.9.6
+ * @release         2025-10-11
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -33,9 +33,10 @@
         <div class="jp-card">
             <h3>Override Information</h3>
             <ul>
-                <li><strong>Site Name:</strong> {{app.name}}</li>
-                <li><strong>Framework Version:</strong> {{app.version}}</li>
-                <li><strong>Custom Feature:</strong> {{#if app.customFeature}}✅ Enabled{{else}}❌ Disabled{{/if}}</li>
+                <li><strong>Site Name:</strong> {{app.site.name}}</li>
+                <li><strong>Framework Version:</strong> {{app.site.version}}</li>
+                <li><strong>Custom Field:</strong> {{app.customField}}</li>
+                <li><strong>Custom Flag:</strong> {{#if app.customFlag}}✅ Enabled{{else}}❌ Disabled{{/if}}</li>
                 <li><strong>Override Type:</strong> Site Controller + View</li>
             </ul>
         </div>

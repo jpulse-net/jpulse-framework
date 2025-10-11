@@ -3,8 +3,8 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         0.9.5
- * @release         2025-10-10
+ * @version         0.9.6
+ * @release         2025-10-11
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -65,7 +65,7 @@ describe('View Controller Unit Tests', () => {
             ip: '127.0.0.1'
         };
 
-        // Mock context with user and app data
+        // Mock context with user and app data (matching view controller structure)
         mockContext = {
             app: global.appConfig.app,
             user: mockReq.session.user,
@@ -107,9 +107,9 @@ describe('View Controller Unit Tests', () => {
         });
 
         test('should process app config variables', () => {
-            const content = 'Version: {{app.version}}';
+            const content = 'Version: {{app.site.version}}';
             const result = ViewController.processHandlebars(content, mockContext, mockReq);
-            expect(result).toBe(`Version: ${mockContext.app.version}`);
+            expect(result).toBe(`Version: ${mockContext.app.site.version}`);
         });
 
         test('should handle undefined variables gracefully', () => {
@@ -394,9 +394,9 @@ describe('View Controller Unit Tests', () => {
 
     describe('processHandlebars() - Complex Scenarios', () => {
         test('should handle multiple handlebars in single template', () => {
-            const content = 'Hello {{user.firstName}}, version {{app.version}} is available!';
+            const content = 'Hello {{user.firstName}}, version {{app.site.version}} is available!';
             const result = ViewController.processHandlebars(content, mockContext, mockReq);
-            expect(result).toBe(`Hello ${mockContext.user.firstName}, version ${mockContext.app.version} is available!`);
+            expect(result).toBe(`Hello ${mockContext.user.firstName}, version ${mockContext.app.site.version} is available!`);
         });
 
         test('should handle nested handlebars within blocks', () => {

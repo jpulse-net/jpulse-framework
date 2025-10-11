@@ -3,8 +3,8 @@
  * @tagline         Demo Site Controller Override
  * @description     Example of how to override framework controllers
  * @file            site/webapp/controller/hello.js
- * @version         0.9.5
- * @release         2025-10-10
+ * @version         0.9.6
+ * @release         2025-10-11
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -32,8 +32,8 @@ class HelloController {
             res.json({
                 success: true,
                 message: 'Hello from site override API!',
-                site: appConfig.app.name,
-                version: appConfig.app.version,
+                site: appConfig.app.site.name,
+                version: appConfig.app.jPulse.version,
                 customFeature: appConfig.app.customFeature || false,
                 timestamp: new Date().toISOString(),
                 demo: {

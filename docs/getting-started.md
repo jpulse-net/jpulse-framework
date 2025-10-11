@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Getting Started with jPulse v0.9.5
+# jPulse Framework / Docs / Getting Started with jPulse v0.9.6
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the W-014 override system.
 
@@ -346,7 +346,7 @@ class WelcomeController {
 
             res.json({
                 message: 'Welcome to your custom jPulse site!',
-                site: appConfig.app.name,
+                site: appConfig.app.site.name,
                 timestamp: new Date().toISOString(),
                 customData: {
                     feature: 'Custom API endpoint',
@@ -375,12 +375,12 @@ cat > site/webapp/view/welcome/index.shtml << 'EOF'
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{app.name}} - Welcome</title>
+    <title>Welcome - {{app.site.name}}</title>
     {{file.include "jpulse-header.tmpl"}}
 </head>
 <body>
     <div class="jp-main">
-        <h1 class="jp-title">Welcome to {{app.name}}!</h1>
+        <h1 class="jp-title">Welcome to {{app.site.name}}!</h1>
 
         <div class="jp-card">
             <h2>Your Custom Site</h2>

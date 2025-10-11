@@ -3,8 +3,8 @@
  * @tagline         Unit tests for application configuration loading
  * @description     Tests for app.conf configuration loading functionality
  * @file            webapp/tests/unit/config/app-config.test.js
- * @version         0.9.5
- * @release         2025-10-10
+ * @version         0.9.6
+ * @release         2025-10-11
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -38,8 +38,20 @@ describe('App Configuration Loading', () => {
         test('should load valid configuration file successfully', async () => {
             const validConfig = `{
                 app: {
-                    version: '1.0.0',
-                    release: '2025-01-27'
+                    jPulse: {
+                        version: '0.9.5',
+                        release: '2025-10-10',
+                        name: 'jPulse Framework',
+                        shortName: 'jPulse'
+                    },
+                    site: {
+                        version: '1.0.0',
+                        release: '2025-01-27',
+                        name: 'Test Site',
+                        shortName: 'Test'
+                    },
+                    dirName: '',
+                    docTypes: []
                 },
                 deployment: {
                     mode: 'dev',
@@ -59,7 +71,7 @@ describe('App Configuration Loading', () => {
             );
 
             expect(config).toBeDefined();
-            expect(config.app.version).toBe('1.0.0');
+            expect(config.app.site.version).toBe('1.0.0');
             expect(config.deployment.mode).toBe('dev');
             expect(config.deployment.dev.port).toBe(8080);
             expect(config.i18n.default).toBe('en');
@@ -69,8 +81,20 @@ describe('App Configuration Loading', () => {
             const configWithComments = `{
                 // Application settings
                 app: {
-                    version: '1.0.0',
-                    release: '2025-01-27'
+                    jPulse: {
+                        version: '0.9.5',
+                        release: '2025-10-10',
+                        name: 'jPulse Framework',
+                        shortName: 'jPulse'
+                    },
+                    site: {
+                        version: '1.0.0',
+                        release: '2025-01-27',
+                        name: 'Test Site',
+                        shortName: 'Test'
+                    },
+                    dirName: '',
+                    docTypes: []
                 },
                 /* Deployment configuration */
                 deployment: {
@@ -86,7 +110,7 @@ describe('App Configuration Loading', () => {
                 TestUtils.createTempFile(configWithComments, '.conf')
             );
 
-            expect(config.app.version).toBe('1.0.0');
+            expect(config.app.site.version).toBe('1.0.0');
             expect(config.deployment.dev.port).toBe(8080);
         });
 
@@ -202,7 +226,20 @@ describe('App Configuration Loading', () => {
         test('should throw error for invalid JavaScript', async () => {
             const invalidConfig = `{
                 app: {
-                    version: '1.0.0',
+                    jPulse: {
+                        version: '0.9.5',
+                        release: '2025-10-10',
+                        name: 'jPulse Framework',
+                        shortName: 'jPulse'
+                    },
+                    site: {
+                        version: '1.0.0',
+                        release: '2025-01-27',
+                        name: 'Test Site',
+                        shortName: 'Test'
+                    },
+                    dirName: '',
+                    docTypes: [],
                     invalid: function() { return 'not allowed'; }
                 }
             }`;
@@ -211,7 +248,7 @@ describe('App Configuration Loading', () => {
 
             // This should work actually, as functions are valid JavaScript
             const config = await TestUtils.loadTestConfig(tempFile);
-            expect(config.app.version).toBe('1.0.0');
+            expect(config.app.site.version).toBe('1.0.0');
             expect(typeof config.app.invalid).toBe('function');
 
             TestUtils.removeTempFile(tempFile);
@@ -249,8 +286,20 @@ describe('App Configuration Loading', () => {
         test('should validate required configuration sections', async () => {
             const minimalConfig = `{
                 app: {
-                    version: '1.0.0',
-                    release: '2025-01-27'
+                    jPulse: {
+                        version: '0.9.5',
+                        release: '2025-10-10',
+                        name: 'jPulse Framework',
+                        shortName: 'jPulse'
+                    },
+                    site: {
+                        version: '1.0.0',
+                        release: '2025-01-27',
+                        name: 'Test Site',
+                        shortName: 'Test'
+                    },
+                    dirName: '',
+                    docTypes: []
                 },
                 deployment: {
                     mode: 'dev',
@@ -275,8 +324,12 @@ describe('App Configuration Loading', () => {
             expect(config).toHaveProperty('i18n');
 
             // Validate required app properties
-            expect(config.app).toHaveProperty('version');
-            expect(config.app).toHaveProperty('release');
+            expect(config.app).toHaveProperty('jPulse');
+            expect(config.app).toHaveProperty('site');
+            expect(config.app.jPulse).toHaveProperty('version');
+            expect(config.app.jPulse).toHaveProperty('release');
+            expect(config.app.site).toHaveProperty('version');
+            expect(config.app.site).toHaveProperty('release');
 
             // Validate deployment configuration
             expect(config.deployment).toHaveProperty('mode');
@@ -289,9 +342,21 @@ describe('App Configuration Loading', () => {
         test('should handle configuration with extra properties', async () => {
             const configWithExtras = `{
                 app: {
-                    version: '1.0.0',
-                    release: '2025-01-27',
-                    customProperty: 'custom value'
+                    jPulse: {
+                        version: '0.9.5',
+                        release: '2025-10-10',
+                        name: 'jPulse Framework',
+                        shortName: 'jPulse'
+                    },
+                    site: {
+                        version: '1.0.0',
+                        release: '2025-01-27',
+                        name: 'Test Site',
+                        shortName: 'Test',
+                        customProperty: 'custom value'
+                    },
+                    dirName: '',
+                    docTypes: []
                 },
                 deployment: {
                     mode: 'dev',
@@ -310,7 +375,7 @@ describe('App Configuration Loading', () => {
                 TestUtils.createTempFile(configWithExtras, '.conf')
             );
 
-            expect(config.app.customProperty).toBe('custom value');
+            expect(config.app.site.customProperty).toBe('custom value');
             expect(config.customSection.customValue).toBe(42);
             expect(config.customSection.customArray).toEqual([1, 2, 3]);
         });
@@ -388,7 +453,7 @@ describe('App Configuration Loading', () => {
                 TestUtils.getFixturePath('app-test.conf')
             );
 
-            expect(config.app.version).toBe('0.1.0-test');
+            expect(config.app.site.version).toBe('0.1.0-test');
             expect(config.deployment.mode).toBe('test');
             expect(config.deployment.test.port).toBe(9999);
             expect(config.i18n.default).toBe('en');
@@ -397,8 +462,20 @@ describe('App Configuration Loading', () => {
         test('should validate production-like configuration structure', async () => {
             const prodConfig = `{
                 app: {
-                    version: '1.0.0',
-                    release: '2025-01-27'
+                    jPulse: {
+                        version: '0.9.5',
+                        release: '2025-10-10',
+                        name: 'jPulse Framework',
+                        shortName: 'jPulse'
+                    },
+                    site: {
+                        version: '1.0.0',
+                        release: '2025-01-27',
+                        name: 'Test Site',
+                        shortName: 'Test'
+                    },
+                    dirName: '',
+                    docTypes: []
                 },
                 deployment: {
                     mode: 'prod',

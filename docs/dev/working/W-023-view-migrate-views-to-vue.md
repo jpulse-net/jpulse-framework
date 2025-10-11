@@ -329,8 +329,8 @@ async function load(req, res) {
     // Build context (same as before but enhanced for Vue routing)
     const context = {
       app: {
-        version: appConfig.app.version,
-        release: appConfig.app.release
+        version: appConfig.app.jPulse.version,
+        release: appConfig.app.jPulse.release
       },
       user: {
         id: req.session?.user?.id || '',
@@ -388,7 +388,7 @@ function generateVueAppHtml(context, section) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${context.app.version} - jPulse</title>
+  <title>${context.app.jPulse.version} - jPulse</title>
 
   <!-- Framework styles -->
   <link rel="stylesheet" href="/static/view/jpulse-styles.css">
@@ -1060,7 +1060,7 @@ window.addEventListener('popstate', (event) => {
   <div class="jpulse-app">
     <JPulseHeader
       :user="$context.user"
-      :app-version="$context.app.version"
+      :app-version="$context.app.jPulse.version"
       @navigate="$parent.navigateTo" />
 
     <main class="jpulse-main">

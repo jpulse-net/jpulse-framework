@@ -3,8 +3,8 @@
  * @tagline         Unit tests for responsive layout and appConfig integration
  * @description     Tests for the new responsive layout features and appConfig context
  * @file            webapp/tests/unit/controller/responsive-layout.test.js
- * @version         0.9.5
- * @release         2025-10-10
+ * @version         0.9.6
+ * @release         2025-10-11
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -61,8 +61,8 @@ describe('Responsive Layout and AppConfig Integration', () => {
         });
 
         test('should maintain backward compatibility with app config', () => {
-            expect(mockContext.app.version).toMatch(/^\d+\.\d+\.\d+$/);
-            expect(mockContext.app.release).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+            expect(mockContext.app.jPulse.version).toMatch(/^\d+\.\d+\.\d+$/);
+            expect(mockContext.app.jPulse.release).toMatch(/^\d{4}-\d{2}-\d{2}$/);
         });
     });
 
@@ -173,8 +173,12 @@ describe('Responsive Layout and AppConfig Integration', () => {
             expect(appConfig).toHaveProperty('controller');
             expect(appConfig).toHaveProperty('view');
 
-            expect(appConfig.app).toHaveProperty('version');
-            expect(appConfig.app).toHaveProperty('release');
+            expect(appConfig.app).toHaveProperty('jPulse');
+            expect(appConfig.app).toHaveProperty('site');
+            expect(appConfig.app.jPulse).toHaveProperty('version');
+            expect(appConfig.app.jPulse).toHaveProperty('release');
+            expect(appConfig.app.site).toHaveProperty('version');
+            expect(appConfig.app.site).toHaveProperty('release');
 
             expect(appConfig.view.mainContainer).toHaveProperty('maxWidth');
             expect(appConfig.view.mainContainer).toHaveProperty('minMarginLeftRight');
@@ -206,11 +210,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
         test('should simulate view controller context creation', () => {
             // Simulate how view controller creates context
             const simulatedContext = {
-                app: {
-                    version: mockAppConfig.app.version,
-                    release: mockAppConfig.app.release,
-                    name: mockAppConfig.app.name
-                },
+                app: mockAppConfig.app,
                 user: {
                     id: '',
                     firstName: '',
@@ -229,7 +229,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
             expect(simulatedContext.appConfig).toBe(mockAppConfig);
             expect(simulatedContext.appConfig.view.mainContainer.maxWidth).toBe(1200);
             // Accept different app names based on environment config
-            expect(simulatedContext.app.name).toMatch(/jPulse Framework/);
+            expect(simulatedContext.app.site.name).toMatch(/jPulse Framework/);
         });
 
         test('should support handlebars template expressions', () => {
@@ -237,7 +237,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
             const expressions = {
                 maxWidth: mockContext.appConfig.view.mainContainer.maxWidth,
                 minMargin: mockContext.appConfig.view.mainContainer.minMarginLeftRight,
-                appVersion: mockContext.app.version
+                appVersion: mockContext.app.jPulse.version
             };
 
             expect(expressions.maxWidth).toBe(1200);

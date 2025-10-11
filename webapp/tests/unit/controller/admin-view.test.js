@@ -3,8 +3,8 @@
  * @tagline         Unit tests for admin dashboard view rendering (W-013)
  * @description     Tests admin dashboard view controller functionality and template rendering
  * @file            webapp/tests/unit/controller/admin-view.test.js
- * @version         0.9.5
- * @release         2025-10-10
+ * @version         0.9.6
+ * @release         2025-10-11
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -217,7 +217,7 @@ describe.skip('Admin Dashboard View Rendering (W-013)', () => {
 <div>
     <span>{{user.firstName}}</span>
     <span>{{user.roles}}</span>
-    <span>{{app.name}}</span>
+    <span>{{app.site.name}}</span>
 </div>`;
 
             jest.spyOn(fs, 'existsSync').mockReturnValue(true);

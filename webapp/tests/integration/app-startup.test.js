@@ -3,8 +3,8 @@
  * @tagline         Integration tests for application startup flow
  * @description     Tests for the complete application initialization process
  * @file            webapp/tests/integration/app-startup.test.js
- * @version         0.9.5
- * @release         2025-10-10
+ * @version         0.9.6
+ * @release         2025-10-11
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -66,8 +66,20 @@ describe('Application Startup Integration', () => {
         test('should load app configuration successfully', async () => {
             const appConfig = `{
                 app: {
-                    version: '1.0.0',
-                    release: '2025-01-27'
+                    jPulse: {
+                        version: '0.9.5',
+                        release: '2025-10-10',
+                        name: 'jPulse Framework',
+                        shortName: 'jPulse'
+                    },
+                    site: {
+                        version: '1.0.0',
+                        release: '2025-01-27',
+                        name: 'Test Site',
+                        shortName: 'Test'
+                    },
+                    dirName: '',
+                    docTypes: []
                 },
                 deployment: {
                     mode: 'test',
@@ -89,7 +101,7 @@ describe('Application Startup Integration', () => {
             const config = await TestUtils.loadTestConfig('./webapp/app.conf');
 
             expect(config).toBeDefined();
-            expect(config.app.version).toBe('1.0.0');
+            expect(config.app.jPulse.version).toBe('0.9.5');
             expect(config.deployment.mode).toBe('test');
             expect(config.i18n.default).toBe('en');
         });
@@ -111,8 +123,14 @@ describe('Application Startup Integration', () => {
         test('should load translations after configuration', async () => {
             const appConfig = `{
                 app: {
-                    version: '1.0.0',
-                    release: '2025-01-27'
+                    jPulse: {
+                        version: '0.9.5',
+                        release: '2025-10-10'
+                    },
+                    site: {
+                        version: '1.0.0',
+                        release: '2025-01-27'
+                    }
                 },
                 i18n: {
                     default: 'en'
@@ -207,7 +225,12 @@ describe('Application Startup Integration', () => {
         test('should handle proper module loading order', async () => {
             const appConfig = `{
                 app: {
-                    version: '1.0.0'
+                    jPulse: {
+                        version: '0.9.5'
+                    },
+                    site: {
+                        version: '1.0.0'
+                    }
                 },
                 deployment: {
                     mode: 'test',
@@ -263,7 +286,10 @@ describe('Application Startup Integration', () => {
 
         test('should handle global variable dependencies', () => {
             const config = {
-                app: { version: '1.0.0' },
+                app: {
+                    jPulse: { version: '0.9.5' },
+                    site: { version: '1.0.0' }
+                },
                 i18n: { default: 'en' }
             };
 
@@ -276,7 +302,7 @@ describe('Application Startup Integration', () => {
 
             expect(global.appConfig).toBeDefined();
             expect(global.i18n).toBeDefined();
-            expect(global.appConfig.app.version).toBe('1.0.0');
+            expect(global.appConfig.app.jPulse.version).toBe('0.9.5');
             expect(global.i18n.t('test')).toBe('Test message');
         });
     });
@@ -285,7 +311,10 @@ describe('Application Startup Integration', () => {
         test('should handle partial initialization gracefully', async () => {
             // Test with valid config but missing translations
             const appConfig = `{
-                app: { version: '1.0.0' },
+                app: {
+                    jPulse: { version: '0.9.5' },
+                    site: { version: '1.0.0' }
+                },
                 i18n: { default: 'en' }
             }`;
 
@@ -313,7 +342,12 @@ describe('Application Startup Integration', () => {
         test('should validate critical configuration sections', async () => {
             const incompleteConfig = `{
                 app: {
-                    version: '1.0.0'
+                    jPulse: {
+                        version: '0.9.5'
+                    },
+                    site: {
+                        version: '1.0.0'
+                    }
                 }
             }`;
 
@@ -334,8 +368,14 @@ describe('Application Startup Integration', () => {
         test('should validate required configuration structure', async () => {
             const validConfig = `{
                 app: {
-                    version: '1.0.0',
-                    release: '2025-01-27'
+                    jPulse: {
+                        version: '0.9.5',
+                        release: '2025-10-10'
+                    },
+                    site: {
+                        version: '1.0.0',
+                        release: '2025-01-27'
+                    }
                 },
                 deployment: {
                     mode: 'test',
@@ -367,8 +407,12 @@ describe('Application Startup Integration', () => {
             expect(config).toHaveProperty('i18n');
 
             // Validate app section
-            expect(config.app).toHaveProperty('version');
-            expect(config.app).toHaveProperty('release');
+            expect(config.app).toHaveProperty('jPulse');
+            expect(config.app).toHaveProperty('site');
+            expect(config.app.jPulse).toHaveProperty('version');
+            expect(config.app.jPulse).toHaveProperty('release');
+            expect(config.app.site).toHaveProperty('version');
+            expect(config.app.site).toHaveProperty('release');
 
             // Validate deployment section
             expect(config.deployment).toHaveProperty('mode');
@@ -439,7 +483,7 @@ describe('Application Startup Integration', () => {
                 TestUtils.getFixturePath('lang-test-de.conf')
             ]);
 
-            expect(config.app.version).toBe('0.1.0-test');
+            expect(config.app.site.version).toBe('0.1.0-test');
             expect(config.deployment.mode).toBe('test');
             expect(translations.langs.en.lang).toBe('English');
             expect(translations.langs.de.lang).toBe('Deutsch');

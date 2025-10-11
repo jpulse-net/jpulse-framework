@@ -4,7 +4,7 @@
  * @description     This is the health controller for the jPulse Framework WebApp
  * @file            webapp/controller/health.js
  * @version         0.9.6
- * @release         2025-10-10
+ * @release         2025-10-11
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -43,8 +43,8 @@ class HealthController {
                 success: true,
                 status: 'ok',
                 data: {
-                    version: global.appConfig.app.version,
-                    release: global.appConfig.app.release,
+                    version: global.appConfig.app.jPulse.version,
+                    release: global.appConfig.app.jPulse.release,
                     uptime: Math.floor(process.uptime()),
                     environment: global.appConfig.deployment.mode,
                     database: 'connected', // TODO: Add actual database health check
@@ -158,8 +158,8 @@ class HealthController {
             const statusData = {
                 system: {
                     status: 'ok',
-                    version: global.appConfig.app.version,
-                    release: global.appConfig.app.release,
+                    version: global.appConfig.app.jPulse.version,
+                    release: global.appConfig.app.jPulse.release,
                     uptime: uptime,
                     uptimeFormatted: HealthController._formatUptime(uptime),
                     environment: global.appConfig.deployment.mode,
@@ -280,8 +280,8 @@ class HealthController {
                     status: p.status,
 
                     // Instance-specific data (moved from top-level and server-level)
-                    version: global.appConfig.app.version,
-                    release: global.appConfig.app.release,
+                    version: global.appConfig.app.jPulse.version,
+                    release: global.appConfig.app.jPulse.release,
                     environment: global.appConfig.deployment.mode,
                     database: {
                         status: 'connected', // TODO: Add actual database health check
@@ -330,8 +330,8 @@ class HealthController {
                 reason: pm2Status === null ? "PM2 not installed or not in PATH" : null,
 
                 // Instance-specific data (moved from top-level and server-level)
-                version: global.appConfig.app.version,
-                release: global.appConfig.app.release,
+                version: global.appConfig.app.jPulse.version,
+                release: global.appConfig.app.jPulse.release,
                 environment: global.appConfig.deployment.mode,
                 database: {
                     status: 'connected', // TODO: Add actual database health check

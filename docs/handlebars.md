@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Handlebars Templating v0.9.5
+# jPulse Framework / Docs / Handlebars Templating v0.9.6
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -13,7 +13,7 @@ Handlebars is a semantic templating language that allows you to build dynamic HT
 ### Variables
 Use double curly braces to output variables:
 ```handlebars
-{{app.name}}
+{{app.jPulse.name}}
 {{user.firstName}}
 {{config.email.adminEmail}}
 ```
@@ -112,9 +112,13 @@ You can nest conditionals for complex logic:
 The jPulse Framework provides several context objects that are available in all templates:
 
 ### App Context
-- `{{app.name}}` - Application name
-- `{{app.version}}` - Current application version
-- `{{app.release}}` - Current application release date
+- `{{app.jPulse.name}}` - jPulse Framework application name
+- `{{app.jPulse.version}}` - Current jPulse Framework application version
+- `{{app.jPulse.release}}` - Current jPulse Framework application release date
+- `{{app.site.name}}` - Custom site name
+- `{{app.site.version}}` - Current site version
+- `{{app.site.release}}` - Current site release date
+- `{{app.site.copyright}}` - Custom site copyright notice
 
 ### User Context
 - `{{user.username}}` - User's username
@@ -124,7 +128,7 @@ The jPulse Framework provides several context objects that are available in all 
 - `{{user.lastName}}` - User's last name
 - `{{user.initials}}` - User's initials
 - `{{user.email}}` - User's email address
-- `{{user.roles}}` - Comma-separated user roles
+- `{{user.roles}}` - JSON array of user roles
 - `{{user.authenticated}}` - Login status (true/false)
 - `{{user.isAdmin}}` - Admin status (true/false)
 

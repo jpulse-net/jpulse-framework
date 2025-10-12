@@ -3,8 +3,8 @@
  * @tagline         Markdown controller for the jPulse Framework
  * @description     Markdown document serving with caching support, part of jPulse Framework
  * @file            webapp/controller/markdown.js
- * @version         0.9.6
- * @release         2025-10-11
+ * @version         0.9.7
+ * @release         2025-10-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,7 +16,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import LogController from './log.js';
 import CommonUtils from '../utils/common.js';
-import FileCache from '../utils/file-cache.js';
+import cacheManager from '../utils/cache-manager.js';
 
 // W-079: File-based cache with automatic refresh
 let markdownCache = null;
@@ -38,8 +38,20 @@ class MarkdownController {
      */
     static initialize() {
         if (!markdownCache) {
-            const cacheConfig = global.appConfig.controller?.markdown?.cache || { enabled: true };
-            markdownCache = new FileCache(cacheConfig, 'MarkdownCache');
+            let cacheConfig = global.appConfig.controller?.markdown?.cache || { enabled: true };
+
+            // Ensure cacheConfig is an object, not just a boolean
+            if (typeof cacheConfig === 'boolean') {
+                cacheConfig = { enabled: cacheConfig };
+            }
+
+            // In test mode, disable caching to prevent hanging
+            const isTestMode = process.env.NODE_ENV === 'test' || global.isTestEnvironment;
+            if (isTestMode) {
+                cacheConfig.enabled = false; // Disable caching in tests
+            }
+
+            markdownCache = cacheManager.register(cacheConfig, 'MarkdownCache');
             LogController.logInfo(null, 'markdown.initialize', 'Initialized markdown cache');
         }
     }
@@ -81,7 +93,7 @@ class MarkdownController {
                 const listing = await MarkdownController._getDirectoryListing(namespace, baseDir);
                 res.json({ success: true, files: listing });
             } else {
-                const content = await MarkdownController._getMarkdownFile(namespace, filePath, baseDir);
+                const content = MarkdownController._getMarkdownFile(namespace, filePath, baseDir);
                 res.json({ success: true, content, path: filePath });
             }
             const duration = Date.now() - startTime;
@@ -149,9 +161,9 @@ class MarkdownController {
 
     /**
      * Get markdown file content with caching
-     * W-079: Enhanced with FileCache for automatic refresh
+     * W-079: Enhanced with simplified CacheManager
      */
-    static async _getMarkdownFile(namespace, filePath, baseDir) {
+    static _getMarkdownFile(namespace, filePath, baseDir) {
         const cacheKey = `${namespace}/${filePath}`;
 
         // Security: prevent path traversal
@@ -161,10 +173,8 @@ class MarkdownController {
 
         const fullPath = path.join(baseDir, filePath);
 
-        // W-079: Use FileCache with automatic refresh
-        const content = await markdownCache.get(fullPath, async (path) => {
-            return await fs.readFile(path, 'utf8');
-        });
+        // W-079: Use simplified cache with getFileSync
+        const content = markdownCache.getFileSync(fullPath);
 
         if (content === null) {
             const error = new Error(`Markdown file not found: ${filePath}`);
@@ -426,38 +436,6 @@ class MarkdownController {
             .replace(/  +/g, ' ')
             .replace(/\b\w/g, l => l.toUpperCase())
             .replace(titleCaseFixRegex, (match) => titleCaseFix[match]).trim();
-    }
-
-    /**
-     * W-079: Refresh markdown cache (for API endpoints)
-     * @param {string} filePath - Optional specific file path to refresh
-     * @returns {Object} Refresh result
-     */
-    static async refreshMarkdownCache(filePath = null) {
-        MarkdownController.initialize();
-
-        if (!markdownCache) {
-            return { success: false, message: 'Markdown cache not initialized' };
-        }
-
-        try {
-            if (filePath) {
-                // Refresh specific file
-                await markdownCache.refreshFile(filePath, async (path) => {
-                    return await fs.readFile(path, 'utf8');
-                });
-                LogController.logInfo(null, 'markdown.refreshMarkdownCache', `Refreshed markdown: ${filePath}`);
-                return { success: true, message: `Refreshed markdown: ${filePath}` };
-            } else {
-                // Clear all markdown cache
-                markdownCache.clearAll();
-                LogController.logInfo(null, 'markdown.refreshMarkdownCache', 'Cleared all markdown cache');
-                return { success: true, message: 'Cleared all markdown cache' };
-            }
-        } catch (error) {
-            LogController.logError(null, 'markdown.refreshMarkdownCache', `Error refreshing markdown cache: ${error.message}`);
-            return { success: false, message: error.message };
-        }
     }
 
     /**

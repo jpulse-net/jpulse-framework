@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Style Reference v0.9.6
+# jPulse Framework / Docs / Style Reference v0.9.7
 
 Comprehensive CSS framework documentation for the jPulse `jp-*` styling system, providing consistent, responsive, and enterprise-ready components for web applications.
 

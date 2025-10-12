@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         0.9.6
- * @release         2025-10-11
+ * @version         0.9.7
+ * @release         2025-10-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -275,6 +275,21 @@ startApp().catch(error => {
     // Use LogController for error logging (no req object for startup errors)
     LogController.logError(null, 'app', `error: Failed to start application: ${error.message}`);
     process.exit(1);
+});
+
+// Graceful shutdown handling
+import cacheManager from './utils/cache-manager.js';
+
+process.on('SIGTERM', () => {
+    LogController.logInfo(null, 'app', 'SIGTERM received, shutting down gracefully');
+    cacheManager.shutdown();
+    process.exit(0);
+});
+
+process.on('SIGINT', () => {
+    LogController.logInfo(null, 'app', 'SIGINT received, shutting down gracefully');
+    cacheManager.shutdown();
+    process.exit(0);
 });
 
 // EOF webapp/app.js

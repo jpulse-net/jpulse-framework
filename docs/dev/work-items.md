@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.9.6
+# jPulse Framework / Docs / Dev / Work Items v0.9.7
 
 This is the doc to track work items, arranged in three sections:
 
@@ -1308,8 +1308,8 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-079, v0.9.7: cache: strategy for cache invalidation in controllers & utitities
-- status: 🚧 IN_PROGRESS
+### W-079, v0.9.7: cache: strategy for cache invalidation in controllers & utilities
+- status: ✅ DONE
 - type: Feature
 - objective:
   - ability to invalidate caches (.shtml, .tmpl, .css, .js, i18n .conf), so that the app does not need to be restarted
@@ -1341,6 +1341,18 @@ This is the doc to track work items, arranged in three sections:
     - directory listings for API responses
     - target:
       - docs/**/*md
+- deliverables:
+  - webapp/utils/cache-manager.js - centralized cache management utility
+  - webapp/controller/cache.js - cache API endpoints for manual refresh and statistics
+  - webapp/controller/view.js - integrated with CacheManager for template and include caching
+  - webapp/controller/markdown.js - integrated with CacheManager for markdown file caching
+  - webapp/utils/i18n.js - integrated with CacheManager for translation file caching
+  - webapp/app.js - graceful shutdown handling for cache timers
+  - webapp/tests/setup/global-teardown.js - cache cleanup for test environment
+  - webapp/tests/setup/env-setup.js - test environment configuration
+  - webapp/tests/integration/cache-api.test.js - cache API integration tests
+  - webapp/app.conf - cache configuration with periodic refresh intervals
+
 
 
 
@@ -1349,8 +1361,7 @@ This is the doc to track work items, arranged in three sections:
 
 
 pending:
-- site config change is not recorded in logs
-- site override is gone!
+- move LogModel.logChange() from webapp/model/config.js to webapp/controller/config.js
 - install pm2, test
 - navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
 - grab gh jpulse.net
@@ -1382,8 +1393,8 @@ next work item: W-0...
 finishing up work item: W-070:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-078, v0.9.6
-- update deliverables in W-078 to document work done (don't make any other changes to this file)
+- assume release: W-079, v0.9.7
+- update deliverables in W-079 to document work done (don't make any other changes to this file)
 - update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
@@ -1579,6 +1590,27 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
                 // show minimized message again after N hours:
                 nagTimeHours: { type: 'number', default: 4 } // 0: disable
             }
+
+### W-081: tests: restructure for better maintainability
+- status: 🕑 PENDING (post-1.0)
+- type: Feature
+- objective: better maintainability, less time on fixing tests
+- problem: the current tests have fundamental design issues:
+  - an additional test seems to always break unrelated tests
+  - it takes a long time to create/fix tests
+  - always issues with ES modules (import.meta, mocking)
+  - always issues with appConfig (should be centralized in tests)
+  - global state contamination between tests
+  - more time and money spent on tests than actual code!
+- solution:
+  - centralize test configuration management
+  - isolate global state between test suites
+  - fix ES module mocking patterns
+  - reduce test interdependencies
+  - implement proper test teardown/cleanup
+  - consider test architecture refactor (separate unit/integration more clearly)
+- notes: deferred until after 1.0 release to focus on core functionality
+
 
 ### W-0: deployment: docker strategy
 - status: 🕑 PENDING

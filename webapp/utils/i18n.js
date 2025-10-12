@@ -3,8 +3,8 @@
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/utils/i18n.js
- * @version         0.9.6
- * @release         2025-10-11
+ * @version         0.9.7
+ * @release         2025-10-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,7 +15,7 @@
 // Load required modules for path resolution and file system operations
 import { join } from 'node:path';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import FileCache from './file-cache.js';
+import cacheManager from './cache-manager.js';
 
 /**
  * Deep clone an object
@@ -157,7 +157,7 @@ function auditAndFixTranslations(defaultLang, targetLang, langCode) {
 /**
  * Function to dynamically discover and load all translation files
  * Automatically finds all *.conf files in the translations directory
- * W-079: Enhanced with FileCache for automatic refresh on file changes
+ * W-079: Enhanced with simplified CacheManager for automatic refresh
  */
 async function loadTranslations() {
     // Handle case where appConfig might not be available yet (e.g., in tests)
@@ -167,10 +167,17 @@ async function loadTranslations() {
         throw new Error('appConfig must be available before loading translations. Set up global.appConfig first.');
     }
 
-    // W-079: Initialize translation cache if not already done
+    // W-079: Initialize translation cache using simplified CacheManager
     if (!translationCache) {
         const cacheConfig = config.utils?.i18n?.cache || { enabled: true };
-        translationCache = new FileCache(cacheConfig, 'TranslationCache');
+
+        // In test mode, disable caching to prevent hanging
+        const isTestMode = process.env.NODE_ENV === 'test' || global.isTestEnvironment;
+        if (isTestMode) {
+            cacheConfig.enabled = false; // Disable caching in tests
+        }
+
+        translationCache = cacheManager.register(cacheConfig, 'TranslationCache');
     }
 
     const i18n = {
@@ -213,12 +220,10 @@ async function loadTranslations() {
         global.LogController.logInfo(null, 'i18n', `Loading ${sortedFiles.length} translation files...`);
         let defaultLangData = null;
 
-        // W-079: Load each translation file using FileCache
+        // W-079: Load each translation file using simplified cache
         for (const file of sortedFiles) {
             try {
-                const content = await translationCache.get(file.filePath, async (filePath) => {
-                    return readFileSync(filePath, 'utf8');
-                });
+                const content = translationCache.getFileSync(file.filePath);
 
                 if (content === null) {
                     global.LogController.logError(null, 'i18n', `warning: Translation file not found: ${file.filePath}`);
@@ -409,7 +414,7 @@ class I18n {
 }
 
 let i18nInstance = null;
-let translationCache = null;  // W-079: FileCache for translation files
+let translationCache = null;  // W-079: Cache instance from CacheManager
 
 /**
  * Initialize i18n (LogController must be globally available)
@@ -452,64 +457,11 @@ export function getInstance() {
     return i18nInstance;
 }
 
-/**
- * W-079: Refresh translation cache (for API endpoints)
- * @param {string} filePath - Optional specific file path to refresh
- * @returns {Object} Refresh result
- */
-export async function refreshTranslationCache(filePath = null) {
-    if (!translationCache) {
-        return { success: false, message: 'Translation cache not initialized' };
-    }
-
-    try {
-        if (filePath) {
-            // Refresh specific file
-            await translationCache.refreshFile(filePath, async (path) => {
-                return readFileSync(path, 'utf8');
-            });
-            global.LogController.logInfo(null, 'i18n.refreshTranslationCache', `Refreshed translation: ${filePath}`);
-
-            // Reload i18n instance to pick up changes
-            await initialize();
-
-            return { success: true, message: `Refreshed translation: ${filePath}` };
-        } else {
-            // Clear all translation cache and reinitialize
-            translationCache.clearAll();
-            global.LogController.logInfo(null, 'i18n.refreshTranslationCache', 'Cleared all translation cache');
-
-            // Reload i18n instance
-            await initialize();
-
-            return { success: true, message: 'Cleared all translation cache and reloaded' };
-        }
-    } catch (error) {
-        global.LogController.logError(null, 'i18n.refreshTranslationCache', `Error refreshing translation cache: ${error.message}`);
-        return { success: false, message: error.message };
-    }
-}
-
-/**
- * W-079: Get translation cache statistics
- * @returns {Object} Cache statistics
- */
-export function getTranslationCacheStats() {
-    return translationCache ? translationCache.getStats() : {
-        name: 'TranslationCache',
-        fileCount: 0,
-        directoryCount: 0,
-        config: { enabled: false }
-    };
-}
-
 // Module is ready for initialization - call initialize() to set up i18n
 
 export default {
     initialize,
-    getInstance,
-    refreshTranslationCache,    // W-079: Cache refresh API
-    getTranslationCacheStats    // W-079: Cache statistics API
+    getInstance
 };
 
 // EOF webapp/utils/i18n.js

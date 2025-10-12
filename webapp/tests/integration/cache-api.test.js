@@ -4,7 +4,7 @@
  * @description     Tests for cache refresh and statistics API endpoints
  * @file            webapp/tests/integration/cache-api.test.js
  * @version         0.9.7
- * @release         2025-10-11
+ * @release         2025-10-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -13,11 +13,11 @@
  */
 
 import { jest, describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
-// import request from 'supertest';
-// import app from '../../app.js';  // Temporarily disabled due to ES module issues
+import request from 'supertest';
+import app from '../../app.js';
 import TestUtils from '../helpers/test-utils.js';
 
-describe.skip('Cache API Integration Tests', () => {
+describe('Cache API Integration Tests', () => {
     let adminUser;
     let regularUser;
     let adminCookie;

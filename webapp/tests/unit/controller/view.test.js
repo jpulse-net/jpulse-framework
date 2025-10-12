@@ -3,8 +3,8 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         0.9.6
- * @release         2025-10-11
+ * @version         0.9.7
+ * @release         2025-10-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -102,25 +102,25 @@ describe('View Controller Unit Tests', () => {
     describe('processHandlebars() - Basic Functionality', () => {
         test('should process simple variable substitution', async () => {
             const content = 'Hello {{user.firstName}} {{user.lastName}}!';
-            const result = await ViewController.processHandlebars(content, mockContext, mockReq);
+            const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe('Hello Test User!');
         });
 
         test('should process app config variables', async () => {
             const content = 'Version: {{app.site.version}}';
-            const result = await ViewController.processHandlebars(content, mockContext, mockReq);
+            const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe(`Version: ${mockContext.app.site.version}`);
         });
 
         test('should handle undefined variables gracefully', async () => {
             const content = 'Missing: {{user.nonexistent}}';
-            const result = await ViewController.processHandlebars(content, mockContext, mockReq);
+            const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe('Missing: ');
         });
 
         test('should handle nested property access', async () => {
             const content = 'URL: {{url.domain}}';
-            const result = await ViewController.processHandlebars(content, mockContext, mockReq);
+            const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe('URL: http://localhost:8080');
         });
     });
@@ -128,27 +128,27 @@ describe('View Controller Unit Tests', () => {
     describe('processHandlebars() - {{#if}} Blocks', () => {
         test('should process {{#if}} block with true condition', async () => {
             const content = '{{#if user.authenticated}}Logged in{{/if}}';
-            const result = await ViewController.processHandlebars(content, mockContext, mockReq);
+            const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe('Logged in');
         });
 
         test('should process {{#if}} block with false condition', async () => {
             const falseContext = { ...mockContext, user: { authenticated: false } };
             const content = '{{#if user.authenticated}}Logged in{{/if}}';
-            const result = await ViewController.processHandlebars(content, falseContext, mockReq);
+            const result = ViewController.processHandlebars(content, falseContext, mockReq);
             expect(result).toBe('');
         });
 
         test('should process {{#if}} with {{else}} - true condition', async () => {
             const content = '{{#if user.authenticated}}Logged in{{else}}Not logged in{{/if}}';
-            const result = await ViewController.processHandlebars(content, mockContext, mockReq);
+            const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe('Logged in');
         });
 
         test('should process {{#if}} with {{else}} - false condition', async () => {
             const falseContext = { ...mockContext, user: { authenticated: false } };
             const content = '{{#if user.authenticated}}Logged in{{else}}Not logged in{{/if}}';
-            const result = await ViewController.processHandlebars(content, falseContext, mockReq);
+            const result = ViewController.processHandlebars(content, falseContext, mockReq);
             expect(result).toBe('Not logged in');
         });
     });
@@ -157,19 +157,19 @@ describe('View Controller Unit Tests', () => {
         test('should render content when condition is false', async () => {
             const content = '{{#unless user.isAdmin}}Regular user content{{/unless}}';
             const context = { ...mockContext, user: { ...mockContext.user, isAdmin: false } };
-            const result = await ViewController.processHandlebars(content, context, mockReq);
+            const result = ViewController.processHandlebars(content, context, mockReq);
             expect(result).toBe('Regular user content');
         });
 
         test('should not render content when condition is true', async () => {
             const content = '{{#unless user.authenticated}}Please log in{{/unless}}';
-            const result = await ViewController.processHandlebars(content, mockContext, mockReq);
+            const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe('');
         });
 
         test('should handle undefined conditions as falsy', async () => {
             const content = '{{#unless user.nonexistent}}Show this{{/unless}}';
-            const result = await ViewController.processHandlebars(content, mockContext, mockReq);
+            const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe('Show this');
         });
 
@@ -182,14 +182,14 @@ describe('View Controller Unit Tests', () => {
                     view: { auth: { hideLogin: false } }
                 }
             };
-            const result = await ViewController.processHandlebars(content, context, mockReq);
+            const result = ViewController.processHandlebars(content, context, mockReq);
             expect(result).toBe('Login available');
         });
 
         test('should handle nested handlebars inside {{#unless}}', async () => {
             const content = '{{#unless user.authenticated}}<p>Welcome, {{user.firstName}}!</p>{{/unless}}';
             const context = { ...mockContext, user: { ...mockContext.user, authenticated: false } };
-            const result = await ViewController.processHandlebars(content, context, mockReq);
+            const result = ViewController.processHandlebars(content, context, mockReq);
             expect(result).toBe('<p>Welcome, Test!</p>');
         });
 
@@ -200,8 +200,8 @@ describe('View Controller Unit Tests', () => {
             const context1 = { ...mockContext, count: 0 };
             const context2 = { ...mockContext, message: '' };
 
-            const result1 = await ViewController.processHandlebars(content1, context1, mockReq);
-            const result2 = await ViewController.processHandlebars(content2, context2, mockReq);
+            const result1 = ViewController.processHandlebars(content1, context1, mockReq);
+            const result2 = ViewController.processHandlebars(content2, context2, mockReq);
 
             expect(result1).toBe('No items');
             expect(result2).toBe('No message');
@@ -230,7 +230,7 @@ describe('View Controller Unit Tests', () => {
                 user: { ...mockContext.user, isAdmin: true },
                 allowGuests: false
             };
-            const result1 = await ViewController.processHandlebars(content, context1, mockReq);
+            const result1 = ViewController.processHandlebars(content, context1, mockReq);
             expect(result1.trim()).toContain('Admin panel');
 
             // Test case 2: authenticated non-admin user
@@ -239,7 +239,7 @@ describe('View Controller Unit Tests', () => {
                 user: { ...mockContext.user, isAdmin: false },
                 allowGuests: false
             };
-            const result2 = await ViewController.processHandlebars(content, context2, mockReq);
+            const result2 = ViewController.processHandlebars(content, context2, mockReq);
             expect(result2.trim()).toContain('User panel');
 
             // Test case 3: not authenticated, guests allowed
@@ -248,7 +248,7 @@ describe('View Controller Unit Tests', () => {
                 user: { ...mockContext.user, authenticated: false },
                 allowGuests: true
             };
-            const result3 = await ViewController.processHandlebars(content, context3, mockReq);
+            const result3 = ViewController.processHandlebars(content, context3, mockReq);
             expect(result3.trim()).toContain('Guest access');
 
             // Test case 4: not authenticated, guests not allowed
@@ -257,7 +257,7 @@ describe('View Controller Unit Tests', () => {
                 user: { ...mockContext.user, authenticated: false },
                 allowGuests: false
             };
-            const result4 = await ViewController.processHandlebars(content, context4, mockReq);
+            const result4 = ViewController.processHandlebars(content, context4, mockReq);
             expect(result4.trim()).toContain('Please log in');
         });
 
@@ -290,7 +290,7 @@ describe('View Controller Unit Tests', () => {
                 level3: true
             };
 
-            const result = await ViewController.processHandlebars(content, context, mockReq);
+            const result = ViewController.processHandlebars(content, context, mockReq);
 
             expect(result).toContain('Level 1 true');
             expect(result).toContain('Level 2 false');
@@ -325,7 +325,7 @@ describe('View Controller Unit Tests', () => {
                 anotherInner: true
             };
 
-            const result = await ViewController.processHandlebars(content, context, mockReq);
+            const result = ViewController.processHandlebars(content, context, mockReq);
 
             expect(result).toContain('Outer true');
             expect(result).toContain('Inner false with test value');
@@ -338,7 +338,7 @@ describe('View Controller Unit Tests', () => {
         test('should process {{#each}} with simple array', async () => {
             const content = '{{#each items}}{{this}} {{/each}}';
             const context = { ...mockContext, items: ['apple', 'banana', 'cherry'] };
-            const result = await ViewController.processHandlebars(content, context, mockReq);
+            const result = ViewController.processHandlebars(content, context, mockReq);
             expect(result).toBe('apple banana cherry ');
         });
 
@@ -351,21 +351,21 @@ describe('View Controller Unit Tests', () => {
                     { name: 'Bob' }
                 ]
             };
-            const result = await ViewController.processHandlebars(content, context, mockReq);
+            const result = ViewController.processHandlebars(content, context, mockReq);
             expect(result).toBe('Alice Bob ');
         });
 
         test('should handle @index in {{#each}}', async () => {
             const content = '{{#each items}}{{@index}}: {{this}} {{/each}}';
             const context = { ...mockContext, items: ['first', 'second'] };
-            const result = await ViewController.processHandlebars(content, context, mockReq);
+            const result = ViewController.processHandlebars(content, context, mockReq);
             expect(result).toBe('0: first 1: second ');
         });
 
         test('should handle empty arrays in {{#each}}', async () => {
             const content = '{{#each items}}{{this}} {{/each}}';
             const context = { ...mockContext, items: [] };
-            const result = await ViewController.processHandlebars(content, context, mockReq);
+            const result = ViewController.processHandlebars(content, context, mockReq);
             expect(result).toBe('');
         });
     });
@@ -373,13 +373,13 @@ describe('View Controller Unit Tests', () => {
     describe('processHandlebars() - Error Handling', () => {
         test('should handle malformed handlebars gracefully', async () => {
             const content = '{{unclosed handlebars';
-            const result = await ViewController.processHandlebars(content, mockContext, mockReq);
+            const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe('{{unclosed handlebars');
         });
 
         test('should handle unknown block types', async () => {
             const content = '{{#unknown}}content{{/unknown}}';
-            const result = await ViewController.processHandlebars(content, mockContext, mockReq);
+            const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toContain('Error');
             expect(result).toContain('Unknown block type');
         });
@@ -387,7 +387,7 @@ describe('View Controller Unit Tests', () => {
         test('should prevent infinite recursion', async () => {
             const content = 'test content';
             // Test with maximum depth + 1
-            const result = await ViewController.processHandlebars(content, mockContext, mockReq, 17);
+            const result = ViewController.processHandlebars(content, mockContext, mockReq, 17);
             expect(result).toBe('test content'); // Should return unchanged due to depth limit
         });
     });
@@ -395,19 +395,19 @@ describe('View Controller Unit Tests', () => {
     describe('processHandlebars() - Complex Scenarios', () => {
         test('should handle multiple handlebars in single template', async () => {
             const content = 'Hello {{user.firstName}}, version {{app.site.version}} is available!';
-            const result = await ViewController.processHandlebars(content, mockContext, mockReq);
+            const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe(`Hello ${mockContext.user.firstName}, version ${mockContext.app.site.version} is available!`);
         });
 
         test('should handle nested handlebars within blocks', async () => {
             const content = '{{#if user.authenticated}}Welcome {{user.firstName}}!{{/if}}';
-            const result = await ViewController.processHandlebars(content, mockContext, mockReq);
+            const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe(`Welcome ${mockContext.user.firstName}!`);
         });
 
         test('should handle mixed content with HTML', async () => {
             const content = '<div class="user">{{user.firstName}}</div>';
-            const result = await ViewController.processHandlebars(content, mockContext, mockReq);
+            const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe(`<div class="user">${mockContext.user.firstName}</div>`);
         });
     });

@@ -4,7 +4,7 @@
  * @description     Provides REST API endpoints for cache invalidation and statistics
  * @file            webapp/controller/cache.js
  * @version         0.9.7
- * @release         2025-10-11
+ * @release         2025-10-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,9 +15,7 @@
 import LogController from './log.js';
 import CommonUtils from '../utils/common.js';
 import AuthController from './auth.js';
-import ViewController from './view.js';
-import MarkdownController from './markdown.js';
-import { refreshTranslationCache, getTranslationCacheStats } from '../utils/i18n.js';
+import cacheManager from '../utils/cache-manager.js';
 
 class CacheController {
 
@@ -43,37 +41,17 @@ class CacheController {
 
             const results = {};
             let totalRefreshed = 0;
+            const cacheNames = cacheManager.getRegisteredCacheNames();
 
-            // Refresh view controller caches
-            try {
-                const templateResult = await ViewController.refreshTemplateCache();
-                const includeResult = await ViewController.refreshIncludeCache();
-                results.view = {
-                    templates: templateResult,
-                    includes: includeResult
-                };
-                if (templateResult.success) totalRefreshed++;
-                if (includeResult.success) totalRefreshed++;
-            } catch (error) {
-                results.view = { success: false, message: error.message };
-            }
-
-            // Refresh i18n cache
-            try {
-                const i18nResult = await refreshTranslationCache();
-                results.i18n = i18nResult;
-                if (i18nResult.success) totalRefreshed++;
-            } catch (error) {
-                results.i18n = { success: false, message: error.message };
-            }
-
-            // Refresh markdown cache
-            try {
-                const markdownResult = await MarkdownController.refreshMarkdownCache();
-                results.markdown = markdownResult;
-                if (markdownResult.success) totalRefreshed++;
-            } catch (error) {
-                results.markdown = { success: false, message: error.message };
+            // Refresh all registered caches
+            for (const cacheName of cacheNames) {
+                try {
+                    await cacheManager.refreshCache(cacheName);
+                    results[cacheName] = { success: true, message: `${cacheName} refreshed successfully` };
+                    totalRefreshed++;
+                } catch (error) {
+                    results[cacheName] = { success: false, message: error.message };
+                }
             }
 
             const duration = Date.now() - startTime;
@@ -113,8 +91,8 @@ class CacheController {
                 return CommonUtils.sendError(req, res, 403, message, 'NOT_AUTHORIZED');
             }
 
-            const templateResult = await ViewController.refreshTemplateCache();
-            const includeResult = await ViewController.refreshIncludeCache();
+            await cacheManager.refreshCache('TemplateCache');
+            await cacheManager.refreshCache('IncludeCache');
 
             const duration = Date.now() - startTime;
             LogController.logInfo(req, 'cache.refreshView', `Refreshed view caches in ${duration}ms`);
@@ -123,8 +101,8 @@ class CacheController {
                 success: true,
                 message: 'Refreshed view caches',
                 results: {
-                    templates: templateResult,
-                    includes: includeResult
+                    TemplateCache: { success: true, message: 'TemplateCache refreshed successfully' },
+                    IncludeCache: { success: true, message: 'IncludeCache refreshed successfully' }
                 },
                 duration: duration
             });
@@ -156,14 +134,14 @@ class CacheController {
                 return CommonUtils.sendError(req, res, 403, message, 'NOT_AUTHORIZED');
             }
 
-            const result = await refreshTranslationCache();
+            await cacheManager.refreshCache('TranslationCache');
 
             const duration = Date.now() - startTime;
             LogController.logInfo(req, 'cache.refreshI18n', `Refreshed i18n cache in ${duration}ms`);
 
             res.json({
-                success: result.success,
-                message: result.message,
+                success: true,
+                message: 'TranslationCache refreshed successfully',
                 duration: duration
             });
 
@@ -194,14 +172,14 @@ class CacheController {
                 return CommonUtils.sendError(req, res, 403, message, 'NOT_AUTHORIZED');
             }
 
-            const result = await MarkdownController.refreshMarkdownCache();
+            await cacheManager.refreshCache('MarkdownCache');
 
             const duration = Date.now() - startTime;
             LogController.logInfo(req, 'cache.refreshMarkdown', `Refreshed markdown cache in ${duration}ms`);
 
             res.json({
-                success: result.success,
-                message: result.message,
+                success: true,
+                message: 'MarkdownCache refreshed successfully',
                 duration: duration
             });
 
@@ -232,11 +210,7 @@ class CacheController {
                 return CommonUtils.sendError(req, res, 403, message, 'NOT_AUTHORIZED');
             }
 
-            const stats = {
-                view: ViewController.getCacheStats(),
-                i18n: getTranslationCacheStats(),
-                markdown: MarkdownController.getMarkdownCacheStats()
-            };
+            const stats = cacheManager.getStats();
 
             const duration = Date.now() - startTime;
             LogController.logInfo(req, 'cache.getStats', `Retrieved cache statistics in ${duration}ms`);

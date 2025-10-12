@@ -1,6 +1,62 @@
-# jPulse Framework / Docs / Version History v0.9.6
+# jPulse Framework / Docs / Version History v0.9.7
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v0.9.7, W-079, 2025-10-12
+
+**Commit:** `W-079, v0.9.7: Centralized Cache Management with Smart Invalidation`
+
+**CENTRALIZED CACHE MANAGEMENT WITH SMART INVALIDATION**: Complete cache invalidation strategy implementation with centralized CacheManager utility for file-based caching across view controller, i18n utility, and markdown controller, eliminating the need for app restarts when template, translation, or documentation files change.
+
+**Objective**: Provide automated cache invalidation for .shtml, .tmpl, .css, .js, and i18n .conf files that works across multi-node and multi-app server instances, with configurable performance vs freshness priority and development-friendly API endpoints.
+
+**Key Features**:
+- **Centralized CacheManager**: Single utility managing all file-based caches with consistent API
+- **Smart Periodic Refresh**: Configurable intervals (minutes) with timestamp-based change detection
+- **Synchronous File Access**: Zero filesystem access on cache hits for optimal performance
+- **"Does Not Exist" Caching**: Prevents repeated filesystem checks for missing files
+- **Cache API Endpoints**: Manual refresh and statistics endpoints for development
+- **Graceful Shutdown**: Proper timer cleanup for production and test environments
+- **Test Environment Compatibility**: Automatic cache disabling in test mode to prevent hanging
+
+**Cache Integration**:
+- **View Controller**: Template and include file caching with site override support
+- **i18n Utility**: Translation file caching with multi-language support
+- **Markdown Controller**: Documentation file caching with timestamp tracking
+- **Configuration**: Per-cache-type refresh intervals via app.conf
+
+**API Endpoints**:
+- **`/api/1/cache/refresh/all`**: Refresh all registered caches
+- **`/api/1/cache/refresh/view`**: Refresh view controller caches
+- **`/api/1/cache/refresh/i18n`**: Refresh translation caches
+- **`/api/1/cache/refresh/markdown`**: Refresh markdown caches
+- **`/api/1/cache/stats`**: Cache statistics and configuration
+
+**Performance Benefits**:
+- **Zero Filesystem Access**: Cache hits require no disk I/O operations
+- **Smart Refresh**: Only re-reads files when timestamps change
+- **Background Processing**: Periodic refresh runs independently of user requests
+- **Configurable Intervals**: Balance between performance and freshness per cache type
+
+**Implementation Details**:
+- **webapp/utils/cache-manager.js**: Centralized cache management utility
+- **webapp/controller/cache.js**: Cache API endpoints with role-based access
+- **webapp/app.conf**: Cache configuration with 10-minute default refresh intervals
+- **Graceful Shutdown**: Proper timer cleanup in webapp/app.js
+- **Test Environment**: Automatic cache disabling and cleanup in test setup
+
+**Files Modified**:
+- webapp/utils/cache-manager.js (NEW)
+- webapp/controller/cache.js (NEW)
+- webapp/controller/view.js (cache integration)
+- webapp/controller/markdown.js (cache integration)
+- webapp/utils/i18n.js (cache integration)
+- webapp/app.js (graceful shutdown)
+- webapp/app.conf (cache configuration)
+- webapp/tests/setup/global-teardown.js (cache cleanup)
+- webapp/tests/setup/env-setup.js (test environment)
+- webapp/tests/integration/cache-api.test.js (API tests)
 
 ________________________________________________
 ## v0.9.6, W-078, 2025-10-11

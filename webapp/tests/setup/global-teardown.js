@@ -3,8 +3,8 @@
  * @tagline         Jest Global Teardown
  * @description     Global teardown for Jest tests runs once after all tests complete
  * @file            webapp/tests/setup/global-teardown.js
- * @version         0.9.6
- * @release         2025-10-11
+ * @version         0.9.7
+ * @release         2025-10-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -40,6 +40,26 @@ async function cleanupTestDatabases() {
 }
 
 /**
+ * Clean up CacheManager timers
+ */
+async function cleanupCacheManager() {
+    try {
+        // Import CacheManager to access shutdown functionality
+        const { default: cacheManager } = await import('../../utils/cache-manager.js');
+
+        // Shutdown all cache timers
+        if (cacheManager && typeof cacheManager.shutdown === 'function') {
+            cacheManager.shutdown();
+            console.log('⏱️  Cache cleanup: CacheManager timers stopped successfully');
+        } else {
+            console.log('⏱️  Cache cleanup: No CacheManager timers to stop');
+        }
+    } catch (error) {
+        console.log('⏱️  Cache cleanup: Ensuring all cache timers are stopped');
+    }
+}
+
+/**
  * Generate cleanup report
  */
 function generateCleanupReport() {
@@ -55,6 +75,7 @@ export default async function globalTeardown() {
 
     try {
         await cleanupTestDatabases();
+        await cleanupCacheManager();
         generateCleanupReport();
 
         console.log('✅ Jest Global Teardown: Cleanup completed successfully!');

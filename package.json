@@ -1,6 +1,6 @@
 {
     "name": "@peterthoeny/jpulse-framework",
-    "version": "0.9.6",
+    "version": "0.9.7",
     "description": "Generic web application framework using MongoDB, Node.js, Express",
     "type": "module",
     "main": "webapp/app.js",
@@ -88,6 +88,7 @@
             "html"
         ],
         "testEnvironment": "node",
+        "setupFiles": ["<rootDir>/webapp/tests/setup/env-setup.js"],
         "globalSetup": "./webapp/tests/setup/global-setup.js",
         "globalTeardown": "./webapp/tests/setup/global-teardown.js"
     }

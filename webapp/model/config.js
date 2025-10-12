@@ -3,8 +3,8 @@
  * @tagline         Config Model for jPulse Framework WebApp
  * @description     This is the config model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/config.js
- * @version         0.9.6
- * @release         2025-10-11
+ * @version         0.9.7
+ * @release         2025-10-12
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,6 +15,7 @@
 import database from '../database.js';
 import { ObjectId } from 'mongodb';
 import CommonUtils from '../utils/common.js';
+import LogModel from './log.js';
 
 /**
  * Config Model - handles site admin configuration with native MongoDB driver
@@ -244,8 +245,18 @@ class ConfigModel {
                 throw new Error('Failed to insert config document');
             }
 
-            // Return the created document
-            return await this.findById(configData._id);
+            // Get the created document
+            const createdDoc = await this.findById(configData._id);
+
+            // Log the creation
+            try {
+                await LogModel.logChange('config', 'create', configData._id, null, createdDoc, configData.updatedBy || '');
+            } catch (logError) {
+                // Don't fail the operation if logging fails, just log the error
+                console.error('Failed to log config creation:', logError.message);
+            }
+
+            return createdDoc;
         } catch (error) {
             throw new Error(`Failed to create config: ${error.message}`);
         }
@@ -262,7 +273,7 @@ class ConfigModel {
             // Validate update data
             this.validate(data, true);
 
-            // Get current document to increment saveCount
+            // Get current document to increment saveCount and for logging
             const current = await this.findById(id);
             if (!current) {
                 return null;
@@ -283,8 +294,19 @@ class ConfigModel {
                 return null;
             }
 
-            // Return updated document
-            return await this.findById(id);
+            // Get updated document
+            const updatedDoc = await this.findById(id);
+
+            // Log the update
+            try {
+                await LogModel.logChange('config', 'update', id, current, updatedDoc, updateData.updatedBy || '');
+            } catch (logError) {
+                // Don't fail the operation if logging fails, just log the error
+                console.error('Failed to log config update:', logError.message);
+                console.error('LogError stack:', logError.stack);
+            }
+
+            return updatedDoc;
         } catch (error) {
             throw new Error(`Failed to update config: ${error.message}`);
         }
@@ -297,9 +319,28 @@ class ConfigModel {
      */
     static async deleteById(id) {
         try {
+            // Get current document for logging
+            const current = await this.findById(id);
+            if (!current) {
+                return false;
+            }
+
             const collection = this.getCollection();
             const result = await collection.deleteOne({ _id: id });
-            return result.deletedCount > 0;
+
+            const wasDeleted = result.deletedCount > 0;
+
+            // Log the deletion if it was successful
+            if (wasDeleted) {
+                try {
+                    await LogModel.logChange('config', 'delete', id, current, null, '');
+                } catch (logError) {
+                    // Don't fail the operation if logging fails, just log the error
+                    console.error('Failed to log config deletion:', logError.message);
+                }
+            }
+
+            return wasDeleted;
         } catch (error) {
             throw new Error(`Failed to delete config: ${error.message}`);
         }

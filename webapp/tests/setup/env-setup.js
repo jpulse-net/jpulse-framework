@@ -1,0 +1,21 @@
+/**
+ * @name            jPulse Framework / WebApp / Tests / Setup / Environment Setup
+ * @tagline         Jest Environment Setup
+ * @description     Sets up environment variables for Jest tests
+ * @file            webapp/tests/setup/env-setup.js
+ * @version         0.9.7
+ * @release         2025-10-12
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           80%, Cursor 1.2, Claude Sonnet 4
+ */
+
+// Set NODE_ENV to test to disable CacheManager periodic refresh timers
+process.env.NODE_ENV = 'test';
+
+// Also set a global flag for extra clarity
+global.isTestEnvironment = true;
+
+// EOF webapp/tests/setup/env-setup.js

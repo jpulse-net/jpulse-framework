@@ -31063,3 +31063,517 @@ Key deliverables implemented:
 All tests passing (797 passed, 0 failed, 31 skipped) - ready for release.
 
 Changes were accepted.
+
+
+============================================================
+2025-10-12 14:32
+
+W-076 Redis Infrastructure Architecture Analysis
+
+Reviewed current jPulse architecture and W-076 requirements. Key findings:
+
+CURRENT ARCHITECTURE:
+- Sessions: MongoDB-based with MongoStore (express-session)
+- WebSocket: Already has Redis infrastructure placeholder (lines 57-62 in websocket.js)
+- Config: MongoDB-based with in-memory globalConfig cache (view controller)
+- Health/Metrics: Single-instance reporting via /api/1/health and /api/1/metrics
+
+REDIS INTEGRATION POINTS IDENTIFIED:
+1. Session Management: Replace MongoStore with RedisStore
+2. WebSocket Broadcasting: Activate existing Redis pub/sub infrastructure
+3. Config Caching: Three-tier cache (memory → Redis → MongoDB)
+4. Health Metrics: Redis-based cluster aggregation
+
+HIGH-LEVEL ARCHITECTURE PLAN:
+- Phase 1: Redis session store (minimal disruption)
+- Phase 2: WebSocket Redis pub/sub (activate existing code)
+- Phase 3: Config cache distribution
+- Phase 4: Cluster health metrics aggregation
+
+Key insight: WebSocket controller already has Redis infrastructure prepared but disabled.
+
+
+============================================================
+2025-10-12 15:47
+
+W-076 Redis Architecture Refinement Based on Requirements
+
+User preferences clarified:
+1. Redis Cluster (if not too complex and free)
+2. No backward compatibility for sessions (pre-1.0)
+3. Config: Simple "refresh cache" broadcast vs middle layer
+4. WebSocket: Change /ws/ to /api/1/ws/ for consistency
+5. Redis: Separate connections, document for site owners
+6. Fallback: Hard fail (Redis cluster unlikely to fail)
+7. Instance ID: <hostname>:<pm2_instance_or_1>
+
+Refined architecture focuses on KISS principle with broadcast notifications.
+
+
+============================================================
+2025-10-12 15:52
+
+W-076 Architecture Refinement Round 2
+
+Key clarifications:
+1. Redis: Both single & cluster modes (app.conf flag), cluster can run on single server
+2. Config hooks: Decide model vs controller placement, document for site owners
+3. Connection naming: redisCache → redisBroadcast (generic namespace broadcasting)
+4. Fallback: Graceful degradation (file sessions, local WS, ignore broadcasts)
+5. Instance ID: Shorter numeric (025:0, 025:1) but handle duplicates
+6. WebSocket: Breaking change OK for v1.0
+7. Testing: Whatever's easier
+8. Config: All Redis settings in app.conf hierarchy
+
+Focus on single-server Redis cluster for jpulse.net showcase with PM2.
+
+
+============================================================
+2025-10-12 15:57
+
+W-076 Architecture Final Refinements
+
+Key updates:
+1. Redis cluster on single server: ✅ Approved
+2. Generic broadcasting API redesign:
+   - From: jPulse.broadcast.subscribe('cache:refresh:helloAppCluster:user:notification', ...)
+   - To: jPulse.appCluster.broadcast.subscribe('helloAppCluster:user:notification', ...)
+   - Hide 'redis' implementation detail, prevent namespace collision
+   - Need /hello-app-cluster/ example for onboarding
+3. Session fallback: Memory-only (simpler than file-based)
+
+Focus on generic, descriptive naming that hides implementation details.
+
+
+============================================================
+2025-10-12 15:02
+
+W-076 Final Architecture Summary
+
+Final refinements:
+1. Framework namespace: 'view:config:refresh' (consistent, shorter)
+2. Site owner docs: Move to docs/*.md (not code comments)
+3. Summary requested for W-076 document appendix
+
+Architecture finalized with jPulse.appCluster API, graceful fallbacks, and clear site owner patterns.
+
+
+==============================================================
+2025-10-12 15:05
+
+W-076 Phase 1 Implementation - Redis Infrastructure & Sessions
+
+Starting implementation of Redis infrastructure:
+1. Update app.conf with comprehensive Redis configuration
+2. Update site app.conf.tmpl with site owner overrides
+3. Create Redis connection management system
+4. Migrate sessions from MongoDB to Redis with graceful fallback
+5. Implement fallback to MemoryStore when Redis unavailable
+
+Focus on production-ready configuration with development simplicity.
+
+
+==============================================================
+2025-10-12 16:55
+
+PHASE 1 COMPLETED - Redis Infrastructure & Sessions:
+
+✅ Configuration System:
+- Updated webapp/app.conf with comprehensive Redis configuration
+- Added single/cluster mode support with graceful fallback settings
+- Updated site/webapp/app.conf.tmpl with production Redis overrides
+- Site owners can easily customize Redis settings for their deployment
+
+✅ Redis Connection Management:
+- Created webapp/utils/redis-manager.js with full cluster support
+- Separate connection pools for session, websocket, broadcast, metrics
+- Instance identification system: hostname:pm2_id format (e.g., "025:0")
+- Health monitoring and automatic reconnection handling
+- Graceful shutdown with proper connection cleanup
+
+✅ Session Migration:
+- Migrated from MongoDB sessions to Redis with RedisStore
+- Graceful fallback to MemoryStore when Redis unavailable
+- Updated app.js with Redis initialization and session configuration
+- Added connect-redis and ioredis dependencies to package.json
+
+✅ jPulse.appCluster API Foundation:
+- Added client-side API to webapp/view/jpulse-common.js
+- Phase 1: Local-only broadcasting (enhanced in Phase 2)
+- Site owner ready: jPulse.appCluster.broadcast.subscribe/publish
+- Consistent API structure for future Redis integration
+
+✅ Graceful Fallback Implementation:
+- Sessions: Redis → Memory fallback
+- All components handle Redis unavailability gracefully
+- Development works without Redis dependency
+- CI/Testing compatible (Redis optional)
+
+Ready for Phase 2: Generic Broadcasting System with Redis pub/sub activation.
+
+
+==============================================================
+2025-10-12 17:05
+
+W-076 Phase 1 Cleanup - Configuration Simplification
+
+Cleaning up configuration based on feedback:
+1. Simplify redis.fallback - remove enabled flag, hardcode fallbacks
+2. Remove redis.connections from site template - not advertised to site owners
+3. Move Redis initialization to bootstrap.js for cleaner organization
+4. Confirm session configuration: middleware.session + redis sessions
+
+CLEANUP COMPLETED:
+
+✅ Configuration Simplification:
+- Removed redis.fallback.enabled (always enabled)
+- Removed redis.fallback.websocket, cache, metrics (hardcoded: local, ignore, local)
+- Simplified to only redis.fallback.sessions ('memory' or 'mongodb')
+- Removed redis.connections from site/webapp/app.conf.tmpl
+
+✅ Code Organization:
+- Moved Redis initialization from app.js to bootstrap.js (Step 6)
+- RedisManager now part of bootstrap modules return
+- Updated app.js session configuration to use modules.redisManager
+- Updated graceful shutdown to use modules.redisManager
+
+✅ Session Configuration Confirmed:
+- Session configuration: middleware.session (Express session config)
+- Session storage: Redis (primary) with graceful fallback to Memory/MongoDB
+- Clean separation: config defines behavior, Redis provides clustering
+
+Architecture is now cleaner with proper separation of concerns.
+
+
+==============================================================
+2025-10-12 17:10
+
+W-076 Further Bootstrap Integration
+
+Moving more Redis initialization to bootstrap.js:
+- Session store configuration logic should be in bootstrap
+- App.js should just use the configured session middleware
+- Cleaner separation: bootstrap handles all initialization, app.js handles routing
+
+FURTHER INTEGRATION COMPLETED:
+
+✅ Session Store Configuration Moved to Bootstrap:
+- Added configureSessionStore() function to bootstrap.js
+- Handles Redis/Memory/MongoDB session store selection
+- Returns configured session store in bootstrap modules
+- App.js now just uses modules.sessionStore (much cleaner)
+
+✅ Reduced App.js Complexity:
+- Removed RedisStore and MongoStore imports from app.js
+- Removed 30+ lines of session store configuration logic
+- App.js now focuses on Express setup and routing
+- Bootstrap handles all Redis/session initialization
+
+✅ Better Separation of Concerns:
+- Bootstrap: All initialization (database, Redis, sessions, etc.)
+- App.js: Express application setup and routing only
+- Clean dependency flow: bootstrap → modules → app
+
+Much cleaner architecture with proper initialization separation!
+
+
+==============================================================
+2025-10-12 17:15
+
+W-076 Improve Separation of Concerns
+
+Moving configureSessionStore to redis-manager.js:
+- Session store configuration is Redis-specific logic
+- Should be in RedisManager for proper separation of concerns
+- Bootstrap should just call RedisManager methods, not contain Redis logic
+
+SEPARATION OF CONCERNS IMPROVED:
+
+✅ Moved configureSessionStore to RedisManager:
+- Added RedisManager.configureSessionStore() static method
+- Removed Redis-specific logic from bootstrap.js
+- Bootstrap now calls RedisManager.configureSessionStore(database)
+- Cleaner responsibility: RedisManager owns all Redis logic
+
+✅ Better Architecture Pattern:
+- Bootstrap: Orchestration and module loading only
+- RedisManager: All Redis-related functionality (connections + session store)
+- Each module owns its specific domain logic
+- No cross-cutting Redis concerns in bootstrap
+
+Perfect separation of concerns achieved!
+
+
+==============================================================
+2025-10-12 17:20
+
+W-076 Phase 2 Implementation - Generic Broadcasting System
+
+Starting Phase 2: Generic Broadcasting System with Redis pub/sub activation
+1. Enhance jPulse.appCluster API with Redis pub/sub backend
+2. Implement config cache refresh broadcasting (view:config:refresh)
+3. Create generic broadcast API for site owners
+4. Activate Redis pub/sub in WebSocket controller
+5. Implement graceful fallback when Redis unavailable
+
+Focus: KISS principle with site owner extensibility.
+
+PHASE 2 COMPLETED - Generic Broadcasting System:
+
+✅ Redis Pub/Sub Broadcasting Backend:
+- Added publishBroadcast(), subscribeBroadcast(), unsubscribeBroadcast() to RedisManager
+- Graceful fallback when Redis unavailable (logs and returns false)
+- Prevents message loops (filters own instanceId)
+- Supports pattern subscriptions with wildcards
+
+✅ Server-Side Broadcast API:
+- Created BroadcastController with /api/1/broadcast endpoints
+- POST /api/1/broadcast/:channel for publishing messages
+- GET /api/1/broadcast/status for cluster status
+- Framework namespace protection (prevents collision with view:, framework:)
+- Initialized in bootstrap with framework broadcast subscriptions
+
+✅ Config Cache Refresh Broadcasting:
+- Added refreshGlobalConfig() method to ViewController
+- BroadcastController handles view:config:refresh messages
+- Cross-instance config updates now work automatically
+- Framework-level broadcast handling in place
+
+✅ Enhanced Client-Side jPulse.appCluster API:
+- publish() now uses server API for Redis distribution
+- Graceful fallback to local-only when API fails
+- info.getActiveInstances() and getClusterHealth() use API
+- Removed Phase 1 TODOs, fully functional Phase 2 implementation
+
+✅ Complete Integration:
+- Routes added for broadcast endpoints
+- BroadcastController initialized in bootstrap
+- Client and server connected via REST API
+- Site owners can use jPulse.appCluster.broadcast.publish/subscribe
+
+Ready for Phase 3: WebSocket Redis Broadcasting!
+
+
+==============================================================
+2025-10-12 17:25
+
+W-076 Improve Broadcasting Convention
+
+Updating broadcasting naming convention for better MVC education:
+- Pattern: {layer}:{component}:{domain}:{action}
+- Examples: 'controller:user:login:success', 'view:chat:message:sent', 'model:user:profile:updated'
+- Framework: Change 'view:config:refresh' to follow new pattern
+- More educational and architecturally clear
+
+CONVENTION UPDATE COMPLETED:
+
+✅ Framework Usage Updated:
+- Changed 'view:config:refresh' → 'controller:view:config:refresh'
+- BroadcastController subscribes to 'controller:*' pattern
+- ConfigController broadcasts on global config updates
+- Proper MVC layer identification
+
+✅ Validation Updated:
+- API prevents use of reserved MVC prefixes: controller:, model:, view:
+- Site owners must use custom prefixes (e.g., 'mysite:user:action')
+- Clear separation between framework and site broadcasts
+
+✅ Documentation Updated:
+- All examples use new MVC convention
+- Clear educational pattern: {layer}:{component}:{domain}:{action}
+- Examples: 'controller:user:login:success', 'view:chat:message:sent'
+- RedisManager and client API documentation updated
+
+✅ Educational Benefits:
+- Forces developers to think about MVC architecture
+- Clear responsibility: which layer should handle the broadcast?
+- Better debugging: easy to trace broadcast sources
+- Consistent with jPulse's MVC structure
+
+New convention is more educational and architecturally sound!
+
+
+==============================================================
+2025-10-13 16:00
+
+W-076 Error Handling & Namespace Decision
+
+**TASK 1: Update broadcast.js Error Handling**
+
+Updated broadcast.js to use jPulse's standard i18n and CommonUtils error pattern:
+
+✅ Added LogController import and i18n comment
+✅ Added broadcast translation keys to en.conf and de.conf:
+- invalidChannelName, dataRequired, publishSuccessful
+- publishSkipped, publishFailed, statusRetrieved, statusFailed
+
+✅ Updated all error returns to use:
+- LogController.logError() for logging
+- global.i18n.translate() for messages
+- global.CommonUtils.sendError() for consistent responses
+
+✅ Updated success responses to use i18n translations
+- Consistent with config.js error handling pattern
+- Proper HTTP status codes and error codes
+- Graceful fallback messaging
+
+**TASK 2: Config Refresh Namespace Decision**
+
+DECISION: Keep `controller:view:config:refresh` (Option 2)
+
+**Analysis:**
+- Option 1: `controller:config:refresh` - Config controller handles, then informs view
+- Option 2: `controller:view:config:refresh` - Broadcast controller dispatches to view
+
+**Rationale for Option 2:**
+✅ Already implemented and working correctly
+✅ Clear MVC naming: indicates view-layer config refresh
+✅ Clean architecture: broadcast controller acts as dispatcher
+✅ Proper flow: ConfigController → publishes → BroadcastController → calls ViewController
+✅ Separation of concerns: each controller has single responsibility
+✅ Follows established pattern in jPulse Framework
+
+**Implementation Flow:**
+1. ConfigController.update() detects global config change
+2. Publishes 'controller:view:config:refresh' via RedisManager
+3. BroadcastController receives broadcast on all instances
+4. BroadcastController calls ViewController.refreshGlobalConfig()
+5. View controller reloads global config from database
+
+This maintains clean separation where:
+- ConfigController: handles config CRUD operations
+- BroadcastController: dispatches framework broadcasts
+- ViewController: manages view-related caching and rendering
+
+**RESULT: No changes needed - current implementation is optimal**
+
+
+==============================================================
+2025-10-13 16:15
+
+W-076 Config Refresh Refactoring - Clean Separation of Concerns
+
+**PROBLEM IDENTIFIED:**
+The previous implementation was convoluted with poor separation of concerns:
+- ConfigController published broadcasts
+- BroadcastController received and dispatched to ViewController
+- ViewController only received, never sent broadcasts
+- Middleman pattern created unnecessary complexity
+
+**SOLUTION: View Controller Owns Its Broadcasts**
+
+✅ **Refactored View Controller:**
+- Updated `refreshGlobalConfig(source = 'local')` with source parameter
+- `source = 'local'`: Refresh cache + broadcast to other instances
+- `source = 'broadcast'`: Only refresh local cache (received from Redis)
+- Clean logic: view controller handles both sending AND receiving its own broadcasts
+
+✅ **Simplified Config Controller:**
+- Removed Redis broadcast logic completely
+- Now simply calls `ViewControllerModule.default.refreshGlobalConfig('local')`
+- Config controller focuses only on config CRUD operations
+
+✅ **Updated Broadcast Controller:**
+- Changed subscription from `controller:*` to `view:*`
+- Updated channel from `controller:view:config:refresh` to `view:config:refresh`
+- Still acts as dispatcher but for view-layer broadcasts only
+- Calls `refreshGlobalConfig('broadcast')` when receiving Redis messages
+
+✅ **Updated Channel Validation:**
+- Fixed regex to require colon: `/^(controller|model|view):/`
+- Prevents site owners from using reserved framework prefixes
+
+**NEW CLEAN FLOW:**
+1. ConfigController.update() detects global config change
+2. Calls ViewController.refreshGlobalConfig('local')
+3. ViewController refreshes local cache
+4. ViewController publishes 'view:config:refresh' to Redis
+5. BroadcastController on all instances receives broadcast
+6. BroadcastController calls ViewController.refreshGlobalConfig('broadcast')
+7. ViewController refreshes cache (no re-broadcast to avoid loops)
+
+**BENEFITS:**
+✅ **True Separation of Concerns**: Each controller owns its domain
+✅ **No Middleman Complexity**: Direct controller-to-controller calls
+✅ **Logical Ownership**: View controller owns view-related broadcasts
+✅ **Cleaner Architecture**: Sending and receiving in same controller
+✅ **Loop Prevention**: Source flag prevents infinite broadcast loops
+✅ **Maintainable**: Much easier to understand and debug
+
+This is now a textbook example of clean MVC architecture!
+
+
+==============================================================
+2025-10-13 16:30
+
+W-076 Callback-Based Broadcasting - Eliminating Maintenance Nightmare
+
+**PROBLEM IDENTIFIED:**
+The `_handleFrameworkBroadcast` approach was a maintenance nightmare:
+- Required manual updates for every new broadcast channel
+- Used switch/case statement that grows with each new channel
+- Site owners couldn't easily extend the system
+- Tight coupling between broadcast controller and specific channels
+
+**SOLUTION: Callback-Based Broadcasting System**
+
+✅ **Enhanced RedisManager with Callback Registry:**
+- Added `broadcastCallbacks` Map to store channel → callback mappings
+- `registerBroadcastCallback(channel, callback)` - Register callbacks for channels
+- `publishBroadcastWithCallback(channel, data, callback)` - Publish + auto-register
+- `_handleCallbackMessage()` - Internal dispatcher for registered callbacks
+- `_channelMatches()` - Support for wildcard patterns (e.g., 'view:*')
+
+✅ **Automatic Subscription Management:**
+- Callbacks automatically subscribe to their channels
+- No manual subscription management needed
+- Supports exact matches and wildcard patterns
+- Each callback is isolated and independent
+
+✅ **View Controller Self-Registration:**
+- View controller registers its own callback during `initialize()`
+- `RedisManager.registerBroadcastCallback('controller:view:config:refresh', callback)`
+- Callback directly calls `refreshGlobalConfig('broadcast')`
+- No middleman broadcast controller needed
+
+✅ **Simplified Broadcast Controller:**
+- Removed `_handleFrameworkBroadcast()` method completely
+- Removed `_refreshGlobalConfig()` method completely
+- `initialize()` now just logs - no manual subscriptions
+- 50+ lines of maintenance code eliminated
+
+✅ **Extensible for Site Owners:**
+- Site owners can register their own callbacks easily
+- `RedisManager.registerBroadcastCallback('mysite:event', myCallback)`
+- No framework code changes needed for new channels
+- Clean separation between framework and site-specific logic
+
+**NEW CLEAN FLOW:**
+1. **Initialization**: ViewController.initialize() registers callback for 'controller:view:config:refresh'
+2. **Local Update**: ConfigController calls ViewController.refreshGlobalConfig('local')
+3. **Broadcast**: ViewController publishes to Redis using existing publishBroadcast()
+4. **Reception**: RedisManager automatically calls registered callback
+5. **Execution**: Callback directly calls ViewController.refreshGlobalConfig('broadcast')
+
+**BENEFITS:**
+✅ **Zero Maintenance**: New channels require no framework code changes
+✅ **Site Owner Friendly**: Easy callback registration for custom channels
+✅ **Decoupled**: Each controller manages its own broadcast logic
+✅ **Scalable**: Wildcard patterns support multiple related channels
+✅ **Robust**: Error handling per callback, no cascading failures
+✅ **Clean**: Eliminated 50+ lines of switch/case maintenance code
+
+**EXAMPLE USAGE FOR SITE OWNERS:**
+```javascript
+// In site-specific controller initialization:
+RedisManager.registerBroadcastCallback('controller:helloDashboard:*', (channel, data, sourceId) => {
+    console.log(`Received dashboard event: ${channel}`, data);
+});
+
+// Publishing follows MVC convention:
+RedisManager.publishBroadcast('controller:helloDashboard:update', { dashboardId: 123 });
+RedisManager.publishBroadcast('view:helloDashboard:refresh', { userId: 456 });
+RedisManager.publishBroadcast('model:helloDashboard:dataChanged', { timestamp: Date.now() });
+```
+
+This is now a truly extensible and maintainable broadcasting system!

@@ -1,0 +1,626 @@
+/**
+ * @name            jPulse Framework / WebApp / Utils / Redis Manager
+ * @tagline         Redis connection management with cluster support and graceful fallback
+ * @description     Manages Redis connections for sessions, WebSocket, broadcasting, and metrics
+ * @file            webapp/utils/redis-manager.js
+ * @version         1.0.0
+ * @release         2025-10-12
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.2, Claude Sonnet 4
+ */
+
+import Redis from 'ioredis';
+import os from 'os';
+
+/**
+ * Redis Connection Manager for jPulse Framework
+ *
+ * Provides centralized Redis connection management with:
+ * - Single Redis instance and Redis Cluster support
+ * - Graceful fallback when Redis unavailable
+ * - Separate connection pools for different services
+ * - Instance identification for cluster coordination
+ * - Health monitoring and automatic reconnection
+ */
+class RedisManager {
+
+    // Static instance for singleton pattern
+    static instance = null;
+
+    // Connection pools
+    static connections = {
+        session: null,
+        websocket: {
+            publisher: null,
+            subscriber: null
+        },
+        broadcast: {
+            publisher: null,
+            subscriber: null
+        },
+        metrics: null
+    };
+
+    // Redis availability status
+    static isAvailable = false;
+    static config = null;
+    static instanceId = null;
+
+    // Broadcast callback registry for automatic channel handling
+    static broadcastCallbacks = new Map();
+
+    /**
+     * Initialize Redis Manager
+     * @param {Object} redisConfig - Redis configuration from app.conf
+     * @returns {RedisManager} Singleton instance
+     */
+    static initialize(redisConfig) {
+        if (RedisManager.instance) {
+            return RedisManager.instance;
+        }
+
+        RedisManager.config = redisConfig;
+        RedisManager.instanceId = RedisManager._generateInstanceId();
+
+        // Only create connections if Redis is enabled
+        if (redisConfig.enabled) {
+            RedisManager._createConnections();
+        } else {
+            global.LogController?.logInfo(null, 'redis-manager.initialize',
+                'Redis disabled - graceful fallback mode (sessions: memory, websocket: local, cache: ignore, metrics: local)');
+        }
+
+        RedisManager.instance = RedisManager;
+        return RedisManager.instance;
+    }
+
+    /**
+     * Generate unique instance identifier
+     * Format: {hostname_numeric}:{pm2_id} or {hostname_short}:{pm2_id}
+     * @private
+     */
+    static _generateInstanceId() {
+        const hostname = os.hostname();
+        const pm2Id = process.env.pm_id || '0';
+
+        // Try to extract numeric part from hostname
+        const numericMatch = hostname.match(/(\d+)$/);
+        if (numericMatch) {
+            return `${numericMatch[1]}:${pm2Id}`;
+        }
+
+        // Fallback to truncated hostname
+        const shortHost = hostname.split('.')[0].substring(0, 8);
+        return `${shortHost}:${pm2Id}`;
+    }
+
+    /**
+     * Create Redis connections based on configuration
+     * @private
+     */
+    static _createConnections() {
+        try {
+            const config = RedisManager.config;
+
+            // Create base Redis client factory
+            const createClient = (purpose) => {
+                const clientConfig = config.mode === 'cluster'
+                    ? RedisManager._createClusterConfig(purpose)
+                    : RedisManager._createSingleConfig(purpose);
+
+                const client = config.mode === 'cluster'
+                    ? new Redis.Cluster(config.cluster.nodes, clientConfig)
+                    : new Redis(clientConfig);
+
+                // Add connection event handlers
+                RedisManager._addConnectionHandlers(client, purpose);
+
+                return client;
+            };
+
+            // Create service-specific connections
+            RedisManager.connections.session = createClient('session');
+            RedisManager.connections.websocket.publisher = createClient('websocket-pub');
+            RedisManager.connections.websocket.subscriber = createClient('websocket-sub');
+            RedisManager.connections.broadcast.publisher = createClient('broadcast-pub');
+            RedisManager.connections.broadcast.subscriber = createClient('broadcast-sub');
+            RedisManager.connections.metrics = createClient('metrics');
+
+            global.LogController?.logInfo(null, 'redis-manager._createConnections',
+                `Redis connections created in ${config.mode} mode for instance ${RedisManager.instanceId}`);
+
+        } catch (error) {
+            global.LogController?.logError(null, 'redis-manager._createConnections',
+                `Failed to create Redis connections: ${error.message}`);
+            RedisManager.isAvailable = false;
+        }
+    }
+
+    /**
+     * Create single Redis instance configuration
+     * @private
+     */
+    static _createSingleConfig(purpose) {
+        const config = RedisManager.config.single;
+        return {
+            host: config.host,
+            port: config.port,
+            password: config.password || undefined,
+            db: config.db || 0,
+            connectTimeout: config.connectTimeout || 10000,
+            lazyConnect: config.lazyConnect !== false,
+            retryDelayOnFailover: config.retryDelayOnFailover || 100,
+            maxRetriesPerRequest: config.maxRetriesPerRequest || 3,
+            enableOfflineQueue: false, // Don't queue commands when disconnected
+            connectionName: `jpulse-${purpose}-${RedisManager.instanceId}`
+        };
+    }
+
+    /**
+     * Create Redis Cluster configuration
+     * @private
+     */
+    static _createClusterConfig(purpose) {
+        const config = RedisManager.config.cluster;
+        return {
+            redisOptions: {
+                password: config.password || undefined,
+                connectTimeout: config.redisOptions?.connectTimeout || 10000,
+                lazyConnect: config.redisOptions?.lazyConnect !== false,
+                connectionName: `jpulse-${purpose}-${RedisManager.instanceId}`
+            },
+            enableOfflineQueue: config.enableOfflineQueue !== true,
+            retryDelayOnFailover: config.retryDelayOnFailover || 100,
+            maxRetriesPerRequest: config.maxRetriesPerRequest || 3
+        };
+    }
+
+    /**
+     * Add connection event handlers
+     * @private
+     */
+    static _addConnectionHandlers(client, purpose) {
+        client.on('connect', () => {
+            global.LogController?.logInfo(null, 'redis-manager._addConnectionHandlers',
+                `Redis ${purpose} connected`);
+            RedisManager.isAvailable = true;
+        });
+
+        client.on('ready', () => {
+            global.LogController?.logInfo(null, 'redis-manager._addConnectionHandlers',
+                `Redis ${purpose} ready`);
+        });
+
+        client.on('error', (error) => {
+            global.LogController?.logError(null, 'redis-manager._addConnectionHandlers',
+                `Redis ${purpose} error: ${error.message}`);
+            RedisManager.isAvailable = false;
+        });
+
+        client.on('close', () => {
+            global.LogController?.logInfo(null, 'redis-manager._addConnectionHandlers',
+                `Redis ${purpose} connection closed`);
+            RedisManager.isAvailable = false;
+        });
+
+        client.on('reconnecting', () => {
+            global.LogController?.logInfo(null, 'redis-manager._addConnectionHandlers',
+                `Redis ${purpose} reconnecting`);
+        });
+    }
+
+    /**
+     * Get Redis client for specific service
+     * @param {string} service - Service name: 'session', 'websocket', 'broadcast', 'metrics'
+     * @param {string} type - For pub/sub services: 'publisher' or 'subscriber'
+     * @returns {Redis|null} Redis client or null if unavailable
+     */
+    static getClient(service, type = null) {
+        if (!RedisManager.config?.enabled || !RedisManager.isAvailable) {
+            return null;
+        }
+
+        if (type) {
+            return RedisManager.connections[service]?.[type] || null;
+        }
+
+        return RedisManager.connections[service] || null;
+    }
+
+    /**
+     * Check if Redis is available
+     * @returns {boolean} True if Redis is available
+     */
+    static isRedisAvailable() {
+        return RedisManager.config?.enabled && RedisManager.isAvailable;
+    }
+
+    /**
+     * Get instance identifier
+     * @returns {string} Instance ID in format hostname:pm2_id
+     */
+    static getInstanceId() {
+        return RedisManager.instanceId;
+    }
+
+    /**
+     * Get Redis configuration
+     * @returns {Object} Redis configuration object
+     */
+    static getConfig() {
+        return RedisManager.config;
+    }
+
+    /**
+     * Get key with service prefix
+     * @param {string} service - Service name
+     * @param {string} key - Base key
+     * @returns {string} Prefixed key
+     */
+    static getKey(service, key) {
+        const prefix = RedisManager.config?.connections?.[service]?.keyPrefix || '';
+        return `${prefix}${key}`;
+    }
+
+    /**
+     * Get TTL for service
+     * @param {string} service - Service name
+     * @returns {number} TTL in seconds
+     */
+    static getTTL(service) {
+        return RedisManager.config?.connections?.[service]?.ttl || 3600;
+    }
+
+    /**
+     * Graceful shutdown - close all connections
+     */
+    static async shutdown() {
+        global.LogController?.logInfo(null, 'redis-manager.shutdown', 'Closing Redis connections');
+
+        const closePromises = [];
+
+        // Close all connections
+        Object.values(RedisManager.connections).forEach(connection => {
+            if (connection && typeof connection.disconnect === 'function') {
+                closePromises.push(connection.disconnect());
+            } else if (connection && typeof connection === 'object') {
+                // Handle pub/sub connections
+                Object.values(connection).forEach(subConnection => {
+                    if (subConnection && typeof subConnection.disconnect === 'function') {
+                        closePromises.push(subConnection.disconnect());
+                    }
+                });
+            }
+        });
+
+        try {
+            await Promise.all(closePromises);
+            global.LogController?.logInfo(null, 'redis-manager.shutdown', 'All Redis connections closed');
+        } catch (error) {
+            global.LogController?.logError(null, 'redis-manager.shutdown',
+                `Error closing Redis connections: ${error.message}`);
+        }
+
+        // Reset state
+        RedisManager.isAvailable = false;
+        RedisManager.connections = {
+            session: null,
+            websocket: { publisher: null, subscriber: null },
+            broadcast: { publisher: null, subscriber: null },
+            metrics: null
+        };
+    }
+
+    /**
+     * Configure session store with Redis and graceful fallback
+     * @param {Object} database - Database instance for MongoDB fallback
+     * @returns {Object} Configured session store
+     */
+    static async configureSessionStore(database) {
+        // Dynamic imports for session stores
+        const session = await import('express-session');
+        const RedisStore = (await import('connect-redis')).default;
+        const MongoStore = (await import('connect-mongo')).default;
+
+        const redisClient = RedisManager.getClient('session');
+
+        if (redisClient) {
+            // Use Redis for session storage
+            const store = new RedisStore({
+                client: redisClient,
+                prefix: RedisManager.getKey('session', ''),
+                ttl: RedisManager.getTTL('session')
+            });
+            global.LogController?.logInfo(null, 'redis-manager.configureSessionStore', 'Session store: Redis (cluster-ready)');
+            return store;
+        } else {
+            // Fallback based on configuration
+            const fallbackMode = RedisManager.config?.fallback?.sessions || 'memory';
+
+            if (fallbackMode === 'memory') {
+                // Use Express built-in MemoryStore
+                const store = new session.default.MemoryStore();
+                global.LogController?.logInfo(null, 'redis-manager.configureSessionStore', 'Session store: Memory (fallback mode)');
+                return store;
+            } else {
+                // Fallback to MongoDB (existing behavior)
+                const store = MongoStore.create({
+                    clientPromise: Promise.resolve(database.getClient()),
+                    dbName: global.appConfig.deployment[global.appConfig.deployment.mode].db,
+                    collectionName: 'sessions',
+                    touchAfter: global.appConfig.middleware.session.touchAfter
+                });
+                global.LogController?.logInfo(null, 'redis-manager.configureSessionStore', 'Session store: MongoDB (fallback mode)');
+                return store;
+            }
+        }
+    }
+
+    /**
+     * Generic broadcasting system using Redis pub/sub
+     * Provides the backend for jPulse.appCluster API
+     */
+
+    /**
+     * Publish message to broadcast channel
+     * @param {string} channel - Channel name (e.g., 'controller:helloDashboard:update', 'view:userProfile:refresh')
+     * @param {Object} data - Message data to broadcast
+     * @returns {boolean} True if published successfully, false if Redis unavailable
+     */
+    static async publishBroadcast(channel, data) {
+        const publisher = RedisManager.getClient('broadcast', 'publisher');
+
+        if (!publisher) {
+            // Graceful fallback: log and return false
+            global.LogController?.logInfo(null, 'redis-manager.publishBroadcast',
+                `Broadcast publish skipped (Redis unavailable): ${channel}`);
+            return false;
+        }
+
+        try {
+            const message = {
+                channel,
+                data,
+                instanceId: RedisManager.instanceId,
+                timestamp: Date.now()
+            };
+
+            const key = RedisManager.getKey('broadcast', channel);
+            await publisher.publish(key, JSON.stringify(message));
+
+            global.LogController?.logInfo(null, 'redis-manager.publishBroadcast',
+                `Broadcast published: ${channel} from ${RedisManager.instanceId}`);
+            return true;
+        } catch (error) {
+            global.LogController?.logError(null, 'redis-manager.publishBroadcast',
+                `Failed to publish broadcast ${channel}: ${error.message}`);
+            return false;
+        }
+    }
+
+    /**
+     * Publish message with automatic callback registration
+     * This method publishes a broadcast and automatically subscribes to receive responses
+     * @param {string} channel - Channel name to publish and subscribe to
+     * @param {Object} data - Message data to broadcast
+     * @param {Function} callback - Callback function (channel, data, sourceInstanceId) => void
+     * @returns {boolean} True if published and subscribed successfully, false if Redis unavailable
+     */
+    static async publishBroadcastWithCallback(channel, data, callback) {
+        // First register the callback for this channel
+        RedisManager.registerBroadcastCallback(channel, callback);
+
+        // Then publish the message
+        return await RedisManager.publishBroadcast(channel, data);
+    }
+
+    /**
+     * Register a callback for a broadcast channel
+     * @param {string} channel - Channel name or pattern
+     * @param {Function} callback - Callback function (channel, data, sourceInstanceId) => void
+     */
+    static registerBroadcastCallback(channel, callback) {
+        if (typeof callback !== 'function') {
+            global.LogController?.logError(null, 'redis-manager.registerBroadcastCallback',
+                `Callback must be a function for channel: ${channel}`);
+            return;
+        }
+
+        // Store the callback
+        RedisManager.broadcastCallbacks.set(channel, callback);
+
+        // Subscribe to the channel automatically
+        RedisManager.subscribeBroadcast([channel], RedisManager._handleCallbackMessage);
+
+        global.LogController?.logInfo(null, 'redis-manager.registerBroadcastCallback',
+            `Registered callback for channel: ${channel}`);
+    }
+
+    /**
+     * Internal handler for callback-based messages
+     * @private
+     */
+    static _handleCallbackMessage(channel, data, sourceInstanceId) {
+        // Find matching callback (exact match or pattern match)
+        for (const [registeredChannel, callback] of RedisManager.broadcastCallbacks) {
+            if (RedisManager._channelMatches(channel, registeredChannel)) {
+                try {
+                    callback(channel, data, sourceInstanceId);
+                } catch (error) {
+                    global.LogController?.logError(null, 'redis-manager._handleCallbackMessage',
+                        `Error in callback for channel ${channel}: ${error.message}`);
+                }
+                break; // Only call the first matching callback
+            }
+        }
+    }
+
+    /**
+     * Check if a channel matches a registered pattern
+     * @private
+     */
+    static _channelMatches(channel, pattern) {
+        if (channel === pattern) return true;
+
+        // Handle wildcard patterns (e.g., 'view:*' matches 'view:config:refresh')
+        if (pattern.endsWith('*')) {
+            const prefix = pattern.slice(0, -1);
+            return channel.startsWith(prefix);
+        }
+
+        return false;
+    }
+
+    /**
+     * Subscribe to broadcast channels with callback
+     * @param {string|Array} channels - Channel name(s) or pattern(s) to subscribe to
+     * @param {Function} callback - Callback function (channel, data, sourceInstanceId)
+     * @returns {boolean} True if subscribed successfully, false if Redis unavailable
+     */
+    static subscribeBroadcast(channels, callback) {
+        const subscriber = RedisManager.getClient('broadcast', 'subscriber');
+
+        if (!subscriber) {
+            // Graceful fallback: log and return false
+            global.LogController?.logInfo(null, 'redis-manager.subscribeBroadcast',
+                'Broadcast subscribe skipped (Redis unavailable)');
+            return false;
+        }
+
+        try {
+            // Ensure channels is an array
+            const channelArray = Array.isArray(channels) ? channels : [channels];
+
+            // Add prefix to channels
+            const prefixedChannels = channelArray.map(ch => RedisManager.getKey('broadcast', ch));
+
+            // Subscribe to channels
+            if (channelArray.some(ch => ch.includes('*') || ch.includes('?'))) {
+                // Pattern subscription
+                subscriber.psubscribe(...prefixedChannels);
+            } else {
+                // Exact channel subscription
+                subscriber.subscribe(...prefixedChannels);
+            }
+
+            // Set up message handler
+            subscriber.on('message', (channel, messageStr) => {
+                RedisManager._handleBroadcastMessage(channel, messageStr, callback);
+            });
+
+            subscriber.on('pmessage', (pattern, channel, messageStr) => {
+                RedisManager._handleBroadcastMessage(channel, messageStr, callback);
+            });
+
+            global.LogController?.logInfo(null, 'redis-manager.subscribeBroadcast',
+                `Subscribed to broadcast channels: ${channelArray.join(', ')}`);
+            return true;
+        } catch (error) {
+            global.LogController?.logError(null, 'redis-manager.subscribeBroadcast',
+                `Failed to subscribe to broadcasts: ${error.message}`);
+            return false;
+        }
+    }
+
+    /**
+     * Handle incoming broadcast messages
+     * @private
+     */
+    static _handleBroadcastMessage(channel, messageStr, callback) {
+        try {
+            // Remove prefix from channel
+            const prefix = RedisManager.getKey('broadcast', '');
+            const cleanChannel = channel.startsWith(prefix) ? channel.slice(prefix.length) : channel;
+
+            const message = JSON.parse(messageStr);
+
+            // Don't process messages from our own instance (avoid loops)
+            if (message.instanceId === RedisManager.instanceId) {
+                return;
+            }
+
+            // Call the callback with clean channel name
+            callback(cleanChannel, message.data, message.instanceId);
+
+        } catch (error) {
+            global.LogController?.logError(null, 'redis-manager._handleBroadcastMessage',
+                `Error handling broadcast message: ${error.message}`);
+        }
+    }
+
+    /**
+     * Unsubscribe from broadcast channels
+     * @param {string|Array} channels - Channel name(s) to unsubscribe from
+     * @returns {boolean} True if unsubscribed successfully
+     */
+    static unsubscribeBroadcast(channels) {
+        const subscriber = RedisManager.getClient('broadcast', 'subscriber');
+
+        if (!subscriber) {
+            return false;
+        }
+
+        try {
+            const channelArray = Array.isArray(channels) ? channels : [channels];
+            const prefixedChannels = channelArray.map(ch => RedisManager.getKey('broadcast', ch));
+
+            subscriber.unsubscribe(...prefixedChannels);
+
+            global.LogController?.logInfo(null, 'redis-manager.unsubscribeBroadcast',
+                `Unsubscribed from broadcast channels: ${channelArray.join(', ')}`);
+            return true;
+        } catch (error) {
+            global.LogController?.logError(null, 'redis-manager.unsubscribeBroadcast',
+                `Failed to unsubscribe from broadcasts: ${error.message}`);
+            return false;
+        }
+    }
+
+    /**
+     * Health check for Redis connections
+     * @returns {Object} Health status for all connections
+     */
+    static async healthCheck() {
+        const health = {
+            enabled: RedisManager.config?.enabled || false,
+            available: RedisManager.isAvailable,
+            instanceId: RedisManager.instanceId,
+            mode: RedisManager.config?.mode || 'unknown',
+            connections: {}
+        };
+
+        if (!RedisManager.isAvailable) {
+            return health;
+        }
+
+        // Test each connection
+        const testConnection = async (name, client) => {
+            try {
+                if (client && typeof client.ping === 'function') {
+                    await client.ping();
+                    return { status: 'connected', latency: Date.now() };
+                }
+                return { status: 'unavailable', error: 'No client' };
+            } catch (error) {
+                return { status: 'error', error: error.message };
+            }
+        };
+
+        // Test all service connections
+        health.connections.session = await testConnection('session', RedisManager.connections.session);
+        health.connections.websocketPub = await testConnection('websocket-pub', RedisManager.connections.websocket.publisher);
+        health.connections.websocketSub = await testConnection('websocket-sub', RedisManager.connections.websocket.subscriber);
+        health.connections.broadcastPub = await testConnection('broadcast-pub', RedisManager.connections.broadcast.publisher);
+        health.connections.broadcastSub = await testConnection('broadcast-sub', RedisManager.connections.broadcast.subscriber);
+        health.connections.metrics = await testConnection('metrics', RedisManager.connections.metrics);
+
+        return health;
+    }
+}
+
+export default RedisManager;
+
+// EOF webapp/utils/redis-manager.js

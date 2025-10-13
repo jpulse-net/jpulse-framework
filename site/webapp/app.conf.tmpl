@@ -29,24 +29,49 @@
     // Override some middleware settings
     middleware: {
         session: {
-            secret: 'CHANGE-THIS-SECRET-IN-PRODUCTION',
-            touchAfter: 3600  // Session touch interval in seconds
+            secret:     'CHANGE-THIS-SECRET-IN-PRODUCTION',
+            touchAfter: 3600    // Session touch interval in seconds
         }
     },
 
     // Site-specific deployment settings
     deployment: {
+        mode:               'prod',     // Override deployment mode
         development: {
-            name: 'Site Development Mode',
-            customSetting: 'enabled'
+            name:           'Site Development Mode',
+            customSetting:  'enabled'
+        }
+    },
+
+    // Redis configuration overrides for production deployment
+    redis: {
+        enabled:            true,       // Enable Redis for production clustering
+        mode:               'cluster',  // Use 'single' for simple deployments, 'cluster' for HA
+
+        // Production Redis Cluster nodes (customize for your infrastructure)
+        cluster: {
+            nodes: [
+                { host: 'redis-01.example.com', port: 7000 },
+                { host: 'redis-02.example.com', port: 7001 },
+                { host: 'redis-03.example.com', port: 7002 }
+            ],
+            password:       'FXIME-IN-PRODUCTION'
+        },
+
+        // Single Redis instance (alternative to cluster)
+        single: {
+            host:           'redis.example.com',
+            port:           6379,
+            password:       'FIXME-IN-PRODUCTION',
+            db: 0
         }
     },
 
     // Site-specific features
     features: {
-        customDashboard: true,
-        siteAnalytics: true,
-        customTheme: 'blue'
+        customDashboard:    true,
+        siteAnalytics:      true,
+        customTheme:        'blue'
     }
 }
 

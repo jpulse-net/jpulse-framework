@@ -243,6 +243,18 @@ class ConfigController {
             }
             const config = await ConfigModel.updateById(id, updateData);
 
+            // W-076: Refresh global config cache for local and broadcast to cluster
+            if (id === 'global') {
+                try {
+                    const ViewControllerModule = await import('./view.js');
+                    await ViewControllerModule.default.refreshGlobalConfig('local');
+                    LogController.logInfo(req, 'config.update', 'Global config refresh initiated');
+                } catch (error) {
+                    // Don't fail the update if refresh fails
+                    LogController.logError(req, 'config.update', `Config refresh failed: ${error.message}`);
+                }
+            }
+
             // Log the update
             await LogController.logChange(req, 'config', 'update', id, oldConfig, config);
             LogController.logInfo(req, 'config.update', `success: config updated for id: ${id}`);

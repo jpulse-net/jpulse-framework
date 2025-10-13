@@ -59,8 +59,58 @@ async function initialize() {
         LogController.logError(null, 'view.initialize', `Failed to load global config: ${error.message}`);
     }
 
+    // W-076: Register broadcast callback for config refresh
+    try {
+        const RedisManager = (await import('../utils/redis-manager.js')).default;
+        RedisManager.registerBroadcastCallback('controller:view:config:refresh', (channel, data, sourceInstanceId) => {
+            // Call refreshGlobalConfig with 'broadcast' source to avoid re-broadcasting
+            refreshGlobalConfig('broadcast');
+        });
+        LogController.logInfo(null, 'view.initialize', 'Registered broadcast callback for config refresh');
+    } catch (error) {
+        // Don't fail initialization if broadcast registration fails
+        LogController.logError(null, 'view.initialize', `Failed to register broadcast callback: ${error.message}`);
+    }
+
     // Asynchronously pre-load ContextExtensions once when the module loads
     ContextExtensions = (await import('../utils/context-extensions.js')).default;
+}
+
+/**
+ * W-076: Refresh global config from database
+ * @param {string} source - Source of refresh request: 'local' or 'broadcast'
+ * Used when config is updated locally or via broadcast from another instance
+ */
+async function refreshGlobalConfig(source = 'local') {
+    try {
+        const newGlobalConfig = await configModel.findById('global');
+        globalConfig = newGlobalConfig;
+
+        if (source === 'local') {
+            // Local config update - broadcast to other instances
+            LogController.logInfo(null, 'view.refreshGlobalConfig', 'Global config refreshed locally, broadcasting to cluster');
+
+            // Import RedisManager dynamically to avoid circular dependencies
+            try {
+                const RedisManager = (await import('../utils/redis-manager.js')).default;
+                await RedisManager.publishBroadcast('controller:view:config:refresh', {
+                    source: 'local',
+                    timestamp: Date.now()
+                });
+            } catch (error) {
+                // Don't fail the refresh if broadcast fails
+                LogController.logError(null, 'view.refreshGlobalConfig', `Broadcast failed: ${error.message}`);
+            }
+        } else if (source === 'broadcast') {
+            // Received via broadcast - just refresh local cache
+            LogController.logInfo(null, 'view.refreshGlobalConfig', 'Global config refreshed via broadcast');
+        }
+
+        return true;
+    } catch (error) {
+        LogController.logError(null, 'view.refreshGlobalConfig', `Failed to refresh global config: ${error.message}`);
+        return false;
+    }
 }
 
 /**
@@ -664,8 +714,9 @@ function getCacheStats() {
 export default {
     initialize,
     load,
-    processHandlebars,  // Export for unit testing
-    getCacheStats           // W-079: Cache statistics API
+    refreshGlobalConfig,        // W-076: For broadcast system
+    processHandlebars,          // Export for unit testing
+    getCacheStats               // W-079: Cache statistics API
 };
 
 // EOF webapp/controller/view.js

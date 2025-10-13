@@ -1293,21 +1293,6 @@ This is the doc to track work items, arranged in three sections:
  - site/webapp/controller/hello.js - updated to use appConfig.app.jPulse.version
  - site/webapp/view/hello/site-override.shtml - updated framework version display
 
-
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-079, v0.9.7: cache: strategy for cache invalidation in controllers & utilities
 - status: ✅ DONE
 - type: Feature
@@ -1360,7 +1345,63 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-076, v1.0.0: framework: redis infrastrucure for a scaleable jPulse Framework
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: support multiple node instances (pm2 cluster) on an app server, support a pool of app servers in a load-balanced configuration
+- architecture & spec discussion:
+  - docs/dev/working/W-076-redis-caching-and-1o-release-prep.md
+- prerequisites:
+  - W-073, v0.9.0: site: create client & server websocket infrastructure - DONE
+- requirement:
+  - jPulse should work with full functionality in multi node instances, and multi app server instances
+- initial deployment target of jPulse Framework v1.0:
+  - jpulse.net in production mode
+  - pm2 cluster with 2 instances
+  - shared websocket connections
+  - shared metrics data
+  - shared user sessions
+  - shared site config / update message
+  - no load-balancing, but code should be ready for multi app server instances
+- technology:
+  - use redis to share specific data on all running app instances (with pub/subscribe?)
+- shared data across all app instances:
+  - health/metrics data
+    - the system status dashboard at /admin/system-status.shtml should show health data across all app instances
+    - how?
+      - each instance shares its own data in redis?
+      - an instance can request data from all other instances?
+      - central object in redis, each instance updates a subset with its own data?
+  - websocket connection data
+    - connections to a namespace (such as /ws/hello-emoji) should be able to share messages across all app instances
+    - publish/subscribe
+  - site config
+    - updating the site config at /admin/config.shtml should update the cached globalConfig in view controllers in all app instances
+    - or a simple "refresh cache from mongodb" message?
+  - user sessions
+    - updating the user profile at /user/profile.shtml should update the cached user sessions (req.session.user.*), used in view controllers in all app instances
+    - switch session store from mongodb to redis?
+    - or a simple "refresh user session from mongodb" message?
+  - anything else?
+
+
+
+
+
+
+
+
 pending:
+- add /hello-redis/ example
+
 - move LogModel.logChange() from webapp/model/config.js to webapp/controller/config.js
 - install pm2, test
 - navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
@@ -1374,9 +1415,6 @@ old pending:
 
 
 ### Potential next items:
-- W-076, v1.0.0: model: create redis caching infrastrucure
-
-
 - W-045: architecture: create plugin infrastructure
 - W-068: view: create responsive sidebar
 - W-0: view: page headers with anchor links for copy & paste in browser URL bar
@@ -1449,13 +1487,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - status: 🕑 PENDING
 - type: Feature
 - objective: paged queries that do not miss or duplicate docs between calls
-
-### W-076, v1.0.0: model: create redis caching infrastrucure
-- status: 🕑 PENDING
-- type: Feature
-- redis to cache site config
-  - what else? sessions? cached files?
-- should work in multi node instances, and multi app server instances
 
 ### W-055: deployment: load balancer and multi-server setup
 - status: 🕑 PENDING

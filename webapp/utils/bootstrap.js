@@ -76,7 +76,22 @@ export async function bootstrap(options = {}) {
         await ViewControllerModule.default.initialize();
         bootstrapLog('✅ ViewController: Initialized');
 
-        // Step 6: Set up CommonUtils globally
+        // Step 6: Initialize Redis Manager (W-076 - depends on LogController)
+        const RedisManagerModule = await import('./redis-manager.js');
+        bootstrapLog('RedisManager: Module loaded, ready for initialization');
+        RedisManagerModule.default.initialize(global.appConfig.redis);
+        bootstrapLog(`✅ RedisManager: Initialized - Instance: ${RedisManagerModule.default.getInstanceId()}, Available: ${RedisManagerModule.default.isRedisAvailable()}`);
+
+        // Step 6.1: Configure session store with Redis fallback (W-076)
+        const sessionStore = await RedisManagerModule.default.configureSessionStore(database);
+        bootstrapLog('✅ SessionStore: Configured with Redis/fallback');
+
+        // Step 6.2: Initialize broadcast controller (W-076)
+        const BroadcastControllerModule = await import('../controller/broadcast.js');
+        BroadcastControllerModule.default.initialize();
+        bootstrapLog('✅ BroadcastController: Initialized with framework subscriptions');
+
+        // Step 7: Set up CommonUtils globally
         global.CommonUtils = CommonUtils;
         bootstrapLog('✅ CommonUtils: Available globally');
 
@@ -85,7 +100,9 @@ export async function bootstrap(options = {}) {
         return {
             LogController: LogControllerModule.default,
             i18n: i18n,
-            database: database
+            database: database,
+            redisManager: RedisManagerModule.default,
+            sessionStore: sessionStore
         };
 
     } catch (error) {

@@ -17,7 +17,6 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import session from 'express-session';
-import MongoStore from 'connect-mongo';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -228,17 +227,17 @@ async function startApp() {
     app.use(bodyParser.urlencoded(appConfig.middleware.bodyParser.urlencoded));
     app.use(bodyParser.json(appConfig.middleware.bodyParser.json));
 
-    // Configure session with MongoDB store
+    // W-076: Configure session middleware using pre-configured store from bootstrap
     const sessionMiddleware = session({
         secret: appConfig.middleware.session.secret,
         resave: appConfig.middleware.session.resave,
         saveUninitialized: appConfig.middleware.session.saveUninitialized,
-        store: MongoStore.create({
-            clientPromise: Promise.resolve(modules.database.getClient()),  // Use bootstrap result
-            dbName: appConfig.deployment[appConfig.deployment.mode].db,
-            collectionName: 'sessions',
-            touchAfter: appConfig.middleware.session.touchAfter
-        })
+        store: modules.sessionStore,
+        cookie: {
+            secure: appConfig.deployment.mode === 'production',
+            httpOnly: true,
+            maxAge: appConfig.middleware.session.cookie.maxAge
+        }
     });
     app.use(sessionMiddleware);
 
@@ -280,16 +279,25 @@ startApp().catch(error => {
 // Graceful shutdown handling
 import cacheManager from './utils/cache-manager.js';
 
-process.on('SIGTERM', () => {
-    LogController.logInfo(null, 'app', 'SIGTERM received, shutting down gracefully');
-    cacheManager.shutdown();
-    process.exit(0);
-});
+async function gracefulShutdown(signal) {
+    LogController.logInfo(null, 'app', `${signal} received, shutting down gracefully`);
 
-process.on('SIGINT', () => {
-    LogController.logInfo(null, 'app', 'SIGINT received, shutting down gracefully');
-    cacheManager.shutdown();
+    try {
+        // Shutdown Redis connections
+        await modules.redisManager.shutdown();
+
+        // Shutdown cache manager
+        cacheManager.shutdown();
+
+        LogController.logInfo(null, 'app', 'Graceful shutdown completed');
+    } catch (error) {
+        LogController.logError(null, 'app', `Error during shutdown: ${error.message}`);
+    }
+
     process.exit(0);
-});
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // EOF webapp/app.js

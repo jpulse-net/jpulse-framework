@@ -20,6 +20,7 @@ const router = express.Router();
 // Load controllers
 import AuthController from './controller/auth.js';
 import CacheController from './controller/cache.js';
+import BroadcastController from './controller/broadcast.js';
 import HealthController from './controller/health.js';
 import MarkdownController from './controller/markdown.js';
 import UserController from './controller/user.js';
@@ -33,6 +34,10 @@ import CommonUtils from './utils/common.js';
 // Health and metrics endpoints
 router.get('/api/1/health', HealthController.health);
 router.get('/api/1/metrics', HealthController.metrics);
+
+// W-076: Broadcast endpoints for jPulse.appCluster
+router.post('/api/1/broadcast/:channel', BroadcastController.publish);
+router.get('/api/1/broadcast/status', BroadcastController.status);
 
 // Config API routes
 router.get('/api/1/config', ConfigController.list);

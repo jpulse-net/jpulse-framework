@@ -14,9 +14,10 @@
 
 window.jPulse = {
 
-    /**
-     * API helper methods for common HTTP verbs
-     */
+    // ============================================================
+    // jPulse.api: API helper methods for common HTTP verbs
+    // ============================================================
+
     api: {
         /**
          * Standardized API call with consistent error handling
@@ -143,13 +144,10 @@ window.jPulse = {
         }
     },
 
-    // ========================================
-    // PHASE 3: Form Handling & Validation
-    // ========================================
+    // ============================================================
+    // jPulse.form: Form Handling & Validation
+    // ============================================================
 
-    /**
-     * Form handling utilities
-     */
     form: {
         /**
          * Binds the comprehensive form submission handler to a form's submit event.
@@ -390,13 +388,10 @@ window.jPulse = {
         }
     },
 
-    // ========================================
-    // PHASE 4: DOM Utilities & Helpers
-    // ========================================
+    // ============================================================
+    // jPulse.dom: DOM Utilities & Helpers
+    // ============================================================
 
-    /**
-     * DOM manipulation utilities
-     */
     dom: {
         ready: (callback) => {
             if (document.readyState === 'loading') {
@@ -418,9 +413,10 @@ window.jPulse = {
         toggle: (element) => element.classList.toggle('jp-hidden')
     },
 
-    /**
-     * Date formatting utilities
-     */
+    // ============================================================
+    // jPulse.date: Date formatting utilities
+    // ============================================================
+
     date: {
         /**
          * Format date to local YYYY-MM-DD format
@@ -451,9 +447,10 @@ window.jPulse = {
         }
     },
 
-    /**
-     * String manipulation utilities
-     */
+    // ============================================================
+    // jPulse.string: String manipulation utilities
+    // ============================================================
+
     string: {
         escapeHtml: (text) => {
             const div = document.createElement('div');
@@ -466,9 +463,10 @@ window.jPulse = {
         slugify: (str) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
     },
 
-    /**
-     * URL utilities
-     */
+    // ============================================================
+    // jPulse.url: URL utilities
+    // ============================================================
+
     url: {
         getParams: () => {
             const params = {};
@@ -481,13 +479,10 @@ window.jPulse = {
         getParam: (name) => new URLSearchParams(window.location.search).get(name)
     },
 
-    // ========================================
-    // PHASE 5: Browser & Device Detection
-    // ========================================
+    // ============================================================
+    // jPulse.device: Device and browser detection utilities
+    // ============================================================
 
-    /**
-     * Device and browser detection utilities
-     */
     device: {
         isMobile: () => window.innerWidth <= 768,
         isTablet: () => window.innerWidth > 768 && window.innerWidth <= 1024,
@@ -519,9 +514,10 @@ window.jPulse = {
         }
     },
 
-    /**
-     * Cookie management utilities
-     */
+    // ============================================================
+    // jPulse.cookies: Cookie management utilities
+    // ============================================================
+
     cookies: {
         get: (name) => {
             const value = `; ${document.cookie}`;
@@ -540,14 +536,10 @@ window.jPulse = {
         }
     },
 
+    // ============================================================
+    // jPulse.UI: UI Widgets
+    // ============================================================
 
-    // ========================================
-    // PHASE 7: UI Widgets (W-048)
-    // ========================================
-
-    /**
-     * UI Widgets namespace
-     */
     UI: {
         // Dialog management
         _dialogStack: [],
@@ -3791,9 +3783,11 @@ window.jPulse = {
         }
     },
 
+    // ============================================================
+    // jPulse.ws: WebSocket utilities for real-time communication
+    // ============================================================
+
     /**
-     * WebSocket utilities for real-time communication
-     *
      * Provides clean API for connecting to WebSocket namespaces with:
      * - Automatic reconnection with progressive backoff
      * - Bidirectional ping/pong
@@ -4093,6 +4087,193 @@ window.jPulse = {
          */
         getConnections: function() {
             return Array.from(this._connections.keys());
+        }
+    },
+
+    // ====================================================================
+    // jPulse.appCluster: App Cluster API for multi-instance communication
+    // ====================================================================
+
+    /**
+     * Provides broadcasting capabilities for PM2 clusters and multi-server deployments.
+     * Automatically handles graceful fallback when Redis is unavailable.
+     *
+     * Usage:
+     *   jPulse.appCluster.broadcast.subscribe('controller:user:login:success', (data) => { ... });
+     *   jPulse.appCluster.broadcast.publish('view:chat:message:sent', { message: 'hello' });
+     *
+     * MVC Convention:
+     *   - controller:{component}:{domain}:{action} - Business logic events
+     *   - view:{component}:{domain}:{action} - UI events needing cross-instance sync
+     *   - model:{component}:{domain}:{action} - Data change events
+     */
+    appCluster: {
+        // Instance information
+        _instanceId: null,
+        _isAvailable: false,
+
+        /**
+         * Get instance identifier
+         * @returns {string} Instance ID (e.g., "025:0", "web01:1")
+         */
+        getInstanceId: function() {
+            if (!this._instanceId) {
+                // This will be populated by server-side initialization
+                this._instanceId = window.jPulseInstanceId || 'browser:0';
+            }
+            return this._instanceId;
+        },
+
+        /**
+         * Check if cluster mode is available
+         * @returns {boolean} True if Redis clustering is available
+         */
+        isClusterMode: function() {
+            return this._isAvailable && window.jPulseClusterMode === true;
+        },
+
+        /**
+         * Broadcasting system for cross-instance communication
+         */
+        broadcast: {
+            _subscribers: new Map(),
+
+            /**
+             * Subscribe to broadcast messages
+             * @param {string} channel - Channel name (e.g., 'myApp:user:notification')
+             * @param {Function} callback - Callback function to handle messages
+             */
+            subscribe: function(channel, callback) {
+                if (!jPulse.appCluster.broadcast._subscribers.has(channel)) {
+                    jPulse.appCluster.broadcast._subscribers.set(channel, []);
+                }
+                jPulse.appCluster.broadcast._subscribers.get(channel).push(callback);
+
+                // Phase 2: Local subscription (server-side Redis handles cross-instance)
+                console.log(`jPulse.appCluster: Subscribed to ${channel} (Redis broadcasting active)`);
+            },
+
+            /**
+             * Publish broadcast message
+             * @param {string} channel - Channel name
+             * @param {Object} data - Message data
+             */
+            publish: function(channel, data) {
+                // Phase 2: Send to server for Redis pub/sub distribution
+                if (jPulse.appCluster.isClusterMode()) {
+                    // Use server-side broadcasting via API
+                    jPulse.api.post(`/api/1/broadcast/${encodeURIComponent(channel)}`, { data })
+                        .then(response => {
+                            if (response.success) {
+                                console.log(`jPulse.appCluster: Published to ${channel} via server`, data);
+                            } else {
+                                console.warn(`jPulse.appCluster: Server publish failed for ${channel}:`, response.error);
+                                // Fallback to local-only
+                                jPulse.appCluster.broadcast._publishLocal(channel, data);
+                            }
+                        })
+                        .catch(error => {
+                            console.error(`jPulse.appCluster: API error publishing to ${channel}:`, error);
+                            // Fallback to local-only
+                            jPulse.appCluster.broadcast._publishLocal(channel, data);
+                        });
+                } else {
+                    // Fallback to local-only broadcasting
+                    jPulse.appCluster.broadcast._publishLocal(channel, data);
+                }
+            },
+
+            /**
+             * Local-only publish (fallback when Redis unavailable)
+             * @private
+             */
+            _publishLocal: function(channel, data) {
+                const subscribers = jPulse.appCluster.broadcast._subscribers.get(channel) || [];
+                subscribers.forEach(callback => {
+                    try {
+                        callback(data);
+                    } catch (error) {
+                        console.error(`jPulse.appCluster: Error in subscriber for ${channel}:`, error);
+                    }
+                });
+                console.log(`jPulse.appCluster: Published to ${channel} (local-only)`, data);
+            },
+
+            /**
+             * Unsubscribe from broadcast messages
+             * @param {string} channel - Channel name
+             * @param {Function} callback - Optional specific callback to remove
+             */
+            unsubscribe: function(channel, callback) {
+                if (!jPulse.appCluster.broadcast._subscribers.has(channel)) {
+                    return;
+                }
+
+                if (callback) {
+                    // Remove specific callback
+                    const subscribers = jPulse.appCluster.broadcast._subscribers.get(channel);
+                    const index = subscribers.indexOf(callback);
+                    if (index > -1) {
+                        subscribers.splice(index, 1);
+                    }
+                } else {
+                    // Remove all subscribers for channel
+                    jPulse.appCluster.broadcast._subscribers.delete(channel);
+                }
+
+                console.log(`jPulse.appCluster: Unsubscribed from ${channel}`);
+            }
+        },
+
+        /**
+         * Cluster information and health
+         */
+        info: {
+            /**
+             * Get active instances via API
+             * @returns {Promise<Array>} Array of active instance IDs
+             */
+            async getActiveInstances() {
+                try {
+                    const response = await jPulse.api.get('/api/1/broadcast/status');
+                    if (response.success) {
+                        // For now, just return current instance (Phase 4 will aggregate all instances)
+                        return [response.data.instanceId];
+                    }
+                } catch (error) {
+                    console.error('jPulse.appCluster: Error getting active instances:', error);
+                }
+                return [jPulse.appCluster.getInstanceId()];
+            },
+
+            /**
+             * Get cluster health status via API
+             * @returns {Promise<Object>} Cluster health information
+             */
+            async getClusterHealth() {
+                try {
+                    const response = await jPulse.api.get('/api/1/broadcast/status');
+                    if (response.success) {
+                        return {
+                            instanceId: response.data.instanceId,
+                            clusterMode: response.data.broadcastEnabled,
+                            redisAvailable: response.data.redisAvailable,
+                            totalInstances: 1, // Phase 4 will aggregate
+                            status: response.data.redisAvailable ? 'healthy' : 'degraded'
+                        };
+                    }
+                } catch (error) {
+                    console.error('jPulse.appCluster: Error getting cluster health:', error);
+                }
+
+                // Fallback
+                return {
+                    instanceId: jPulse.appCluster.getInstanceId(),
+                    clusterMode: false,
+                    totalInstances: 1,
+                    status: 'unknown'
+                };
+            }
         }
     }
 };

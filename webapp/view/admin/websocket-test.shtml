@@ -94,7 +94,7 @@
                     <h2>{{i18n.view.admin.websocketTest.connectionStatus}}</h2>
                     <p>{{i18n.view.admin.websocketTest.status}}: <span id="connectionStatus" class="local-status disconnected">{{i18n.view.admin.websocketStatus.disconnected}}</span></p>
                     <p>{{i18n.view.admin.websocketTest.username}}: <code>{{user.username}}</code></p>
-                    <p>{{i18n.view.admin.websocketTest.namespace}}: <code>/ws/jpulse-ws-test</code></p>
+                    <p>{{i18n.view.admin.websocketTest.namespace}}: <code>/api/1/ws/jpulse-ws-test</code></p>
                     <p>{{i18n.view.admin.websocketTest.clientUuid}}: <code id="clientUuid">-</code></p>
                 </div>
             </div>
@@ -236,9 +236,9 @@
 
         // Connect to WebSocket
         btnConnect.addEventListener('click', () => {
-            addLog({ action: 'Connecting to /ws/jpulse-ws-test...' });
+            addLog({ action: 'Connecting to /api/1/ws/jpulse-ws-test...' });
 
-            wsConnection = jPulse.ws.connect('/ws/jpulse-ws-test');
+            wsConnection = jPulse.ws.connect('/api/1/ws/jpulse-ws-test');
 
             // Show client UUID
             const uuid = localStorage.getItem('jPulse.ws.clientUUID');

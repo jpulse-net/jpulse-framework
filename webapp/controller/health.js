@@ -20,8 +20,70 @@ import process from 'process';
 
 /**
  * Health Controller - handles /api/1/health and /api/1/metrics REST API endpoints
+ * W-076: Enhanced with Redis-based clustering for multi-instance health aggregation
  */
 class HealthController {
+
+    // Instance health data cache
+    static instanceHealthCache = new Map();
+
+    // Health broadcasting interval
+    static healthBroadcastInterval = null;
+
+    // Configuration for health broadcasting
+    static config = {
+        broadcastInterval: 30000,  // 30 seconds
+        instanceTTL: 90000,        // 90 seconds (3x broadcast interval)
+        enableBroadcasting: true
+    };
+
+    /**
+     * Initialize health metrics clustering
+     * Called during application bootstrap
+     */
+    static initialize() {
+        try {
+            const appConfig = global.appConfig;
+
+            // Only initialize Redis health clustering if Redis is enabled
+            if (!appConfig.redis?.enabled) {
+                LogController.logInfo(null, 'health.initialize', 'Redis health clustering disabled (single-instance mode)');
+                return;
+            }
+
+            // W-076: Use RedisManager for health metrics broadcasting
+            const RedisManager = global.RedisManager || require('../utils/redis-manager.js').default;
+
+            // Register callback for health metrics from other instances
+            RedisManager.registerBroadcastCallback('controller:health:metrics:*', (channel, data, sourceInstanceId) => {
+                // Extract instance ID from channel (controller:health:metrics:instanceId)
+                const instanceId = channel.replace('controller:health:metrics:', '');
+
+                // Store health data from other instances
+                this._storeInstanceHealth(instanceId, data, sourceInstanceId);
+            });
+
+            // Start periodic health broadcasting
+            this._startHealthBroadcasting();
+
+            LogController.logInfo(null, 'health.initialize', 'Redis health metrics clustering initialized');
+
+        } catch (error) {
+            LogController.logError(null, 'health.initialize', `error: ${error.message} - falling back to single-instance mode`);
+        }
+    }
+
+    /**
+     * Shutdown health metrics clustering
+     * Called during graceful shutdown
+     */
+    static shutdown() {
+        if (this.healthBroadcastInterval) {
+            clearInterval(this.healthBroadcastInterval);
+            this.healthBroadcastInterval = null;
+            LogController.logInfo(null, 'health.shutdown', 'Health broadcasting stopped');
+        }
+    }
 
     /**
      * Health check endpoint
@@ -113,12 +175,12 @@ class HealthController {
                 // Get PM2 status
                 const pm2Status = await HealthController._getPM2Status();
 
-                // Build cluster-wide statistics
-                const statistics = HealthController._buildStatistics(pm2Status, wsStats, baseMetrics.data.timestamp);
+                // W-076: Build cluster-wide statistics with Redis aggregation
+                const statistics = await HealthController._buildClusterStatistics(pm2Status, wsStats, baseMetrics.data.timestamp);
                 baseMetrics.data.statistics = statistics;
 
-                // Build servers array
-                const servers = HealthController._buildServersArray(systemInfo, wsStats, pm2Status, baseMetrics.data.timestamp);
+                // W-076: Build servers array with cross-instance data
+                const servers = await HealthController._buildClusterServersArray(systemInfo, wsStats, pm2Status, baseMetrics.data.timestamp);
                 baseMetrics.data.servers = servers;
             }
 
@@ -214,7 +276,172 @@ class HealthController {
     }
 
     /**
-     * Build cluster-wide statistics
+     * W-076: Build cluster-wide statistics with Redis aggregation
+     * @param {Object|null} pm2Status - PM2 status data
+     * @param {Object} wsStats - WebSocket statistics
+     * @param {string} timestamp - Current timestamp
+     * @returns {Promise<Object>} Cluster statistics object
+     * @private
+     */
+    static async _buildClusterStatistics(pm2Status, wsStats, timestamp) {
+        const appConfig = global.appConfig;
+
+        // If Redis not enabled, fall back to single-instance stats
+        if (!appConfig.redis?.enabled) {
+            return this._buildStatistics(pm2Status, wsStats, timestamp);
+        }
+
+        try {
+            // Get all instance health data from cache
+            const allInstances = this._getAllInstancesHealth();
+
+            // Aggregate statistics across all instances
+            let totalServers = new Set();
+            let totalInstances = 0;
+            let totalProcesses = 0;
+            let runningProcesses = 0;
+            let stoppedProcesses = 0;
+            let erroredProcesses = 0;
+            let totalWebSocketConnections = 0;
+            let totalWebSocketMessages = 0;
+            let totalWebSocketNamespaces = 0;
+            let webSocketNamespaces = new Map();
+
+            // Include current instance
+            const currentInstanceData = this._getCurrentInstanceHealthData(pm2Status, wsStats);
+            allInstances.set('current', currentInstanceData);
+
+            // Aggregate data from all instances
+            allInstances.forEach((instanceData, instanceId) => {
+                totalServers.add(instanceData.hostname);
+                totalInstances += instanceData.totalInstances;
+                totalProcesses += instanceData.totalProcesses;
+                runningProcesses += instanceData.runningProcesses;
+                stoppedProcesses += instanceData.stoppedProcesses;
+                erroredProcesses += instanceData.erroredProcesses;
+                totalWebSocketConnections += instanceData.totalWebSocketConnections;
+                totalWebSocketMessages += instanceData.totalWebSocketMessages;
+
+                // Aggregate WebSocket namespaces
+                instanceData.webSocketNamespaces.forEach(ns => {
+                    if (!webSocketNamespaces.has(ns.path)) {
+                        webSocketNamespaces.set(ns.path, {
+                            path: ns.path,
+                            totalConnections: 0,
+                            totalMessages: 0,
+                            instanceCount: 0,
+                            serverCount: new Set(),
+                            status: 'green',
+                            lastActivity: ns.lastActivity
+                        });
+                    }
+
+                    const aggregatedNs = webSocketNamespaces.get(ns.path);
+                    aggregatedNs.totalConnections += ns.totalConnections;
+                    aggregatedNs.totalMessages += ns.totalMessages;
+                    aggregatedNs.instanceCount += 1;
+                    aggregatedNs.serverCount.add(instanceData.hostname);
+
+                    // Use most recent activity and worst status
+                    if (new Date(ns.lastActivity) > new Date(aggregatedNs.lastActivity)) {
+                        aggregatedNs.lastActivity = ns.lastActivity;
+                    }
+                    if (ns.status === 'red' || (ns.status === 'yellow' && aggregatedNs.status === 'green')) {
+                        aggregatedNs.status = ns.status;
+                    }
+                });
+            });
+
+            // Convert namespace map to array and finalize server counts
+            const webSocketNamespacesArray = Array.from(webSocketNamespaces.values()).map(ns => ({
+                ...ns,
+                serverCount: ns.serverCount.size
+            }));
+
+            totalWebSocketNamespaces = webSocketNamespacesArray.length;
+
+            return {
+                totalServers: totalServers.size,
+                totalInstances,
+                totalProcesses,
+                runningProcesses,
+                stoppedProcesses,
+                erroredProcesses,
+                totalWebSocketConnections,
+                totalWebSocketMessages,
+                totalWebSocketNamespaces,
+                webSocketNamespaces: webSocketNamespacesArray,
+                lastUpdated: timestamp
+            };
+
+        } catch (error) {
+            LogController.logError(null, 'health._buildClusterStatistics', `error: ${error.message} - falling back to single-instance`);
+            return this._buildStatistics(pm2Status, wsStats, timestamp);
+        }
+    }
+
+    /**
+     * W-076: Build servers array with cross-instance data
+     * @param {Object} systemInfo - System information
+     * @param {Object} wsStats - WebSocket statistics
+     * @param {Object|null} pm2Status - PM2 status data
+     * @param {string} timestamp - Current timestamp
+     * @returns {Promise<Array>} Servers array with cluster data
+     * @private
+     */
+    static async _buildClusterServersArray(systemInfo, wsStats, pm2Status, timestamp) {
+        const appConfig = global.appConfig;
+
+        // If Redis not enabled, fall back to single-server array
+        if (!appConfig.redis?.enabled) {
+            return this._buildServersArray(systemInfo, wsStats, pm2Status, timestamp);
+        }
+
+        try {
+            // Get all instance health data from cache
+            const allInstances = this._getAllInstancesHealth();
+
+            // Include current instance
+            const currentInstanceData = this._getCurrentInstanceHealthData(pm2Status, wsStats);
+            allInstances.set('current', currentInstanceData);
+
+            // Group instances by server (hostname)
+            const serverMap = new Map();
+
+            allInstances.forEach((instanceData, instanceId) => {
+                const hostname = instanceData.hostname;
+
+                if (!serverMap.has(hostname)) {
+                    serverMap.set(hostname, {
+                        serverName: hostname,
+                        serverId: this._extractServerIdFromHostname(hostname),
+                        platform: instanceData.platform,
+                        arch: instanceData.arch,
+                        nodeVersion: instanceData.nodeVersion,
+                        cpus: instanceData.cpus,
+                        loadAverage: instanceData.loadAverage,
+                        freeMemory: instanceData.freeMemory,
+                        totalMemory: instanceData.totalMemory,
+                        mongodb: instanceData.mongodb,
+                        instances: []
+                    });
+                }
+
+                // Add instance to server
+                const server = serverMap.get(hostname);
+                server.instances.push(...instanceData.instances);
+            });
+
+            return Array.from(serverMap.values());
+
+        } catch (error) {
+            LogController.logError(null, 'health._buildClusterServersArray', `error: ${error.message} - falling back to single-server`);
+            return this._buildServersArray(systemInfo, wsStats, pm2Status, timestamp);
+        }
+    }
+
+    /**
+     * Build cluster-wide statistics (legacy method for single-instance fallback)
      * @param {Object|null} pm2Status - PM2 status data
      * @param {Object} wsStats - WebSocket statistics
      * @param {string} timestamp - Current timestamp
@@ -447,6 +674,143 @@ class HealthController {
             // MongoDB server status not available
             return null;
         }
+    }
+
+    /**
+     * W-076: Start periodic health broadcasting to Redis
+     * @private
+     */
+    static _startHealthBroadcasting() {
+        if (!this.config.enableBroadcasting) return;
+
+        const broadcastHealth = async () => {
+            try {
+                const RedisManager = global.RedisManager || require('../utils/redis-manager.js').default;
+
+                // Get current instance health data
+                const pm2Status = await this._getPM2Status();
+                const wsStats = WebSocketController.getStats();
+                const healthData = this._getCurrentInstanceHealthData(pm2Status, wsStats);
+
+                // Broadcast to other instances
+                const instanceId = RedisManager.getInstanceId();
+                const channel = `controller:health:metrics:${instanceId}`;
+
+                RedisManager.publishBroadcast(channel, healthData);
+
+            } catch (error) {
+                LogController.logError(null, 'health._startHealthBroadcasting', `error: ${error.message}`);
+            }
+        };
+
+        // Broadcast immediately and then on interval
+        broadcastHealth();
+        this.healthBroadcastInterval = setInterval(broadcastHealth, this.config.broadcastInterval);
+
+        LogController.logInfo(null, 'health._startHealthBroadcasting', `Started health broadcasting every ${this.config.broadcastInterval}ms`);
+    }
+
+    /**
+     * W-076: Store health data from another instance
+     * @param {string} instanceId - Instance ID
+     * @param {Object} healthData - Health data from instance
+     * @param {string} sourceInstanceId - Source instance ID for verification
+     * @private
+     */
+    static _storeInstanceHealth(instanceId, healthData, sourceInstanceId) {
+        // Add timestamp for TTL management
+        const healthDataWithTimestamp = {
+            ...healthData,
+            receivedAt: Date.now(),
+            sourceInstanceId
+        };
+
+        this.instanceHealthCache.set(instanceId, healthDataWithTimestamp);
+
+        // Clean up expired entries
+        this._cleanupExpiredHealthData();
+    }
+
+    /**
+     * W-076: Get health data from all instances (excluding expired)
+     * @returns {Map} Map of instanceId -> healthData
+     * @private
+     */
+    static _getAllInstancesHealth() {
+        this._cleanupExpiredHealthData();
+        return new Map(this.instanceHealthCache);
+    }
+
+    /**
+     * W-076: Clean up expired health data entries
+     * @private
+     */
+    static _cleanupExpiredHealthData() {
+        const now = Date.now();
+        const expiredKeys = [];
+
+        this.instanceHealthCache.forEach((healthData, instanceId) => {
+            if (now - healthData.receivedAt > this.config.instanceTTL) {
+                expiredKeys.push(instanceId);
+            }
+        });
+
+        expiredKeys.forEach(key => {
+            this.instanceHealthCache.delete(key);
+        });
+    }
+
+    /**
+     * W-076: Get current instance health data in broadcast format
+     * @param {Object|null} pm2Status - PM2 status data
+     * @param {Object} wsStats - WebSocket statistics
+     * @returns {Object} Current instance health data
+     * @private
+     */
+    static _getCurrentInstanceHealthData(pm2Status, wsStats) {
+        const systemInfo = {
+            platform: os.platform(),
+            arch: os.arch(),
+            nodeVersion: process.version,
+            cpus: os.cpus().length,
+            hostname: os.hostname(),
+            loadAverage: os.loadavg(),
+            freeMemory: Math.round(os.freemem() / 1024 / 1024), // MB
+            totalMemory: Math.round(os.totalmem() / 1024 / 1024) // MB
+        };
+
+        const totalWebSocketConnections = wsStats.namespaces.reduce((total, ns) => total + ns.clientCount, 0);
+
+        // Build WebSocket namespace data
+        const webSocketNamespaces = wsStats.namespaces.map(ns => ({
+            path: ns.path,
+            totalConnections: ns.clientCount,
+            totalMessages: ns.totalMessages,
+            status: ns.status,
+            lastActivity: ns.lastActivity
+        }));
+
+        return {
+            hostname: systemInfo.hostname,
+            platform: systemInfo.platform,
+            arch: systemInfo.arch,
+            nodeVersion: systemInfo.nodeVersion,
+            cpus: systemInfo.cpus,
+            loadAverage: systemInfo.loadAverage,
+            freeMemory: systemInfo.freeMemory,
+            totalMemory: systemInfo.totalMemory,
+            mongodb: this._getMongoDBStatus(),
+            totalInstances: pm2Status ? pm2Status.totalProcesses : 1,
+            totalProcesses: pm2Status ? pm2Status.totalProcesses : 1,
+            runningProcesses: pm2Status ? pm2Status.running : 1,
+            stoppedProcesses: pm2Status ? pm2Status.stopped : 0,
+            erroredProcesses: pm2Status ? pm2Status.errored : 0,
+            totalWebSocketConnections,
+            totalWebSocketMessages: wsStats.totalMessages,
+            webSocketNamespaces,
+            instances: this._buildServersArray(systemInfo, wsStats, pm2Status, new Date().toISOString())[0].instances,
+            timestamp: new Date().toISOString()
+        };
     }
 
     /**

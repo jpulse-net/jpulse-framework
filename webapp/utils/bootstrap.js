@@ -91,6 +91,11 @@ export async function bootstrap(options = {}) {
         BroadcastControllerModule.default.initialize();
         bootstrapLog('✅ BroadcastController: Initialized with framework subscriptions');
 
+        // Step 6.3: Initialize health controller clustering (W-076)
+        const HealthControllerModule = await import('../controller/health.js');
+        HealthControllerModule.default.initialize();
+        bootstrapLog('✅ HealthController: Initialized with Redis clustering');
+
         // Step 7: Set up CommonUtils globally
         global.CommonUtils = CommonUtils;
         bootstrapLog('✅ CommonUtils: Available globally');
@@ -102,7 +107,8 @@ export async function bootstrap(options = {}) {
             i18n: i18n,
             database: database,
             redisManager: RedisManagerModule.default,
-            sessionStore: sessionStore
+            sessionStore: sessionStore,
+            healthController: HealthControllerModule.default
         };
 
     } catch (error) {

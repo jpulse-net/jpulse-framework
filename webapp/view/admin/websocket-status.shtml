@@ -20,7 +20,7 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         /* Page-specific styles only - status styles moved to jpulse-common.css */
-        
+
         .local-namespace-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -412,7 +412,7 @@
         function initWebSocket() {
             console.log('Connecting to WebSocket stats feed...');
 
-            wsConnection = jPulse.ws.connect('/ws/jpulse-ws-status')
+            wsConnection = jPulse.ws.connect('/api/1/ws/jpulse-ws-status')
                 .onMessage((data, message) => {
                     if (data && data.type === 'stats-update') {
                         updateStats(data.data);

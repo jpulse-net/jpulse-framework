@@ -3796,7 +3796,7 @@ window.jPulse = {
      * - Persistent client UUID (survives reconnections)
      *
      * Usage:
-     *   const ws = jPulse.ws.connect('/ws/my-app')
+     *   const ws = jPulse.ws.connect('/api/1/ws/my-app')
      *     .onMessage(data => console.log(data))
      *     .onStatusChange(status => console.log(status));
      *   ws.send({ type: 'action', payload: {...} });
@@ -3841,7 +3841,7 @@ window.jPulse = {
 
         /**
          * Connect to WebSocket namespace
-         * @param {string} path - Namespace path (e.g., '/ws/hello-emoji')
+         * @param {string} path - Namespace path (e.g., '/api/1/ws/hello-emoji')
          * @param {Object} options - Connection options (optional)
          * @returns {Object} Connection handle with methods
          */

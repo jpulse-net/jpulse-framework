@@ -284,6 +284,9 @@ async function gracefulShutdown(signal) {
 
     try {
         // Shutdown Redis connections
+        // Shutdown health controller broadcasting
+        await modules.healthController.shutdown();
+
         await modules.redisManager.shutdown();
 
         // Shutdown cache manager

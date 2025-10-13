@@ -31577,3 +31577,216 @@ RedisManager.publishBroadcast('model:helloDashboard:dataChanged', { timestamp: D
 ```
 
 This is now a truly extensible and maintainable broadcasting system!
+
+
+==============================================================
+2025-10-13 16:45
+
+W-076 Phase 3: WebSocket Redis Broadcasting - Complete!
+
+**PHASE 3 OBJECTIVES:**
+✅ Migrate WebSocket endpoints from `/ws/` to `/api/1/ws/` for API consistency
+✅ Implement Redis-based WebSocket message broadcasting
+✅ Add cross-instance WebSocket communication
+✅ Update WebSocket controller to use callback-based broadcasting system
+
+**TASK 1: Endpoint Migration (/ws/ → /api/1/ws/)**
+
+✅ **WebSocket Controller Updates:**
+- Updated namespace validation: `path.startsWith('/api/1/ws/')`
+- Updated documentation and examples throughout
+- Updated admin namespaces: `/api/1/ws/jpulse-ws-status`, `/api/1/ws/jpulse-ws-test`
+
+✅ **Client-Side Updates:**
+- Updated `jPulse.ws.connect()` documentation examples
+- Updated all admin view files (websocket-status.shtml, websocket-test.shtml)
+- Consistent API endpoint pattern across framework
+
+**TASK 2: Redis Broadcasting Implementation**
+
+✅ **Callback-Based WebSocket Broadcasting:**
+- Replaced old commented Redis code with RedisManager integration
+- `_initializeRedis()` now uses `RedisManager.registerBroadcastCallback()`
+- Channel pattern: `websocket:broadcast:*` for all WebSocket communications
+- Automatic namespace path conversion (e.g., `/api/1/ws/test` → `websocket:broadcast:api:1:ws:test`)
+
+✅ **Cross-Instance Message Flow:**
+```
+Instance A: WebSocket.broadcast() → RedisManager.publishBroadcast()
+Redis: Distributes message to all instances
+Instance B: Callback receives → _localBroadcast() → WebSocket clients
+```
+
+✅ **Graceful Fallback:**
+- WebSocket broadcasting works locally even if Redis unavailable
+- Error handling prevents Redis failures from breaking WebSocket functionality
+- Automatic fallback to single-instance mode with proper logging
+
+**TASK 3: Enhanced Architecture**
+
+✅ **Channel Naming Convention:**
+- Pattern: `controller:websocket:broadcast:{namespace_path_as_colons}` (follows MVC convention)
+- Example: `/api/1/ws/hello-app` → `controller:websocket:broadcast:api:1:ws:hello-app`
+- Wildcard subscription: `controller:websocket:broadcast:*` captures all WebSocket channels
+
+✅ **Instance Filtering:**
+- Messages automatically filtered by source instance ID
+- Prevents infinite loops and duplicate local processing
+- Clean separation between local and remote message handling
+
+✅ **Integration Benefits:**
+- Leverages existing RedisManager callback registry
+- No manual channel management needed
+- Consistent with framework broadcasting patterns
+- Site owners get WebSocket clustering automatically
+
+**TECHNICAL IMPLEMENTATION:**
+
+**WebSocket Controller Changes:**
+```javascript
+// OLD: Manual Redis client management + commented TODO code
+// NEW: RedisManager callback-based system
+
+_initializeRedis() {
+    RedisManager.registerBroadcastCallback('controller:websocket:broadcast:*',
+        (channel, data, sourceInstanceId) => {
+            const namespacePath = this._extractNamespacePath(channel);
+            if (sourceInstanceId !== RedisManager.getInstanceId()) {
+                this._localBroadcast(namespacePath, data);
+            }
+        }
+    );
+}
+
+broadcast(namespacePath, data, fromUsername) {
+    this._localBroadcast(namespacePath, data);  // Local clients
+    if (this.redis.enabled) {
+        const channel = `controller:websocket:broadcast:${this._createChannelSuffix(namespacePath)}`;
+        RedisManager.publishBroadcast(channel, data);  // Remote instances
+    }
+}
+```
+
+**PHASE 3 COMPLETE - READY FOR PHASE 4!**
+
+Next: **Phase 4: Health Metrics Clustering** - Distribute health metrics and system status across instances for centralized monitoring.
+
+
+==============================================================
+2025-10-13 17:15
+
+W-076 Phase 4: Health Metrics Clustering - Complete!
+
+**PHASE 4 OBJECTIVES:**
+✅ Implement Redis-based health metrics aggregation
+✅ Add cross-instance health status coordination
+✅ Update health controller to use Redis for metrics distribution
+✅ Implement centralized instance monitoring and status
+✅ Add health metrics broadcasting for cluster visibility
+
+**TASK 1: Redis Health Metrics Integration**
+
+✅ **HealthController Enhancement:**
+- Added `initialize()` and `shutdown()` methods for Redis clustering
+- Integrated with RedisManager callback system: `controller:health:metrics:*`
+- Automatic health broadcasting every 30 seconds with 90-second TTL
+- Instance health cache with automatic cleanup of expired data
+
+✅ **Cross-Instance Health Aggregation:**
+```javascript
+// Channel pattern: controller:health:metrics:{instanceId}
+// Data includes: hostname, platform, memory, CPU, WebSocket stats, PM2 status
+// Automatic aggregation across all instances for unified cluster view
+```
+
+**TASK 2: Cluster-Wide Metrics API**
+
+✅ **Enhanced `/api/1/metrics` Endpoint:**
+- `_buildClusterStatistics()`: Aggregates metrics from all instances
+- `_buildClusterServersArray()`: Groups instances by server hostname
+- Graceful fallback to single-instance mode if Redis unavailable
+- Real-time cluster health visibility for administrators
+
+✅ **Comprehensive Cluster Data:**
+- **Total Servers**: Unique hostnames across cluster
+- **Total Instances**: All PM2 processes across all servers
+- **WebSocket Aggregation**: Combined connections, messages, namespaces
+- **Server Grouping**: Instances organized by physical server
+- **Status Coordination**: Health status from all instances
+
+**TASK 3: Bootstrap Integration**
+
+✅ **Initialization Sequence:**
+- Step 6.3: `HealthController.initialize()` after RedisManager
+- Automatic startup of health broadcasting
+- Integration with graceful shutdown process
+- Added to bootstrap return object for lifecycle management
+
+✅ **Shutdown Coordination:**
+```javascript
+// Graceful shutdown order:
+// 1. HealthController.shutdown() - Stop broadcasting
+// 2. RedisManager.shutdown() - Close Redis connections
+// 3. CacheManager.shutdown() - Clean up caches
+```
+
+**TASK 4: Architecture Benefits**
+
+✅ **Centralized Monitoring:**
+- Single `/api/1/metrics` call shows entire cluster health
+- Real-time instance discovery and status tracking
+- Automatic handling of instance failures (TTL expiration)
+- No manual instance registration required
+
+✅ **Scalability Features:**
+- Supports unlimited instances across unlimited servers
+- Efficient Redis pub/sub with minimal overhead
+- Automatic cleanup prevents memory leaks
+- Works with PM2 clustering and manual scaling
+
+✅ **Operational Excellence:**
+- Graceful degradation if Redis unavailable
+- Consistent MVC naming: `controller:health:metrics:{instanceId}`
+- Comprehensive error handling and logging
+- Zero configuration required for site owners
+
+**TECHNICAL IMPLEMENTATION:**
+
+**Health Broadcasting Flow:**
+```javascript
+Instance A: HealthController._startHealthBroadcasting()
+  ↓ Every 30s: Collect PM2 + WebSocket + System metrics
+  ↓ RedisManager.publishBroadcast('controller:health:metrics:A', data)
+  ↓ Redis distributes to all instances
+
+Instance B: Receives via callback → _storeInstanceHealth()
+  ↓ Cache with TTL → _getAllInstancesHealth()
+  ↓ GET /api/1/metrics → _buildClusterStatistics()
+  ↓ Returns aggregated cluster view
+```
+
+**Data Structure:**
+```javascript
+// Per-instance broadcast data:
+{
+  hostname, platform, arch, nodeVersion, cpus, loadAverage,
+  freeMemory, totalMemory, mongodb, totalInstances, totalProcesses,
+  runningProcesses, stoppedProcesses, erroredProcesses,
+  totalWebSocketConnections, totalWebSocketMessages,
+  webSocketNamespaces: [{ path, totalConnections, totalMessages, status }],
+  instances: [{ pid, uptime, memory, cpu, websockets }],
+  timestamp
+}
+```
+
+**🎉 PHASE 4 COMPLETE - W-076 REDIS INFRASTRUCTURE FINISHED!**
+
+**🏆 FINAL ACHIEVEMENT: Complete Redis Infrastructure for jPulse Framework v1.0**
+
+All phases completed successfully:
+✅ **Phase 1**: Session Management & Configuration Caching
+✅ **Phase 2**: Broadcasting System with Callback Architecture
+✅ **Phase 3**: WebSocket Redis Broadcasting with MVC Naming
+✅ **Phase 4**: Health Metrics Clustering & Instance Coordination
+
+**Ready for v1.0 Production Release!** 🚀

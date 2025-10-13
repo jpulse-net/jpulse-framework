@@ -25,7 +25,7 @@ const ViewController = global.ViewController;
  * WebSocket Controller - Enterprise-grade WebSocket infrastructure
  *
  * Features:
- * - Namespace-based isolation (enforces /ws/* prefix)
+ * - Namespace-based isolation (enforces /api/1/ws/* prefix)
  * - Optional authentication/authorization per namespace
  * - Bidirectional ping/pong with auto-reconnect
  * - Statistics tracking and admin monitoring
@@ -34,7 +34,7 @@ const ViewController = global.ViewController;
  *
  * Usage:
  * Server-side (in controller):
- *   WebSocketController.registerNamespace('/ws/my-app', {
+ *   WebSocketController.registerNamespace('/api/1/ws/my-app', {
  *     requireAuth: false,
  *     onConnect: (client, user) => {},
  *     onMessage: (client, data, user) => {},
@@ -42,7 +42,7 @@ const ViewController = global.ViewController;
  *   });
  *
  * Client-side (in view):
- *   const ws = jPulse.ws.connect('/ws/my-app')
+ *   const ws = jPulse.ws.connect('/api/1/ws/my-app')
  *     .onMessage(data => console.log(data));
  *   ws.send({ type: 'action', payload: {...} });
  */
@@ -119,15 +119,15 @@ class WebSocketController {
 
     /**
      * Register a WebSocket namespace
-     * @param {string} path - Namespace path (must start with /ws/)
+     * @param {string} path - Namespace path (must start with /api/1/ws/)
      * @param {Object} options - Configuration options
      * @returns {Object} Namespace handle for broadcasting
      */
     static registerNamespace(path, options = {}) {
         try {
             // Validate path prefix
-            if (!path.startsWith('/ws/')) {
-                throw new Error(`Namespace path must start with /ws/ (got: ${path})`);
+            if (!path.startsWith('/api/1/ws/')) {
+                throw new Error(`Namespace path must start with /api/1/ws/ (got: ${path})`);
             }
 
             // Check if namespace already exists
@@ -193,13 +193,21 @@ class WebSocketController {
         this._localBroadcast(namespacePath, dataWithUsername);
 
         // Publish to Redis for other instances (if enabled)
-        if (this.redis.enabled && this.redis.publisher) {
-            // TODO: Implement when W-076 (Redis infrastructure) is complete
-            // this.redis.publisher.publish('websocket:broadcast', JSON.stringify({
-            //     namespace: namespacePath,
-            //     data: dataWithUsername,
-            //     fromPid: process.pid
-            // }));
+        if (this.redis.enabled) {
+            try {
+                // W-076: Use RedisManager callback-based broadcasting
+                const RedisManager = global.RedisManager || require('../utils/redis-manager.js').default;
+
+                // Create channel name: controller:websocket:broadcast:{namespacePath}
+                // Remove leading slash and replace slashes with colons for clean channel names
+                const channelSuffix = namespacePath.replace(/^\//, '').replace(/\//g, ':');
+                const channel = `controller:websocket:broadcast:${channelSuffix}`;
+
+                RedisManager.publishBroadcast(channel, dataWithUsername);
+            } catch (error) {
+                LogController.logError(null, 'websocket.broadcast', `Redis broadcast failed: ${error.message}`);
+                // Continue with local broadcast even if Redis fails
+            }
         }
     }
 
@@ -565,41 +573,24 @@ class WebSocketController {
         }
 
         try {
-            // TODO: Implement when W-076 (Redis infrastructure) is complete
-            // const redis = require('redis'); // or import from redis module
-            //
-            // this.redis.publisher = redis.createClient({
-            //     host: appConfig.redis.host,
-            //     port: appConfig.redis.port,
-            //     password: appConfig.redis.password,
-            //     db: appConfig.redis.db || 0
-            // });
-            //
-            // this.redis.subscriber = redis.createClient({
-            //     host: appConfig.redis.host,
-            //     port: appConfig.redis.port,
-            //     password: appConfig.redis.password,
-            //     db: appConfig.redis.db || 0
-            // });
-            //
-            // // Subscribe to broadcast channel
-            // this.redis.subscriber.subscribe('websocket:broadcast');
-            //
-            // // Handle messages from other instances
-            // this.redis.subscriber.on('message', (channel, message) => {
-            //     if (channel === 'websocket:broadcast') {
-            //         const { namespace, data, fromPid } = JSON.parse(message);
-            //         // Only broadcast if message came from different instance
-            //         if (fromPid !== process.pid) {
-            //             this._localBroadcast(namespace, data);
-            //         }
-            //     }
-            // });
-            //
-            // this.redis.enabled = true;
-            // LogController.logInfo(null, 'websocket._initializeRedis', 'Redis pub/sub initialized for multi-instance coordination');
+            // W-076: Use RedisManager for WebSocket broadcasting
+            const RedisManager = global.RedisManager || require('../utils/redis-manager.js').default;
 
-            LogController.logInfo(null, 'websocket._initializeRedis', 'Redis enabled in config but W-076 not yet implemented - running in single-instance mode');
+            // Register callback for WebSocket broadcasts from other instances
+            RedisManager.registerBroadcastCallback('controller:websocket:broadcast:*', (channel, data, sourceInstanceId) => {
+                // Extract namespace from channel (controller:websocket:broadcast:api:1:ws:namespace)
+                const channelSuffix = channel.replace('controller:websocket:broadcast:', '');
+                // Convert back to path format: api:1:ws:namespace -> /api/1/ws/namespace
+                const namespacePath = '/' + channelSuffix.replace(/:/g, '/');
+
+                // Only process if message came from different instance
+                if (sourceInstanceId !== RedisManager.getInstanceId()) {
+                    this._localBroadcast(namespacePath, data);
+                }
+            });
+
+            this.redis.enabled = true;
+            LogController.logInfo(null, 'websocket._initializeRedis', 'Redis pub/sub initialized for multi-instance WebSocket coordination');
 
         } catch (error) {
             LogController.logError(null, 'websocket._initializeRedis', `error: ${error.message} - falling back to single-instance mode`);
@@ -608,24 +599,24 @@ class WebSocketController {
     }
 
     /**
-     * Register /ws/jpulse-ws-status namespace for real-time stats updates
+     * Register /api/1/ws/jpulse-ws-status namespace for real-time stats updates
      * @private
      */
     static _registerAdminStatsNamespace() {
-        this.registerNamespace('/ws/jpulse-ws-status', {
+        this.registerNamespace('/api/1/ws/jpulse-ws-status', {
             requireAuth: true,
             requireRoles: ['admin', 'root'],
             onConnect: (clientId, user) => {
                 // Send initial stats
                 const stats = this.getStats();
-                this.sendToClient(clientId, '/ws/jpulse-ws-status', {
+                this.sendToClient(clientId, '/api/1/ws/jpulse-ws-status', {
                     type: 'stats-update',
                     data: stats
                 });
 
                 // Set up interval to send updates every 5 seconds
                 const interval = setInterval(() => {
-                    const namespace = this.namespaces.get('/ws/jpulse-ws-status');
+                    const namespace = this.namespaces.get('/api/1/ws/jpulse-ws-status');
                     const client = namespace?.clients.get(clientId);
                     if (!client || client.ws.readyState !== 1) {
                         clearInterval(interval);
@@ -633,14 +624,14 @@ class WebSocketController {
                     }
 
                     const stats = this.getStats();
-                    this.sendToClient(clientId, '/ws/jpulse-ws-status', {
+                    this.sendToClient(clientId, '/api/1/ws/jpulse-ws-status', {
                         type: 'stats-update',
                         data: stats
                     });
                 }, 5000);
 
                 // Store interval on client for cleanup
-                const namespace = this.namespaces.get('/ws/jpulse-ws-status');
+                const namespace = this.namespaces.get('/api/1/ws/jpulse-ws-status');
                 const client = namespace.clients.get(clientId);
                 if (client) {
                     client.statsInterval = interval;
@@ -654,7 +645,7 @@ class WebSocketController {
             },
             onDisconnect: (clientId, user) => {
                 // Clean up interval
-                const namespace = this.namespaces.get('/ws/jpulse-ws-status');
+                const namespace = this.namespaces.get('/api/1/ws/jpulse-ws-status');
                 const client = namespace?.clients.get(clientId);
                 if (client && client.statsInterval) {
                     clearInterval(client.statsInterval);
@@ -664,11 +655,11 @@ class WebSocketController {
     }
 
     /**
-     * Register /ws/jpulse-ws-test namespace for testing
+     * Register /api/1/ws/jpulse-ws-test namespace for testing
      * @private
      */
     static _registerTestNamespace() {
-        this.registerNamespace('/ws/jpulse-ws-test', {
+        this.registerNamespace('/api/1/ws/jpulse-ws-test', {
             requireAuth: true,
             onConnect: (clientId, user) => {
                 LogController.logInfo(null, 'websocket._registerTestNamespace', `Test client connected: ${clientId}`);
@@ -678,7 +669,7 @@ class WebSocketController {
                 LogController.logInfo(null, 'websocket._registerTestNamespace', `Test message received: ${JSON.stringify(message)}`);
 
                 // Broadcast to all clients in namespace
-                this.broadcast('/ws/jpulse-ws-test', {
+                this.broadcast('/api/1/ws/jpulse-ws-test', {
                     type: 'echo',
                     originalMessage: message,
                     serverTimestamp: new Date().toISOString(),

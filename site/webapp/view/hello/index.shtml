@@ -10,7 +10,7 @@
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         AGPL v3, see LICENSE file
- * @genai           60%, Cursor 1.2, Claude Sonnet 4
+ * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
 <html lang="en">
 <head>
@@ -62,6 +62,12 @@
                 <div class="jp-icon-container local-icon-container">🔌</div>
                 <h3 class="jp-card-title">WebSocket Real-time Demo</h3>
                 <p class="jp-card-description">Learn how to create a real-time application using websockets</p>
+            </a>
+
+            <a href="/hello-app-cluster/" class="jp-card-dashboard jp-icon-btn">
+                <div class="jp-icon-container local-icon-container">🌍</div>
+                <h3 class="jp-card-title">App Cluster Demo</h3>
+                <p class="jp-card-description">Learn how to build scalable multi-server applications with Redis broadcasting</p>
             </a>
 
         </div>

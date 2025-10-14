@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / Site / WebApp / View / Hello App Cluster / Code Examples
+ * @tagline         Implementation Examples for App Clustering
+ * @description     Complete code examples for both client-side and server-side broadcasting patterns
+ * @file            site/webapp/view/hello-app-cluster/code-examples.shtml
+ * @version         0.9.7
+ * @release         2025-10-12
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.7, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Examples - App Cluster Demo - {{app.shortName}}</title>
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-pattern-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .local-pattern-comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .local-pattern-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .local-pattern-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .local-pattern-icon {
+            font-size: 24px;
+        }
+
+        .local-pattern-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .local-step-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .local-step-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .local-step-list li:last-child {
+            border-bottom: none;
+        }
+
+        .local-step-list li::before {
+            content: counter(step);
+            counter-increment: step;
+            position: absolute;
+            left: 0;
+            top: 8px;
+            background: #007bff;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .local-step-list {
+            counter-reset: step;
+        }
+
+        .local-api-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+
+        .local-api-table th,
+        .local-api-table td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .local-api-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .local-api-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .local-method-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .local-method-badge.get {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .local-method-badge.post {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .local-method-badge.put {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .local-method-badge.delete {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .local-highlight {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+
+        .local-highlight h4 {
+            margin-top: 0;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-container-1200">
+            <div class="jp-page-header">
+                <h1>💻 Code Examples</h1>
+                <p class="jp-subtitle">Complete implementation examples for both broadcasting patterns</p>
+            </div>
+
+            <!-- Sub-navigation -->
+            <nav class="jp-btn-nav-group">
+                <a href="/hello-app-cluster/" class="jp-btn jp-btn-outline">📖 Overview</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/notifications.shtml" class="jp-btn jp-btn-outline">📢 Global Notifications</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/collaborative-todo.shtml" class="jp-btn jp-btn-outline">✅ Collaborative To-Do</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/code-examples.shtml" class="jp-btn jp-btn-outline jp-btn-active">💻 Code Examples</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/architecture.shtml" class="jp-btn jp-btn-outline">🏗️ Architecture</a>
+            </nav>
+
+            <!-- Pattern Comparison -->
+            <div class="jp-card">
+                <h2>🔄 Broadcasting Patterns Overview
+                    <span class="jp-subheading">Understanding the two different approaches to cluster communication</span>
+                </h2>
+                <div class="jp-card-content">
+                    <div class="local-pattern-comparison">
+                        <!-- Client-Side Pattern -->
+                        <div class="local-pattern-card">
+                            <div class="local-pattern-header">
+                                <div class="local-pattern-icon">📢</div>
+                                <h3 class="local-pattern-title">Client-Side Broadcasting</h3>
+                            </div>
+                            <p><strong>Direct client-to-Redis communication</strong></p>
+                            <ol class="local-step-list">
+                                <li>Client calls <code>jPulse.appCluster.broadcast.publish()</code></li>
+                                <li>Message sent directly to Redis</li>
+                                <li>Redis distributes to all server instances</li>
+                                <li>All connected clients receive broadcast</li>
+                            </ol>
+                            <div class="local-highlight">
+                                <h4>💡 Best For:</h4>
+                                <p>Simple notifications, chat messages, real-time alerts that don't need persistence or validation.</p>
+                            </div>
+                        </div>
+
+                        <!-- Server-Side Pattern -->
+                        <div class="local-pattern-card">
+                            <div class="local-pattern-header">
+                                <div class="local-pattern-icon">✅</div>
+                                <h3 class="local-pattern-title">Server-Side Broadcasting</h3>
+                            </div>
+                            <p><strong>Full MVC with server processing</strong></p>
+                            <ol class="local-step-list">
+                                <li>Client sends standard HTTP request to API</li>
+                                <li>Server validates, processes, saves to database</li>
+                                <li>Server publishes change to Redis</li>
+                                <li>All server instances receive and sync clients</li>
+                            </ol>
+                            <div class="local-highlight">
+                                <h4>💡 Best For:</h4>
+                                <p>Production applications requiring validation, persistence, audit trails, and business logic.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client-Side Broadcasting Examples -->
+            <div class="jp-card">
+                <h2>📢 Client-Side Broadcasting Examples
+                    <span class="jp-subheading">Simple direct broadcasting without server-side logic</span>
+                </h2>
+
+                <!-- Basic Publishing -->
+                <h3>📤 Publishing Messages</h3>
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
+                    <pre>// Send a notification to all cluster instances
+const notificationData = {
+    message: "New user joined the system",
+    type: "info",
+    sender: "{{user.username}}",
+    timestamp: new Date().toISOString()
+};
+
+// Direct broadcast - no server processing
+jPulse.appCluster.broadcast.publish(
+    'controller:helloCluster:notification:sent',
+    notificationData
+);
+
+// Show success message
+jPulse.UI.toast.show('📡 Notification broadcasted!', 'success');</pre>
+                </div>
+
+                <!-- Subscribing to Messages -->
+                <h3>📥 Subscribing to Messages</h3>
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
+                    <pre>// Listen for notifications from all cluster instances
+jPulse.appCluster.broadcast.subscribe(
+    'controller:helloCluster:notification:sent',
+    (data) => {
+        console.log('📡 Received notification:', data);
+
+        // Add to notification feed
+        addNotificationToUI(data);
+
+        // Show toast if from another user
+        if (data.sender !== '{{user.username}}') {
+            jPulse.UI.toast.show(
+                `New message from ${data.sender}`,
+                'info'
+            );
+        }
+    }
+);
+
+function addNotificationToUI(notification) {
+    const feed = document.getElementById('notificationFeed');
+    const item = document.createElement('div');
+    item.className = 'notification-item new';
+    item.innerHTML = `
+        &lt;div class="notification-content"&gt;
+            &lt;strong&gt;${escapeHtml(notification.sender)}&lt;/strong&gt;
+            &lt;p&gt;${escapeHtml(notification.message)}&lt;/p&gt;
+            &lt;small&gt;${formatTime(notification.timestamp)}&lt;/small&gt;
+        &lt;/div&gt;
+    `;
+    feed.prepend(item);
+}</pre>
+                </div>
+
+                <!-- Channel Naming Convention -->
+                <h3>🏷️ Channel Naming Convention</h3>
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
+                    <pre>// Pattern: {layer}:{component}:{domain}:{action}
+
+// ✅ Good examples:
+'controller:helloCluster:notification:sent'
+'view:dashboard:data:refreshed'
+'model:user:profile:updated'
+'controller:chat:message:posted'
+
+// ❌ Avoid these patterns:
+'notifications'           // Too generic
+'user-update'            // No layer specification
+'myApp:something'        // Inconsistent naming
+
+// Real-world examples:
+jPulse.appCluster.broadcast.publish(
+    'controller:orderSystem:payment:completed',
+    { orderId: '12345', amount: 99.99 }
+);
+
+jPulse.appCluster.broadcast.subscribe(
+    'view:dashboard:metrics:updated',
+    (data) => updateDashboardCharts(data)
+);</pre>
+                </div>
+            </div>
+
+            <!-- Server-Side Broadcasting Examples -->
+            <div class="jp-card">
+                <h2>✅ Server-Side Broadcasting Examples
+                    <span class="jp-subheading">Full MVC pattern with database persistence and validation</span>
+                </h2>
+
+                <!-- Controller Implementation -->
+                <h3>🎛️ Controller Implementation</h3>
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
+                    <pre>/**
+ * Create a new todo with server-side broadcasting
+ * POST /api/1/helloClusterTodo
+ */
+static async apiCreate(req, res) {
+    try {
+        const { text, priority = 'medium' } = req.body;
+
+        // 1. Validate input
+        if (!text || text.trim().length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Task description is required'
+            });
+        }
+
+        // 2. Create todo document
+        const todoData = {
+            text: text.trim(),
+            priority,
+            completed: false,
+            userId: req.session?.user?.id || 'demo-user',
+            createdBy: req.session?.user?.username || 'Demo User',
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+
+        // 3. Save to database
+        const result = await global.db
+            .collection('helloClusterTodos')
+            .insertOne(todoData);
+
+        const createdTodo = { ...todoData, _id: result.insertedId };
+
+        // 4. Broadcast change to all cluster instances
+        await HelloClusterTodoController._broadcastChange(
+            'created',
+            createdTodo,
+            req
+        );
+
+        // 5. Return success response
+        res.status(201).json({
+            success: true,
+            message: 'Todo created successfully',
+            data: { todo: createdTodo }
+        });
+
+    } catch (error) {
+        console.error('Error creating todo:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create todo',
+            error: error.message
+        });
+    }
+}</pre>
+                </div>
+
+                <!-- Broadcasting Method -->
+                <h3>📡 Broadcasting Implementation</h3>
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
+                    <pre>/**
+ * Private method to broadcast changes to all cluster instances
+ */
+static async _broadcastChange(action, todo, req) {
+    try {
+        const BroadcastController = global.BroadcastController;
+
+        if (!BroadcastController) {
+            console.warn('BroadcastController not available - skipping broadcast');
+            return;
+        }
+
+        // Prepare broadcast data
+        const broadcastData = {
+            action,           // 'created', 'updated', 'deleted'
+            todo,            // The todo object
+            userId: req.session?.user?.id || 'demo-user',
+            timestamp: new Date().toISOString(),
+            serverInstance: global.RedisManager?.instanceId || 'unknown'
+        };
+
+        // Broadcast to all cluster instances
+        await BroadcastController.publish(
+            'controller:helloClusterTodo:list:changed',
+            broadcastData
+        );
+
+        // Also broadcast specific item update
+        await BroadcastController.publish(
+            'controller:helloClusterTodo:item:updated',
+            broadcastData
+        );
+
+        console.log(`📡 Broadcasted todo ${action}:`, todo._id);
+
+    } catch (error) {
+        console.error('Error broadcasting todo change:', error);
+        // Don't fail the main operation if broadcasting fails
+    }
+}</pre>
+                </div>
+
+                <!-- Client-Side API Calls -->
+                <h3>🌐 Client-Side API Integration</h3>
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
+                    <pre>// Create a new todo via API
+async function createTodo(text, priority) {
+    try {
+        const response = await fetch('/api/1/helloClusterTodo', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ text, priority })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Add to local list immediately
+            todos.unshift(result.data.todo);
+            renderTodos();
+
+            // Server will broadcast to other instances automatically
+            jPulse.UI.toast.show('✅ Task created and synchronized!', 'success');
+        } else {
+            throw new Error(result.message);
+        }
+    } catch (error) {
+        jPulse.UI.toast.show('Failed to create task: ' + error.message, 'error');
+    }
+}
+
+// Listen for broadcasts from other instances
+jPulse.appCluster.broadcast.subscribe(
+    'controller:helloClusterTodo:list:changed',
+    (data) => {
+        console.log('📡 Received todo list change:', data);
+
+        // Refresh the entire list when we get a broadcast
+        loadTodos();
+
+        // Show notification if change came from another user
+        if (data.userId !== getCurrentUserId()) {
+            jPulse.UI.toast.show(
+                `Todo list updated by another user`,
+                'info'
+            );
+        }
+    }
+);</pre>
+                </div>
+            </div>
+
+            <!-- API Reference -->
+            <div class="jp-card">
+                <h2>📚 API Reference
+                    <span class="jp-subheading">Complete API endpoints for the collaborative todo demo</span>
+                </h2>
+                <table class="local-api-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Description</th>
+                            <th>Body/Params</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="local-method-badge get">GET</span></td>
+                            <td><code>/api/1/helloClusterTodo</code></td>
+                            <td>Get all todos for current user</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td><span class="local-method-badge post">POST</span></td>
+                            <td><code>/api/1/helloClusterTodo</code></td>
+                            <td>Create new todo</td>
+                            <td><code>{ text, priority }</code></td>
+                        </tr>
+                        <tr>
+                            <td><span class="local-method-badge put">PUT</span></td>
+                            <td><code>/api/1/helloClusterTodo/:id/toggle</code></td>
+                            <td>Toggle todo completion</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td><span class="local-method-badge delete">DELETE</span></td>
+                            <td><code>/api/1/helloClusterTodo/:id</code></td>
+                            <td>Delete todo</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td><span class="local-method-badge get">GET</span></td>
+                            <td><code>/api/1/helloClusterTodo/stats</code></td>
+                            <td>Get todo statistics</td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Broadcasting API Reference -->
+            <div class="jp-card">
+                <h2>📡 Broadcasting API Reference
+                    <h2>📡 Broadcasting API Reference</h2>
+                    <span class="jp-subheading">Core jPulse broadcasting methods and patterns</span>
+                </h2>
+
+                <!-- Quick Reference -->
+                <h3>⚡ Quick Reference</h3>
+                <table class="local-api-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Description</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>publish(channel, data)</code></td>
+                            <td>Send message to all cluster instances</td>
+                            <td><code>jPulse.appCluster.broadcast.publish('my:channel', data)</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>subscribe(channel, callback)</code></td>
+                            <td>Listen for messages on channel</td>
+                            <td><code>jPulse.appCluster.broadcast.subscribe('my:channel', fn)</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>unsubscribe(channel)</code></td>
+                            <td>Stop listening to channel</td>
+                            <td><code>jPulse.appCluster.broadcast.unsubscribe('my:channel')</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Server-Side Broadcasting -->
+                <h3>🖥️ Server-Side Broadcasting</h3>
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
+                    <pre>// In your controller method
+const BroadcastController = global.BroadcastController;
+
+// Publish a message to all cluster instances
+await BroadcastController.publish(
+    'controller:myApp:data:updated',
+    {
+        action: 'created',
+        data: newRecord,
+        userId: req.session.user.id,
+        timestamp: new Date().toISOString()
+    }
+);
+
+// Multiple channels for different purposes
+await BroadcastController.publish('controller:myApp:list:changed', listData);
+await BroadcastController.publish('controller:myApp:stats:updated', statsData);</pre>
+                </div>
+
+                <!-- Error Handling -->
+                <h3>⚠️ Error Handling & Fallbacks</h3>
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
+                    <pre>// Client-side with fallback
+function publishNotification(data) {
+    try {
+        if (typeof jPulse !== 'undefined' &&
+            jPulse.appCluster &&
+            jPulse.appCluster.broadcast) {
+
+            // Redis broadcasting available
+            jPulse.appCluster.broadcast.publish('my:channel', data);
+            jPulse.UI.toast.show('📡 Broadcasted to all servers!', 'success');
+
+        } else {
+            // Fallback: local only
+            handleLocalMessage(data);
+            jPulse.UI.toast.show('📱 Local mode (Redis unavailable)', 'warning');
+        }
+    } catch (error) {
+        console.error('Broadcasting failed:', error);
+
+        // Always handle locally as fallback
+        handleLocalMessage(data);
+        jPulse.UI.toast.show('Broadcasting failed, shown locally', 'error');
+    }
+}
+
+// Server-side with graceful degradation
+static async _broadcastChange(action, data, req) {
+    try {
+        const BroadcastController = global.BroadcastController;
+
+        if (!BroadcastController) {
+            console.warn('BroadcastController not available - running in single-server mode');
+            return;
+        }
+
+        await BroadcastController.publish('my:channel', {
+            action,
+            data,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Error broadcasting change:', error);
+        // Don't fail the main operation if broadcasting fails
+        // The operation still succeeds locally
+    }
+}</pre>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="jp-btn-nav-group">
+                <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello/" class="jp-btn jp-btn-outline">🌐 Hello World Site Demos</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-todo/" class="jp-btn jp-btn-outline">📋 To-Do MVC Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-vue/" class="jp-btn jp-btn-outline">🔄 Vue.js SPA Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">� WebSocket Real-Time Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/" class="jp-btn jp-btn-active">🌍 App Cluster Demo</a>
+            </div>
+        </div>
+    </div>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

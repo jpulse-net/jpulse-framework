@@ -1420,6 +1420,12 @@ This is the doc to track work items, arranged in three sections:
     - webapp/view/jpulse-common.js -- configurable WebSocket UUID storage (session/local/memory)
     - webapp/view/jpulse-common.js -- jPulse.appCluster API for instance info and broadcasting
     - site/webapp/view/hello-websocket/templates/code-examples.tmpl -- comprehensive WebSocket documentation with UUID storage
+  - Example applications:
+    - /hello-app-cluster/index.shtml -- overview
+    - /hello-app-cluster/notifications.shtml -- app showcasing redis publish/subscribe concept
+    - /hello-app-cluster/collaborative-todo.shtml -- to-do app using controller API
+    - /hello-app-cluster/code-examples.shtml -- code examples for reference
+    - /hello-app-cluster/architecture.shtml -- architecture description
   - UI/UX Improvements:
     - webapp/view/admin/logs.shtml -- better i18n without concatenating i18n strings (Japanese language support)
     - site/webapp/view/hello-websocket/templates/code-examples.tmpl -- escaped HTML in pre blocks for proper rendering
@@ -1437,10 +1443,9 @@ This is the doc to track work items, arranged in three sections:
 
 
 pending:
-- add /hello-redis/ example
-- view controller: return unexpanded {{handlebars}} if not exist, instead of empty return
-- move LogModel.logChange() from webapp/model/config.js to webapp/controller/config.js
+- webapp/view/admin/system-status.shtml gui: work it work for multiple servers & pm2 instances
 
+- view controller: return unexpanded {{handlebars}} if not exist, instead of empty return
 - install pm2, test
 - navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
 - grab gh jpulse.net

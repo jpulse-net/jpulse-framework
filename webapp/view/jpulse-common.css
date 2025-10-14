@@ -1337,6 +1337,19 @@ body {
     gap: 15px;
 }
 
+.jp-form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+    .jp-form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
 .jp-search-section {
     background: #f8f9fa;
     padding: 25px;

@@ -301,7 +301,18 @@ class ConfigController {
             if (req.session && req.session.user) {
                 configData.updatedBy = req.session.user.id || req.session.user.loginId || '';
             }
+
+            // Check if config exists to determine if this is create or update
+            const existingConfig = await ConfigModel.findById(id);
+            const isUpdate = !!existingConfig;
+
             const config = await ConfigModel.upsert(id, configData);
+
+            // Log the change (create or update)
+            const action = isUpdate ? 'update' : 'create';
+            const oldConfig = isUpdate ? existingConfig : null;
+            await LogController.logChange(req, 'config', action, id, oldConfig, config);
+
             LogController.logInfo(req, 'config.upsert', `success: config upserted for id: ${id}`);
             const message = global.i18n.translate(req, 'controller.config.configSaved', { id });
             res.json({

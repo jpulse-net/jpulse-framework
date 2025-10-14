@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / Site / WebApp / View / Hello App Cluster / Architecture
+ * @tagline         App Clustering Architecture Documentation
+ * @description     Comprehensive architecture overview for multi-server application clustering
+ * @file            site/webapp/view/hello-app-cluster/architecture.shtml
+ * @version         0.9.7
+ * @release         2025-10-12
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.7, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture - App Cluster Demo - {{app.shortName}}</title>
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-diagram {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.3;
+            overflow-x: auto;
+        }
+
+        .local-component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .local-component-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .local-component-card:hover {
+            border-color: #007bff;
+            box-shadow: 0 4px 12px rgba(0,123,255,0.1);
+        }
+
+        .local-component-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .local-component-icon {
+            font-size: 24px;
+        }
+
+        .local-component-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .local-component-description {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .local-component-features {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .local-component-features li {
+            padding: 4px 0;
+            font-size: 13px;
+            color: #495057;
+        }
+
+        .local-component-features li::before {
+            content: "✓";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .local-flow-diagram {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .local-flow-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .local-flow-step:last-child {
+            margin-bottom: 0;
+        }
+
+        .local-step-number {
+            background: #007bff;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .local-step-content {
+            flex: 1;
+        }
+
+        .local-step-title {
+            font-weight: bold;
+            margin: 0 0 5px 0;
+        }
+
+        .local-step-description {
+            margin: 0;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .local-comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .local-comparison-table th,
+        .local-comparison-table td {
+            text-align: left;
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: top;
+        }
+
+        .local-comparison-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .local-comparison-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .local-pros-cons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .local-pros-cons {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .local-pros,
+        .local-cons {
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .local-pros {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .local-cons {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .local-pros h4 {
+            color: #155724;
+            margin-top: 0;
+        }
+
+        .local-cons h4 {
+            color: #721c24;
+            margin-top: 0;
+        }
+
+        .local-pros ul,
+        .local-cons ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .local-highlight-box {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 1px solid #90caf9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .local-highlight-box h4 {
+            color: #0d47a1;
+            margin-top: 0;
+        }
+
+        .local-code-snippet {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-container-1200">
+            <div class="jp-page-header">
+                <h1>🏗️ Architecture</h1>
+                <p class="jp-subtitle">Comprehensive overview of jPulse Framework's multi-server clustering architecture</p>
+            </div>
+
+            <!-- Sub-navigation -->
+            <nav class="jp-btn-nav-group">
+                <a href="/hello-app-cluster/" class="jp-btn jp-btn-outline">📖 Overview</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/notifications.shtml" class="jp-btn jp-btn-outline">📢 Global Notifications</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/collaborative-todo.shtml" class="jp-btn jp-btn-outline">✅ Collaborative To-Do</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/code-examples.shtml" class="jp-btn jp-btn-outline">💻 Code Examples</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/architecture.shtml" class="jp-btn jp-btn-outline jp-btn-active">🏗️ Architecture</a>
+            </nav>
+
+            <!-- System Overview -->
+            <div class="jp-card">
+                <h2>🌐 System Overview
+                    <span class="jp-subheading">High-level architecture of jPulse Framework clustering</span>
+                </h2>
+                <div class="local-diagram">
+<pre>
+    ┌─────────────────────────────────────────────────────────────────────────────────────┐
+    │                        jPulse Framework Cluster Architecture                        │
+    └─────────────────────────────────────────────────────────────────────────────────────┘
+
+                    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+                    │   Client    │    │   Client    │    │   Client    │
+                    │  Browser 1  │    │  Browser 2  │    │  Browser 3  │
+                    └──────┬──────┘    └──────┬──────┘    └──────┬──────┘
+                           │                  │                  │
+                           │ HTTP/WebSocket   │ HTTP/WebSocket   │ HTTP/WebSocket
+                           │                  │                  │
+                    ┌──────▼──────┐    ┌──────▼──────┐    ┌──────▼──────┐
+                    │  jPulse     │    │  jPulse     │    │  jPulse     │
+                    │  Server 1   │    │  Server 2   │    │  Server 3   │
+                    │             │    │             │    │             │
+                    │ ┌─────────┐ │    │ ┌─────────┐ │    │ ┌─────────┐ │
+                    │ │  MVC    │ │    │ │  MVC    │ │    │ │  MVC    │ │
+                    │ │ Layer   │ │    │ │ Layer   │ │    │ │ Layer   │ │
+                    │ └─────────┘ │    │ └─────────┘ │    │ └─────────┘ │
+                    └──────┬──────┘    └──────┬──────┘    └──────┬──────┘
+                           │                  │                  │
+                           └──────────────────┼──────────────────┘
+                                              │
+                                    ┌─────────▼─────────┐
+                                    │                   │
+                                    │   Redis Cluster   │
+                                    │   (Pub/Sub +      │
+                                    │    Sessions)      │
+                                    │                   │
+                                    └─────────┬─────────┘
+                                              │
+                                    ┌─────────▼─────────┐
+                                    │                   │
+                                    │   MongoDB         │
+                                    │   (Shared Data)   │
+                                    │                   │
+                                    └───────────────────┘
+</pre>
+                </div>
+
+                <div class="local-highlight-box">
+                    <h4>🎯 Key Design Principles</h4>
+                    <ul>
+                        <li><strong>Horizontal Scalability:</strong> Add more server instances as needed</li>
+                        <li><strong>Graceful Fallback:</strong> Works with or without Redis clustering</li>
+                        <li><strong>Real-time Sync:</strong> Instant data synchronization across all instances</li>
+                        <li><strong>Session Sharing:</strong> Users can switch between any server instance</li>
+                        <li><strong>Separation of Concerns:</strong> Clear boundaries between layers and components</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Core Components -->
+            <div class="jp-card">
+                <h2>🧩 Core Components
+                    <span class="jp-subheading">Essential building blocks of the clustering system</span>
+                </h2>
+                <div class="local-component-grid">
+                    <!-- Redis Manager -->
+                    <div class="local-component-card">
+                        <div class="local-component-header">
+                            <div class="local-component-icon">🔗</div>
+                            <h3 class="local-component-title">RedisManager</h3>
+                        </div>
+                        <p class="local-component-description">
+                            Central Redis connection and pub/sub management
+                        </p>
+                        <ul class="local-component-features">
+                            <li>Connection pooling & health monitoring</li>
+                            <li>Publish/subscribe message routing</li>
+                            <li>Instance identification & clustering</li>
+                            <li>Graceful fallback when Redis unavailable</li>
+                            <li>Callback registration for broadcasts</li>
+                        </ul>
+                    </div>
+
+                    <!-- Broadcast Controller -->
+                    <div class="local-component-card">
+                        <div class="local-component-header">
+                            <div class="local-component-icon">📡</div>
+                            <h3 class="local-component-title">BroadcastController</h3>
+                        </div>
+                        <p class="local-component-description">
+                            High-level broadcasting API and message routing
+                        </p>
+                        <ul class="local-component-features">
+                            <li>Simple publish/subscribe interface</li>
+                            <li>Channel naming convention enforcement</li>
+                            <li>Message validation & error handling</li>
+                            <li>Framework-level broadcast subscriptions</li>
+                            <li>Integration with MVC controllers</li>
+                        </ul>
+                    </div>
+
+                    <!-- WebSocket Controller -->
+                    <div class="local-component-card">
+                        <div class="local-component-header">
+                            <div class="local-component-icon">🔌</div>
+                            <h3 class="local-component-title">WebSocketController</h3>
+                        </div>
+                        <p class="local-component-description">
+                            Real-time client communication and broadcasting
+                        </p>
+                        <ul class="local-component-features">
+                            <li>Namespace-based WebSocket management</li>
+                            <li>Client-to-cluster message routing</li>
+                            <li>Session-aware connections</li>
+                            <li>Local & Redis-based broadcasting</li>
+                            <li>Connection health monitoring</li>
+                        </ul>
+                    </div>
+
+                    <!-- Session Store -->
+                    <div class="local-component-card">
+                        <div class="local-component-header">
+                            <div class="local-component-icon">🔐</div>
+                            <h3 class="local-component-title">Session Store</h3>
+                        </div>
+                        <p class="local-component-description">
+                            Shared session management across cluster instances
+                        </p>
+                        <ul class="local-component-features">
+                            <li>Redis-backed session sharing</li>
+                            <li>Memory fallback for single-server mode</li>
+                            <li>Automatic session synchronization</li>
+                            <li>Configurable TTL and cleanup</li>
+                            <li>User authentication state sharing</li>
+                        </ul>
+                    </div>
+
+                    <!-- Health Controller -->
+                    <div class="local-component-card">
+                        <div class="local-component-header">
+                            <div class="local-component-icon">❤️</div>
+                            <h3 class="local-component-title">HealthController</h3>
+                        </div>
+                        <p class="local-component-description">
+                            Cluster health monitoring and metrics collection
+                        </p>
+                        <ul class="local-component-features">
+                            <li>Instance health reporting</li>
+                            <li>Redis connectivity monitoring</li>
+                            <li>Performance metrics collection</li>
+                            <li>Cluster topology discovery</li>
+                            <li>Load balancer health checks</li>
+                        </ul>
+                    </div>
+
+                    <!-- Bootstrap -->
+                    <div class="local-component-card">
+                        <div class="local-component-header">
+                            <div class="local-component-icon">🚀</div>
+                            <h3 class="local-component-title">Bootstrap</h3>
+                        </div>
+                        <p class="local-component-description">
+                            Application initialization and component orchestration
+                        </p>
+                        <ul class="local-component-features">
+                            <li>Dependency injection setup</li>
+                            <li>Component initialization order</li>
+                            <li>Configuration loading & validation</li>
+                            <li>Error handling during startup</li>
+                            <li>Test environment support</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Broadcasting Patterns -->
+            <div class="jp-card">
+                <h2>🔄 Broadcasting Patterns
+                    <span class="jp-subheading">Two complementary approaches to cluster communication</span>
+                </h2>
+
+                <!-- Client-Side Pattern -->
+                <h3>📢 Client-Side Broadcasting Pattern</h3>
+                <div class="local-flow-diagram">
+                    <div class="local-flow-step">
+                        <div class="local-step-number">1</div>
+                        <div class="local-step-content">
+                            <div class="local-step-title">Client Action</div>
+                            <div class="local-step-description">User performs action in browser (e.g., sends notification)</div>
+                        </div>
+                    </div>
+
+                    <div class="local-flow-step">
+                        <div class="local-step-number">2</div>
+                        <div class="local-step-content">
+                            <div class="local-step-title">Direct Broadcast</div>
+                            <div class="local-step-description">JavaScript calls <code>jPulse.appCluster.broadcast.publish()</code> directly</div>
+                        </div>
+                    </div>
+
+                    <div class="local-flow-step">
+                        <div class="local-step-number">3</div>
+                        <div class="local-step-content">
+                            <div class="local-step-title">Redis Distribution</div>
+                            <div class="local-step-description">Message sent to Redis pub/sub, distributed to all server instances</div>
+                        </div>
+                    </div>
+
+                    <div class="local-flow-step">
+                        <div class="local-step-number">4</div>
+                        <div class="local-step-content">
+                            <div class="local-step-title">Client Notifications</div>
+                            <div class="local-step-description">All connected clients receive broadcast via WebSocket subscriptions</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Server-Side Pattern -->
+                <h3>✅ Server-Side Broadcasting Pattern</h3>
+                <div class="local-flow-diagram">
+                    <div class="local-flow-step">
+                        <div class="local-step-number">1</div>
+                        <div class="local-step-content">
+                            <div class="local-step-title">API Request</div>
+                            <div class="local-step-description">Client sends HTTP request to controller endpoint</div>
+                        </div>
+                    </div>
+
+                    <div class="local-flow-step">
+                        <div class="local-step-number">2</div>
+                        <div class="local-step-content">
+                            <div class="local-step-title">Server Processing</div>
+                            <div class="local-step-description">Controller validates, processes business logic, saves to database</div>
+                        </div>
+                    </div>
+
+                    <div class="local-flow-step">
+                        <div class="local-step-number">3</div>
+                        <div class="local-step-content">
+                            <div class="local-step-title">Server Broadcast</div>
+                            <div class="local-step-description">Controller publishes change notification to Redis</div>
+                        </div>
+                    </div>
+
+                    <div class="local-flow-step">
+                        <div class="local-step-number">4</div>
+                        <div class="local-step-content">
+                            <div class="local-step-title">Cluster Sync</div>
+                            <div class="local-step-description">All server instances receive broadcast and notify their connected clients</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pattern Comparison -->
+                <h3>⚖️ Pattern Comparison</h3>
+                <table class="local-comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            <th>Client-Side Broadcasting</th>
+                            <th>Server-Side Broadcasting</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Complexity</strong></td>
+                            <td>Simple, minimal code</td>
+                            <td>Full MVC implementation</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Validation</strong></td>
+                            <td>Client-side only</td>
+                            <td>Server-side validation</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Persistence</strong></td>
+                            <td>None (ephemeral messages)</td>
+                            <td>Database storage</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Security</strong></td>
+                            <td>Limited (client-controlled)</td>
+                            <td>Full server-side security</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Audit Trail</strong></td>
+                            <td>None</td>
+                            <td>Complete logging</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Use Cases</strong></td>
+                            <td>Notifications, chat, alerts</td>
+                            <td>Data operations, workflows</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Performance</strong></td>
+                            <td>Very fast (direct Redis)</td>
+                            <td>Moderate (full processing)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Reliability</strong></td>
+                            <td>Best effort delivery</td>
+                            <td>Transactional consistency</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Channel Naming Convention -->
+            <div class="jp-card">
+                <h2>🏷️ Channel Naming Convention
+                    <span class="jp-subheading">Structured approach to broadcast channel organization</span>
+                </h2>
+                <div class="local-highlight-box">
+                    <h4>📋 Standard Pattern: {layer}:{component}:{domain}:{action}</h4>
+                    <p>This four-part naming convention ensures clear, collision-free channel names that are easy to understand and maintain.</p>
+                </div>
+
+                <h3>🔍 Pattern Breakdown</h3>
+                <table class="local-comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Part</th>
+                            <th>Description</th>
+                            <th>Examples</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>layer</strong></td>
+                            <td>MVC layer initiating the broadcast</td>
+                            <td><code>controller</code>, <code>view</code>, <code>model</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>component</strong></td>
+                            <td>Specific component or feature name</td>
+                            <td><code>helloCluster</code>, <code>userProfile</code>, <code>orderSystem</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>domain</strong></td>
+                            <td>Data domain or entity type</td>
+                            <td><code>notification</code>, <code>todo</code>, <code>user</code>, <code>payment</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>action</strong></td>
+                            <td>Action or event that occurred</td>
+                            <td><code>created</code>, <code>updated</code>, <code>deleted</code>, <code>sent</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>✅ Good Examples</h3>
+                <div class="local-code-snippet">
+<pre>
+// Framework channels
+controller:view:config:refresh
+controller:websocket:broadcast:hello-emoji
+
+// Application channels
+controller:helloCluster:notification:sent
+controller:helloClusterTodo:list:changed
+controller:helloClusterTodo:item:updated
+
+// Real-world examples
+controller:orderSystem:payment:completed
+controller:userProfile:avatar:updated
+view:dashboard:metrics:refreshed
+model:inventory:stock:depleted
+</pre>
+                </div>
+
+                <h3>❌ Avoid These Patterns</h3>
+                <div class="local-code-snippet">
+<pre>
+// Too generic
+notifications
+user-update
+data-change
+
+// Inconsistent naming
+myApp:something
+user_profile_update
+NotificationSent
+
+// Missing layer information
+todo:created
+payment:completed
+</pre>
+                </div>
+            </div>
+
+            <!-- Configuration & Deployment -->
+            <div class="jp-card">
+                <h2>⚙️ Configuration & Deployment
+                    <span class="jp-subheading">Setting up clustering in different environments</span>
+                </h2>
+
+                <h3>🔧 Redis Configuration</h3>
+                <div class="local-code-snippet">
+<pre>
+// app.conf - Redis clustering configuration
+{
+  "redis": {
+    "enabled": true,
+    "host": "localhost",
+    "port": 6379,
+    "password": "",
+    "db": 0,
+    "keyPrefix": "jpulse:",
+    "sessionTtl": 86400,
+    "maxRetries": 3,
+    "retryDelayOnFailover": 100,
+    "enableOfflineQueue": false
+  }
+}
+</pre>
+                </div>
+
+                <h3>🐳 Docker Deployment Example</h3>
+                <div class="local-code-snippet">
+<pre>
+# docker-compose.yml - Multi-instance deployment
+version: '3.8'
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  jpulse-1:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - MONGODB_URL=mongodb://mongodb:27017/jpulse
+    depends_on:
+      - redis
+      - mongodb
+
+  jpulse-2:
+    build: .
+    ports:
+      - "8081:8080"
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - MONGODB_URL=mongodb://mongodb:27017/jpulse
+    depends_on:
+      - redis
+      - mongodb
+
+volumes:
+  redis_data:
+  mongo_data:
+</pre>
+                </div>
+
+                <h3>🔄 Graceful Fallback Behavior</h3>
+                <div class="local-pros-cons">
+                    <div class="local-pros">
+                        <h4>✅ With Redis Enabled</h4>
+                        <ul>
+                            <li>Full cluster broadcasting</li>
+                            <li>Shared session storage</li>
+                            <li>Real-time synchronization</li>
+                            <li>Load balancer compatibility</li>
+                            <li>Horizontal scaling</li>
+                        </ul>
+                    </div>
+
+                    <div class="local-cons">
+                        <h4>⚠️ Redis Disabled/Unavailable</h4>
+                        <ul>
+                            <li>Single-server mode</li>
+                            <li>Memory-based sessions</li>
+                            <li>Local-only broadcasting</li>
+                            <li>No cross-instance sync</li>
+                            <li>Still fully functional</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="local-highlight-box">
+                    <h4>🛡️ Production Considerations</h4>
+                    <ul>
+                        <li><strong>Redis High Availability:</strong> Use Redis Sentinel or Cluster for production</li>
+                        <li><strong>Connection Pooling:</strong> Configure appropriate connection limits</li>
+                        <li><strong>Monitoring:</strong> Set up Redis and application health monitoring</li>
+                        <li><strong>Security:</strong> Enable Redis AUTH and use TLS in production</li>
+                        <li><strong>Backup Strategy:</strong> Regular Redis and MongoDB backups</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="jp-btn-nav-group">
+                <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello/" class="jp-btn jp-btn-outline">🌐 Hello World Site Demos</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-todo/" class="jp-btn jp-btn-outline">📋 To-Do MVC Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-vue/" class="jp-btn jp-btn-outline">🔄 Vue.js SPA Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">� WebSocket Real-Time Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/" class="jp-btn jp-btn-active">🌍 App Cluster Demo</a>
+            </div>
+        </div>
+    </div>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

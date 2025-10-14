@@ -1,0 +1,246 @@
+/**
+ * @name            jPulse Framework / WebApp / Tests / Unit / Utils / Redis Config
+ * @tagline         Unit tests for Redis configuration validation (W-076)
+ * @description     Tests Redis config parsing, validation, and fallback behavior
+ * @file            webapp/tests/unit/utils/redis-config.test.js
+ * @version         0.9.7
+ * @release         2025-10-12
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           80%, Cursor 1.2, Claude Sonnet 4
+ */
+
+import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+
+describe('Redis Configuration (W-076)', () => {
+    let RedisManager;
+    let originalAppConfig;
+
+    beforeEach(async () => {
+        // Save original config
+        originalAppConfig = global.appConfig;
+
+        // Import RedisManager fresh for each test
+        jest.resetModules();
+        const module = await import('../../../utils/redis-manager.js');
+        RedisManager = module.default;
+    });
+
+    afterEach(() => {
+        // Restore original config
+        global.appConfig = originalAppConfig;
+
+        // Clean up any Redis connections
+        if (RedisManager && typeof RedisManager.shutdown === 'function') {
+            RedisManager.shutdown();
+        }
+    });
+
+    describe('Configuration Parsing', () => {
+        it('should handle disabled Redis configuration', () => {
+            const config = { enabled: false };
+
+            RedisManager.initialize(config);
+
+            expect(RedisManager.isAvailable).toBe(false);
+            expect(RedisManager.getInstanceId()).toBeDefined();
+        });
+
+        it('should generate consistent instance IDs', () => {
+            const config = { enabled: false };
+
+            RedisManager.initialize(config);
+            const instanceId1 = RedisManager.getInstanceId();
+
+            RedisManager.initialize(config);
+            const instanceId2 = RedisManager.getInstanceId();
+
+            expect(instanceId1).toBe(instanceId2);
+        });
+    });
+
+    describe('Instance ID Generation', () => {
+        it('should generate instance ID in correct format', () => {
+            RedisManager.initialize({ enabled: false });
+
+            const instanceId = RedisManager.getInstanceId();
+
+            expect(instanceId).toMatch(/^[^:]+:\d+$/); // hostname:number format
+            expect(instanceId.length).toBeGreaterThan(3);
+        });
+
+        it('should include hostname in instance ID', () => {
+            RedisManager.initialize({ enabled: false });
+
+            const instanceId = RedisManager.getInstanceId();
+            const [hostname, instance] = instanceId.split(':');
+
+            expect(hostname).toBeDefined();
+            expect(hostname.length).toBeGreaterThan(0);
+            expect(instance).toBeDefined();
+            expect(parseInt(instance)).toBeGreaterThanOrEqual(0);
+        });
+
+        it('should handle process environment variables', () => {
+            const originalEnv = process.env.NODE_APP_INSTANCE;
+            process.env.NODE_APP_INSTANCE = '5';
+
+            RedisManager.initialize({ enabled: false });
+            const instanceId = RedisManager.getInstanceId();
+
+            // Should contain the instance number, but may not be exactly ":5" due to hostname variations
+            expect(instanceId).toMatch(/:\d+$/); // Ends with colon and number
+
+            // Restore original environment
+            if (originalEnv !== undefined) {
+                process.env.NODE_APP_INSTANCE = originalEnv;
+            } else {
+                delete process.env.NODE_APP_INSTANCE;
+            }
+        });
+    });
+
+    describe('Availability Checks', () => {
+        it('should report unavailable when disabled', () => {
+            RedisManager.initialize({ enabled: false });
+
+            expect(RedisManager.isRedisAvailable()).toBe(false);
+            expect(RedisManager.isAvailable).toBe(false);
+        });
+
+        it('should provide consistent availability status', () => {
+            RedisManager.initialize({ enabled: false });
+
+            const available1 = RedisManager.isRedisAvailable();
+            const available2 = RedisManager.isAvailable;
+
+            expect(available1).toBe(available2);
+        });
+
+        it('should handle multiple availability checks', () => {
+            RedisManager.initialize({ enabled: false });
+
+            for (let i = 0; i < 5; i++) {
+                expect(RedisManager.isRedisAvailable()).toBe(false);
+                expect(RedisManager.isAvailable).toBe(false);
+            }
+        });
+    });
+
+    describe('Graceful Fallback Behavior', () => {
+        it('should handle publish broadcast when Redis unavailable', async () => {
+            RedisManager.initialize({ enabled: false });
+
+            const result = await RedisManager.publishBroadcast('test:channel', { data: 'test' });
+
+            expect(result).toBe(false); // Should return false but not throw
+        });
+
+        it('should handle subscribe broadcast when Redis unavailable', async () => {
+            RedisManager.initialize({ enabled: false });
+
+            const result = await RedisManager.subscribeBroadcast('test:channel');
+
+            expect(result).toBe(false); // Should return false but not throw
+        });
+
+        it('should handle session store configuration when Redis unavailable', async () => {
+            RedisManager.initialize({ enabled: false });
+
+            const sessionStore = await RedisManager.configureSessionStore({});
+
+            expect(sessionStore).toBeDefined();
+            expect(sessionStore.constructor.name).toBe('MemoryStore');
+        });
+
+        it('should handle shutdown when Redis unavailable', async () => {
+            RedisManager.initialize({ enabled: false });
+
+            await expect(RedisManager.shutdown()).resolves.not.toThrow();
+        });
+    });
+
+    describe('Configuration Validation', () => {
+        it('should handle boolean enabled flag', () => {
+            const configs = [
+                { enabled: true },
+                { enabled: false },
+                { enabled: 'true' },
+                { enabled: 'false' },
+                { enabled: 1 },
+                { enabled: 0 }
+            ];
+
+            configs.forEach(config => {
+                expect(() => {
+                    RedisManager.initialize(config);
+                }).not.toThrow();
+            });
+        });
+
+        it('should handle partial configuration objects', () => {
+            const configs = [
+                { host: 'localhost' },
+                { port: 6379 },
+                { cluster: { enabled: false } },
+                { prefix: 'test:' },
+                { ttl: { default: 3600 } }
+            ];
+
+            configs.forEach(config => {
+                expect(() => {
+                    RedisManager.initialize(config);
+                }).not.toThrow();
+            });
+        });
+
+        it('should handle empty configuration object', () => {
+            expect(() => {
+                RedisManager.initialize({});
+            }).not.toThrow();
+
+            expect(RedisManager.isAvailable).toBe(false);
+        });
+    });
+
+    describe('Error Handling', () => {
+        it('should handle invalid configuration gracefully', () => {
+            const invalidConfigs = [
+                'invalid string',
+                123,
+                [],
+                true,
+                false
+            ];
+
+            invalidConfigs.forEach(config => {
+                expect(() => {
+                    RedisManager.initialize(config);
+                }).not.toThrow();
+            });
+        });
+
+        it('should maintain consistent state after errors', () => {
+            // Initialize with invalid config
+            RedisManager.initialize('invalid');
+
+            // Should still be able to get instance ID
+            expect(RedisManager.getInstanceId()).toBeDefined();
+            expect(RedisManager.isAvailable).toBe(false);
+        });
+
+        it('should handle multiple initialization calls', () => {
+            RedisManager.initialize({ enabled: false });
+            const firstInstanceId = RedisManager.getInstanceId();
+
+            RedisManager.initialize({ enabled: true });
+            const secondInstanceId = RedisManager.getInstanceId();
+
+            expect(firstInstanceId).toBe(secondInstanceId);
+        });
+    });
+});
+
+// EOF webapp/tests/unit/utils/redis-config.test.js

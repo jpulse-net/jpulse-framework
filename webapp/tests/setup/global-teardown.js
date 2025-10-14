@@ -40,14 +40,20 @@ async function cleanupTestDatabases() {
 }
 
 /**
- * Clean up CacheManager timers
+ * Clean up Redis connections and CacheManager timers
  */
-async function cleanupCacheManager() {
+async function cleanupRedisAndCache() {
     try {
-        // Import CacheManager to access shutdown functionality
-        const { default: cacheManager } = await import('../../utils/cache-manager.js');
+        // Clean up Redis connections if they exist
+        if (global.RedisManager && typeof global.RedisManager.shutdown === 'function') {
+            await global.RedisManager.shutdown();
+            console.log('🔴 Redis cleanup: Connections closed successfully');
+        } else {
+            console.log('🔴 Redis cleanup: No active connections to close');
+        }
 
-        // Shutdown all cache timers
+        // Clean up CacheManager timers
+        const { default: cacheManager } = await import('../../utils/cache-manager.js');
         if (cacheManager && typeof cacheManager.shutdown === 'function') {
             cacheManager.shutdown();
             console.log('⏱️  Cache cleanup: CacheManager timers stopped successfully');
@@ -55,7 +61,7 @@ async function cleanupCacheManager() {
             console.log('⏱️  Cache cleanup: No CacheManager timers to stop');
         }
     } catch (error) {
-        console.log('⏱️  Cache cleanup: Ensuring all cache timers are stopped');
+        console.log('🧽 Redis/Cache cleanup: Ensuring all connections and timers are stopped');
     }
 }
 
@@ -75,7 +81,7 @@ export default async function globalTeardown() {
 
     try {
         await cleanupTestDatabases();
-        await cleanupCacheManager();
+        await cleanupRedisAndCache();
         generateCleanupReport();
 
         console.log('✅ Jest Global Teardown: Cleanup completed successfully!');

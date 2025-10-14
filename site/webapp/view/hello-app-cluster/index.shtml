@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / Site / WebApp / View / Hello App Cluster Demo
+ * @tagline         Multi-Server Application Clustering Examples
+ * @description     Interactive demos: global notifications and collaborative todo with Redis broadcasting
+ * @file            site/webapp/view/hello-app-cluster/index.shtml
+ * @version         0.9.7
+ * @release         2025-10-12
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.7, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Cluster Demo - {{app.shortName}}</title>
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-card {
+            padding-bottom: 0;
+        }
+
+        .local-status-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+
+        .local-status-value.redis-enabled {
+            color: #28a745;
+        }
+
+        .local-status-value.redis-disabled {
+            color: #ffc107;
+        }
+
+        .local-status-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .local-comparison-header {
+            background: #fbfbfb;
+            margin: -20px -20px 25px -20px;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .local-comparison-icon {
+            font-size: 32px;
+            padding-right: 5px;
+        }
+
+        .local-comparison-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .local-comparison-subtitle {
+            font-size: 14px;
+            color: #6c757d;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-container-1200">
+            <div class="jp-page-header">
+                <h1>🌍 App Cluster Demo</h1>
+                <p class="jp-subtitle">Learn how to build scalable multi-server applications with Redis broadcasting</p>
+            </div>
+
+            <!-- Sub-navigation -->
+            <nav class="jp-btn-nav-group">
+                <a href="/hello-app-cluster/" class="jp-btn jp-btn-outline jp-btn-active">📖 Overview</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/notifications.shtml" class="jp-btn jp-btn-outline">📢 Global Notifications</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/collaborative-todo.shtml" class="jp-btn jp-btn-outline">✅ Collaborative To-Do</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/code-examples.shtml" class="jp-btn jp-btn-outline">💻 Code Examples</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/architecture.shtml" class="jp-btn jp-btn-outline">🏗️ Architecture</a>
+            </nav>
+
+            <!-- Cluster Status -->
+            <div class="jp-card">
+                <h2>🖥️ Current Cluster Status
+                    <span class="jp-subheading">This shows the current state of your jPulse Framework instance and Redis configuration.</span>
+                </h2>
+
+                <div class="jp-stats-grid">
+                    <div class="jp-stat-card">
+                        <div class="local-status-value" id="instanceId">Loading...</div>
+                        <div class="local-status-label">Server Instance</div>
+                    </div>
+                    <div class="jp-stat-card">
+                        <div class="local-status-value redis-{{#if redis.enabled}}enabled{{else}}disabled{{/if}}" id="redisStatus">
+                            {{#if redis.enabled}}✅ Enabled{{else}}⚠️ Disabled{{/if}}
+                        </div>
+                        <div class="local-status-label">Redis Broadcasting</div>
+                    </div>
+                    <div class="jp-stat-card">
+                        <div class="local-status-value" id="clusterMode">
+                            {{#if redis.enabled}}Multi-Server{{else}}Single-Server{{/if}}
+                        </div>
+                        <div class="local-status-label">Cluster Mode</div>
+                    </div>
+                    <div class="jp-stat-card">
+                        <div class="local-status-value" id="broadcastSupport">
+                            {{#if redis.enabled}}Full Support{{else}}Local Only{{/if}}
+                        </div>
+                        <div class="local-status-label">Broadcast Support</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- What You'll Learn -->
+            <div class="jp-info-box">
+                <h3>🎓 What You'll Learn</h3>
+                <p>This comprehensive demo teaches you how to build applications that work seamlessly across multiple server instances using Redis broadcasting.</p>
+
+                <div style="margin: 15px 0;">
+                    <strong>Key Concepts Covered:</strong>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li><strong>Multi-Server Coordination:</strong> How multiple app servers communicate</li>
+                        <li><strong>Redis Broadcasting:</strong> Server-to-server messaging with pub/sub</li>
+                        <li><strong>Graceful Fallback:</strong> Apps work with or without Redis</li>
+                        <li><strong>Two Implementation Patterns:</strong> Client-side vs server-side broadcasting</li>
+                        <li><strong>Real-time Synchronization:</strong> Keep data in sync across instances</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Demo Applications Comparison -->
+            <div class="jp-card local-card">
+                <h2>🚀 Two Demo Applications
+                    <span class="jp-subheading">We've created two complementary demos to show different broadcasting patterns.</span>
+                </h2>
+
+                <div class="jp-status-grid">
+                    <!-- Global Notifications -->
+                    <div class="jp-card">
+                        <div class="local-comparison-header">
+                            <div class="local-comparison-icon">📢</div>
+                            <div>
+                                <h3 class="local-comparison-title">Global Notifications</h3>
+                                <p class="local-comparison-subtitle">Client-Side Broadcasting Pattern</p>
+                            </div>
+                        </div>
+
+                        <p><strong>Simple & Direct:</strong> Send notifications instantly to all servers without backend logic.</p>
+
+                        <ul class="jp-list jp-list-checkmarks">
+                            <li>Pure client-side JavaScript</li>
+                            <li>No server-side persistence</li>
+                            <li>Instant broadcast delivery</li>
+                            <li>Perfect for alerts & status updates</li>
+                            <li>Great for learning basics</li>
+                        </ul>
+
+                        <a href="/hello-app-cluster/notifications.shtml" class="jp-btn jp-btn-primary" style="width: 100%; margin-top: 15px;">
+                            📢 Try Global Notifications
+                        </a>
+                    </div>
+
+                    <!-- Collaborative To-Do -->
+                    <div class="jp-card">
+                        <div class="local-comparison-header">
+                            <div class="local-comparison-icon">✅</div>
+                            <div>
+                                <h3 class="local-comparison-title">Collaborative To-Do</h3>
+                                <p class="local-comparison-subtitle">Server-Side Broadcasting Pattern</p>
+                            </div>
+                        </div>
+
+                        <p><strong>Production-Ready:</strong> Full MVC pattern with database persistence and proper validation.</p>
+
+                        <ul class="jp-list jp-list-checkmarks">
+                            <li>Complete MVC architecture</li>
+                            <li>Database persistence</li>
+                            <li>Server-side validation</li>
+                            <li>Audit logging included</li>
+                            <li>Enterprise-ready pattern</li>
+                        </ul>
+
+                        <a href="/hello-app-cluster/collaborative-todo.shtml" class="jp-btn jp-btn-primary" style="width: 100%; margin-top: 15px;">
+                            ✅ Try Collaborative To-Do
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Getting Started -->
+            <div class="jp-card">
+                <h2>🚀 Getting Started
+                    <span class="jp-subheading">Recommended learning path to get started with the App Cluster demo.</span>
+                </h2>
+                <p><strong>Recommended Learning Path:</strong></p>
+                <ol style="padding-left: 20px;">
+                    <li><strong>Start Simple:</strong> Try the <a href="/hello-app-cluster/notifications.shtml">Global Notifications</a> demo to understand basic broadcasting</li>
+                    <li><strong>Go Advanced:</strong> Explore the <a href="/hello-app-cluster/collaborative-todo.shtml">Collaborative To-Do</a> for production patterns</li>
+                    <li><strong>Study Code:</strong> Review the <a href="/hello-app-cluster/code-examples.shtml">Code Examples</a> to see implementation details</li>
+                    <li><strong>Understand Design:</strong> Read the <a href="/hello-app-cluster/architecture.shtml">Architecture</a> documentation</li>
+                </ol>
+
+                {{#unless redis.enabled}}
+                <div class="jp-alert jp-alert-warning" style="margin-top: 20px;">
+                    <strong>⚠️ Redis Not Enabled:</strong> These demos will work in single-server mode. To see full clustering features, enable Redis in your configuration. The demos gracefully demonstrate fallback behavior!
+                </div>
+                {{/unless}}
+            </div>
+
+            <!-- Navigation -->
+            <div class="jp-btn-nav-group">
+                <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello/" class="jp-btn jp-btn-outline">🌐 Hello World Site Demos</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-todo/" class="jp-btn jp-btn-outline">📋 To-Do MVC Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-vue/" class="jp-btn jp-btn-outline">🔄 Vue.js SPA Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">� WebSocket Real-Time Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/" class="jp-btn jp-btn-active">🌍 App Cluster Demo</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load cluster status information
+        jPulse.dom.ready(() => {
+            // Get instance ID from server
+            fetch('/api/1/health/cluster')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        const instanceElement = document.getElementById('instanceId');
+                        if (instanceElement && data.data.instanceId) {
+                            instanceElement.textContent = data.data.instanceId;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.log('Could not load cluster info:', error.message);
+                    const instanceElement = document.getElementById('instanceId');
+                    if (instanceElement) {
+                        instanceElement.textContent = 'Unknown';
+                    }
+                });
+        });
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

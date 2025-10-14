@@ -23,10 +23,11 @@ function bootstrapLog(message, level = 'msg') {
  * @param {object} options - Bootstrap options
  * @param {boolean} options.isTest - Whether this is a test environment
  * @param {boolean} options.skipDatabase - Whether to skip database initialization
+ * @param {boolean} options.skipRedis - Whether to skip Redis initialization (for tests)
  * @returns {object} Initialized modules
  */
 export async function bootstrap(options = {}) {
-    const { isTest = false, skipDatabase = false } = options;
+    const { isTest = false, skipDatabase = false, skipRedis = false } = options;
 
     bootstrapLog(`🚀 Starting ${isTest ? 'test' : 'app'} initialization...`);
 
@@ -77,15 +78,30 @@ export async function bootstrap(options = {}) {
         bootstrapLog('✅ ViewController: Initialized');
 
         // Step 6: Initialize Redis Manager (W-076 - depends on LogController)
-        const RedisManagerModule = await import('./redis-manager.js');
-        bootstrapLog('RedisManager: Module loaded, ready for initialization');
-        RedisManagerModule.default.initialize(global.appConfig.redis);
-        global.RedisManager = RedisManagerModule.default;
-        bootstrapLog(`✅ RedisManager: Initialized - Instance: ${RedisManagerModule.default.getInstanceId()}, Available: ${RedisManagerModule.default.isRedisAvailable()}`);
+        let redisManager = null;
+        let sessionStore = null;
 
-        // Step 6.1: Configure session store with Redis fallback (W-076)
-        const sessionStore = await RedisManagerModule.default.configureSessionStore(database);
-        bootstrapLog('✅ SessionStore: Configured with Redis/fallback');
+        if (!skipRedis) {
+            const RedisManagerModule = await import('./redis-manager.js');
+            bootstrapLog('RedisManager: Module loaded, ready for initialization');
+            RedisManagerModule.default.initialize(global.appConfig.redis);
+            global.RedisManager = RedisManagerModule.default;
+            bootstrapLog(`✅ RedisManager: Initialized - Instance: ${RedisManagerModule.default.getInstanceId()}, Available: ${RedisManagerModule.default.isRedisAvailable()}`);
+
+            // Step 6.1: Configure session store with Redis fallback (W-076)
+            sessionStore = await RedisManagerModule.default.configureSessionStore(database);
+            bootstrapLog('✅ SessionStore: Configured with Redis/fallback');
+
+            redisManager = RedisManagerModule.default;
+        } else {
+            bootstrapLog('⏭️  RedisManager: Skipped for test environment');
+
+            // For tests, use simple memory store
+            const session = await import('express-session');
+            const MemoryStore = session.default.MemoryStore;
+            sessionStore = new MemoryStore();
+            bootstrapLog('✅ SessionStore: Configured with MemoryStore for tests');
+        }
 
         // Step 6.2: Initialize broadcast controller (W-076)
         const BroadcastControllerModule = await import('../controller/broadcast.js');
@@ -107,7 +123,7 @@ export async function bootstrap(options = {}) {
             LogController: LogControllerModule.default,
             i18n: i18n,
             database: database,
-            redisManager: RedisManagerModule.default,
+            redisManager: redisManager,
             sessionStore: sessionStore,
             healthController: HealthControllerModule.default
         };

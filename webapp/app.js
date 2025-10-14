@@ -153,6 +153,7 @@ async function generateConsolidatedConfig(fs, confPath) {
 
 // Load configuration
 const appConfig = await loadAppConfig();
+console.log(CommonUtils.formatLogMessage('app', 'App configuration: ' + JSON.stringify(appConfig)));
 
 // Make appConfig globally available for other modules
 appConfig.app.dirName = __dirname;

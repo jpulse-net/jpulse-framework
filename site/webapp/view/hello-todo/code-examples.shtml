@@ -245,15 +245,15 @@ async function deleteTodo(id) {
                     <p>Notice how each action (add, toggle, delete) ends with <code>location.reload()</code>. This is the traditional MPA approach - the browser reloads the entire page to show updated data.</p>
                     <p>Compare this to the <a href="/hello-vue/">Vue.js SPA</a> which updates the UI instantly without page reloads!</p>
                 </div>
+            </div>
 
-                <!-- Navigation -->
-                <div class="jp-btn-nav-group">
-                    <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
-                    <span class="jp-btn-nav-arrow">→</span>
-                    <a href="/hello/" class="jp-btn jp-btn-outline">🌐 Hello World Site Demos</a>
-                    <span class="jp-btn-nav-arrow">→</span>
-                    <a href="/hello-todo/" class="jp-btn jp-btn-active">📋 To-Do MVC Demo</a>
-                </div>
+            <!-- Navigation -->
+            <div class="jp-btn-nav-group">
+                <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello/" class="jp-btn jp-btn-outline">🌐 Hello World Site Demos</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-todo/" class="jp-btn jp-btn-active">📋 To-Do MVC Demo</a>
             </div>
         </div>
     </div>

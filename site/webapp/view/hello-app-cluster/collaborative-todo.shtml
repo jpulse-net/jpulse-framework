@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / Site / WebApp / View / Hello App Cluster / Collaborative To-Do
+ * @tagline         Server-Side Broadcasting Pattern Demo
+ * @description     Full MVC pattern with database persistence and proper validation
+ * @file            site/webapp/view/hello-app-cluster/collaborative-todo.shtml
+ * @version         0.9.7
+ * @release         2025-10-12
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.7, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative To-Do - App Cluster Demo - {{app.shortName}}</title>
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-card {
+            padding-bottom: 0;
+        }
+
+        .local-card-header {
+            background: #f8f8f8;
+            margin: -20px -20px 25px -20px;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .local-card-header-icon {
+            font-size: 32px;
+            padding-right: 5px;
+        }
+
+        .local-card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .local-card-subtitle {
+            font-size: 14px;
+            color: #6c757d;
+            margin: 0;
+        }
+
+        .local-todo-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .local-todo-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        .local-todo-panel {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .local-panel-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .local-panel-header h3 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+        }
+
+        .local-panel-header p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .local-panel-content {
+            padding: 20px;
+        }
+
+        .local-todo-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .local-todo-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #f8f9fa;
+            transition: all 0.2s ease;
+        }
+
+        .local-todo-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .local-todo-item:last-child {
+            border-bottom: none;
+        }
+
+        .local-todo-item.completed .local-todo-text {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+
+        .local-todo-item.new-item {
+            background-color: #e3f2fd;
+            animation: fadeInSlide 0.5s ease;
+        }
+
+        @keyframes fadeInSlide {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .local-todo-checkbox {
+            margin-right: 12px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .local-todo-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .local-todo-text {
+            font-size: 15px;
+            line-height: 1.4;
+            margin: 0;
+        }
+
+        .local-todo-meta {
+            font-size: 12px;
+            color: #6c757d;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .local-todo-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .local-action-btn {
+            background: none;
+            border: none;
+            padding: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #6c757d;
+            transition: all 0.2s ease;
+        }
+
+        .local-action-btn:hover {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+
+        .local-action-btn.delete:hover {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .local-empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+
+        .local-empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .local-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .local-stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .local-stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+
+        .local-stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .local-priority-badge {
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .local-priority-badge.high {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .local-priority-badge.medium {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .local-priority-badge.low {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .local-loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .local-sync-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background-color: #e3f2fd;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .local-sync-status.syncing {
+            background-color: #fff3cd;
+        }
+
+        .local-sync-status.error {
+            background-color: #f8d7da;
+        }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-container-1200">
+            <div class="jp-page-header">
+                <h1>✅ Collaborative To-Do</h1>
+                <p class="jp-subtitle">Server-Side Broadcasting Pattern - Full MVC architecture with database persistence</p>
+            </div>
+
+            <!-- Sub-navigation -->
+            <nav class="jp-btn-nav-group">
+                <a href="/hello-app-cluster/" class="jp-btn jp-btn-outline">📖 Overview</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/notifications.shtml" class="jp-btn jp-btn-outline">📢 Global Notifications</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/collaborative-todo.shtml" class="jp-btn jp-btn-outline jp-btn-active">✅ Collaborative To-Do</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/code-examples.shtml" class="jp-btn jp-btn-outline">💻 Code Examples</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/architecture.shtml" class="jp-btn jp-btn-outline">🏗️ Architecture</a>
+            </nav>
+
+            <!-- Sync Status -->
+            <div class="local-sync-status" id="syncStatus">
+                <div class="local-loading-spinner" id="syncSpinner" style="display: none;"></div>
+                <span id="syncText">✅ Synchronized with all cluster instances</span>
+            </div>
+
+            <!-- Educational Info -->
+            <div class="jp-info-box">
+                <h3>🎓 Learning: Server-Side Broadcasting Pattern</h3>
+                <p>This demo shows the <strong>production-ready clustering pattern</strong> - full MVC with server-side validation, database persistence, and audit logging.</p>
+
+                <div style="margin: 15px 0;">
+                    <strong>How it works:</strong>
+                    <ol style="margin: 10px 0; padding-left: 20px;">
+                        <li><strong>Client submits:</strong> Standard form POST to controller API endpoint</li>
+                        <li><strong>Server processes:</strong> Validates, saves to database, logs change</li>
+                        <li><strong>Server broadcasts:</strong> Controller publishes change to Redis</li>
+                        <li><strong>All instances sync:</strong> Other servers receive broadcast and refresh clients</li>
+                    </ol>
+                </div>
+
+                <div class="jp-help-text">
+                    <strong>💡 Perfect for:</strong> Collaborative apps, data synchronization, audit trails, enterprise applications
+                </div>
+            </div>
+
+            <!-- Main Container -->
+            <div class="jp-stats-grid">
+
+                <!-- Add Todo Panel -->
+                <div class="jp-card local-card">
+                    <div class="local-card-header">
+                        <div class="local-card-header-icon">➕</div>
+                        <div>
+                            <h3 class="local-card-title">Add New Task</h3>
+                            <p class="local-card-subtitle">Create tasks that sync across all server instances</p>
+                        </div>
+                    </div>
+
+                    <div class="jp-card-content">
+                        <form id="todoForm">
+                            <div class="jp-form-group">
+                                <label for="todoText" class="jp-form-label">Task Description</label>
+                                <textarea id="todoText"
+                                        class="jp-form-textarea"
+                                        rows="3"
+                                        placeholder="Enter task description..."
+                                        maxlength="500"
+                                        required></textarea>
+                            </div>
+
+                            <div class="jp-form-group">
+                                <label for="todoPriority" class="jp-form-label">Priority</label>
+                                <select id="todoPriority" class="jp-form-select">
+                                    <option value="low">🔵 Low</option>
+                                    <option value="medium" selected>🟡 Medium</option>
+                                    <option value="high">🔴 High</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="jp-btn jp-btn-primary" id="addButton" style="width: 100%;">
+                                ✅ Add Task
+                            </button>
+                        </form>
+
+                        <!-- Statistics -->
+                        <div class="jp-stats-grid local-stats-grid" style="margin-top: 25px;">
+                            <div class="jp-card jp-card-compact">
+                                <div class="local-stat-value" id="totalTasks">0</div>
+                                <div class="local-stat-label">Total</div>
+                            </div>
+                            <div class="jp-card jp-card-compact">
+                                <div class="local-stat-value" id="completedTasks">0</div>
+                                <div class="local-stat-label">Done</div>
+                            </div>
+                            <div class="jp-card jp-card-compact">
+                                <div class="local-stat-value" id="pendingTasks">0</div>
+                                <div class="local-stat-label">Pending</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Todo List Panel -->
+                <div class="jp-card local-card">
+                    <div class="local-card-header">
+                        <div class="local-card-header-icon">📋</div>
+                        <div>
+                            <h3 class="local-card-title">Collaborative Task List</h3>
+                            <p class="local-card-subtitle">Real-time synchronized across all cluster instances</p>
+                        </div>
+                    </div>
+                    <div class="jp-card-content" style="padding: 0;">
+                        <ul class="local-todo-list" id="todoList">
+                            <li class="local-empty-state" id="emptyState">
+                                <div class="local-empty-state-icon">📝</div>
+                                <h4>No tasks yet</h4>
+                                <p>Add your first collaborative task!</p>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="jp-btn-nav-group">
+                <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello/" class="jp-btn jp-btn-outline">🌐 Hello World Site Demos</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-todo/" class="jp-btn jp-btn-outline">📋 To-Do MVC Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-vue/" class="jp-btn jp-btn-outline">🔄 Vue.js SPA Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">� WebSocket Real-Time Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/" class="jp-btn jp-btn-active">🌍 App Cluster Demo</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Collaborative Todo App - Server-Side Broadcasting Demo
+        class CollaborativeTodoApp {
+            constructor() {
+                this.todos = [];
+                this.isLoading = false;
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.setupBroadcastListening();
+                this.loadTodos();
+            }
+
+            bindEvents() {
+                const form = document.getElementById('todoForm');
+                form.addEventListener('submit', (e) => this.handleAddTodo(e));
+            }
+
+            setupBroadcastListening() {
+                // Subscribe to todo changes from all cluster instances
+                if (typeof jPulse !== 'undefined' && jPulse.appCluster && jPulse.appCluster.broadcast) {
+                    // Listen for todo list changes
+                    jPulse.appCluster.broadcast.subscribe('controller:helloClusterTodo:list:changed', (data) => {
+                        console.log('📡 Received todo list change broadcast:', data);
+                        this.handleTodoListChanged(data);
+                    });
+
+                    // Listen for individual todo updates
+                    jPulse.appCluster.broadcast.subscribe('controller:helloClusterTodo:item:updated', (data) => {
+                        console.log('📡 Received todo item update broadcast:', data);
+                        this.handleTodoItemUpdated(data);
+                    });
+
+                    console.log('📡 Subscribed to collaborative todo broadcasts');
+                    this.updateSyncStatus('synced');
+                } else {
+                    console.warn('⚠️ jPulse.appCluster.broadcast not available - running in local mode');
+                    this.updateSyncStatus('local');
+                }
+            }
+
+            async loadTodos() {
+                try {
+                    this.updateSyncStatus('syncing');
+
+                    const response = await fetch('/api/1/helloClusterTodo');
+                    const result = await response.json();
+
+                    if (result.success && result.data) {
+                        this.todos = result.data.todos || [];
+                        this.renderTodos();
+                        this.updateStats();
+                        this.updateSyncStatus('synced');
+                    } else {
+                        throw new Error(result.message || 'Failed to load todos');
+                    }
+                } catch (error) {
+                    console.error('Error loading todos:', error);
+                    this.updateSyncStatus('error', 'Failed to load todos: ' + error.message);
+                    jPulse.UI.toast.show('Failed to load todos: ' + error.message, 'error');
+                }
+            }
+
+            async handleAddTodo(e) {
+                e.preventDefault();
+
+                const todoText = document.getElementById('todoText');
+                const todoPriority = document.getElementById('todoPriority');
+                const addButton = document.getElementById('addButton');
+
+                const text = todoText.value.trim();
+                const priority = todoPriority.value;
+
+                if (!text) {
+                    jPulse.UI.toast.show('Please enter a task description', 'error');
+                    return;
+                }
+
+                try {
+                    addButton.disabled = true;
+                    addButton.innerHTML = '<div class="local-loading-spinner"></div> Adding...';
+                    this.updateSyncStatus('syncing');
+
+                    const response = await fetch('/api/1/helloClusterTodo', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            text: text,
+                            priority: priority
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success && result.data) {
+                        // Add the new todo to our local list
+                        this.todos.unshift(result.data.todo);
+                        this.renderTodos();
+                        this.updateStats();
+
+                        // Reset form
+                        todoText.value = '';
+                        todoPriority.value = 'medium';
+
+                        this.updateSyncStatus('synced');
+                        jPulse.UI.toast.show('✅ Task added and synchronized!', 'success');
+
+                        // Note: The server will broadcast the change to other instances
+                        // We don't need to manually broadcast here
+                    } else {
+                        throw new Error(result.message || 'Failed to add todo');
+                    }
+                } catch (error) {
+                    console.error('Error adding todo:', error);
+                    this.updateSyncStatus('error', 'Failed to add task: ' + error.message);
+                    jPulse.UI.toast.show('Failed to add task: ' + error.message, 'error');
+                } finally {
+                    addButton.disabled = false;
+                    addButton.innerHTML = '✅ Add Task';
+                }
+            }
+
+            async handleToggleTodo(todoId, currentCompleted) {
+                try {
+                    this.updateSyncStatus('syncing');
+
+                    const response = await fetch(`/api/1/helloClusterTodo/${todoId}/toggle`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success && result.data) {
+                        // Update the local todo
+                        const todoIndex = this.todos.findIndex(todo => todo._id === todoId);
+                        if (todoIndex >= 0) {
+                            this.todos[todoIndex] = result.data.todo;
+                            this.renderTodos();
+                            this.updateStats();
+                        }
+
+                        this.updateSyncStatus('synced');
+                        jPulse.UI.toast.show('✅ Task updated and synchronized!', 'success');
+                    } else {
+                        throw new Error(result.message || 'Failed to toggle todo');
+                    }
+                } catch (error) {
+                    console.error('Error toggling todo:', error);
+                    this.updateSyncStatus('error', 'Failed to update task: ' + error.message);
+                    jPulse.UI.toast.show('Failed to update task: ' + error.message, 'error');
+                }
+            }
+
+            async handleDeleteTodo(todoId) {
+                if (!confirm('Are you sure you want to delete this task?')) {
+                    return;
+                }
+
+                try {
+                    this.updateSyncStatus('syncing');
+
+                    const response = await fetch(`/api/1/helloClusterTodo/${todoId}`, {
+                        method: 'DELETE'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // Remove from local list
+                        this.todos = this.todos.filter(todo => todo._id !== todoId);
+                        this.renderTodos();
+                        this.updateStats();
+
+                        this.updateSyncStatus('synced');
+                        jPulse.UI.toast.show('🗑️ Task deleted and synchronized!', 'success');
+                    } else {
+                        throw new Error(result.message || 'Failed to delete todo');
+                    }
+                } catch (error) {
+                    console.error('Error deleting todo:', error);
+                    this.updateSyncStatus('error', 'Failed to delete task: ' + error.message);
+                    jPulse.UI.toast.show('Failed to delete task: ' + error.message, 'error');
+                }
+            }
+
+            handleTodoListChanged(data) {
+                // Refresh the entire list when we get a broadcast
+                this.loadTodos();
+            }
+
+            handleTodoItemUpdated(data) {
+                // Update specific item when we get a broadcast
+                if (data.todo) {
+                    const todoIndex = this.todos.findIndex(todo => todo._id === data.todo._id);
+                    if (todoIndex >= 0) {
+                        this.todos[todoIndex] = data.todo;
+                        this.renderTodos();
+                        this.updateStats();
+                    } else {
+                        // New todo from another instance
+                        this.todos.unshift(data.todo);
+                        this.renderTodos();
+                        this.updateStats();
+                    }
+                }
+            }
+
+            renderTodos() {
+                const todoList = document.getElementById('todoList');
+                const emptyState = document.getElementById('emptyState');
+
+                if (this.todos.length === 0) {
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+
+                todoList.innerHTML = this.todos.map(todo => {
+                    const createdAt = new Date(todo.createdAt).toLocaleString();
+                    const updatedBy = todo.updatedBy || todo.createdBy || 'Unknown';
+
+                    return `
+                        <li class="local-todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo._id}">
+                            <input type="checkbox"
+                                   class="local-todo-checkbox"
+                                   ${todo.completed ? 'checked' : ''}
+                                   onchange="todoApp.handleToggleTodo('${todo._id}', ${todo.completed})">
+
+                            <div class="local-todo-content">
+                                <div class="local-todo-text">${this.escapeHtml(todo.text)}</div>
+                                <div class="local-todo-meta">
+                                    <span class="local-priority-badge ${todo.priority}">${todo.priority}</span>
+                                    <span><strong>By:</strong> ${this.escapeHtml(updatedBy)}</span>
+                                    <span><strong>Created:</strong> ${createdAt}</span>
+                                    ${todo.completed ? `<span><strong>✅ Completed</strong></span>` : ''}
+                                </div>
+                            </div>
+
+                            <div class="local-todo-actions">
+                                <button class="local-action-btn delete"
+                                        onclick="todoApp.handleDeleteTodo('${todo._id}')"
+                                        title="Delete task">
+                                    🗑️
+                                </button>
+                            </div>
+                        </li>
+                    `;
+                }).join('');
+
+                // Add animation to new items
+                setTimeout(() => {
+                    const items = todoList.querySelectorAll('.local-todo-item');
+                    items.forEach(item => item.classList.add('new-item'));
+                    setTimeout(() => {
+                        items.forEach(item => item.classList.remove('new-item'));
+                    }, 500);
+                }, 50);
+            }
+
+            updateStats() {
+                const total = this.todos.length;
+                const completed = this.todos.filter(todo => todo.completed).length;
+                const pending = total - completed;
+
+                document.getElementById('totalTasks').textContent = total;
+                document.getElementById('completedTasks').textContent = completed;
+                document.getElementById('pendingTasks').textContent = pending;
+            }
+
+            updateSyncStatus(status, message = '') {
+                const syncStatus = document.getElementById('syncStatus');
+                const syncSpinner = document.getElementById('syncSpinner');
+                const syncText = document.getElementById('syncText');
+
+                syncStatus.className = 'local-sync-status';
+
+                switch (status) {
+                    case 'syncing':
+                        syncStatus.classList.add('syncing');
+                        syncSpinner.style.display = 'inline-block';
+                        syncText.textContent = '⏳ Synchronizing with cluster...';
+                        break;
+
+                    case 'synced':
+                        syncSpinner.style.display = 'none';
+                        syncText.textContent = '✅ Synchronized with all cluster instances';
+                        break;
+
+                    case 'local':
+                        syncSpinner.style.display = 'none';
+                        syncText.textContent = '📱 Running in local mode (Redis unavailable)';
+                        break;
+
+                    case 'error':
+                        syncStatus.classList.add('error');
+                        syncSpinner.style.display = 'none';
+                        syncText.textContent = `❌ ${message || 'Synchronization error'}`;
+                        break;
+                }
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Initialize the app when the page loads
+        let todoApp;
+        jPulse.dom.ready(() => {
+            todoApp = new CollaborativeTodoApp();
+        });
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

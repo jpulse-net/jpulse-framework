@@ -144,9 +144,9 @@ export default async function globalSetup() {
         global.CommonUtils = CommonUtilsModule.default;
         console.log('🔧 CommonUtils initialized globally for tests');
 
-        // Use shared bootstrap sequence
+        // Use shared bootstrap sequence with Redis disabled for tests
         const { bootstrap } = await import('../../utils/bootstrap.js');
-        await bootstrap({ isTest: true, skipDatabase: false });
+        await bootstrap({ isTest: true, skipDatabase: false, skipRedis: true });
 
         console.log('✅ Jest Global Setup: Test environment ready!');
     } catch (error) {

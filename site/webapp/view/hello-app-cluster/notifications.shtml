@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / Site / WebApp / View / Hello App Cluster / Global Notifications
+ * @tagline         Client-Side Broadcasting Pattern Demo
+ * @description     Simple notification broadcasting without server-side persistence
+ * @file            site/webapp/view/hello-app-cluster/notifications.shtml
+ * @version         0.9.7
+ * @release         2025-10-12
+ * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         AGPL v3, see LICENSE file
+ * @genai           60%, Cursor 1.7, Claude Sonnet 4
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Notifications - App Cluster Demo - {{app.shortName}}</title>
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-card {
+            padding-bottom: 10px;
+        }
+
+        .local-card-header {
+            background: #f8f8f8;
+            margin: -20px -20px 25px -20px;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .local-card-header-icon {
+            font-size: 32px;
+            padding-right: 5px;
+        }
+
+        .local-card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .local-card-subtitle {
+            font-size: 14px;
+            color: #6c757d;
+            margin: 0;
+        }
+
+        .local-notification-list {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+
+        .local-notification-item {
+            padding: 20px;
+            border-bottom: 1px solid #f8f9fa;
+            transition: background-color 0.2s ease;
+        }
+
+        .local-notification-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .local-notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .local-notification-item.new {
+            background-color: #e3f2fd;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .local-notification-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .local-notification-icon {
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+
+        .local-notification-body {
+            flex: 1;
+        }
+
+        .local-notification-message {
+            font-size: 16px;
+            margin: 0 0 8px 0;
+            line-height: 1.4;
+        }
+
+        .local-notification-meta {
+            font-size: 13px;
+            color: #6c757d;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .local-notification-badge {
+            background: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .local-notification-badge.info { background: #17a2b8; }
+        .local-notification-badge.success { background: #28a745; }
+        .local-notification-badge.warning { background: #ffc107; color: #212529; }
+        .local-notification-badge.error { background: #dc3545; }
+
+        .local-empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .local-empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .local-connection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .local-connection-status.connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .local-connection-status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .local-status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .local-status-dot.connected {
+            background-color: #28a745;
+        }
+
+        .local-status-dot.disconnected {
+            background-color: #dc3545;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @media (max-width: 768px) {
+            .local-notification-meta {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-container-1200">
+            <div class="jp-page-header">
+                <h1>📢 Global Notifications</h1>
+                <p class="jp-subtitle">Client-Side Broadcasting Pattern - Send instant notifications to all server instances</p>
+            </div>
+
+            <!-- Sub-navigation -->
+            <nav class="jp-btn-nav-group">
+                <a href="/hello-app-cluster/" class="jp-btn jp-btn-outline">📖 Overview</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/notifications.shtml" class="jp-btn jp-btn-outline jp-btn-active">📢 Global Notifications</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/collaborative-todo.shtml" class="jp-btn jp-btn-outline">✅ Collaborative To-Do</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/code-examples.shtml" class="jp-btn jp-btn-outline">💻 Code Examples</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/architecture.shtml" class="jp-btn jp-btn-outline">🏗️ Architecture</a>
+            </nav>
+
+            <!-- Connection Status -->
+            <div class="local-connection-status connected" id="connectionStatus">
+                <div class="local-status-dot connected" id="statusDot"></div>
+                <span id="statusText">Broadcasting Ready</span>
+            </div>
+
+            <!-- Educational Info -->
+            <div class="jp-info-box">
+                <h2>🎓 Learning: Client-Side Broadcasting Pattern</h2>
+                <p>This demo shows the <strong>simplest clustering pattern</strong> - direct client-to-Redis broadcasting without server-side logic.</p>
+
+                <div style="margin: 15px 0;">
+                    <strong>How it works:</strong>
+                    <ol style="margin: 10px 0; padding-left: 20px;">
+                        <li><strong>Client sends:</strong> JavaScript calls <code>jPulse.appCluster.broadcast.publish()</code></li>
+                        <li><strong>Redis distributes:</strong> Message goes to all connected server instances</li>
+                        <li><strong>All clients receive:</strong> Every browser tab gets the notification instantly</li>
+                        <li><strong>No persistence:</strong> Messages are ephemeral (not saved to database)</li>
+                    </ol>
+                </div>
+
+                <div class="jp-help-text">
+                    <strong>💡 Perfect for:</strong> Status updates, alerts, chat messages, real-time announcements
+                </div>
+            </div>
+
+            <div class="jp-stats-grid">
+
+                <!-- Notification Form -->
+                <div class="jp-card local-card">
+                    <div class="local-card-header">
+                        <div class="local-card-header-icon">📤</div>
+                        <div>
+                            <h3 class="local-card-title">Send Global Notification</h3>
+                            <p class="local-card-subtitle">Send a notification that will appear on all server instances instantly:
+                        </div>
+                    </div>
+
+                    <form id="notificationForm">
+                        <div class="jp-form-group">
+                            <label for="messageInput" class="jp-form-label">Message</label>
+                            <textarea id="messageInput"
+                                    class="jp-form-textarea"
+                                    rows="3"
+                                    placeholder="Enter your notification message..."
+                                    maxlength="500"
+                                    required></textarea>
+                        </div>
+
+                        <div class="jp-form-group">
+                            <label for="typeSelect" class="jp-form-label">Type</label>
+                            <select id="typeSelect" class="jp-form-select">
+                                <option value="info">📘 Info</option>
+                                <option value="success">✅ Success</option>
+                                <option value="warning">⚠️ Warning</option>
+                                <option value="error">❌ Error</option>
+                            </select>
+                        </div>
+
+                        <div class="jp-form-actions">
+                            <button type="submit" class="jp-btn jp-btn-primary" id="sendButton">
+                                📡 Broadcast to All Servers
+                            </button>
+                            <button type="button" class="jp-btn jp-btn-outline" id="clearButton">
+                                🗑️ Clear Feed
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Notification Feed -->
+                <div class="jp-card local-card">
+                    <div class="local-card-header">
+                        <div class="local-card-header-icon">📋</div>
+                        <div>
+                            <h3 class="local-card-title">Live Notification Feed</h3>
+                            <p class="local-card-subtitle">Real-time notifications from all cluster instances</p>
+                        </div>
+                    </div>
+
+                    <ul class="local-notification-list" id="notificationList">
+                        <li class="local-empty-state" id="emptyState">
+                            <div class="local-empty-state-icon">📢</div>
+                            <h4>No notifications yet</h4>
+                            <p>Send your first notification above to see real-time clustering in action!</p>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="jp-btn-nav-group">
+                <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello/" class="jp-btn jp-btn-outline">🌐 Hello World Site Demos</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-todo/" class="jp-btn jp-btn-outline">📋 To-Do MVC Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-vue/" class="jp-btn jp-btn-outline">🔄 Vue.js SPA Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">� WebSocket Real-Time Demo</a>
+                <span class="jp-btn-nav-arrow">→</span>
+                <a href="/hello-app-cluster/" class="jp-btn jp-btn-active">🌍 App Cluster Demo</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Notifications App - Client-Side Broadcasting Demo
+        class GlobalNotificationsApp {
+            constructor() {
+                this.notifications = [];
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.setupBroadcastListening();
+                this.updateConnectionStatus();
+            }
+
+            bindEvents() {
+                const form = document.getElementById('notificationForm');
+                const clearButton = document.getElementById('clearButton');
+
+                form.addEventListener('submit', (e) => this.handleSendNotification(e));
+                clearButton.addEventListener('click', () => this.clearNotifications());
+            }
+
+            setupBroadcastListening() {
+                // Subscribe to global notifications from all cluster instances
+                if (typeof jPulse !== 'undefined' && jPulse.appCluster && jPulse.appCluster.broadcast) {
+                    jPulse.appCluster.broadcast.subscribe('controller:helloCluster:notification:sent', (data) => {
+                        console.log('📡 Received notification broadcast:', data);
+                        this.addNotificationToFeed(data);
+                    });
+
+                    console.log('📡 Subscribed to global notifications');
+                } else {
+                    console.warn('⚠️ jPulse.appCluster.broadcast not available - running in fallback mode');
+                    this.updateConnectionStatus(false);
+                }
+            }
+
+            async handleSendNotification(e) {
+                e.preventDefault();
+
+                const messageInput = document.getElementById('messageInput');
+                const typeSelect = document.getElementById('typeSelect');
+                const sendButton = document.getElementById('sendButton');
+
+                const message = messageInput.value.trim();
+                const type = typeSelect.value;
+
+                if (!message) {
+                    jPulse.UI.toast.show('Please enter a message', 'error');
+                    return;
+                }
+
+                try {
+                    sendButton.disabled = true;
+                    sendButton.textContent = '📡 Broadcasting...';
+
+                    // Create notification data
+                    const notificationData = {
+                        message: message,
+                        type: type,
+                        sender: '{{user.username}}' || 'Anonymous',
+                        senderName: '{{user.firstName}} {{user.lastName}}' || 'Anonymous User',
+                        timestamp: new Date().toISOString(),
+                        serverInstance: this.getServerInstance()
+                    };
+
+                    // Direct client-side broadcast (no server persistence)
+                    if (typeof jPulse !== 'undefined' && jPulse.appCluster && jPulse.appCluster.broadcast) {
+                        jPulse.appCluster.broadcast.publish('controller:helloCluster:notification:sent', notificationData);
+                        jPulse.UI.toast.show('📡 Notification broadcasted to all servers!', 'success');
+                    } else {
+                        // Fallback: show locally only
+                        this.addNotificationToFeed(notificationData);
+                        jPulse.UI.toast.show('📱 Notification shown locally (Redis not available)', 'warning');
+                    }
+
+                    // Reset form
+                    messageInput.value = '';
+                    typeSelect.value = 'info';
+
+                } catch (error) {
+                    console.error('Error broadcasting notification:', error);
+                    jPulse.UI.toast.show('Failed to broadcast notification: ' + error.message, 'error');
+                } finally {
+                    sendButton.disabled = false;
+                    sendButton.textContent = '📡 Broadcast to All Servers';
+                }
+            }
+
+            addNotificationToFeed(data) {
+                // Add to internal array
+                this.notifications.unshift(data);
+
+                // Keep only last 50 notifications
+                if (this.notifications.length > 50) {
+                    this.notifications = this.notifications.slice(0, 50);
+                }
+
+                this.renderNotifications();
+            }
+
+            renderNotifications() {
+                const notificationList = document.getElementById('notificationList');
+                const emptyState = document.getElementById('emptyState');
+
+                if (this.notifications.length === 0) {
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+
+                notificationList.innerHTML = this.notifications.map(notification => {
+                    const timeAgo = this.getTimeAgo(notification.timestamp);
+                    const typeIcon = this.getTypeIcon(notification.type);
+
+                    return `
+                        <li class="local-notification-item new">
+                            <div class="local-notification-content">
+                                <div class="local-notification-icon">${typeIcon}</div>
+                                <div class="local-notification-body">
+                                    <div class="local-notification-message">${this.escapeHtml(notification.message)}</div>
+                                    <div class="local-notification-meta">
+                                        <span><strong>From:</strong> ${this.escapeHtml(notification.senderName || notification.sender)}</span>
+                                        <span><strong>Server:</strong> ${this.escapeHtml(notification.serverInstance)}</span>
+                                        <span><strong>Time:</strong> ${timeAgo}</span>
+                                        <span class="local-notification-badge ${notification.type}">${notification.type}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    `;
+                }).join('');
+
+                // Remove 'new' class after animation
+                setTimeout(() => {
+                    const newItems = notificationList.querySelectorAll('.local-notification-item.new');
+                    newItems.forEach(item => item.classList.remove('new'));
+                }, 500);
+            }
+
+            clearNotifications() {
+                this.notifications = [];
+                this.renderNotifications();
+                jPulse.UI.toast.show('🗑️ Notification feed cleared', 'info');
+            }
+
+            getTypeIcon(type) {
+                const icons = {
+                    'info': '📘',
+                    'success': '✅',
+                    'warning': '⚠️',
+                    'error': '❌'
+                };
+                return icons[type] || '📘';
+            }
+
+            getTimeAgo(timestamp) {
+                const now = new Date();
+                const time = new Date(timestamp);
+                const diffMs = now - time;
+                const diffSecs = Math.floor(diffMs / 1000);
+                const diffMins = Math.floor(diffSecs / 60);
+
+                if (diffSecs < 60) return 'Just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+
+                return time.toLocaleTimeString();
+            }
+
+            getServerInstance() {
+                // Try to get server instance ID
+                return 'Current-Server';
+            }
+
+            updateConnectionStatus(connected = true) {
+                const statusElement = document.getElementById('connectionStatus');
+                const statusDot = document.getElementById('statusDot');
+                const statusText = document.getElementById('statusText');
+
+                if (connected) {
+                    statusElement.className = 'local-connection-status connected';
+                    statusDot.className = 'local-status-dot connected';
+                    statusText.textContent = 'Broadcasting Ready';
+                } else {
+                    statusElement.className = 'local-connection-status disconnected';
+                    statusDot.className = 'local-status-dot disconnected';
+                    statusText.textContent = 'Local Mode (Redis Unavailable)';
+                }
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Initialize the app when the page loads
+        let notificationApp;
+        jPulse.dom.ready(() => {
+            notificationApp = new GlobalNotificationsApp();
+        });
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

@@ -374,6 +374,8 @@ function processHandlebars(content, context, req, depth = 0) {
                         }
                         return String(value);
                     }
+                    //FIXME: Return unexpanded handlebar if not found, but page redirects break!
+                    //return '{{' + expression + '}}';    // Return unexpanded handlebar if not found
                     return '';
                 }
                 // Unknown helper, return empty

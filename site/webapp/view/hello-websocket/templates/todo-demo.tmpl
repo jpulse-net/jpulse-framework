@@ -33,7 +33,7 @@ window.helloWebSocketViews.TodoDemo = {
             await this.loadTodos();
 
             // Connect to WebSocket for live updates
-            this.todoWs = jPulse.ws.connect('/ws/hello-todo')
+            this.todoWs = jPulse.ws.connect('/api/1/ws/hello-todo')
                 .onMessage((data, message) => {
                     if (data) {
                         this.handleTodoMessage(data);
@@ -272,7 +272,7 @@ window.helloWebSocketViews.TodoDemo = {
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
             <div>
                 <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #666;">WebSocket Namespace</h4>
-                <code style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 13px;">/ws/hello-todo</code>
+                <code style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 13px;">/api/1/ws/hello-todo</code>
             </div>
 
             <div>

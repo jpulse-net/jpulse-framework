@@ -109,7 +109,7 @@ export function createUnauthenticatedSession() {
  * Create a mock request object for WebSocket upgrade
  */
 export function createMockUpgradeRequest(options = {}) {
-    const url = options.url || '/ws/test';
+    const url = options.url || '/api/1/ws/test';
     const query = options.query || {};
     const session = options.session || createUnauthenticatedSession();
 

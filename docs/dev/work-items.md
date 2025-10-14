@@ -1381,7 +1381,7 @@ This is the doc to track work items, arranged in three sections:
       - an instance can request data from all other instances?
       - central object in redis, each instance updates a subset with its own data?
   - websocket connection data
-    - connections to a namespace (such as /ws/hello-emoji) should be able to share messages across all app instances
+    - connections to a namespace (such as /api/1/ws/hello-emoji) should be able to share messages across all app instances
     - publish/subscribe
   - site config
     - updating the site config at /admin/config.shtml should update the cached globalConfig in view controllers in all app instances
@@ -1391,6 +1391,43 @@ This is the doc to track work items, arranged in three sections:
     - switch session store from mongodb to redis?
     - or a simple "refresh user session from mongodb" message?
   - anything else?
+- deliverables:
+  - Core Redis Infrastructure (W-076):
+    - webapp/app.conf -- comprehensive Redis configuration (single/cluster modes, fallback settings, connection prefixes/TTLs)
+    - site/webapp/app.conf.tmpl -- Redis configuration overrides for site owners
+    - webapp/utils/redis-manager.js -- centralized Redis connection management with graceful fallback
+    - webapp/utils/bootstrap.js -- integrated Redis initialization and session store configuration
+    - webapp/app.js -- simplified session middleware using bootstrap-provided session store
+  - Session Management:
+    - webapp/utils/redis-manager.js -- configureSessionStore() with Redis/Memory/MongoDB fallback hierarchy
+    - Global RedisManager availability for all controllers
+  - Broadcasting System:
+    - webapp/controller/broadcast.js -- REST API for cross-instance broadcasting with callback system
+    - webapp/controller/view.js -- config refresh broadcasting and self-registered callbacks
+    - webapp/controller/config.js -- integrated with view controller broadcast system
+    - webapp/translations/en.conf + de.conf -- broadcast-specific i18n keys
+  - WebSocket Infrastructure:
+    - webapp/controller/websocket.js -- migrated endpoints from /ws/ to /api/1/ws/ for API consistency
+    - webapp/controller/websocket.js -- Redis-based cross-instance WebSocket broadcasting
+    - webapp/view/admin/websocket-test.shtml -- updated for new endpoint structure
+    - webapp/view/admin/websocket-status.shtml -- updated for new endpoint structure
+    - site/webapp/controller/helloWebsocket.js -- updated namespace registration for new endpoints
+  - Health Metrics Clustering:
+    - webapp/controller/health.js -- Redis-based health metrics aggregation across instances
+    - webapp/controller/health.js -- automatic instance discovery with 30s broadcast + 90s TTL
+    - Enhanced /api/1/metrics endpoint with cluster-wide statistics
+  - Client-Side Enhancements:
+    - webapp/view/jpulse-common.js -- configurable WebSocket UUID storage (session/local/memory)
+    - webapp/view/jpulse-common.js -- jPulse.appCluster API for instance info and broadcasting
+    - site/webapp/view/hello-websocket/templates/code-examples.tmpl -- comprehensive WebSocket documentation with UUID storage
+  - UI/UX Improvements:
+    - webapp/view/admin/logs.shtml -- better i18n without concatenating i18n strings (Japanese language support)
+    - site/webapp/view/hello-websocket/templates/code-examples.tmpl -- escaped HTML in pre blocks for proper rendering
+    - site/webapp/view/hello-todo/todo-app.shtml -- replaced "loading..." message with spinner icon (eliminates page reload flicker)
+    - site/webapp/view/hello-todo/code-examples.shtml -- escaped HTML in pre blocks for proper rendering
+    - webapp/view/user/profile.shtml -- fixed async loading race condition for language/theme dropdowns
+  - Package Dependencies:
+    - package.json -- added connect-redis and ioredis for Redis session management
 
 
 
@@ -1401,14 +1438,15 @@ This is the doc to track work items, arranged in three sections:
 
 pending:
 - add /hello-redis/ example
-
+- view controller: return unexpanded {{handlebars}} if not exist, instead of empty return
 - move LogModel.logChange() from webapp/model/config.js to webapp/controller/config.js
+
 - install pm2, test
 - navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
 - grab gh jpulse.net
 
 old pending:
-- fix responsive style issue with user icon
+- fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 
 
@@ -1642,11 +1680,37 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - consider test architecture refactor (separate unit/integration more clearly)
 - notes: deferred until after 1.0 release to focus on core functionality
 
-
 ### W-0: deployment: docker strategy
 - status: 🕑 PENDING
-- type: Idea
+- type: Feature
 - new jpulse-docker project?
+
+### W-0: handlebars: enhance {{#if}} and {{#unless}} with and, or, gt, gte, lt, lte, eq, ne
+- status: 🕑 PENDING
+- type: Feature
+- objective: more flexible handlebars
+- syntax:
+  - {{#if}} and {{#unless}} accept an optional operator identified by a trailing colon, followed by operands:
+    - {{#if <operator>: <operand1> <operand2> <operand3>...}} ... {{else}} ... {{/if}}
+    - {{#unless <operator>: <operand1> <operand2> <operand3>...}} ... {{/unless}}
+  - example with existing syntax:
+    - {{#if some.condition}} true block {{else}} false block {{/if}}
+  - examples with operator and operands:
+    - {{#if and: some.condition other.condition}} true block {{else}} false block {{/if}}
+    - {{#if or: some.val other.val etc.val}} true block {{else}} false block {{/if}}
+    - {{#if eq: some.string "DONE"}} true block {{else}} false block {{/if}}
+    - {{#if gt: some.val 1}} true block {{else}} false block {{/if}}
+- deliverables:
+  - webapp/controller/view.js -- enhanced {{#if}} and {{#unless}} block handlebars
+
+### W-0: handlebars: new {{#set}} block handlebar
+- status: 🕑 PENDING
+- type: Feature
+- objective: more flexible handlebars
+- syntax:
+  - {{#set key1="val1" key2=123 key3=true}} key1: {{key1}}, key2: {{key2}}, key3: {{key3}} {{/set}}
+- deliverables:
+  - webapp/controller/view.js -- new {{#set}} block handlebar
 
 ### W-0: docs: syntax highlighting for preformatted sections
 - status: 🕑 PENDING

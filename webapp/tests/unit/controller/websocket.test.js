@@ -73,15 +73,15 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should use AuthController.isAuthenticated() for authentication check', () => {
             // Arrange
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 requireAuth: true,
                 requireRoles: [],
                 clients: new Map()
             };
-            WebSocketController.namespaces.set('/ws/test', namespace);
+            WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
             const mockRequest = WebSocketTestUtils.createMockUpgradeRequest({
-                url: '/ws/test',
+                url: '/api/1/ws/test',
                 session: WebSocketTestUtils.createAuthenticatedSession()
             });
             const mockSocket = WebSocketTestUtils.createMockSocket();
@@ -109,15 +109,15 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should use AuthController.isAuthorized() for role check', () => {
             // Arrange
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 requireAuth: true,
                 requireRoles: ['admin'],
                 clients: new Map()
             };
-            WebSocketController.namespaces.set('/ws/test', namespace);
+            WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
             const mockRequest = WebSocketTestUtils.createMockUpgradeRequest({
-                url: '/ws/test',
+                url: '/api/1/ws/test',
                 session: WebSocketTestUtils.createAuthenticatedSession({ roles: ['admin'] })
             });
             const mockSocket = WebSocketTestUtils.createMockSocket();
@@ -145,14 +145,14 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should block connection when auth required but not present', () => {
             // Arrange
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 requireAuth: true,
                 requireRoles: [],
                 clients: new Map()
             };
 
             const mockRequest = WebSocketTestUtils.createMockUpgradeRequest({
-                url: '/ws/test',
+                url: '/api/1/ws/test',
                 session: WebSocketTestUtils.createUnauthenticatedSession()
             });
             const mockSocket = WebSocketTestUtils.createMockSocket();
@@ -181,16 +181,16 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should allow connection when auth present and required', () => {
             // Arrange
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 requireAuth: true,
                 requireRoles: [],
                 clients: new Map(),
                 onConnect: jest.fn()
             };
-            WebSocketController.namespaces.set('/ws/test', namespace);
+            WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
             const mockRequest = WebSocketTestUtils.createMockUpgradeRequest({
-                url: '/ws/test',
+                url: '/api/1/ws/test',
                 session: WebSocketTestUtils.createAuthenticatedSession()
             });
             const mockSocket = WebSocketTestUtils.createMockSocket();
@@ -227,14 +227,14 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should block connection when role not satisfied', () => {
             // Arrange
             const namespace = {
-                path: '/ws/admin',
+                path: '/api/1/ws/admin',
                 requireAuth: true,
                 requireRoles: ['admin', 'root'],
                 clients: new Map()
             };
 
             const mockRequest = WebSocketTestUtils.createMockUpgradeRequest({
-                url: '/ws/admin',
+                url: '/api/1/ws/admin',
                 session: WebSocketTestUtils.createAuthenticatedSession({ roles: ['user'] })
             });
             const mockSocket = WebSocketTestUtils.createMockSocket();
@@ -264,16 +264,16 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should allow connection when role satisfied', () => {
             // Arrange
             const namespace = {
-                path: '/ws/admin',
+                path: '/api/1/ws/admin',
                 requireAuth: true,
                 requireRoles: ['admin', 'root'],
                 clients: new Map(),
                 onConnect: jest.fn()
             };
-            WebSocketController.namespaces.set('/ws/admin', namespace);
+            WebSocketController.namespaces.set('/api/1/ws/admin', namespace);
 
             const mockRequest = WebSocketTestUtils.createMockUpgradeRequest({
-                url: '/ws/admin',
+                url: '/api/1/ws/admin',
                 session: WebSocketTestUtils.createAuthenticatedSession({ roles: ['admin'] })
             });
             const mockSocket = WebSocketTestUtils.createMockSocket();
@@ -311,16 +311,16 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should allow connection without auth when not required', () => {
             // Arrange
             const namespace = {
-                path: '/ws/public',
+                path: '/api/1/ws/public',
                 requireAuth: false,
                 requireRoles: [],
                 clients: new Map(),
                 onConnect: jest.fn()
             };
-            WebSocketController.namespaces.set('/ws/public', namespace);
+            WebSocketController.namespaces.set('/api/1/ws/public', namespace);
 
             const mockRequest = WebSocketTestUtils.createMockUpgradeRequest({
-                url: '/ws/public',
+                url: '/api/1/ws/public',
                 session: WebSocketTestUtils.createUnauthenticatedSession()
             });
             const mockSocket = WebSocketTestUtils.createMockSocket();
@@ -361,7 +361,7 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should broadcast to all connected clients in namespace', () => {
             // Arrange
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 clients: new Map(),
                 stats: {
                     totalMessages: 0,
@@ -385,12 +385,12 @@ describe('WebSocketController - High Priority Tests', () => {
 
             namespace.clients.set('client1', client1);
             namespace.clients.set('client2', client2);
-            WebSocketController.namespaces.set('/ws/test', namespace);
+            WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
             const testData = { type: 'notification', message: 'Hello' };
 
             // Act
-            WebSocketController.broadcast('/ws/test', testData, 'testuser');
+            WebSocketController.broadcast('/api/1/ws/test', testData, 'testuser');
 
             // Assert
             const messages1 = WebSocketTestUtils.getSentMessages(client1.ws);
@@ -407,7 +407,7 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should include username in broadcast messages', () => {
             // Arrange
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 clients: new Map(),
                 stats: {
                     totalMessages: 0,
@@ -424,10 +424,10 @@ describe('WebSocketController - High Priority Tests', () => {
             };
 
             namespace.clients.set('client1', client);
-            WebSocketController.namespaces.set('/ws/test', namespace);
+            WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
             // Act
-            WebSocketController.broadcast('/ws/test', { type: 'test' }, 'alice');
+            WebSocketController.broadcast('/api/1/ws/test', { type: 'test' }, 'alice');
 
             // Assert
             const messages = WebSocketTestUtils.getSentMessages(client.ws);
@@ -437,7 +437,7 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should format message with success wrapper', () => {
             // Arrange
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 clients: new Map(),
                 stats: {
                     totalMessages: 0,
@@ -454,10 +454,10 @@ describe('WebSocketController - High Priority Tests', () => {
             };
 
             namespace.clients.set('client1', client);
-            WebSocketController.namespaces.set('/ws/test', namespace);
+            WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
             // Act
-            WebSocketController.broadcast('/ws/test', { type: 'test', payload: 123 });
+            WebSocketController.broadcast('/api/1/ws/test', { type: 'test', payload: 123 });
 
             // Assert
             const messages = WebSocketTestUtils.getSentMessages(client.ws);
@@ -470,7 +470,7 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should only send to clients with readyState === 1 (OPEN)', () => {
             // Arrange
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 clients: new Map(),
                 stats: {
                     totalMessages: 0,
@@ -506,10 +506,10 @@ describe('WebSocketController - High Priority Tests', () => {
             namespace.clients.set('client1', client1);
             namespace.clients.set('client2', client2);
             namespace.clients.set('client3', client3);
-            WebSocketController.namespaces.set('/ws/test', namespace);
+            WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
             // Act
-            WebSocketController.broadcast('/ws/test', { type: 'test' });
+            WebSocketController.broadcast('/api/1/ws/test', { type: 'test' });
 
             // Assert
             expect(client1.ws.sentMessages).toHaveLength(1);
@@ -520,7 +520,7 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should not affect clients in other namespaces', () => {
             // Arrange
             const namespace1 = {
-                path: '/ws/test1',
+                path: '/api/1/ws/test1',
                 clients: new Map(),
                 stats: {
                     totalMessages: 0,
@@ -529,7 +529,7 @@ describe('WebSocketController - High Priority Tests', () => {
                 }
             };
             const namespace2 = {
-                path: '/ws/test2',
+                path: '/api/1/ws/test2',
                 clients: new Map(),
                 stats: {
                     totalMessages: 0,
@@ -553,11 +553,11 @@ describe('WebSocketController - High Priority Tests', () => {
 
             namespace1.clients.set('client1', client1);
             namespace2.clients.set('client2', client2);
-            WebSocketController.namespaces.set('/ws/test1', namespace1);
-            WebSocketController.namespaces.set('/ws/test2', namespace2);
+            WebSocketController.namespaces.set('/api/1/ws/test1', namespace1);
+            WebSocketController.namespaces.set('/api/1/ws/test2', namespace2);
 
             // Act
-            WebSocketController.broadcast('/ws/test1', { type: 'test' });
+            WebSocketController.broadcast('/api/1/ws/test1', { type: 'test' });
 
             // Assert
             expect(client1.ws.sentMessages).toHaveLength(1);
@@ -567,7 +567,7 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should handle non-existent namespace gracefully', () => {
             // Act & Assert - should not throw
             expect(() => {
-                WebSocketController.broadcast('/ws/nonexistent', { type: 'test' });
+                WebSocketController.broadcast('/api/1/ws/nonexistent', { type: 'test' });
             }).not.toThrow();
 
             // The key behavior is that it doesn't throw - error is logged internally
@@ -583,7 +583,7 @@ describe('WebSocketController - High Priority Tests', () => {
 
         test('should register namespace successfully', () => {
             // Arrange
-            const path = '/ws/test';
+            const path = '/api/1/ws/test';
             const options = {
                 requireAuth: false,
                 onConnect: jest.fn(),
@@ -602,7 +602,7 @@ describe('WebSocketController - High Priority Tests', () => {
             expect(namespace.onConnect).toBe(options.onConnect);
         });
 
-        test('should validate /ws/* path prefix', () => {
+        test('should validate /api/1/ws/* path prefix', () => {
             // Act & Assert
             expect(() => {
                 WebSocketController.registerNamespace('/invalid/path', {});
@@ -616,14 +616,14 @@ describe('WebSocketController - High Priority Tests', () => {
             const onDisconnect = jest.fn();
 
             // Act
-            WebSocketController.registerNamespace('/ws/test', {
+            WebSocketController.registerNamespace('/api/1/ws/test', {
                 onConnect,
                 onMessage,
                 onDisconnect
             });
 
             // Assert
-            const namespace = WebSocketController.namespaces.get('/ws/test');
+            const namespace = WebSocketController.namespaces.get('/api/1/ws/test');
             expect(namespace.onConnect).toBe(onConnect);
             expect(namespace.onMessage).toBe(onMessage);
             expect(namespace.onDisconnect).toBe(onDisconnect);
@@ -631,22 +631,22 @@ describe('WebSocketController - High Priority Tests', () => {
 
         test('should handle requireAuth option', () => {
             // Act
-            WebSocketController.registerNamespace('/ws/test', { requireAuth: true });
+            WebSocketController.registerNamespace('/api/1/ws/test', { requireAuth: true });
 
             // Assert
-            const namespace = WebSocketController.namespaces.get('/ws/test');
+            const namespace = WebSocketController.namespaces.get('/api/1/ws/test');
             expect(namespace.requireAuth).toBe(true);
         });
 
         test('should handle requireRoles option', () => {
             // Act
-            WebSocketController.registerNamespace('/ws/test', {
+            WebSocketController.registerNamespace('/api/1/ws/test', {
                 requireAuth: true,
                 requireRoles: ['admin', 'root']
             });
 
             // Assert
-            const namespace = WebSocketController.namespaces.get('/ws/test');
+            const namespace = WebSocketController.namespaces.get('/api/1/ws/test');
             expect(namespace.requireRoles).toEqual(['admin', 'root']);
         });
     });
@@ -660,7 +660,7 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should assign unique client ID', () => {
             // Arrange
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 clients: new Map(),
                 onConnect: jest.fn()
             };
@@ -679,7 +679,7 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should use client-provided UUID if valid', () => {
             // Arrange
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 clients: new Map(),
                 onConnect: jest.fn()
             };
@@ -696,7 +696,7 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should store client in namespace', () => {
             // Arrange
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 clients: new Map(),
                 onConnect: jest.fn()
             };
@@ -715,7 +715,7 @@ describe('WebSocketController - High Priority Tests', () => {
             // Arrange
             const onConnect = jest.fn();
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 clients: new Map(),
                 onConnect
             };
@@ -735,7 +735,7 @@ describe('WebSocketController - High Priority Tests', () => {
         test('should initialize ping/pong timestamps', () => {
             // Arrange
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 clients: new Map(),
                 onConnect: jest.fn()
             };
@@ -771,15 +771,15 @@ describe('WebSocketController - High Priority Tests', () => {
             WebSocketController.sessionMiddleware = mockSessionMiddleware;
 
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 requireAuth: false,
                 requireRoles: [],
                 clients: new Map()
             };
-            WebSocketController.namespaces.set('/ws/test', namespace);
+            WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
             const mockRequest = {
-                url: '/ws/test',
+                url: '/api/1/ws/test',
                 headers: {}
             };
             const mockSocket = WebSocketTestUtils.createMockSocket();
@@ -807,13 +807,13 @@ describe('WebSocketController - High Priority Tests', () => {
 
             const onConnect = jest.fn();
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 requireAuth: true,
                 requireRoles: [],
                 clients: new Map(),
                 onConnect
             };
-            WebSocketController.namespaces.set('/ws/test', namespace);
+            WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
             AuthController.isAuthenticated = jest.fn().mockReturnValue(true);
 
@@ -825,7 +825,7 @@ describe('WebSocketController - High Priority Tests', () => {
             };
 
             const mockRequest = {
-                url: '/ws/test',
+                url: '/api/1/ws/test',
                 headers: {}
             };
             const mockSocket = WebSocketTestUtils.createMockSocket();
@@ -851,13 +851,13 @@ describe('WebSocketController - High Priority Tests', () => {
 
             const onConnect = jest.fn();
             const namespace = {
-                path: '/ws/test',
+                path: '/api/1/ws/test',
                 requireAuth: false,
                 requireRoles: [],
                 clients: new Map(),
                 onConnect
             };
-            WebSocketController.namespaces.set('/ws/test', namespace);
+            WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
             WebSocketController.wss = {
                 handleUpgrade: jest.fn((req, socket, head, callback) => {
@@ -867,7 +867,7 @@ describe('WebSocketController - High Priority Tests', () => {
             };
 
             const mockRequest = {
-                url: '/ws/test',
+                url: '/api/1/ws/test',
                 headers: {}
             };
             const mockSocket = WebSocketTestUtils.createMockSocket();

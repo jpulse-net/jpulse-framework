@@ -178,9 +178,9 @@
         }
 
         .local-todo-loading {
-            text-align: center;
-            padding: 20px;
-            color: #007bff;
+            display: none;
+            margin-left: 10px;
+            /* vertical-align: middle; */
         }
 
         @media (max-width: 600px) {
@@ -293,9 +293,8 @@
 
             <!-- To-do List -->
             <div class="jp-card">
-                <h3>📋 All To-Dos</h3>
+                <h3>📋 All To-Dos <span id="loadingSpinner" class="local-todo-loading"><img src="/images/icons/spinner-16.gif" alt="" width="16" height="16" /></span></h3>
                 <p class="jp-help-text">💡 <strong>Tip:</strong> Click the checkbox to mark a to-do as completed. Click the ✕ button to delete it.</p>
-                <div class="local-todo-loading" id="loadingMessage">Loading todos...</div>
                 <div class="local-todo-empty" id="emptyMessage" style="display: none;">
                     <p>🎉 No to-dos yet! Add one above to get started.</p>
                 </div>
@@ -465,17 +464,16 @@
 
             setLoading(loading) {
                 this.loading = loading;
-                const loadingMessage = document.getElementById('loadingMessage');
+                const loadingSpinner = document.getElementById('loadingSpinner');
                 const todoList = document.getElementById('todoList');
                 const emptyMessage = document.getElementById('emptyMessage');
 
+                todoList.style.display = 'block';
                 if (loading) {
-                    loadingMessage.style.display = 'block';
-                    todoList.style.display = 'none';
                     emptyMessage.style.display = 'none';
+                    loadingSpinner.style.display = 'inline-block';
                 } else {
-                    loadingMessage.style.display = 'none';
-                    todoList.style.display = 'block';
+                    loadingSpinner.style.display = 'none';
                 }
             }
 

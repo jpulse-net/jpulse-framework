@@ -85,6 +85,9 @@ const HelloWebSocketApp = {
     },
 
     mounted() {
+        // Configure WebSocket UUID storage before any connections are made
+        jPulse.ws.configure({ uuidStorage: 'session' });  // or 'local' or 'memory'
+
         // Set initial view from URL hash
         const hash = window.location.hash.slice(1);
         if (hash) {

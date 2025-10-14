@@ -257,7 +257,7 @@ async function startApp() {
     });
 
     // Initialize WebSocket server with session middleware
-    WebSocketController.initialize(server, sessionMiddleware);
+    await WebSocketController.initialize(server, sessionMiddleware);
 
     // Initialize site WebSocket controllers
     try {

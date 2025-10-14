@@ -41,7 +41,7 @@ class HealthController {
      * Initialize health metrics clustering
      * Called during application bootstrap
      */
-    static initialize() {
+    static async initialize() {
         try {
             const appConfig = global.appConfig;
 
@@ -52,10 +52,8 @@ class HealthController {
             }
 
             // W-076: Use RedisManager for health metrics broadcasting
-            const RedisManager = global.RedisManager || require('../utils/redis-manager.js').default;
-
             // Register callback for health metrics from other instances
-            RedisManager.registerBroadcastCallback('controller:health:metrics:*', (channel, data, sourceInstanceId) => {
+            global.RedisManager.registerBroadcastCallback('controller:health:metrics:*', (channel, data, sourceInstanceId) => {
                 // Extract instance ID from channel (controller:health:metrics:instanceId)
                 const instanceId = channel.replace('controller:health:metrics:', '');
 
@@ -685,18 +683,16 @@ class HealthController {
 
         const broadcastHealth = async () => {
             try {
-                const RedisManager = global.RedisManager || require('../utils/redis-manager.js').default;
-
                 // Get current instance health data
                 const pm2Status = await this._getPM2Status();
                 const wsStats = WebSocketController.getStats();
                 const healthData = this._getCurrentInstanceHealthData(pm2Status, wsStats);
 
                 // Broadcast to other instances
-                const instanceId = RedisManager.getInstanceId();
+                const instanceId = global.RedisManager.getInstanceId();
                 const channel = `controller:health:metrics:${instanceId}`;
 
-                RedisManager.publishBroadcast(channel, healthData);
+                global.RedisManager.publishBroadcast(channel, healthData);
 
             } catch (error) {
                 LogController.logError(null, 'health._startHealthBroadcasting', `error: ${error.message}`);

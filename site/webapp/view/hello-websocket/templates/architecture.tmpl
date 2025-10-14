@@ -44,7 +44,7 @@ window.helloWebSocketViews.Architecture = {
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  Vue Component                                                  │
-│  ├─ jPulse.ws.connect('/ws/my-app')                             │
+│  ├─ jPulse.ws.connect('/api/1/ws/my-app')                       │
 │  ├─ .onMessage((data) => { ... })                               │
 │  ├─ .onStatusChange((status) => { ... })                        │
 │  └─ .send({ type: 'action', ... })                              │
@@ -97,7 +97,7 @@ window.helloWebSocketViews.Architecture = {
             <h4 style="margin: 0 0 10px 0;">1️⃣ Initial Connection</h4>
             <ol style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.8;">
                 <li>Client generates or retrieves persistent UUID from localStorage</li>
-                <li>Client initiates WebSocket connection: <code>ws://host/ws/my-app?uuid=xxx</code></li>
+                <li>Client initiates WebSocket connection: <code>ws://host/api/1/ws/my-app?uuid=xxx</code></li>
                 <li>Server validates authentication (if required)</li>
                 <li>Server stores client in namespace registry</li>
                 <li><code>onConnect</code> handler called with clientId and user</li>
@@ -146,14 +146,14 @@ window.helloWebSocketViews.Architecture = {
 
         <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
             <pre style="background: white; padding: 12px; border-radius: 4px; margin: 0; font-size: 13px;"><code>// Each namespace is completely isolated
-/ws/chat           ← Chat messages
-/ws/notifications  ← System notifications
-/ws/dashboard      ← Live metrics
-/ws/game           ← Game state updates
+/api/1/ws/chat           ← Chat messages
+/api/1/ws/notifications  ← System notifications
+/api/1/ws/dashboard      ← Live metrics
+/api/1/ws/game           ← Game state updates
 
 // Different authentication requirements
-/ws/public-chat         requireAuth: false
-/ws/admin-dashboard     requireAuth: true, requireRoles: ['admin']</code></pre>
+/api/1/ws/public-chat         requireAuth: false
+/api/1/ws/admin-dashboard     requireAuth: true, requireRoles: ['admin']</code></pre>
         </div>
 
         <p style="margin-top: 10px; font-size: 14px;">
@@ -239,7 +239,7 @@ ws.onMessage((data) => {
             </ol>
 
             <pre style="background: white; padding: 12px; border-radius: 4px; margin: 10px 0 0 0; font-size: 12px;"><code>// Register namespace with authentication
-WebSocketController.registerNamespace('/ws/admin-panel', {
+WebSocketController.registerNamespace('/api/1/ws/admin-panel', {
     requireAuth: true,              // Must be logged in
     requireRoles: ['admin', 'root'], // Must have admin or root role
 

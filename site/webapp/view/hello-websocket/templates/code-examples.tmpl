@@ -36,7 +36,7 @@ class MyWebsocketController {
 
     static async initialize() {
         // Register WebSocket namespace
-        this.wsHandle = WebSocketController.registerNamespace('/ws/my-app', {
+        this.wsHandle = WebSocketController.registerNamespace('/api/1/ws/my-app', {
             requireAuth: false,      // Set true to require login
             requireRoles: [],        // e.g., ['admin', 'user']
 
@@ -82,36 +82,44 @@ export default MyWebsocketController;</code></pre>
         <h3>🌐 Client-Side: Connect and Communicate</h3>
         <p>In your Vue.js component or vanilla JavaScript:</p>
 
-        <h4>Basic Connection</h4>
-        <pre><code>// Connect to WebSocket namespace
-const ws = jPulse.ws.connect('/ws/my-app')
-    .onMessage((data, message) => {
-        if (data) {
-            // Handle successful message
-            console.log('Received:', data);
-        } else {
-            // Handle error
-            console.error('Error:', message.error);
-        }
-    })
-    .onStatusChange((status, oldStatus) => {
-        // Status values: 'connecting', 'connected', 'reconnecting', 'disconnected'
-        console.log(\`Connection: \${oldStatus} → \${status}\`);
+        <h4>Basic Connection with Configuration</h4>
+        <pre><code>// In your Vue component or application initialization:
+mounted() {
+    // Configure WebSocket UUID storage BEFORE making connections
+    jPulse.ws.configure({ uuidStorage: 'session' }); // per-tab (default)
+    // jPulse.ws.configure({ uuidStorage: 'local' });   // persistent across sessions
+    // jPulse.ws.configure({ uuidStorage: 'memory' });  // per-page load only
+
+    // Now connect to WebSocket namespace
+    const ws = jPulse.ws.connect('/api/1/ws/my-app')
+        .onMessage((data, message) => {
+            if (data) {
+                // Handle successful message
+                console.log('Received:', data);
+            } else {
+                // Handle error
+                console.error('Error:', message.error);
+            }
+        })
+        .onStatusChange((status, oldStatus) => {
+            // Status values: 'connecting', 'connected', 'reconnecting', 'disconnected'
+            console.log(\`Connection: \${oldStatus} → \${status}\`);
+        });
+
+    // Send message
+    ws.send({
+        type: 'chat-message',
+        message: 'Hello, world!'
     });
 
-// Send message
-ws.send({
-    type: 'chat-message',
-    message: 'Hello, world!'
-});
+    // Check connection status
+    if (ws.isConnected()) {
+        console.log('Ready to send messages');
+    }
 
-// Check connection status
-if (ws.isConnected()) {
-    console.log('Ready to send messages');
-}
-
-// Disconnect when done
-ws.disconnect();</code></pre>
+    // Disconnect when done (typically in beforeUnmount)
+    // ws.disconnect();
+}</code></pre>
     </div>
 
     <!-- Vue.js Integration -->
@@ -129,6 +137,9 @@ ws.disconnect();</code></pre>
     },
 
     mounted() {
+        // Configure UUID storage before connecting
+        jPulse.ws.configure({ uuidStorage: 'session' }); // or 'local' or 'memory'
+
         this.connect();
     },
 
@@ -140,7 +151,7 @@ ws.disconnect();</code></pre>
 
     methods: {
         connect() {
-            this.ws = jPulse.ws.connect('/ws/my-app')
+            this.ws = jPulse.ws.connect('/api/1/ws/my-app')
                 .onMessage((data) => {
                     if (data.type === 'chat-message') {
                         // Reactive update - UI updates automatically
@@ -164,13 +175,13 @@ ws.disconnect();</code></pre>
     },
 
     template: \`
-        <div>
-            <div>Status: {{ status }}</div>
-            <div v-for="msg in messages">
-                {{ msg.username }}: {{ msg.message }}
-            </div>
-            <button @click="sendMessage('Hello!')">Send</button>
-        </div>
+        &lt;div&gt;
+            &lt;div&gt;Status: &#123;&#123; status &#125;&#125;&lt;/div&gt;
+            &lt;div v-for="msg in messages"&gt;
+                &#123;&#123; msg.username &#125;&#125;: &#123;&#123; msg.message &#125;&#125;
+            &lt;/div&gt;
+            &lt;button @click="sendMessage('Hello!')"&gt;Send&lt;/button&gt;
+        &lt;/div&gt;
     \`
 };</code></pre>
     </div>
@@ -225,7 +236,7 @@ export default TodoController;</code></pre>
         await this.loadTodos();
 
         // 2. Connect to WebSocket for live updates
-        this.ws = jPulse.ws.connect('/ws/my-app')
+        this.ws = jPulse.ws.connect('/api/1/ws/my-app')
             .onMessage((data) => {
                 if (data.type === 'todo-created') {
                     // Add new todo to list (if not already present)
@@ -308,7 +319,7 @@ export default TodoController;</code></pre>
         <h3>🛡️ Pattern: Error Handling & Reconnection</h3>
         <p>Handle connection failures gracefully:</p>
 
-        <pre><code>const ws = jPulse.ws.connect('/ws/my-app', {
+        <pre><code>const ws = jPulse.ws.connect('/api/1/ws/my-app', {
     reconnectBaseInterval: 5000,    // Start with 5 seconds
     reconnectMaxInterval: 30000,    // Max 30 seconds
     maxReconnectAttempts: 10        // Give up after 10 attempts
@@ -374,34 +385,38 @@ export default TodoController;</code></pre>
                 <td style="padding: 8px; border: 1px solid #ddd;"><strong>Code</strong></td>
             </tr>
             <tr>
-                <td style="padding: 8px; border: 1px solid #ddd;">Connect</td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><code>jPulse.ws.connect('/ws/path')</code></td>
+                <td style="padding: 8px; border: 1px solid #ddd;">Configure UUID storage</td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><code>jPulse.ws.configure({ uuidStorage: 'session' })</code></td>
             </tr>
             <tr style="background: #f8f9fa;">
+                <td style="padding: 8px; border: 1px solid #ddd;">Connect</td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><code>jPulse.ws.connect('/api/1/ws/path')</code></td>
+            </tr>
+            <tr>
                 <td style="padding: 8px; border: 1px solid #ddd;">Send message</td>
                 <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.send({type: 'action', data: ...})</code></td>
             </tr>
-            <tr>
+            <tr style="background: #f8f9fa;">
                 <td style="padding: 8px; border: 1px solid #ddd;">Listen for messages</td>
                 <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.onMessage((data) => {...})</code></td>
             </tr>
-            <tr style="background: #f8f9fa;">
+            <tr>
                 <td style="padding: 8px; border: 1px solid #ddd;">Check status</td>
                 <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.getStatus() // 'connected', etc.</code></td>
             </tr>
-            <tr>
+            <tr style="background: #f8f9fa;">
                 <td style="padding: 8px; border: 1px solid #ddd;">Check if connected</td>
                 <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.isConnected() // boolean</code></td>
             </tr>
-            <tr style="background: #f8f9fa;">
+            <tr>
                 <td style="padding: 8px; border: 1px solid #ddd;">Disconnect</td>
                 <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.disconnect()</code></td>
             </tr>
-            <tr>
+            <tr style="background: #f8f9fa;">
                 <td style="padding: 8px; border: 1px solid #ddd;">Broadcast (server)</td>
                 <td style="padding: 8px; border: 1px solid #ddd;"><code>wsHandle.broadcast({...})</code></td>
             </tr>
-            <tr style="background: #f8f9fa;">
+            <tr>
                 <td style="padding: 8px; border: 1px solid #ddd;">Send to one (server)</td>
                 <td style="padding: 8px; border: 1px solid #ddd;"><code>wsHandle.sendToClient(clientId, {...})</code></td>
             </tr>
@@ -413,6 +428,40 @@ export default TodoController;</code></pre>
         <p style="margin: 0;">
             For comprehensive API reference, advanced patterns, authentication, and troubleshooting,
             see the <a href="/jpulse-docs/websockets" target="_blank">WebSocket Documentation</a>.
+        </p>
+    </div>
+
+    <!-- UUID Storage Configuration -->
+    <div class="jp-card" style="margin-top: 20px; background: #f8f9fa; border-left: 4px solid #28a745;">
+        <h3 style="margin-top: 0;">🆔 UUID Storage Modes</h3>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px;">
+            <tr style="background: #fff;">
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Mode</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Scope</strong></td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Use Case</strong></td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;"><code>session</code> (default)</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">Per-tab, survives page reloads</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">Multi-tab collaborative apps</td>
+            </tr>
+            <tr style="background: #f8f9fa;">
+                <td style="padding: 8px; border: 1px solid #ddd;"><code>local</code></td>
+                <td style="padding: 8px; border: 1px solid #ddd;">Per-browser, persistent identity</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">User identity across sessions</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;"><code>memory</code></td>
+                <td style="padding: 8px; border: 1px solid #ddd;">Per-page load, no persistence</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">Testing, maximum isolation</td>
+            </tr>
+        </table>
+
+        <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;">
+            💡 <strong>Tip:</strong> Configure UUID storage before making any WebSocket connections.
+            The <code>session</code> mode (default) enables multiple tabs to connect simultaneously
+            to collaborative real-time applications.
         </p>
     </div>
 </div>

@@ -31790,3 +31790,129 @@ All phases completed successfully:
 ✅ **Phase 4**: Health Metrics Clustering & Instance Coordination
 
 **Ready for v1.0 Production Release!** 🚀
+
+
+==============================================================
+2025-10-13 00:20
+
+User reported Redis log messages appearing when Redis is disabled during todo toggle operations. Need to fix early bailout logic in Redis-related functions to prevent unnecessary logging when Redis is unavailable.
+
+CHANGES IMPLEMENTED:
+
+1. Fixed WebSocket _localBroadcast function (webapp/controller/websocket.js:239)
+   - Only logs broadcast activity if there are actual clients OR Redis is enabled
+   - Prevents logging "Broadcast to 0 clients" when Redis is disabled and no WebSocket clients are connected
+
+2. Fixed RedisManager publishBroadcast function (webapp/utils/redis-manager.js:373-383)
+   - Added early bailout check using RedisManager.isAvailable before attempting Redis operations
+   - Removed unnecessary logging when Redis is unavailable to prevent log noise
+   - Returns false silently when Redis is disabled
+
+3. Fixed RedisManager subscribeBroadcast function (webapp/utils/redis-manager.js:486-496)
+   - Added early bailout check using RedisManager.isAvailable
+   - Removed unnecessary logging when Redis is unavailable
+   - Returns false silently when Redis is disabled
+
+4. Fixed RedisManager registerBroadcastCallback function (webapp/utils/redis-manager.js:428-447)
+   - Added conditional logic to only subscribe and log when Redis is available
+   - Still stores callbacks for potential future use even when Redis is disabled
+   - Fails silently without logging when Redis is unavailable
+
+RESULT: Redis-related functions now bail out early and silently when Redis is disabled, eliminating unwanted log messages during normal operations in fallback mode.
+
+Changes were accepted by user.
+
+
+==============================================================
+2025-10-13 01:32
+
+User reported WebSocket issue where todo items created in one browser tab don't appear in the same tab but do appear in other tabs. Investigation revealed that WebSocket client UUIDs are shared across browser tabs using localStorage, causing connection conflicts.
+
+CHANGES IMPLEMENTED:
+
+1. Updated WebSocket configuration (webapp/view/jpulse-common.js:3814)
+   - Added uuidStorage option with 'session' as default
+   - Added _memoryUUID property for memory mode storage
+
+2. Added configure() method (webapp/view/jpulse-common.js:3825)
+   - Allows runtime configuration of WebSocket behavior
+   - Enables developers to choose UUID storage strategy
+
+3. Enhanced _getClientUUID() method (webapp/view/jpulse-common.js:3845-3886)
+   - Supports three storage modes:
+     * 'session': Per-tab storage, survives page reloads (default)
+     * 'local': Persistent across browser sessions (original behavior)
+     * 'memory': Per-page load only, no persistence (testing/isolation)
+   - Includes fallback to 'session' for unknown modes with warning
+
+4. Updated documentation (webapp/view/jpulse-common.js:3790-3809)
+   - Added usage examples for all three storage modes
+   - Clear explanation of when to use each mode
+
+STORAGE MODE COMPARISON:
+- session (default): Per-tab UUIDs, enables multi-tab usage, clears on tab close
+- local: Browser-wide UUIDs, persistent identity, survives browser restart
+- memory: Page-specific UUIDs, maximum isolation, useful for testing
+
+EXPECTED RESULT: Multiple browser tabs can now connect to WebSocket namespaces simultaneously without UUID conflicts, fixing the original issue where todo items didn't appear in the submitting tab.
+
+Changes were accepted by user.
+
+VERIFICATION AND DOCUMENTATION UPDATE:
+
+1. Verified routing configuration (site/webapp/view/hello-websocket/templates/routing.tmpl:88-89)
+   - User correctly added jPulse.ws.configure({ uuidStorage: 'local' }) in Vue mounted() hook
+   - Configuration is properly placed before any WebSocket connections are made
+
+2. Enhanced code examples documentation (site/webapp/view/hello-websocket/templates/code-examples.tmpl)
+   - Added UUID Storage Configuration section with all three modes explained
+   - Updated Vue.js integration example to include UUID storage configuration
+   - Added UUID storage to Quick Reference table
+   - Added comprehensive UUID Storage Modes comparison table
+   - Included usage guidelines and best practices
+
+DOCUMENTATION IMPROVEMENTS:
+- Clear examples of session/local/memory storage modes
+- Proper placement of configuration calls before connections
+- Comprehensive comparison table showing scope and use cases
+- Integration with existing code examples and patterns
+
+WebSocket UUID storage system is now fully documented and ready for developer use.
+
+DOCUMENTATION CLARITY IMPROVEMENT:
+
+User correctly pointed out that the UUID Storage Configuration section was confusing because it showed configuration calls in isolation without proper context.
+
+FIXED: Moved UUID configuration examples into proper mounted() context where they should actually be used:
+- Changed from isolated jPulse.ws.configure() calls
+- To proper Vue.js mounted() hook example showing configuration BEFORE connection
+- Added clear comments explaining when and where to use each option
+- Made it obvious that configuration must happen before WebSocket connections
+
+The documentation now clearly shows developers exactly where and how to configure UUID storage in their applications.
+
+
+==============================================================
+2025-10-13 19:58
+
+ADDITIONAL USER ENHANCEMENTS FOR V1.0 RELEASE:
+
+User completed additional UI/UX improvements for production readiness:
+
+1. webapp/view/admin/logs.shtml
+   - Better i18n without concatenating i18n strings
+   - Fixed structure that did not work for Japanese language
+
+2. site/webapp/view/hello-websocket/templates/code-examples.tmpl
+   - Escaped HTML in pre blocks for proper rendering
+   - Fixed template syntax display issues
+
+3. site/webapp/view/hello-todo/todo-app.shtml
+   - Replaced "loading..." message in div to span with spinner icon in header
+   - Eliminates page reload flicker for better UX
+
+4. site/webapp/view/hello-todo/code-examples.shtml
+   - Escaped HTML in pre blocks for proper rendering
+   - Consistent documentation formatting
+
+These enhancements improve internationalization support, documentation clarity, and user experience across the framework demos and admin interface.

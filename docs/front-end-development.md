@@ -112,7 +112,7 @@ For simple request/response patterns, use REST API instead.
 **Connect to namespace:**
 
 ```javascript
-const ws = jPulse.ws.connect('/ws/my-app')
+const ws = jPulse.ws.connect('/api/1/ws/my-app')
     .onMessage((data, message) => {
         console.log('Received:', data);
         updateUI(data);
@@ -174,7 +174,7 @@ const MyApp = {
         };
     },
     mounted() {
-        this.ws = jPulse.ws.connect('/ws/my-app')
+        this.ws = jPulse.ws.connect('/api/1/ws/my-app')
             .onMessage((data) => {
                 this.messages.push(data); // Reactive!
             })

@@ -3793,9 +3793,15 @@ window.jPulse = {
      * - Bidirectional ping/pong
      * - Connection status tracking
      * - Standard message format
-     * - Persistent client UUID (survives reconnections)
+     * - Configurable client UUID storage (session/local/memory)
      *
      * Usage:
+     *   // Configure UUID storage (optional, defaults to 'session')
+     *   jPulse.ws.configure({ uuidStorage: 'session' }); // per-tab (default)
+     *   jPulse.ws.configure({ uuidStorage: 'local' });   // persistent across sessions
+     *   jPulse.ws.configure({ uuidStorage: 'memory' });  // per-page load only
+     *
+     *   // Connect to WebSocket namespace
      *   const ws = jPulse.ws.connect('/api/1/ws/my-app')
      *     .onMessage(data => console.log(data))
      *     .onStatusChange(status => console.log(status));
@@ -3810,7 +3816,20 @@ window.jPulse = {
             reconnectBaseInterval: 5000,  // 5 seconds
             reconnectMaxInterval: 30000,  // 30 seconds max
             maxReconnectAttempts: 10,
-            pingInterval: 30000           // 30 seconds
+            pingInterval: 30000,          // 30 seconds
+            uuidStorage: 'session'        // 'session' | 'local' | 'memory'
+        },
+
+        // Memory storage for 'memory' mode
+        _memoryUUID: null,
+
+        /**
+         * Configure WebSocket behavior
+         * @param {Object} config - Configuration options
+         * @param {string} config.uuidStorage - UUID storage type: 'session', 'local', or 'memory'
+         */
+        configure: function(config = {}) {
+            this._config = { ...this._config, ...config };
         },
 
         /**
@@ -3826,16 +3845,49 @@ window.jPulse = {
         },
 
         /**
-         * Get or create persistent client UUID
+         * Get or create client UUID based on configured storage type
          * @private
          */
         _getClientUUID: function() {
             const storageKey = 'jPulse.ws.clientUUID';
-            let uuid = localStorage.getItem(storageKey);
-            if (!uuid) {
-                uuid = this._generateUUID();
-                localStorage.setItem(storageKey, uuid);
+            let uuid;
+
+            switch (this._config.uuidStorage) {
+                case 'local':
+                    // Persistent across browser sessions (original behavior)
+                    uuid = localStorage.getItem(storageKey);
+                    if (!uuid) {
+                        uuid = this._generateUUID();
+                        localStorage.setItem(storageKey, uuid);
+                    }
+                    break;
+
+                case 'session':
+                    // Per-tab, survives page reloads (recommended for multi-tab apps)
+                    uuid = sessionStorage.getItem(storageKey);
+                    if (!uuid) {
+                        uuid = this._generateUUID();
+                        sessionStorage.setItem(storageKey, uuid);
+                    }
+                    break;
+
+                case 'memory':
+                    // Per-page load, no persistence (useful for testing)
+                    if (!this._memoryUUID) {
+                        this._memoryUUID = this._generateUUID();
+                    }
+                    uuid = this._memoryUUID;
+                    break;
+
+                default:
+                    console.warn(`jPulse.ws: Unknown uuidStorage '${this._config.uuidStorage}', using 'session'`);
+                    uuid = sessionStorage.getItem(storageKey);
+                    if (!uuid) {
+                        uuid = this._generateUUID();
+                        sessionStorage.setItem(storageKey, uuid);
+                    }
             }
+
             return uuid;
         },
 

@@ -84,7 +84,7 @@ class WebSocketController {
      * @param {http.Server} httpServer - HTTP server instance from Express
      * @param {Function} sessionMiddleware - Express session middleware for parsing sessions
      */
-    static initialize(httpServer, sessionMiddleware) {
+    static async initialize(httpServer, sessionMiddleware) {
         try {
             // Store session middleware
             this.sessionMiddleware = sessionMiddleware;
@@ -98,7 +98,7 @@ class WebSocketController {
             });
 
             // Initialize Redis pub/sub for multi-instance coordination (optional)
-            this._initializeRedis();
+            await this._initializeRedis();
 
             // Register admin stats namespace
             this._registerAdminStatsNamespace();
@@ -196,14 +196,11 @@ class WebSocketController {
         if (this.redis.enabled) {
             try {
                 // W-076: Use RedisManager callback-based broadcasting
-                const RedisManager = global.RedisManager || require('../utils/redis-manager.js').default;
-
                 // Create channel name: controller:websocket:broadcast:{namespacePath}
                 // Remove leading slash and replace slashes with colons for clean channel names
                 const channelSuffix = namespacePath.replace(/^\//, '').replace(/\//g, ':');
                 const channel = `controller:websocket:broadcast:${channelSuffix}`;
-
-                RedisManager.publishBroadcast(channel, dataWithUsername);
+                global.RedisManager.publishBroadcast(channel, dataWithUsername);
             } catch (error) {
                 LogController.logError(null, 'websocket.broadcast', `Redis broadcast failed: ${error.message}`);
                 // Continue with local broadcast even if Redis fails
@@ -235,8 +232,8 @@ class WebSocketController {
         // Update stats
         this._recordMessage(namespace);
 
-        // Log activity (skip ping/pong)
-        if (dataWithUsername.type !== 'ping' && dataWithUsername.type !== 'pong') {
+        // Log activity (skip ping/pong and only log if there are actual clients or Redis is enabled for cross-instance coordination)
+        if (dataWithUsername.type !== 'ping' && dataWithUsername.type !== 'pong' && (sentCount > 0 || this.redis.enabled)) {
             LogController.logInfo(null, 'websocket._localBroadcast', `Broadcast to ${sentCount} clients in ${namespacePath} (from: ${dataWithUsername.username || 'system'})`);
         }
     }
@@ -563,7 +560,7 @@ class WebSocketController {
      * Enables horizontal scaling with PM2 cluster mode
      * @private
      */
-    static _initializeRedis() {
+    static async _initializeRedis() {
         const appConfig = global.appConfig;
 
         // Check if Redis is enabled
@@ -574,17 +571,15 @@ class WebSocketController {
 
         try {
             // W-076: Use RedisManager for WebSocket broadcasting
-            const RedisManager = global.RedisManager || require('../utils/redis-manager.js').default;
-
             // Register callback for WebSocket broadcasts from other instances
-            RedisManager.registerBroadcastCallback('controller:websocket:broadcast:*', (channel, data, sourceInstanceId) => {
+            global.RedisManager.registerBroadcastCallback('controller:websocket:broadcast:*', (channel, data, sourceInstanceId) => {
                 // Extract namespace from channel (controller:websocket:broadcast:api:1:ws:namespace)
                 const channelSuffix = channel.replace('controller:websocket:broadcast:', '');
                 // Convert back to path format: api:1:ws:namespace -> /api/1/ws/namespace
                 const namespacePath = '/' + channelSuffix.replace(/:/g, '/');
 
                 // Only process if message came from different instance
-                if (sourceInstanceId !== RedisManager.getInstanceId()) {
+                if (sourceInstanceId !== global.RedisManager.getInstanceId()) {
                     this._localBroadcast(namespacePath, data);
                 }
             });

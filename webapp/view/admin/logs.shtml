@@ -394,10 +394,9 @@
             noResultsFound: '{{i18n.view.admin.logs.noResultsFound}}',
             loadingResults: '{{i18n.view.admin.logs.loadingResults}}',
             resultsPerPage: '{{i18n.view.admin.logs.resultsPerPage}}',
-            result: '{{i18n.view.admin.logs.result}}',
-            results: '{{i18n.view.admin.logs.results}}',
             showingResults: '{{i18n.view.admin.logs.showingResults}}'
         };
+        console.log('DEBUG: i18nStrings', JSON.stringify(i18nStrings, 0, 1));
 
         let currentPage = 1;
         let totalPages = 1;
@@ -946,7 +945,10 @@
             } else if (total <= showing) {
                 resultsCount.textContent = `${total} ${total === 1 ? i18nStrings.result : i18nStrings.results}`;
             } else {
-                resultsCount.textContent = `${i18nStrings.showingResults} ${start}-${end} of ${total} ${i18nStrings.results}`;
+                resultsCount.textContent = i18nStrings.showingResults
+                    .replace('%START%', start)
+                    .replace('%END%', end)
+                    .replace('%TOTAL%', total);
             }
         }
 

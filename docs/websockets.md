@@ -12,7 +12,7 @@ The jPulse Framework provides enterprise-grade WebSocket infrastructure for real
 
 ### Key Features
 
-- **Namespace Isolation**: Multiple independent WebSocket channels (`/ws/chat`, `/ws/dashboard`, etc.)
+- **Namespace Isolation**: Multiple independent WebSocket channels (`/api/1/ws/chat`, `/api/1/ws/dashboard`, etc.)
 - **Persistent Client UUID**: Client-generated UUID v4 persists across reconnections and page reloads
 - **Auto-Reconnection**: Progressive backoff reconnection (5s → 30s max)
 - **Health Monitoring**: Bidirectional ping/pong with automatic cleanup
@@ -38,7 +38,7 @@ import WebSocketController from '../../../webapp/controller/websocket.js';
 class MyController {
     static async initialize() {
         // Register WebSocket namespace
-        const wsHandle = WebSocketController.registerNamespace('/ws/my-app', {
+        const wsHandle = WebSocketController.registerNamespace('/api/1/ws/my-app', {
             requireAuth: false,  // Optional authentication
             requireRoles: [],    // Optional role restrictions
             onConnect: (clientId, user) => {
@@ -76,7 +76,7 @@ Views can connect to namespaces using the `jPulse.ws` utilities:
 
 ```javascript
 // In your view or Vue component
-const ws = jPulse.ws.connect('/ws/my-app')
+const ws = jPulse.ws.connect('/api/1/ws/my-app')
     .onMessage((data, message) => {
         if (data) {
             console.log('Received:', data);
@@ -116,7 +116,7 @@ ws.disconnect();
 
 ### Registering Namespaces
 
-All namespace paths **must** start with `/ws/` prefix (enforced by framework).
+All namespace paths **must** start with `/api/1/ws/` prefix (enforced by framework).
 
 ```javascript
 WebSocketController.registerNamespace(path, options)
@@ -124,7 +124,7 @@ WebSocketController.registerNamespace(path, options)
 
 **Parameters:**
 
-- `path` (string, required): Namespace path, must start with `/ws/`
+- `path` (string, required): Namespace path, must start with `/api/1/ws/`
 - `options` (object, optional):
   - `requireAuth` (boolean): Require user authentication (default: `false`)
   - `requireRoles` (array): Required user roles (default: `[]`)
@@ -140,7 +140,7 @@ WebSocketController.registerNamespace(path, options)
 **Example:**
 
 ```javascript
-const wsHandle = WebSocketController.registerNamespace('/ws/dashboard', {
+const wsHandle = WebSocketController.registerNamespace('/api/1/ws/dashboard', {
     requireAuth: true,
     requireRoles: ['admin', 'viewer'],
     onConnect: (clientId, user) => {
@@ -227,7 +227,7 @@ jPulse.ws.connect(path, options)
 
 **Parameters:**
 
-- `path` (string, required): Namespace path (e.g., `/ws/my-app`)
+- `path` (string, required): Namespace path (e.g., `/api/1/ws/my-app`)
 - `options` (object, optional):
   - `reconnectBaseInterval` (number): Base reconnection interval in ms (default: 5000)
   - `reconnectMaxInterval` (number): Max reconnection interval in ms (default: 30000)
@@ -239,7 +239,7 @@ jPulse.ws.connect(path, options)
 **Example:**
 
 ```javascript
-const ws = jPulse.ws.connect('/ws/my-app', {
+const ws = jPulse.ws.connect('/api/1/ws/my-app', {
     reconnectBaseInterval: 3000,  // Start with 3s
     reconnectMaxInterval: 20000,  // Cap at 20s
     maxReconnectAttempts: 15
@@ -330,14 +330,14 @@ ws.disconnect();
 ### 1. Initial Connection
 
 ```javascript
-const ws = jPulse.ws.connect('/ws/my-app');
+const ws = jPulse.ws.connect('/api/1/ws/my-app');
 // Status: 'connecting'
 ```
 
 The client:
 - Generates or retrieves persistent UUID from localStorage
 - Establishes WebSocket connection to the server
-- Sends UUID as query parameter: `/ws/my-app?uuid=<uuid>`
+- Sends UUID as query parameter: `/api/1/ws/my-app?uuid=<uuid>`
 - Server recognizes returning clients by UUID across reconnections
 
 ### 2. Connected
@@ -412,7 +412,7 @@ This ensures both sides detect dead connections quickly.
 ### Requiring Authentication
 
 ```javascript
-WebSocketController.registerNamespace('/ws/secure-chat', {
+WebSocketController.registerNamespace('/api/1/ws/secure-chat', {
     requireAuth: true,  // Users must be logged in
     onConnect: (clientId, user) => {
         // user object available
@@ -426,7 +426,7 @@ If user is not authenticated, connection is rejected.
 ### Requiring Specific Roles
 
 ```javascript
-WebSocketController.registerNamespace('/ws/admin-panel', {
+WebSocketController.registerNamespace('/api/1/ws/admin-panel', {
     requireAuth: true,
     requireRoles: ['admin', 'root'],  // Only admins
     onConnect: (clientId, user) => {
@@ -711,7 +711,7 @@ const HelloApp = {
         };
     },
     mounted() {
-        this.ws = jPulse.ws.connect('/ws/my-app')
+        this.ws = jPulse.ws.connect('/api/1/ws/my-app')
             .onMessage((data) => {
                 // Reactive update
                 this.messages.push(data);
@@ -825,10 +825,10 @@ function sendSafe(data) {
 
 Create separate namespaces for different purposes:
 
-- `/ws/notifications` - Global notifications
-- `/ws/chat` - Chat messages
-- `/ws/dashboard` - Live dashboard data
-- `/ws/game` - Game state updates
+- `/api/1/ws/notifications` - Global notifications
+- `/api/1/ws/chat` - Chat messages
+- `/api/1/ws/dashboard` - Live dashboard data
+- `/api/1/ws/game` - Game state updates
 
 Don't mix unrelated functionality in one namespace.
 
@@ -953,7 +953,7 @@ Real-time monitoring dashboard (requires admin role):
 
 **Solutions:**
 - Check namespace is registered on server
-- Verify path starts with `/ws/`
+- Verify path starts with `/api/1/ws/`
 - Check authentication requirements
 - Check role requirements
 

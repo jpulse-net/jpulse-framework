@@ -117,12 +117,14 @@
                         <div class="jp-form-group">
                             <label for="language" class="jp-form-label">{{i18n.view.user.profile.language}}</label>
                             <select id="language" name="language" class="jp-form-select" disabled>
-                                <!-- Options will be populated dynamically -->
+                                <!-- Options will be replaced dynamically -->
+                                <option value="{{user.preferences.language}}" disabled selected>{{user.preferences.language}}</option>
                             </select>
 
                             <label for="theme" class="jp-form-label">{{i18n.view.user.profile.theme}}</label>
                             <select id="theme" name="theme" class="jp-form-select" disabled>
-                                <!-- Options will be populated dynamically -->
+                                <!-- Options will be replaced dynamically -->
+                                <option value="{{user.preferences.theme}}" disabled selected>{{user.preferences.theme}}</option>
                             </select>
                         </div>
                     </div>
@@ -175,17 +177,17 @@
 </div>
 
     <script>
+        {{#if user.authenticated}}
         let editMode = false;
         let originalValues = {};
 
         // Enhanced profile management using jPulse utilities
         let securityCollapsible = null;
 
-        {{#if user.authenticated}}
-        jPulse.dom.ready(() => {
-            loadProfile();
-            loadLanguages();
-            loadThemes();
+        jPulse.dom.ready(async () => {
+            await loadProfile();
+            await loadLanguages();
+            await loadThemes();
 
             // Register the collapsible security section with handle
             securityCollapsible = jPulse.UI.collapsible.register('securitySection', {
@@ -205,7 +207,6 @@
                 }
             });
         });
-        {{/if}}
 
         function toggleEditMode() {
             editMode = !editMode;
@@ -378,7 +379,6 @@
             }
         }
 
-
         async function loadProfile() {
             try {
                 const result = await jPulse.api.get('/api/1/user/profile');
@@ -392,7 +392,7 @@
                     document.getElementById('email').value = user.email || '';
 
                     // Update preferences
-                    document.getElementById('language').value = user.preferences?.language || 'en';
+                    document.getElementById('language').value = user.preferences?.language || '{{appConfig.utils.i18n.default}}' || 'en';
                     document.getElementById('theme').value = user.preferences?.theme || 'light';
 
                     // Update status badge
@@ -474,6 +474,7 @@
                 jPulse.UI.toast.error('Failed to load theme options. Please refresh the page.');
             }
         }
+        {{/if}}
     </script>
 
     {{file.include "jpulse-footer.tmpl"}}

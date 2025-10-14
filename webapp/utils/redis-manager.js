@@ -371,12 +371,15 @@ class RedisManager {
      * @returns {boolean} True if published successfully, false if Redis unavailable
      */
     static async publishBroadcast(channel, data) {
+        // Early bailout if Redis is not available - fail silently to avoid log noise
+        if (!RedisManager.isAvailable) {
+            return false;
+        }
+
         const publisher = RedisManager.getClient('broadcast', 'publisher');
 
         if (!publisher) {
-            // Graceful fallback: log and return false
-            global.LogController?.logInfo(null, 'redis-manager.publishBroadcast',
-                `Broadcast publish skipped (Redis unavailable): ${channel}`);
+            // Graceful fallback: return false without logging (Redis disabled)
             return false;
         }
 
@@ -429,14 +432,18 @@ class RedisManager {
             return;
         }
 
-        // Store the callback
+        // Store the callback regardless of Redis availability (for potential future use)
         RedisManager.broadcastCallbacks.set(channel, callback);
 
-        // Subscribe to the channel automatically
-        RedisManager.subscribeBroadcast([channel], RedisManager._handleCallbackMessage);
+        // Only subscribe and log if Redis is available
+        if (RedisManager.isAvailable) {
+            // Subscribe to the channel automatically
+            RedisManager.subscribeBroadcast([channel], RedisManager._handleCallbackMessage);
 
-        global.LogController?.logInfo(null, 'redis-manager.registerBroadcastCallback',
-            `Registered callback for channel: ${channel}`);
+            global.LogController?.logInfo(null, 'redis-manager.registerBroadcastCallback',
+                `Registered callback for channel: ${channel}`);
+        }
+        // If Redis is not available, fail silently - callback is stored for potential future use
     }
 
     /**
@@ -481,12 +488,15 @@ class RedisManager {
      * @returns {boolean} True if subscribed successfully, false if Redis unavailable
      */
     static subscribeBroadcast(channels, callback) {
+        // Early bailout if Redis is not available - fail silently to avoid log noise
+        if (!RedisManager.isAvailable) {
+            return false;
+        }
+
         const subscriber = RedisManager.getClient('broadcast', 'subscriber');
 
         if (!subscriber) {
-            // Graceful fallback: log and return false
-            global.LogController?.logInfo(null, 'redis-manager.subscribeBroadcast',
-                'Broadcast subscribe skipped (Redis unavailable)');
+            // Graceful fallback: return false without logging (Redis disabled)
             return false;
         }
 

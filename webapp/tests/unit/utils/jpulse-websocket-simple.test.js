@@ -278,23 +278,23 @@ describe('jPulse.ws - Client API (Simplified)', () => {
     describe('URL Construction', () => {
 
         test('URL includes protocol', () => {
-            const ws = new global.WebSocket('ws://localhost:8080/ws/test');
+            const ws = new global.WebSocket('ws://localhost:8080/api/1/ws/test');
             expect(ws.url).toMatch(/^ws[s]?:\/\//);
         });
 
         test('URL includes host', () => {
-            const ws = new global.WebSocket('ws://localhost:8080/ws/test');
+            const ws = new global.WebSocket('ws://localhost:8080/api/1/ws/test');
             expect(ws.url).toContain('localhost:8080');
         });
 
         test('URL includes path', () => {
-            const ws = new global.WebSocket('ws://localhost:8080/ws/test');
-            expect(ws.url).toContain('/ws/test');
+            const ws = new global.WebSocket('ws://localhost:8080/api/1/ws/test');
+            expect(ws.url).toContain('/api/1/ws/test');
         });
 
         test('URL can include query parameters', () => {
             const uuid = jPulse.ws._getClientUUID();
-            const url = `ws://localhost:8080/ws/test?uuid=${encodeURIComponent(uuid)}`;
+            const url = `ws://localhost:8080/api/1/ws/test?uuid=${encodeURIComponent(uuid)}`;
             const ws = new global.WebSocket(url);
             expect(ws.url).toContain('uuid=');
             expect(ws.url).toContain(encodeURIComponent(uuid));

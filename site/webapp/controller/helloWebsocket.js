@@ -56,11 +56,11 @@ class HelloWebsocketController {
     }
 
     /**
-     * Register /ws/hello-emoji namespace for cursor tracking demo
+     * Register /api/1/ws/hello-emoji namespace for cursor tracking demo
      * @private
      */
     static _registerEmojiNamespace() {
-        this.wsHandles.emoji = WebSocketController.registerNamespace('/ws/hello-emoji', {
+        this.wsHandles.emoji = WebSocketController.registerNamespace('/api/1/ws/hello-emoji', {
             requireAuth: false,
             requireRoles: [],
 
@@ -126,11 +126,11 @@ class HelloWebsocketController {
     }
 
     /**
-     * Register /ws/hello-todo namespace for collaborative todo demo
+     * Register /api/1/ws/hello-todo namespace for collaborative todo demo
      * @private
      */
     static _registerTodoNamespace() {
-        this.wsHandles.todo = WebSocketController.registerNamespace('/ws/hello-todo', {
+        this.wsHandles.todo = WebSocketController.registerNamespace('/api/1/ws/hello-todo', {
             requireAuth: false,
             requireRoles: [],
 

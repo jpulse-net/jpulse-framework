@@ -80,6 +80,7 @@ export async function bootstrap(options = {}) {
         const RedisManagerModule = await import('./redis-manager.js');
         bootstrapLog('RedisManager: Module loaded, ready for initialization');
         RedisManagerModule.default.initialize(global.appConfig.redis);
+        global.RedisManager = RedisManagerModule.default;
         bootstrapLog(`✅ RedisManager: Initialized - Instance: ${RedisManagerModule.default.getInstanceId()}, Available: ${RedisManagerModule.default.isRedisAvailable()}`);
 
         // Step 6.1: Configure session store with Redis fallback (W-076)
@@ -93,7 +94,7 @@ export async function bootstrap(options = {}) {
 
         // Step 6.3: Initialize health controller clustering (W-076)
         const HealthControllerModule = await import('../controller/health.js');
-        HealthControllerModule.default.initialize();
+        await HealthControllerModule.default.initialize();
         bootstrapLog('✅ HealthController: Initialized with Redis clustering');
 
         // Step 7: Set up CommonUtils globally

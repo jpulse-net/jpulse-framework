@@ -12,7 +12,7 @@
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
  */
 
-import { ObjectId } from 'mongodb';
+import HelloTodoModel from '../model/helloTodo.js';
 
 /**
  * HelloClusterTodo Controller
@@ -26,31 +26,31 @@ class HelloClusterTodoController {
      */
     static async api(req, res) {
         try {
-            // Get user ID (default to 'demo' for this demo)
-            const userId = req.session?.user?.id || 'demo-user';
-
-            // Query todos from database
-            const todos = await global.db.collection('helloClusterTodos')
-                .find({ userId })
-                .sort({ createdAt: -1 })
-                .toArray();
-
+            const todos = await HelloTodoModel.findAll();
+            const stats = await HelloTodoModel.getStats();
             res.json({
                 success: true,
-                message: 'Todos retrieved successfully',
-                data: {
-                    todos,
-                    count: todos.length
-                }
+                todos,
+                stats
             });
-
         } catch (error) {
-            console.error('Error retrieving todos:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to retrieve todos',
-                error: error.message
+            global.LogController.logError(req, 'helloClusterTodo.api', `error: ${error.message}`);
+            res.status(500).json({ success: false, message: 'Failed to retrieve todos' });
+        }
+    }
+
+    static async apiGet(req, res) {
+        try {
+            const todos = await HelloTodoModel.findAll();
+            const stats = await HelloTodoModel.getStats();
+            res.json({
+                success: true,
+                todos,
+                stats
             });
+        } catch (error) {
+            global.LogController.logError(req, 'helloClusterTodo.apiGet', `error: ${error.message}`);
+            res.status(500).json({ success: false, message: 'Failed to retrieve todos' });
         }
     }
 
@@ -60,7 +60,7 @@ class HelloClusterTodoController {
      */
     static async apiCreate(req, res) {
         try {
-            const { text, priority = 'medium' } = req.body;
+            const { text } = req.body;
 
             // Validation
             if (!text || typeof text !== 'string' || text.trim().length === 0) {
@@ -70,60 +70,28 @@ class HelloClusterTodoController {
                 });
             }
 
-            if (!['low', 'medium', 'high'].includes(priority)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Priority must be low, medium, or high'
-                });
-            }
+            const userName = req.session?.user?.username || 'guest';
+            const userFirstName = req.session?.user?.firstName || 'Anonymous';
+            const userLastName = req.session?.user?.lastName || 'User';
 
-            // Get user info
-            const userId = req.session?.user?.id || 'demo-user';
-            const userName = req.session?.user?.username || 'Demo User';
-
-            // Create todo document
-            const todoData = {
-                text: text.trim(),
-                priority,
-                completed: false,
-                userId,
-                createdBy: userName,
-                updatedBy: userName,
-                createdAt: new Date(),
-                updatedAt: new Date()
-            };
-
-            // Insert into database
-            const result = await global.db.collection('helloClusterTodos').insertOne(todoData);
-
-            if (!result.insertedId) {
-                throw new Error('Failed to insert todo into database');
-            }
-
-            // Get the created todo with the ID
-            const createdTodo = {
-                ...todoData,
-                _id: result.insertedId
-            };
+            // Create todo document using the model, mapping `text` to `title`
+            const createdTodo = await HelloTodoModel.create({
+                title: text.trim(), // USE `title` to match the model
+                username: userName,
+                userFirstName,
+                userLastName
+            });
 
             // Broadcast change to all cluster instances
             await HelloClusterTodoController._broadcastChange('created', createdTodo, req);
 
             res.status(201).json({
                 success: true,
-                message: 'Todo created successfully',
-                data: {
-                    todo: createdTodo
-                }
+                todo: createdTodo
             });
-
         } catch (error) {
-            console.error('Error creating todo:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to create todo',
-                error: error.message
-            });
+            global.LogController.logError(req, 'helloClusterTodo.apiCreate', `error: ${error.message}`);
+            res.status(500).json({ success: false, message: 'Failed to create todo' });
         }
     }
 
@@ -134,67 +102,18 @@ class HelloClusterTodoController {
     static async apiToggle(req, res) {
         try {
             const { id } = req.params;
-
-            // Validate ObjectId
-            if (!ObjectId.isValid(id)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid todo ID'
-                });
-            }
-
-            const userId = req.session?.user?.id || 'demo-user';
-            const userName = req.session?.user?.username || 'Demo User';
-
-            // Find and update the todo
-            const collection = global.db.collection('helloClusterTodos');
-            const currentTodo = await collection.findOne({
-                _id: new ObjectId(id),
-                userId
-            });
-
-            if (!currentTodo) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Todo not found'
-                });
-            }
-
-            // Toggle completion status
-            const updatedTodo = await collection.findOneAndUpdate(
-                { _id: new ObjectId(id), userId },
-                {
-                    $set: {
-                        completed: !currentTodo.completed,
-                        updatedBy: userName,
-                        updatedAt: new Date()
-                    }
-                },
-                { returnDocument: 'after' }
-            );
-
-            if (!updatedTodo.value) {
-                throw new Error('Failed to update todo');
-            }
+            const updatedTodo = await HelloTodoModel.toggleComplete(id);
 
             // Broadcast change to all cluster instances
-            await HelloClusterTodoController._broadcastChange('updated', updatedTodo.value, req);
+            await HelloClusterTodoController._broadcastChange('updated', updatedTodo, req);
 
             res.json({
                 success: true,
-                message: 'Todo updated successfully',
-                data: {
-                    todo: updatedTodo.value
-                }
+                todo: updatedTodo
             });
-
         } catch (error) {
-            console.error('Error toggling todo:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to toggle todo',
-                error: error.message
-            });
+            global.LogController.logError(req, 'helloClusterTodo.apiToggle', `error: ${error.message}`);
+            res.status(500).json({ success: false, message: 'Failed to toggle todo' });
         }
     }
 
@@ -206,46 +125,21 @@ class HelloClusterTodoController {
         try {
             const { id } = req.params;
 
-            // Validate ObjectId
-            if (!ObjectId.isValid(id)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid todo ID'
-                });
-            }
-
-            const userId = req.session?.user?.id || 'demo-user';
-
-            // Find the todo first (for broadcasting)
-            const collection = global.db.collection('helloClusterTodos');
-            const todoToDelete = await collection.findOne({
-                _id: new ObjectId(id),
-                userId
-            });
-
+            // Find the todo first for broadcasting
+            const todoToDelete = await HelloTodoModel.findById(id);
             if (!todoToDelete) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Todo not found'
-                });
+                return res.status(404).json({ success: false, message: 'Task not found' });
             }
 
-            // Delete the todo
-            const result = await collection.deleteOne({
-                _id: new ObjectId(id),
-                userId
-            });
-
-            if (result.deletedCount === 0) {
-                throw new Error('Failed to delete todo');
-            }
+            // Delete from database using the model
+            await HelloTodoModel.delete(id);
 
             // Broadcast change to all cluster instances
             await HelloClusterTodoController._broadcastChange('deleted', todoToDelete, req);
 
             res.json({
                 success: true,
-                message: 'Todo deleted successfully',
+                message: 'Task deleted and synchronized successfully',
                 data: {
                     deletedId: id
                 }
@@ -262,7 +156,7 @@ class HelloClusterTodoController {
     }
 
     /**
-     * Get todo statistics
+     * Get todo statistics (not used in this demo, but could be)
      * GET /api/1/helloClusterTodo/stats
      */
     static async apiStats(req, res) {
@@ -318,44 +212,41 @@ class HelloClusterTodoController {
     }
 
     /**
-     * Private method to broadcast changes to all cluster instances
+     * Broadcasts changes to interested clients via Redis
+     * @param {string} action - The action performed (created, updated, deleted)
+     * @param {object} todo - The todo item that was changed
+     * @param {object} req - The Express request object for context
+     * @private
      */
     static async _broadcastChange(action, todo, req) {
+        if (!global.RedisManager || !global.RedisManager.isRedisAvailable()) {
+            global.LogController?.logWarn(req, 'helloClusterTodo._broadcastChange', 'Redis not available, skipping broadcast');
+            return;
+        }
+
+        const senderName = (req.session?.user?.firstName
+            ? `${req.session.user.firstName} ${req.session.user.lastName}`
+            : req.session?.user?.username) || 'Anonymous User';
+        const sender = req.session?.user?.username || 'guest';
+        const uuid = req.body.uuid || null; // Client UUID, if provided
+
+        const broadcastPayload = {
+            todo: todo,
+            action: action,
+            sender: sender,
+            senderName: senderName,
+            uuid: uuid
+        };
+
+        const channel = (action === 'created' || action === 'deleted')
+            ? 'controller:helloClusterTodo:list:changed'
+            : 'controller:helloClusterTodo:item:updated';
+
         try {
-            // Import BroadcastController dynamically to avoid circular dependencies
-            const BroadcastController = global.BroadcastController;
-
-            if (!BroadcastController) {
-                console.warn('BroadcastController not available - skipping broadcast');
-                return;
-            }
-
-            // Prepare broadcast data
-            const broadcastData = {
-                action,
-                todo,
-                userId: req.session?.user?.id || 'demo-user',
-                timestamp: new Date().toISOString(),
-                serverInstance: global.RedisManager?.instanceId || 'unknown'
-            };
-
-            // Broadcast to all cluster instances
-            await BroadcastController.publish(
-                'controller:helloClusterTodo:list:changed',
-                broadcastData
-            );
-
-            // Also broadcast specific item update
-            await BroadcastController.publish(
-                'controller:helloClusterTodo:item:updated',
-                broadcastData
-            );
-
-            console.log(`📡 Broadcasted todo ${action}:`, todo._id);
-
+            await global.RedisManager.publishBroadcast(channel, broadcastPayload);
+            global.LogController?.logInfo(req, 'helloClusterTodo._broadcastChange', `Broadcasted [${action}] on channel [${channel}]`);
         } catch (error) {
-            console.error('Error broadcasting todo change:', error);
-            // Don't fail the main operation if broadcasting fails
+            global.LogController?.logError(req, 'helloClusterTodo._broadcastChange', `Failed to broadcast change: ${error.message}`);
         }
     }
 }

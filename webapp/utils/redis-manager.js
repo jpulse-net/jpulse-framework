@@ -137,6 +137,32 @@ class RedisManager {
                 `Failed to create Redis connections: ${error.message}`);
             RedisManager.isAvailable = false;
         }
+
+        // Test connection to set isAvailable flag properly
+        // This is needed because lazyConnect: true doesn't trigger connect events until first operation
+        if (RedisManager.config.enabled) {
+            RedisManager._testConnection();
+        }
+    }
+
+    /**
+     * Test Redis connection to set isAvailable flag
+     * @private
+     */
+    static async _testConnection() {
+        try {
+            const sessionClient = RedisManager.connections.session;
+            if (sessionClient) {
+                await sessionClient.ping();
+                RedisManager.isAvailable = true;
+                global.LogController?.logInfo(null, 'redis-manager._testConnection',
+                    'Redis connection test successful - Redis available');
+            }
+        } catch (error) {
+            RedisManager.isAvailable = false;
+            global.LogController?.logInfo(null, 'redis-manager._testConnection',
+                `Redis connection test failed: ${error.message} - using fallback mode`);
+        }
     }
 
     /**
@@ -154,7 +180,7 @@ class RedisManager {
             lazyConnect: config.lazyConnect !== false,
             retryDelayOnFailover: config.retryDelayOnFailover || 100,
             maxRetriesPerRequest: config.maxRetriesPerRequest || 3,
-            enableOfflineQueue: false, // Don't queue commands when disconnected
+            enableOfflineQueue: true, // Allow queuing commands during connection
             connectionName: `jpulse-${purpose}-${RedisManager.instanceId}`
         };
     }
@@ -172,7 +198,7 @@ class RedisManager {
                 lazyConnect: config.redisOptions?.lazyConnect !== false,
                 connectionName: `jpulse-${purpose}-${RedisManager.instanceId}`
             },
-            enableOfflineQueue: config.enableOfflineQueue !== true,
+            enableOfflineQueue: true, // Allow queuing commands during connection
             retryDelayOnFailover: config.retryDelayOnFailover || 100,
             maxRetriesPerRequest: config.maxRetriesPerRequest || 3
         };
@@ -437,8 +463,8 @@ class RedisManager {
 
         // Only subscribe and log if Redis is available
         if (RedisManager.isAvailable) {
-            // Subscribe to the channel automatically
-            RedisManager.subscribeBroadcast([channel], RedisManager._handleCallbackMessage);
+            // Subscribe to the channel automatically -- REMOVED to prevent multiple listeners
+            // RedisManager.subscribeBroadcast([channel], RedisManager._handleCallbackMessage);
 
             global.LogController?.logInfo(null, 'redis-manager.registerBroadcastCallback',
                 `Registered callback for channel: ${channel}`);
@@ -451,9 +477,13 @@ class RedisManager {
      * @private
      */
     static _handleCallbackMessage(channel, data, sourceInstanceId) {
+        //console.log(`DEBUG: _handleCallbackMessage received: channel=${channel}, data=`, data);
+
         // Find matching callback (exact match or pattern match)
         for (const [registeredChannel, callback] of RedisManager.broadcastCallbacks) {
+            console.log(`DEBUG: Checking pattern: ${registeredChannel} against ${channel}`);
             if (RedisManager._channelMatches(channel, registeredChannel)) {
+                console.log(`DEBUG: Pattern matched! Calling callback for ${registeredChannel}`);
                 try {
                     callback(channel, data, sourceInstanceId);
                 } catch (error) {
@@ -547,10 +577,22 @@ class RedisManager {
 
             const message = JSON.parse(messageStr);
 
-            // Don't process messages from our own instance (avoid loops)
-            if (message.instanceId === RedisManager.instanceId) {
+            console.log(`DEBUG: _handleBroadcastMessage received: channel=${channel}, message=`, message);
+            console.log(`DEBUG: cleanChannel=`, cleanChannel);
+            //console.log(`DEBUG: message.data=`, message.data);
+            console.log(`DEBUG: Instance ID check - messageInstanceId: '${message.instanceId}', ourInstanceId: '${RedisManager.instanceId}'`);
+            console.log(`DEBUG: Instance IDs equal?`, message.instanceId === RedisManager.instanceId);
+
+            const isSelfMessage = message.instanceId === RedisManager.instanceId;
+            const isSingleInstanceMode = true; // For now, always allow in development
+
+            if (isSelfMessage && !isSingleInstanceMode) {
+                console.log(`DEBUG: Ignoring message from our own instance`);
                 return;
             }
+
+            console.log(`DEBUG: Processing message - selfMessage: ${isSelfMessage}, singleInstanceMode: ${isSingleInstanceMode}`);
+            console.log(`DEBUG: Calling callback for channel: ${cleanChannel}`);
 
             // Call the callback with clean channel name
             callback(cleanChannel, message.data, message.instanceId);

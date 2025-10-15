@@ -231,6 +231,10 @@ async function load(req, res) {
             },
             config: globalConfig?.data || {},
             appConfig: appConfig, // Add app.conf configuration
+            // W-076: Add Redis cluster availability for client-side jPulse.appCluster
+            appCluster: {
+                available: global.RedisManager ? global.RedisManager.isRedisAvailable() : false
+            },
             url: {
                 domain: `${req.protocol}://${req.get('host')}`,
                 protocol: req.protocol,

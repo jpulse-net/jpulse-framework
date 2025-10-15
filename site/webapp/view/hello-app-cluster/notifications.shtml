@@ -261,7 +261,7 @@
                         <div class="jp-form-group">
                             <label for="typeSelect" class="jp-form-label">Type</label>
                             <select id="typeSelect" class="jp-form-select">
-                                <option value="info">📘 Info</option>
+                                <option value="info">🗒 Info</option>
                                 <option value="success">✅ Success</option>
                                 <option value="warning">⚠️ Warning</option>
                                 <option value="error">❌ Error</option>
@@ -317,11 +317,13 @@
     </div>
 
     <script>
+        // Publish/subscribe channel name
+        const notificationChannel = 'view:helloNotification:message:sent';
+
         // Global Notifications App - Client-Side Broadcasting Demo
         class GlobalNotificationsApp {
             constructor() {
                 this.notifications = [];
-                this.init();
             }
 
             init() {
@@ -341,12 +343,31 @@
             setupBroadcastListening() {
                 // Subscribe to global notifications from all cluster instances
                 if (typeof jPulse !== 'undefined' && jPulse.appCluster && jPulse.appCluster.broadcast) {
-                    jPulse.appCluster.broadcast.subscribe('controller:helloCluster:notification:sent', (data) => {
+                    jPulse.appCluster.broadcast.subscribe(notificationChannel, (data) => {
                         console.log('📡 Received notification broadcast:', data);
                         this.addNotificationToFeed(data);
+
+                        // Show toast if from another tab/instance (check UUID)
+                        if (data.uuid !== jPulse.appCluster.broadcast.getUuid()) {
+                            jPulse.UI.toast.show(
+                                `📡 New notification from ${data.senderName?.trim() || data.sender}`,
+                                'info'
+                            );
+                        }
                     });
 
-                    console.log('📡 Subscribed to global notifications');
+                    console.log(`📡 Subscribed to ${notificationChannel} with auto-WebSocket`);
+
+                    // Update connection status based on cluster mode
+                    const isClusterMode = jPulse.appCluster.isClusterMode();
+                    this.updateConnectionStatus(isClusterMode);
+
+                    if (!isClusterMode) {
+                        jPulse.UI.toast.show(
+                            '⚠️ Redis not available - running in local-only mode. Messages will only appear in this tab.',
+                            'warning'
+                        );
+                    }
                 } else {
                     console.warn('⚠️ jPulse.appCluster.broadcast not available - running in fallback mode');
                     this.updateConnectionStatus(false);
@@ -376,20 +397,21 @@
                     const notificationData = {
                         message: message,
                         type: type,
-                        sender: '{{user.username}}' || 'Anonymous',
-                        senderName: '{{user.firstName}} {{user.lastName}}' || 'Anonymous User',
+                        sender: '{{user.username}}' || 'guest',
+                        senderName: ('{{user.firstName}} {{user.lastName}}').trim() || 'Anonymous',
                         timestamp: new Date().toISOString(),
                         serverInstance: this.getServerInstance()
                     };
 
-                    // Direct client-side broadcast (no server persistence)
+                    // Publish using the const channel - this will auto-establish WebSocket
                     if (typeof jPulse !== 'undefined' && jPulse.appCluster && jPulse.appCluster.broadcast) {
-                        jPulse.appCluster.broadcast.publish('controller:helloCluster:notification:sent', notificationData);
+                        // Only publish to server, don't add locally since it will come back via WebSocket
+                        jPulse.appCluster.broadcast.publish(notificationChannel, notificationData);
                         jPulse.UI.toast.show('📡 Notification broadcasted to all servers!', 'success');
                     } else {
-                        // Fallback: show locally only
+                        // Fallback: show locally only when cluster not available
                         this.addNotificationToFeed(notificationData);
-                        jPulse.UI.toast.show('📱 Notification shown locally (Redis not available)', 'warning');
+                        jPulse.UI.toast.show('📱 Notification shown locally (cluster not available)', 'warning');
                     }
 
                     // Reset form
@@ -421,14 +443,28 @@
                 const notificationList = document.getElementById('notificationList');
                 const emptyState = document.getElementById('emptyState');
 
+                // Safety check for DOM elements
+                if (!notificationList || !emptyState) {
+                    console.warn('Notification elements not found in DOM');
+                    return;
+                }
+
                 if (this.notifications.length === 0) {
                     emptyState.style.display = 'block';
+                    // Clear any notification items, but keep emptyState
+                    const notificationItems = notificationList.querySelectorAll('.local-notification-item');
+                    notificationItems.forEach(item => item.remove());
                     return;
                 }
 
                 emptyState.style.display = 'none';
 
-                notificationList.innerHTML = this.notifications.map(notification => {
+                // Clear existing notification items only (not emptyState)
+                const existingItems = notificationList.querySelectorAll('.local-notification-item');
+                existingItems.forEach(item => item.remove());
+
+                // Add new notifications
+                const notificationsHtml = this.notifications.map(notification => {
                     const timeAgo = this.getTimeAgo(notification.timestamp);
                     const typeIcon = this.getTypeIcon(notification.type);
 
@@ -450,6 +486,9 @@
                     `;
                 }).join('');
 
+                // Insert the notifications HTML after emptyState
+                notificationList.insertAdjacentHTML('beforeend', notificationsHtml);
+
                 // Remove 'new' class after animation
                 setTimeout(() => {
                     const newItems = notificationList.querySelectorAll('.local-notification-item.new');
@@ -465,12 +504,12 @@
 
             getTypeIcon(type) {
                 const icons = {
-                    'info': '📘',
+                    'info': '🗒',
                     'success': '✅',
                     'warning': '⚠️',
                     'error': '❌'
                 };
-                return icons[type] || '📘';
+                return icons[type] || '🗒';
             }
 
             getTimeAgo(timestamp) {
@@ -499,11 +538,11 @@
                 if (connected) {
                     statusElement.className = 'local-connection-status connected';
                     statusDot.className = 'local-status-dot connected';
-                    statusText.textContent = 'Broadcasting Ready';
+                    statusText.textContent = 'Redis Cluster Mode - Cross-tab broadcasting enabled';
                 } else {
                     statusElement.className = 'local-connection-status disconnected';
                     statusDot.className = 'local-status-dot disconnected';
-                    statusText.textContent = 'Local Mode (Redis Unavailable)';
+                    statusText.textContent = 'Local-only Mode - Redis not available';
                 }
             }
 
@@ -518,6 +557,7 @@
         let notificationApp;
         jPulse.dom.ready(() => {
             notificationApp = new GlobalNotificationsApp();
+            notificationApp.init();
         });
     </script>
 

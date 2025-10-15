@@ -84,7 +84,7 @@ export async function bootstrap(options = {}) {
         if (!skipRedis) {
             const RedisManagerModule = await import('./redis-manager.js');
             bootstrapLog('RedisManager: Module loaded, ready for initialization');
-            RedisManagerModule.default.initialize(global.appConfig.redis);
+            await RedisManagerModule.default.initialize(global.appConfig.redis);
             global.RedisManager = RedisManagerModule.default;
             bootstrapLog(`✅ RedisManager: Initialized - Instance: ${RedisManagerModule.default.getInstanceId()}, Available: ${RedisManagerModule.default.isRedisAvailable()}`);
 
@@ -108,7 +108,12 @@ export async function bootstrap(options = {}) {
         BroadcastControllerModule.default.initialize();
         bootstrapLog('✅ BroadcastController: Initialized with framework subscriptions');
 
-        // Step 6.3: Initialize health controller clustering (W-076)
+        // Step 6.3: Initialize app cluster controller (W-076)
+        const AppClusterControllerModule = await import('../controller/appCluster.js');
+        AppClusterControllerModule.default.initialize();
+        bootstrapLog('✅ AppClusterController: Initialized with WebSocket namespace');
+
+        // Step 6.4: Initialize health controller clustering (W-076)
         const HealthControllerModule = await import('../controller/health.js');
         await HealthControllerModule.default.initialize();
         bootstrapLog('✅ HealthController: Initialized with Redis clustering');

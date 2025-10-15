@@ -38,9 +38,9 @@ class BroadcastController {
             const { channel } = req.params;
             const { data } = req.body;
 
-            // Validate channel name (prevent framework namespace collision)
-            if (channel.match(/^(controller|model|view):/)) {
-                LogController.logError(req, 'broadcast.publish', 'error: invalid channel name with reserved MVC prefix');
+            // Validate channel name (must follow the MVC convention)
+            if (!channel.match(/^(controller|model|view)(:[\w\-]+){3,}$/)) {
+                LogController.logError(req, 'broadcast.publish', 'error: invalid channel name, it must follow the MVC convention: {model|controller|view}:{component}:{domain}:{action}');
                 const message = global.i18n.translate(req, 'controller.broadcast.invalidChannelName');
                 return global.CommonUtils.sendError(req, res, 400, message, 'INVALID_CHANNEL_NAME');
             }
@@ -52,8 +52,14 @@ class BroadcastController {
                 return global.CommonUtils.sendError(req, res, 400, message, 'INVALID_DATA');
             }
 
+            // Pass uuid through if provided by client
+            const payload = { ...data };
+            if (req.body.uuid) {
+                payload.uuid = req.body.uuid;
+            }
+
             // Publish broadcast
-            const published = await RedisManager.publishBroadcast(channel, data);
+            const published = await RedisManager.publishBroadcast(channel, payload);
 
             if (published) {
                 const elapsed = Date.now() - startTime;

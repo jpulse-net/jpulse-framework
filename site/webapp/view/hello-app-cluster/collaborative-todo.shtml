@@ -19,6 +19,35 @@
     <title>Collaborative To-Do - App Cluster Demo - {{app.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
     <style>
+        .local-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 2rem auto;
+        }
+
+        .local-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .local-stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+
+        .local-stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
         .local-card {
             padding-bottom: 0;
         }
@@ -50,51 +79,8 @@
             margin: 0;
         }
 
-        .local-todo-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-
-        @media (max-width: 768px) {
-            .local-todo-container {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-        }
-
-        .local-todo-panel {
-            background: white;
-            border-radius: 12px;
-            border: 1px solid #e9ecef;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .local-panel-header {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 20px;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .local-panel-header h3 {
-            margin: 0 0 5px 0;
-            font-size: 18px;
-        }
-
-        .local-panel-header p {
-            margin: 0;
-            color: #6c757d;
-            font-size: 14px;
-        }
-
-        .local-panel-content {
-            padding: 20px;
-        }
-
         .local-todo-list {
-            list-style: none;
+            list-style-type: none;
             padding: 0;
             margin: 0;
             max-height: 400px;
@@ -108,28 +94,15 @@
             border-bottom: 1px solid #f8f9fa;
             transition: all 0.2s ease;
         }
-
         .local-todo-item:hover {
             background-color: #f8f9fa;
         }
-
         .local-todo-item:last-child {
             border-bottom: none;
         }
-
         .local-todo-item.completed .local-todo-text {
             text-decoration: line-through;
             color: #6c757d;
-        }
-
-        .local-todo-item.new-item {
-            background-color: #e3f2fd;
-            animation: fadeInSlide 0.5s ease;
-        }
-
-        @keyframes fadeInSlide {
-            from { opacity: 0; transform: translateX(-10px); }
-            to { opacity: 1; transform: translateX(0); }
         }
 
         .local-todo-checkbox {
@@ -160,128 +133,10 @@
             flex-wrap: wrap;
         }
 
-        .local-todo-actions {
-            display: flex;
-            gap: 5px;
-        }
-
-        .local-action-btn {
-            background: none;
-            border: none;
-            padding: 5px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #6c757d;
-            transition: all 0.2s ease;
-        }
-
-        .local-action-btn:hover {
-            background-color: #e9ecef;
-            color: #495057;
-        }
-
-        .local-action-btn.delete:hover {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-
         .local-empty-state {
             text-align: center;
-            padding: 40px 20px;
-            color: #6c757d;
-        }
-
-        .local-empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-            opacity: 0.5;
-        }
-
-        .local-stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .local-stat-item {
-            text-align: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
-        }
-
-        .local-stat-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #007bff;
-            margin-bottom: 5px;
-        }
-
-        .local-stat-label {
-            font-size: 12px;
-            color: #6c757d;
-            text-transform: uppercase;
-            font-weight: 600;
-        }
-
-        .local-priority-badge {
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .local-priority-badge.high {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-
-        .local-priority-badge.medium {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-
-        .local-priority-badge.low {
-            background-color: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .local-loading-spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #007bff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .local-sync-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 15px;
-            background-color: #e3f2fd;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .local-sync-status.syncing {
-            background-color: #fff3cd;
-        }
-
-        .local-sync-status.error {
-            background-color: #f8d7da;
+            padding: 2rem;
+            color: var(--jp-color-text-muted);
         }
     </style>
 </head>
@@ -348,27 +203,14 @@
                     <div class="jp-card-content">
                         <form id="todoForm">
                             <div class="jp-form-group">
-                                <label for="todoText" class="jp-form-label">Task Description</label>
-                                <textarea id="todoText"
-                                        class="jp-form-textarea"
-                                        rows="3"
-                                        placeholder="Enter task description..."
-                                        maxlength="500"
-                                        required></textarea>
+                                <label for="taskDescription" class="jp-form-label">Task Description</label>
+                                <textarea id="taskDescription" class="jp-form-textarea"
+                                          placeholder="Enter task description..." required></textarea>
                             </div>
 
-                            <div class="jp-form-group">
-                                <label for="todoPriority" class="jp-form-label">Priority</label>
-                                <select id="todoPriority" class="jp-form-select">
-                                    <option value="low">🔵 Low</option>
-                                    <option value="medium" selected>🟡 Medium</option>
-                                    <option value="high">🔴 High</option>
-                                </select>
+                            <div class="jp-form-actions">
+                                <button type="submit" class="jp-btn jp-btn-primary">Add To-Do</button>
                             </div>
-
-                            <button type="submit" class="jp-btn jp-btn-primary" id="addButton" style="width: 100%;">
-                                ✅ Add Task
-                            </button>
                         </form>
 
                         <!-- Statistics -->
@@ -400,7 +242,7 @@
                     </div>
                     <div class="jp-card-content" style="padding: 0;">
                         <ul class="local-todo-list" id="todoList">
-                            <li class="local-empty-state" id="emptyState">
+                            <li class="local-empty-state" id="emptyState" style="display: none;">
                                 <div class="local-empty-state-icon">📝</div>
                                 <h4>No tasks yet</h4>
                                 <p>Add your first collaborative task!</p>
@@ -432,241 +274,195 @@
         class CollaborativeTodoApp {
             constructor() {
                 this.todos = [];
-                this.isLoading = false;
-                this.init();
+                this.stats = { total: 0, completed: 0, pending: 0 };
+                this.elements = {};
+                this.syncStatus = 'initialized'; // initialized, syncing, synced, error
             }
 
             init() {
-                this.bindEvents();
+                this.cacheElements();
+                this.addEventListeners();
+                this.loadTodos(); // Initial load
                 this.setupBroadcastListening();
-                this.loadTodos();
             }
 
-            bindEvents() {
-                const form = document.getElementById('todoForm');
-                form.addEventListener('submit', (e) => this.handleAddTodo(e));
+            cacheElements() {
+                this.elements.todoList = document.getElementById('todoList');
+                this.elements.emptyState = document.getElementById('emptyState');
+                this.elements.statsTotal = document.getElementById('totalTasks');
+                this.elements.statsCompleted = document.getElementById('completedTasks');
+                this.elements.statsPending = document.getElementById('pendingTasks');
+                this.elements.todoForm = document.getElementById('todoForm');
+                this.elements.taskDescription = document.getElementById('taskDescription');
+                this.elements.addButton = this.elements.todoForm.querySelector('button[type="submit"]');
+                this.elements.syncIndicator = document.getElementById('syncSpinner');
+                this.elements.syncText = document.getElementById('syncText');
+            }
+
+            addEventListeners() {
+                this.elements.todoForm.addEventListener('submit', (e) => this.handleAddTask(e));
             }
 
             setupBroadcastListening() {
-                // Subscribe to todo changes from all cluster instances
-                if (typeof jPulse !== 'undefined' && jPulse.appCluster && jPulse.appCluster.broadcast) {
-                    // Listen for todo list changes
-                    jPulse.appCluster.broadcast.subscribe('controller:helloClusterTodo:list:changed', (data) => {
-                        console.log('📡 Received todo list change broadcast:', data);
-                        this.handleTodoListChanged(data);
-                    });
+                const listChangedChannel = 'controller:helloClusterTodo:list:changed';
+                const itemUpdatedChannel = 'controller:helloClusterTodo:item:updated';
 
-                    // Listen for individual todo updates
-                    jPulse.appCluster.broadcast.subscribe('controller:helloClusterTodo:item:updated', (data) => {
-                        console.log('📡 Received todo item update broadcast:', data);
-                        this.handleTodoItemUpdated(data);
-                    });
+                jPulse.appCluster.broadcast.subscribe(listChangedChannel, (data) => {
+                    this.showToast(`📡 Todo list updated by ${data.senderName || data.sender}`);
+                    this.loadTodos();
+                });
 
-                    console.log('📡 Subscribed to collaborative todo broadcasts');
-                    this.updateSyncStatus('synced');
-                } else {
-                    console.warn('⚠️ jPulse.appCluster.broadcast not available - running in local mode');
-                    this.updateSyncStatus('local');
-                }
+                jPulse.appCluster.broadcast.subscribe(itemUpdatedChannel, (data) => {
+                    this.showToast(`📡 Task '${data.todo.title}' updated by ${data.senderName || data.sender}`);
+                    this.loadTodos(); // Reload the whole list for simplicity
+                });
+
+                console.log('📡 Subscribed to collaborative todo broadcasts');
             }
 
             async loadTodos() {
                 try {
                     this.updateSyncStatus('syncing');
-
                     const response = await fetch('/api/1/helloClusterTodo');
-                    const result = await response.json();
-
-                    if (result.success && result.data) {
-                        this.todos = result.data.todos || [];
+                    if (!response.ok) {
+                        throw new Error('Failed to retrieve todos');
+                    }
+                    const data = await response.json();
+                    if (data.success) {
+                        this.todos = data.todos;
+                        this.stats = data.stats;
                         this.renderTodos();
                         this.updateStats();
                         this.updateSyncStatus('synced');
                     } else {
-                        throw new Error(result.message || 'Failed to load todos');
+                        throw new Error(data.message || 'Failed to load todos');
                     }
                 } catch (error) {
                     console.error('Error loading todos:', error);
-                    this.updateSyncStatus('error', 'Failed to load todos: ' + error.message);
-                    jPulse.UI.toast.show('Failed to load todos: ' + error.message, 'error');
+                    this.showToast(`Failed to load todos: ${error.message}`, 'error');
+                    this.updateSyncStatus('error');
                 }
             }
 
-            async handleAddTodo(e) {
+            async handleAddTask(e) {
                 e.preventDefault();
-
-                const todoText = document.getElementById('todoText');
-                const todoPriority = document.getElementById('todoPriority');
-                const addButton = document.getElementById('addButton');
-
-                const text = todoText.value.trim();
-                const priority = todoPriority.value;
-
+                const text = this.elements.taskDescription.value.trim();
                 if (!text) {
-                    jPulse.UI.toast.show('Please enter a task description', 'error');
                     return;
                 }
 
-                try {
-                    addButton.disabled = true;
-                    addButton.innerHTML = '<div class="local-loading-spinner"></div> Adding...';
-                    this.updateSyncStatus('syncing');
+                this.elements.addButton.disabled = true;
+                this.elements.addButton.innerHTML = '<i class="jp-icon-loading jp-icon-spin"></i> Adding...';
+                this.updateSyncStatus('syncing');
 
+                try {
                     const response = await fetch('/api/1/helloClusterTodo', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            text: text,
-                            priority: priority
+                            text: text
                         })
                     });
 
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Failed to add task');
+                    }
+
                     const result = await response.json();
-
-                    if (result.success && result.data) {
-                        // Add the new todo to our local list
-                        this.todos.unshift(result.data.todo);
-                        this.renderTodos();
-                        this.updateStats();
-
-                        // Reset form
-                        todoText.value = '';
-                        todoPriority.value = 'medium';
-
+                    if (result.success) {
+                        // The broadcast will trigger a reload, no need to manually add
+                        this.elements.taskDescription.value = '';
                         this.updateSyncStatus('synced');
-                        jPulse.UI.toast.show('✅ Task added and synchronized!', 'success');
-
-                        // Note: The server will broadcast the change to other instances
-                        // We don't need to manually broadcast here
                     } else {
-                        throw new Error(result.message || 'Failed to add todo');
+                        throw new Error(result.message || 'Failed to add task');
                     }
                 } catch (error) {
-                    console.error('Error adding todo:', error);
-                    this.updateSyncStatus('error', 'Failed to add task: ' + error.message);
-                    jPulse.UI.toast.show('Failed to add task: ' + error.message, 'error');
+                    this.showToast(`Error adding task: ${error.message}`, 'error');
+                    this.updateSyncStatus('error');
                 } finally {
-                    addButton.disabled = false;
-                    addButton.innerHTML = '✅ Add Task';
+                    this.elements.addButton.disabled = false;
+                    this.elements.addButton.innerHTML = '<i class="jp-icon-add"></i> Add Task';
                 }
             }
 
-            async handleToggleTodo(todoId, currentCompleted) {
+            async handleToggleTodo(id) {
                 try {
                     this.updateSyncStatus('syncing');
-
-                    const response = await fetch(`/api/1/helloClusterTodo/${todoId}/toggle`, {
+                    const response = await fetch(`/api/1/helloClusterTodo/${id}/toggle`, {
                         method: 'PUT',
                         headers: {
-                            'Content-Type': 'application/json',
-                        }
+                            'Content-Type': 'application/json'
+                        },
                     });
-
                     const result = await response.json();
-
-                    if (result.success && result.data) {
-                        // Update the local todo
-                        const todoIndex = this.todos.findIndex(todo => todo._id === todoId);
-                        if (todoIndex >= 0) {
-                            this.todos[todoIndex] = result.data.todo;
-                            this.renderTodos();
-                            this.updateStats();
-                        }
-
-                        this.updateSyncStatus('synced');
-                        jPulse.UI.toast.show('✅ Task updated and synchronized!', 'success');
-                    } else {
-                        throw new Error(result.message || 'Failed to toggle todo');
-                    }
-                } catch (error) {
-                    console.error('Error toggling todo:', error);
-                    this.updateSyncStatus('error', 'Failed to update task: ' + error.message);
-                    jPulse.UI.toast.show('Failed to update task: ' + error.message, 'error');
-                }
-            }
-
-            async handleDeleteTodo(todoId) {
-                if (!confirm('Are you sure you want to delete this task?')) {
-                    return;
-                }
-
-                try {
-                    this.updateSyncStatus('syncing');
-
-                    const response = await fetch(`/api/1/helloClusterTodo/${todoId}`, {
-                        method: 'DELETE'
-                    });
-
-                    const result = await response.json();
-
                     if (result.success) {
-                        // Remove from local list
-                        this.todos = this.todos.filter(todo => todo._id !== todoId);
-                        this.renderTodos();
-                        this.updateStats();
-
+                        // The broadcast will trigger a reload, no need to manually update client
                         this.updateSyncStatus('synced');
-                        jPulse.UI.toast.show('🗑️ Task deleted and synchronized!', 'success');
                     } else {
-                        throw new Error(result.message || 'Failed to delete todo');
+                        throw new Error(result.message || 'Failed to toggle task');
                     }
                 } catch (error) {
-                    console.error('Error deleting todo:', error);
-                    this.updateSyncStatus('error', 'Failed to delete task: ' + error.message);
-                    jPulse.UI.toast.show('Failed to delete task: ' + error.message, 'error');
+                    this.showToast(`Error updating task: ${error.message}`, 'error');
+                    this.updateSyncStatus('error');
                 }
             }
 
-            handleTodoListChanged(data) {
-                // Refresh the entire list when we get a broadcast
-                this.loadTodos();
-            }
+            async handleDeleteTodo(id) {
+                const result = await jPulse.UI.confirmDialog({
+                    title: 'Confirm Deletion',
+                    message: 'Are you sure you want to delete this task? This action cannot be undone.',
+                    buttons: [ 'Cancel', 'Delete Task' ]
+                });
 
-            handleTodoItemUpdated(data) {
-                // Update specific item when we get a broadcast
-                if (data.todo) {
-                    const todoIndex = this.todos.findIndex(todo => todo._id === data.todo._id);
-                    if (todoIndex >= 0) {
-                        this.todos[todoIndex] = data.todo;
-                        this.renderTodos();
-                        this.updateStats();
-                    } else {
-                        // New todo from another instance
-                        this.todos.unshift(data.todo);
-                        this.renderTodos();
-                        this.updateStats();
+                if (result.button === 'Delete Task') {
+                    try {
+                        this.updateSyncStatus('syncing');
+                        const response = await fetch(`/api/1/helloClusterTodo/${id}`, {
+                            method: 'DELETE'
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            // The broadcast will trigger a reload.
+                            this.showToast('🗑️ Task deleted and synchronized!', 'success');
+                            this.updateSyncStatus('synced');
+                        } else {
+                            throw new Error(result.message || 'Failed to delete todo');
+                        }
+                    } catch (error) {
+                        this.showToast(`Failed to delete task: ${error.message}`, 'error');
+                        this.updateSyncStatus('error');
                     }
                 }
             }
 
             renderTodos() {
-                const todoList = document.getElementById('todoList');
-                const emptyState = document.getElementById('emptyState');
+                const todoList = this.elements.todoList;
+                const emptyState = this.elements.emptyState;
+                if (!todoList || !emptyState) return;
 
                 if (this.todos.length === 0) {
                     emptyState.style.display = 'block';
-                    return;
-                }
-
-                emptyState.style.display = 'none';
-
-                todoList.innerHTML = this.todos.map(todo => {
-                    const createdAt = new Date(todo.createdAt).toLocaleString();
-                    const updatedBy = todo.updatedBy || todo.createdBy || 'Unknown';
-
-                    return `
+                    const existingItems = todoList.querySelectorAll('.local-todo-item');
+                    existingItems.forEach(item => item.remove());
+                } else {
+                    emptyState.style.display = 'none';
+                    const todosHtml = this.todos.map(todo => {
+                        const createdAt = jPulse.date.formatLocalDate(new Date(todo.createdAt));
+                        const userFullName = `${todo.userFirstName || ''} ${todo.userLastName || ''}`.trim();
+                        const updatedBy = userFullName || todo.username || 'Unknown';
+                        return `
                         <li class="local-todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo._id}">
                             <input type="checkbox"
                                    class="local-todo-checkbox"
                                    ${todo.completed ? 'checked' : ''}
-                                   onchange="todoApp.handleToggleTodo('${todo._id}', ${todo.completed})">
+                                   onchange="todoApp.handleToggleTodo('${todo._id}')">
 
                             <div class="local-todo-content">
-                                <div class="local-todo-text">${this.escapeHtml(todo.text)}</div>
+                                <div class="local-todo-text">${this.escapeHtml(todo.title)}</div>
                                 <div class="local-todo-meta">
-                                    <span class="local-priority-badge ${todo.priority}">${todo.priority}</span>
                                     <span><strong>By:</strong> ${this.escapeHtml(updatedBy)}</span>
                                     <span><strong>Created:</strong> ${createdAt}</span>
                                     ${todo.completed ? `<span><strong>✅ Completed</strong></span>` : ''}
@@ -674,34 +470,26 @@
                             </div>
 
                             <div class="local-todo-actions">
-                                <button class="local-action-btn delete"
+                                <button class="jp-btn delete"
                                         onclick="todoApp.handleDeleteTodo('${todo._id}')"
                                         title="Delete task">
-                                    🗑️
+                                    ❌
                                 </button>
                             </div>
                         </li>
-                    `;
-                }).join('');
+                        `;
+                    }).join('');
 
-                // Add animation to new items
-                setTimeout(() => {
-                    const items = todoList.querySelectorAll('.local-todo-item');
-                    items.forEach(item => item.classList.add('new-item'));
-                    setTimeout(() => {
-                        items.forEach(item => item.classList.remove('new-item'));
-                    }, 500);
-                }, 50);
+                    const existingItems = todoList.querySelectorAll('.local-todo-item');
+                    existingItems.forEach(item => item.remove());
+                    todoList.insertAdjacentHTML('beforeend', todosHtml);
+                }
             }
 
             updateStats() {
-                const total = this.todos.length;
-                const completed = this.todos.filter(todo => todo.completed).length;
-                const pending = total - completed;
-
-                document.getElementById('totalTasks').textContent = total;
-                document.getElementById('completedTasks').textContent = completed;
-                document.getElementById('pendingTasks').textContent = pending;
+                this.elements.statsTotal.textContent = this.stats.total;
+                this.elements.statsCompleted.textContent = this.stats.completed;
+                this.elements.statsPending.textContent = this.stats.pending;
             }
 
             updateSyncStatus(status, message = '') {
@@ -741,12 +529,17 @@
                 div.textContent = text;
                 return div.innerHTML;
             }
+
+            showToast(message, type = 'info') {
+                 jPulse.UI.toast.show(message, type);
+             }
         }
 
         // Initialize the app when the page loads
         let todoApp;
         jPulse.dom.ready(() => {
             todoApp = new CollaborativeTodoApp();
+            todoApp.init();
         });
     </script>
 

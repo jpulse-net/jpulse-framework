@@ -3816,6 +3816,7 @@ window.jPulse = {
             reconnectBaseInterval: 5000,  // 5 seconds
             reconnectMaxInterval: 30000,  // 30 seconds max
             maxReconnectAttempts: 10,
+            reconnectInterval: 5000,
             pingInterval: 30000,          // 30 seconds
             uuidStorage: 'session'        // 'session' | 'local' | 'memory'
         },
@@ -4162,7 +4163,7 @@ window.jPulse = {
     appCluster: {
         // Instance information
         _instanceId: null,
-        _isAvailable: false,
+        _isAvailable: true,
 
         /**
          * Get instance identifier
@@ -4181,7 +4182,7 @@ window.jPulse = {
          * @returns {boolean} True if Redis clustering is available
          */
         isClusterMode: function() {
-            return this._isAvailable && window.jPulseClusterMode === true;
+            return this._isAvailable && {{appCluster.available}};
         },
 
         /**
@@ -4189,20 +4190,40 @@ window.jPulse = {
          */
         broadcast: {
             _subscribers: new Map(),
+            _websocket: null,
+            _isConnecting: false,
+            _pendingSubscriptions: new Set(),
+
+            /**
+             * Get the unique UUID for the underlying WebSocket connection.
+             * @returns {string|null} The client's UUID or null if not connected.
+             */
+            getUuid: function() {
+                if (this._websocket && typeof this._websocket.getConnection === 'function') {
+                    return this._websocket.getConnection().uuid;
+                }
+                return null;
+            },
 
             /**
              * Subscribe to broadcast messages
-             * @param {string} channel - Channel name (e.g., 'myApp:user:notification')
+             * @param {string} channel - Channel name (e.g., 'view:helloNotification:message:sent')
              * @param {Function} callback - Callback function to handle messages
              */
             subscribe: function(channel, callback) {
+                // Store local subscription
                 if (!jPulse.appCluster.broadcast._subscribers.has(channel)) {
                     jPulse.appCluster.broadcast._subscribers.set(channel, []);
                 }
                 jPulse.appCluster.broadcast._subscribers.get(channel).push(callback);
 
-                // Phase 2: Local subscription (server-side Redis handles cross-instance)
-                console.log(`jPulse.appCluster: Subscribed to ${channel} (Redis broadcasting active)`);
+                // Ensure WebSocket connection for real-time updates
+                jPulse.appCluster.broadcast._ensureWebSocketConnection();
+
+                // Register interest in this channel with server
+                jPulse.appCluster.broadcast._registerChannelInterest(channel);
+
+                console.log(`jPulse.appCluster: Subscribed to ${channel} (with auto-WebSocket)`);
             },
 
             /**
@@ -4211,10 +4232,13 @@ window.jPulse = {
              * @param {Object} data - Message data
              */
             publish: function(channel, data) {
-                // Phase 2: Send to server for Redis pub/sub distribution
+                // Automatically add the client's UUID to the payload
+                const payload = { ...data, uuid: this.getUuid() };
+
+                // Always publish via server for Redis distribution
                 if (jPulse.appCluster.isClusterMode()) {
                     // Use server-side broadcasting via API
-                    jPulse.api.post(`/api/1/broadcast/${encodeURIComponent(channel)}`, { data })
+                    jPulse.api.post(`/api/1/broadcast/${encodeURIComponent(channel)}`, { data: payload })
                         .then(response => {
                             if (response.success) {
                                 console.log(`jPulse.appCluster: Published to ${channel} via server`, data);
@@ -4236,6 +4260,83 @@ window.jPulse = {
             },
 
             /**
+             * Ensure WebSocket connection is established
+             * @private
+             */
+            _ensureWebSocketConnection: function() {
+                if (this._websocket || this._isConnecting) {
+                    return; // Already connected or connecting
+                }
+
+                this._isConnecting = true;
+
+                try {
+                    this._websocket = jPulse.ws.connect('/api/1/ws/app-cluster')
+                        .onStatusChange((status) => {
+                            if (status === 'connected') {
+                                console.log('jPulse.appCluster: WebSocket connected for broadcast system');
+                                this._isConnecting = false;
+                                console.log('DEBUG: Processing pending subscriptions:', Array.from(this._pendingSubscriptions));
+                                // Register all pending channel subscriptions
+                                this._pendingSubscriptions.forEach(channel => {
+                                    console.log('DEBUG: Registering channel interest for:', channel);
+                                    this._registerChannelInterest(channel);
+                                });
+                                this._pendingSubscriptions.clear();
+                            }
+                        })
+                        .onMessage((data, message) => {
+                            if (!data || !data.type) {
+                                console.warn('jPulse.appCluster: Received invalid message:', data);
+                                return;
+                            }
+                            if (data.type === 'broadcast') {
+                                // Received broadcast from server - call local subscribers
+                                this._publishLocal(data.channel, data.data);
+                            } else if (data.type === 'subscribed') {
+                                console.log(`jPulse.appCluster: Server confirmed subscription to ${data.channel}`);
+                            } else if (data.type === 'unsubscribed') {
+                                console.log(`jPulse.appCluster: Server confirmed unsubscription from ${data.channel}`);
+                            }
+                        });
+                } catch (error) {
+                    console.error('jPulse.appCluster: Failed to create WebSocket connection:', error);
+                    this._isConnecting = false;
+                }
+            },
+
+            /**
+             * Register interest in a channel with the server
+             * @private
+             */
+            _registerChannelInterest: function(channel) {
+                console.log('DEBUG: About to send subscription message for channel:', channel);
+                console.log('DEBUG: WebSocket state check:', {
+                    websocketExists: !!this._websocket,
+                    hasIsConnected: typeof this._websocket?.isConnected === 'function',
+                    isConnectedResult: this._websocket?.isConnected?.(),
+                    actualCheck: this._websocket && this._websocket.isConnected && this._websocket.isConnected()
+                });
+                if (this._websocket && this._websocket.isConnected()) {
+                    console.log('DEBUG: WebSocket is ready, sending subscription message');
+                    console.log('DEBUG: WebSocket state before send:', {
+                        exists: !!this._websocket,
+                        isConnected: this._websocket?.isConnected(),
+                        readyState: this._websocket?._ws?.readyState  // Check internal WebSocket
+                    });
+                    this._websocket.send({
+                        type: 'subscribe',
+                        channel: channel
+                    });
+                    console.log('DEBUG: WebSocket send completed successfully');
+                } else {
+                    // WebSocket not ready, add to pending
+                    this._pendingSubscriptions.add(channel);
+                    console.log('DEBUG: WebSocket not ready, adding to pending subscriptions');
+                }
+            },
+
+            /**
              * Local-only publish (fallback when Redis unavailable)
              * @private
              */
@@ -4248,7 +4349,7 @@ window.jPulse = {
                         console.error(`jPulse.appCluster: Error in subscriber for ${channel}:`, error);
                     }
                 });
-                console.log(`jPulse.appCluster: Published to ${channel} (local-only)`, data);
+                console.log(`jPulse.appCluster: Published to ${channel} (${subscribers.length} local subscribers)`);
             },
 
             /**
@@ -4268,12 +4369,33 @@ window.jPulse = {
                     if (index > -1) {
                         subscribers.splice(index, 1);
                     }
+
+                    // If no more subscribers, unregister channel
+                    if (subscribers.length === 0) {
+                        jPulse.appCluster.broadcast._subscribers.delete(channel);
+                        jPulse.appCluster.broadcast._unregisterChannelInterest(channel);
+                    }
                 } else {
-                    // Remove all subscribers for channel
+                    // Remove all callbacks for this channel
                     jPulse.appCluster.broadcast._subscribers.delete(channel);
+                    jPulse.appCluster.broadcast._unregisterChannelInterest(channel);
                 }
 
                 console.log(`jPulse.appCluster: Unsubscribed from ${channel}`);
+            },
+
+            /**
+             * Unregister interest in a channel with the server
+             * @private
+             */
+            _unregisterChannelInterest: function(channel) {
+                if (this._websocket && this._websocket.readyState === WebSocket.OPEN) {
+                    this._websocket.send({
+                        type: 'unsubscribe',
+                        channel: channel
+                    });
+                }
+                this._pendingSubscriptions.delete(channel);
             }
         },
 
@@ -4334,5 +4456,7 @@ window.jPulse = {
 jPulse.dom.ready(() => {
     jPulse.UI.sourceCode.initAll();
 });
+
+// ====================================================================
 
 // EOF webapp/view/jpulse-common.js

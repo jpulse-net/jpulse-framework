@@ -1407,6 +1407,7 @@ This is the doc to track work items, arranged in three sections:
     - webapp/controller/config.js -- integrated with view controller broadcast system
     - webapp/translations/en.conf + de.conf -- broadcast-specific i18n keys
   - WebSocket Infrastructure:
+    - webapp/controller/appCluster.js -- NEW WebSocket-to-Redis bridge for real-time client sync
     - webapp/controller/websocket.js -- migrated endpoints from /ws/ to /api/1/ws/ for API consistency
     - webapp/controller/websocket.js -- Redis-based cross-instance WebSocket broadcasting
     - webapp/view/admin/websocket-test.shtml -- updated for new endpoint structure
@@ -1422,10 +1423,11 @@ This is the doc to track work items, arranged in three sections:
     - site/webapp/view/hello-websocket/templates/code-examples.tmpl -- comprehensive WebSocket documentation with UUID storage
   - Example applications:
     - /hello-app-cluster/index.shtml -- overview
-    - /hello-app-cluster/notifications.shtml -- app showcasing redis publish/subscribe concept
-    - /hello-app-cluster/collaborative-todo.shtml -- to-do app using controller API
-    - /hello-app-cluster/code-examples.shtml -- code examples for reference
-    - /hello-app-cluster/architecture.shtml -- architecture description
+    - /hello-app-cluster/notifications.shtml -- app showcasing client-side broadcasting pattern
+    - /hello-app-cluster/collaborative-todo.shtml -- to-do app showcasing server-side (full MVC) broadcasting pattern
+    - site/webapp/controller/helloClusterTodo.js -- refactored to use HelloTodoModel, adhering to MVC
+    - /hello-app-cluster/code-examples.shtml -- updated with accurate, final code examples for both patterns
+    - /hello-app-cluster/architecture.shtml -- updated with accurate architecture diagrams and component roles
   - UI/UX Improvements:
     - webapp/view/admin/logs.shtml -- better i18n without concatenating i18n strings (Japanese language support)
     - site/webapp/view/hello-websocket/templates/code-examples.tmpl -- escaped HTML in pre blocks for proper rendering
@@ -1443,7 +1445,7 @@ This is the doc to track work items, arranged in three sections:
 
 
 pending:
-- webapp/view/admin/system-status.shtml gui: work it work for multiple servers & pm2 instances
+- webapp/view/admin/system-status.shtml gui: make it work for multiple servers & pm2 instances
 
 - view controller: return unexpanded {{handlebars}} if not exist, instead of empty return
 - install pm2, test

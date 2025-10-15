@@ -238,89 +238,66 @@
                 </h2>
 
                 <!-- Basic Publishing -->
-                <h3>📤 Publishing Messages</h3>
+                <h3>📤 Publishing a Message</h3>
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
-                    <pre>// Send a notification to all cluster instances
+                    <pre><code class="language-javascript">const notificationChannel = 'view:helloNotification:message:sent';
 const notificationData = {
-    message: "New user joined the system",
-    type: "info",
-    sender: "{{user.username}}",
+    message: 'System maintenance scheduled for 10 PM UTC.',
+    type: 'warning',
+    sender: '&#123;&#123;user.username&#125;&#125;' || 'guest',
+    senderName: ('&#123;&#123;user.firstName&#125;&#125;' || 'Anonymous') + ' '
+             +  ('&#123;&#123;user.lastName&#125;&#125;' || 'User'),
     timestamp: new Date().toISOString()
 };
 
-// Direct broadcast - no server processing
-jPulse.appCluster.broadcast.publish(
-    'controller:helloCluster:notification:sent',
-    notificationData
-);
+// This call automatically handles the WebSocket connection and
+// sends the message to the server, which then broadcasts it via Redis.
+jPulse.appCluster.broadcast.publish(notificationChannel, notificationData);
 
-// Show success message
-jPulse.UI.toast.show('📡 Notification broadcasted!', 'success');</pre>
+jPulse.UI.toast.show('📡 Notification broadcasted!', 'success');</code></pre>
                 </div>
 
                 <!-- Subscribing to Messages -->
-                <h3>📥 Subscribing to Messages</h3>
+                <h3>📥 Subscribing to a Message</h3>
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
-                    <pre>// Listen for notifications from all cluster instances
-jPulse.appCluster.broadcast.subscribe(
-    'controller:helloCluster:notification:sent',
-    (data) => {
-        console.log('📡 Received notification:', data);
+                    <pre><code class="language-javascript">const notificationChannel = 'view:helloNotification:message:sent';
 
-        // Add to notification feed
-        addNotificationToUI(data);
+// Listen for notifications from all cluster instances.
+// The broadcast object automatically handles the WebSocket connection.
+jPulse.appCluster.broadcast.subscribe(notificationChannel, (data) => {
+    console.log('📡 Received notification:', data);
 
-        // Show toast if from another user
-        if (data.sender !== '{{user.username}}') {
-            jPulse.UI.toast.show(
-                `New message from ${data.sender}`,
-                'info'
-            );
-        }
+    // Add the notification to the UI feed
+    addNotificationToFeed(data);
+
+    // Show a toast only if the message came from another tab or user
+    if (data.uuid !== jPulse.appCluster.broadcast.getUuid()) {
+        jPulse.UI.toast.show(
+            `New message from ${data.senderName}`,
+            'info'
+        );
     }
-);
+});
 
-function addNotificationToUI(notification) {
-    const feed = document.getElementById('notificationFeed');
-    const item = document.createElement('div');
-    item.className = 'notification-item new';
-    item.innerHTML = `
-        &lt;div class="notification-content"&gt;
-            &lt;strong&gt;${escapeHtml(notification.sender)}&lt;/strong&gt;
-            &lt;p&gt;${escapeHtml(notification.message)}&lt;/p&gt;
-            &lt;small&gt;${formatTime(notification.timestamp)}&lt;/small&gt;
-        &lt;/div&gt;
-    `;
-    feed.prepend(item);
-}</pre>
+function addNotificationToFeed(notification) {
+    // ... logic to update the DOM ...
+}</code></pre>
                 </div>
 
                 <!-- Channel Naming Convention -->
                 <h3>🏷️ Channel Naming Convention</h3>
-                <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
-                    <pre>// Pattern: {layer}:{component}:{domain}:{action}
+                <div class="jp-source-code" data-lang="text" data-show-lang="true">
+                    <pre><code class="language-text">// Pattern: {layer}:{component}:{domain}:{action}
 
-// ✅ Good examples:
-'controller:helloCluster:notification:sent'
-'view:dashboard:data:refreshed'
-'model:user:profile:updated'
-'controller:chat:message:posted'
+// ✅ Good examples from our demo:
+view:helloNotification:message:sent
+controller:helloClusterTodo:list:changed
+controller:helloClusterTodo:item:updated
 
 // ❌ Avoid these patterns:
-'notifications'           // Too generic
-'user-update'            // No layer specification
-'myApp:something'        // Inconsistent naming
-
-// Real-world examples:
-jPulse.appCluster.broadcast.publish(
-    'controller:orderSystem:payment:completed',
-    { orderId: '12345', amount: 99.99 }
-);
-
-jPulse.appCluster.broadcast.subscribe(
-    'view:dashboard:metrics:updated',
-    (data) => updateDashboardCharts(data)
-);</pre>
+'notifications'           // Too generic, will cause collisions
+'user-update'             // No layer or domain specification
+'myApp:something'         // Inconsistent, not descriptive</code></pre>
                 </div>
             </div>
 
@@ -331,161 +308,127 @@ jPulse.appCluster.broadcast.subscribe(
                 </h2>
 
                 <!-- Controller Implementation -->
-                <h3>🎛️ Controller Implementation</h3>
+                <h3>🎛️ Controller: `apiCreate` Method</h3>
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
-                    <pre>/**
- * Create a new todo with server-side broadcasting
- * POST /api/1/helloClusterTodo
- */
-static async apiCreate(req, res) {
-    try {
-        const { text, priority = 'medium' } = req.body;
+                    <pre><code class="language-javascript">import HelloTodoModel from '../model/helloTodo.js';
 
-        // 1. Validate input
-        if (!text || text.trim().length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Task description is required'
+class HelloClusterTodoController {
+    static async apiCreate(req, res) {
+        try {
+            const { text } = req.body;
+
+            // 1. Validate input on the server
+            if (!text || typeof text !== 'string' || text.trim().length === 0) {
+                return res.status(400).json({
+                    success: false, message: 'Task description is required'
+                });
+            }
+
+            // 2. Prepare user data
+            const userName = req.session?.user?.username || 'guest';
+            const userFirstName = req.session?.user?.firstName || 'Anonymous';
+            const userLastName = req.session?.user?.lastName || 'User';
+
+            // 3. Create document using the Model (handles database interaction)
+            const createdTodo = await HelloTodoModel.create({
+                title: text.trim(),
+                username: userName,
+                userFirstName,
+                userLastName
             });
+
+            // 4. Broadcast the change to all other server instances
+            await HelloClusterTodoController._broadcastChange('created', createdTodo, req);
+
+            // 5. Return success response to the original client
+            res.status(201).json({ success: true, todo: createdTodo });
+
+        } catch (error) {
+            global.LogController.logError(req, 'helloClusterTodo.apiCreate', `error: ${error.message}`);
+            res.status(500).json({ success: false, message: 'Failed to create todo' });
         }
-
-        // 2. Create todo document
-        const todoData = {
-            text: text.trim(),
-            priority,
-            completed: false,
-            userId: req.session?.user?.id || 'demo-user',
-            createdBy: req.session?.user?.username || 'Demo User',
-            createdAt: new Date(),
-            updatedAt: new Date()
-        };
-
-        // 3. Save to database
-        const result = await global.db
-            .collection('helloClusterTodos')
-            .insertOne(todoData);
-
-        const createdTodo = { ...todoData, _id: result.insertedId };
-
-        // 4. Broadcast change to all cluster instances
-        await HelloClusterTodoController._broadcastChange(
-            'created',
-            createdTodo,
-            req
-        );
-
-        // 5. Return success response
-        res.status(201).json({
-            success: true,
-            message: 'Todo created successfully',
-            data: { todo: createdTodo }
-        });
-
-    } catch (error) {
-        console.error('Error creating todo:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to create todo',
-            error: error.message
-        });
     }
-}</pre>
+    // ... other methods: apiGet, apiToggle, apiDelete ...
+}</code></pre>
                 </div>
 
                 <!-- Broadcasting Method -->
-                <h3>📡 Broadcasting Implementation</h3>
+                <h3>📡 Controller: `_broadcastChange` Method</h3>
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
-                    <pre>/**
- * Private method to broadcast changes to all cluster instances
- */
-static async _broadcastChange(action, todo, req) {
-    try {
-        const BroadcastController = global.BroadcastController;
-
-        if (!BroadcastController) {
-            console.warn('BroadcastController not available - skipping broadcast');
-            return;
-        }
-
-        // Prepare broadcast data
-        const broadcastData = {
-            action,           // 'created', 'updated', 'deleted'
-            todo,            // The todo object
-            userId: req.session?.user?.id || 'demo-user',
-            timestamp: new Date().toISOString(),
-            serverInstance: global.RedisManager?.instanceId || 'unknown'
-        };
-
-        // Broadcast to all cluster instances
-        await BroadcastController.publish(
-            'controller:helloClusterTodo:list:changed',
-            broadcastData
-        );
-
-        // Also broadcast specific item update
-        await BroadcastController.publish(
-            'controller:helloClusterTodo:item:updated',
-            broadcastData
-        );
-
-        console.log(`📡 Broadcasted todo ${action}:`, todo._id);
-
-    } catch (error) {
-        console.error('Error broadcasting todo change:', error);
-        // Don't fail the main operation if broadcasting fails
+                    <pre><code class="language-javascript">static async _broadcastChange(action, todo, req) {
+    // Abort if Redis is not available (graceful fallback)
+    if (!global.RedisManager || !global.RedisManager.isRedisAvailable()) {
+        global.LogController?.logWarn(req, '..._broadcastChange', 'Redis not available, skipping broadcast');
+        return;
     }
-}</pre>
+
+    // 1. Prepare a rich payload for other clients
+    const senderName = (req.session?.user?.firstName
+        ? `${req.session.user.firstName} ${req.session.user.lastName}`
+        : req.session?.user?.username) || 'Anonymous User';
+    const sender = req.session?.user?.username || 'guest';
+
+    const broadcastPayload = {
+        todo: todo,
+        action: action,
+        sender: sender,
+        senderName: senderName,
+        uuid: req.body.uuid || null // Pass client UUID to prevent echo
+    };
+
+    // 2. Determine the correct channel based on the action
+    const channel = (action === 'created' || action === 'deleted')
+        ? 'controller:helloClusterTodo:list:changed'
+        : 'controller:helloClusterTodo:item:updated';
+
+    // 3. Publish directly to Redis using the RedisManager
+    try {
+        await global.RedisManager.publishBroadcast(channel, broadcastPayload);
+        global.LogController?.logInfo(req, '..._broadcastChange', `Broadcasted [${action}]`);
+    } catch (error) {
+        global.LogController?.logError(req, '..._broadcastChange', `Failed to broadcast: ${error.message}`);
+    }
+}</code></pre>
                 </div>
 
                 <!-- Client-Side API Calls -->
-                <h3>🌐 Client-Side API Integration</h3>
+                <h3>🌐 Client-Side: `handleAddTask` Method</h3>
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
-                    <pre>// Create a new todo via API
-async function createTodo(text, priority) {
+                    <pre><code class="language-javascript">async handleAddTask(e) {
+    e.preventDefault();
+    const text = this.elements.taskDescription.value.trim();
+    if (!text) return;
+
+    // ... (disable button, show spinner) ...
+
     try {
+        // 1. Send a standard POST request to the API
         const response = await fetch('/api/1/helloClusterTodo', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ text, priority })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
         });
 
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to add task');
+        }
+
         const result = await response.json();
-
         if (result.success) {
-            // Add to local list immediately
-            todos.unshift(result.data.todo);
-            renderTodos();
-
-            // Server will broadcast to other instances automatically
-            jPulse.UI.toast.show('✅ Task created and synchronized!', 'success');
+            // 2. SUCCESS! Clear the form.
+            this.elements.taskDescription.value = '';
+            // 3. DO NOT update the UI here. Wait for the broadcast message
+            //    from the server. This is the key to consistency.
         } else {
-            throw new Error(result.message);
+            throw new Error(result.message || 'Failed to add task');
         }
     } catch (error) {
-        jPulse.UI.toast.show('Failed to create task: ' + error.message, 'error');
+        this.showToast(`Error: ${error.message}`, 'error');
+    } finally {
+        // ... (re-enable button) ...
     }
-}
-
-// Listen for broadcasts from other instances
-jPulse.appCluster.broadcast.subscribe(
-    'controller:helloClusterTodo:list:changed',
-    (data) => {
-        console.log('📡 Received todo list change:', data);
-
-        // Refresh the entire list when we get a broadcast
-        loadTodos();
-
-        // Show notification if change came from another user
-        if (data.userId !== getCurrentUserId()) {
-            jPulse.UI.toast.show(
-                `Todo list updated by another user`,
-                'info'
-            );
-        }
-    }
-);</pre>
+}</code></pre>
                 </div>
             </div>
 
@@ -507,14 +450,14 @@ jPulse.appCluster.broadcast.subscribe(
                         <tr>
                             <td><span class="local-method-badge get">GET</span></td>
                             <td><code>/api/1/helloClusterTodo</code></td>
-                            <td>Get all todos for current user</td>
+                            <td>Get all todos</td>
                             <td>-</td>
                         </tr>
                         <tr>
                             <td><span class="local-method-badge post">POST</span></td>
                             <td><code>/api/1/helloClusterTodo</code></td>
-                            <td>Create new todo</td>
-                            <td><code>{ text, priority }</code></td>
+                            <td>Create a new todo</td>
+                            <td><code>{ text }</code></td>
                         </tr>
                         <tr>
                             <td><span class="local-method-badge put">PUT</span></td>
@@ -577,75 +520,34 @@ jPulse.appCluster.broadcast.subscribe(
                 <!-- Server-Side Broadcasting -->
                 <h3>🖥️ Server-Side Broadcasting</h3>
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
-                    <pre>// In your controller method
-const BroadcastController = global.BroadcastController;
+                    <pre><code class="language-javascript">// In your controller method, after a database operation:
+const payload = {
+    action: 'created',
+    data: newRecord,
+    sender: req.session.user.username,
+    // ... any other relevant data
+};
 
-// Publish a message to all cluster instances
-await BroadcastController.publish(
+// Publish directly using RedisManager for server-to-server communication
+await global.RedisManager.publishBroadcast(
     'controller:myApp:data:updated',
-    {
-        action: 'created',
-        data: newRecord,
-        userId: req.session.user.id,
-        timestamp: new Date().toISOString()
-    }
-);
-
-// Multiple channels for different purposes
-await BroadcastController.publish('controller:myApp:list:changed', listData);
-await BroadcastController.publish('controller:myApp:stats:updated', statsData);</pre>
+    payload
+);</code></pre>
                 </div>
 
                 <!-- Error Handling -->
-                <h3>⚠️ Error Handling & Fallbacks</h3>
+                <h3>⚠️ Error Handling &amp; Fallbacks</h3>
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
-                    <pre>// Client-side with fallback
-function publishNotification(data) {
-    try {
-        if (typeof jPulse !== 'undefined' &&
-            jPulse.appCluster &&
-            jPulse.appCluster.broadcast) {
+                    <pre><code class="language-javascript">// Client-side: jPulse.appCluster.broadcast handles this automatically.
+// If Redis is unavailable, it falls back to local-only mode (messages
+// are only delivered within the same browser tab). No extra code needed.
 
-            // Redis broadcasting available
-            jPulse.appCluster.broadcast.publish('my:channel', data);
-            jPulse.UI.toast.show('📡 Broadcasted to all servers!', 'success');
-
-        } else {
-            // Fallback: local only
-            handleLocalMessage(data);
-            jPulse.UI.toast.show('📱 Local mode (Redis unavailable)', 'warning');
-        }
-    } catch (error) {
-        console.error('Broadcasting failed:', error);
-
-        // Always handle locally as fallback
-        handleLocalMessage(data);
-        jPulse.UI.toast.show('Broadcasting failed, shown locally', 'error');
-    }
-}
-
-// Server-side with graceful degradation
-static async _broadcastChange(action, data, req) {
-    try {
-        const BroadcastController = global.BroadcastController;
-
-        if (!BroadcastController) {
-            console.warn('BroadcastController not available - running in single-server mode');
-            return;
-        }
-
-        await BroadcastController.publish('my:channel', {
-            action,
-            data,
-            timestamp: new Date().toISOString()
-        });
-
-    } catch (error) {
-        console.error('Error broadcasting change:', error);
-        // Don't fail the main operation if broadcasting fails
-        // The operation still succeeds locally
-    }
-}</pre>
+// Server-side: The _broadcastChange method includes a check.
+if (!global.RedisManager || !global.RedisManager.isRedisAvailable()) {
+    // The operation still succeeds locally, but no broadcast is sent.
+    // This allows the app to function in a single-instance mode.
+    return;
+}</code></pre>
                 </div>
             </div>
 

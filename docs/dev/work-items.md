@@ -1446,16 +1446,16 @@ This is the doc to track work items, arranged in three sections:
 
 pending:
 - jp-card: more consistent card header: normal, dialog look with gray background jp-card-dialog
-- site/webapp/controller/helloClusterTodo.js -- add logs; check if api or apiGet is obsolete
-- webapp/view/admin/logs.shtml -- clean up css mess
+- app.shortName not shown in <title>
+- change user.authenticated to user.isAuthenticated
+- webapp/controller/health.js -- get actual mongo status!
 
 
+old pending:
 - view controller: return unexpanded {{handlebars}} if not exist, instead of empty return
 - install pm2, test
 - navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
 - grab gh jpulse.net
-
-old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 

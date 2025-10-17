@@ -245,7 +245,7 @@
           {{#if user.authenticated}}
             <div class="jp-page-header">
                 <h1>{{i18n.view.admin.logs.title}}</h1>
-                <p class="jp-subtitle">{{i18n.view.admin.logs.subtitle}}</p>
+                <span class="jp-subtitle">{{i18n.view.admin.logs.subtitle}}</span>
             </div>
 
             <!-- Filter presets -->
@@ -695,7 +695,7 @@
             if (typeof changes === 'string') {
                 return `<span style="cursor: pointer;">▶ ${changes.substring(0, 50)}${changes.length > 50 ? '...' : ''}</span>`;
             }
-            
+
             // Handle case where changes is an array (new format)
             if (!changes || !Array.isArray(changes) || changes.length === 0) {
                 return `<em>${i18nStrings.noChangesRecorded}</em>`;
@@ -703,7 +703,7 @@
 
             // Use the action field to determine operation type - much simpler!
             const changeCount = changes.length;
-            
+
             if (action === 'create') {
                 const fieldsText = changeCount === 1 ? i18nStrings.fieldsCreated : i18nStrings.fieldsCreated;
                 return `<span style="cursor: pointer;">▶ ${changeCount} ${fieldsText}</span>`;
@@ -734,7 +734,7 @@
             if (typeof changes === 'string') {
                 return `<pre>${changes}</pre>`;
             }
-            
+
             // Handle case where changes is an array (new format)
             if (!changes || !Array.isArray(changes) || changes.length === 0) {
                 return `<div class="local-change-item">${i18nStrings.noChangesRecorded}</div>`;
@@ -754,12 +754,12 @@
                 if (oldVal === null && newVal !== null) {
                     return `<div class="local-change-item"><strong>${field}:</strong><div class="local-change-value">✅ ${newVal || '(empty)'}</div></div>`;
                 }
-                
+
                 // Handle deletion (value -> null)
                 if (oldVal !== null && newVal === null) {
                     return `<div class="local-change-item"><strong>${field}:</strong><div class="local-change-value">❌ ${oldVal || '(empty)'}</div></div>`;
                 }
-                
+
                 // Handle update (value -> different value)
                 return `<div class="local-change-item"><strong>${field}:</strong><div class="local-change-value">❌ ${oldVal || '(empty)'}</div><div class="local-change-value">✅ ${newVal || '(empty)'}</div></div>`;
             }).join('');
@@ -770,11 +770,11 @@
         function toggleChanges(cell) {
             const summary = cell.querySelector('.local-changes-summary');
             const details = cell.querySelector('.local-changes-full');
-            
+
             if (!details) return;
-            
+
             const isExpanded = details.style.display !== 'none';
-            
+
             if (isExpanded) {
                 details.style.display = 'none';
                 summary.innerHTML = summary.innerHTML.replace('▼', '▶');
@@ -787,11 +787,11 @@
         function toggleChangesDropdown(summaryElement) {
             // Prevent event bubbling
             event.stopPropagation();
-            
+
             const dropdown = document.getElementById('globalChangesDropdown');
             const content = dropdown.querySelector('.local-changes-dropdown-content');
             const isOpen = dropdown.classList.contains('show');
-            
+
             if (isOpen) {
                 // Close dropdown
                 dropdown.classList.remove('show');
@@ -810,20 +810,20 @@
                     } catch (e) {
                         changes = changesData; // Fallback to string
                     }
-                    
+
                     // Update content
                     content.innerHTML = formatDetailedChanges(changes);
-                    
+
                     // Store reference to target element for scroll tracking
                     dropdown.currentTarget = summaryElement;
-                    
+
                     // Position dropdown relative to the clicked element
                     positionDropdown(dropdown, summaryElement);
-                    
+
                     // Show dropdown
                     dropdown.classList.add('show');
                     summaryElement.innerHTML = summaryElement.innerHTML.replace('▶', '▼');
-                    
+
                     // Add event listeners
                     setTimeout(() => {
                         document.addEventListener('click', handleOutsideClick);
@@ -839,29 +839,29 @@
             const dropdownRect = dropdown.getBoundingClientRect();
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
-            
+
             let left = rect.left;
             let top = rect.bottom + 5; // 5px gap below the target
-            
+
             // Horizontal positioning - prevent right clipping
             const dropdownWidth = 500; // min-width from CSS
             if (left + dropdownWidth > viewportWidth) {
                 // Move to the left if not enough space on the right
                 left = Math.max(10, viewportWidth - dropdownWidth - 10);
             }
-            
+
             // Vertical positioning - prevent bottom clipping
             const dropdownHeight = Math.min(400, dropdown.scrollHeight); // max-height from CSS
             if (top + dropdownHeight > viewportHeight) {
                 // Show above the target if not enough space below
                 top = rect.top - dropdownHeight - 5;
-                
+
                 // If still doesn't fit, position at top of viewport
                 if (top < 10) {
                     top = 10;
                 }
             }
-            
+
             dropdown.style.left = left + 'px';
             dropdown.style.top = top + 'px';
         }
@@ -871,16 +871,16 @@
             if (event.target.closest('#globalChangesDropdown') || event.target.closest('.local-changes-summary')) {
                 return;
             }
-            
+
             // Close dropdown and update all summaries
             const dropdown = document.getElementById('globalChangesDropdown');
             dropdown.classList.remove('show');
-            
+
             // Reset all summary arrows
             document.querySelectorAll('.local-changes-summary').forEach(summary => {
                 summary.innerHTML = summary.innerHTML.replace('▼', '▶');
             });
-            
+
             document.removeEventListener('click', handleOutsideClick);
             window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('resize', handleResize);

@@ -1372,9 +1372,9 @@ body {
 /* Info/Message Components */
 .jp-info-box {
     background: #e7f3ff;
-    padding: 15px;
+    padding: 2px 18px;
     border-radius: 5px;
-    margin: 20px 0;
+    margin: 15px 0;
     border-left: 4px solid #007acc;
 }
 
@@ -1384,9 +1384,9 @@ body {
 
 .jp-warning-box {
     background: #fff3cd;
-    padding: 15px;
+    padding: 2px 18px;
     border-radius: 5px;
-    margin: 20px 0;
+    margin: 15px 0;
     border-left: 4px solid #ffc107;
 }
 
@@ -1396,9 +1396,9 @@ body {
 
 .jp-error-box {
     background: #f8d7da;
-    padding: 15px;
+    padding: 2px 18px;
     border-radius: 5px;
-    margin: 20px 0;
+    margin: 15px 0;
     border-left: 4px solid #dc3545;
 }
 
@@ -1406,10 +1406,13 @@ body {
     margin: 0 0 1.5rem 0;
 }
 
+.jp-info-box h3,
+.jp-warning-box h3,
+.jp-error-box h3,
 .jp-info-box h4,
 .jp-warning-box h4,
 .jp-error-box h4 {
-        margin: 0 0 10px 0;
+        margin: 7px 0 10px 0;
 }
 
 /* Typography Components */
@@ -1742,10 +1745,10 @@ body {
     display: flex;
     align-items: center;
     gap: 15px;
-    padding: 20px;
+    padding: 5px 10px;
     background: #f8f9fa;
     border-radius: 8px;
-    margin: 20px 0;
+    margin: 5px 0;
     border-left: 4px solid #007acc;
 }
 
@@ -1807,8 +1810,20 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
-    padding-bottom: 20px;
     border-bottom: 2px solid #007acc;
+}
+
+.jp-page-header > h1 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.jp-page-header > p,
+.jp-page-header > span,
+.jp-page-header > .jp-subtitle {
+    color: #666;
+    font-size: 1em;
+    margin-bottom: 10px;
 }
 
 .jp-page-header a {
@@ -1818,7 +1833,7 @@ body {
     margin-bottom: 15px;
 }
 
-.jp-page-header span {
+.jp-page-header > span {
     color: #bbb;
     font-size: 0.8em;
     margin-bottom: 15px;

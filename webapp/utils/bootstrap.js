@@ -123,9 +123,14 @@ export async function bootstrap(options = {}) {
         bootstrapLog('✅ BroadcastController: Initialized with framework subscriptions');
 
         // Step 6.3: Initialize app cluster controller (W-076)
-        const AppClusterControllerModule = await import('../controller/appCluster.js');
-        AppClusterControllerModule.default.initialize();
-        bootstrapLog('✅ AppClusterController: Initialized with WebSocket namespace');
+        try {
+            const AppClusterControllerModule = await import('../controller/appCluster.js');
+            AppClusterControllerModule.default.initialize();
+            bootstrapLog('✅ AppClusterController: Initialized with WebSocket namespace');
+        } catch (error) {
+            bootstrapLog(`❌ AppClusterController initialization failed: ${error.message}`);
+            console.error('AppClusterController error details:', error);
+        }
 
         // Step 6.4: Initialize health controller clustering (W-076)
         const HealthControllerModule = await import('../controller/health.js');

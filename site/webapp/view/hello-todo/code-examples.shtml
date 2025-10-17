@@ -241,7 +241,7 @@ async function deleteTodo(id) {
                 </div>
 
                 <div class="jp-card" style="background: #fff3cd; border-left: 4px solid #ffc107; margin-top: 1rem;">
-                    <p><strong>💡 MPA Pattern Note:</strong></p>
+                    <h4 style="margin-top: 0;">💡 MPA Pattern Note:</h4>
                     <p>Notice how each action (add, toggle, delete) ends with <code>location.reload()</code>. This is the traditional MPA approach - the browser reloads the entire page to show updated data.</p>
                     <p>Compare this to the <a href="/hello-vue/">Vue.js SPA</a> which updates the UI instantly without page reloads!</p>
                 </div>

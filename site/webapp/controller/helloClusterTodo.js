@@ -28,11 +28,12 @@ class HelloClusterTodoController {
      */
     static async api(req, res) {
         const startTime = Date.now();
-        try {
-            LogController.logRequest(req, 'helloClusterTodo.api', '');
+        LogController.logRequest(req, 'helloClusterTodo.api', '');
 
+        try {
             const todos = await HelloTodoModel.findAll();
             const stats = await HelloTodoModel.getStats();
+
             res.json({
                 success: true,
                 todos,
@@ -40,26 +41,11 @@ class HelloClusterTodoController {
             });
 
             const duration = Date.now() - startTime;
-            LogController.logInfo(req, 'helloClusterTodo.api', `success: ${todos.length} docs found in ${duration}ms`);
+            LogController.logInfo(req, 'helloClusterTodo.api', `success: ${todos.length} todos retrieved in ${duration}ms`);
 
         } catch (error) {
             LogController.logError(req, 'helloClusterTodo.api', `error: ${error.message}`);
             return CommonUtils.sendError(req, res, 500, 'Failed to retrieve todos', 'HELLO_CLUSTER_TODO_RETRIEVE_ERROR');
-        }
-    }
-
-    static async apiGet(req, res) {
-        try {
-            const todos = await HelloTodoModel.findAll();
-            const stats = await HelloTodoModel.getStats();
-            res.json({
-                success: true,
-                todos,
-                stats
-            });
-        } catch (error) {
-            global.LogController.logError(req, 'helloClusterTodo.apiGet', `error: ${error.message}`);
-            res.status(500).json({ success: false, message: 'Failed to retrieve todos' });
         }
     }
 
@@ -69,15 +55,15 @@ class HelloClusterTodoController {
      */
     static async apiCreate(req, res) {
         const startTime = Date.now();
+        LogController.logRequest(req, 'helloClusterTodo.apiCreate', JSON.stringify({ text: req.body.text }));
+
         try {
             const { text } = req.body;
 
             // Validation
             if (!text || typeof text !== 'string' || text.trim().length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Task description is required'
-                });
+                LogController.logError(req, 'helloClusterTodo.apiCreate', 'error: Task description is required');
+                return CommonUtils.sendError(req, res, 400, 'Task description is required', 'HELLO_CLUSTER_TODO_CREATE_ERROR');
             }
 
             const userName = req.session?.user?.username || 'guest';
@@ -99,9 +85,13 @@ class HelloClusterTodoController {
                 success: true,
                 todo: createdTodo
             });
+
+            const duration = Date.now() - startTime;
+            LogController.logInfo(req, 'helloClusterTodo.apiCreate', `success: todo created for user ${userName} in ${duration}ms`);
+
         } catch (error) {
-            global.LogController.logError(req, 'helloClusterTodo.apiCreate', `error: ${error.message}`);
-            res.status(500).json({ success: false, message: 'Failed to create todo' });
+            LogController.logError(req, 'helloClusterTodo.apiCreate', `error: ${error.message}`);
+            return CommonUtils.sendError(req, res, 500, 'Failed to create todo', 'HELLO_CLUSTER_TODO_CREATE_ERROR');
         }
     }
 
@@ -110,8 +100,11 @@ class HelloClusterTodoController {
      * PUT /api/1/helloClusterTodo/:id/toggle
      */
     static async apiToggle(req, res) {
+        const startTime = Date.now();
+        const { id } = req.params;
+        LogController.logRequest(req, 'helloClusterTodo.apiToggle', id);
+
         try {
-            const { id } = req.params;
             const updatedTodo = await HelloTodoModel.toggleComplete(id);
 
             // Broadcast change to all cluster instances
@@ -121,9 +114,13 @@ class HelloClusterTodoController {
                 success: true,
                 todo: updatedTodo
             });
+
+            const duration = Date.now() - startTime;
+            LogController.logInfo(req, 'helloClusterTodo.apiToggle', `success: todo ${id} toggled in ${duration}ms`);
+
         } catch (error) {
-            global.LogController.logError(req, 'helloClusterTodo.apiToggle', `error: ${error.message}`);
-            res.status(500).json({ success: false, message: 'Failed to toggle todo' });
+            LogController.logError(req, 'helloClusterTodo.apiToggle', `error: ${error.message}`);
+            return CommonUtils.sendError(req, res, 500, 'Failed to toggle todo', 'HELLO_CLUSTER_TODO_TOGGLE_ERROR');
         }
     }
 
@@ -132,13 +129,16 @@ class HelloClusterTodoController {
      * DELETE /api/1/helloClusterTodo/:id
      */
     static async apiDelete(req, res) {
-        try {
-            const { id } = req.params;
+        const startTime = Date.now();
+        const { id } = req.params;
+        LogController.logRequest(req, 'helloClusterTodo.apiDelete', id);
 
+        try {
             // Find the todo first for broadcasting
             const todoToDelete = await HelloTodoModel.findById(id);
             if (!todoToDelete) {
-                return res.status(404).json({ success: false, message: 'Task not found' });
+                LogController.logError(req, 'helloClusterTodo.apiDelete', `error: Todo ${id} not found`);
+                return CommonUtils.sendError(req, res, 404, 'Task not found', 'HELLO_CLUSTER_TODO_DELETE_ERROR');
             }
 
             // Delete from database using the model
@@ -155,13 +155,12 @@ class HelloClusterTodoController {
                 }
             });
 
+            const duration = Date.now() - startTime;
+            LogController.logInfo(req, 'helloClusterTodo.apiDelete', `success: todo ${id} deleted in ${duration}ms`);
+
         } catch (error) {
-            console.error('Error deleting todo:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to delete todo',
-                error: error.message
-            });
+            LogController.logError(req, 'helloClusterTodo.apiDelete', `error: ${error.message}`);
+            return CommonUtils.sendError(req, res, 500, 'Failed to delete todo', 'HELLO_CLUSTER_TODO_DELETE_ERROR');
         }
     }
 
@@ -170,9 +169,11 @@ class HelloClusterTodoController {
      * GET /api/1/helloClusterTodo/stats
      */
     static async apiStats(req, res) {
+        const startTime = Date.now();
+        LogController.logRequest(req, 'helloClusterTodo.apiStats', '');
+
         try {
             const userId = req.session?.user?.id || 'demo-user';
-
             const collection = global.db.collection('helloClusterTodos');
 
             // Get aggregated statistics
@@ -211,13 +212,12 @@ class HelloClusterTodoController {
                 }
             });
 
+            const duration = Date.now() - startTime;
+            LogController.logInfo(req, 'helloClusterTodo.apiStats', `success: statistics retrieved in ${duration}ms`);
+
         } catch (error) {
-            console.error('Error retrieving todo statistics:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to retrieve statistics',
-                error: error.message
-            });
+            LogController.logError(req, 'helloClusterTodo.apiStats', `error: ${error.message}`);
+            return CommonUtils.sendError(req, res, 500, 'Failed to retrieve statistics', 'HELLO_CLUSTER_TODO_STATS_ERROR');
         }
     }
 
@@ -230,7 +230,7 @@ class HelloClusterTodoController {
      */
     static async _broadcastChange(action, todo, req) {
         if (!global.RedisManager || !global.RedisManager.isRedisAvailable()) {
-            global.LogController?.logInfo(req, 'helloClusterTodo._broadcastChange', 'warning: Redis not available, skipping broadcast');
+            LogController.logInfo(req, 'helloClusterTodo._broadcastChange', 'warning: Redis not available, skipping broadcast');
             return;
         }
 
@@ -254,9 +254,9 @@ class HelloClusterTodoController {
 
         try {
             await global.RedisManager.publishBroadcast(channel, broadcastPayload);
-            global.LogController?.logInfo(req, 'helloClusterTodo._broadcastChange', `Broadcasted [${action}] on channel [${channel}]`);
+            LogController.logInfo(req, 'helloClusterTodo._broadcastChange', `success: broadcasted [${action}] on channel [${channel}]`);
         } catch (error) {
-            global.LogController?.logError(req, 'helloClusterTodo._broadcastChange', `Failed to broadcast change: ${error.message}`);
+            LogController.logError(req, 'helloClusterTodo._broadcastChange', `error: Failed to broadcast change: ${error.message}`);
         }
     }
 }

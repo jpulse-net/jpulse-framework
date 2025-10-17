@@ -153,7 +153,7 @@
           {{#if user.isAdmin}}
             <div class="jp-page-header">
                 <h1>{{i18n.view.admin.websocketStatus.title}}</h1>
-                <p id="wsConnectionStatus" class="jp-subtitle local-connection-status connecting">{{i18n.view.admin.websocketStatus.connecting}}</p>
+                <span id="wsConnectionStatus" class="jp-subtitle local-connection-status connecting">{{i18n.view.admin.websocketStatus.connecting}}</span>
             </div>
 
             <!-- Overview Statistics -->

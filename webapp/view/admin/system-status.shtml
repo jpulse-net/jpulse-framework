@@ -41,7 +41,7 @@
           {{#if user.isAdmin}}
             <div class="jp-page-header">
                 <h1>{{i18n.view.admin.systemStatus.title}}</h1>
-                <p class="jp-subtitle">{{i18n.view.admin.systemStatus.subtitle}}</p>
+                <span class="jp-subtitle">{{i18n.view.admin.systemStatus.subtitle}}</span>
             </div>
 
             <!-- Error State -->

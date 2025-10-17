@@ -165,7 +165,7 @@ window.helloWebSocketViews.TodoDemo = {
         <h3>🎯 What This Demonstrates</h3>
         <p>Real-time collaborative todo list powered by WebSocket + REST API. Changes made by anyone are instantly visible to everyone!</p>
 
-        <ul style="margin: 10px 0 0 20px; line-height: 1.6; font-size: 14px;">
+        <ul style="line-height: 1.6; font-size: 15px;">
             <li><strong>Hybrid architecture</strong> - REST API for CRUD, WebSocket for notifications</li>
             <li><strong>Database persistence</strong> - All todos stored in MongoDB</li>
             <li><strong>Instant sync</strong> - Add/complete/delete todos, everyone sees it instantly</li>
@@ -271,29 +271,29 @@ window.helloWebSocketViews.TodoDemo = {
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
             <div>
-                <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #666;">WebSocket Namespace</h4>
-                <code style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 13px;">/api/1/ws/hello-todo</code>
+                <h4 style="margin: 0 0 5px 0; font-size: 15px; color: #666;">WebSocket Namespace</h4>
+                <code style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 15px;">/api/1/ws/hello-todo</code>
             </div>
 
             <div>
-                <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #666;">REST API</h4>
-                <code style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 13px;">/api/1/helloTodo</code>
+                <h4 style="margin: 0 0 5px 0; font-size: 15px; color: #666;">REST API</h4>
+                <code style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 15px;">/api/1/helloTodo</code>
             </div>
 
             <div>
-                <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #666;">Database</h4>
-                <span style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 13px;">MongoDB (helloTodos collection)</span>
+                <h4 style="margin: 0 0 5px 0; font-size: 15px; color: #666;">Database</h4>
+                <span style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 15px;">MongoDB (helloTodos collection)</span>
             </div>
 
             <div>
-                <h4 style="margin: 0 0 5px 0; font-size: 14px; color: #666;">Authentication</h4>
-                <span style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 13px;">Public (tracks username)</span>
+                <h4 style="margin: 0 0 5px 0; font-size: 15px; color: #666;">Authentication</h4>
+                <span style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 15px;">Public (tracks username)</span>
             </div>
         </div>
 
         <div style="margin-top: 15px; padding: 12px; background: white; border-radius: 4px;">
             <h4 style="margin: 0 0 8px 0;">Message Flow:</h4>
-            <ol style="margin: 5px 0 0 20px; font-size: 13px; line-height: 1.8;">
+            <ol style="font-size: 15px; line-height: 1.8;">
                 <li>User clicks "Add Todo" → Client calls REST API: <code>POST /api/1/helloTodo</code></li>
                 <li>Controller saves to MongoDB and responds with new todo</li>
                 <li>Controller broadcasts WebSocket message: <code>{type: 'todo-created', todo}</code></li>
@@ -303,14 +303,14 @@ window.helloWebSocketViews.TodoDemo = {
     </div>
 
     <div class="jp-info-box" style="margin-top: 20px; background: #e3f2fd;">
-        <h3 style="margin-top: 0;">💡 Key Architectural Insight</h3>
-        <p style="margin: 0; line-height: 1.6;">
+        <h3>💡 Key Architectural Insight</h3>
+        <p style="line-height: 1.6;">
             This demo shows the <strong>hybrid architecture pattern</strong>: REST API handles the
             actual CRUD operations (with validation, persistence, error handling), while WebSocket
             provides <em>instant notifications</em> to all clients. This is superior to doing everything
             over WebSocket because:
         </p>
-        <ul style="margin: 10px 0 0 20px; line-height: 1.6;">
+        <ul style="line-height: 1.6;">
             <li>REST API continues to work even if WebSocket is down</li>
             <li>Non-WebSocket clients (mobile apps, scripts) can still use the API</li>
             <li>Validation and business logic stay in one place (the controller)</li>
@@ -318,9 +318,9 @@ window.helloWebSocketViews.TodoDemo = {
         </ul>
     </div>
 
-    <div class="jp-card" style="margin-top: 20px; background: #fff3cd; border-left: 4px solid #ffc107;">
-        <h3 style="margin-top: 0;">🎓 Learning Takeaways</h3>
-        <ul style="margin: 5px 0 0 20px; line-height: 1.8;">
+    <div class="jp-info-box" style="margin-top: 20px; background: #fff3cd; border-left: 4px solid #ffc107;">
+        <h3>🎓 Learning Takeaways</h3>
+        <ul style="line-height: 1.8;">
             <li>WebSocket complements REST API, doesn't replace it</li>
             <li>Hybrid architecture is more robust than pure WebSocket</li>
             <li>Broadcast pattern keeps all clients synchronized</li>

@@ -70,7 +70,7 @@
                 </div>
 
                 <div class="jp-info-box">
-                    {{i18n.view.auth.logout.securityNote}}
+                    <p>{{i18n.view.auth.logout.securityNote}}</p>
                 </div>
 
                 <div class="jp-btn-group">

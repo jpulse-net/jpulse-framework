@@ -193,7 +193,7 @@
         <div class="jp-container-1200">
             <div class="jp-page-header">
                 <h1>📢 Global Notifications</h1>
-                <p class="jp-subtitle">Client-Side Broadcasting Pattern - Send instant notifications to all server instances</p>
+                <span class="jp-subtitle">Client-Side Broadcasting Pattern - Send instant notifications to all server instances</span>
             </div>
 
             <!-- Sub-navigation -->

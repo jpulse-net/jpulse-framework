@@ -62,7 +62,7 @@
                         <li><strong>View</strong> logic lives in the <em>browser</em> (DOM updates, interactivity)</li>
                         <li><strong>Controller</strong> lives on the <em>server</em> (REST API endpoints)</li>
                     </ul>
-                    <p style="margin-bottom: 0;">This differs from <strong>Traditional MPA</strong> where all three (M, V, C) live on the server. See <a href="/docs/mpa-vs-spa.html">MPA vs SPA documentation</a> for detailed comparison.</p>
+                    <p>This differs from <strong>Traditional MPA</strong> where all three (M, V, C) live on the server. See <a href="/docs/mpa-vs-spa.html">MPA vs SPA documentation</a> for detailed comparison.</p>
                 </div>
 
                 <div class="jp-card" style="background: #f8f9fa; border-left: 4px solid #007acc;">
@@ -100,7 +100,7 @@
 
                 <h3>🔄 MPA vs SPA</h3>
                 <div class="jp-card" style="background: #fff3cd; border-left: 4px solid #ff6b6b;">
-                    <p><strong>This is a Multi-Page Application (MPA):</strong></p>
+                    <h4 style="margin-top: 0;">This is a Multi-Page Application (MPA):</h4>
                     <ul>
                         <li>✅ Each page is a full HTML document with embedded JavaScript for interactivity</li>
                         <li>✅ Browser initiates REST API calls to the server</li>

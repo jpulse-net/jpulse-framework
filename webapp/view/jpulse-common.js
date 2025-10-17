@@ -4271,18 +4271,19 @@ window.jPulse = {
                 }
 
                 this._isConnecting = true;
+                const self = this; // Capture correct context
 
                 try {
                     this._websocket = jPulse.ws.connect('/api/1/ws/app-cluster')
                         .onStatusChange((status) => {
                             if (status === 'connected') {
                                 console.log('jPulse.appCluster: WebSocket connected for broadcast system');
-                                this._isConnecting = false;
+                                self._isConnecting = false;
                                 // Register all pending channel subscriptions
-                                this._pendingSubscriptions.forEach(channel => {
-                                    this._registerChannelInterest(channel);
+                                self._pendingSubscriptions.forEach(channel => {
+                                    self._registerChannelInterest(channel);
                                 });
-                                this._pendingSubscriptions.clear();
+                                self._pendingSubscriptions.clear();
                             }
                         })
                         .onMessage((data, message) => {
@@ -4292,7 +4293,7 @@ window.jPulse = {
                             }
                             if (data.type === 'broadcast') {
                                 // Received broadcast from server - call local subscribers
-                                this._publishLocal(data.channel, data.data);
+                                self._publishLocal(data.channel, data.data);
                             } else if (data.type === 'subscribed') {
                                 console.log(`jPulse.appCluster: Server confirmed subscription to ${data.channel}`);
                             } else if (data.type === 'unsubscribed') {
@@ -4301,7 +4302,7 @@ window.jPulse = {
                         });
                 } catch (error) {
                     console.error('jPulse.appCluster: Failed to create WebSocket connection:', error);
-                    this._isConnecting = false;
+                    self._isConnecting = false;
                 }
             },
 

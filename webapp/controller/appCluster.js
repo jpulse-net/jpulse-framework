@@ -42,12 +42,15 @@ class AppClusterController {
             // Subscribe to ALL broadcast messages to relay to interested WebSocket clients
             // Use RedisManager callback registration for automatic channel handling
             RedisManager.registerBroadcastCallback('controller:*', (channel, data) => {
+                //console.log(`DEBUG: AppCluster received Redis broadcast: ${channel}`, data);
                 this.relayToInterestedClients(channel, data);
             });
             RedisManager.registerBroadcastCallback('view:*', (channel, data) => {
+                //console.log(`DEBUG: AppCluster received Redis broadcast: ${channel}`, data);
                 this.relayToInterestedClients(channel, data);
             });
             RedisManager.registerBroadcastCallback('model:*', (channel, data) => {
+                //console.log(`DEBUG: AppCluster received Redis broadcast: ${channel}`, data);
                 this.relayToInterestedClients(channel, data);
             });
 
@@ -207,6 +210,8 @@ class AppClusterController {
      * @param {Object} data - Broadcast message data
      */
     static relayToInterestedClients(channel, data) {
+        console.log(`DEBUG: relayToInterestedClients called for channel: ${channel}`);
+        console.log(`DEBUG: clientChannels map:`, Array.from(AppClusterController.clientChannels.entries()));
 
         try {
             // Get all connected clients in the app-cluster namespace
@@ -218,10 +223,17 @@ class AppClusterController {
             let relayedCount = 0;
 
             // Send to clients interested in this specific channel
+            console.log(`DEBUG: namespace.clients type:`, typeof namespace.clients, namespace.clients.constructor.name);
+            console.log(`DEBUG: namespace.clients size:`, namespace.clients.size);
+            console.log(`DEBUG: namespace.clients entries:`, Array.from(namespace.clients.entries()));
+
             namespace.clients.forEach((client, clientId) => {
                 const clientChannels = AppClusterController.clientChannels.get(clientId);
+                console.log(`DEBUG: Checking client ${clientId}, channels:`, clientChannels?.size || 0);
+                console.log(`DEBUG: FULL CLIENT OBJECT:`, {clientId, clientKeys: Object.keys(client), hasWs: !!client.ws});
 
                 if (clientChannels && clientChannels.has(channel)) {
+                    console.log(`DEBUG: Client ${clientId} is interested in ${channel}`);
                     if (client.ws.readyState === 1) { // WebSocket.OPEN
                         const message = {
                             success: true,
@@ -233,9 +245,15 @@ class AppClusterController {
                             }
                         };
 
+                        console.log(`DEBUG: Sending WebSocket message to client ${clientId}:`, message);
                         client.ws.send(JSON.stringify(message));
                         relayedCount++;
+                        console.log(`DEBUG: WebSocket message sent successfully to ${clientId}`);
+                    } else {
+                        console.log(`DEBUG: Client ${clientId} WebSocket not open, readyState: ${client.ws.readyState}`);
                     }
+                } else {
+                    console.log(`DEBUG: Client ${clientId} is not interested in ${channel}`);
                 }
             });
 
@@ -245,8 +263,11 @@ class AppClusterController {
                     'appCluster.relayToInterestedClients',
                     `Relayed broadcast to ${relayedCount} clients on channel: ${channel}`
                 );
+            } else {
+                console.log(`DEBUG: No clients interested in ${channel}`);
             }
         } catch (error) {
+            console.log(`DEBUG: Error relaying to WebSocket clients: ${error.message}`);
             LogController.logError(
                 null,
                 'appCluster.relayToInterestedClients',

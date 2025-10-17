@@ -248,7 +248,7 @@
         <div class="jp-container-1200">
             <div class="jp-page-header">
                 <h1>🏗️ Architecture</h1>
-                <p class="jp-subtitle">Comprehensive overview of jPulse Framework's multi-server clustering architecture</p>
+                <span class="jp-subtitle">Comprehensive overview of jPulse Framework's multi-server clustering architecture</span>
             </div>
 
             <!-- Sub-navigation -->

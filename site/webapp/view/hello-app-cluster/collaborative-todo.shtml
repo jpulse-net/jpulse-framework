@@ -145,7 +145,7 @@
         <div class="jp-container-1200">
             <div class="jp-page-header">
                 <h1>✅ Collaborative To-Do</h1>
-                <p class="jp-subtitle">Server-Side Broadcasting Pattern - Full MVC architecture with database persistence</p>
+                <span class="jp-subtitle">Server-Side Broadcasting Pattern - Full MVC architecture with database persistence</span>
             </div>
 
             <!-- Sub-navigation -->

@@ -29,7 +29,7 @@
     <div class="jp-main">
         <div class="jp-page-header">
             <h1>🌐 Hello World Site Demos</h1>
-            <p class="jp-subtitle">Learn how to override jPulse Framework views, and build your own site.</p>
+            <span class="jp-subtitle">Learn how to override jPulse Framework views, and build your own site.</span>
         </div>
 
         <div class="jp-dashboard-grid">

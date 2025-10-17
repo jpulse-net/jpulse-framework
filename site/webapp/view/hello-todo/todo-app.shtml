@@ -55,6 +55,8 @@
         .local-todo-list {
             list-style: none;
             padding: 0;
+            max-height: 400px;
+            overflow-y: auto;
         }
 
         .local-todo-item {

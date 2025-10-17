@@ -25,7 +25,7 @@ window.helloWebSocketViews.Architecture = {
     <!-- Overview -->
     <div class="jp-info-box">
         <h3>🎯 Architecture Goals</h3>
-        <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+        <ul style="line-height: 1.8;">
             <li><strong>Namespace Isolation</strong> - Multiple independent WebSocket channels</li>
             <li><strong>Enterprise Features</strong> - Auto-reconnect, health monitoring, statistics</li>
             <li><strong>Security</strong> - Optional authentication and role-based access</li>
@@ -95,7 +95,7 @@ window.helloWebSocketViews.Architecture = {
 
         <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
             <h4 style="margin: 0 0 10px 0;">1️⃣ Initial Connection</h4>
-            <ol style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.8;">
+            <ol style="font-size: 15px; line-height: 1.8;">
                 <li>Client generates or retrieves persistent UUID from localStorage</li>
                 <li>Client initiates WebSocket connection: <code>ws://host/api/1/ws/my-app?uuid=xxx</code></li>
                 <li>Server validates authentication (if required)</li>
@@ -107,7 +107,7 @@ window.helloWebSocketViews.Architecture = {
 
         <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
             <h4 style="margin: 0 0 10px 0;">2️⃣ Message Exchange</h4>
-            <ol style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.8;">
+            <ol style="font-size: 15px; line-height: 1.8;">
                 <li>Client sends: <code>ws.send({type: 'action', data: ...})</code></li>
                 <li>Server receives and validates message format</li>
                 <li><code>onMessage</code> handler called with clientId, data, and user</li>
@@ -118,8 +118,8 @@ window.helloWebSocketViews.Architecture = {
 
         <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
             <h4 style="margin: 0 0 10px 0;">3️⃣ Health Monitoring</h4>
-            <p style="margin: 5px 0; font-size: 14px;">Bidirectional ping/pong keeps connection alive:</p>
-            <ul style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.8;">
+            <p style="margin: 5px 0; font-size: 15px;">Bidirectional ping/pong keeps connection alive:</p>
+            <ul style="font-size: 15px; line-height: 1.8;">
                 <li><strong>Client → Server:</strong> Ping every 30s, expect pong within 5s</li>
                 <li><strong>Server → Client:</strong> Ping every 30s, expect pong within 5s</li>
                 <li>If no pong received, connection considered dead and terminated</li>
@@ -128,7 +128,7 @@ window.helloWebSocketViews.Architecture = {
 
         <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
             <h4 style="margin: 0 0 10px 0;">4️⃣ Disconnection & Reconnection</h4>
-            <ol style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.8;">
+            <ol style="font-size: 15px; line-height: 1.8;">
                 <li>Connection drops (network issue, server restart, etc.)</li>
                 <li>Client detects disconnection: <code>status: 'reconnecting'</code></li>
                 <li>Progressive backoff: 5s → 10s → 15s → ... → 30s (max)</li>
@@ -156,10 +156,10 @@ window.helloWebSocketViews.Architecture = {
 /api/1/ws/admin-dashboard     requireAuth: true, requireRoles: ['admin']</code></pre>
         </div>
 
-        <p style="margin-top: 10px; font-size: 14px;">
+        <p style="margin-top: 10px; font-size: 15px;">
             <strong>Benefits:</strong>
         </p>
-        <ul style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.6;">
+        <ul style="font-size: 15px; line-height: 1.6;">
             <li>Separate concerns (chat vs notifications vs dashboards)</li>
             <li>Independent authentication requirements</li>
             <li>Granular statistics and monitoring per namespace</li>
@@ -229,7 +229,7 @@ ws.onMessage((data) => {
 
         <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
             <h4 style="margin: 0 0 10px 0;">Session-Based Authentication</h4>
-            <ol style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.8;">
+            <ol style="font-size: 15px; line-height: 1.8;">
                 <li>Client authenticates via standard login (sets session cookie)</li>
                 <li>WebSocket upgrade request includes session cookie</li>
                 <li>Server parses session during upgrade using Express session middleware</li>
@@ -252,10 +252,10 @@ WebSocketController.registerNamespace('/api/1/ws/admin-panel', {
 
         <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
             <h4 style="margin: 0 0 10px 0;">Username Tracking</h4>
-            <p style="margin: 5px 0; font-size: 14px;">
+            <p style="margin: 5px 0; font-size: 15px;">
                 All messages automatically include <code>username</code> field:
             </p>
-            <ul style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.6;">
+            <ul style="font-size: 15px; line-height: 1.6;">
                 <li>Authenticated user: <code>username: 'john_doe'</code></li>
                 <li>Anonymous user: <code>username: ''</code> (empty string)</li>
                 <li>System messages: <code>username: ''</code></li>
@@ -270,10 +270,10 @@ WebSocketController.registerNamespace('/api/1/ws/admin-panel', {
 
         <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
             <h4 style="margin: 0 0 10px 0;">Admin Dashboard</h4>
-            <p style="margin: 5px 0; font-size: 14px;">
+            <p style="margin: 5px 0; font-size: 15px;">
                 View real-time statistics at <a href="/admin/websocket-stats.shtml" target="_blank">/admin/websocket-stats.shtml</a>
             </p>
-            <ul style="margin: 5px 0 0 20px; font-size: 14px; line-height: 1.6;">
+            <ul style="font-size: 15px; line-height: 1.6;">
                 <li>Global uptime and total messages</li>
                 <li>Per-namespace statistics (clients, messages, activity)</li>
                 <li>Status indicators (active/idle/stale)</li>
@@ -313,7 +313,7 @@ const nsStats = wsHandle.getStats();
 Client A broadcasts → Server 1 publishes to Redis → All servers receive
 → Server 2 sends to Client B, Server 3 sends to Client C</code></pre>
 
-            <p style="margin: 10px 0 0 0; font-size: 14px;">
+            <p style="margin: 10px 0 0 0; font-size: 15px;">
                 <strong>Setup:</strong> Enable Redis in <code>app.conf</code> and the framework
                 automatically coordinates broadcasts across all server instances.
             </p>
@@ -323,7 +323,7 @@ Client A broadcasts → Server 1 publishes to Redis → All servers receive
     <!-- Performance Best Practices -->
     <div class="jp-card" style="margin-top: 20px; background: #e3f2fd;">
         <h3 style="margin-top: 0;">⚡ Performance Best Practices</h3>
-        <ul style="margin: 5px 0 0 20px; line-height: 1.8;">
+        <ul style="line-height: 1.8;">
             <li><strong>Throttle high-frequency events</strong> (mouse, scroll) to 50-100ms</li>
             <li><strong>Keep messages small</strong> - send only necessary data</li>
             <li><strong>Use message types</strong> for efficient routing and handling</li>
@@ -336,7 +336,7 @@ Client A broadcasts → Server 1 publishes to Redis → All servers receive
     <!-- Next Steps -->
     <div class="jp-card" style="margin-top: 20px; background: #fff3cd; border-left: 4px solid #ffc107;">
         <h3 style="margin-top: 0;">🚀 Next Steps</h3>
-        <ol style="margin: 5px 0 0 20px; line-height: 1.8;">
+        <ol style="line-height: 1.8;">
             <li>Try the <strong>Emoji Cursor</strong> and <strong>Collaborative Todo</strong> demos</li>
             <li>Review the <strong>Code Examples</strong> tab for implementation patterns</li>
             <li>Read the <a href="/jpulse-docs/websockets" target="_blank">complete WebSocket documentation</a></li>

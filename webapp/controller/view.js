@@ -218,7 +218,6 @@ async function load(req, res) {
             user: {
                 id: req.session?.user?.id || '',
                 username: req.session?.user?.username || '',
-                loginId: req.session?.user?.loginId || '',
                 firstName: req.session?.user?.firstName || '',
                 nickName: req.session?.user?.nickName || '',
                 lastName: req.session?.user?.lastName || '',

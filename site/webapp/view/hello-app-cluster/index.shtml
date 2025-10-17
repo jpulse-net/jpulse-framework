@@ -79,7 +79,7 @@
         <div class="jp-container-1200">
             <div class="jp-page-header">
                 <h1>🌍 App Cluster Demo</h1>
-                <p class="jp-subtitle">Learn how to build scalable multi-server applications with Redis broadcasting</p>
+                <span class="jp-subtitle">Learn how to build scalable multi-server applications with Redis broadcasting</span>
             </div>
 
             <!-- Sub-navigation -->

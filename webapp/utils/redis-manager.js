@@ -84,12 +84,17 @@ class RedisManager {
      */
     static _generateInstanceId() {
         const hostname = os.hostname();
-        const pm2Id = process.env.pm_id || process.env.NODE_APP_INSTANCE || '0';
-        const pid = process.pid;
+        const pm2Id = process.env.pm_id || '0';
 
-        // Use a combination of hostname, PM2 ID, and PID for uniqueness
-        // This handles local testing (different PIDs) and PM2 clustering (different PM2 IDs)
-        return `${hostname}:${pm2Id}:${pid}`;
+        // Try to extract numeric part from hostname
+        const numericMatch = hostname.match(/(\d+)$/);
+        if (numericMatch) {
+            return `${numericMatch[1]}:${pm2Id}`;
+        }
+
+        // Fallback to truncated hostname
+        const shortHost = hostname.split('.')[0].substring(0, 8);
+        return `${shortHost}:${pm2Id}`;
     }
 
     /**
@@ -472,9 +477,13 @@ class RedisManager {
      * @private
      */
     static _handleCallbackMessage(channel, data, sourceInstanceId) {
+        //console.log(`DEBUG: _handleCallbackMessage received: channel=${channel}, data=`, data);
+
         // Find matching callback (exact match or pattern match)
         for (const [registeredChannel, callback] of RedisManager.broadcastCallbacks) {
+            console.log(`DEBUG: Checking pattern: ${registeredChannel} against ${channel}`);
             if (RedisManager._channelMatches(channel, registeredChannel)) {
+                console.log(`DEBUG: Pattern matched! Calling callback for ${registeredChannel}`);
                 try {
                     callback(channel, data, sourceInstanceId);
                 } catch (error) {
@@ -565,12 +574,25 @@ class RedisManager {
             // Remove prefix from channel
             const prefix = RedisManager.getKey('broadcast', '');
             const cleanChannel = channel.startsWith(prefix) ? channel.slice(prefix.length) : channel;
+
             const message = JSON.parse(messageStr);
 
-            // Do not process messages from the same instance
-            if (message.instanceId === RedisManager.instanceId) {
+            console.log(`DEBUG: _handleBroadcastMessage received: channel=${channel}, message=`, message);
+            console.log(`DEBUG: cleanChannel=`, cleanChannel);
+            //console.log(`DEBUG: message.data=`, message.data);
+            console.log(`DEBUG: Instance ID check - messageInstanceId: '${message.instanceId}', ourInstanceId: '${RedisManager.instanceId}'`);
+            console.log(`DEBUG: Instance IDs equal?`, message.instanceId === RedisManager.instanceId);
+
+            const isSelfMessage = message.instanceId === RedisManager.instanceId;
+            const isSingleInstanceMode = true; // For now, always allow in development
+
+            if (isSelfMessage && !isSingleInstanceMode) {
+                console.log(`DEBUG: Ignoring message from our own instance`);
                 return;
             }
+
+            console.log(`DEBUG: Processing message - selfMessage: ${isSelfMessage}, singleInstanceMode: ${isSingleInstanceMode}`);
+            console.log(`DEBUG: Calling callback for channel: ${cleanChannel}`);
 
             // Call the callback with clean channel name
             callback(cleanChannel, message.data, message.instanceId);

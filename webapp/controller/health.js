@@ -149,7 +149,6 @@ class HealthController {
             const baseMetrics = {
                 success: true,
                 data: {
-                    status: 'ok',
                     timestamp: new Date().toISOString()
                 }
             };
@@ -180,6 +179,8 @@ class HealthController {
                 // W-076: Build servers array with cross-instance data
                 const servers = await HealthController._buildClusterServersArray(systemInfo, wsStats, pm2Status, baseMetrics.data.timestamp);
                 baseMetrics.data.servers = servers;
+            } else {
+                baseMetrics.data.note = 'Only admin users can view more metrics data';
             }
 
             res.json(baseMetrics);

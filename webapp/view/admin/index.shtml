@@ -24,7 +24,7 @@
     <div class="jp-main">
         <div class="jp-page-header">
             <h1>{{i18n.view.admin.index.title}}</h1>
-            <p class="jp-subtitle">{{i18n.view.admin.index.subtitle}}</p>
+            <span class="jp-subtitle">{{i18n.view.admin.index.subtitle}}</span>
         </div>
 
         <div class="jp-dashboard-grid">

@@ -265,12 +265,12 @@
 
                     <div class="jp-warning-box">
                         <h4>Object Keys Example</h4>
-                        <p><em>Iterating over configuration features:</em></p>
-                        <div>
-                            <strong>adminPanel:</strong> {{config.features.adminPanel}}<br>
-                            <strong>userRegistration:</strong> {{config.features.userRegistration}}<br>
-                            <strong>emailNotifications:</strong> {{config.features.emailNotifications}}
-                        </div>
+                        <p><em>Iterating over session user object properties:</em></p>
+                        <ul>
+                            {{#each user}}
+                            <li><strong>{{@key}}:</strong> {{this}}</li>
+                            {{/each}}
+                        </ul>
                     </div>
                 </div>
 
@@ -295,7 +295,7 @@
 &#123;&#123;/each&#125;&#125;
 
 &lt;!-- Object Keys --&gt;
-&#123;&#123;#each config.features&#125;&#125;
+&#123;&#123;#each user&#125;&#125;
     &lt;div&gt;&lt;strong&gt;&#123;&#123;@key&#125;&#125;:&lt;/strong&gt; &#123;&#123;this&#125;&#125;&lt;/div&gt;
 &#123;&#123;/each&#125;&#125;
                     </div>

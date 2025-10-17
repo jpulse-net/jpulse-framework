@@ -304,6 +304,12 @@
             }
 
             setupBroadcastListening() {
+                if (!jPulse.appCluster.isClusterMode()) {
+                    jPulse.UI.toast.show(
+                        '⚠️ Redis not available - running in local-only mode. To-do tasks will only appear in this browser tab.',
+                        'warning'
+                    );
+                }
                 const listChangedChannel = 'controller:helloClusterTodo:list:changed';
                 const itemUpdatedChannel = 'controller:helloClusterTodo:item:updated';
 
@@ -366,19 +372,19 @@
                         })
                     });
 
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.message || 'Failed to add task');
-                    }
-
                     const result = await response.json();
-                    if (result.success) {
-                        // The broadcast will trigger a reload, no need to manually add
-                        this.elements.taskDescription.value = '';
-                        this.updateSyncStatus('synced');
-                    } else {
+                    if (!result.success) {
                         throw new Error(result.message || 'Failed to add task');
                     }
+                    this.elements.taskDescription.value = '';
+
+                    // If cluster mode is NOT available, update the list directly from the API response.
+                    if (!jPulse.appCluster.isClusterMode()) {
+                        this.showToast('To-do added successfully!', 'success');
+                        this.loadTodos();
+                    }
+                    // If cluster mode IS available, we do nothing and wait for the broadcast.
+
                 } catch (error) {
                     this.showToast(`Error adding task: ${error.message}`, 'error');
                     this.updateSyncStatus('error');
@@ -390,22 +396,23 @@
 
             async handleToggleTodo(id) {
                 try {
-                    this.updateSyncStatus('syncing');
                     const response = await fetch(`/api/1/helloClusterTodo/${id}/toggle`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        method: 'PUT'
                     });
                     const result = await response.json();
-                    if (result.success) {
-                        // The broadcast will trigger a reload, no need to manually update client
-                        this.updateSyncStatus('synced');
-                    } else {
+                    if (!result.success) {
                         throw new Error(result.message || 'Failed to toggle task');
                     }
+
+                    // If cluster mode is NOT available, update the list directly from the API response.
+                    if (!jPulse.appCluster.isClusterMode()) {
+                        this.showToast('To-do toggled successfully!', 'success');
+                        this.loadTodos();
+                    }
+                    // If cluster mode IS available, we do nothing and wait for the broadcast.
+
                 } catch (error) {
-                    this.showToast(`Error updating task: ${error.message}`, 'error');
+                    this.showToast(`Error toggling task: ${error.message}`, 'error');
                     this.updateSyncStatus('error');
                 }
             }
@@ -419,18 +426,21 @@
 
                 if (result.button === 'Delete Task') {
                     try {
-                        this.updateSyncStatus('syncing');
                         const response = await fetch(`/api/1/helloClusterTodo/${id}`, {
                             method: 'DELETE'
                         });
                         const result = await response.json();
-                        if (result.success) {
-                            // The broadcast will trigger a reload.
-                            this.showToast('🗑️ Task deleted and synchronized!', 'success');
-                            this.updateSyncStatus('synced');
-                        } else {
+                        if (!result.success) {
                             throw new Error(result.message || 'Failed to delete todo');
                         }
+
+                        // If cluster mode is NOT available, update the list directly from the API response.
+                        if (!jPulse.appCluster.isClusterMode()) {
+                            this.showToast('To-do deleted successfully!', 'success');
+                            this.loadTodos();
+                        }
+                        // If cluster mode IS available, we do nothing and wait for the broadcast.
+
                     } catch (error) {
                         this.showToast(`Failed to delete task: ${error.message}`, 'error');
                         this.updateSyncStatus('error');

@@ -67,7 +67,7 @@ describe('Redis Configuration (W-076)', () => {
 
             const instanceId = RedisManager.getInstanceId();
 
-            expect(instanceId).toMatch(/^[^:]+:\d+$/); // hostname:number format
+            expect(instanceId).toMatch(/^[^:]+:\d+:\d+$/); // hostname:number:pid format
             expect(instanceId.length).toBeGreaterThan(3);
         });
 
@@ -75,12 +75,15 @@ describe('Redis Configuration (W-076)', () => {
             RedisManager.initialize({ enabled: false });
 
             const instanceId = RedisManager.getInstanceId();
-            const [hostname, instance] = instanceId.split(':');
+            const [hostname, instance, pid] = instanceId.split(':');
 
             expect(hostname).toBeDefined();
             expect(hostname.length).toBeGreaterThan(0);
             expect(instance).toBeDefined();
             expect(parseInt(instance)).toBeGreaterThanOrEqual(0);
+            expect(instance.length).toBeGreaterThan(0);
+            expect(pid).toBeDefined();
+            expect(parseInt(pid)).toBeGreaterThan(0);
         });
 
         it('should handle process environment variables', () => {

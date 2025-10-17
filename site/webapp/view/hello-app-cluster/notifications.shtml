@@ -364,7 +364,7 @@
 
                     if (!isClusterMode) {
                         jPulse.UI.toast.show(
-                            '⚠️ Redis not available - running in local-only mode. Messages will only appear in this tab.',
+                            '⚠️ Redis not available - running in local-only mode. Messages will only appear in this browser tab.',
                             'warning'
                         );
                     }

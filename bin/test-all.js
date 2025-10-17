@@ -94,7 +94,14 @@ function parseTestOutput(output, description) {
 
     // Parse Jest output (Unit Tests and Integration Tests)
     if (description.includes('Unit Tests') || description.includes('Integration Tests')) {
+        let testSuitesFailed = 0;
         for (const line of lines) {
+            if (line.includes('Test Suites:') && line.includes('failed')) {
+                const suitesFailedMatch = line.match(/(\d+)\s+failed/);
+                if (suitesFailedMatch) {
+                    testSuitesFailed = parseInt(suitesFailedMatch[1]);
+                }
+            }
             if (line.includes('Tests:') && line.includes('total')) {
                 console.log(`🎯 Found Jest summary: "${line}"`);
                 const skippedMatch = line.match(/(\d+)\s+skipped/);
@@ -105,7 +112,8 @@ function parseTestOutput(output, description) {
                 if (totalMatch) {
                     stats.skipped = skippedMatch ? parseInt(skippedMatch[1]) : 0;
                     stats.passed = passedMatch ? parseInt(passedMatch[1]) : 0;
-                    stats.failed = failedMatch ? parseInt(failedMatch[1]) : 0;
+                    // Add failed suites to the count of failed tests
+                    stats.failed = (failedMatch ? parseInt(failedMatch[1]) : 0) + testSuitesFailed;
                     stats.total = parseInt(totalMatch[1]);
                     break;
                 }
@@ -219,6 +227,14 @@ async function runAllTests() {
     const finalStats = results.map((result, idx) => {
         const elapsed = idx ? result.time - results[idx-1].time : result.time - testStart;
         if (result.result.stats) {
+            const stats = result.result.stats;
+
+            // If the command failed but the parser found 0 failed tests
+            // (e.g., a suite failed to run), we must report a failure.
+            if (!result.result.success && stats.failed === 0) {
+                stats.failed = 1; // Report at least one failure to reflect reality
+            }
+
             // Use actual parsed statistics (regardless of success/failure)
             return {
                 name: result.name,

@@ -42,7 +42,7 @@
                 <div id="basic-api-example-panel" class="jp-panel">
                     <div class="jp-info-box">
                         <p><strong>What you learn:</strong> How to use <code>jPulse.api.call()</code> for consistent API handling with proper success/error feedback and user notifications.</p>
-                        <p><strong>Test API Call:</strong> Calls <code>/api/1/health</code> (working endpoint) and shows green success message.</p>
+                        <p><strong>Test API Call:</strong> Calls <code>/api/1/health/status</code> (working endpoint) and shows green success message.</p>
                         <p><strong>Test Error Handling:</strong> Calls <code>/api/1/does-not-exist</code> and shows a red error message with proper user feedback.</p>
                     </div>
 
@@ -72,7 +72,7 @@ document.getElementById('testApiBtn').addEventListener('click', async () =&gt; {
     const responseDiv = document.getElementById('apiResponse');
     const responseContent = document.getElementById('apiResponseContent');
     try {
-        const response = await jPulse.api.call('/api/1/health', 'GET');
+        const response = await jPulse.api.call('/api/1/health/status', 'GET');
         responseDiv.style.display = 'block';
         responseDiv.style.background = '#e8f5e8';
         responseContent.textContent = JSON.stringify(response, null, 2);
@@ -684,7 +684,7 @@ function updateButtonStates(isRunning) {
                 const responseDiv = document.getElementById('apiResponse');
                 const responseContent = document.getElementById('apiResponseContent');
                 try {
-                    const response = await jPulse.api.call('/api/1/health', 'GET');
+                    const response = await jPulse.api.call('/api/1/health/status', 'GET');
                     responseDiv.style.display = 'block';
                     responseDiv.style.background = '#e8f5e8';
                     responseContent.textContent = JSON.stringify(response, null, 2);

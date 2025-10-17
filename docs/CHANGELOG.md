@@ -68,7 +68,7 @@ ________________________________________________
 **Objective**: Provide production-ready health and metrics endpoints for load balancer health checks and system monitoring, with a human-readable admin dashboard for site administrators to monitor system status, PM2 processes, WebSocket activity, and system resources.
 
 **Key Features**:
-- **Health & Metrics API**: `/api/1/health` for load balancer health checks and `/api/1/metrics` for detailed system monitoring
+- **Health & Metrics API**: `/api/1/health/status` for load balancer health checks and `/api/1/health/metrics` for detailed system monitoring
 - **Admin Status Dashboard**: Comprehensive `/admin/system-status.shtml` with auto-refresh and window focus detection
 - **Role-Based Access**: Basic metrics for guests/regular users, detailed metrics for admin users
 - **PM2 Integration**: Process monitoring with status, memory, CPU, and restart tracking
@@ -76,8 +76,8 @@ ________________________________________________
 - **Smart Refresh**: Configurable auto-refresh with background pause when window loses focus
 
 **API Endpoints**:
-- **`/api/1/health`**: Basic health status for load balancer health checks with configurable logging
-- **`/api/1/metrics`**: Comprehensive system metrics with role-based access control
+- **`/api/1/health/status`**: Basic health status for load balancer health checks with configurable logging
+- **`/api/1/health/metrics`**: Comprehensive system metrics with role-based access control
   - **Guest/Regular**: Basic status (version, uptime, memory, database connectivity)
   - **Admin**: Full metrics (CPU, load average, PM2 processes, WebSocket stats, system info)
 
@@ -104,9 +104,9 @@ ________________________________________________
 - **MongoDB Integration**: Placeholder for MongoDB server status monitoring
 
 **Configuration & Logging**:
-- **Health Logging Control**: `appConfig.controller.health.omitHealthLogs` to reduce log noise
+- **Health Logging Control**: `appConfig.controller.health.omitStatusLogs` to reduce log noise
 - **Auto-Refresh Settings**: `appConfig.view.admin.systemStatus.refreshInterval` and `refreshInBackground`
-- **Consistent Logging**: Always log `/api/1/metrics` requests, configurable for `/api/1/health`
+- **Consistent Logging**: Always log `/api/1/health/metrics` requests, configurable for `/api/1/health/status`
 
 **Testing & Quality**:
 - **Unit Tests**: Comprehensive testing of utility functions (`_formatUptime`, `_extractServerIdFromHostname`, etc.)

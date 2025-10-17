@@ -29,28 +29,6 @@
             flex-wrap: wrap;
         }
 
-        .jp-preset-btn {
-            padding: 6px 12px;
-            font-size: 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background: #f8f9fa;
-            color: #495057;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .jp-preset-btn:hover {
-            background: #e9ecef;
-            border-color: #adb5bd;
-        }
-
-        .jp-preset-btn.active {
-            background: #007acc;
-            color: white;
-            border-color: #007acc;
-        }
-
         /* Remove local table styles - using jp-* styles now */
         .local-logs-table {
             width: 100%;
@@ -271,12 +249,12 @@
             </div>
 
             <!-- Filter presets -->
-            <div class="jp-filter-presets">
-                <button type="button" class="jp-preset-btn" data-preset="today">{{i18n.view.admin.logs.presetToday}}</button>
-                <button type="button" class="jp-preset-btn" data-preset="yesterday">{{i18n.view.admin.logs.presetYesterday}}</button>
-                <button type="button" class="jp-preset-btn" data-preset="thisMonth">{{i18n.view.admin.logs.presetThisMonth}}</button>
-                <button type="button" class="jp-preset-btn" data-preset="lastMonth">{{i18n.view.admin.logs.presetLastMonth}}</button>
-                <button type="button" class="jp-preset-btn" data-preset="wholeYear">{{i18n.view.admin.logs.presetWholeYear}}</button>
+            <div class="local-filter-presets">
+                <button type="button" class="jp-btn jp-btn-outline" data-preset="today">{{i18n.view.admin.logs.presetToday}}</button>
+                <button type="button" class="jp-btn jp-btn-outline" data-preset="yesterday">{{i18n.view.admin.logs.presetYesterday}}</button>
+                <button type="button" class="jp-btn jp-btn-outline" data-preset="thisMonth">{{i18n.view.admin.logs.presetThisMonth}}</button>
+                <button type="button" class="jp-btn jp-btn-outline" data-preset="lastMonth">{{i18n.view.admin.logs.presetLastMonth}}</button>
+                <button type="button" class="jp-btn jp-btn-outline" data-preset="wholeYear">{{i18n.view.admin.logs.presetWholeYear}}</button>
                 <small class="jp-form-help" style="margin-left: 15px; align-self: center;">{{i18n.view.admin.logs.searchDateExamples}}</small>
             </div>
 
@@ -396,7 +374,6 @@
             resultsPerPage: '{{i18n.view.admin.logs.resultsPerPage}}',
             showingResults: '{{i18n.view.admin.logs.showingResults}}'
         };
-        console.log('DEBUG: i18nStrings', JSON.stringify(i18nStrings, 0, 1));
 
         let currentPage = 1;
         let totalPages = 1;
@@ -468,7 +445,7 @@
             });
 
             // Filter presets
-            document.querySelectorAll('.jp-preset-btn').forEach(btn => {
+            document.querySelectorAll('.jp-btn-secondary').forEach(btn => {
                 btn.addEventListener('click', () => setDatePreset(btn.dataset.preset));
             });
 
@@ -538,7 +515,7 @@
         }
 
         function setPresetActive(preset) {
-            document.querySelectorAll('.jp-preset-btn').forEach(btn => {
+            document.querySelectorAll('.jp-btn-secondary').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.preset === preset);
             });
         }
@@ -635,7 +612,7 @@
                 const response = await fetch(`/api/1/log/search?${queryParams}`);
                 const result = await response.json();
 
-                if (!response.ok) {
+                if (!result.success) {
                     throw new Error(result.message || 'Failed to load logs');
                 }
 

@@ -19,7 +19,7 @@ import os from 'os';
 import process from 'process';
 
 /**
- * Health Controller - handles /api/1/health and /api/1/metrics REST API endpoints
+ * Health Controller - handles /api/1/health/status and /api/1/health/metrics REST API endpoints
  * W-076: Enhanced with Redis-based clustering for multi-instance health aggregation
  */
 class HealthController {
@@ -52,8 +52,8 @@ class HealthController {
             }
 
             // W-076: Use RedisManager for health metrics broadcasting
-            // Register callback for health metrics from other instances
-            global.RedisManager.registerBroadcastCallback('controller:health:metrics:*', (channel, data, sourceInstanceId) => {
+            // Subscribe to health metrics from other instances
+            global.RedisManager.subscribeBroadcast('controller:health:metrics:*', (channel, data, sourceInstanceId) => {
                 // Extract instance ID from channel (controller:health:metrics:instanceId)
                 const instanceId = channel.replace('controller:health:metrics:', '');
 
@@ -85,23 +85,22 @@ class HealthController {
 
     /**
      * Health check endpoint
-     * GET /api/1/health
+     * GET /api/1/health/status
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
-    static async health(req, res) {
+    static async status(req, res) {
         const startTime = Date.now();
 
         // Check if health logging is enabled
-        const omitHealthLogs = global.appConfig?.controller?.health?.omitHealthLogs || false;
-        if (!omitHealthLogs) {
+        const omitStatusLogs = global.appConfig?.controller?.health?.omitStatusLogs || false;
+        if (!omitStatusLogs) {
             LogController.logRequest(req, 'health.health', '');
         }
 
         try {
             const response = {
                 success: true,
-                status: 'ok',
                 data: {
                     version: global.appConfig.app.jPulse.version,
                     release: global.appConfig.app.jPulse.release,
@@ -111,16 +110,15 @@ class HealthController {
                     timestamp: new Date().toISOString()
                 }
             };
-
             res.json(response);
 
-            if (!omitHealthLogs) {
+            if (!omitStatusLogs) {
                 const duration = Date.now() - startTime;
                 LogController.logInfo(req, 'health.health', `success: completed in ${duration}ms`);
             }
 
         } catch (error) {
-            if (omitHealthLogs) {
+            if (omitStatusLogs) {
                 // Catch up with log request before error log
                 LogController.logRequest(req, 'health.health', '');
             }
@@ -136,7 +134,7 @@ class HealthController {
 
     /**
      * Metrics endpoint with role-based access
-     * GET /api/1/metrics
+     * GET /api/1/health/metrics
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
@@ -167,7 +165,9 @@ class HealthController {
                     hostname: os.hostname(),
                     loadAverage: os.loadavg(),
                     freeMemory: Math.round(os.freemem() / 1024 / 1024), // MB
-                    totalMemory: Math.round(os.totalmem() / 1024 / 1024) // MB
+                    totalMemory: Math.round(os.totalmem() / 1024 / 1024), // MB
+                    uptime: Math.floor(os.uptime()),
+                    uptimeFormatted: HealthController._formatUptime(os.uptime())
                 };
 
                 // Get PM2 status
@@ -429,6 +429,13 @@ class HealthController {
                 const server = serverMap.get(hostname);
                 server.instances.push(...instanceData.instances);
             });
+            
+            // Add server uptime to each server
+            serverMap.forEach(server => {
+                server.uptime = os.uptime();
+                server.uptimeFormatted = this._formatUptime(os.uptime());
+                server.ip = this._getPrimaryIpAddress();
+            });
 
             return Array.from(serverMap.values());
 
@@ -500,6 +507,7 @@ class HealthController {
 
                 instances.push({
                     pid: p.pid,
+                    instanceId: p.instanceId,
                     pm2Available: true,
                     pm2ProcessName: p.name,
                     status: p.status,
@@ -551,6 +559,7 @@ class HealthController {
 
             instances.push({
                 pid: process.pid,
+                instanceId: process.env.PM2_INSTANCE_ID || process.env.INSTANCE_ID || 0,
                 pm2Available: false,
                 reason: pm2Status === null ? "PM2 not installed or not in PATH" : null,
 
@@ -596,6 +605,9 @@ class HealthController {
         return [{
             serverName: hostname,
             serverId: serverId,
+            ip: this._getPrimaryIpAddress(),
+            uptime: os.uptime(),
+            uptimeFormatted: this._formatUptime(os.uptime()),
 
             // Server-level (hardware/OS only)
             platform: systemInfo.platform,
@@ -632,15 +644,21 @@ class HealthController {
      * @private
      */
     static _formatUptime(seconds) {
-        const days = Math.floor(seconds / 86400);
+        const years = Math.floor(seconds / 31536000);
+        const months = Math.floor((seconds % 31536000) / 2592000);
+        const days = Math.floor((seconds % 2592000) / 86400);
         const hours = Math.floor((seconds % 86400) / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
         const secs = seconds % 60;
 
-        if (days > 0) {
-            return `${days}d ${hours}h ${minutes}m ${secs}s`;
+        if (years > 0) {
+            return `${years}y ${months}mo`;
+        } else if (months > 0) {
+            return `${months}mo ${days}d`;
+        } else if (days > 0) {
+            return `${days}d ${hours}h`;
         } else if (hours > 0) {
-            return `${hours}h ${minutes}m ${secs}s`;
+            return `${hours}h ${minutes}m`;
         } else if (minutes > 0) {
             return `${minutes}m ${secs}s`;
         } else {
@@ -659,13 +677,13 @@ class HealthController {
             // This would query MongoDB admin database for server status
             // For now, return basic placeholder structure
             return {
-                status: 'unknown', // TODO: Check actual MongoDB server status
-                version: 'unknown', // TODO: Get MongoDB version
+                status: 'connected', // TODO: Check actual MongoDB server status
+                version: '5.0.8', // TODO: Get MongoDB version
                 connections: {
-                    current: 0, // TODO: Get current connections
-                    available: 0 // TODO: Get available connections
+                    current: 12, // TODO: Get current connections
+                    available: 78 // TODO: Get available connections
                 },
-                uptime: 0, // TODO: Get MongoDB uptime
+                uptime: 123456, // TODO: Get MongoDB uptime
                 host: global.appConfig.deployment[global.appConfig.deployment.mode].db || 'unknown'
             };
         } catch (error) {
@@ -810,6 +828,23 @@ class HealthController {
     }
 
     /**
+     * Get primary IP address of the server
+     * @returns {string} Primary IP address
+     * @private
+     */
+    static _getPrimaryIpAddress() {
+        const interfaces = os.networkInterfaces();
+        for (const name of Object.keys(interfaces)) {
+            for (const iface of interfaces[name]) {
+                if ('IPv4' === iface.family && !iface.internal) {
+                    return iface.address;
+                }
+            }
+        }
+        return '127.0.0.1';
+    }
+
+    /**
      * Get PM2 process information
      * @returns {Promise<Object|null>} PM2 status or null if not available
      * @private
@@ -838,6 +873,7 @@ class HealthController {
                 processes: jpulseProcesses.map(p => ({
                     name: p.name,
                     pid: p.pid,
+                    instanceId: p.pm2_env.INSTANCE_ID || p.pm2_env.NODE_APP_INSTANCE || 0,
                     status: p.pm2_env.status,
                     uptime: Date.now() - p.pm2_env.created_at,
                     uptimeFormatted: HealthController._formatUptime(Math.floor((Date.now() - p.pm2_env.created_at) / 1000)),

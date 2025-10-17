@@ -45,12 +45,7 @@ class ContextExtensions {
         this.extensions.cache.clear();
         this.extensions.lastUpdate = new Date().toISOString();
 
-        const LogController = global.LogController || console;
-        if (LogController.logInfo) {
-            LogController.logInfo(null, 'context-extensions', `Registered provider '${name}' with priority ${options.priority || 100}`);
-        } else {
-            console.log(`Context Extensions: Registered provider '${name}' with priority ${options.priority || 100}`);
-        }
+        global.LogController.logInfo(null, 'context-extensions', `Registered provider '${name}' with priority ${options.priority || 100}`);
     }
 
     /**
@@ -169,12 +164,7 @@ class ContextExtensions {
             }
         }, { priority: 50, cache: true });
 
-        const LogController = global.LogController || console;
-        if (LogController.logInfo) {
-            LogController.logInfo(null, 'context-extensions', 'Initialized with default providers');
-        } else {
-            console.log('Context Extensions: Initialized with default providers');
-        }
+        global.LogController.logInfo(null, 'context-extensions', 'Initialized with default providers');
     }
 }
 

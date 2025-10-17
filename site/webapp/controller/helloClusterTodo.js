@@ -13,6 +13,8 @@
  */
 
 import HelloTodoModel from '../model/helloTodo.js';
+const LogController = global.LogController;
+const CommonUtils = global.CommonUtils;
 
 /**
  * HelloClusterTodo Controller
@@ -25,7 +27,10 @@ class HelloClusterTodoController {
      * GET /api/1/helloClusterTodo
      */
     static async api(req, res) {
+        const startTime = Date.now();
         try {
+            LogController.logRequest(req, 'helloClusterTodo.api', '');
+
             const todos = await HelloTodoModel.findAll();
             const stats = await HelloTodoModel.getStats();
             res.json({
@@ -33,9 +38,13 @@ class HelloClusterTodoController {
                 todos,
                 stats
             });
+
+            const duration = Date.now() - startTime;
+            LogController.logInfo(req, 'helloClusterTodo.api', `success: ${todos.length} docs found in ${duration}ms`);
+
         } catch (error) {
-            global.LogController.logError(req, 'helloClusterTodo.api', `error: ${error.message}`);
-            res.status(500).json({ success: false, message: 'Failed to retrieve todos' });
+            LogController.logError(req, 'helloClusterTodo.api', `error: ${error.message}`);
+            return CommonUtils.sendError(req, res, 500, 'Failed to retrieve todos', 'HELLO_CLUSTER_TODO_RETRIEVE_ERROR');
         }
     }
 
@@ -59,6 +68,7 @@ class HelloClusterTodoController {
      * POST /api/1/helloClusterTodo
      */
     static async apiCreate(req, res) {
+        const startTime = Date.now();
         try {
             const { text } = req.body;
 
@@ -220,7 +230,7 @@ class HelloClusterTodoController {
      */
     static async _broadcastChange(action, todo, req) {
         if (!global.RedisManager || !global.RedisManager.isRedisAvailable()) {
-            global.LogController?.logWarn(req, 'helloClusterTodo._broadcastChange', 'Redis not available, skipping broadcast');
+            global.LogController?.logInfo(req, 'helloClusterTodo._broadcastChange', 'warning: Redis not available, skipping broadcast');
             return;
         }
 

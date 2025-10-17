@@ -53,7 +53,7 @@ AuthController.isAuthorized(req, roles)       // Returns boolean
 
 #### Public Endpoints (No Authentication Required)
 - `POST /api/1/auth/login` - User login
-- `GET /api/1/health` - System health check
+- `GET /api/1/health/status` - System health check
 
 #### Authenticated Endpoints (Login Required)
 - `GET /api/1/user/profile` - User profile access
@@ -718,7 +718,7 @@ GET /api/1/markdown/docs/
 #### Get System Health
 Get application health status and basic information.
 
-**Route:** `GET /api/1/health`
+**Route:** `GET /api/1/health/status`
 **Middleware:** None (public endpoint)
 **Authentication:** Not required
 
@@ -748,7 +748,7 @@ Get application health status and basic information.
 #### Get System Metrics
 Get comprehensive system metrics with role-based access control.
 
-**Route:** `GET /api/1/metrics`
+**Route:** `GET /api/1/health/metrics`
 **Middleware:** None (public endpoint with role-based response)
 **Authentication:** Optional (affects response detail level)
 

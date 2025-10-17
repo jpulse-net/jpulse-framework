@@ -49,7 +49,6 @@ class Cache {
         if (!this.config.enabled) {
             // Caching disabled - always load fresh
             try {
-                console.log('DEBUG: cache-manager.getFileSync: fs.readFileSync('+filePath+')');
                 return readFileSync(filePath, 'utf8');
             } catch (error) {
                 if (error.code === 'ENOENT') {
@@ -68,8 +67,6 @@ class Cache {
 
         // Cache miss - sync read of SINGLE file only (no directory operations)
         try {
-            console.log('DEBUG: cache-manager.getFileSync: fs.readFileSync('+filePath+')');
-            console.log('DEBUG: cache-manager.getFileSync: fs.statSync('+filePath+')');
             const content = readFileSync(filePath, 'utf8');
             const stats = statSync(filePath);
 
@@ -216,7 +213,6 @@ class CacheManager {
 
                 if (currentTimestamp !== fileEntry.timestamp) {
                     // File changed - re-read it
-                    console.log(`DEBUG: cache-manager._refreshCache: ${cache.name}: fs.readFile(${filePath}) - timestamp changed`);
                     const content = await fs.readFile(filePath, 'utf8');
                     cache.fileCache.set(filePath, {
                         content: content,

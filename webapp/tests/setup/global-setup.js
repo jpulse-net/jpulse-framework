@@ -148,6 +148,16 @@ export default async function globalSetup() {
         const { bootstrap } = await import('../../utils/bootstrap.js');
         await bootstrap({ isTest: true, skipDatabase: false, skipRedis: true });
 
+        // W-014: Initialize site registry AFTER bootstrap to ensure db is ready for controllers
+        const SiteRegistryModule = await import('../../utils/site-registry.js');
+        await SiteRegistryModule.default.initialize();
+        console.log('🔧 SiteRegistry initialized for tests');
+
+        // W-014: Initialize context extensions system
+        const ContextExtensionsModule = await import('../../utils/context-extensions.js');
+        await ContextExtensionsModule.default.initialize();
+        console.log('🔧 ContextExtensions initialized for tests');
+
         console.log('✅ Jest Global Setup: Test environment ready!');
     } catch (error) {
         console.error('❌ Jest Global Setup failed:', error);

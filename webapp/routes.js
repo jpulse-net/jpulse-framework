@@ -31,9 +31,10 @@ import viewController from './controller/view.js';
 import CommonUtils from './utils/common.js';
 
 // API routes (must come before catch-all route)
+
 // Health and metrics endpoints
-router.get('/api/1/health', HealthController.health);
-router.get('/api/1/metrics', HealthController.metrics);
+router.get('/api/1/health/status', HealthController.status);
+router.get('/api/1/health/metrics', HealthController.metrics);
 
 // W-076: Broadcast endpoints for jPulse.appCluster
 router.post('/api/1/broadcast/:channel', BroadcastController.publish);

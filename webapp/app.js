@@ -245,9 +245,18 @@ async function startApp() {
     // All app routing is handled by routes.js
     app.use('/', routes);
 
-    // Get port from configuration
+    // Get port from configuration, with command-line override
     const mode = appConfig.deployment.mode;
-    const port = appConfig.deployment[mode].port;
+    const portArgIndex = process.argv.indexOf('--port');
+    let port = appConfig.deployment[mode].port;
+
+    if (portArgIndex > -1 && process.argv[portArgIndex + 1]) {
+        const newPort = parseInt(process.argv[portArgIndex + 1], 10);
+        if (!isNaN(newPort)) {
+            port = newPort;
+            LogController.logInfo(null, 'app', `Overriding port with command line argument: ${port}`);
+        }
+    }
 
     // Start the HTTP server
     const server = app.listen(port, () => {

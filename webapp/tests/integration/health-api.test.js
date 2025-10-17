@@ -12,7 +12,20 @@
  * @genai           80%, Cursor 1.2, Claude Sonnet 4
  */
 
-import { describe, test, expect, beforeAll } from '@jest/globals';
+import { describe, test, expect, beforeAll, jest } from '@jest/globals';
+
+// Mock os.networkInterfaces and os.uptime to prevent system errors in test environment
+jest.mock('os', () => ({
+    ...jest.requireActual('os'),
+    networkInterfaces: jest.fn(() => ({
+        eth0: [{
+            family: 'IPv4',
+            address: '192.168.1.100',
+            internal: false
+        }]
+    })),
+    uptime: jest.fn(() => 86400) // Mock 1 day uptime
+}));
 
 // Simple integration tests that don't require complex app setup
 // These test the health controller logic and API structure
@@ -31,7 +44,7 @@ describe('Health API Integration Tests', () => {
             const HealthController = (await import('../../controller/health.js')).default;
 
             expect(HealthController).toBeDefined();
-            expect(typeof HealthController.health).toBe('function');
+            expect(typeof HealthController.status).toBe('function');
             expect(typeof HealthController.metrics).toBe('function');
             expect(typeof HealthController._formatUptime).toBe('function');
         });
@@ -42,7 +55,7 @@ describe('Health API Integration Tests', () => {
             // Test basic formatting (exact values depend on implementation)
             expect(HealthController._formatUptime(30)).toBe('30s');
             expect(HealthController._formatUptime(90)).toBe('1m 30s');
-            expect(HealthController._formatUptime(3661)).toBe('1h 1m 1s');
+            expect(HealthController._formatUptime(3661)).toBe('1h 1m');
 
             // Test that the function works without checking exact format
             expect(typeof HealthController._formatUptime(60)).toBe('string');
@@ -61,7 +74,7 @@ describe('Health API Integration Tests', () => {
         test('should have health configuration options', () => {
             expect(global.appConfig.controller).toBeDefined();
             expect(global.appConfig.controller.health).toBeDefined();
-            expect(typeof global.appConfig.controller.health.omitHealthLogs).toBe('boolean');
+            expect(typeof global.appConfig.controller.health.omitStatusLogs).toBe('boolean');
         });
 
         test('should have view configuration for system status', () => {
@@ -193,14 +206,14 @@ describe('Health API Integration Tests', () => {
             ]);
 
             expect(translations.langs.en.view.admin.systemStatus).toBeDefined();
-            expect(translations.langs.en.view.admin.systemStatus.version).toBeDefined();
-            expect(translations.langs.en.view.admin.systemStatus.uptime).toBeDefined();
-            expect(translations.langs.en.view.admin.systemStatus.memory).toBeDefined();
+            expect(translations.langs.en.view.admin.systemStatus.title).toBeDefined();
+            expect(translations.langs.en.view.admin.systemStatus.serverSummaries).toBeDefined();
+            expect(translations.langs.en.view.admin.systemStatus.instanceDetails).toBeDefined();
 
             expect(translations.langs.de.view.admin.systemStatus).toBeDefined();
-            expect(translations.langs.de.view.admin.systemStatus.version).toBeDefined();
-            expect(translations.langs.de.view.admin.systemStatus.uptime).toBeDefined();
-            expect(translations.langs.de.view.admin.systemStatus.memory).toBeDefined();
+            expect(translations.langs.de.view.admin.systemStatus.title).toBeDefined();
+            expect(translations.langs.de.view.admin.systemStatus.serverSummaries).toBeDefined();
+            expect(translations.langs.de.view.admin.systemStatus.instanceDetails).toBeDefined();
         });
     });
 
@@ -213,7 +226,7 @@ describe('Health API Integration Tests', () => {
             expect(fs.existsSync(templatePath)).toBe(true);
 
             const content = fs.readFileSync(templatePath, 'utf8');
-            expect(content).toContain('/api/1/metrics');
+            expect(content).toContain('/api/1/health/metrics');
             expect(content).toContain('jp-status-card');
             expect(content).toContain('refreshInterval');
         });

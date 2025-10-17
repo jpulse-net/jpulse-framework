@@ -4182,7 +4182,9 @@ window.jPulse = {
          * @returns {boolean} True if Redis clustering is available
          */
         isClusterMode: function() {
-            return this._isAvailable && {{appCluster.available}};
+            // workaround: unit tests can't expand handlebars in templates
+            const appClusterAvailable = ('{{appCluster.available}}' === 'true');
+            return this._isAvailable && appClusterAvailable;
         },
 
         /**
@@ -4276,10 +4278,8 @@ window.jPulse = {
                             if (status === 'connected') {
                                 console.log('jPulse.appCluster: WebSocket connected for broadcast system');
                                 this._isConnecting = false;
-                                console.log('DEBUG: Processing pending subscriptions:', Array.from(this._pendingSubscriptions));
                                 // Register all pending channel subscriptions
                                 this._pendingSubscriptions.forEach(channel => {
-                                    console.log('DEBUG: Registering channel interest for:', channel);
                                     this._registerChannelInterest(channel);
                                 });
                                 this._pendingSubscriptions.clear();
@@ -4310,29 +4310,14 @@ window.jPulse = {
              * @private
              */
             _registerChannelInterest: function(channel) {
-                console.log('DEBUG: About to send subscription message for channel:', channel);
-                console.log('DEBUG: WebSocket state check:', {
-                    websocketExists: !!this._websocket,
-                    hasIsConnected: typeof this._websocket?.isConnected === 'function',
-                    isConnectedResult: this._websocket?.isConnected?.(),
-                    actualCheck: this._websocket && this._websocket.isConnected && this._websocket.isConnected()
-                });
                 if (this._websocket && this._websocket.isConnected()) {
-                    console.log('DEBUG: WebSocket is ready, sending subscription message');
-                    console.log('DEBUG: WebSocket state before send:', {
-                        exists: !!this._websocket,
-                        isConnected: this._websocket?.isConnected(),
-                        readyState: this._websocket?._ws?.readyState  // Check internal WebSocket
-                    });
                     this._websocket.send({
                         type: 'subscribe',
                         channel: channel
                     });
-                    console.log('DEBUG: WebSocket send completed successfully');
                 } else {
                     // WebSocket not ready, add to pending
                     this._pendingSubscriptions.add(channel);
-                    console.log('DEBUG: WebSocket not ready, adding to pending subscriptions');
                 }
             },
 

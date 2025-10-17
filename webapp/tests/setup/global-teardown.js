@@ -44,6 +44,15 @@ async function cleanupTestDatabases() {
  */
 async function cleanupRedisAndCache() {
     try {
+        // W-076: Shutdown HealthController broadcasting to prevent hanging tests
+        const { default: HealthController } = await import('../../controller/health.js');
+        if (HealthController && typeof HealthController.shutdown === 'function') {
+            HealthController.shutdown();
+            console.log('🩺 Health cleanup: HealthController broadcasting stopped successfully');
+        } else {
+            console.log('🩺 Health cleanup: No HealthController timers to stop');
+        }
+
         // Clean up Redis connections if they exist
         if (global.RedisManager && typeof global.RedisManager.shutdown === 'function') {
             await global.RedisManager.shutdown();

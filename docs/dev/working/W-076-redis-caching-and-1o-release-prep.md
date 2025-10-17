@@ -13,7 +13,7 @@
 - Need aggregated view across all app server instances
 
 ### Proposed Redis-Based Solution
-**API Response Structure** (`/api/1/metrics`):
+**API Response Structure** (`/api/1/health/metrics`):
 ```javascript
 {
     success: true,
@@ -144,7 +144,7 @@
 Build production readiness incrementally, saving Redis for the 1.0 milestone:
 
 **W-078, v0.9.6: Health and Metrics Endpoints** ⭐⭐⭐⭐
-- **APIs**: `/api/1/health`, `/api/1/metrics`
+- **APIs**: `/api/1/health/status`, `/api/1/health/metrics`
 - **Why First**: Quick win, essential for production monitoring
 - **Impact**: Production deployment readiness without breaking changes
 
@@ -720,9 +720,9 @@ To get cluster-wide metrics, any instance (or monitoring tool) can:
 
     Example:
     requests:server-1-12345:1234567890000
-      "/api/1/metrics/users:200" = 145
-      "/api/1/metrics/users:404" = 3
-      "/api/1/metrics/posts:200" = 67
+      "/api/1/health/metrics/users:200" = 145
+      "/api/1/health/metrics/users:404" = 3
+      "/api/1/health/metrics/posts:200" = 67
 ```
 
 **Error Tracking:**
@@ -819,19 +819,19 @@ To get cluster-wide metrics, any instance (or monitoring tool) can:
 
 **Dashboard API Endpoints:**
 
-`GET /api/1/health`
+`GET /api/1/health/status`
 → Returns all instance health data
 
-`GET /api/1/metrics`
+`GET /api/1/health/metrics`
 → Returns aggregate metrics across cluster
 
-`GET /api/1/metrics/servers`
+`GET /api/1/health/metrics/servers`
 → Returns health grouped by server
 
-`GET /api/1/metrics/requests?minutes=5`
+`GET /api/1/health/metrics/requests?minutes=5`
 → Returns request stats for last N minutes
 
-`GET /api/1/metrics/errors/recent?count=10`
+`GET /api/1/health/metrics/errors/recent?count=10`
 → Returns recent errors
 
 **Key Benefits:**
@@ -1110,7 +1110,7 @@ On application startup, pre-load frequently accessed configs:
 
       setupRoutes() {
         // Health check
-        app.get('/api/1/health', async (req, res) => {
+        app.get('/api/1/health/status', async (req, res) => {
           health = await metricsManager.getAllInstancesHealth()
           res.json({ status: 'healthy', instances: health })
         })
@@ -1529,7 +1529,7 @@ Production-ready Redis infrastructure for PM2 clustering and multi-server scalab
 
 **Health Metrics Clustering**
 - Each instance reports metrics to Redis with TTL auto-cleanup
-- Enhanced `/api/1/metrics` endpoint aggregates cluster-wide data
+- Enhanced `/api/1/health/metrics` endpoint aggregates cluster-wide data
 - Admin dashboard shows multi-instance view
 - Fallback: Single-instance metrics when Redis unavailable
 

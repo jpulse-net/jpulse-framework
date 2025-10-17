@@ -14,6 +14,8 @@
 
 import CommonUtils from './common.js';
 
+let isBootstrapped = false;
+
 function bootstrapLog(message, level = 'msg') {
     console.log(CommonUtils.formatLogMessage('bootstrap', message, level));
 }
@@ -28,6 +30,12 @@ function bootstrapLog(message, level = 'msg') {
  */
 export async function bootstrap(options = {}) {
     const { isTest = false, skipDatabase = false, skipRedis = false } = options;
+
+    if (isBootstrapped) {
+        bootstrapLog('⏭️  Bootstrap already completed, skipping...');
+        return;
+    }
+    isBootstrapped = true;
 
     bootstrapLog(`🚀 Starting ${isTest ? 'test' : 'app'} initialization...`);
 
@@ -95,6 +103,12 @@ export async function bootstrap(options = {}) {
             redisManager = RedisManagerModule.default;
         } else {
             bootstrapLog('⏭️  RedisManager: Skipped for test environment');
+
+            // W-076: Even in tests, we need a global RedisManager instance in fallback mode
+            const RedisManagerModule = await import('./redis-manager.js');
+            await RedisManagerModule.default.initialize({ enabled: false });
+            global.RedisManager = RedisManagerModule.default;
+            bootstrapLog('✅ RedisManager: Initialized in fallback mode for tests');
 
             // For tests, use simple memory store
             const session = await import('express-session');

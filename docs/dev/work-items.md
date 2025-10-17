@@ -1275,11 +1275,11 @@ This is the doc to track work items, arranged in three sections:
 - type: Feature
 - objective: provide health and metrics endpoint for load-balancer and system monitoring
 - apis:
-  - /api/1/health
-  - /api/1/metrics
+  - /api/1/health/status
+  - /api/1/health/metrics
 - deliverables:
  - webapp/controller/health.js - health controller with API endpoints and helper methods
- - webapp/routes.js - added /api/1/health and /api/1/metrics routes
+ - webapp/routes.js - added /api/1/health/status and /api/1/health/metrics routes
  - webapp/view/admin/system-status.shtml - comprehensive admin dashboard with auto-refresh
  - webapp/static/assets/admin/icons/system-status.svg - SVG icon for system status page
  - webapp/view/jpulse-common.css - moved status styling to framework (jp-* classes)
@@ -1416,7 +1416,7 @@ This is the doc to track work items, arranged in three sections:
   - Health Metrics Clustering:
     - webapp/controller/health.js -- Redis-based health metrics aggregation across instances
     - webapp/controller/health.js -- automatic instance discovery with 30s broadcast + 90s TTL
-    - Enhanced /api/1/metrics endpoint with cluster-wide statistics
+    - Enhanced /api/1/health/metrics endpoint with cluster-wide statistics
   - Client-Side Enhancements:
     - webapp/view/jpulse-common.js -- configurable WebSocket UUID storage (session/local/memory)
     - webapp/view/jpulse-common.js -- jPulse.appCluster API for instance info and broadcasting
@@ -1445,7 +1445,10 @@ This is the doc to track work items, arranged in three sections:
 
 
 pending:
-- webapp/view/admin/system-status.shtml gui: make it work for multiple servers & pm2 instances
+- jp-card: more consistent card header: normal, dialog look with gray background jp-card-dialog
+- site/webapp/controller/helloClusterTodo.js -- add logs; check if api or apiGet is obsolete
+- webapp/view/admin/logs.shtml -- clean up css mess
+
 
 - view controller: return unexpanded {{handlebars}} if not exist, instead of empty return
 - install pm2, test

@@ -24,7 +24,7 @@ Defined in `webapp/view/jpulse-navigation.tmpl`:
 
 ```javascript
 window.jPulseSiteNavigation = {
-    {{#if user.authenticated}}
+    {{#if user.isAuthenticated}}
     admin: {
         label: '{{i18n.navigation.admin}}',  // i18n resolved server-side
         url: '/admin/',
@@ -60,7 +60,7 @@ window.jPulseSiteNavigation = {
 
 **Key Features**:
 - **Full Handlebars support**: Use `{{#if}}`, `{{#each}}`, `{{i18n.*}}` for dynamic navigation
-- **Conditional visibility**: Use `{{#if user.authenticated}}` for auth-based sections
+- **Conditional visibility**: Use `{{#if user.isAuthenticated}}` for auth-based sections
 - **Plain text support**: Simple sites can use plain strings
 - **Unlimited nesting**: Recursive `pages` structure (no max depth needed in app.conf)
 - **Role-based visibility**: Optional `role` property hides items from unauthorized users
@@ -271,7 +271,7 @@ jPulse.dom.ready(() => {
 ### Technical Advantages
 - **Single source of truth**: `jpulse-navigation.tmpl` for both site nav and tab structures
 - **Full Handlebars power**: Use `{{#if}}`, `{{#each}}`, `{{i18n.*}}` for dynamic navigation
-- **Conditional rendering**: Auth-based sections with `{{#if user.authenticated}}`
+- **Conditional rendering**: Auth-based sections with `{{#if user.isAuthenticated}}`
 - **Extensible**: Recursive structure supports unlimited nesting
 - **Performance**: Static navigation renders fast, dynamic loads only when needed
 - **Role-based**: Built-in visibility control via `role` property

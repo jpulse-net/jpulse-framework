@@ -87,7 +87,7 @@ describe('Auth Middleware Integration', () => {
                     id: 'admin123',
                     loginId: 'adminuser',
                     roles: ['user', 'admin'],
-                    authenticated: true
+                    isAuthenticated: true
                 }
             };
 
@@ -126,7 +126,7 @@ describe('Auth Middleware Integration', () => {
                     id: 'user123',
                     loginId: 'regularuser',
                     roles: ['user'],
-                    authenticated: true
+                    isAuthenticated: true
                 }
             };
 
@@ -159,7 +159,7 @@ describe('Auth Middleware Integration', () => {
                     id: 'user123',
                     loginId: 'testuser',
                     roles: ['user'],
-                    authenticated: true
+                    isAuthenticated: true
                 }
             };
 
@@ -176,7 +176,7 @@ describe('Auth Middleware Integration', () => {
                     id: 'admin123',
                     loginId: 'adminuser',
                     roles: ['user', 'admin'],
-                    authenticated: true
+                    isAuthenticated: true
                 }
             };
 
@@ -194,7 +194,7 @@ describe('Auth Middleware Integration', () => {
                     id: 'user123',
                     loginId: 'testuser',
                     roles: ['user'],
-                    authenticated: true
+                    isAuthenticated: true
                 }
             };
 
@@ -211,7 +211,7 @@ describe('Auth Middleware Integration', () => {
                     id: 'user123',
                     loginId: 'regularuser',
                     roles: ['user'],
-                    authenticated: true
+                    isAuthenticated: true
                 }
             };
 
@@ -288,7 +288,7 @@ describe('Auth Middleware Integration', () => {
                 user: {
                     id: 'user123',
                     loginId: 'testuser',
-                    authenticated: true
+                    isAuthenticated: true
                     // Missing roles property
                 }
             };
@@ -312,7 +312,7 @@ describe('Auth Middleware Integration', () => {
                     id: 'user123',
                     loginId: 'testuser',
                     roles: ['user'],
-                    authenticated: true
+                    isAuthenticated: true
                 }
             };
 

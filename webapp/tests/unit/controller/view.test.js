@@ -59,7 +59,7 @@ describe('View Controller Unit Tests', () => {
                     loginId: 'testuser',
                     firstName: 'Test',
                     lastName: 'User',
-                    authenticated: true
+                    isAuthenticated: true
                 }
             },
             ip: '127.0.0.1'
@@ -127,27 +127,27 @@ describe('View Controller Unit Tests', () => {
 
     describe('processHandlebars() - {{#if}} Blocks', () => {
         test('should process {{#if}} block with true condition', async () => {
-            const content = '{{#if user.authenticated}}Logged in{{/if}}';
+            const content = '{{#if user.isAuthenticated}}Logged in{{/if}}';
             const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe('Logged in');
         });
 
         test('should process {{#if}} block with false condition', async () => {
-            const falseContext = { ...mockContext, user: { authenticated: false } };
-            const content = '{{#if user.authenticated}}Logged in{{/if}}';
+            const falseContext = { ...mockContext, user: { isAuthenticated: false } };
+            const content = '{{#if user.isAuthenticated}}Logged in{{/if}}';
             const result = ViewController.processHandlebars(content, falseContext, mockReq);
             expect(result).toBe('');
         });
 
         test('should process {{#if}} with {{else}} - true condition', async () => {
-            const content = '{{#if user.authenticated}}Logged in{{else}}Not logged in{{/if}}';
+            const content = '{{#if user.isAuthenticated}}Logged in{{else}}Not logged in{{/if}}';
             const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe('Logged in');
         });
 
         test('should process {{#if}} with {{else}} - false condition', async () => {
-            const falseContext = { ...mockContext, user: { authenticated: false } };
-            const content = '{{#if user.authenticated}}Logged in{{else}}Not logged in{{/if}}';
+            const falseContext = { ...mockContext, user: { isAuthenticated: false } };
+            const content = '{{#if user.isAuthenticated}}Logged in{{else}}Not logged in{{/if}}';
             const result = ViewController.processHandlebars(content, falseContext, mockReq);
             expect(result).toBe('Not logged in');
         });
@@ -162,7 +162,7 @@ describe('View Controller Unit Tests', () => {
         });
 
         test('should not render content when condition is true', async () => {
-            const content = '{{#unless user.authenticated}}Please log in{{/unless}}';
+            const content = '{{#unless user.isAuthenticated}}Please log in{{/unless}}';
             const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe('');
         });
@@ -187,8 +187,8 @@ describe('View Controller Unit Tests', () => {
         });
 
         test('should handle nested handlebars inside {{#unless}}', async () => {
-            const content = '{{#unless user.authenticated}}<p>Welcome, {{user.firstName}}!</p>{{/unless}}';
-            const context = { ...mockContext, user: { ...mockContext.user, authenticated: false } };
+            const content = '{{#unless user.isAuthenticated}}<p>Welcome, {{user.firstName}}!</p>{{/unless}}';
+            const context = { ...mockContext, user: { ...mockContext.user, isAuthenticated: false } };
             const result = ViewController.processHandlebars(content, context, mockReq);
             expect(result).toBe('<p>Welcome, Test!</p>');
         });
@@ -210,7 +210,7 @@ describe('View Controller Unit Tests', () => {
 
     describe('processHandlebars() - Nested {{#if}} with {{else}} Bug Fix (W-077)', () => {
         test('should handle nested {{#if}} inside {{#if}} with {{else}}', async () => {
-            const content = `{{#if user.authenticated}}
+            const content = `{{#if user.isAuthenticated}}
                 {{#if user.isAdmin}}
                     Admin panel
                 {{else}}
@@ -245,7 +245,7 @@ describe('View Controller Unit Tests', () => {
             // Test case 3: not authenticated, guests allowed
             const context3 = {
                 ...mockContext,
-                user: { ...mockContext.user, authenticated: false },
+                user: { ...mockContext.user, isAuthenticated: false },
                 allowGuests: true
             };
             const result3 = ViewController.processHandlebars(content, context3, mockReq);
@@ -254,7 +254,7 @@ describe('View Controller Unit Tests', () => {
             // Test case 4: not authenticated, guests not allowed
             const context4 = {
                 ...mockContext,
-                user: { ...mockContext.user, authenticated: false },
+                user: { ...mockContext.user, isAuthenticated: false },
                 allowGuests: false
             };
             const result4 = ViewController.processHandlebars(content, context4, mockReq);
@@ -400,7 +400,7 @@ describe('View Controller Unit Tests', () => {
         });
 
         test('should handle nested handlebars within blocks', async () => {
-            const content = '{{#if user.authenticated}}Welcome {{user.firstName}}!{{/if}}';
+            const content = '{{#if user.isAuthenticated}}Welcome {{user.firstName}}!{{/if}}';
             const result = ViewController.processHandlebars(content, mockContext, mockReq);
             expect(result).toBe(`Welcome ${mockContext.user.firstName}!`);
         });

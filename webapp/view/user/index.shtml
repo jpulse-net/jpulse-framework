@@ -26,7 +26,7 @@
             <h1>{{i18n.view.user.index.title}}</h1>
             <span class="jp-subtitle">{{i18n.view.user.index.subtitle}}</span>
         </div>
-        {{#if user.authenticated}}
+        {{#if user.isAuthenticated}}
             <!-- User Activity Stats -->
             <div class="jp-stats-grid" id="userStatsGrid">
                 <div class="jp-stat-card">
@@ -72,7 +72,7 @@
     </div>
 
     <script>
-        {{#if user.authenticated}}
+        {{#if user.isAuthenticated}}
         // Load user dashboard data
         jPulse.dom.ready(() => {
             loadUserStats();

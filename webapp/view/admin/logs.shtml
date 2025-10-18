@@ -242,7 +242,7 @@
 <body>
     <div class="jp-main">
         <div class="jp-container-1200 local-admin-logs">
-          {{#if user.authenticated}}
+          {{#if user.isAuthenticated}}
             <div class="jp-page-header">
                 <h1>{{i18n.view.admin.logs.title}}</h1>
                 <span class="jp-subtitle">{{i18n.view.admin.logs.subtitle}}</span>

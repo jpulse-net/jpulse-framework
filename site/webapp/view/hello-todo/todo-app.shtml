@@ -252,7 +252,7 @@
             </div>
 
             <!-- User Context Display -->
-            {{#if user.authenticated}}
+            {{#if user.isAuthenticated}}
             <div class="jp-card">
                 <h3>👋 Hello {{user.firstName}} {{user.lastName}}!</h3>
                 <p>Your to-dos will be tagged with your username: <strong>{{user.username}}</strong></p>
@@ -378,7 +378,7 @@
                         method: 'POST',
                         data: {
                             title: title,
-                            {{#if user.authenticated}}
+                            {{#if user.isAuthenticated}}
                             userFirstName: '{{user.firstName}}',
                             userLastName: '{{user.lastName}}'
                             {{/if}}
@@ -389,7 +389,7 @@
                         method: 'POST',
                         body: {
                             title: title,
-                            {{#if user.authenticated}}
+                            {{#if user.isAuthenticated}}
                             userFirstName: '{{user.firstName}}',
                             userLastName: '{{user.lastName}}'
                             {{/if}}

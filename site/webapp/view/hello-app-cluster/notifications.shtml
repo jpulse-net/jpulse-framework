@@ -402,14 +402,14 @@
                         serverInstance: this.getServerInstance()
                     };
 
-                    // Always add locally first, then broadcast to sync other instances
-                    this.addNotificationToFeed(notificationData);
-
-                    // Publish to other instances via Redis
-                    if (jPulse.appCluster.broadcast) {
+                    // Publish via the appropriate method based on cluster mode
+                    if (jPulse.appCluster.isClusterMode()) {
+                        // Redis available: publish to all instances via Redis
                         jPulse.appCluster.broadcast.publish(notificationChannel, notificationData);
-                        jPulse.UI.toast.show('📡 Notification sent to all servers!', 'success');
+                        jPulse.UI.toast.show('📡 Notification broadcasted to all servers!', 'success');
                     } else {
+                        // Redis not available: show locally only (single server mode)
+                        this.addNotificationToFeed(notificationData);
                         jPulse.UI.toast.show('📱 Notification shown locally (cluster not available)', 'warning');
                     }
 

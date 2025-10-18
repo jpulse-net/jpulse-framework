@@ -29,13 +29,22 @@ describe('I18N Variable Content', () => {
                     lastName: 'Doe',
                     nickName: 'John',
                     email: 'john.doe@example.com',
-                    authenticated: true
+                    isAuthenticated: true
                 },
                 app: {
-                    version: '0.2.5'
-                },
-                config: {
-                    siteName: 'Test Site'
+                    jPulse: {
+                        name: 'jPulse Framework',
+                        shortName: 'jPulse',
+                        version: '0.9.7',
+                        release: '2025-10-12'
+                    },
+                    site: {
+                        name: 'My jPulse Site',
+                        shortName: 'My jPulse Site',
+                        version: '0.1.0',
+                        release: '1970-01-01',
+                        copyright: '© 1970 My Company'
+                    }
                 }
             };
         });
@@ -48,7 +57,7 @@ describe('I18N Variable Content', () => {
             // Check that we have some variable content examples using existing patterns
             expect(langEnContent).toContain('{{user.nickName}}');
             expect(langEnContent).toContain('Welcome back, {{user.nickName}}!');
-            expect(langEnContent).toContain('Powered by {{app.shortName}}');
+            expect(langEnContent).toContain('This is the home page of the {{app.site.name}}.');
             expect(langEnContent).toContain('{{count}}'); // Use existing count variable instead
         });
 
@@ -60,7 +69,7 @@ describe('I18N Variable Content', () => {
             // Check that we have some variable content examples using existing patterns
             expect(langDeContent).toContain('{{user.nickName}}');
             expect(langDeContent).toContain('Willkommen zurück, {{user.nickName}}!');
-            expect(langDeContent).toContain('Unterstützt von {{app.shortName}}'); // Use German text
+            expect(langDeContent).toContain('Dies ist die Startseite des {{app.site.name}}.'); // Use German text
             expect(langDeContent).toContain('{{count}}'); // Use existing count variable instead
         });
 

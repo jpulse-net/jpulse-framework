@@ -21,7 +21,7 @@ Use double curly braces to output variables:
 ### Conditionals
 Use `#if` blocks for conditional rendering:
 ```handlebars
-{{#if user.authenticated}}
+{{#if user.isAuthenticated}}
     <p>Welcome back, {{user.firstName}}!</p>
 {{else}}
     <p>Please log in to continue.</p>
@@ -30,7 +30,7 @@ Use `#if` blocks for conditional rendering:
 
 Use `#unless` blocks for inverse conditional rendering (when condition is false):
 ```handlebars
-{{#unless user.authenticated}}
+{{#unless user.isAuthenticated}}
     <p>Please log in to continue.</p>
 {{/unless}}
 ```
@@ -39,12 +39,12 @@ Use `#unless` blocks for inverse conditional rendering (when condition is false)
 
 ```handlebars
 <!-- Using unless (no else support) -->
-{{#unless user.authenticated}}
+{{#unless user.isAuthenticated}}
     <p>Please log in to continue.</p>
 {{/unless}}
 
 <!-- Equivalent using if/else -->
-{{#if user.authenticated}}
+{{#if user.isAuthenticated}}
     <p>Welcome back, {{user.firstName}}!</p>
 {{else}}
     <p>Please log in to continue.</p>
@@ -91,7 +91,7 @@ Use `#each` blocks to iterate over different data structures:
 ### Nested Conditionals
 You can nest conditionals for complex logic:
 ```handlebars
-{{#if user.authenticated}}
+{{#if user.isAuthenticated}}
     {{#if user.isAdmin}}
         <div class="jp-info-box">
             <p>Admin Panel Access:</p>
@@ -129,7 +129,7 @@ The jPulse Framework provides several context objects that are available in all 
 - `{{user.initials}}` - User's initials
 - `{{user.email}}` - User's email address
 - `{{user.roles}}` - JSON array of user roles
-- `{{user.authenticated}}` - Login status (true/false)
+- `{{user.isAuthenticated}}` - Login status (true/false)
 - `{{user.isAdmin}}` - Admin status (true/false)
 
 ### URL Context
@@ -206,7 +206,7 @@ Choose descriptive variable names that clearly indicate their purpose:
 ### 2. Handle Missing Data Gracefully
 Always consider what happens when data might be missing:
 ```handlebars
-{{#if user.authenticated}}
+{{#if user.isAuthenticated}}
     Welcome, {{user.firstName}}!
 {{else}}
     Welcome, Guest!
@@ -217,12 +217,12 @@ Always consider what happens when data might be missing:
 Avoid complex logic in templates. Use the controller to prepare data:
 ```handlebars
 <!-- Good -->
-{{#if user.hasAdminAccess}}
+{{#if user.isAdmin}}
     <div class="admin-panel">...</div>
 {{/if}}
 
 <!-- Avoid complex conditions in templates, currenty not supported -->
-{{#if (and user.authenticated user.isAdmin config.features.adminPanel)}}
+{{#if and: user.isAuthenticated user.isAdmin}}
     <div class="admin-panel">...</div>
 {{/if}}
 ```

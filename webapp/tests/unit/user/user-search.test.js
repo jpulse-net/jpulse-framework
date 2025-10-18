@@ -288,7 +288,7 @@ describe('User Search Tests', () => {
     describe('Authorization for User Search', () => {
         test('should allow admin users to search', () => {
             const adminUser = {
-                authenticated: true,
+                isAuthenticated: true,
                 roles: ['user', 'admin']
             };
 
@@ -305,7 +305,7 @@ describe('User Search Tests', () => {
 
         test('should allow root users to search', () => {
             const rootUser = {
-                authenticated: true,
+                isAuthenticated: true,
                 roles: ['root']
             };
 
@@ -322,7 +322,7 @@ describe('User Search Tests', () => {
 
         test('should deny regular users search access', () => {
             const regularUser = {
-                authenticated: true,
+                isAuthenticated: true,
                 roles: ['user']
             };
 
@@ -339,7 +339,7 @@ describe('User Search Tests', () => {
 
         test('should deny unauthenticated users search access', () => {
             const unauthenticatedUser = {
-                authenticated: false,
+                isAuthenticated: false,
                 roles: ['admin']
             };
 

@@ -93,7 +93,7 @@ describe('AuthController', () => {
     describe('Authentication Helper Functions', () => {
         describe('isAuthenticated', () => {
             test('should return true for authenticated user', () => {
-                mockReq.session.user = { authenticated: true };
+                mockReq.session.user = { isAuthenticated: true };
 
                 const result = AuthController.isAuthenticated(mockReq);
 
@@ -101,7 +101,7 @@ describe('AuthController', () => {
             });
 
             test('should return false for unauthenticated user', () => {
-                mockReq.session.user = { authenticated: false };
+                mockReq.session.user = { isAuthenticated: false };
 
                 const result = AuthController.isAuthenticated(mockReq);
 
@@ -128,7 +128,7 @@ describe('AuthController', () => {
         describe('isAuthorized', () => {
             test('should return true when user has required role', () => {
                 mockReq.session.user = {
-                    authenticated: true,
+                    isAuthenticated: true,
                     roles: ['admin', 'user']
                 };
 
@@ -139,7 +139,7 @@ describe('AuthController', () => {
 
             test('should return true when user has any of the required roles', () => {
                 mockReq.session.user = {
-                    authenticated: true,
+                    isAuthenticated: true,
                     roles: ['user', 'editor']
                 };
 
@@ -150,7 +150,7 @@ describe('AuthController', () => {
 
             test('should return false when user lacks required role', () => {
                 mockReq.session.user = {
-                    authenticated: true,
+                    isAuthenticated: true,
                     roles: ['user']
                 };
 
@@ -160,7 +160,7 @@ describe('AuthController', () => {
             });
 
             test('should return false for unauthenticated user', () => {
-                mockReq.session.user = { authenticated: false };
+                mockReq.session.user = { isAuthenticated: false };
 
                 const result = AuthController.isAuthorized(mockReq, ['admin']);
 
@@ -208,7 +208,7 @@ describe('AuthController', () => {
     describe('Middleware Functions', () => {
         describe('requireAuthentication', () => {
             test('should call next() for authenticated user', () => {
-                mockReq.session.user = { authenticated: true };
+                mockReq.session.user = { isAuthenticated: true };
 
                 AuthController.requireAuthentication(mockReq, mockRes, mockNext);
 
@@ -217,7 +217,7 @@ describe('AuthController', () => {
             });
 
             test('should send error for unauthenticated user', () => {
-                mockReq.session.user = { authenticated: false };
+                mockReq.session.user = { isAuthenticated: false };
 
                 AuthController.requireAuthentication(mockReq, mockRes, mockNext);
 
@@ -248,7 +248,7 @@ describe('AuthController', () => {
         describe('requireRole', () => {
             test('should call next() for user with required role', () => {
                 mockReq.session.user = {
-                    authenticated: true,
+                    isAuthenticated: true,
                     roles: ['admin'],
                     username: 'testuser'
                 };
@@ -262,7 +262,7 @@ describe('AuthController', () => {
 
             test('should send error for user without required role', () => {
                 mockReq.session.user = {
-                    authenticated: true,
+                    isAuthenticated: true,
                     roles: ['user'],
                     username: 'testuser'
                 };
@@ -281,7 +281,7 @@ describe('AuthController', () => {
             });
 
             test('should send error for unauthenticated user', () => {
-                mockReq.session.user = { authenticated: false };
+                mockReq.session.user = { isAuthenticated: false };
 
                 const middleware = AuthController.requireRole(['admin']);
                 middleware(mockReq, mockRes, mockNext);
@@ -324,7 +324,7 @@ describe('AuthController', () => {
                 await AuthController.login(mockReq, mockRes);
 
                 expect(mockReq.session.user).toEqual({
-                    authenticated: true,
+                    isAuthenticated: true,
                     id: 'user123',
                     username: 'testuser',
                     email: 'testuser@example.com',  // Should have valid email
@@ -339,7 +339,7 @@ describe('AuthController', () => {
                     success: true,
                     data: {
                         user: {
-                            authenticated: true,
+                            isAuthenticated: true,
                             id: 'user123',
                             username: 'testuser',
                             email: 'testuser@example.com',
@@ -411,7 +411,7 @@ describe('AuthController', () => {
         describe('logout', () => {
             test('should logout authenticated user', () => {
                 mockReq.session = {
-                    user: { authenticated: true, username: 'testuser' },
+                    user: { isAuthenticated: true, username: 'testuser' },
                     destroy: jest.fn(callback => callback())
                 };
 
@@ -443,7 +443,7 @@ describe('AuthController', () => {
             test('should handle session destruction errors', () => {
                 const error = new Error('Session destruction failed');
                 mockReq.session = {
-                    user: { authenticated: true, username: 'testuser' },
+                    user: { isAuthenticated: true, username: 'testuser' },
                     destroy: jest.fn(callback => callback(error))
                 };
 
@@ -472,7 +472,7 @@ describe('AuthController', () => {
             test('should update user session with new data', () => {
                 mockReq.session = {
                     user: {
-                        authenticated: true,
+                        isAuthenticated: true,
                         username: 'testuser',
                         firstName: 'Old',           // Flattened structure, not profile.firstName
                         lastName: 'Name',           // Flattened structure, not profile.lastName
@@ -493,7 +493,7 @@ describe('AuthController', () => {
                 expect(mockReq.session.user.initials).toBe('NN');     // Should be calculated from New Name
                 expect(mockReq.session.user.preferences).toEqual({ language: 'de' });
                 expect(mockReq.session.user.username).toBe('testuser'); // Preserved
-                expect(mockReq.session.user.authenticated).toBe(true); // Preserved
+                expect(mockReq.session.user.isAuthenticated).toBe(true); // Preserved
             });
 
             test('should handle missing session gracefully', () => {

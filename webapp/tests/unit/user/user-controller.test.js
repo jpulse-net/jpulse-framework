@@ -54,7 +54,7 @@ describe('User Controller Tests', () => {
                         nickName: authenticatedUser.profile.nickName,
                         email: authenticatedUser.email,
                         roles: authenticatedUser.roles,
-                        authenticated: true
+                        isAuthenticated: true
                     };
 
                     res.json({
@@ -73,7 +73,7 @@ describe('User Controller Tests', () => {
             processLogin(mockReq, mockRes, mockUser);
 
             expect(mockReq.session.user).toBeDefined();
-            expect(mockReq.session.user.authenticated).toBe(true);
+            expect(mockReq.session.user.isAuthenticated).toBe(true);
             expect(mockReq.session.user.id).toBe('507f1f77bcf86cd799439011');
             expect(mockRes.json).toHaveBeenCalledWith({
                 success: true,
@@ -81,7 +81,7 @@ describe('User Controller Tests', () => {
                 data: expect.objectContaining({
                     username: 'jsmith',
                     firstName: 'John',
-                    authenticated: true
+                    isAuthenticated: true
                 })
             });
         });
@@ -102,7 +102,7 @@ describe('User Controller Tests', () => {
 
             const processLogin = (req, res, authenticatedUser) => {
                 if (authenticatedUser) {
-                    req.session.user = { authenticated: true };
+                    req.session.user = { isAuthenticated: true };
                     res.json({ success: true });
                 } else {
                     res.status(401).json({
@@ -165,7 +165,7 @@ describe('User Controller Tests', () => {
                     user: {
                         id: '507f1f77bcf86cd799439011',
                         username: 'jsmith',
-                        authenticated: true
+                        isAuthenticated: true
                     },
                     destroy: jest.fn((callback) => callback())
                 }
@@ -249,7 +249,7 @@ describe('User Controller Tests', () => {
             };
 
             const checkAuthentication = (req, res) => {
-                if (!req.session.user || !req.session.user.authenticated) {
+                if (!req.session.user || !req.session.user.isAuthenticated) {
                     return res.status(401).json({
                         success: false,
                         error: 'Authentication required',
@@ -292,7 +292,7 @@ describe('User Controller Tests', () => {
                     user: {
                         id: '507f1f77bcf86cd799439011',
                         username: 'jsmith',
-                        authenticated: true
+                        isAuthenticated: true
                     }
                 }
             };
@@ -336,7 +336,7 @@ describe('User Controller Tests', () => {
             };
 
             const processUserSearch = (req, res) => {
-                if (!req.session.user || !req.session.user.authenticated) {
+                if (!req.session.user || !req.session.user.isAuthenticated) {
                     return res.status(401).json({
                         success: false,
                         error: 'Authentication required',
@@ -361,7 +361,7 @@ describe('User Controller Tests', () => {
             const mockReq = {
                 session: {
                     user: {
-                        authenticated: true,
+                        isAuthenticated: true,
                         roles: ['user'] // Not admin
                     }
                 },
@@ -407,7 +407,7 @@ describe('User Controller Tests', () => {
             const mockReq = {
                 session: {
                     user: {
-                        authenticated: true,
+                        isAuthenticated: true,
                         roles: ['user', 'admin']
                     }
                 },
@@ -502,7 +502,7 @@ describe('User Controller Tests', () => {
             const mockReq = {
                 session: {
                     user: {
-                        authenticated: true,
+                        isAuthenticated: true,
                         roles: ['admin']
                     }
                 },
@@ -554,7 +554,7 @@ describe('User Controller Tests', () => {
                 session: {
                     user: {
                         id: '507f1f77bcf86cd799439011',
-                        authenticated: true
+                        isAuthenticated: true
                     }
                 },
                 body: {

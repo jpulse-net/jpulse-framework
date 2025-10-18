@@ -88,7 +88,7 @@ Templates have access to a rich context object with application data, user infor
 
 ```html
 <!-- Authentication state -->
-{{#if user.authenticated}}
+{{#if user.isAuthenticated}}
     <div class="user-panel">
         <span>Welcome, {{user.firstName}}!</span>
         <a href="/auth/logout.shtml">Logout</a>
@@ -178,7 +178,7 @@ window.jPulseSiteNavigation = {
         url:                '/home/about.shtml'
     }
     user: {
-        {{#if user.authenticated}}
+        {{#if user.isAuthenticated}}
         label:              '{{i18n.view.navigation.user.overview}}',
         url:                '/user/',
         {{else}}
@@ -244,7 +244,7 @@ The `{{file.include}}` directive allows secure inclusion of other template files
 
         <!-- Page-specific content -->
         <div class="content">
-            {{#if user.authenticated}}
+            {{#if user.isAuthenticated}}
                 {{file.include "components/user-dashboard.tmpl"}}
             {{else}}
                 {{file.include "components/guest-welcome.tmpl"}}
@@ -293,7 +293,7 @@ The `{{#if}}` syntax provides powerful block-level conditionals:
 
 ```html
 <!-- Simple conditional blocks -->
-{{#if user.authenticated}}
+{{#if user.isAuthenticated}}
     <div class="user-panel">
         <h2>Welcome, {{user.firstName}}!</h2>
         <p>Last login: {{user.lastLogin}}</p>
@@ -305,7 +305,7 @@ The `{{#if}}` syntax provides powerful block-level conditionals:
 {{/if}}
 
 <!-- If/else conditional blocks -->
-{{#if user.authenticated}}
+{{#if user.isAuthenticated}}
     <nav class="main-nav">
         <a href="/dashboard/">Dashboard</a>
         <a href="/profile/">Profile</a>
@@ -330,7 +330,7 @@ The `{{#if}}` syntax provides powerful block-level conditionals:
     <div class="jp-alert jp-alert-info">
         <strong>{{i18n.messages.announcement}}</strong>
         <p>{{config.messages.broadcast}}</p>
-        {{#if user.authenticated}}
+        {{#if user.isAuthenticated}}
             <small>Shown to: {{user.firstName}} {{user.lastName}}</small>
         {{else}}
             <small>Please <a href="/auth/login.shtml">sign in</a> for personalized content.</small>
@@ -339,7 +339,7 @@ The `{{#if}}` syntax provides powerful block-level conditionals:
 {{/if}}
 
 <!-- Nested {{#if}} blocks are fully supported (v0.7.20+) -->
-{{#if user.authenticated}}
+{{#if user.isAuthenticated}}
     {{#if user.isAdmin}}
         <div class="admin-panel">Admin controls available</div>
     {{/if}}
@@ -350,7 +350,7 @@ The `{{#if}}` syntax provides powerful block-level conditionals:
 
 ```html
 <!-- Boolean conditions -->
-{{#if user.authenticated}}...{{/if}}
+{{#if user.isAuthenticated}}...{{/if}}
 {{#if config.features.enableNotifications}}...{{/if}}
 
 <!-- String/object existence checks -->
@@ -996,7 +996,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <nav class="jp-nav">
-                    {{#if user.authenticated}}
+                    {{#if user.isAuthenticated}}
                         <!-- Dynamic navigation for authenticated users -->
                         {{#each userNavigation}}
                             <a href="{{this.url}}" class="nav-link {{#if this.active}}active{{/if}}">

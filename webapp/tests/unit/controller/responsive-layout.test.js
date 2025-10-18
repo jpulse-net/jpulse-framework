@@ -32,7 +32,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
             appConfig: mockAppConfig,
             user: {
                 id: '',
-                authenticated: false
+                isAuthenticated: false
             },
             config: {},
             url: {
@@ -214,7 +214,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
                 user: {
                     id: '',
                     firstName: '',
-                    authenticated: false
+                    isAuthenticated: false
                 },
                 appConfig: mockAppConfig, // New feature
                 config: {},

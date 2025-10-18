@@ -108,8 +108,7 @@ This is the doc to track work items, arranged in three sections:
     - {{user.lastName}}
     - {{user.email}}
     - {{config.email.adminEmail}}
-    - {{if user.authenticated "show" "hide"}}
-      - object: { if: function(user.authenticated, "show", "hide") }
+    - {{#if user.isAuthenticated}} show {{else}} hide {{/if}}
     - {{url.domain}}      // 'https://www.example.com:8080'
     - {{url.protocol}}    // 'https'
     - {{url.hostname}}    // 'www.example.com'
@@ -1151,7 +1150,7 @@ This is the doc to track work items, arranged in three sections:
     - jPulse.UI.tabs.register() -- enhanced with optional 3rd parameter and auto-detect active tab from URL (partial URL matching for SPAs)
   - webapp/view/jpulse-footer.tmpl -- initialize navigation on pages, set --jp-header-height CSS variable
   - webapp/view/jpulse-examples/*.shtml -- added class="jp-tabs" to tab placeholder divs to prevent content jump (6 files)
-  - webapp/view/user/profile.shtml -- wrapped API calls in {{#if user.authenticated}} to prevent toast messages when logged out
+  - webapp/view/user/profile.shtml -- wrapped API calls in {{#if user.isAuthenticated}} to prevent toast messages when logged out
   - webapp/routes.js -- added custom middleware for site override of static files in development mode (mimics nginx try_files behavior)
   - webapp/tests/unit/utils/jpulse-ui-navigation.test.js -- comprehensive navigation tests for template-based architecture
   - webapp/tests/unit/utils/jpulse-ui-widgets.test.js -- added 6 new tab parameter handling tests, removed 6 JSDOM-limited tests
@@ -1440,8 +1439,11 @@ This is the doc to track work items, arranged in three sections:
 
 
 
-
-
+additional changes done:
+- fixed broken {{app.shortName}} to {{app.shortName}} in <title> in all pages
+- health controller:
+  - cache system data, shareda mong pm2 instances and redis
+- tweaked jp-* styles for more consistent and a bit more condensed look
 
 
 pending:

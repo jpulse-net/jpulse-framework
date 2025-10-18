@@ -112,7 +112,7 @@ class AuthController {
      * @returns {boolean} True if user is authenticated
      */
     static isAuthenticated(req) {
-        return !!(req.session && req.session.user && req.session.user.authenticated);
+        return !!(req.session?.user);
     }
 
     /**
@@ -202,7 +202,7 @@ class AuthController {
                 initials: (user.profile.firstName?.charAt(0) || '?') + (user.profile.lastName?.charAt(0) || ''),
                 roles: user.roles,
                 preferences: user.preferences,
-                authenticated: true
+                isAuthenticated: true
             };
 
             const elapsed = Date.now() - startTime;

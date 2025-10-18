@@ -115,7 +115,7 @@
                         <div class="detail-row">
                             <strong>{{i18n.view.error.user}}:</strong>
                             <span>
-                            {{#if user.authenticated}}
+                            {{#if user.isAuthenticated}}
                                 {{user.firstName}}
                             {{else}}
                                 {{i18n.view.error.guest}}
@@ -125,7 +125,7 @@
                     </div>
 
                     <div class="error-message jp-mb-30">
-                        {{#if user.authenticated}}
+                        {{#if user.isAuthenticated}}
                         <p>{{i18n.view.error.apologize}}</p>
                         {{else}}
                         <p>{{i18n.view.error.tryLogin}}</p>
@@ -136,12 +136,11 @@
                         <a href="/" class="jp-btn jp-btn-primary">
                             ← {{i18n.view.error.backToHome}}
                         </a>
-                        {{#if user.authenticated}}
-                        {{else}}
+                        {{#unless user.isAuthenticated}}
                         <a href="/auth/login.shtml" class="jp-btn jp-btn-secondary">
                             {{i18n.view.auth.common.signin}}
-                        </a>
-                        {{/if}}
+                            </a>
+                        {{/unless}}
                     </div>
                 </div>
             </div>

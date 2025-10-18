@@ -79,7 +79,7 @@
                 }
             }
         },
-        {{#unless user.authenticated}}
+        {{#unless user.isAuthenticated}}
             {{#if appConfig.view.auth.hideLogin}}
                 {{#unless appConfig.view.auth.hideSignup}}
         auth: {
@@ -108,7 +108,7 @@
         },
             {{/if}}
         {{/unless}}
-        {{#if user.authenticated}}
+        {{#if user.isAuthenticated}}
         user: {
             label:              '{{i18n.view.navigation.user._index}}',
             url:                '/user/',

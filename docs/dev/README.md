@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 ### View Layer Responsibilities
 
 **Server-Side (Minimal)**:
-- Authentication state (`{{user.authenticated}}`)
+- Authentication state (`{{user.isAuthenticated}}`)
 - Initial configuration (`{{appConfig.*}}`)
 - Page structure and navigation
 - Security context and CSRF tokens

@@ -96,7 +96,7 @@ Authenticated requests include user context in `req.session.user`:
     lastName: "Smith",
     email: "john@example.com",
     roles: ["user", "admin"],
-    authenticated: true,
+    isAuthenticated: true,
     preferences: {
         language: "en",
         theme: "light"

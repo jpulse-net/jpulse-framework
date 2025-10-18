@@ -128,7 +128,7 @@ describe.skip('Admin Dashboard View Rendering (W-013)', () => {
                     firstName: 'Admin',
                     lastName: 'User',
                     email: 'admin@example.com',
-                    authenticated: true,
+                    isAuthenticated: true,
                     roles: ['admin'],
                     preferences: {
                         language: 'en'
@@ -321,7 +321,7 @@ describe.skip('Admin Dashboard View Rendering (W-013)', () => {
         test('should include user authentication status in context', async () => {
             const mockTemplate = `
 <div>
-    {{#if user.authenticated}}
+    {{#if user.isAuthenticated}}
         <span>Authenticated: {{user.username}}</span>
     {{else}}
         <span>Not authenticated</span>

@@ -114,7 +114,7 @@ describe('Admin Routes Authentication (W-013)', () => {
                 user: {
                     id: 'user123',
                     username: 'testuser',
-                    authenticated: true,
+                    isAuthenticated: true,
                     roles: ['user'] // No admin role
                 }
             };
@@ -137,7 +137,7 @@ describe('Admin Routes Authentication (W-013)', () => {
                 user: {
                     id: 'admin123',
                     username: 'adminuser',
-                    authenticated: true,
+                    isAuthenticated: true,
                     roles: ['user', 'admin']
                 }
             };
@@ -154,7 +154,7 @@ describe('Admin Routes Authentication (W-013)', () => {
                 user: {
                     id: 'root123',
                     username: 'rootuser',
-                    authenticated: true,
+                    isAuthenticated: true,
                     roles: ['root']
                 }
             };
@@ -171,7 +171,7 @@ describe('Admin Routes Authentication (W-013)', () => {
                 user: {
                     id: 'user123',
                     username: 'testuser',
-                    authenticated: true,
+                    isAuthenticated: true,
                     roles: ['user'],
                     preferences: {
                         language: 'de'
@@ -235,7 +235,7 @@ describe('Admin Routes Authentication (W-013)', () => {
         test('isAuthenticated should return true for authenticated users', () => {
             mockReq.session = {
                 user: {
-                    authenticated: true
+                    isAuthenticated: true
                 }
             };
 
@@ -253,7 +253,7 @@ describe('Admin Routes Authentication (W-013)', () => {
         test('isAuthorized should return true for users with required role', () => {
             mockReq.session = {
                 user: {
-                    authenticated: true,
+                    isAuthenticated: true,
                     roles: ['user', 'admin']
                 }
             };
@@ -265,7 +265,7 @@ describe('Admin Routes Authentication (W-013)', () => {
         test('isAuthorized should return false for users without required role', () => {
             mockReq.session = {
                 user: {
-                    authenticated: true,
+                    isAuthenticated: true,
                     roles: ['user']
                 }
             };
@@ -277,7 +277,7 @@ describe('Admin Routes Authentication (W-013)', () => {
         test('isAuthorized should handle multiple required roles', () => {
             mockReq.session = {
                 user: {
-                    authenticated: true,
+                    isAuthenticated: true,
                     roles: ['user', 'admin']
                 }
             };
@@ -326,7 +326,7 @@ describe('Admin Routes Authentication (W-013)', () => {
         test('should handle missing roles array', () => {
             mockReq.session = {
                 user: {
-                    authenticated: true
+                    isAuthenticated: true
                     // No roles array
                 }
             };

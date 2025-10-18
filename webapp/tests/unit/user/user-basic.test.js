@@ -392,7 +392,7 @@ describe('User Model Basic Tests', () => {
                 nickName: user.profile.nickName,
                 roles: user.roles,
                 preferences: user.preferences,
-                authenticated: true
+                isAuthenticated: true
             };
 
             expect(sessionUser.id).toBe('507f1f77bcf86cd799439011');

@@ -30,14 +30,14 @@
         </a>
         <div class="jp-user-menu">
             <div class="jp-user-icon" id="jp-user-icon">
-              {{#if user.authenticated}}
+              {{#if user.isAuthenticated}}
                 <span>{{user.initials}}</span>
               {{else}}
                 <span>👤</span>
               {{/if}}
             </div>
             <div class="jp-dropdown" id="userDropdown">
-              {{#if user.authenticated}}
+              {{#if user.isAuthenticated}}
                 <a href="/user/">{{i18n.view.user.index.dashboard}}</a>
                 <a href="/user/profile.shtml">{{i18n.view.auth.common.profile}}</a>
                 <a href="/auth/logout.shtml">{{i18n.view.auth.common.signout}}</a>

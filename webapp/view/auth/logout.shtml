@@ -51,7 +51,7 @@
 <body>
     <div class="jp-main">
         <div class="jp-container-600 local-auth-container">
-          {{#if user.authenticated}}
+          {{#if user.isAuthenticated}}
             <div class="jp-card local-auth-card">
                 <div class="local-auth-header">
                     <div class="jp-user-avatar-large local-logout-icon">

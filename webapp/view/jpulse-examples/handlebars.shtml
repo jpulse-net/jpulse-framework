@@ -45,7 +45,7 @@
                         <ul>
                             <li><strong>App Name:</strong> {{app.site.name}}</li>
                             <li><strong>Version:</strong> {{app.site.version}}</li>
-                            <li><strong>Current User:</strong> {{#if user.authenticated}}{{user.firstName}} {{user.lastName}}{{else}}Guest{{/if}}</li>
+                            <li><strong>Current User:</strong> {{#if user.isAuthenticated}}{{user.firstName}} {{user.lastName}}{{else}}Guest{{/if}}</li>
                             <li><strong>Current URL:</strong> {{url.domain}}{{url.pathname}}</li>
                             <li><strong>Admin Email:</strong> {{config.email.adminEmail}}</li>
                         </ul>
@@ -56,7 +56,7 @@
 &lt;ul&gt;
     &lt;li&gt;&lt;strong&gt;App Name:&lt;/strong&gt; &#123;&#123;app.site.name&#125;&#125;&lt;/li&gt;
     &lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; &#123;&#123;app.site.version&#125;&#125;&lt;/li&gt;
-    &lt;li&gt;&lt;strong&gt;Current User:&lt;/strong&gt; &#123;&#123;#if user.authenticated&#125;&#125;&#123;&#123;user.firstName&#125;&#125; &#123;&#123;user.lastName&#125;&#125;&#123;&#123;else&#125;&#125;Guest&#123;&#123;/if&#125;&#125;&lt;/li&gt;
+    &lt;li&gt;&lt;strong&gt;Current User:&lt;/strong&gt; &#123;&#123;#if user.isAuthenticated&#125;&#125;&#123;&#123;user.firstName&#125;&#125; &#123;&#123;user.lastName&#125;&#125;&#123;&#123;else&#125;&#125;Guest&#123;&#123;/if&#125;&#125;&lt;/li&gt;
     &lt;li&gt;&lt;strong&gt;Current URL:&lt;/strong&gt; &#123;&#123;url.domain&#125;&#125;&#123;&#123;url.pathname&#125;&#125;&lt;/li&gt;
     &lt;li&gt;&lt;strong&gt;Admin Email:&lt;/strong&gt; &#123;&#123;config.email.adminEmail&#125;&#125;&lt;/li&gt;
 &lt;/ul&gt;
@@ -77,28 +77,28 @@
                 <div id="conditionals-example-panel" class="jp-panel">
                     <div class="jp-warning-box">
                         <h4>Authentication Status</h4>
-                        {{#if user.authenticated}}
+                        {{#if user.isAuthenticated}}
                             <p>✅ Welcome back, {{user.firstName}}!</p>
                             <p>Your roles: {{user.roles}}</p>
                             {{#if user.isAdmin}}
                                 <p>🔧 You have admin privileges</p>
                             {{/if}}
                         {{else}}
-                            <p>👋 Hello, guest! Please <a href="/auth/login">log in</a> to access more features.</p>
+                            <p>👋 Hello, guest! Please <a href="/auth/login.shtml">log in</a> to access more features.</p>
                         {{/if}}
                     </div>
                 </div>
 
                 <div id="conditionals-source-panel" class="jp-panel">
                     <div class="jp-source-code" data-lang="html">
-&#123;&#123;#if user.authenticated&#125;&#125;
+&#123;&#123;#if user.isAuthenticated&#125;&#125;
     &lt;p&gt;✅ Welcome back, &#123;&#123;user.firstName&#125;&#125;!&lt;/p&gt;
     &lt;p&gt;Your roles: &#123;&#123;user.roles&#125;&#125;&lt;/p&gt;
     &#123;&#123;#if user.isAdmin&#125;&#125;
         &lt;p&gt;🔧 You have admin privileges&lt;/p&gt;
     &#123;&#123;/if&#125;&#125;
 &#123;&#123;else&#125;&#125;
-    &lt;p&gt;👋 Hello, guest! Please &lt;a href="/auth/login"&gt;log in&lt;/a&gt; to access more features.&lt;/p&gt;
+    &lt;p&gt;👋 Hello, guest! Please &lt;a href="/auth/login.shtml"&gt;log in&lt;/a&gt; to access more features.&lt;/p&gt;
 &#123;&#123;/if&#125;&#125;
                     </div>
                 </div>
@@ -116,7 +116,7 @@
                 <div id="i18n-example-panel" class="jp-panel">
                     <div class="jp-info-box">
                         <p><strong>Welcome Message:</strong> {{i18n.view.home.introduction}}</p>
-                        <p><strong>Login Status:</strong> {{#if user.authenticated}}{{i18n.view.home.welcomeBack}}{{else}}{{i18n.view.home.notLoggedIn}}{{/if}}</p>
+                        <p><strong>Login Status:</strong> {{#if user.isAuthenticated}}{{i18n.view.home.welcomeBack}}{{else}}{{i18n.view.home.notLoggedIn}}{{/if}}</p>
                         <p><strong>Authentication Message:</strong> {{i18n.view.auth.common.notAuthenticated}}</p>
                     </div>
                 </div>
@@ -124,7 +124,7 @@
                 <div id="i18n-source-panel" class="jp-panel">
                     <div class="jp-source-code" data-lang="html">
 &lt;p&gt;&lt;strong&gt;Welcome Message:&lt;/strong&gt; &#123;&#123;i18n.view.home.introduction&#125;&#125;&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Login Status:&lt;/strong&gt; &#123;&#123;#if user.authenticated&#125;&#125;&#123;&#123;i18n.view.home.welcomeBack&#125;&#125;&#123;&#123;else&#125;&#125;&#123;&#123;i18n.view.home.notLoggedIn&#125;&#125;&#123;&#123;/if&#125;&#125;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Login Status:&lt;/strong&gt; &#123;&#123;#if user.isAuthenticated&#125;&#125;&#123;&#123;i18n.view.home.welcomeBack&#125;&#125;&#123;&#123;else&#125;&#125;&#123;&#123;i18n.view.home.notLoggedIn&#125;&#125;&#123;&#123;/if&#125;&#125;&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;Authentication Message:&lt;/strong&gt; &#123;&#123;i18n.view.auth.common.notAuthenticated&#125;&#125;&lt;/p&gt;
                     </div>
                 </div>
@@ -183,7 +183,7 @@
                 <div id="nested-example-panel" class="jp-panel">
                     <div class="jp-warning-box">
                         <h4>Multi-level Conditional Example</h4>
-                        {{#if user.authenticated}}
+                        {{#if user.isAuthenticated}}
                             <p>User: {{user.firstName}} {{user.lastName}}</p>
                             {{#if user.isAdmin}}
                                 <div class="jp-info-box">
@@ -205,7 +205,7 @@
 
                 <div id="nested-source-panel" class="jp-panel">
                     <div class="jp-source-code" data-lang="html">
-&#123;&#123;#if user.authenticated&#125;&#125;
+&#123;&#123;#if user.isAuthenticated&#125;&#125;
     &lt;p&gt;User: &#123;&#123;user.firstName&#125;&#125; &#123;&#123;user.lastName&#125;&#125;&lt;/p&gt;
     &#123;&#123;#if user.isAdmin&#125;&#125;
         &lt;div class="jp-info-box"&gt;
@@ -348,8 +348,8 @@
                             </tr>
                             <tr>
                                 <td>Login status</td>
-                                <td><code>&#123;&#123;user.authenticated&#125;&#125;</code></td>
-                                <td><code>{{user.authenticated}}</code></td>
+                                <td><code>&#123;&#123;user.isAuthenticated&#125;&#125;</code></td>
+                                <td><code>{{user.isAuthenticated}}</code></td>
                             </tr>
                             <tr>
                                 <td>First name</td>

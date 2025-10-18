@@ -175,7 +175,7 @@ describe('User Authentication Tests', () => {
                     email: user.email,
                     roles: user.roles,
                     preferences: user.preferences,
-                    authenticated: true
+                    isAuthenticated: true
                 };
             };
 
@@ -215,7 +215,7 @@ describe('User Authentication Tests', () => {
                     nickName: user.profile.nickName || '',
                     email: user.email,
                     roles: user.roles,
-                    authenticated: true
+                    isAuthenticated: true
                 };
             };
 

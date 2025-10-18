@@ -60,7 +60,7 @@
             </ol>
         </div>
 
-        {{#if user.authenticated}}
+        {{#if user.isAuthenticated}}
         <div class="jp-info-box">
             <p>👋 Hello {{user.firstName}}! You're seeing this as an authenticated user.</p>
         </div>

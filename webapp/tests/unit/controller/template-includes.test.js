@@ -44,7 +44,7 @@ describe('Template Includes System', () => {
                 }
             },
             user: {
-                authenticated: false,
+                isAuthenticated: false,
                 firstName: '',
                 id: ''
             },
@@ -257,14 +257,15 @@ describe('Template Includes System', () => {
         test('should handle user authentication states', () => {
             const mockDropdownHTML = `
                 <div class="jpulse-dropdown" id="userDropdown">
-                    {{if user.authenticated
-                        "<a href=\\"/profile\\">Profile</a><a href=\\"/signout\\">Sign Out</a>"
-                        "<a href=\\"/signin\\">Sign In</a><a href=\\"/signup\\">Sign Up</a>"
-                    }}
+                    {{#if user.isAuthenticated
+                        <a href=\\"/profile\\">Profile</a><a href=\\"/signout\\">Sign Out</a>
+                    {{else}}
+                        <a href=\\"/signin\\">Sign In</a><a href=\\"/signup\\">Sign Up</a>
+                    {{/if}}
                 </div>
             `;
 
-            expect(mockDropdownHTML).toContain('user.authenticated');
+            expect(mockDropdownHTML).toContain('user.isAuthenticated');
             expect(mockDropdownHTML).toContain('/profile');
             expect(mockDropdownHTML).toContain('/signout');
             expect(mockDropdownHTML).toContain('/signin');
@@ -293,12 +294,12 @@ describe('Template Includes System', () => {
 
         test('should handle conditional expressions', () => {
             const conditionalTemplate = `
-                {{if user.authenticated "Welcome back!" "Please sign in"}}
+                {{#if user.isAuthenticated}}Welcome back!{{else}}Please sign in{{/if}}
             `;
 
             // Test both states
-            const authenticatedResult = 'Welcome back!';
-            const guestResult = 'Please sign in';
+            const authenticatedResult = ViewController.processHandlebars(conditionalTemplate, { ...mockContext, user: { ...mockContext.user, isAuthenticated: true } }, mockReq);
+            const guestResult = ViewController.processHandlebars(conditionalTemplate, mockContext, mockReq);
 
             expect(authenticatedResult).toBe('Welcome back!');
             expect(guestResult).toBe('Please sign in');

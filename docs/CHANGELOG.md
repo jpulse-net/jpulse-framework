@@ -477,7 +477,7 @@ ________________________________________________
 - webapp/controller/view.js: Removed obsolete navigation context processing
 - webapp/utils/i18n.js: Removed obsolete processI18nHandlebarsObj() method
 - webapp/routes.js: Added site override middleware for static files
-- webapp/view/user/profile.shtml: Added `{{#if user.authenticated}}` wrapper
+- webapp/view/user/profile.shtml: Added `{{#if user.isAuthenticated}}` wrapper
 - webapp/view/admin/users.shtml: Removed conflicting page-specific CSS
 - webapp/view/jpulse-examples/*.shtml: Added `.jp-tabs` class to prevent jump (6 files)
 - webapp/translations/en.conf & de.conf: Added navigation translations

@@ -339,7 +339,7 @@ async function load(req, res) {
         lastName: req.session?.user?.lastName || '',
         email: req.session?.user?.email || '',
         initials: req.session?.user?.initials || '?',
-        authenticated: !!req.session?.user
+        isAuthenticated: !!req.session?.user
       },
       config: globalConfig?.data || {},
       appConfig: appConfig,
@@ -1104,7 +1104,7 @@ export default {
     <div class="user-profile">
       <h1>{{ $context.i18n.user.profile.title }}</h1>
 
-      <div v-if="$context.user.authenticated" class="profile-content">
+      <div v-if="$context.user.isAuthenticated" class="profile-content">
         <!-- Interactive profile editing -->
         <UserEditor
           :user="$context.user"
@@ -1154,7 +1154,7 @@ export default {
   },
 
   created() {
-    if (this.$context.user.authenticated) {
+    if (this.$context.user.isAuthenticated) {
       // Connect to user activity WebSocket
       this.activityWs = this.$jPulse.connectWebSocket(
         `/ws/user/${this.$context.user.id}/activity`
@@ -1209,7 +1209,7 @@ export default {
     <div class="custom-user-profile">
       <h1>{{ $context.i18n.user.profile.title }} - Custom Site Version</h1>
 
-      <div v-if="$context.user.authenticated" class="profile-content">
+      <div v-if="$context.user.isAuthenticated" class="profile-content">
         <!-- Use custom site components -->
         <SiteUserCard :user="$context.user" />
 
@@ -1245,7 +1245,7 @@ export default {
   },
 
   async created() {
-    if (this.$context.user.authenticated) {
+    if (this.$context.user.isAuthenticated) {
       // Load site-specific sales data
       await this.loadSalesData();
     }

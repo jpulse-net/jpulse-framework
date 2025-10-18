@@ -109,7 +109,7 @@ describe('Health API Integration Tests', () => {
         test('should provide MongoDB status structure', async () => {
             const HealthController = (await import('../../controller/health.js')).default;
 
-            const mongoStatus = HealthController._getMongoDBStatus();
+            const mongoStatus = await HealthController._getMongoDBStatus();
             expect(mongoStatus).toBeDefined();
             expect(mongoStatus).toHaveProperty('status');
             expect(mongoStatus).toHaveProperty('version');
@@ -163,7 +163,7 @@ describe('Health API Integration Tests', () => {
             const mockMemUsage = { heapTotal: 100 * 1024 * 1024 };
             const timestamp = new Date().toISOString();
 
-            const servers = HealthController._buildServersArray(
+            const servers = await HealthController._buildServersArray(
                 mockSystemInfo,
                 mockWSStats,
                 mockPM2Status,

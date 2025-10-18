@@ -578,8 +578,11 @@ class WebSocketController {
                 // Convert back to path format: api:1:ws:namespace -> /api/1/ws/namespace
                 const namespacePath = '/' + channelSuffix.replace(/:/g, '/');
 
-                // Only process if message came from different instance
-                if (sourceInstanceId !== global.RedisManager.getInstanceId()) {
+                // Only filter messages if Redis is available (cluster mode)
+                const isClusterMode = global.RedisManager?.isRedisAvailable() || false;
+
+                // Process messages from other instances, or all messages if single instance
+                if (!isClusterMode || sourceInstanceId !== global.RedisManager.getInstanceId()) {
                     this._localBroadcast(namespacePath, data);
                 }
             });

@@ -225,7 +225,7 @@ async function load(req, res) {
                 initials: req.session?.user?.initials || '?',
                 roles: req.session?.user?.roles || [],
                 preferences: req.session?.user?.preferences || {},
-                authenticated: !!req.session?.user,
+                isAuthenticated: AuthController.isAuthenticated(req),
                 isAdmin: AuthController.isAuthorized(req, ['admin', 'root'])
             },
             config: globalConfig?.data || {},

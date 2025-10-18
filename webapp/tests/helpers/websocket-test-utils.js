@@ -87,7 +87,7 @@ export function createAuthenticatedSession(userData = {}) {
             id: userData.id || 'test-user-id',
             username: userData.username || 'testuser',
             email: userData.email || 'test@example.com',
-            authenticated: true,
+            isAuthenticated: true,
             roles: userData.roles || ['user'],
             firstName: userData.firstName || 'Test',
             lastName: userData.lastName || 'User',

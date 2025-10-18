@@ -145,7 +145,7 @@
 <body>
     <div class="jp-main">
         <div class="jp-container-600 local-auth-container">
-          {{#if user.authenticated}}
+          {{#if user.isAuthenticated}}
             <div class="local-already-logged-in">
                 <div class="jp-user-avatar-large">
                     {{user.initials}}

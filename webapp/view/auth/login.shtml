@@ -205,7 +205,7 @@
 <body>
     <div class="jp-main">
         <div class="jp-container-600 local-auth-container">
-          {{#if user.authenticated}}
+          {{#if user.isAuthenticated}}
             <div class="local-already-logged-in">
                 <div class="jp-user-avatar-large">
                     {{user.initials}}
@@ -303,9 +303,7 @@
     </div>
 
     <script>
-      {{#if user.authenticated}}
-        // no dynamic content for authenticated user
-      {{else}}
+      {{#unless user.isAuthenticated}}
         // Enhanced login handling using jPulse utilities
         jPulse.dom.ready(() => {
             const loginForm = document.getElementById('loginForm');
@@ -378,7 +376,7 @@
         function showForgotPassword() {
             jPulse.UI.toast.info('{{i18n.view.auth.login.forgotPasswordMessage}}');
         }
-      {{/if}}
+      {{/unless}}
     </script>
 
     {{file.include "jpulse-footer.tmpl"}}

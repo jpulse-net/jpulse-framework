@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>App Cluster Demo - {{app.shortName}}</title>
+    <title>App Cluster Demo - {{app.site.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
     <style>
         .local-card {
@@ -103,7 +103,7 @@
 
                 <div class="jp-stats-grid">
                     <div class="jp-stat-card">
-                        <div class="local-status-value" id="instanceId">Loading...</div>
+                        <div class="local-status-value" id="instanceId" style="font-size: 18px;">Loading...</div>
                         <div class="local-status-label">Server Instance</div>
                     </div>
                     <div class="jp-stat-card">
@@ -243,19 +243,55 @@
     <script>
         // Load cluster status information
         jPulse.dom.ready(() => {
-            // Get instance ID from server
-            fetch('/api/1/health/cluster')
+            // Get cluster status from server
+            fetch('/api/1/broadcast/status')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.data) {
+                        const clusterData = data.data;
+
+                        // Update instance ID
                         const instanceElement = document.getElementById('instanceId');
-                        if (instanceElement && data.data.instanceId) {
-                            instanceElement.textContent = data.data.instanceId;
+                        if (instanceElement) {
+                            instanceElement.textContent = clusterData.instanceId || 'Unknown';
+                        }
+
+                        // Update Redis status
+                        const redisElement = document.getElementById('redisStatus');
+                        if (redisElement) {
+                            if (clusterData.redisAvailable) {
+                                redisElement.textContent = '✅ Enabled';
+                                redisElement.className = 'local-status-value redis-enabled';
+                            } else {
+                                redisElement.textContent = '⚠️ Disabled';
+                                redisElement.className = 'local-status-value redis-disabled';
+                            }
+                        }
+
+                        // Update cluster mode
+                        const clusterElement = document.getElementById('clusterMode');
+                        if (clusterElement) {
+                            clusterElement.textContent = clusterData.redisAvailable ? 'Multi-Server' : 'Single-Server';
+                        }
+
+                        // Update broadcast support
+                        const broadcastElement = document.getElementById('broadcastSupport');
+                        if (broadcastElement) {
+                            broadcastElement.textContent = clusterData.redisAvailable ? 'Full Support' : 'Local Only';
+                        }
+
+                        // Show toast if Redis not available
+                        if (!clusterData.redisAvailable) {
+                            jPulse.UI.toast.show(
+                                '⚠️ Redis not available - running in local-only mode. The examples will not broadcast the data',
+                                'warning'
+                            );
                         }
                     }
                 })
                 .catch(error => {
                     console.log('Could not load cluster info:', error.message);
+                    // Set fallback values
                     const instanceElement = document.getElementById('instanceId');
                     if (instanceElement) {
                         instanceElement.textContent = 'Unknown';

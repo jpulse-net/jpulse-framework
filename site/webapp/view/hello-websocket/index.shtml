@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket Real-Time Demo - {{app.shortName}}</title>
+    <title>WebSocket Real-Time Demo - {{app.site.shortName}}</title>
 
     <!-- Vue.js 3 -->
     <script src="/common/vue/vue.min.js"></script>

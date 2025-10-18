@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket Status - {{app.shortName}}</title>
+    <title>WebSocket Status - {{app.site.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
     <style>
         /* Page-specific styles only - status styles moved to jpulse-common.css */

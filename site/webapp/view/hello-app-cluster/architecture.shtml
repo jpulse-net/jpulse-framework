@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Architecture - App Cluster Demo - {{app.shortName}}</title>
+    <title>Architecture - App Cluster Demo - {{app.site.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
     <style>
         .local-diagram {
@@ -84,7 +84,7 @@
 
         .local-component-features li {
             padding: 4px 0;
-            font-size: 13px;
+            font-size: 14px;
             color: #495057;
         }
 
@@ -238,7 +238,7 @@
             padding: 15px;
             margin: 10px 0;
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 13px;
+            font-size: 14px;
             overflow-x: auto;
         }
     </style>
@@ -317,6 +317,46 @@
                         <li><strong>Session Sharing:</strong> Users can switch between any server instance</li>
                         <li><strong>Separation of Concerns:</strong> Clear boundaries between layers and components</li>
                     </ul>
+                </div>
+            </div>
+
+            <!-- Getting Started Examples -->
+            <div class="jp-card">
+                <h2>🚀 Getting Started Examples</h2>
+                <p class="jp-subheading">Minimal code examples to get you started quickly</p>
+
+                <h3>📢 Simple Notification Broadcasting</h3>
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
+                    <pre><code class="language-javascript">// In your view template - just add this to send notifications
+jPulse.appCluster.broadcast.publish('view:alerts:system', {
+    message: 'System maintenance scheduled',
+    type: 'warning'
+});
+
+// Listen for notifications from other instances
+jPulse.appCluster.broadcast.subscribe('view:alerts:system', (data) => {
+    jPulse.UI.toast.show(data.message, data.type);
+});</code></pre>
+                </div>
+
+                <h3>✅ Collaborative Data Updates</h3>
+                <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
+                    <pre><code class="language-javascript">// In your controller - handle the API request
+static async apiCreate(req, res) {
+    const todo = await TodoModel.create(req.body);
+    await this._broadcastChange('created', todo, req);
+    res.json({ success: true, todo });
+}
+
+// In your view - listen for updates
+jPulse.appCluster.broadcast.subscribe('controller:todo:list:changed', () => {
+    refreshTodoList(); // Update your UI
+});</code></pre>
+                </div>
+
+                <div class="local-highlight-box">
+                    <h4>💡 Pro Tip</h4>
+                    <p>Start with the <strong>Global Notifications</strong> demo to understand the basics, then move to <strong>Collaborative To-Do</strong> for production patterns. Both work out of the box!</p>
                 </div>
             </div>
 
@@ -433,6 +473,37 @@
                             <li>Test environment support</li>
                         </ul>
                     </div>
+                </div>
+            </div>
+
+            <!-- Quick Start Guide -->
+            <div class="jp-card">
+                <h2>🎯 Quick Start Guide</h2>
+                <p class="jp-subheading">Choose the right pattern for your use case</p>
+
+                <div class="local-highlight-box">
+                    <h4>🚀 For Beginners & Simple Cases</h4>
+                    <p><strong>Use Client-Side Broadcasting if you need:</strong></p>
+                    <ul>
+                        <li>Simple notifications or alerts</li>
+                        <li>Real-time chat or messaging</li>
+                        <li>Live updates without data persistence</li>
+                        <li>Quick prototyping</li>
+                    </ul>
+                    <p><a href="/hello-app-cluster/notifications.shtml" class="jp-btn jp-btn-primary">Try Global Notifications</a></p>
+                </div>
+
+                <div class="local-highlight-box">
+                    <h4>🏗️ For Production Applications</h4>
+                    <p><strong>Use Server-Side Broadcasting if you need:</strong></p>
+                    <ul>
+                        <li>Data validation and security</li>
+                        <li>Database persistence</li>
+                        <li>Audit trails and logging</li>
+                        <li>Complex business logic</li>
+                        <li>Enterprise-grade reliability</li>
+                    </ul>
+                    <p><a href="/hello-app-cluster/collaborative-todo.shtml" class="jp-btn jp-btn-primary">Try Collaborative To-Do</a></p>
                 </div>
             </div>
 

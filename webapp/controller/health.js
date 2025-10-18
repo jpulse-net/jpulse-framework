@@ -30,12 +30,21 @@ class HealthController {
     // Health broadcasting interval
     static healthBroadcastInterval = null;
 
+    // Health data cache to avoid expensive repeated calls
+    static healthDataCache = new Map();
+    static lastCacheUpdate = 0;
+
     // Configuration for health broadcasting
-    static config = {
-        broadcastInterval: 30000,  // 30 seconds
-        instanceTTL: 90000,        // 90 seconds (3x broadcast interval)
-        enableBroadcasting: true
-    };
+    static get config() {
+        const healthConfig = global.appConfig?.controller?.health || {};
+        return {
+            broadcastInterval: (healthConfig.broadcastInterval || 30) * 1000, // Convert seconds to ms
+            cacheInterval: (healthConfig.cacheInterval || 15) * 1000,        // Convert seconds to ms
+            instanceTTL: (healthConfig.instanceTTL || 90) * 1000,            // Convert seconds to ms
+            enableBroadcasting: global.appConfig?.redis?.enabled !== false,   // Use Redis enabled status
+            omitStatusLogs: healthConfig.omitStatusLogs || false
+        };
+    }
 
     /**
      * Initialize health metrics clustering
@@ -81,6 +90,11 @@ class HealthController {
             this.healthBroadcastInterval = null;
             LogController.logInfo(null, 'health.shutdown', 'Health broadcasting stopped');
         }
+
+        // Clear health data cache to prevent memory leaks
+        this.healthDataCache.clear();
+        this.lastCacheUpdate = 0;
+        LogController.logInfo(null, 'health.shutdown', 'Health data cache cleared');
     }
 
     /**
@@ -93,7 +107,7 @@ class HealthController {
         const startTime = Date.now();
 
         // Check if health logging is enabled
-        const omitStatusLogs = global.appConfig?.controller?.health?.omitStatusLogs || false;
+        const omitStatusLogs = this.config.omitStatusLogs;
         if (!omitStatusLogs) {
             LogController.logRequest(req, 'health.health', '');
         }
@@ -180,7 +194,7 @@ class HealthController {
                 const servers = await HealthController._buildClusterServersArray(systemInfo, wsStats, pm2Status, baseMetrics.data.timestamp);
                 baseMetrics.data.servers = servers;
             } else {
-                baseMetrics.data.note = 'Only admin users can view more metrics data';
+                baseMetrics.data.note = 'Only admin users can see more metrics data';
             }
 
             res.json(baseMetrics);
@@ -307,7 +321,7 @@ class HealthController {
             let webSocketNamespaces = new Map();
 
             // Include current instance
-            const currentInstanceData = this._getCurrentInstanceHealthData(pm2Status, wsStats);
+            const currentInstanceData = await this._getCurrentInstanceHealthData(pm2Status, wsStats);
             allInstances.set('current', currentInstanceData);
 
             // Aggregate data from all instances
@@ -393,7 +407,7 @@ class HealthController {
 
         // If Redis not enabled, fall back to single-server array
         if (!appConfig.redis?.enabled) {
-            return this._buildServersArray(systemInfo, wsStats, pm2Status, timestamp);
+            return await this._buildServersArray(systemInfo, wsStats, pm2Status, timestamp);
         }
 
         try {
@@ -401,7 +415,7 @@ class HealthController {
             const allInstances = this._getAllInstancesHealth();
 
             // Include current instance
-            const currentInstanceData = this._getCurrentInstanceHealthData(pm2Status, wsStats);
+            const currentInstanceData = await this._getCurrentInstanceHealthData(pm2Status, wsStats);
             allInstances.set('current', currentInstanceData);
 
             // Group instances by server (hostname)
@@ -442,7 +456,7 @@ class HealthController {
 
         } catch (error) {
             LogController.logError(null, 'health._buildClusterServersArray', `error: ${error.message} - falling back to single-server`);
-            return this._buildServersArray(systemInfo, wsStats, pm2Status, timestamp);
+            return await this._buildServersArray(systemInfo, wsStats, pm2Status, timestamp);
         }
     }
 
@@ -493,7 +507,7 @@ class HealthController {
      * @returns {Array} Servers array
      * @private
      */
-    static _buildServersArray(systemInfo, wsStats, pm2Status, timestamp) {
+    static async _buildServersArray(systemInfo, wsStats, pm2Status, timestamp) {
         const hostname = systemInfo.hostname;
         const serverId = HealthController._extractServerIdFromHostname(hostname);
 
@@ -620,7 +634,7 @@ class HealthController {
             totalMemory: systemInfo.totalMemory,
 
             // MongoDB server status (separate from app database config)
-            mongodb: HealthController._getMongoDBStatus(),
+            mongodb: await HealthController._getMongoDBStatus(),
 
             instances: instances
         }];
@@ -672,40 +686,71 @@ class HealthController {
      * @returns {Object|null} MongoDB server status or null if not available
      * @private
      */
-    static _getMongoDBStatus() {
+    static async _getMongoDBStatus() {
         try {
-            // TODO: Implement actual MongoDB server status check
-            // This would query MongoDB admin database for server status
-            // For now, return basic placeholder structure
-            return {
-                status: 'connected', // TODO: Check actual MongoDB server status
-                version: '5.0.8', // TODO: Get MongoDB version
-                connections: {
-                    current: 12, // TODO: Get current connections
-                    available: 78 // TODO: Get available connections
-                },
-                uptime: 123456, // TODO: Get MongoDB uptime
-                host: global.appConfig.deployment[global.appConfig.deployment.mode].db || 'unknown'
-            };
+            // Check if database is available
+            if (!global.Database || !global.Database.getDb()) {
+                return {
+                    status: 'disconnected',
+                    error: 'Database connection not available',
+                    host: global.appConfig.deployment[global.appConfig.deployment.mode].db || 'unknown'
+                };
+            }
+
+            const db = global.Database.getDb();
+            const dbName = global.appConfig.deployment[global.appConfig.deployment.mode].db;
+
+            try {
+                // Get database statistics
+                const dbStats = db.stats ? await db.stats() : {};
+
+                // Get server status from admin database
+                const adminDb = db.admin();
+                const serverStatus = adminDb.serverStatus ? await adminDb.serverStatus() : {};
+
+                return {
+                    status: 'connected',
+                    version: serverStatus.version || 'unknown',
+                    connections: {
+                        current: serverStatus.connections ? serverStatus.connections.current || 0 : 0,
+                        available: serverStatus.connections ? serverStatus.connections.available || 0 : 0
+                    },
+                    uptime: serverStatus.uptime || 0,
+                    host: global.appConfig.deployment[global.appConfig.deployment.mode].db || 'unknown',
+                    database: dbName,
+                    collections: dbStats.collections || 0,
+                    dataSize: dbStats.dataSize || 0,
+                    storageSize: dbStats.storageSize || 0
+                };
+            } catch (error) {
+                return {
+                    status: 'error',
+                    error: error.message,
+                    host: global.appConfig.deployment[global.appConfig.deployment.mode].db || 'unknown'
+                };
+            }
+
         } catch (error) {
             // MongoDB server status not available
-            return null;
+            return {
+                status: 'error',
+                error: error.message,
+                host: global.appConfig.deployment[global.appConfig.deployment.mode].db || 'unknown'
+            };
         }
     }
 
     /**
-     * W-076: Start periodic health broadcasting to Redis
+     * W-076: Start periodic health broadcasting to Redis with caching optimization
      * @private
      */
-    static _startHealthBroadcasting() {
+    static async _startHealthBroadcasting() {
         if (!this.config.enableBroadcasting) return;
 
         const broadcastHealth = async () => {
             try {
-                // Get current instance health data
-                const pm2Status = await this._getPM2Status();
-                const wsStats = WebSocketController.getStats();
-                const healthData = this._getCurrentInstanceHealthData(pm2Status, wsStats);
+                // Get optimized health data (with caching)
+                const healthData = await this._getOptimizedHealthData();
 
                 // Broadcast to other instances
                 const instanceId = global.RedisManager.getInstanceId();
@@ -722,7 +767,71 @@ class HealthController {
         broadcastHealth();
         this.healthBroadcastInterval = setInterval(broadcastHealth, this.config.broadcastInterval);
 
-        LogController.logInfo(null, 'health._startHealthBroadcasting', `Started health broadcasting every ${this.config.broadcastInterval}ms`);
+        LogController.logInfo(null, 'health._startHealthBroadcasting', `Started health broadcasting every ${this.config.broadcastInterval}s (with ${this.config.cacheInterval}s caching)`);
+    }
+
+    /**
+     * Get health data with caching optimization
+     * Checks local cache first, then Redis cache, only fetches expensive data if both are stale
+     * @returns {Promise<Object>} Health data
+     * @private
+     */
+    static async _getOptimizedHealthData() {
+        const now = Date.now();
+        const cacheKey = 'health_data';
+
+        // Check if we have recent cached data locally
+        const cachedData = this.healthDataCache.get(cacheKey);
+        if (cachedData && (now - this.lastCacheUpdate) < this.config.cacheInterval) {
+            return cachedData;
+        }
+
+        // Check if Redis has recent data from any instance (cross-instance caching)
+        if (global.RedisManager && global.RedisManager.isRedisAvailable()) {
+            try {
+                const redisCacheKey = `health:cache:${global.RedisManager.getInstanceId()}`;
+                const redisData = await global.RedisManager.getClient('metrics').get(redisCacheKey);
+
+                if (redisData) {
+                    const parsedData = JSON.parse(redisData);
+                    // Check if Redis data is still fresh
+                    if (parsedData.timestamp && (now - parsedData.timestamp) < this.config.cacheInterval) {
+                        // Use Redis data and cache locally
+                        this.healthDataCache.set(cacheKey, parsedData.data);
+                        this.lastCacheUpdate = now;
+                        return parsedData.data;
+                    }
+                }
+            } catch (error) {
+                // Redis cache miss - continue to fetch fresh data
+                LogController.logError(null, 'health._getOptimizedHealthData', `Redis cache check failed: ${error.message}`);
+            }
+        }
+
+        // Cache miss - fetch fresh data
+        const pm2Status = await this._getPM2Status();
+        const wsStats = WebSocketController.getStats();
+        const healthData = await this._getCurrentInstanceHealthData(pm2Status, wsStats);
+
+        // Cache locally
+        this.healthDataCache.set(cacheKey, healthData);
+        this.lastCacheUpdate = now;
+
+        // Share with other instances via Redis
+        if (global.RedisManager && global.RedisManager.isRedisAvailable()) {
+            try {
+                const redisCacheKey = `health:cache:${global.RedisManager.getInstanceId()}`;
+                const cacheData = {
+                    data: healthData,
+                    timestamp: now
+                };
+                await global.RedisManager.getClient('metrics').setex(redisCacheKey, Math.floor(this.config.cacheInterval / 1000), JSON.stringify(cacheData));
+            } catch (error) {
+                LogController.logError(null, 'health._getOptimizedHealthData', `Redis cache write failed: ${error.message}`);
+            }
+        }
+
+        return healthData;
     }
 
     /**
@@ -782,7 +891,7 @@ class HealthController {
      * @returns {Object} Current instance health data
      * @private
      */
-    static _getCurrentInstanceHealthData(pm2Status, wsStats) {
+    static async _getCurrentInstanceHealthData(pm2Status, wsStats) {
         const systemInfo = {
             platform: os.platform(),
             arch: os.arch(),
@@ -805,6 +914,84 @@ class HealthController {
             lastActivity: ns.lastActivity
         }));
 
+        // Build instances array for this instance
+        const instances = [];
+
+        if (pm2Status && pm2Status.processes) {
+            // Multiple PM2 instances
+            pm2Status.processes.forEach(p => {
+                const uptime = Math.floor((Date.now() - p.uptime) / 1000);
+                const memUsage = process.memoryUsage();
+
+                instances.push({
+                    pid: p.pid,
+                    instanceId: p.instanceId,
+                    pm2Available: true,
+                    pm2ProcessName: p.name,
+                    status: p.status,
+                    uptime: uptime,
+                    uptimeFormatted: this._formatUptime(uptime),
+                    memory: {
+                        used: p.memory,
+                        total: Math.round(memUsage.heapTotal / 1024 / 1024) // MB
+                    },
+                    cpu: p.cpu,
+                    restarts: p.restarts,
+                    websockets: {
+                        uptime: wsStats.uptime,
+                        localConnections: Math.floor(wsStats.namespaces.reduce((total, ns) => total + ns.clientCount, 0) / pm2Status.processes.length),
+                        localMessages: Math.floor(wsStats.totalMessages / pm2Status.processes.length),
+                        namespaces: wsStats.namespaces.map(ns => ({
+                            path: ns.path,
+                            clientCount: Math.floor(ns.clientCount / pm2Status.processes.length),
+                            localMessages: Math.floor(ns.totalMessages / pm2Status.processes.length),
+                            messagesPerMin: ns.messagesPerMin,
+                            lastActivity: ns.lastActivity
+                        }))
+                    },
+                    processInfo: {
+                        ppid: process.ppid,
+                        memoryUsage: memUsage,
+                        resourceUsage: process.resourceUsage ? process.resourceUsage() : null
+                    }
+                });
+            });
+        } else {
+            // Single instance (no PM2 or PM2 not available)
+            const uptime = Math.floor(process.uptime());
+            const memUsage = process.memoryUsage();
+
+            instances.push({
+                pid: process.pid,
+                instanceId: process.env.PM2_INSTANCE_ID || process.env.INSTANCE_ID || 0,
+                pm2Available: false,
+                reason: pm2Status === null ? "PM2 not installed or not in PATH" : null,
+                uptime: uptime,
+                uptimeFormatted: this._formatUptime(uptime),
+                memory: {
+                    used: Math.round(memUsage.heapUsed / 1024 / 1024), // MB
+                    total: Math.round(memUsage.heapTotal / 1024 / 1024) // MB
+                },
+                websockets: {
+                    uptime: wsStats.uptime,
+                    localConnections: wsStats.namespaces.reduce((total, ns) => total + ns.clientCount, 0),
+                    localMessages: wsStats.totalMessages,
+                    namespaces: wsStats.namespaces.map(ns => ({
+                        path: ns.path,
+                        clientCount: ns.clientCount,
+                        localMessages: ns.totalMessages,
+                        messagesPerMin: ns.messagesPerMin,
+                        lastActivity: ns.lastActivity
+                    }))
+                },
+                processInfo: {
+                    ppid: process.ppid,
+                    memoryUsage: memUsage,
+                    resourceUsage: process.resourceUsage ? process.resourceUsage() : null
+                }
+            });
+        }
+
         return {
             hostname: systemInfo.hostname,
             platform: systemInfo.platform,
@@ -814,7 +1001,7 @@ class HealthController {
             loadAverage: systemInfo.loadAverage,
             freeMemory: systemInfo.freeMemory,
             totalMemory: systemInfo.totalMemory,
-            mongodb: this._getMongoDBStatus(),
+            mongodb: await this._getMongoDBStatus(),
             totalInstances: pm2Status ? pm2Status.totalProcesses : 1,
             totalProcesses: pm2Status ? pm2Status.totalProcesses : 1,
             runningProcesses: pm2Status ? pm2Status.running : 1,
@@ -823,7 +1010,7 @@ class HealthController {
             totalWebSocketConnections,
             totalWebSocketMessages: wsStats.totalMessages,
             webSocketNamespaces,
-            instances: this._buildServersArray(systemInfo, wsStats, pm2Status, new Date().toISOString())[0].instances,
+            instances: instances,
             timestamp: new Date().toISOString()
         };
     }

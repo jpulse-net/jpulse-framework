@@ -1446,9 +1446,9 @@ This is the doc to track work items, arranged in three sections:
 
 pending:
 - jp-card: more consistent card header: normal, dialog look with gray background jp-card-dialog
-- app.shortName not shown in <title>
 - change user.authenticated to user.isAuthenticated
-- webapp/controller/health.js -- get actual mongo status!
+- ws emoji bug on 2 tabs on 8080 & 8086
+- redis todo bug on 2 tabs on 8086 & 8086
 
 
 old pending:
@@ -1516,6 +1516,9 @@ git push origin v0.8.5
 === amend commit message ===
 git commit --amend -F commit-message.txt
 git push --force-with-lease origin main
+
+=== Restart redis ===
+brew services restart redis
 
 === Port 8080 in use ===
 lsof -ti:8080

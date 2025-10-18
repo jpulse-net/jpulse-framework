@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Notifications - App Cluster Demo - {{app.shortName}}</title>
+    <title>Global Notifications - App Cluster Demo - {{app.site.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
     <style>
         .local-card {
@@ -342,9 +342,8 @@
 
             setupBroadcastListening() {
                 // Subscribe to global notifications from all cluster instances
-                if (typeof jPulse !== 'undefined' && jPulse.appCluster && jPulse.appCluster.broadcast) {
+                if (jPulse.appCluster.broadcast) {
                     jPulse.appCluster.broadcast.subscribe(notificationChannel, (data) => {
-                        console.log('📡 Received notification broadcast:', data);
                         this.addNotificationToFeed(data);
 
                         // Show toast if from another tab/instance (check UUID)
@@ -403,14 +402,14 @@
                         serverInstance: this.getServerInstance()
                     };
 
-                    // Publish using the const channel - this will auto-establish WebSocket
-                    if (typeof jPulse !== 'undefined' && jPulse.appCluster && jPulse.appCluster.broadcast) {
-                        // Only publish to server, don't add locally since it will come back via WebSocket
+                    // Always add locally first, then broadcast to sync other instances
+                    this.addNotificationToFeed(notificationData);
+
+                    // Publish to other instances via Redis
+                    if (jPulse.appCluster.broadcast) {
                         jPulse.appCluster.broadcast.publish(notificationChannel, notificationData);
-                        jPulse.UI.toast.show('📡 Notification broadcasted to all servers!', 'success');
+                        jPulse.UI.toast.show('📡 Notification sent to all servers!', 'success');
                     } else {
-                        // Fallback: show locally only when cluster not available
-                        this.addNotificationToFeed(notificationData);
                         jPulse.UI.toast.show('📱 Notification shown locally (cluster not available)', 'warning');
                     }
 

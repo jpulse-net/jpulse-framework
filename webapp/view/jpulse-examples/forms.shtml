@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Form Examples - {{app.shortName}}</title>
+    <title>Form Examples - {{app.jPulse.jPulse.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
 </head>
 <body>

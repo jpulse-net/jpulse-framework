@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UI Widget Examples - {{app.shortName}}</title>
+    <title>UI Widget Examples - {{app.jPulse.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
     <style>
         /* Demo spacer styles for Content Boxes example */

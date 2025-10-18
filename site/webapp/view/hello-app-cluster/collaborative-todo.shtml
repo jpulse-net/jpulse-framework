@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Collaborative To-Do - App Cluster Demo - {{app.shortName}}</title>
+    <title>Collaborative To-Do - App Cluster Demo - {{app.site.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
     <style>
         .local-container {
@@ -322,8 +322,6 @@
                     this.showToast(`📡 Task '${data.todo.title}' updated by ${data.senderName || data.sender}`);
                     this.loadTodos(); // Reload the whole list for simplicity
                 });
-
-                console.log('📡 Subscribed to collaborative todo broadcasts');
             }
 
             async loadTodos() {
@@ -378,12 +376,10 @@
                     }
                     this.elements.taskDescription.value = '';
 
-                    // If cluster mode is NOT available, update the list directly from the API response.
-                    if (!jPulse.appCluster.isClusterMode()) {
-                        this.showToast('To-do added successfully!', 'success');
-                        this.loadTodos();
-                    }
-                    // If cluster mode IS available, we do nothing and wait for the broadcast.
+                    // Always update the local list after successful submission
+                    // The broadcast will sync other instances/tabs
+                    this.showToast('To-do added successfully!', 'success');
+                    this.loadTodos();
 
                 } catch (error) {
                     this.showToast(`Error adding task: ${error.message}`, 'error');
@@ -404,12 +400,10 @@
                         throw new Error(result.message || 'Failed to toggle task');
                     }
 
-                    // If cluster mode is NOT available, update the list directly from the API response.
-                    if (!jPulse.appCluster.isClusterMode()) {
-                        this.showToast('To-do toggled successfully!', 'success');
-                        this.loadTodos();
-                    }
-                    // If cluster mode IS available, we do nothing and wait for the broadcast.
+                    // Always update the local list after successful toggle
+                    // The broadcast will sync other instances/tabs
+                    this.showToast('To-do toggled successfully!', 'success');
+                    this.loadTodos();
 
                 } catch (error) {
                     this.showToast(`Error toggling task: ${error.message}`, 'error');
@@ -434,12 +428,10 @@
                             throw new Error(result.message || 'Failed to delete todo');
                         }
 
-                        // If cluster mode is NOT available, update the list directly from the API response.
-                        if (!jPulse.appCluster.isClusterMode()) {
-                            this.showToast('To-do deleted successfully!', 'success');
-                            this.loadTodos();
-                        }
-                        // If cluster mode IS available, we do nothing and wait for the broadcast.
+                        // Always update the local list after successful deletion
+                        // The broadcast will sync other instances/tabs
+                        this.showToast('To-do deleted successfully!', 'success');
+                        this.loadTodos();
 
                     } catch (error) {
                         this.showToast(`Failed to delete task: ${error.message}`, 'error');

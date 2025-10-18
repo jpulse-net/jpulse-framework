@@ -266,7 +266,7 @@ describe('Auth Middleware Integration', () => {
         test('should handle malformed session data', async () => {
             mockReq.session = {
                 user: {
-                    // Missing authenticated property
+                    // Missing isAuthenticated property
                     id: 'user123',
                     loginId: 'testuser',
                     roles: ['user']

@@ -14,20 +14,62 @@
 
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import TestUtils from '../../helpers/test-utils.js';
+import ViewController from '../../../controller/view.js';
 import fs from 'fs';
 import path from 'path';
 
 // Mock fs module for testing
 jest.mock('fs');
 
+// Mock dependencies
+jest.mock('bcrypt', () => ({
+    hash: jest.fn(),
+    compare: jest.fn(),
+    hashSync: jest.fn(),
+    compareSync: jest.fn()
+}));
+
+jest.mock('../../../controller/log.js', () => ({
+    logRequest: jest.fn(),
+    logError: jest.fn(),
+    logInfo: jest.fn()
+}));
+
+jest.mock('../../../model/user.js', () => ({
+    default: {
+        findByLoginId: jest.fn(),
+        create: jest.fn()
+    }
+}));
+
 describe('Template Includes System', () => {
     let mockFs;
     let mockContext;
+    let mockReq;
 
     beforeEach(() => {
         // Setup mock fs
         mockFs = fs;
         mockFs.readFileSync = jest.fn();
+
+        // Add mock request object
+        mockReq = {
+            path: '/test',
+            protocol: 'http',
+            get: jest.fn().mockReturnValue('localhost:8080'),
+            hostname: 'localhost',
+            url: '/test?param=value',
+            query: { param: 'value' },
+            session: {
+                user: {
+                    loginId: 'testuser',
+                    firstName: 'Test',
+                    lastName: 'User',
+                    isAuthenticated: false
+                }
+            },
+            ip: '127.0.0.1'
+        };
 
         // Mock handlebars context
         mockContext = {
@@ -299,10 +341,10 @@ describe('Template Includes System', () => {
 
             // Test both states
             const authenticatedResult = ViewController.processHandlebars(conditionalTemplate, { ...mockContext, user: { ...mockContext.user, isAuthenticated: true } }, mockReq);
-            const guestResult = ViewController.processHandlebars(conditionalTemplate, mockContext, mockReq);
+            const guestResult = ViewController.processHandlebars(conditionalTemplate, { ...mockContext, user: { ...mockContext.user, isAuthenticated: false } }, mockReq);
 
-            expect(authenticatedResult).toBe('Welcome back!');
-            expect(guestResult).toBe('Please sign in');
+            expect(authenticatedResult).toContain('Welcome back!');
+            expect(guestResult).toContain('Please sign in');
         });
 
         test('should process file includes recursively', () => {

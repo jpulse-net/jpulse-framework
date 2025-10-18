@@ -403,7 +403,7 @@ describe('User Model Basic Tests', () => {
             expect(sessionUser.nickName).toBe('Johnny');
             expect(sessionUser.roles).toEqual(['user']);
             expect(sessionUser.preferences).toEqual({ language: 'en', theme: 'light' });
-            expect(sessionUser.authenticated).toBe(true);
+            expect(sessionUser.isAuthenticated).toBe(true);
         });
     });
 });

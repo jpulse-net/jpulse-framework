@@ -112,7 +112,7 @@ class AuthController {
      * @returns {boolean} True if user is authenticated
      */
     static isAuthenticated(req) {
-        return !!(req.session?.user);
+        return !!(req.session?.user?.isAuthenticated);
     }
 
     /**

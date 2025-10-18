@@ -302,7 +302,7 @@ describe('User Controller Tests', () => {
             };
 
             const getProfile = (req, res, userFromDB) => {
-                if (!req.session.user?.authenticated) {
+                if (!req.session.user?.isAuthenticated) {
                     return res.status(401).json({ error: 'Unauthorized' });
                 }
 
@@ -378,7 +378,7 @@ describe('User Controller Tests', () => {
             };
 
             const processUserSearch = (req, res) => {
-                if (!req.session.user?.authenticated) {
+                if (!req.session.user?.isAuthenticated) {
                     return res.status(401).json({ error: 'Authentication required' });
                 }
 
@@ -429,7 +429,7 @@ describe('User Controller Tests', () => {
             };
 
             const processUserSearch = (req, res) => {
-                if (!req.session.user?.authenticated) {
+                if (!req.session.user?.isAuthenticated) {
                     return res.status(401).json({ error: 'Authentication required' });
                 }
 
@@ -569,7 +569,7 @@ describe('User Controller Tests', () => {
             };
 
             const processPasswordChange = (req, res, isCurrentPasswordValid) => {
-                if (!req.session.user?.authenticated) {
+                if (!req.session.user?.isAuthenticated) {
                     return res.status(401).json({ error: 'Authentication required' });
                 }
 

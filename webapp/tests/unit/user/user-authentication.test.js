@@ -189,7 +189,7 @@ describe('User Authentication Tests', () => {
             expect(sessionUser.email).toBe('john@example.com');
             expect(sessionUser.roles).toEqual(['user', 'admin']);
             expect(sessionUser.preferences).toEqual({ language: 'en', theme: 'dark' });
-            expect(sessionUser.authenticated).toBe(true);
+            expect(sessionUser.isAuthenticated).toBe(true);
             expect(sessionUser.passwordHash).toBeUndefined();
         });
 

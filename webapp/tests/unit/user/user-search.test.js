@@ -297,7 +297,7 @@ describe('User Search Tests', () => {
             };
 
             const canSearchUsers = (sessionUser) => {
-                return sessionUser?.authenticated && hasAnyRole(sessionUser, ['admin', 'root']);
+                return sessionUser?.isAuthenticated && hasAnyRole(sessionUser, ['admin', 'root']);
             };
 
             expect(canSearchUsers(adminUser)).toBe(true);
@@ -314,7 +314,7 @@ describe('User Search Tests', () => {
             };
 
             const canSearchUsers = (sessionUser) => {
-                return sessionUser?.authenticated && hasAnyRole(sessionUser, ['admin', 'root']);
+                return sessionUser?.isAuthenticated && hasAnyRole(sessionUser, ['admin', 'root']);
             };
 
             expect(canSearchUsers(rootUser)).toBe(true);
@@ -331,7 +331,7 @@ describe('User Search Tests', () => {
             };
 
             const canSearchUsers = (sessionUser) => {
-                return sessionUser?.authenticated && hasAnyRole(sessionUser, ['admin', 'root']);
+                return sessionUser?.isAuthenticated && hasAnyRole(sessionUser, ['admin', 'root']);
             };
 
             expect(canSearchUsers(regularUser)).toBe(false);
@@ -344,7 +344,7 @@ describe('User Search Tests', () => {
             };
 
             const canSearchUsers = (sessionUser) => {
-                return !!(sessionUser?.authenticated && sessionUser.roles?.some(role => ['admin', 'root'].includes(role)));
+                return !!(sessionUser?.isAuthenticated && sessionUser.roles?.some(role => ['admin', 'root'].includes(role)));
             };
 
             expect(canSearchUsers(unauthenticatedUser)).toBe(false);

@@ -1454,9 +1454,7 @@ pending:
 - ws emoji bug on 2 tabs on 8080 & 8086
 - redis todo bug on 2 tabs on 8086 & 8086
 - websockets controller: fix maintenance nightmare: const knownPorts = [8080, 8081, 8086];
-- move appPort to appConfig.app.port
-- create appConfig.app.instanceId
-- remove appConfig.appPort
+- websocket & redis-controller: clean up hardcoded config, move to app.conf
 
 old pending:
 - view controller: return unexpanded {{handlebars}} if not exist, instead of empty return

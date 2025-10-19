@@ -495,6 +495,7 @@ class RedisManager {
     static async publishBroadcast(channel, data) {
         // Early bailout if Redis is not available - fail silently to avoid log noise
         if (!RedisManager.isAvailable) {
+            console.log(`[DEBUG] RedisManager: Redis not available, skipping broadcast publish for ${channel}`);
             return false;
         }
 
@@ -502,6 +503,7 @@ class RedisManager {
 
         if (!publisher) {
             // Graceful fallback: return false without logging (Redis disabled)
+            console.log(`[DEBUG] RedisManager: No broadcast publisher available for ${channel}`);
             return false;
         }
 
@@ -514,12 +516,15 @@ class RedisManager {
             };
 
             const key = RedisManager.getKey('broadcast', channel);
+            console.log(`[DEBUG] RedisManager: Publishing to ${key} with message: ${JSON.stringify(message).substring(0, 200)}...`);
             await publisher.publish(key, JSON.stringify(message));
+            console.log(`[DEBUG] RedisManager: Successfully published broadcast: ${channel} from ${RedisManager.instanceId}`);
 
             global.LogController?.logInfo(null, 'redis-manager.publishBroadcast',
                 `Broadcast published: ${channel} from ${RedisManager.instanceId}`);
             return true;
         } catch (error) {
+            console.log(`[DEBUG] RedisManager: Failed to publish broadcast ${channel}: ${error.message}`);
             global.LogController?.logError(null, 'redis-manager.publishBroadcast',
                 `Failed to publish broadcast ${channel}: ${error.message}`);
             return false;
@@ -576,17 +581,46 @@ class RedisManager {
      * @private
      */
     static _handleCallbackMessage(channel, data, sourceInstanceId) {
+        console.log(`[DEBUG] RedisManager: Handling callback message for channel ${channel} from ${sourceInstanceId}`);
+        console.log(`[DEBUG] RedisManager: Current registered callbacks: ${Array.from(RedisManager.broadcastCallbacks.keys()).join(', ')}`);
+
         // Find matching callback (exact match or pattern match)
-        for (const [registeredChannel, callback] of RedisManager.broadcastCallbacks) {
+        // Sort patterns by specificity (longest first) to prioritize more specific patterns
+        const sortedCallbacks = Array.from(RedisManager.broadcastCallbacks.entries()).sort((a, b) => {
+            const aPattern = a[0];
+            const bPattern = b[0];
+            // Prioritize patterns that are more specific (longer patterns first)
+            if (aPattern.length !== bPattern.length) {
+                return bPattern.length - aPattern.length;
+            }
+            // For same length, prioritize non-wildcard patterns
+            const aHasWildcard = aPattern.includes('*');
+            const bHasWildcard = bPattern.includes('*');
+            if (aHasWildcard !== bHasWildcard) {
+                return aHasWildcard ? 1 : -1;
+            }
+            return 0;
+        });
+
+        let matched = false;
+        for (const [registeredChannel, callback] of sortedCallbacks) {
+            console.log(`[DEBUG] RedisManager: Checking if ${channel} matches pattern ${registeredChannel}`);
             if (RedisManager._channelMatches(channel, registeredChannel)) {
+                console.log(`[DEBUG] RedisManager: Channel ${channel} matches pattern ${registeredChannel}, calling callback`);
                 try {
                     callback(channel, data, sourceInstanceId);
+                    matched = true;
                 } catch (error) {
+                    console.log(`[DEBUG] RedisManager: Error in callback for channel ${channel}: ${error.message}`);
                     global.LogController?.logError(null, 'redis-manager._handleCallbackMessage',
                         `Error in callback for channel ${channel}: ${error.message}`);
                 }
                 break; // Only call the first matching callback
             }
+        }
+
+        if (!matched) {
+            console.log(`[DEBUG] RedisManager: No matching callback found for channel ${channel}`);
         }
     }
 
@@ -595,14 +629,21 @@ class RedisManager {
      * @private
      */
     static _channelMatches(channel, pattern) {
-        if (channel === pattern) return true;
+        console.log(`[DEBUG] RedisManager: Checking if channel "${channel}" matches pattern "${pattern}"`);
+        if (channel === pattern) {
+            console.log(`[DEBUG] RedisManager: Exact match found`);
+            return true;
+        }
 
         // Handle wildcard patterns (e.g., 'view:*' matches 'view:config:refresh')
         if (pattern.endsWith('*')) {
             const prefix = pattern.slice(0, -1);
-            return channel.startsWith(prefix);
+            const matches = channel.startsWith(prefix);
+            console.log(`[DEBUG] RedisManager: Pattern match check: "${channel}".startsWith("${prefix}") = ${matches}`);
+            return matches;
         }
 
+        console.log(`[DEBUG] RedisManager: No match found`);
         return false;
     }
 

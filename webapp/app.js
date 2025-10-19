@@ -19,6 +19,7 @@ import bodyParser from 'body-parser';
 import session from 'express-session';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import os from 'os';
 import fs from 'fs';
 import CommonUtils from './utils/common.js';
 
@@ -26,6 +27,11 @@ import CommonUtils from './utils/common.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.dirname(__dirname); // Parent of webapp/
+
+// common logging function for app
+function appLog(message, level = 'msg') {
+    console.log(CommonUtils.formatLogMessage('app', message, level));
+}
 
 // Smart configuration loader with timestamp-based caching
 async function loadAppConfig() {
@@ -41,15 +47,16 @@ async function loadAppConfig() {
         // Ensure .jpulse directory exists
         if (!fs.existsSync(jpulseDir)) {
             fs.mkdirSync(jpulseDir, { recursive: true });
-            console.log(CommonUtils.formatLogMessage('app', 'Created .jpulse directory at project root'));
+            appLog('Created .jpulse directory at project root');
         }
 
         // Check if JSON needs regeneration
+        let config = null;
         const needsRegeneration = shouldRegenerateConfig(fs, confPath, jsonPath);
 
         if (needsRegeneration) {
-            console.log(CommonUtils.formatLogMessage('app', 'Configuration changed, regenerating .jpulse/app.json...'));
-            const config = await generateConsolidatedConfig(fs, confPath);
+            appLog('Configuration changed, regenerating .jpulse/app.json...');
+            config = await generateConsolidatedConfig(fs, confPath);
 
             // Save consolidated config (remove internal _sources before saving)
             const configToSave = { ...config };
@@ -59,16 +66,69 @@ async function loadAppConfig() {
             // Save source metadata from config
             fs.writeFileSync(sourcesPath, JSON.stringify(config._sources, null, 2));
 
-            console.log(CommonUtils.formatLogMessage('app', 'Generated consolidated configuration in .jpulse/app.json'));
+            appLog('Generated consolidated configuration in .jpulse/app.json');
             return config;
         } else {
-            // Load from cached JSON
-            console.log(CommonUtils.formatLogMessage('app', 'Using cached configuration from .jpulse/app.json'));
-            return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+            // Load config from cached JSON
+            appLog('Using cached configuration from .jpulse/app.json');
+            config = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
         }
 
+        // Set config.system metadata that may change between app instances on same server
+        const hostname = os.hostname();
+        const serverName = hostname.split('.')[0];
+        const serverId = parseInt(serverName.replace(/^[^0-9]*([0-9]*).*$/, '$1') || '0', 10) || 0;
+        const pm2Id = parseInt(process.env.pm_id || process.env.NODE_APP_INSTANCE || '0', 10) || 0;
+        const pid = process.pid;
+        config.system.hostname = hostname;
+        config.system.serverName = serverName;
+        config.system.serverId = serverId;
+        config.system.pm2Id = pm2Id;
+        config.system.pid = pid;
+        config.system.instanceName = `${serverName}:${pm2Id}:${pid}`;
+        config.system.instanceId = `${serverId}:${pm2Id}:${pid}`;
+        console.log('DEBUG: process.env.NODE_APP_INSTANCE: ' + process.env.NODE_APP_INSTANCE);
+        appLog(`appConfig.system.hostname: Set to ${hostname}`);
+        appLog(`appConfig.system.serverName: Set to ${serverName}`);
+        appLog(`appConfig.system.serverId: Set to ${serverId}`);
+        appLog(`appConfig.system.pm2Id: Set to ${pm2Id}`);
+        appLog(`appConfig.system.pid: Set to ${pid}`);
+        appLog(`appConfig.system.instanceName: Set to ${config.system.instanceName}`);
+        appLog(`appConfig.system.instanceId: Set to ${config.system.instanceId}`);
+
+        // Initialize config.system.port number
+        const portArgIndex = process.argv.indexOf('--port');
+        let port = 0;
+        let portSuffix = '';
+        if (portArgIndex > -1 && process.argv[portArgIndex + 1]) {
+            port = parseInt(process.argv[portArgIndex + 1], 10);
+            if (port > 0) {
+                portSuffix = `via --port command line argument`;
+            }
+        }
+        if (!port) {
+            port = parseInt(process.env.PORT, 10);
+            if(port > 0) {
+                portSuffix = `via PORT environment variable`;
+            }
+        }
+        if (!port) {
+            const mode = config.deployment?.mode || 'dev';
+            port = config.deployment?.[mode]?.port;
+            if(port > 0) {
+                portSuffix = `via configured value for ${mode} mode`;
+            } else {
+                port = 8080;
+                portSuffix = `(fallback)`;
+            }
+        }
+        config.system.port = port;
+        appLog(`appConfig.system.port: Set to ${port} ${portSuffix}`);
+
+        return config;
+
     } catch (error) {
-        console.error(CommonUtils.formatLogMessage('app', `error: Failed to load configuration: ${error.message}`, 'ERR'));
+        appLog(`error: Failed to load configuration: ${error.message}`, 'ERROR');
         process.exit(1);
     }
 }
@@ -125,40 +185,39 @@ function loadConfigFile(fs, configPath) {
 
 // Generate consolidated configuration with site override support
 async function generateConsolidatedConfig(fs, confPath) {
-    // Phase 1: Load framework config
-    const frameworkConfig = loadConfigFile(fs, confPath);
+    // Step 1: Load jPulse Framework config (webapp/app.conf)
+    let config = loadConfigFile(fs, confPath);
 
-    // W-014: Add site config merging
+    // Step 2: Set system directories
+    config.system.projectRoot = projectRoot;
+    config.system.appDir = __dirname;
+    config.system.siteDir = path.join(projectRoot, 'site', 'webapp');
+
+    // Step 3: Merge site config (W-014)
     const siteConfigPath = path.join(projectRoot, 'site/webapp/app.conf');
-    let config = frameworkConfig;
     const sources = [{ path: confPath, type: 'framework', timestamp: fs.statSync(confPath).mtime }];
-
     if (fs.existsSync(siteConfigPath)) {
         const siteConfig = loadConfigFile(fs, siteConfigPath);
-        config = deepMerge(frameworkConfig, siteConfig);
+        config = deepMerge(config, siteConfig);
         sources.push({ path: siteConfigPath, type: 'site', timestamp: fs.statSync(siteConfigPath).mtime });
-        console.log(CommonUtils.formatLogMessage('app', 'Merged site configuration from site/webapp/app.conf'));
+        appLog('Merged site configuration from site/webapp/app.conf');
     }
 
-    // Set dirName for path resolution
-    config.app.dirName = __dirname;
+    // Step 4: Merge plugin config (W-045)
+    //FIXME: Implementation of W-045 plugin system
 
-    // Store source information for cache invalidation
+    // Step 5: Store source information for cache invalidation
     config._sources = sources;
-
-    // FIXME: W-045 plugin config merging will go here
 
     return config;
 }
 
 // Load configuration
 const appConfig = await loadAppConfig();
-console.log(CommonUtils.formatLogMessage('app', 'App configuration: ' + JSON.stringify(appConfig)));
+appLog('App configuration: ' + JSON.stringify(appConfig));
 
 // Make appConfig globally available for other modules
-appConfig.app.dirName = __dirname;
 global.appConfig = appConfig;
-//console.log('DEBUG appConfig:', JSON.stringify(appConfig, null, 2));
 
 // Load the i18n object and initialize core modules
 const { bootstrap } = await import('./utils/bootstrap.js');
@@ -167,18 +226,18 @@ const modules = await bootstrap({ isTest: false });
 // W-014: Initialize site registry for auto-discovery
 const SiteRegistry = (await import('./utils/site-registry.js')).default;
 const registryStats = await SiteRegistry.initialize();
-console.log(CommonUtils.formatLogMessage('app', `Site registry initialized - ${registryStats.controllers} controllers, ${registryStats.apis} APIs`));
+appLog(`Site registry initialized - ${registryStats.controllers} controllers, ${registryStats.apis} APIs`);
 
 // W-014: Initialize context extensions system
 const ContextExtensions = (await import('./utils/context-extensions.js')).default;
 await ContextExtensions.initialize();
-console.log(CommonUtils.formatLogMessage('app', 'Context extensions initialized'));
+appLog('Context extensions initialized');
 
 // W-049: Build view registry for optimized routing
 function buildViewRegistry() {
 
     // Scan framework view directories
-    const frameworkViewPath = path.join(appConfig.app.dirName, 'view');
+    const frameworkViewPath = path.join(appConfig.system.appDir, 'view');
     let frameworkDirs = [];
     try {
         frameworkDirs = fs.readdirSync(frameworkViewPath, { withFileTypes: true })
@@ -189,7 +248,7 @@ function buildViewRegistry() {
     }
 
     // Scan site view directories (takes precedence)
-    const siteViewPath = path.join(path.dirname(appConfig.app.dirName), 'site/webapp/view');
+    const siteViewPath = path.join(path.dirname(appConfig.system.siteDir), 'view');
     let siteDirs = [];
     try {
         siteDirs = fs.readdirSync(siteViewPath, { withFileTypes: true })
@@ -208,7 +267,7 @@ function buildViewRegistry() {
 }
 
 global.viewRegistry = buildViewRegistry();
-console.log(CommonUtils.formatLogMessage('app', `View registry built - [${global.viewRegistry.viewList.map(v => `'${v}'`).join(', ')}]`));
+appLog(`View registry built - [${global.viewRegistry.viewList.map(v => `'${v}'`).join(', ')}]`);
 
 // Load routing
 const routes = await import('./routes.js').then(m => m.default);
@@ -246,12 +305,12 @@ async function startApp() {
     app.use('/', routes);
 
     // Start the HTTP server
-    const server = app.listen(global.appPort, () => {
-        const mode = global.appConfig.deployment?.mode || 'dev';
-        const dbMode = global.appConfig.database?.mode || 'standalone';
-        const dbName = global.appConfig.database?.[dbMode]?.name || 'jp-dev';
+    const server = app.listen(appConfig.system.port, () => {
+        const mode = appConfig.deployment?.mode || 'dev';
+        const dbMode = appConfig.database?.mode || 'standalone';
+        const dbName = appConfig.database?.[dbMode]?.name || 'jp-dev';
         LogController.logInfo(null, 'app', `jPulse Framework WebApp v${appConfig.app.jPulse.version} (${appConfig.app.jPulse.release})`);
-        LogController.logInfo(null, 'app', `Server running in ${mode} mode on port ${global.appPort}`);
+        LogController.logInfo(null, 'app', `Server running in ${mode} mode on port ${appConfig.system.port}`);
         LogController.logInfo(null, 'app', `Database: ${dbName} (${dbMode} mode)`);
     });
 

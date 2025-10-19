@@ -19,8 +19,9 @@ import MarkdownController from '../../../controller/markdown.js';
 
 // Mock global appConfig - use relative path from webapp directory
 global.appConfig = {
-    app: {
-        dirName: path.resolve(__dirname, '../../..')
+    system: {
+        appDir: path.resolve(__dirname, '../../..'),
+        siteDir: path.resolve(__dirname, '../../../site/webapp')
     },
     controller: {
         markdown: {
@@ -41,9 +42,8 @@ jest.mock('../../../utils/common.js', () => ({
 }));
 
 describe('MarkdownController', () => {
-    // Use appConfig.app.dirName as the base for all paths
-    const projectRoot = path.dirname(global.appConfig.app.dirName);
-    const testSiteDir = path.join(projectRoot, 'site/webapp/static/assets/test-docs');
+    // Use appConfig.system.siteDir as the base for all paths
+    const testSiteDir = path.join(global.appConfig.system.siteDir, 'static', 'assets', 'test-docs');
 
     beforeEach(async () => {
         // Create temporary test documentation for site namespace ONLY

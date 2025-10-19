@@ -81,7 +81,7 @@ router.get('/api/1/log/search', AuthController.requireAuthentication, logControl
 
 // Serve common files first, so that {{handlebars}} are not processed by the view controller.
 // This is handled by nginx if the app is running behind a reverse proxy
-router.use('/common', express.static(path.join(appConfig.app.dirName, 'static', 'common')));
+router.use('/common', express.static(path.join(appConfig.system.appDir, 'static', 'common')));
 
 // Admin routes (require admin role)
 router.get(/^\/admin\/.*/, AuthController.requireAuthentication, AuthController.requireRole(['admin', 'root']));
@@ -108,9 +108,8 @@ router.get('/', (req, res) => {
 // This is handled by nginx if the app is running behind a reverse proxy
 // In development, we need to check site overrides first (mimics nginx try_files behavior)
 router.use('/', (req, res, next) => {
-    const projectRoot = path.dirname(appConfig.app.dirName);
-    const siteStaticPath = path.join(projectRoot, 'site/webapp/static', req.path);
-    const frameworkStaticPath = path.join(appConfig.app.dirName, 'static', req.path);
+    const siteStaticPath = path.join(appConfig.system.siteDir, 'static', req.path);
+    const frameworkStaticPath = path.join(appConfig.system.appDir, 'static', req.path);
 
     // Try site override first
     if (fs.existsSync(siteStaticPath) && fs.statSync(siteStaticPath).isFile()) {

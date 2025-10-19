@@ -78,8 +78,15 @@ describe('Application Startup Integration', () => {
                         name: 'Test Site',
                         shortName: 'Test'
                     },
-                    dirName: '',
-                    docTypes: []
+                    system: {
+                        serverName: 'test-server-012',
+                        serverId: 12,
+                        pm2Id: 0,
+                        pid: 12345,
+                        instanceName: 'test-server-012:0:12345',
+                        instanceId: '12:0:12345',
+                        docTypes: ['config', 'user']
+                    }
                 },
                 deployment: {
                     mode: 'test',

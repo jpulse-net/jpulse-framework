@@ -49,9 +49,16 @@ describe('App Configuration Loading', () => {
                         release: '2025-01-27',
                         name: 'Test Site',
                         shortName: 'Test'
-                    },
-                    dirName: '',
-                    docTypes: []
+                    }
+                },
+                system: {
+                    serverName: 'test-server-012',
+                    serverId: 12,
+                    pm2Id: 0,
+                    pid: 12345,
+                    instanceName: 'test-server-012:0:12345',
+                    instanceId: '12:0:12345',
+                    docTypes: ['config', 'user']
                 },
                 deployment: {
                     mode: 'dev',
@@ -99,8 +106,15 @@ describe('App Configuration Loading', () => {
                         name: 'Test Site',
                         shortName: 'Test'
                     },
-                    dirName: '',
-                    docTypes: []
+                    system: {
+                        serverName: 'test-server-012',
+                        serverId: 12,
+                        pm2Id: 0,
+                        pid: 12345,
+                        instanceName: 'test-server-012:0:12345',
+                        instanceId: '12:0:12345',
+                        docTypes: ['config', 'user']
+                    }
                 },
                 /* Deployment configuration */
                 deployment: {
@@ -244,8 +258,6 @@ describe('App Configuration Loading', () => {
                         name: 'Test Site',
                         shortName: 'Test'
                     },
-                    dirName: '',
-                    docTypes: [],
                     invalid: function() { return 'not allowed'; }
                 }
             }`;
@@ -304,8 +316,15 @@ describe('App Configuration Loading', () => {
                         name: 'Test Site',
                         shortName: 'Test'
                     },
-                    dirName: '',
-                    docTypes: []
+                    system: {
+                        serverName: 'test-server-012',
+                        serverId: 12,
+                        pm2Id: 0,
+                        pid: 12345,
+                        instanceName: 'test-server-012:0:12345',
+                        instanceId: '12:0:12345',
+                        docTypes: ['config', 'user']
+                    }
                 },
                 deployment: {
                     mode: 'dev',
@@ -367,8 +386,15 @@ describe('App Configuration Loading', () => {
                         shortName: 'Test',
                         customProperty: 'custom value'
                     },
-                    dirName: '',
-                    docTypes: []
+                    system: {
+                        serverName: 'test-server-012',
+                        serverId: 12,
+                        pm2Id: 0,
+                        pid: 12345,
+                        instanceName: 'test-server-012:0:12345',
+                        instanceId: '12:0:12345',
+                        docTypes: ['config', 'user']
+                    }
                 },
                 deployment: {
                     mode: 'dev',
@@ -486,8 +512,15 @@ describe('App Configuration Loading', () => {
                         name: 'Test Site',
                         shortName: 'Test'
                     },
-                    dirName: '',
-                    docTypes: []
+                    system: {
+                        serverName: 'test-server-012',
+                        serverId: 12,
+                        pm2Id: 0,
+                        pid: 12345,
+                        instanceName: 'test-server-012:0:12345',
+                        instanceId: '12:0:12345',
+                        docTypes: ['config', 'user']
+                    }
                 },
                 deployment: {
                     mode: 'prod',

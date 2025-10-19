@@ -81,9 +81,9 @@ class WebSocketController {
     static {
         this.websocketConf.pingInterval ??= 30000;
         this.websocketConf.pongTimeout ??= 5000;
-        this.websocketConf.reconnectBaseInterval ??= 5000; // FIXME: this is unused!
-        this.websocketConf.reconnectMaxInterval ??= 30000; // FIXME: this is unused!
-        this.websocketConf.instanceRegistryInterval ??= 30000; // FIXME: this is unused!
+        this.websocketConf.reconnectBaseInterval ??= 5000;
+        this.websocketConf.reconnectMaxInterval ??= 30000;
+        this.websocketConf.instanceRegistryInterval ??= 30000;
     }
 
     /**
@@ -211,12 +211,15 @@ class WebSocketController {
                 const channelSuffix = namespacePath.replace(/^\//, '').replace(/\//g, ':');
                 const channel = `controller:websocket:broadcast:${channelSuffix}`;
                 global.RedisManager.publishBroadcast(channel, dataWithUsername);
+                LogController.logInfo(null, 'websocket.broadcast', `Published to Redis channel: ${channel}`);
             } catch (error) {
                 LogController.logError(null, 'websocket.broadcast', `Redis broadcast failed: ${error.message}`);
                 // Continue with local broadcast even if Redis fails
             }
         } else {
             // Redis not available - use HTTP-based cross-instance broadcasting
+            LogController.logInfo(null, 'websocket.broadcast',
+                `Redis not available, attempting HTTP broadcast for namespace ${namespacePath}`);
             try {
                 await this._broadcastToOtherInstances(namespacePath, dataWithUsername);
             } catch (error) {
@@ -579,26 +582,19 @@ class WebSocketController {
      */
     static async _updateInstanceRegistry() {
         try {
-            // For now, use a simple approach: assume instances are on standard ports
-            // In a real deployment, this would discover actual instance URLs
-            //FIXME: the following is a MAINTENANCE nightmare!
-            const knownPorts = [8080, 8081, 8086]; // Common jPulse ports
-            //FIXME: the following is unused!
-            const registryInterval = this.websocketConf.instanceRegistryInterval || 30000;
-            //FIXME: the following is unused!
-            const currentInstanceId = global.RedisManager?.getInstanceId() || `localhost:${global.appPort}`;
+            // Use Redis for instance discovery when available
+            if (global.RedisManager?.isRedisAvailable()) {
+                await this._discoverRedisInstances();
+            } else {
+                // Fallback to PM2 or port-based discovery when Redis is unavailable
+                const currentInstanceId = this._getCurrentInstanceId();
 
-            // Update registry with known instances
-            knownPorts.forEach(port => {
-                if (port !== global.appPort) {
-                    const instanceId = `localhost:${port}`;
-                    this.instanceRegistry.set(instanceId, {
-                        url: `http://localhost:${port}`,
-                        lastSeen: Date.now(),
-                        status: 'unknown'
-                    });
+                if (process.env.PM2_HOME) {
+                    this._discoverPM2Instances(currentInstanceId);
+                } else {
+                    this._discoverCommonPorts(currentInstanceId);
                 }
-            });
+            }
 
             this.lastRegistryUpdate = Date.now();
 
@@ -609,6 +605,100 @@ class WebSocketController {
     }
 
     /**
+     * Get current instance ID using PM2 or fallback logic
+     * @private
+     */
+    static _getCurrentInstanceId() {
+        // Use centralized instanceId from appConfig.system
+        return global.appConfig.system.instanceId;
+    }
+
+    /**
+     * Discover instances using Redis registration
+     * @private
+     */
+    static async _discoverRedisInstances() {
+        try {
+            const instances = await global.RedisManager._getRegisteredInstances();
+            const currentInstanceId = this._getCurrentInstanceId();
+
+            LogController.logInfo(null, 'websocket._discoverRedisInstances',
+                `Found ${instances.length} registered instances in Redis`);
+
+            // Update registry with Redis-discovered instances
+            for (const instance of instances) {
+                if (instance.instanceId !== currentInstanceId) {
+                    this.instanceRegistry.set(instance.instanceId, {
+                        url: instance.url,
+                        lastSeen: instance.lastSeen,
+                        status: 'online',
+                        type: 'redis'
+                    });
+                }
+            }
+
+        } catch (error) {
+            LogController.logError(null, 'websocket._discoverRedisInstances',
+                `Error discovering Redis instances: ${error.message}`);
+        }
+    }
+
+    /**
+     * Discover other PM2 instances in the same cluster
+     * @private
+     */
+    static _discoverPM2Instances(currentInstanceId) {
+        try {
+            // In PM2, instances can communicate via environment variables or PM2 API
+            // For now, assume single server with multiple PM2 instances
+            const maxInstances = process.env.PM2_MAX_INSTANCES || 1;
+            const currentInstance = parseInt(process.env.PM2_INSTANCE_ID || '0');
+
+            for (let i = 0; i < maxInstances; i++) {
+                if (i !== currentInstance) {
+                    const instanceId = `pm2:${i}`;
+                    if (!this.instanceRegistry.has(instanceId)) {
+                        // In PM2, instances typically communicate via internal mechanisms
+                        // For cross-instance WebSocket, we might need HTTP or other methods
+                        this.instanceRegistry.set(instanceId, {
+                            instanceId: i,
+                            type: 'pm2',
+                            lastSeen: Date.now(),
+                            status: 'unknown'
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            LogController.logError(null, 'websocket._discoverPM2Instances',
+                `Error discovering PM2 instances: ${error.message}`);
+        }
+    }
+
+    /**
+     * Fallback discovery for non-PM2 single-server setups
+     * @private
+     */
+    static _discoverCommonPorts(currentInstanceId) {
+        // Simple fallback: try to discover other instances on common ports
+        const currentPort = global.appConfig.system.port;
+        const commonPorts = [8080, 8081, 8086];
+
+        commonPorts.forEach(port => {
+            if (port !== currentPort) {
+                const instanceId = `localhost:${port}`;
+                if (!this.instanceRegistry.has(instanceId)) {
+                    this.instanceRegistry.set(instanceId, {
+                        url: `http://localhost:${port}`,
+                        lastSeen: Date.now(),
+                        status: 'unknown'
+                    });
+                }
+            }
+        });
+    }
+
+    /**
      * Broadcast WebSocket message to other instances via HTTP
      * @param {string} namespacePath - WebSocket namespace path
      * @param {Object} data - Message data
@@ -616,37 +706,53 @@ class WebSocketController {
      */
     static async _broadcastToOtherInstances(namespacePath, data) {
         // Update instance registry if it's stale
-        if (Date.now() - this.lastRegistryUpdate > this.registryUpdateInterval) {
+        const registryInterval = this.websocketConf.instanceRegistryInterval;
+        if (Date.now() - this.lastRegistryUpdate > registryInterval) {
             await this._updateInstanceRegistry();
         }
 
         // Broadcast to each known instance
+        const currentInstanceId = this._getCurrentInstanceId();
+        LogController.logInfo(null, 'websocket._broadcastToOtherInstances',
+            `Broadcasting to ${this.instanceRegistry.size} other instances from ${currentInstanceId}`);
+
         for (const [instanceId, instanceInfo] of this.instanceRegistry) {
             try {
                 // Skip current instance
-                const currentInstanceId = global.RedisManager?.getInstanceId() || `localhost:${global.appPort}`;
                 if (instanceId === currentInstanceId) {
                     continue;
                 }
 
-                // Send HTTP POST to other instance
-                const response = await fetch(`${instanceInfo.url}/api/1/websocket/broadcast`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        namespace: namespacePath,
-                        data: data,
-                        sourceInstance: global.RedisManager?.getInstanceId() || 'unknown'
-                    })
-                });
+                // For HTTP-based instances (different servers), use HTTP broadcasting
+                if (instanceInfo.url && instanceInfo.type !== 'pm2') {
+                    LogController.logInfo(null, 'websocket._broadcastToOtherInstances',
+                        `HTTP broadcasting to ${instanceId} at ${instanceInfo.url}`);
 
-                if (response.ok) {
-                    instanceInfo.lastSeen = Date.now();
-                    instanceInfo.status = 'online';
-                } else {
-                    instanceInfo.status = 'error';
+                    const response = await fetch(`${instanceInfo.url}/api/1/websocket/broadcast`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            namespace: namespacePath,
+                            data: data,
+                            sourceInstance: currentInstanceId
+                        })
+                    });
+
+                    if (response.ok) {
+                        instanceInfo.lastSeen = Date.now();
+                        instanceInfo.status = 'online';
+                        LogController.logInfo(null, 'websocket._broadcastToOtherInstances',
+                            `Successfully broadcast to ${instanceId}`);
+                    } else {
+                        instanceInfo.status = 'error';
+                        LogController.logError(null, 'websocket._broadcastToOtherInstances',
+                            `HTTP error broadcasting to ${instanceId}: ${response.status}`);
+                    }
+                } else if (instanceInfo.type === 'pm2') {
+                    LogController.logInfo(null, 'websocket._broadcastToOtherInstances',
+                        `Skipping PM2 instance ${instanceId} - needs different communication mechanism`);
                 }
 
             } catch (error) {
@@ -689,7 +795,7 @@ class WebSocketController {
                     const currentRedisAvailable = global.RedisManager?.isRedisAvailable() || false;
 
                     // Process messages from other instances, or all messages if single instance
-                    if (!currentRedisAvailable || sourceInstanceId !== global.RedisManager.getInstanceId()) {
+                    if (!currentRedisAvailable || sourceInstanceId !== global.appConfig.system.instanceId) {
                         this._localBroadcast(namespacePath, data);
                     }
                     });
@@ -775,7 +881,12 @@ class WebSocketController {
         try {
             const { namespace, data, sourceInstance } = req.body;
 
+            LogController.logInfo(null, 'websocket.handleHttpBroadcast',
+                `Received HTTP broadcast from ${sourceInstance} for namespace ${namespace}`);
+
             if (!namespace || !data) {
+                LogController.logError(null, 'websocket.handleHttpBroadcast',
+                    'Missing namespace or data in HTTP broadcast');
                 return res.status(400).json({
                     success: false,
                     error: 'Missing namespace or data'
@@ -783,13 +894,24 @@ class WebSocketController {
             }
 
             // Verify this is not from our own instance
-            const currentInstanceId = global.RedisManager?.getInstanceId() ||
-                `localhost:${global.appPort}`;
+            const currentInstanceId = WebSocketController._getCurrentInstanceId();
             if (sourceInstance === currentInstanceId) {
+                LogController.logInfo(null, 'websocket.handleHttpBroadcast',
+                    'Ignored self-broadcast');
                 return res.status(200).json({ success: true, message: 'Ignored self-broadcast' });
             }
 
+            // Update the source instance in our registry
+            WebSocketController.instanceRegistry.set(sourceInstance, {
+                url: `http://localhost:${sourceInstance.split(':')[1] || 'unknown'}`,
+                lastSeen: Date.now(),
+                status: 'online',
+                type: 'redis'
+            });
+
             // Broadcast the message locally
+            LogController.logInfo(null, 'websocket.handleHttpBroadcast',
+                `Broadcasting message locally to namespace ${namespace}`);
             this._localBroadcast(namespace, data);
 
             res.json({

@@ -395,7 +395,7 @@ describe('Log Controller Context Extraction', () => {
         LogController.logInfo(mockReq, 'test.scope', 'Test message');
 
         expect(consoleLogs).toHaveLength(1);
-        expect(consoleLogs[0]).toMatch(/^-\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\tmsg\ttestuser\tip:192\.168\.1\.100\tvm:0\tid:0\ttest\.scope\tTest message$/);
+        expect(consoleLogs[0]).toMatch(/^-\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\tinfo\ttestuser\tip:192\.168\.1\.100\tvm:0\tid:0\ttest\.scope\tTest message$/);
     });
 
     test('should format logRequest log correctly', () => {
@@ -407,7 +407,7 @@ describe('Log Controller Context Extraction', () => {
         LogController.logRequest(mockReq, 'test.scope', 'API call');
 
         expect(consoleLogs).toHaveLength(1);
-        expect(consoleLogs[0]).toMatch(/^==\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\t===\ttestuser\tip:192\.168\.1\.100\tvm:0\tid:0\t==test\.scope==\tAPI call$/);
+        expect(consoleLogs[0]).toMatch(/^====\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\t====\ttestuser\tip:192\.168\.1\.100\tvm:0\tid:0\t===test\.scope===\tAPI call$/);
     });
 
     test('should format logError log correctly', () => {
@@ -419,7 +419,7 @@ describe('Log Controller Context Extraction', () => {
         LogController.logError(mockReq, 'test.scope', 'error: Error message');
 
         expect(consoleLogs).toHaveLength(1);
-        expect(consoleLogs[0]).toMatch(/^-\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\tERR\ttestuser\tip:192\.168\.1\.100\tvm:0\tid:0\ttest\.scope\terror: Error message$/);
+        expect(consoleLogs[0]).toMatch(/^-\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\tERROR\ttestuser\tip:192\.168\.1\.100\tvm:0\tid:0\ttest\.scope\terror: Error message$/);
     });
 
     test('should format timestamp correctly', () => {

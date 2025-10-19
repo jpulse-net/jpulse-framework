@@ -400,8 +400,8 @@ class CommonUtils {
         const context = {
             username: '(guest)',
             ip: '0.0.0.0',
-            vm: 0,
-            id: 0
+            vm: global.appConfig?.system?.serverId || 0,
+            id: global.appConfig?.system?.pm2Id || 0
         };
 
         // Extract username from session
@@ -423,30 +423,12 @@ class CommonUtils {
             }
         }
 
-        // Extract VM number from hostname
-        try {
-            const hostname = os.hostname();
-            const vmMatch = hostname.match(/(\d+)$/);
-            if (vmMatch) {
-                context.vm = parseInt(vmMatch[1]);
-            }
-        } catch (error) {
-            // Ignore hostname errors
-        }
-
-        // Extract pm2 instance ID
-        if (process.env.pm_id) {
-            context.id = parseInt(process.env.pm_id) || 0;
-        } else if (process.env.NODE_APP_INSTANCE) {
-            context.id = parseInt(process.env.NODE_APP_INSTANCE) || 0;
-        }
-
         return context;
     }
 
     /**
      * Format timestamp for logging
-     * @returns {string} Formatted timestamp (YYYY-MM-DD HH:MM:SS)
+     * @returns {string} Formatted local timezone timestamp (YYYY-MM-DD HH:MM:SS)
      */
     static formatTimestamp() {
         const now = new Date();
@@ -463,11 +445,12 @@ class CommonUtils {
      * Format log message with timestamp and context in TSV format
      * @param {string} scope - Functional scope (required)
      * @param {string} message - Log message (required)
-     * @param {string} level - Log level (msg, ERR, etc.) - defaults to 'msg'
+     * @param {string} level - Log level: 'info' (default), 'warning', 'ERROR'
      * @param {object} req - Express request object (optional)
-     * @returns {string} Formatted log message
+     * @returns {string} Formatted log message in TSV format:
+     *                   "-\t<timestamp>\t<level>\t<username>\t<ip>\t<vm>\t<id>\t<scope>\t<message>"
      */
-    static formatLogMessage(scope, message, level = 'msg', req = null) {
+    static formatLogMessage(scope, message, level = 'info', req = null) {
         const timestamp = CommonUtils.formatTimestamp();
         const context = CommonUtils.getLogContext(req);
         return `-\t${timestamp}\t${level}\t${context.username}\tip:${context.ip}\tvm:${context.vm}\tid:${context.id}\t${scope}\t${message}`;

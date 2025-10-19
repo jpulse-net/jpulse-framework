@@ -36,10 +36,7 @@ class SiteRegistry {
      */
     static async initialize() {
         try {
-            // Use appConfig.app.dirName as the base directory (follows established pattern)
-            const webappDir = global.appConfig?.app?.dirName || path.join(process.cwd(), 'webapp');
-            const projectRoot = path.dirname(webappDir);
-            const siteControllerDir = path.join(projectRoot, 'site/webapp/controller');
+            const siteControllerDir = path.join(global.appConfig.system.siteDir, 'controller');
             this.registry.scanPath = siteControllerDir;
 
             if (!fs.existsSync(siteControllerDir)) {

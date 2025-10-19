@@ -32,18 +32,14 @@ class PathResolver {
      * @throws {Error} - If module not found in either location
      */
     static resolveModule(modulePath) {
-        // Use appConfig.app.dirName as the base directory (follows established pattern)
-        const webappDir = global.appConfig?.app?.dirName || path.join(process.cwd(), 'webapp');
-        const projectRoot = path.dirname(webappDir);
-
         // 1. Check site override first (highest priority)
-        const sitePath = path.join(projectRoot, 'site/webapp', modulePath);
+        const sitePath = path.join(global.appConfig.system.siteDir, modulePath);
         if (fs.existsSync(sitePath)) {
             return sitePath;
         }
 
         // 2. Fall back to framework default
-        const frameworkPath = path.join(webappDir, modulePath);
+        const frameworkPath = path.join(global.appConfig.system.appDir, modulePath);
         if (fs.existsSync(frameworkPath)) {
             return frameworkPath;
         }
@@ -58,9 +54,7 @@ class PathResolver {
      * @returns {boolean} - True if site override exists
      */
     static hasSiteOverride(modulePath) {
-        const webappDir = global.appConfig?.app?.dirName || path.join(process.cwd(), 'webapp');
-        const projectRoot = path.dirname(webappDir);
-        const sitePath = path.join(projectRoot, 'site/webapp', modulePath);
+        const sitePath = path.join(global.appConfig.system.siteDir, modulePath);
         return fs.existsSync(sitePath);
     }
 
@@ -70,11 +64,9 @@ class PathResolver {
      * @returns {object} - Object with site and framework paths
      */
     static getModulePaths(modulePath) {
-        const webappDir = global.appConfig?.app?.dirName || path.join(process.cwd(), 'webapp');
-        const projectRoot = path.dirname(webappDir);
         return {
-            site: path.join(projectRoot, 'site/webapp', modulePath),
-            framework: path.join(webappDir, modulePath),
+            site: path.join(global.appConfig.system.siteDir, modulePath),
+            framework: path.join(global.appConfig.system.appDir, modulePath),
             resolved: null // Will be set by resolveModule
         };
     }
@@ -90,38 +82,23 @@ class PathResolver {
     }
 
     /**
-     * Get directory paths for the framework
-     * @returns {object} - Object with key directory paths
-     */
-    static getDirectories() {
-        const webappDir = global.appConfig?.app?.dirName || path.join(process.cwd(), 'webapp');
-        const projectRoot = path.dirname(webappDir);
-        return {
-            projectRoot,
-            webappDir,
-            siteDir: path.join(projectRoot, 'site'),
-            siteWebappDir: path.join(projectRoot, 'site/webapp')
-        };
-    }
-
-    /**
      * Ensure site directory structure exists
-     * @param {string[]} subdirs - Additional subdirectories to create (optional)
+     * @param {string[]} subdirs - Additional site subdirectories to create (optional)
      */
     static ensureSiteStructure(subdirs = []) {
-        const dirs = this.getDirectories();
+        const dirs = global.appConfig.system;
         const requiredDirs = [
+            path.join(dirs.projectRoot, 'site'),
             dirs.siteDir,
-            dirs.siteWebappDir,
-            path.join(dirs.siteWebappDir, 'controller'),
-            path.join(dirs.siteWebappDir, 'model'),
-            path.join(dirs.siteWebappDir, 'view'),
-            path.join(dirs.siteWebappDir, 'static')
+            path.join(dirs.siteDir, 'controller'),
+            path.join(dirs.siteDir, 'model'),
+            path.join(dirs.siteDir, 'view'),
+            path.join(dirs.siteDir, 'static')
         ];
 
         // Add any additional subdirectories
         subdirs.forEach(subdir => {
-            requiredDirs.push(path.join(dirs.siteWebappDir, subdir));
+            requiredDirs.push(path.join(dirs.siteDir, subdir));
         });
 
         requiredDirs.forEach(dir => {

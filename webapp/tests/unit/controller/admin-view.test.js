@@ -60,7 +60,10 @@ global.appConfig = {
         name: 'jPulse Framework - Custom Site',
         version: '0.4.10',
         release: '2025-09-06',
-        dirName: process.cwd() + '/webapp'
+    },
+    system: {
+        appDir: path.join(process.cwd(), 'webapp'),
+        siteDir: path.join(process.cwd(), 'site', 'webapp')
     },
     controller: {
         view: {

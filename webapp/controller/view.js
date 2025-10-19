@@ -198,8 +198,7 @@ async function load(req, res) {
                     fullPath = PathResolver.resolveModule(`view${filePath}`);
                 } catch (errorPageError) {
                     // Fallback to framework error page if site override doesn't exist
-                    const webappDir = global.appConfig.app.dirName;
-                    fullPath = path.join(webappDir, 'view', filePath.substring(1));
+                    fullPath = path.join(global.appConfig.system.appDir, 'view', filePath.substring(1));
                 }
                 req.query = { // Create a new query object for the context
                     code: '404',

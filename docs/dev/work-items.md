@@ -1445,7 +1445,7 @@ additional changes done:
   - cache system data, shareda mong pm2 instances and redis
 - tweaked jp-* styles for more consistent and a bit more condensed look
 - changed user.authenticated to user.isAuthenticated in session and handlebar context
-
+- created appConfig.system with: rootDir, appDir, siteDir, port, serverName, serverId, pm2Id, pid, instanceName, instanceId, docTypes
 
 
 
@@ -1454,6 +1454,9 @@ pending:
 - ws emoji bug on 2 tabs on 8080 & 8086
 - redis todo bug on 2 tabs on 8086 & 8086
 - websockets controller: fix maintenance nightmare: const knownPorts = [8080, 8081, 8086];
+- move appPort to appConfig.app.port
+- create appConfig.app.instanceId
+- remove appConfig.appPort
 
 old pending:
 - view controller: return unexpanded {{handlebars}} if not exist, instead of empty return

@@ -37,10 +37,12 @@ describe('SiteRegistry (W-014)', () => {
         // Clear all mocks
         jest.clearAllMocks();
 
-        // Mock global.appConfig to provide dirName
+        // Mock global.appConfig to provide appDir
         global.appConfig = {
-            app: {
-                dirName: path.join(mockProjectRoot, 'webapp')
+            system: {
+                appDir: path.join(mockProjectRoot, 'webapp'),
+                siteDir: path.join(mockProjectRoot, 'site/webapp'),
+                projectRoot: mockProjectRoot
             }
         };
 

@@ -116,14 +116,14 @@ describe('Log DocTypes Caching', () => {
                         maxMsgLength: 256
                     }
                 },
-                app: {
+                system: {
                     docTypes: []
                 }
             };
         } else if (!global.appConfig.app) {
-            global.appConfig.app = { docTypes: [] };
+            global.appConfig.system = { docTypes: [] };
         } else {
-            global.appConfig.app.docTypes = [];
+            global.appConfig.system.docTypes = [];
         }
     });
 
@@ -170,11 +170,11 @@ describe('Log DocTypes Caching', () => {
             LogModel.getDistinctDocTypes = jest.fn().mockResolvedValue(mockDocTypes);
 
             // Ensure global.appConfig.app exists
-            global.appConfig.app = { docTypes: [] };
+            global.appConfig.system = { docTypes: [] };
 
             await LogController.populateDocTypes();
 
-            expect(global.appConfig.app.docTypes).toEqual(mockDocTypes);
+            expect(global.appConfig.system.docTypes).toEqual(mockDocTypes);
             expect(LogController.docTypesCache.data).toEqual(mockDocTypes);
             expect(LogController.docTypesCache.timestamp).toBeGreaterThan(0);
 
@@ -187,11 +187,11 @@ describe('Log DocTypes Caching', () => {
             LogModel.getDistinctDocTypes = jest.fn().mockRejectedValue(new Error('Database error'));
 
             // Ensure global.appConfig.app exists
-            global.appConfig.app = { docTypes: [] };
+            global.appConfig.system = { docTypes: [] };
 
             await LogController.populateDocTypes();
 
-            expect(global.appConfig.app.docTypes).toEqual(['config', 'user']);
+            expect(global.appConfig.system.docTypes).toEqual(['config', 'user']);
             // Note: Cache is not set when there's an error in populateDocTypes
             // This is the actual behavior of the method
 
@@ -212,7 +212,7 @@ describe('Log DocTypes Caching', () => {
             };
 
             // Ensure global.appConfig.app exists
-            global.appConfig.app = { docTypes: [] };
+            global.appConfig.system = { docTypes: [] };
 
             await LogController.refreshDocTypesCache();
 
@@ -256,7 +256,7 @@ describe('Log DocTypes Caching', () => {
             LogModel.getDistinctDocTypes = jest.fn().mockResolvedValue(mockDocTypes);
 
             // Ensure global.appConfig.app exists
-            global.appConfig.app = { docTypes: [] };
+            global.appConfig.system = { docTypes: [] };
 
             // Simulate cache refresh during logChange
             await LogController.refreshDocTypesCache();
@@ -467,14 +467,14 @@ describe('Admin Logs Search Integration', () => {
                         maxMsgLength: 256
                     }
                 },
-                app: {
+                system: {
                     docTypes: []
                 }
             };
         } else if (!global.appConfig.app) {
-            global.appConfig.app = { docTypes: [] };
+            global.appConfig.system = { docTypes: [] };
         } else {
-            global.appConfig.app.docTypes = [];
+            global.appConfig.system.docTypes = [];
         }
     });
 
@@ -554,13 +554,13 @@ describe('Admin Logs Search Integration', () => {
     describe('Global DocTypes Availability', () => {
         test('should provide docTypes for admin logs template rendering', () => {
             // Simulate bootstrap completion
-            global.appConfig.app = { docTypes: ['config', 'user', 'helloTodo'] };
+            global.appConfig.system = { docTypes: ['config', 'user', 'helloTodo'] };
 
             // Verify docTypes are available globally
-            expect(global.appConfig.app.docTypes).toBeDefined();
-            expect(global.appConfig.app.docTypes).toContain('config');
-            expect(global.appConfig.app.docTypes).toContain('user');
-            expect(global.appConfig.app.docTypes).toContain('helloTodo');
+            expect(global.appConfig.system.docTypes).toBeDefined();
+            expect(global.appConfig.system.docTypes).toContain('config');
+            expect(global.appConfig.system.docTypes).toContain('user');
+            expect(global.appConfig.system.docTypes).toContain('helloTodo');
         });
 
         test('should handle missing database gracefully during initialization', async () => {
@@ -569,12 +569,12 @@ describe('Admin Logs Search Integration', () => {
             LogModel.getDistinctDocTypes = jest.fn().mockRejectedValue(new Error('Database not connected'));
 
             // Ensure global.appConfig.app exists
-            global.appConfig.app = { docTypes: [] };
+            global.appConfig.system = { docTypes: [] };
 
             // Should not throw, should use fallback
             await expect(LogController.populateDocTypes()).resolves.not.toThrow();
 
-            expect(global.appConfig.app.docTypes).toEqual(['config', 'user']);
+            expect(global.appConfig.system.docTypes).toEqual(['config', 'user']);
 
             // Restore original method
             LogModel.getDistinctDocTypes = originalGetDistinctDocTypes;

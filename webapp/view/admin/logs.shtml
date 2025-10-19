@@ -283,7 +283,7 @@
                             <label for="searchDocType" class="jp-form-label">{{i18n.view.admin.logs.searchDocType}}</label>
                             <select id="searchDocType" name="data.docType" class="jp-form-select">
                                 <option value="">{{i18n.view.admin.logs.allDocTypes}}</option>
-                                {{#each app.docTypes}}
+                                {{#each appConfig.system.docTypes}}
                                 <option value="{{this}}">{{this}}</option>
                                 {{/each}}
                             </select>

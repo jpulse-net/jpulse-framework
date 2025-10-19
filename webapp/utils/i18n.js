@@ -139,10 +139,10 @@ function auditAndFixTranslations(defaultLang, targetLang, langCode) {
     });
     // Log audit results
     if (missingGroups.length > 0) {
-        global.LogController.logError(null, 'i18n', `warning: missing: ${missingGroups.join(', ')}`);
+        global.LogController.logWarning(null, 'i18n', `warning: missing in ${langCode}.conf: ${missingGroups.join(', ')}`);
     }
     if (extraGroups.length > 0) {
-        global.LogController.logError(null, 'i18n', `warning: extra: ${extraGroups.join(', ')}`);
+        global.LogController.logWarning(null, 'i18n', `warning: extra in ${langCode}.conf: ${extraGroups.join(', ')}`);
     }
     // Copy missing fields from default language
     missing.forEach(keyPath => {
@@ -187,7 +187,7 @@ async function loadTranslations() {
 
     try {
         // Dynamically discover all language files
-        const translationsDir = join(config.app.dirName, 'translations');
+        const translationsDir = join(config.system.appDir, 'translations');
 
         // Check if translations directory exists
         if (!existsSync(translationsDir)) {

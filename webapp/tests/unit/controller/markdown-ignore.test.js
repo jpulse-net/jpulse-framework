@@ -27,8 +27,8 @@ describe('MarkdownController Ignore Functionality', () => {
 
         // Mock global appConfig
         global.appConfig = {
-            app: {
-                dirName: path.resolve(process.cwd(), 'webapp')
+            system: {
+                appDir: path.resolve(process.cwd(), 'webapp')
             },
             controller: {
                 markdown: {

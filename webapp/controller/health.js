@@ -753,7 +753,7 @@ class HealthController {
                 const healthData = await this._getOptimizedHealthData();
 
                 // Broadcast to other instances
-                const instanceId = global.RedisManager.getInstanceId();
+                const instanceId = global.appConfig.system.instanceId;
                 const channel = `controller:health:metrics:${instanceId}`;
 
                 global.RedisManager.publishBroadcast(channel, healthData);
@@ -789,7 +789,7 @@ class HealthController {
         // Check if Redis has recent data from any instance (cross-instance caching)
         if (global.RedisManager && global.RedisManager.isRedisAvailable()) {
             try {
-                const redisCacheKey = `health:cache:${global.RedisManager.getInstanceId()}`;
+                const redisCacheKey = `health:cache:${global.appConfig.system.instanceId}`;
                 const redisData = await global.RedisManager.getClient('metrics').get(redisCacheKey);
 
                 if (redisData) {
@@ -820,7 +820,7 @@ class HealthController {
         // Share with other instances via Redis
         if (global.RedisManager && global.RedisManager.isRedisAvailable()) {
             try {
-                const redisCacheKey = `health:cache:${global.RedisManager.getInstanceId()}`;
+                const redisCacheKey = `health:cache:${global.appConfig.system.instanceId}`;
                 const cacheData = {
                     data: healthData,
                     timestamp: now

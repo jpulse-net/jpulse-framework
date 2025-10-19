@@ -115,17 +115,14 @@ class MarkdownController {
      * Get namespace directory following site override pattern
      */
     static async _getNamespaceDirectory(namespace) {
-        const webappDir = global.appConfig.app.dirName;
-        const projectRoot = path.dirname(webappDir);
-
         // Try site directory first (site override pattern)
-        const siteDir = path.join(projectRoot, 'site/webapp/static/assets', namespace);
+        const siteDir = path.join(global.appConfig.system.siteDir, 'static', 'assets', namespace);
         try {
             await fs.access(siteDir);
             return siteDir;
         } catch {
             // Fall back to framework directory
-            const frameworkDir = path.join(webappDir, 'static/assets', namespace);
+            const frameworkDir = path.join(global.appConfig.system.appDir, 'static', 'assets', namespace);
             try {
                 await fs.access(frameworkDir);
                 return frameworkDir;

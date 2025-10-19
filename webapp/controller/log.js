@@ -47,18 +47,18 @@ class LogController {
      * @returns {Promise<void>}
      */
     static async postInitialize() {
-        // Populate app.docTypes after database is available
+        // Populate appConfig.system.docTypes after database is available
         await LogController.populateDocTypes();
     }
 
     /**
-     * Populate app.docTypes with caching
+     * Populate appConfig.system.docTypes with caching
      * @returns {Promise<void>}
      */
     static async populateDocTypes() {
         try {
             const docTypes = await LogModel.getDistinctDocTypes();
-            global.appConfig.app.docTypes = docTypes;
+            global.appConfig.system.docTypes = docTypes;
 
             // Update cache
             LogController.docTypesCache = {
@@ -67,10 +67,10 @@ class LogController {
                 ttl: 300000 // 5 minutes
             };
 
-            console.log(CommonUtils.formatLogMessage('LogController', `Populated app.docTypes with ${docTypes.length} types: ${docTypes.join(', ')}`));
+            console.log(CommonUtils.formatLogMessage('LogController', `Populated appConfig.system.docTypes with ${docTypes.length} types: ${docTypes.join(', ')}`));
         } catch (error) {
             console.log(CommonUtils.formatLogMessage('LogController', `Failed to populate docTypes: ${error.message}`));
-            global.appConfig.app.docTypes = ['config', 'user']; // Fallback
+            global.appConfig.system.docTypes = ['config', 'user']; // Fallback
         }
     }
 
@@ -158,40 +158,45 @@ class LogController {
      * @param {string} message - Message to log
      */
     static logRequest(req, scope, message) {
-        const timestamp = CommonUtils.formatTimestamp();
-        const context = CommonUtils.getLogContext(req);
-        const sanitizedMessage = LogController.sanitizeMessage(message);
-        const logLine = `==\t${timestamp}\t===\t${context.username}\tip:${context.ip}\tvm:${context.vm}\tid:${context.id}\t==${scope}==\t${sanitizedMessage}`;
-        console.log(logLine);
+        // make request logs stand out more by using '====' instead of '-' and 'request'
+        const logScope = `===${scope}===`;
+        const logLine = CommonUtils.formatLogMessage(logScope, message, '====', req);
+        console.log(logLine.replace(/^-/, '===='));
     }
 
     /**
      * Unified console logging of informational messages
-     * Format: "-\ttimestamp\tmsg\tusername\tip\tvm\tid\tscope\tmessage"
+     * Format: "-\t<timestamp>\tinfo\t<username>\t<ip>\t<vm>\t<id>\t<scope>\t<message>"
      * @param {object} req - Express request object
      * @param {string} scope - Functional scope (e.g., 'view.load', 'user.signup')
      * @param {string} message - Message to log
      */
     static logInfo(req, scope, message) {
-        const timestamp = CommonUtils.formatTimestamp();
-        const context = CommonUtils.getLogContext(req);
-        const sanitizedMessage = LogController.sanitizeMessage(message);
-        const logLine = `-\t${timestamp}\tmsg\t${context.username}\tip:${context.ip}\tvm:${context.vm}\tid:${context.id}\t${scope}\t${sanitizedMessage}`;
+        const logLine = CommonUtils.formatLogMessage(scope, message, 'info', req);
         console.log(logLine);
     }
 
     /**
-     * Unified error logging of error messages
-     * Format: "-\ttimestamp\tERR\tusername\tip\tvm\tid\tscope\tmessage"
+     * Unified console logging of warning messages
+     * Format: "-\t<timestamp>\twarning\t<username>\t<ip>\t<vm>\t<id>\t<scope>\t<message>"
+     * @param {object} req - Express request object
+     * @param {string} scope - Functional scope (e.g., 'view.load', 'user.signup')
+     * @param {string} error - Error message to log (should start with 'error: ' or 'warning: ')
+     */
+    static logWarning(req, scope, error) {
+        const logLine = CommonUtils.formatLogMessage(scope, error, 'warning', req);
+        console.log(logLine);
+    }
+
+    /**
+     * Unified console logging of error messages
+     * Format: "-\t<timestamp>\tERROR\t<username>\t<ip>\t<vm>\t<id>\t<scope>\t<message>"
      * @param {object} req - Express request object
      * @param {string} scope - Functional scope (e.g., 'view.load', 'user.signup')
      * @param {string} error - Error message to log (should start with 'error: ' or 'warning: ')
      */
     static logError(req, scope, error) {
-        const timestamp = CommonUtils.formatTimestamp();
-        const context = CommonUtils.getLogContext(req);
-        const sanitizedMessage = LogController.sanitizeMessage(error);
-        const logLine = `-\t${timestamp}\tERR\t${context.username}\tip:${context.ip}\tvm:${context.vm}\tid:${context.id}\t${scope}\t${sanitizedMessage}`;
+        const logLine = CommonUtils.formatLogMessage(scope, error, 'ERROR', req);
         console.log(logLine);
     }
 

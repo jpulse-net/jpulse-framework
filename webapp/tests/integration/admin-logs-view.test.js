@@ -115,14 +115,14 @@ describe('Admin Logs View Integration Tests', () => {
                         maxMsgLength: 256
                     }
                 },
-                app: {
+                system: {
                     docTypes: []
                 }
             };
         } else if (!global.appConfig.app) {
-            global.appConfig.app = { docTypes: [] };
+            global.appConfig.system = { docTypes: [] };
         } else {
-            global.appConfig.app.docTypes = [];
+            global.appConfig.system.docTypes = [];
         }
 
         // Mock database collection
@@ -157,7 +157,7 @@ describe('Admin Logs View Integration Tests', () => {
 
             await LogController.populateDocTypes();
 
-            expect(global.appConfig.app.docTypes).toEqual(mockDocTypes);
+            expect(global.appConfig.system.docTypes).toEqual(mockDocTypes);
             expect(LogController.docTypesCache.data).toEqual(mockDocTypes);
             expect(LogController.docTypesCache.timestamp).toBeGreaterThan(0);
 
@@ -167,12 +167,12 @@ describe('Admin Logs View Integration Tests', () => {
 
         test('should provide docTypes to admin logs template', async () => {
             // Simulate populated docTypes
-            global.appConfig.app.docTypes = ['config', 'user', 'helloTodo'];
+            global.appConfig.system.docTypes = ['config', 'user', 'helloTodo'];
 
             // Verify docTypes are available in global config
-            expect(global.appConfig.app.docTypes).toContain('config');
-            expect(global.appConfig.app.docTypes).toContain('user');
-            expect(global.appConfig.app.docTypes).toContain('helloTodo');
+            expect(global.appConfig.system.docTypes).toContain('config');
+            expect(global.appConfig.system.docTypes).toContain('user');
+            expect(global.appConfig.system.docTypes).toContain('helloTodo');
         });
 
         test('should use fallback docTypes when database is unavailable', async () => {
@@ -180,7 +180,7 @@ describe('Admin Logs View Integration Tests', () => {
 
             await LogController.populateDocTypes();
 
-            expect(global.appConfig.app.docTypes).toEqual(['config', 'user']);
+            expect(global.appConfig.system.docTypes).toEqual(['config', 'user']);
         });
     });
 
@@ -443,7 +443,7 @@ describe('Admin Logs View Integration Tests', () => {
             // Should not throw, should use fallback
             await expect(LogController.populateDocTypes()).resolves.not.toThrow();
 
-            expect(global.appConfig.app.docTypes).toEqual(['config', 'user']);
+            expect(global.appConfig.system.docTypes).toEqual(['config', 'user']);
         });
 
         test('should handle malformed search queries', async () => {

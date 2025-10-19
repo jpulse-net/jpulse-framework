@@ -190,8 +190,12 @@ export class TestUtils {
             global.appConfig = {
                 app: {
                     name: 'Test App',
-                    version: '0.0.0',
-                    dirName: path.join(projectRoot, 'webapp') // Critical for i18n to find translations
+                    version: '0.0.0'
+                },
+                system: {
+                    appDir: path.join(projectRoot, 'webapp'),
+                    siteDir: path.join(projectRoot, 'site', 'webapp'),
+                    projectRoot: projectRoot
                 },
                 deployment: { mode: 'test', test: { port: 9999 } },
                 i18n: { default: 'en' }, // Critical for i18n default language (legacy test support)

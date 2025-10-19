@@ -31,9 +31,9 @@ export function getConsolidatedConfig() {
     const configContent = fs.readFileSync(consolidatedConfigPath, 'utf8');
     const config = JSON.parse(configContent);
 
-    // Ensure dirName is set correctly for tests
-    if (!config.app.dirName) {
-        config.app.dirName = path.join(projectRoot, 'webapp');
+    // Ensure appDir is set correctly for tests
+    if (!config.system.appDir) {
+        config.system.appDir = path.join(projectRoot, 'webapp');
     }
 
     return config;
@@ -53,8 +53,12 @@ export function setupGlobalAppConfig() {
         global.appConfig = {
             app: {
                 version: '0.3.7',
-                name: 'jPulse Framework Test',
-                dirName: path.join(projectRoot, 'webapp')
+                name: 'jPulse Framework Test'
+            },
+            system: {
+                appDir: path.join(projectRoot, 'webapp'),
+                siteDir: path.join(projectRoot, 'site', 'webapp'),
+                projectRoot: projectRoot
             },
             i18n: {
                 default: 'en'

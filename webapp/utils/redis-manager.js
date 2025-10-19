@@ -64,7 +64,8 @@ class RedisManager {
         }
 
         RedisManager.config = redisConfig;
-        RedisManager.instanceId = RedisManager._generateInstanceId();
+        // Use centralized instanceId from appConfig.system
+        RedisManager.instanceId = global.appConfig.system.instanceId;
 
         // Only create connections if Redis is enabled
         if (redisConfig.enabled) {
@@ -153,11 +154,92 @@ class RedisManager {
                 RedisManager.isAvailable = true;
                 global.LogController?.logInfo(null, 'redis-manager._testConnection',
                     'Redis connection test successful - Redis available');
+
+                // Register this instance for discovery
+                await RedisManager._registerInstance();
             }
         } catch (error) {
             RedisManager.isAvailable = false;
             global.LogController?.logInfo(null, 'redis-manager._testConnection',
                 `Redis connection test failed: ${error.message} - using fallback mode`);
+        }
+    }
+
+    /**
+     * Register this instance in Redis for discovery by other instances
+     * @private
+     */
+    static async _registerInstance() {
+        if (!RedisManager.isAvailable) return;
+
+        try {
+            const instanceId = RedisManager.instanceId;
+            const instanceData = {
+                instanceId,
+                hostname: global.appConfig.system.hostname,
+                pid: global.appConfig.system.pid,
+                port: global.appConfig.system.port,
+                url: `http://localhost:${global.appConfig.system.port}`,
+                registeredAt: Date.now(),
+                lastSeen: Date.now()
+            };
+
+            // Register instance in Redis
+            const instanceKey = RedisManager.getKey('instance', instanceId);
+            await RedisManager.getClient('metrics').setex(instanceKey, 300, JSON.stringify(instanceData)); // 5 minute TTL
+
+            // Add to instances set for easy discovery
+            await RedisManager.getClient('metrics').sadd('instances', instanceId);
+
+            global.LogController?.logInfo(null, 'redis-manager._registerInstance',
+                `Registered instance ${instanceId} in Redis`);
+
+        } catch (error) {
+            global.LogController?.logError(null, 'redis-manager._registerInstance',
+                `Failed to register instance: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get all registered instances from Redis
+     * @returns {Promise<Array>} Array of instance data
+     * @private
+     */
+    static async _getRegisteredInstances() {
+        if (!RedisManager.isAvailable) return [];
+
+        try {
+            const instanceIds = await RedisManager.getClient('metrics').smembers('instances');
+
+            const instances = [];
+            for (const instanceId of instanceIds) {
+                try {
+                    const instanceKey = RedisManager.getKey('instance', instanceId);
+                    const instanceData = await RedisManager.getClient('metrics').get(instanceKey);
+
+                    if (instanceData) {
+                        const parsed = JSON.parse(instanceData);
+
+                        // Check if instance is still alive (within 2 minutes)
+                        if (Date.now() - parsed.lastSeen < 120000) {
+                            instances.push(parsed);
+                        } else {
+                            // Clean up expired instance
+                            await RedisManager.getClient('metrics').srem('instances', instanceId);
+                            await RedisManager.getClient('metrics').del(instanceKey);
+                        }
+                    }
+                } catch (error) {
+                    // Skip invalid instance data
+                }
+            }
+
+            return instances;
+
+        } catch (error) {
+            global.LogController?.logError(null, 'redis-manager._getRegisteredInstances',
+                `Failed to get registered instances: ${error.message}`);
+            return [];
         }
     }
 

@@ -245,25 +245,14 @@ async function startApp() {
     // All app routing is handled by routes.js
     app.use('/', routes);
 
-    // Get port from configuration, with command-line override
-    const mode = appConfig.deployment.mode;
-    const portArgIndex = process.argv.indexOf('--port');
-    let port = appConfig.deployment[mode].port;
-
-    if (portArgIndex > -1 && process.argv[portArgIndex + 1]) {
-        const newPort = parseInt(process.argv[portArgIndex + 1], 10);
-        if (!isNaN(newPort)) {
-            port = newPort;
-            LogController.logInfo(null, 'app', `Overriding port with command line argument: ${port}`);
-        }
-    }
-
     // Start the HTTP server
-    const server = app.listen(port, () => {
-        // Use LogController for structured logging (no req object for server startup)
+    const server = app.listen(global.appPort, () => {
+        const mode = global.appConfig.deployment?.mode || 'dev';
+        const dbMode = global.appConfig.database?.mode || 'standalone';
+        const dbName = global.appConfig.database?.[dbMode]?.name || 'jp-dev';
         LogController.logInfo(null, 'app', `jPulse Framework WebApp v${appConfig.app.jPulse.version} (${appConfig.app.jPulse.release})`);
-        LogController.logInfo(null, 'app', `Server running in ${appConfig.deployment[mode].name} mode on port ${port}`);
-        LogController.logInfo(null, 'app', `Database: ${appConfig.deployment[mode].db}`);
+        LogController.logInfo(null, 'app', `Server running in ${mode} mode on port ${global.appPort}`);
+        LogController.logInfo(null, 'app', `Database: ${dbName} (${dbMode} mode)`);
     });
 
     // Initialize WebSocket server with session middleware

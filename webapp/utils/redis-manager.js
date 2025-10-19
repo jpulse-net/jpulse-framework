@@ -51,6 +51,7 @@ class RedisManager {
 
     // Broadcast callback registry for automatic channel handling
     static broadcastCallbacks = new Map();
+    static subscribedChannels = new Set();
 
     /**
      * Initialize Redis Manager
@@ -321,11 +322,16 @@ class RedisManager {
         if (RedisManager.connections.broadcast?.subscriber) {
             try {
                 // Unsubscribe from all broadcast patterns
-                await RedisManager.connections.broadcast.subscriber.unsubscribe();
-                await RedisManager.connections.broadcast.subscriber.punsubscribe();
+                if (RedisManager.connections.broadcast.subscriber.unsubscribe) {
+                    await RedisManager.connections.broadcast.subscriber.unsubscribe();
+                }
+                if (RedisManager.connections.broadcast.subscriber.punsubscribe) {
+                    await RedisManager.connections.broadcast.subscriber.punsubscribe();
+                }
             } catch (error) {
-                global.LogController?.logError(null, 'redis-manager.shutdown',
-                    `Error unsubscribing from broadcast channels: ${error.message}`);
+                // Ignore errors during shutdown - connections may already be closed
+                global.LogController?.logInfo(null, 'redis-manager.shutdown',
+                    `Unsubscribe cleanup completed: ${error.message}`);
             }
         }
 
@@ -339,6 +345,7 @@ class RedisManager {
 
         // Reset state
         RedisManager.isAvailable = false;
+        RedisManager.subscribedChannels.clear();
         RedisManager.connections = {
             session: null,
             websocket: { publisher: null, subscriber: null },
@@ -468,10 +475,13 @@ class RedisManager {
         // Store the callback regardless of Redis availability (for potential future use)
         RedisManager.broadcastCallbacks.set(channel, callback);
 
-        // Only subscribe and log if Redis is available
+        // Only subscribe and log if Redis is available and not already subscribed
         if (RedisManager.isAvailable) {
-            // Subscribe to the channel automatically -- REMOVED to prevent multiple listeners
-            // RedisManager.subscribeBroadcast([channel], RedisManager._handleCallbackMessage);
+            // Subscribe to the channel automatically (only if not already subscribed)
+            if (!RedisManager.subscribedChannels.has(channel)) {
+                RedisManager.subscribeBroadcast([channel], RedisManager._handleCallbackMessage);
+                RedisManager.subscribedChannels.add(channel);
+            }
 
             global.LogController?.logInfo(null, 'redis-manager.registerBroadcastCallback',
                 `Registered callback for channel: ${channel}`);

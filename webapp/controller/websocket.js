@@ -58,8 +58,13 @@ class WebSocketController {
     static redis = {
         publisher: null,
         subscriber: null,
-        enabled: false
+        enabled: false,
+        callbackRegistered: false
     };
+
+    // Instance registry for cross-instance broadcasting when Redis is unavailable
+    static instanceRegistry = new Map();
+    static lastRegistryUpdate = 0;
 
     // Namespace registry
     static namespaces = new Map();
@@ -72,12 +77,14 @@ class WebSocketController {
     };
 
     // Ping/pong configuration
-    static config = {
-        pingInterval: 30000,        // 30 seconds
-        pongTimeout: 5000,          // 5 seconds to respond
-        reconnectBaseInterval: 5000, // Start with 5 seconds
-        reconnectMaxInterval: 30000  // Max 30 seconds
-    };
+    static websocketConf = global.appConfig?.controller?.websocket || {};
+    static {
+        this.websocketConf.pingInterval ??= 30000;
+        this.websocketConf.pongTimeout ??= 5000;
+        this.websocketConf.reconnectBaseInterval ??= 5000; // FIXME: this is unused!
+        this.websocketConf.reconnectMaxInterval ??= 30000; // FIXME: this is unused!
+        this.websocketConf.instanceRegistryInterval ??= 30000; // FIXME: this is unused!
+    }
 
     /**
      * Initialize WebSocket server
@@ -99,6 +106,9 @@ class WebSocketController {
 
             // Initialize Redis pub/sub for multi-instance coordination (optional)
             await this._initializeRedis();
+
+            // Initialize instance registry for cross-instance broadcasting
+            await this._updateInstanceRegistry();
 
             // Register admin stats namespace
             this._registerAdminStatsNamespace();
@@ -176,7 +186,7 @@ class WebSocketController {
      * @param {Object} data - Data to broadcast
      * @param {string} fromUsername - Optional username of message originator
      */
-    static broadcast(namespacePath, data, fromUsername = '') {
+    static async broadcast(namespacePath, data, fromUsername = '') {
         const namespace = this.namespaces.get(namespacePath);
         if (!namespace) {
             LogController.logError(null, 'websocket.broadcast', `error: Namespace not found: ${namespacePath}`);
@@ -192,8 +202,8 @@ class WebSocketController {
         // Broadcast to local clients
         this._localBroadcast(namespacePath, dataWithUsername);
 
-        // Publish to Redis for other instances (if enabled)
-        if (this.redis.enabled) {
+        // Publish to Redis for other instances (if Redis is available)
+        if (global.RedisManager?.isRedisAvailable()) {
             try {
                 // W-076: Use RedisManager callback-based broadcasting
                 // Create channel name: controller:websocket:broadcast:{namespacePath}
@@ -204,6 +214,14 @@ class WebSocketController {
             } catch (error) {
                 LogController.logError(null, 'websocket.broadcast', `Redis broadcast failed: ${error.message}`);
                 // Continue with local broadcast even if Redis fails
+            }
+        } else {
+            // Redis not available - use HTTP-based cross-instance broadcasting
+            try {
+                await this._broadcastToOtherInstances(namespacePath, dataWithUsername);
+            } catch (error) {
+                LogController.logError(null, 'websocket.broadcast',
+                    `HTTP broadcast failed for namespace ${namespacePath}: ${error.message}`);
             }
         }
     }
@@ -537,7 +555,7 @@ class WebSocketController {
                 namespace.clients.forEach((client, clientId) => {
                     // Check if client is still responsive
                     const timeSincePong = Date.now() - client.lastPong;
-                    if (timeSincePong > this.config.pongTimeout + this.config.pingInterval) {
+                    if (timeSincePong > this.websocketConf.pongTimeout + this.websocketConf.pingInterval) {
                         // Client is not responding, terminate connection
                         LogController.logInfo(null, 'websocket._startHealthChecks', `Terminating unresponsive client ${clientId}`);
                         client.ws.terminate();
@@ -552,7 +570,91 @@ class WebSocketController {
                     }
                 });
             });
-        }, this.config.pingInterval);
+        }, this.websocketConf.pingInterval);
+    }
+
+    /**
+     * Update instance registry for cross-instance broadcasting
+     * @private
+     */
+    static async _updateInstanceRegistry() {
+        try {
+            // For now, use a simple approach: assume instances are on standard ports
+            // In a real deployment, this would discover actual instance URLs
+            //FIXME: the following is a MAINTENANCE nightmare!
+            const knownPorts = [8080, 8081, 8086]; // Common jPulse ports
+            //FIXME: the following is unused!
+            const registryInterval = this.websocketConf.instanceRegistryInterval || 30000;
+            //FIXME: the following is unused!
+            const currentInstanceId = global.RedisManager?.getInstanceId() || `localhost:${global.appPort}`;
+
+            // Update registry with known instances
+            knownPorts.forEach(port => {
+                if (port !== global.appPort) {
+                    const instanceId = `localhost:${port}`;
+                    this.instanceRegistry.set(instanceId, {
+                        url: `http://localhost:${port}`,
+                        lastSeen: Date.now(),
+                        status: 'unknown'
+                    });
+                }
+            });
+
+            this.lastRegistryUpdate = Date.now();
+
+        } catch (error) {
+            LogController.logError(null, 'websocket._updateInstanceRegistry',
+                `Error updating instance registry: ${error.message}`);
+        }
+    }
+
+    /**
+     * Broadcast WebSocket message to other instances via HTTP
+     * @param {string} namespacePath - WebSocket namespace path
+     * @param {Object} data - Message data
+     * @private
+     */
+    static async _broadcastToOtherInstances(namespacePath, data) {
+        // Update instance registry if it's stale
+        if (Date.now() - this.lastRegistryUpdate > this.registryUpdateInterval) {
+            await this._updateInstanceRegistry();
+        }
+
+        // Broadcast to each known instance
+        for (const [instanceId, instanceInfo] of this.instanceRegistry) {
+            try {
+                // Skip current instance
+                const currentInstanceId = global.RedisManager?.getInstanceId() || `localhost:${global.appPort}`;
+                if (instanceId === currentInstanceId) {
+                    continue;
+                }
+
+                // Send HTTP POST to other instance
+                const response = await fetch(`${instanceInfo.url}/api/1/websocket/broadcast`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        namespace: namespacePath,
+                        data: data,
+                        sourceInstance: global.RedisManager?.getInstanceId() || 'unknown'
+                    })
+                });
+
+                if (response.ok) {
+                    instanceInfo.lastSeen = Date.now();
+                    instanceInfo.status = 'online';
+                } else {
+                    instanceInfo.status = 'error';
+                }
+
+            } catch (error) {
+                instanceInfo.status = 'offline';
+                LogController.logError(null, 'websocket._broadcastToOtherInstances',
+                    `Failed to broadcast to ${instanceId}: ${error.message}`);
+            }
+        }
     }
 
     /**
@@ -570,25 +672,37 @@ class WebSocketController {
         }
 
         try {
-            // W-076: Use RedisManager for WebSocket broadcasting
-            // Register callback for WebSocket broadcasts from other instances
-            global.RedisManager.registerBroadcastCallback('controller:websocket:broadcast:*', (channel, data, sourceInstanceId) => {
-                // Extract namespace from channel (controller:websocket:broadcast:api:1:ws:namespace)
-                const channelSuffix = channel.replace('controller:websocket:broadcast:', '');
-                // Convert back to path format: api:1:ws:namespace -> /api/1/ws/namespace
-                const namespacePath = '/' + channelSuffix.replace(/:/g, '/');
+            // Check if Redis is actually available before initializing
+            const isRedisAvailable = global.RedisManager?.isRedisAvailable() || false;
 
-                // Only filter messages if Redis is available (cluster mode)
-                const isClusterMode = global.RedisManager?.isRedisAvailable() || false;
+            if (isRedisAvailable) {
+                // W-076: Use RedisManager for WebSocket broadcasting
+                // Register callback for WebSocket broadcasts from other instances (only once)
+                if (!this.redis.callbackRegistered) {
+                    global.RedisManager.registerBroadcastCallback('controller:websocket:broadcast:*', (channel, data, sourceInstanceId) => {
+                    // Extract namespace from channel (controller:websocket:broadcast:api:1:ws:namespace)
+                    const channelSuffix = channel.replace('controller:websocket:broadcast:', '');
+                    // Convert back to path format: api:1:ws:namespace -> /api/1/ws/namespace
+                    const namespacePath = '/' + channelSuffix.replace(/:/g, '/');
 
-                // Process messages from other instances, or all messages if single instance
-                if (!isClusterMode || sourceInstanceId !== global.RedisManager.getInstanceId()) {
-                    this._localBroadcast(namespacePath, data);
+                    // Only filter messages if Redis is available (cluster mode)
+                    const currentRedisAvailable = global.RedisManager?.isRedisAvailable() || false;
+
+                    // Process messages from other instances, or all messages if single instance
+                    if (!currentRedisAvailable || sourceInstanceId !== global.RedisManager.getInstanceId()) {
+                        this._localBroadcast(namespacePath, data);
+                    }
+                    });
+
+                    this.redis.callbackRegistered = true;
                 }
-            });
 
-            this.redis.enabled = true;
-            LogController.logInfo(null, 'websocket._initializeRedis', 'Redis pub/sub initialized for multi-instance WebSocket coordination');
+                this.redis.enabled = true;
+                LogController.logInfo(null, 'websocket._initializeRedis', 'Redis pub/sub initialized for multi-instance WebSocket coordination');
+            } else {
+                LogController.logInfo(null, 'websocket._initializeRedis', 'Redis not available - using single-instance mode');
+                this.redis.enabled = false;
+            }
 
         } catch (error) {
             LogController.logError(null, 'websocket._initializeRedis', `error: ${error.message} - falling back to single-instance mode`);
@@ -650,6 +764,47 @@ class WebSocketController {
                 }
             }
         });
+    }
+
+    /**
+     * Handle HTTP broadcast from other instances (when Redis is unavailable)
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
+     */
+    static async handleHttpBroadcast(req, res) {
+        try {
+            const { namespace, data, sourceInstance } = req.body;
+
+            if (!namespace || !data) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Missing namespace or data'
+                });
+            }
+
+            // Verify this is not from our own instance
+            const currentInstanceId = global.RedisManager?.getInstanceId() ||
+                `localhost:${global.appPort}`;
+            if (sourceInstance === currentInstanceId) {
+                return res.status(200).json({ success: true, message: 'Ignored self-broadcast' });
+            }
+
+            // Broadcast the message locally
+            this._localBroadcast(namespace, data);
+
+            res.json({
+                success: true,
+                message: 'Message broadcast successfully'
+            });
+
+        } catch (error) {
+            LogController.logError(null, 'websocket.handleHttpBroadcast',
+                `Error handling HTTP broadcast: ${error.message}`);
+            res.status(500).json({
+                success: false,
+                error: 'Internal server error'
+            });
+        }
     }
 
     /**

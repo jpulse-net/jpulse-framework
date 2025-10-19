@@ -40,6 +40,9 @@ router.get('/api/1/health/metrics', HealthController.metrics);
 router.post('/api/1/broadcast/:channel', BroadcastController.publish);
 router.get('/api/1/broadcast/status', BroadcastController.status);
 
+// WebSocket cross-instance broadcasting (when Redis is unavailable)
+router.post('/api/1/websocket/broadcast', WebSocketController.handleHttpBroadcast);
+
 // Config API routes
 router.get('/api/1/config', ConfigController.list);
 router.get('/api/1/config/:id', ConfigController.get);

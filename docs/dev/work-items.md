@@ -1444,14 +1444,16 @@ additional changes done:
 - health controller:
   - cache system data, shareda mong pm2 instances and redis
 - tweaked jp-* styles for more consistent and a bit more condensed look
+- changed user.authenticated to user.isAuthenticated in session and handlebar context
+
+
 
 
 pending:
 - jp-card: more consistent card header: normal, dialog look with gray background jp-card-dialog
-- change user.authenticated to user.isAuthenticated
 - ws emoji bug on 2 tabs on 8080 & 8086
 - redis todo bug on 2 tabs on 8086 & 8086
-
+- websockets controller: fix maintenance nightmare: const knownPorts = [8080, 8081, 8086];
 
 old pending:
 - view controller: return unexpanded {{handlebars}} if not exist, instead of empty return
@@ -1699,6 +1701,13 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - status: 🕑 PENDING
 - type: Feature
 - new jpulse-docker project?
+
+### W-0: redis: fix bugs when redis is disabled
+- status: 🕑 PENDING
+- type: Bug
+- prerequisite
+  - W-076, v1.0.0: framework: redis infrastrucure for a scaleable jPulse Framework
+- /hello-websocket/, /hello-app-cluster/ should work properly on its own page, that is no messaging to other tabs with same page open
 
 ### W-0: handlebars: enhance {{#if}} and {{#unless}} with and, or, gt, gte, lt, lte, eq, ne
 - status: 🕑 PENDING

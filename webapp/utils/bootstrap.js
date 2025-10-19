@@ -46,21 +46,48 @@ export async function bootstrap(options = {}) {
         }
         bootstrapLog('✅ appConfig: Available');
 
-        // Step 2: Initialize LogController
+
+        // Step 2: Initialize global.appPort number
+        const portArgIndex = process.argv.indexOf('--port');
+        global.appPort = 0;
+        if (portArgIndex > -1 && process.argv[portArgIndex + 1]) {
+            global.appPort = parseInt(process.argv[portArgIndex + 1], 10);
+            if (global.appPort > 0) {
+                bootstrapLog(`appPort: Using command line argument: --port ${global.appPort}`);
+            }
+        }
+        if (!global.appPort) {
+            global.appPort = parseInt(process.env.PORT, 10);
+            if(global.appPort > 0) {
+                bootstrapLog(`appPort: Using PORT environment variable: ${global.appPort}`);
+            }
+        }
+        if (!global.appPort) {
+            const mode = global.appConfig.deployment?.mode || 'dev';
+            global.appPort = global.appConfig.deployment?.[mode]?.port;
+            if(global.appPort > 0) {
+                bootstrapLog(`appPort: Using configured value: ${global.appPort} for ${mode} mode`);
+            } else {
+                global.appPort = 8080;
+                bootstrapLog(`appPort: Using default value: ${global.appPort} for ${mode} mode`);
+            }
+        }
+
+        // Step 3: Initialize LogController
         const LogControllerModule = await import('../controller/log.js');
         bootstrapLog('LogController: Module loaded, ready for initialization');
         await LogControllerModule.default.initialize();
         global.LogController = LogControllerModule.default;
         bootstrapLog('✅ LogController: Initialized');
 
-        // Step 3: Initialize i18n (depends on LogController being globally available)
+        // Step 4: Initialize i18n (depends on LogController being globally available)
         const i18nModule = await import('./i18n.js');
         bootstrapLog('i18n: Module loaded, ready for initialization');
         const i18n = await i18nModule.initialize();  // No parameter needed!
         global.i18n = i18n;
         bootstrapLog('✅ i18n: Initialized');
 
-        // Step 4: Initialize Database (depends on LogController, can use i18n)
+        // Step 5: Initialize Database (depends on LogController, can use i18n)
         let database = null;
         if (!skipDatabase) {
             const databaseModule = await import('../database.js');
@@ -70,7 +97,7 @@ export async function bootstrap(options = {}) {
             bootstrapLog(`✅ Database: ${connected ? 'Connected' : 'Failed (continuing without)'}`);
             database = databaseModule.default;
 
-            // Step 4.1: Post-initialize LogController now that database is ready
+            // Step 5.1: Post-initialize LogController now that database is ready
             if (connected) {
                 await LogControllerModule.default.postInitialize();
                 bootstrapLog('✅ LogController: Post-initialized with database');
@@ -79,13 +106,13 @@ export async function bootstrap(options = {}) {
             bootstrapLog('⏭️  Database: Skipped');
         }
 
-        // Step 5: ViewController (depends on LogController, i18n, database)
+        // Step 6: ViewController (depends on LogController, i18n, database)
         const ViewControllerModule = await import('../controller/view.js');
         bootstrapLog('ViewController: Module loaded, ready for initialization');
         await ViewControllerModule.default.initialize();
         bootstrapLog('✅ ViewController: Initialized');
 
-        // Step 6: Initialize Redis Manager (W-076 - depends on LogController)
+        // Step 7: Initialize Redis Manager (W-076 - depends on LogController)
         let redisManager = null;
         let sessionStore = null;
 
@@ -96,7 +123,7 @@ export async function bootstrap(options = {}) {
             global.RedisManager = RedisManagerModule.default;
             bootstrapLog(`✅ RedisManager: Initialized - Instance: ${RedisManagerModule.default.getInstanceId()}, Available: ${RedisManagerModule.default.isRedisAvailable()}`);
 
-            // Step 6.1: Configure session store with Redis fallback (W-076)
+            // Step 7.1: Configure session store with Redis fallback (W-076)
             sessionStore = await RedisManagerModule.default.configureSessionStore(database);
             bootstrapLog('✅ SessionStore: Configured with Redis/fallback');
 
@@ -117,12 +144,12 @@ export async function bootstrap(options = {}) {
             bootstrapLog('✅ SessionStore: Configured with MemoryStore for tests');
         }
 
-        // Step 6.2: Initialize broadcast controller (W-076)
+        // Step 7.2: Initialize broadcast controller (W-076)
         const BroadcastControllerModule = await import('../controller/broadcast.js');
         BroadcastControllerModule.default.initialize();
         bootstrapLog('✅ BroadcastController: Initialized with framework subscriptions');
 
-        // Step 6.3: Initialize app cluster controller (W-076)
+        // Step 7.3: Initialize app cluster controller (W-076)
         try {
             const AppClusterControllerModule = await import('../controller/appCluster.js');
             AppClusterControllerModule.default.initialize();
@@ -132,12 +159,12 @@ export async function bootstrap(options = {}) {
             console.error('AppClusterController error details:', error);
         }
 
-        // Step 6.4: Initialize health controller clustering (W-076)
+        // Step 7.4: Initialize health controller clustering (W-076)
         const HealthControllerModule = await import('../controller/health.js');
         await HealthControllerModule.default.initialize();
         bootstrapLog('✅ HealthController: Initialized with Redis clustering');
 
-        // Step 7: Set up CommonUtils globally
+        // Step 8: Set up CommonUtils globally
         global.CommonUtils = CommonUtils;
         bootstrapLog('✅ CommonUtils: Available globally');
 

@@ -41,21 +41,22 @@ class AppClusterController {
 
             // Subscribe to ALL broadcast messages to relay to interested WebSocket clients
             // Use RedisManager callback registration for automatic channel handling
-            RedisManager.registerBroadcastCallback('controller:*', (channel, data) => {
+            const options = { _skipChannelValidation: true }; // Skip only for internal use
+            RedisManager.registerBroadcastCallback('controller:*', (channel, data, options) => {
                 this.relayToInterestedClients(channel, data);
-            });
-            RedisManager.registerBroadcastCallback('view:*', (channel, data) => {
+            }, options);
+            RedisManager.registerBroadcastCallback('view:*', (channel, data, options) => {
                 this.relayToInterestedClients(channel, data);
-            });
-            RedisManager.registerBroadcastCallback('model:*', (channel, data) => {
+            }, options);
+            RedisManager.registerBroadcastCallback('model:*', (channel, data, options) => {
                 this.relayToInterestedClients(channel, data);
-            });
+            }, options);
 
-            // W-076: Subscribe to all patterns at once to avoid multiple listeners
-            RedisManager.subscribeBroadcast(
-                ['controller:*', 'view:*', 'model:*'],
-                RedisManager._handleCallbackMessage
-            );
+            ////// W-076: Subscribe to all patterns at once to avoid multiple listeners
+            ////RedisManager.subscribeBroadcast(
+            ////    ['controller:*', 'view:*', 'model:*'],
+            ////    RedisManager._handleCallbackMessage
+            ////); // FIXME: Remove this subscription after testing
 
             LogController.logInfo(null, 'appCluster.initialize', 'App Cluster controller initialized with generic WebSocket namespace');
         } catch (error) {
@@ -70,7 +71,7 @@ class AppClusterController {
      */
     static handleConnect(clientId, user) {
         // Initialize client's channel subscriptions in our registry
-        AppClusterController.clientChannels.set(clientId, new Set());
+        AppClusterController.clientChannels.set(clientId, new Map());
 
         LogController.logInfo(
             user ? user.username : null,
@@ -110,14 +111,15 @@ class AppClusterController {
 
             if (data.type === 'subscribe') {
                 // Client wants to subscribe to a channel
-                const { channel } = data;
+                const { channel, omitSelf = false } = data;
                 if (channel && typeof channel === 'string') {
-                    clientChannels.add(channel);
+                    const clientChannels = AppClusterController.clientChannels.get(clientId);
+                    clientChannels.set(channel, { omitSelf });
 
                     LogController.logInfo(
                         user ? user.username : null,
                         'appCluster.handleMessage',
-                        `Client subscribed to channel: ${channel}`
+                        `Client subscribed to channel: ${channel} (omitSelf: ${omitSelf})`
                     );
 
                     // Acknowledge subscription
@@ -207,13 +209,18 @@ class AppClusterController {
      * @param {Object} data - Broadcast message data
      */
     static relayToInterestedClients(channel, data) {
+        console.log(`[DEBUG] AppCluster.relayToInterestedClients: CALLED for channel ${channel} from ${data?._sourceInstanceId || 'unknown'}, data keys: ${Object.keys(data || {}).join(', ')}`);
 
         try {
             // Get all connected clients in the app-cluster namespace
             const namespace = WebSocketController.namespaces.get('/api/1/ws/app-cluster');
             if (!namespace) {
+                console.log(`[DEBUG] AppCluster.relayToInterestedClients: No app-cluster namespace found`);
                 return; // No namespace registered
             }
+
+            console.log(`[DEBUG] AppCluster.relayToInterestedClients: Namespace has ${namespace.clients.size} clients`);
+            console.log(`[DEBUG] AppCluster.relayToInterestedClients: Client channels: ${Array.from(AppClusterController.clientChannels.entries()).map(([clientId, channels]) => `${clientId}:[${Array.from(channels).join(',')}]`).join(', ')}`);
 
             let relayedCount = 0;
 
@@ -222,19 +229,26 @@ class AppClusterController {
                 const clientChannels = AppClusterController.clientChannels.get(clientId);
 
                 if (clientChannels && clientChannels.has(channel)) {
+                    const channelOptions = clientChannels.get(channel);
+                    const shouldOmitSelf = channelOptions?.omitSelf || false;
+
+                    // Skip self-messages if client has omitSelf enabled
+                    if (shouldOmitSelf && data.uuid === clientId) {
+                        return; // Don't send to this client
+                    }
+
                     if (client.ws.readyState === 1) { // WebSocket.OPEN
                         const message = {
                             success: true,
                             data: {
                                 type: 'broadcast',
                                 channel: channel,
-                                data: { ...data, uuid: data.uuid || null },
+                                data: data,
                                 timestamp: new Date().toISOString()
                             }
                         };
 
                         client.ws.send(JSON.stringify(message));
-                        relayedCount++;
                     }
                 }
             });
@@ -245,6 +259,8 @@ class AppClusterController {
                     'appCluster.relayToInterestedClients',
                     `Relayed broadcast to ${relayedCount} clients on channel: ${channel}`
                 );
+            } else {
+                console.log(`[DEBUG] AppCluster.relayToInterestedClients: No clients subscribed to channel ${channel}`);
             }
         } catch (error) {
             LogController.logError(
@@ -252,6 +268,44 @@ class AppClusterController {
                 'appCluster.relayToInterestedClients',
                 `Error relaying to WebSocket clients: ${error.message}`
             );
+        }
+    }
+    /**
+     * Configure self-message behavior for channels
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
+     */
+    static configureSelfMessageBehavior(req, res) {
+        try {
+            const { channel, omitSelf } = req.body;
+
+            if (!channel || typeof omitSelf !== 'boolean') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid parameters. Expected: { channel: string, omitSelf: boolean }'
+                });
+            }
+
+            // Validate channel schema
+            if (!RedisManager._validateChannelSchema(channel)) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid channel schema: ${channel}. Expected: (model|view|controller):scope:type:action[:word]*[:*]?`
+                });
+            }
+
+            // Configure the behavior
+            RedisManager.configureSelfMessageBehavior(channel, omitSelf);
+
+            res.json({
+                success: true,
+                message: `Configured self-message behavior for ${channel}: ${omitSelf ? 'omit' : 'include'}`
+            });
+
+        } catch (error) {
+            global.LogController?.logError(null, 'appCluster.configureSelfMessageBehavior',
+                `Error configuring self-message behavior: ${error.message}`);
+            res.status(500).json({ success: false, error: error.message });
         }
     }
 }

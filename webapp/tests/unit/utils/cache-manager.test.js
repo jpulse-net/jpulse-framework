@@ -30,7 +30,7 @@ jest.unstable_mockModule('../../../controller/log.js', () => ({
     default: {
         logInfo: jest.fn(),
         logError: jest.fn(),
-        logWarn: jest.fn()
+        logWarning: jest.fn()
     }
 }));
 
@@ -55,7 +55,7 @@ describe('CacheManager', () => {
         mockLogController = {
             logInfo: jest.fn(),
             logError: jest.fn(),
-            logWarn: jest.fn()
+            logWarning: jest.fn()
         };
 
         // Setup test paths

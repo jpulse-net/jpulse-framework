@@ -344,16 +344,23 @@
                 // Subscribe to global notifications from all cluster instances
                 if (jPulse.appCluster.broadcast) {
                     jPulse.appCluster.broadcast.subscribe(notificationChannel, (data) => {
+                        console.log(`[DEBUG] Notification received:`, {
+                            message: data.message,
+                            sender: data.sender,
+                            uuid: data.uuid,
+                            senderName: data.senderName,
+                            serverInstance: data.serverInstance
+                        });
+
+                        // Add notification to feed (self-filtering handled by broadcast system)
                         this.addNotificationToFeed(data);
 
-                        // Show toast if from another tab/instance (check UUID)
-                        if (data.uuid !== jPulse.appCluster.broadcast.getUuid()) {
-                            jPulse.UI.toast.show(
-                                `📡 New notification from ${data.senderName?.trim() || data.sender}`,
-                                'info'
-                            );
-                        }
-                    });
+                        // Show toast for notifications from other instances/tabs
+                        jPulse.UI.toast.show(
+                            `📡 New notification from ${data.senderName?.trim() || data.sender}`,
+                            'info'
+                        );
+                    }, { omitSelf: true }); // Configure to omit self-messages
 
                     console.log(`📡 Subscribed to ${notificationChannel} with auto-WebSocket`);
 
@@ -402,14 +409,16 @@
                         serverInstance: this.getServerInstance()
                     };
 
+                    // Always add to local feed immediately (sender should see their own message)
+                    this.addNotificationToFeed(notificationData);
+
                     // Publish via the appropriate method based on cluster mode
                     if (jPulse.appCluster.isClusterMode()) {
-                        // Redis available: publish to all instances via Redis
-                        jPulse.appCluster.broadcast.publish(notificationChannel, notificationData);
+                        // Use the new publish API (handles WebSocket timing automatically)
+                        jPulse.appCluster.broadcast.publish(notificationChannel, notificationData, { omitSelf: true });
                         jPulse.UI.toast.show('📡 Notification broadcasted to all servers!', 'success');
                     } else {
                         // Redis not available: show locally only (single server mode)
-                        this.addNotificationToFeed(notificationData);
                         jPulse.UI.toast.show('📱 Notification shown locally (cluster not available)', 'warning');
                     }
 

@@ -358,7 +358,7 @@ class HelloClusterTodoController {
                     <pre><code class="language-javascript">static async _broadcastChange(action, todo, req) {
     // Abort if Redis is not available (graceful fallback)
     if (!global.RedisManager || !global.RedisManager.isRedisAvailable()) {
-        global.LogController?.logWarn(req, '..._broadcastChange', 'Redis not available, skipping broadcast');
+        global.LogController?.logWarning(req, '..._broadcastChange', 'Redis not available, skipping broadcast');
         return;
     }
 

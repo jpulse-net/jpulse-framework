@@ -74,6 +74,23 @@ npm start
 - **Internationalization**: Complete i18n support with dynamic translation loading
 - **Testing Framework**: 637+ tests with automated cleanup and isolation
 - **Production Ready**: nginx integration, PM2 clustering, MongoDB replica sets
+- **Redis Clustering**: Multi-instance WebSocket and session management across servers
+
+## Deployment Requirements
+
+### Single Instance (Development)
+- ✅ **Redis Optional**: Sessions use memory/MongoDB fallback
+- ✅ **WebSocket**: Local only (single instance)
+
+### Multi-Instance (PM2 Cluster)
+- ✅ **Redis Required**: For cross-instance communication
+- ✅ **WebSocket**: Shared across all instances
+- ✅ **Health Metrics**: Aggregated across instances
+
+### Multi-Server (Load Balanced)
+- ✅ **Redis Required**: For cross-server communication
+- ✅ **WebSocket**: Shared across all servers
+- ✅ **Sessions**: Shared across all servers
 
 ## Architecture Overview
 

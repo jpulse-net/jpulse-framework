@@ -29,7 +29,7 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.dirname(__dirname); // Parent of webapp/
 
 // common logging function for app
-function appLog(message, level = 'msg') {
+function appLog(message, level = 'info') {
     console.log(CommonUtils.formatLogMessage('app', message, level));
 }
 

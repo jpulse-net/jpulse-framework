@@ -13,7 +13,6 @@
  */
 
 import Redis from 'ioredis';
-import os from 'os';
 
 /**
  * Redis Connection Manager for jPulse Framework
@@ -47,11 +46,19 @@ class RedisManager {
     // Redis availability status
     static isAvailable = false;
     static config = null;
-    static instanceId = null;
+    static instanceId = global.appConfig.system.instanceId;
 
     // Broadcast callback registry for automatic channel handling
     static broadcastCallbacks = new Map();
     static subscribedChannels = new Set();
+
+    // Self-message behavior configuration (omitSelf: true/false per channel/pattern)
+    static _selfMessageConfig = new Map([
+        ['view:helloNotification:message:sent', true], // Built-in notifications: omit self
+        ['view:*', false], // Default for custom view channels: include self
+        ['controller:*', true], // Default for controller channels: omit self (server-side)
+        ['model:*', true], // Default for model channels: omit self (server-side)
+    ]);
 
     /**
      * Initialize Redis Manager
@@ -64,8 +71,6 @@ class RedisManager {
         }
 
         RedisManager.config = redisConfig;
-        // Use centralized instanceId from appConfig.system
-        RedisManager.instanceId = global.appConfig.system.instanceId;
 
         // Only create connections if Redis is enabled
         if (redisConfig.enabled) {
@@ -77,21 +82,6 @@ class RedisManager {
 
         RedisManager.instance = RedisManager;
         return RedisManager.instance;
-    }
-
-    /**
-     * Generate unique instance identifier
-     * Format: {hostname_numeric}:{pm2_id} or {hostname_short}:{pm2_id}
-     * @private
-     */
-    static _generateInstanceId() {
-        const hostname = os.hostname();
-        const pm2Id = process.env.pm_id || process.env.NODE_APP_INSTANCE || '0';
-        const pid = process.pid;
-
-        // Use a combination of hostname, PM2 ID, and PID for uniqueness
-        // This handles local testing (different PIDs) and PM2 clustering (different PM2 IDs)
-        return `${hostname}:${pm2Id}:${pid}`;
     }
 
     /**
@@ -174,19 +164,30 @@ class RedisManager {
 
         try {
             const instanceId = RedisManager.instanceId;
+            // Build URL based on configuration - support both single server and cluster deployments
+            let instanceUrl;
+            if (global.appConfig.deployment?.mode === 'prod' && global.appConfig.deployment?.prod?.url) {
+                // Use production URL if configured
+                instanceUrl = global.appConfig.deployment.prod.url;
+            } else {
+                // Default to localhost for development
+                instanceUrl = `http://localhost:${global.appConfig.system.port}`;
+            }
+
             const instanceData = {
                 instanceId,
                 hostname: global.appConfig.system.hostname,
                 pid: global.appConfig.system.pid,
                 port: global.appConfig.system.port,
-                url: `http://localhost:${global.appConfig.system.port}`,
+                url: instanceUrl,
                 registeredAt: Date.now(),
                 lastSeen: Date.now()
             };
 
             // Register instance in Redis
             const instanceKey = RedisManager.getKey('instance', instanceId);
-            await RedisManager.getClient('metrics').setex(instanceKey, 300, JSON.stringify(instanceData)); // 5 minute TTL
+            const instanceTTL = RedisManager.config?.connections?.metrics?.instanceTtl || 120;
+            await RedisManager.getClient('metrics').setex(instanceKey, instanceTTL, JSON.stringify(instanceData));
 
             // Add to instances set for easy discovery
             await RedisManager.getClient('metrics').sadd('instances', instanceId);
@@ -198,6 +199,14 @@ class RedisManager {
             global.LogController?.logError(null, 'redis-manager._registerInstance',
                 `Failed to register instance: ${error.message}`);
         }
+    }
+
+    /**
+     * Get all registered instances from Redis (public API)
+     * @returns {Promise<Array>} Array of instance data
+     */
+    static async getRegisteredInstances() {
+        return await this._getRegisteredInstances();
     }
 
     /**
@@ -220,8 +229,9 @@ class RedisManager {
                     if (instanceData) {
                         const parsed = JSON.parse(instanceData);
 
-                        // Check if instance is still alive (within 2 minutes)
-                        if (Date.now() - parsed.lastSeen < 120000) {
+                        // Check if instance is still alive (within configured TTL)
+                        const instanceTTL = RedisManager.config?.connections?.metrics?.instanceTtl || 120;
+                        if (Date.now() - parsed.lastSeen < (instanceTTL * 1000)) {
                             instances.push(parsed);
                         } else {
                             // Clean up expired instance
@@ -495,7 +505,6 @@ class RedisManager {
     static async publishBroadcast(channel, data) {
         // Early bailout if Redis is not available - fail silently to avoid log noise
         if (!RedisManager.isAvailable) {
-            console.log(`[DEBUG] RedisManager: Redis not available, skipping broadcast publish for ${channel}`);
             return false;
         }
 
@@ -503,7 +512,6 @@ class RedisManager {
 
         if (!publisher) {
             // Graceful fallback: return false without logging (Redis disabled)
-            console.log(`[DEBUG] RedisManager: No broadcast publisher available for ${channel}`);
             return false;
         }
 
@@ -516,15 +524,12 @@ class RedisManager {
             };
 
             const key = RedisManager.getKey('broadcast', channel);
-            console.log(`[DEBUG] RedisManager: Publishing to ${key} with message: ${JSON.stringify(message).substring(0, 200)}...`);
             await publisher.publish(key, JSON.stringify(message));
-            console.log(`[DEBUG] RedisManager: Successfully published broadcast: ${channel} from ${RedisManager.instanceId}`);
 
             global.LogController?.logInfo(null, 'redis-manager.publishBroadcast',
                 `Broadcast published: ${channel} from ${RedisManager.instanceId}`);
             return true;
         } catch (error) {
-            console.log(`[DEBUG] RedisManager: Failed to publish broadcast ${channel}: ${error.message}`);
             global.LogController?.logError(null, 'redis-manager.publishBroadcast',
                 `Failed to publish broadcast ${channel}: ${error.message}`);
             return false;
@@ -532,35 +537,86 @@ class RedisManager {
     }
 
     /**
-     * Publish message with automatic callback registration
-     * This method publishes a broadcast and automatically subscribes to receive responses
+     * Publish message with automatic callback registration and self-message control
      * @param {string} channel - Channel name to publish and subscribe to
      * @param {Object} data - Message data to broadcast
      * @param {Function} callback - Callback function (channel, data, sourceInstanceId) => void
+     * @param {Object} options - Optional configuration
+     * @param {boolean} options.omitSelf - Whether to omit self-messages (default: false)
      * @returns {boolean} True if published and subscribed successfully, false if Redis unavailable
      */
-    static async publishBroadcastWithCallback(channel, data, callback) {
+    static async publishBroadcastWithCallback(channel, data, callback, options = {}) {
+        const { omitSelf = false } = options;
+
         // First register the callback for this channel
-        RedisManager.registerBroadcastCallback(channel, callback);
+        RedisManager.registerBroadcastCallback(channel, callback, { omitSelf });
 
         // Then publish the message
         return await RedisManager.publishBroadcast(channel, data);
     }
 
     /**
+     * Configure whether a channel should omit self-messages
+     * @param {string} channel - Channel name or pattern
+     * @param {boolean} omitSelf - Whether to omit self-messages
+     */
+    static configureSelfMessageBehavior(channel, omitSelf) {
+        if (typeof omitSelf !== 'boolean') {
+            throw new Error('omitSelf must be a boolean');
+        }
+
+        // Validate channel schema before configuring
+        if (!RedisManager._validateChannelSchema(channel)) {
+            throw new Error(`Invalid channel schema: ${channel}`);
+        }
+
+        RedisManager._selfMessageConfig.set(channel, omitSelf);
+        global.LogController?.logInfo(null, 'redis-manager.configureSelfMessageBehavior',
+            `Configured self-message behavior for ${channel}: ${omitSelf ? 'omit' : 'include'}`);
+    }
+
+    /**
+     * Determine if a channel should omit self-messages
+     * @private
+     */
+    static _shouldOmitSelf(channel) {
+        // Check specific channel first, then pattern matches
+        for (const [pattern, shouldOmit] of RedisManager._selfMessageConfig.entries()) {
+            if (RedisManager._channelMatches(channel, pattern)) {
+                return shouldOmit;
+            }
+        }
+        return false; // Default: include self
+    }
+
+    /**
      * Register a callback for a broadcast channel
      * @param {string} channel - Channel name or pattern
      * @param {Function} callback - Callback function (channel, data, sourceInstanceId) => void
+     * @param {Object} options - Optional configuration
+     * @param {boolean} options.omitSelf - Whether to omit self-messages for this callback
      */
-    static registerBroadcastCallback(channel, callback) {
+    static registerBroadcastCallback(channel, callback, options = {}) {
         if (typeof callback !== 'function') {
             global.LogController?.logError(null, 'redis-manager.registerBroadcastCallback',
                 `Callback must be a function for channel: ${channel}`);
             return;
         }
 
+        // Validate channel schema before registering
+        if (!options._skipChannelValidation && !RedisManager._validateChannelSchema(channel)) {
+            global.LogController?.logError(null, 'redis-manager.registerBroadcastCallback',
+                `Invalid channel schema: ${channel}`);
+            return;
+        }
+
         // Store the callback regardless of Redis availability (for potential future use)
         RedisManager.broadcastCallbacks.set(channel, callback);
+
+        // Configure self-message behavior if specified
+        if (options.omitSelf === true) {
+            RedisManager._selfMessageConfig.set(channel, true);
+        }
 
         // Only subscribe and log if Redis is available and not already subscribed
         if (RedisManager.isAvailable) {
@@ -581,46 +637,53 @@ class RedisManager {
      * @private
      */
     static _handleCallbackMessage(channel, data, sourceInstanceId) {
-        console.log(`[DEBUG] RedisManager: Handling callback message for channel ${channel} from ${sourceInstanceId}`);
-        console.log(`[DEBUG] RedisManager: Current registered callbacks: ${Array.from(RedisManager.broadcastCallbacks.keys()).join(', ')}`);
+        console.log(`[DEBUG] RedisManager._handleCallbackMessage: Processing ${channel} from ${sourceInstanceId}`);
 
-        // Find matching callback (exact match or pattern match)
-        // Sort patterns by specificity (longest first) to prioritize more specific patterns
+        // Validate channel schema first
+        if (!RedisManager._validateChannelSchema(channel)) {
+            console.warn(`Invalid channel schema: ${channel}`);
+            return;
+        }
+
+        // Find matching callback using improved pattern matching
+        // Sort by specificity: longer patterns first, then non-wildcard patterns
         const sortedCallbacks = Array.from(RedisManager.broadcastCallbacks.entries()).sort((a, b) => {
             const aPattern = a[0];
             const bPattern = b[0];
-            // Prioritize patterns that are more specific (longer patterns first)
+
+            // Prioritize longer (more specific) patterns first
             if (aPattern.length !== bPattern.length) {
                 return bPattern.length - aPattern.length;
             }
-            // For same length, prioritize non-wildcard patterns
-            const aHasWildcard = aPattern.includes('*');
-            const bHasWildcard = bPattern.includes('*');
+
+            // For same length, prioritize non-wildcard over wildcard patterns
+            const aHasWildcard = aPattern.includes('*') || aPattern.includes('?');
+            const bHasWildcard = bPattern.includes('*') || bPattern.includes('?');
             if (aHasWildcard !== bHasWildcard) {
-                return aHasWildcard ? 1 : -1;
+                return aHasWildcard ? 1 : -1; // Non-wildcard first
             }
+
             return 0;
         });
 
-        let matched = false;
+        // Only call the FIRST (most specific) matching callback
         for (const [registeredChannel, callback] of sortedCallbacks) {
-            console.log(`[DEBUG] RedisManager: Checking if ${channel} matches pattern ${registeredChannel}`);
             if (RedisManager._channelMatches(channel, registeredChannel)) {
-                console.log(`[DEBUG] RedisManager: Channel ${channel} matches pattern ${registeredChannel}, calling callback`);
+                ///// Determine if this channel should omit self-messages
+                ////const shouldOmitSelf = RedisManager._shouldOmitSelf(channel);
+                ////if (shouldOmitSelf && data.uuid === RedisManager.getInstanceId()) {
+                ////    return; // Don't process self-messages for this channel
+                ////} // FIXME: Remove this self-message filtering after testing
+
+                console.log(`[DEBUG] RedisManager._handleCallbackMessage: Calling callback for ${registeredChannel}`);
                 try {
                     callback(channel, data, sourceInstanceId);
-                    matched = true;
                 } catch (error) {
-                    console.log(`[DEBUG] RedisManager: Error in callback for channel ${channel}: ${error.message}`);
                     global.LogController?.logError(null, 'redis-manager._handleCallbackMessage',
                         `Error in callback for channel ${channel}: ${error.message}`);
                 }
-                break; // Only call the first matching callback
+                break; // Exit after calling the first match
             }
-        }
-
-        if (!matched) {
-            console.log(`[DEBUG] RedisManager: No matching callback found for channel ${channel}`);
         }
     }
 
@@ -629,22 +692,36 @@ class RedisManager {
      * @private
      */
     static _channelMatches(channel, pattern) {
-        console.log(`[DEBUG] RedisManager: Checking if channel "${channel}" matches pattern "${pattern}"`);
         if (channel === pattern) {
-            console.log(`[DEBUG] RedisManager: Exact match found`);
             return true;
         }
 
         // Handle wildcard patterns (e.g., 'view:*' matches 'view:config:refresh')
         if (pattern.endsWith('*')) {
             const prefix = pattern.slice(0, -1);
-            const matches = channel.startsWith(prefix);
-            console.log(`[DEBUG] RedisManager: Pattern match check: "${channel}".startsWith("${prefix}") = ${matches}`);
-            return matches;
+            return channel.startsWith(prefix);
         }
 
-        console.log(`[DEBUG] RedisManager: No match found`);
         return false;
+    }
+
+    /**
+     * Validate channel schema with corrected regex
+     * @private
+     */
+    static _validateChannelSchema(channel) {
+        // Updated regex: handles both full patterns and wildcards
+        // - Full: component:scope:type:action[:word]* (minimum 4 parts, maximum 17)
+        // - Wildcard: component:scope:type:action[:word]*:* (minimum 2 parts, maximum 16)
+        const channelRegex = /^(model|view|controller)((:[\w\.\-]+){3,16}|(:[\w\.\-]+){1,15}:\*)$/;
+
+        if (!channelRegex.test(channel)) {
+            global.LogController?.logWarning(null, 'redis-manager._validateChannelSchema',
+                `Invalid channel format: ${channel}. Expected: (model|view|controller):scope:type:action[:word]*[:*]?`);
+            return false;
+        }
+
+        return true; // Empty parts check is handled by the regex (+ qualifier)
     }
 
     /**
@@ -712,14 +789,20 @@ class RedisManager {
             const cleanChannel = channel.startsWith(prefix) ? channel.slice(prefix.length) : channel;
             const message = JSON.parse(messageStr);
 
-            // Determine if we're in single instance mode (Redis unavailable)
-            const isSingleInstanceMode = !RedisManager.isRedisAvailable();
-
-            // In cluster mode, ignore messages from our own instance to prevent loops
-            // In single instance mode, allow all messages (including self) for testing
-            if (!isSingleInstanceMode && message.instanceId === RedisManager.instanceId) {
+            // Validate channel schema first
+            if (!RedisManager._validateChannelSchema(cleanChannel)) {
+                console.warn(`Invalid channel schema: ${cleanChannel}`);
                 return;
             }
+
+            ////// Determine if we're in single instance mode (Redis unavailable)
+            ////const isSingleInstanceMode = !RedisManager.isRedisAvailable();
+
+            ////// In cluster mode, ignore messages from our own instance to prevent loops
+            ////// In single instance mode, allow all messages (including self) for testing
+            ////if (!isSingleInstanceMode && message.instanceId === RedisManager.instanceId) {
+            ////    return;
+            ////} // FIXME: Remove this self-message filtering after testing
 
             // Call the callback with clean channel name
             callback(cleanChannel, message.data, message.instanceId);

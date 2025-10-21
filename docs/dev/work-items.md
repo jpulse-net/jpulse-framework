@@ -1362,14 +1362,11 @@ This is the doc to track work items, arranged in three sections:
   - W-073, v0.9.0: site: create client & server websocket infrastructure - DONE
 - requirement:
   - jPulse should work with full functionality in multi node instances, and multi app server instances
-- initial deployment target of jPulse Framework v1.0:
-  - jpulse.net in production mode
-  - pm2 cluster with 2 instances
-  - shared websocket connections
-  - shared metrics data
-  - shared user sessions
-  - shared site config / update message
-  - no load-balancing, but code should be ready for multi app server instances
+- implementation:
+  - Redis-based clustering for multi-instance WebSocket communication
+  - Redis-based health metrics aggregation across instances
+  - Redis-based session sharing across instances
+  - Simplified architecture: Redis required for multi-instance deployments
 - technology:
   - use redis to share specific data on all running app instances (with pub/subscribe?)
 - shared data across all app instances:
@@ -1392,7 +1389,7 @@ This is the doc to track work items, arranged in three sections:
   - anything else?
 - deliverables:
   - Core Redis Infrastructure (W-076):
-    - webapp/app.conf -- comprehensive Redis configuration (single/cluster modes, fallback settings, connection prefixes/TTLs)
+    - webapp/app.conf -- comprehensive Redis configuration (single/cluster modes, connection prefixes/TTLs)
     - site/webapp/app.conf.tmpl -- Redis configuration overrides for site owners
     - webapp/utils/redis-manager.js -- centralized Redis connection management with graceful fallback
     - webapp/utils/bootstrap.js -- integrated Redis initialization and session store configuration
@@ -1400,6 +1397,7 @@ This is the doc to track work items, arranged in three sections:
   - Session Management:
     - webapp/utils/redis-manager.js -- configureSessionStore() with Redis/Memory/MongoDB fallback hierarchy
     - Global RedisManager availability for all controllers
+    - changed user.authenticated to user.isAuthenticated in session, and in handlebar context
   - Broadcasting System:
     - webapp/controller/broadcast.js -- REST API for cross-instance broadcasting with callback system
     - webapp/controller/view.js -- config refresh broadcasting and self-registered callbacks
@@ -1408,13 +1406,15 @@ This is the doc to track work items, arranged in three sections:
   - WebSocket Infrastructure:
     - webapp/controller/appCluster.js -- NEW WebSocket-to-Redis bridge for real-time client sync
     - webapp/controller/websocket.js -- migrated endpoints from /ws/ to /api/1/ws/ for API consistency
-    - webapp/controller/websocket.js -- Redis-based cross-instance WebSocket broadcasting
+    - webapp/controller/websocket.js -- Redis-based cross-instance WebSocket broadcasting (HTTP fallbacks removed)
     - webapp/view/admin/websocket-test.shtml -- updated for new endpoint structure
     - webapp/view/admin/websocket-status.shtml -- updated for new endpoint structure
     - site/webapp/controller/helloWebsocket.js -- updated namespace registration for new endpoints
   - Health Metrics Clustering:
-    - webapp/controller/health.js -- Redis-based health metrics aggregation across instances
-    - webapp/controller/health.js -- automatic instance discovery with 30s broadcast + 90s TTL
+    - webapp/controller/health.js
+      - Redis-based health metrics aggregation across instances
+      - automatic instance discovery with 30s broadcast + 90s TTL
+      - cache system data, shareda mong pm2 instances and redis
     - Enhanced /api/1/health/metrics endpoint with cluster-wide statistics
   - Client-Side Enhancements:
     - webapp/view/jpulse-common.js -- configurable WebSocket UUID storage (session/local/memory)
@@ -1435,26 +1435,31 @@ This is the doc to track work items, arranged in three sections:
     - webapp/view/user/profile.shtml -- fixed async loading race condition for language/theme dropdowns
   - Package Dependencies:
     - package.json -- added connect-redis and ioredis for Redis session management
+  - Architecture Simplification:
+    - Removed complex HTTP fallback code from WebSocket controller
+    - Simplified to Redis-only approach for multi-instance deployments
+    - Updated documentation to clarify Redis requirements
+  - Page title:
+    - in <title> tag of all pages, fixed broken {{app.shortName}} to {{app.site.shortName}}
+  - Common styles:
+    - tweaked jp-* styles for more consistent look, and a bit more condensed look
+  - System-wide metadata
+    - created appConfig.system with metadata: rootDir, appDir, siteDir, port, hostname, serverName, serverId, pm2Id, pid, instanceName, instanceId, docTypes
+    - objective: single source of truth for system metadata
 
 
 
-
-additional changes done:
-- fixed broken {{app.shortName}} to {{app.shortName}} in <title> in all pages
-- health controller:
-  - cache system data, shareda mong pm2 instances and redis
-- tweaked jp-* styles for more consistent and a bit more condensed look
-- changed user.authenticated to user.isAuthenticated in session and handlebar context
-- created appConfig.system with: rootDir, appDir, siteDir, port, serverName, serverId, pm2Id, pid, instanceName, instanceId, docTypes
 
 
 
 pending:
 - jp-card: more consistent card header: normal, dialog look with gray background jp-card-dialog
-- ws emoji bug on 2 tabs on 8080 & 8086
-- redis todo bug on 2 tabs on 8086 & 8086
-- websockets controller: fix maintenance nightmare: const knownPorts = [8080, 8081, 8086];
-- websocket & redis-controller: clean up hardcoded config, move to app.conf
+- fix hard-coded console.* in server code
+- review and remove bloat in jpulse-common.js: configureSelfMessageBehavior, _executePublish, OLD_*
+- remove DEBUG, FIXME
+- remove cruft in redis-manager: is configureSelfMessageBehavior needed?
+- remove cruft in appCluster: is configureSelfMessageBehavior needed?
+
 
 old pending:
 - view controller: return unexpanded {{handlebars}} if not exist, instead of empty return

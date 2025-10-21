@@ -444,7 +444,7 @@ class HealthController {
                 const server = serverMap.get(hostname);
                 server.instances.push(...instanceData.instances);
             });
-            
+
             // Add server uptime to each server
             serverMap.forEach(server => {
                 server.uptime = os.uptime();

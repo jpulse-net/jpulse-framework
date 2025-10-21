@@ -3929,7 +3929,13 @@ window.jPulse = {
                 statusCallbacks: [],
                 reconnectTimer: null,
                 pingTimer: null,
-                shouldReconnect: true
+                shouldReconnect: true,
+                uuid: clientUUID // Store UUID directly on connection object
+            };
+
+            // Add getConnection method to the connection object
+            connection.getConnection = function() {
+                return { uuid: this.uuid };
             };
 
             // Create connection handle (public API)
@@ -4025,21 +4031,23 @@ window.jPulse = {
                     connection.reconnectAttempts = 0;
                     this._updateStatus(connection, 'connected');
 
-                    // Start ping timer
-                    connection.pingTimer = setInterval(() => {
-                        if (connection.ws && connection.ws.readyState === WebSocket.OPEN) {
-                            connection.ws.send(JSON.stringify({ type: 'ping' }));
-                        }
-                    }, connection.config.pingInterval);
+                    // Remove manual ping timer - browsers handle ping/pong automatically
+                    // The server sends ping frames and browser responds with pong frames automatically
                 };
 
-                // Message received
+                // Remove onpong handler - browsers handle pong automatically
+                // connection.ws.onpong = () => {
+                //     connection.lastPong = Date.now();
+                // };
+
+                // Message received (JSON messages)
                 connection.ws.onmessage = (event) => {
                     try {
                         const message = JSON.parse(event.data);
 
-                        // Handle pong responses
+                        // Handle pong message responses (if server sends them)
                         if (message.type === 'pong') {
+                            connection.lastPong = Date.now(); // Update for message-based pong
                             return; // Silent acknowledgment
                         }
 
@@ -4065,7 +4073,7 @@ window.jPulse = {
                 connection.ws.onclose = () => {
                     console.log(`jPulse.ws: Disconnected from ${connection.path}`);
 
-                    // Clear ping timer
+                    // Clear ping timer (even though we don't use it, just in case)
                     if (connection.pingTimer) {
                         clearInterval(connection.pingTimer);
                         connection.pingTimer = null;
@@ -4195,24 +4203,80 @@ window.jPulse = {
             _websocket: null,
             _isConnecting: false,
             _pendingSubscriptions: new Set(),
+            _pendingPublishes: [],
 
             /**
              * Get the unique UUID for the underlying WebSocket connection.
              * @returns {string|null} The client's UUID or null if not connected.
              */
             getUuid: function() {
-                if (this._websocket && typeof this._websocket.getConnection === 'function') {
-                    return this._websocket.getConnection().uuid;
+                if (this._websocket) {
+                    // Get UUID from the same storage location as the WebSocket system
+                    const storageKey = 'jPulse.ws.clientUUID';
+                    let uuid;
+
+                    // Use the same logic as the WebSocket system
+                    switch (jPulse.ws._config.uuidStorage) {
+                        case 'local':
+                            uuid = localStorage.getItem(storageKey);
+                            break;
+                        case 'session':
+                            uuid = sessionStorage.getItem(storageKey);
+                            break;
+                        case 'memory':
+                            uuid = jPulse.ws._memoryUUID;
+                            break;
+                        default:
+                            uuid = sessionStorage.getItem(storageKey);
+                    }
+
+                    if (uuid) {
+                        console.log('[DEBUG] jPulse.appCluster.getUuid():', uuid, 'from storage');
+                        return uuid;
+                    }
                 }
+                console.log('[DEBUG] jPulse.appCluster.getUuid(): no websocket connection or UUID available');
+                return null;
+            },
+            OLD_getUuid: function() { // FIXME: Remove this method
+                if (this._websocket) {
+                    // Try to get UUID from WebSocket connection's getConnection method
+                    if (typeof this._websocket.getConnection === 'function') {
+                        const uuid = this._websocket.getConnection().uuid;
+                        console.log('[DEBUG] jPulse.appCluster.getUuid():', uuid, 'from websocket getConnection');
+                        return uuid;
+                    }
+                    // Try to get UUID directly from WebSocket connection
+                    else if (this._websocket.uuid) {
+                        const uuid = this._websocket.uuid;
+                        console.log('[DEBUG] jPulse.appCluster.getUuid():', uuid, 'from websocket.uuid');
+                        return uuid;
+                    }
+                }
+                console.log('[DEBUG] jPulse.appCluster.getUuid(): no websocket connection or UUID available');
                 return null;
             },
 
             /**
-             * Subscribe to broadcast messages
-             * @param {string} channel - Channel name (e.g., 'view:helloNotification:message:sent')
+             * Subscribe to broadcast messages (view channels only)
+             * @param {string} channel - Channel name (must start with 'view:')
              * @param {Function} callback - Callback function to handle messages
+             * @param {Object} options - Optional configuration
+             * @param {boolean} options.omitSelf - Whether to omit self-messages (default: false)
              */
-            subscribe: function(channel, callback) {
+            subscribe: function(channel, callback, options = {}) {
+                const { omitSelf = false } = options;
+
+                // Validate that this is a view channel
+                if (!channel.startsWith('view:')) {
+                    throw new Error(`View channels must start with 'view:'. Got: ${channel}`);
+                }
+
+                // Validate channel schema
+                if (!jPulse.appCluster.broadcast._validateChannelSchema(channel)) {
+                    throw new Error(`Invalid channel schema: ${channel}. Expected: view:scope:type:action[:word]*`);
+                }
+
                 // Store local subscription
                 if (!jPulse.appCluster.broadcast._subscribers.has(channel)) {
                     jPulse.appCluster.broadcast._subscribers.set(channel, []);
@@ -4222,20 +4286,52 @@ window.jPulse = {
                 // Ensure WebSocket connection for real-time updates
                 jPulse.appCluster.broadcast._ensureWebSocketConnection();
 
-                // Register interest in this channel with server
-                jPulse.appCluster.broadcast._registerChannelInterest(channel);
+                // Register interest in this channel with server (include omitSelf flag)
+                jPulse.appCluster.broadcast._registerChannelInterest(channel, { omitSelf });
 
                 console.log(`jPulse.appCluster: Subscribed to ${channel} (with auto-WebSocket)`);
             },
 
             /**
-             * Publish broadcast message
-             * @param {string} channel - Channel name
+             * Publish broadcast message (view channels only)
+             * @param {string} channel - Channel name (must start with 'view:')
              * @param {Object} data - Message data
+             * @param {Object} options - Optional configuration
+             * @param {boolean} options.omitSelf - Whether to omit self-messages (default: false)
              */
-            publish: function(channel, data) {
+            publish: function(channel, data, options = {}) {
+                // Check if WebSocket is connected
+                if (this._websocket && this.getUuid()) {
+                    // WebSocket is connected, execute immediately
+                    this._executePublish(channel, data, options);
+                } else {
+                    // WebSocket not connected, add to pending
+                    this._pendingPublishes.push({ channel, data, options });
+                    console.log(`[DEBUG] jPulse.appCluster.publish: Queued publish for ${channel} (waiting for WebSocket)`);
+                }
+            },
+            OLD_publish: function(channel, data, options = {}) { // FIXME: Remove this method
+                const { omitSelf = false } = options;
+
+                // Validate that this is a view channel
+                if (!channel.startsWith('view:')) {
+                    throw new Error(`View channels must start with 'view:'. Got: ${channel}`);
+                }
+
+                // Validate channel schema
+                if (!jPulse.appCluster.broadcast._validateChannelSchema(channel)) {
+                    throw new Error(`Invalid channel schema: ${channel}. Expected: view:scope:type:action[:word]*`);
+                }
+
+                // Configure self-message behavior for this channel
+                if (omitSelf) {
+                    jPulse.appCluster.broadcast.configureSelfMessageBehavior(channel, true);
+                }
+
+                const uuid = this.getUuid();
+                console.log(`[DEBUG] jPulse.appCluster.publish: UUID for publish:`, uuid);
                 // Automatically add the client's UUID to the payload
-                const payload = { ...data, uuid: this.getUuid() };
+                const payload = { ...data, uuid };
 
                 // Always publish via server for Redis distribution
                 if (jPulse.appCluster.isClusterMode()) {
@@ -4278,20 +4374,33 @@ window.jPulse = {
                         .onStatusChange((status) => {
                             if (status === 'connected') {
                                 console.log('jPulse.appCluster: WebSocket connected for broadcast system');
+                                console.log('[DEBUG] jPulse.appCluster: WebSocket UUID:', self.getUuid());
                                 self._isConnecting = false;
                                 // Register all pending channel subscriptions
-                                self._pendingSubscriptions.forEach(channel => {
-                                    self._registerChannelInterest(channel);
+                                self._pendingSubscriptions.forEach(pending => {
+                                    self._registerChannelInterest(pending.channel, pending.options);
                                 });
                                 self._pendingSubscriptions.clear();
+                                // Process all pending publishes
+                                self._pendingPublishes.forEach(pending => {
+                                    self._executePublish(pending.channel, pending.data, pending.options);
+                                });
+                                self._pendingPublishes = [];
                             }
                         })
                         .onMessage((data, message) => {
+                            console.log(`[DEBUG] jPulse.appCluster: Received WebSocket message:`, data);
                             if (!data || !data.type) {
                                 console.warn('jPulse.appCluster: Received invalid message:', data);
                                 return;
                             }
                             if (data.type === 'broadcast') {
+                                console.log(`[DEBUG] jPulse.appCluster: Received broadcast message:`, {
+                                    channel: data.channel,
+                                    data: data.data,
+                                    uuid: data.data?.uuid,
+                                    currentUuid: self.getUuid()
+                                });
                                 // Received broadcast from server - call local subscribers
                                 self._publishLocal(data.channel, data.data);
                             } else if (data.type === 'subscribed') {
@@ -4307,18 +4416,116 @@ window.jPulse = {
             },
 
             /**
+             * Execute a publish operation (internal helper)
+             * @private
+             */
+            _executePublish: function(channel, data, options = {}) {
+                const { omitSelf = false } = options;
+
+                // Validate that this is a view channel
+                if (!channel.startsWith('view:')) {
+                    throw new Error(`View channels must start with 'view:'. Got: ${channel}`);
+                }
+
+                // Validate channel schema
+                if (!jPulse.appCluster.broadcast._validateChannelSchema(channel)) {
+                    throw new Error(`Invalid channel schema: ${channel}. Expected: view:scope:type:action[:word]*`);
+                }
+
+                // REMOVE THIS: The omitSelf flag is already sent in WebSocket subscription
+                // if (omitSelf) {
+                //     jPulse.appCluster.broadcast.configureSelfMessageBehavior(channel, true);
+                // }
+
+                const uuid = this.getUuid();
+                console.log(`[DEBUG] jPulse.appCluster.publish: UUID for publish:`, uuid);
+                // Automatically add the client's UUID to the payload
+                const payload = { ...data, uuid };
+
+                // Always publish via server for Redis distribution
+                if (jPulse.appCluster.isClusterMode()) {
+                    // Use server-side broadcasting via API
+                    jPulse.api.post(`/api/1/broadcast/${encodeURIComponent(channel)}`, { data: payload })
+                        .then(response => {
+                            if (response.success) {
+                                console.log(`jPulse.appCluster: Published to ${channel} via server`, data);
+                            } else {
+                                console.warn(`jPulse.appCluster: Server publish failed for ${channel}:`, response.error);
+                                // Fallback to local-only
+                                jPulse.appCluster.broadcast._publishLocal(channel, data);
+                            }
+                        })
+                        .catch(error => {
+                            console.error(`jPulse.appCluster: API error publishing to ${channel}:`, error);
+                            // Fallback to local-only
+                            jPulse.appCluster.broadcast._publishLocal(channel, data);
+                        });
+                } else {
+                    // Fallback to local-only broadcasting
+                    jPulse.appCluster.broadcast._publishLocal(channel, data);
+                }
+            },
+            OLD_executePublish: function(channel, data, options = {}) { // FIXME: Remove this method
+                const { omitSelf = false } = options;
+
+                // Validate that this is a view channel
+                if (!channel.startsWith('view:')) {
+                    throw new Error(`View channels must start with 'view:'. Got: ${channel}`);
+                }
+
+                // Validate channel schema
+                if (!jPulse.appCluster.broadcast._validateChannelSchema(channel)) {
+                    throw new Error(`Invalid channel schema: ${channel}. Expected: view:scope:type:action[:word]*`);
+                }
+
+                // Configure self-message behavior for this channel
+                if (omitSelf) {
+                    jPulse.appCluster.broadcast.configureSelfMessageBehavior(channel, true);
+                }
+
+                const uuid = this.getUuid();
+                console.log(`[DEBUG] jPulse.appCluster.publish: UUID for publish:`, uuid);
+                // Automatically add the client's UUID to the payload
+                const payload = { ...data, uuid };
+
+                // Always publish via server for Redis distribution
+                if (jPulse.appCluster.isClusterMode()) {
+                    // Use server-side broadcasting via API
+                    jPulse.api.post(`/api/1/broadcast/${encodeURIComponent(channel)}`, { data: payload })
+                        .then(response => {
+                            if (response.success) {
+                                console.log(`jPulse.appCluster: Published to ${channel} via server`, data);
+                            } else {
+                                console.warn(`jPulse.appCluster: Server publish failed for ${channel}:`, response.error);
+                                // Fallback to local-only
+                                jPulse.appCluster.broadcast._publishLocal(channel, data);
+                            }
+                        })
+                        .catch(error => {
+                            console.error(`jPulse.appCluster: API error publishing to ${channel}:`, error);
+                            // Fallback to local-only
+                            jPulse.appCluster.broadcast._publishLocal(channel, data);
+                        });
+                } else {
+                    // Fallback to local-only broadcasting
+                    jPulse.appCluster.broadcast._publishLocal(channel, data);
+                }
+            },
+
+            /**
              * Register interest in a channel with the server
              * @private
              */
-            _registerChannelInterest: function(channel) {
+            _registerChannelInterest: function(channel, options = {}) {
                 if (this._websocket && this._websocket.isConnected()) {
                     this._websocket.send({
                         type: 'subscribe',
-                        channel: channel
+                        channel: channel,
+                        omitSelf: options.omitSelf || false
                     });
                 } else {
                     // WebSocket not ready, add to pending
-                    this._pendingSubscriptions.add(channel);
+                    this._pendingSubscriptions.add({ channel, options });
                 }
             },
 
@@ -4328,8 +4535,10 @@ window.jPulse = {
              */
             _publishLocal: function(channel, data) {
                 const subscribers = jPulse.appCluster.broadcast._subscribers.get(channel) || [];
+                console.log(`[DEBUG] jPulse.appCluster: Publishing locally to ${channel} for ${subscribers.length} subscribers`);
                 subscribers.forEach(callback => {
                     try {
+                        console.log(`[DEBUG] jPulse.appCluster: Calling subscriber callback for ${channel}`);
                         callback(data);
                     } catch (error) {
                         console.error(`jPulse.appCluster: Error in subscriber for ${channel}:`, error);
@@ -4368,6 +4577,50 @@ window.jPulse = {
                 }
 
                 console.log(`jPulse.appCluster: Unsubscribed from ${channel}`);
+            },
+
+            /**
+             * Configure whether a channel should omit self-messages
+             * @param {string} channel - Channel name or pattern (must start with 'view:')
+             * @param {boolean} omitSelf - Whether to omit self-messages
+             */
+            configureSelfMessageBehavior: function(channel, omitSelf) {
+                if (!channel.startsWith('view:')) {
+                    throw new Error(`View channel configuration must start with 'view:'. Got: ${channel}`);
+                }
+
+                // Validate channel schema
+                if (!jPulse.appCluster.broadcast._validateChannelSchema(channel)) {
+                    throw new Error(`Invalid channel schema: ${channel}. Expected: view:scope:type:action[:word]*`);
+                }
+
+                if (typeof omitSelf !== 'boolean') {
+                    throw new Error('omitSelf must be a boolean');
+                }
+
+                // Send configuration to server for RedisManager
+                jPulse.api.post('/api/1/broadcast/config/self-messages', {
+                    channel: channel,
+                    omitSelf: omitSelf
+                }).then(response => {
+                    if (response.success) {
+                        console.log(`jPulse.appCluster: Configured self-message behavior for ${channel}: ${omitSelf ? 'omit' : 'include'}`);
+                    } else {
+                        console.error('jPulse.appCluster: Failed to configure self-message behavior:', response.error);
+                    }
+                }).catch(error => {
+                    console.error('jPulse.appCluster: Error configuring self-message behavior:', error);
+                });
+            },
+
+            /**
+             * Validate channel schema (internal helper)
+             * @private
+             */
+            _validateChannelSchema: function(channel) {
+                // Must be view channel and match schema
+                const channelRegex = /^(view)((:[\w\.\-]+){3,16}|(:[\w\.\-]+){1,15}:\*)$/;
+                return channelRegex.test(channel);
             },
 
             /**

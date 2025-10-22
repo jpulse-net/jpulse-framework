@@ -52,7 +52,10 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - Comprehensive session management
 
 ### 🎨 **Modern User Experience**
-- Real-time WebSocket communication with auto-reconnection
+- **Real-Time Multi-User Communication**:
+  - Application Cluster Broadcasting for state sync across servers (collaborative editing, notifications)
+  - WebSocket for bi-directional interactions (chat, live updates, gaming)
+  - Both scale across multiple server instances with Redis coordination
 - Non-blocking toast notification system
 - Responsive design with mobile-first approach
 - Professional UI components and widgets (dialogs, accordions, tabs)
@@ -95,9 +98,11 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - **[Site Customization](site-customization.md)** - Override system for update-safe customizations
 - **[MPA vs. SPA Guide](mpa-vs-spa.md)** - Architecture comparison with diagrams and use cases
 - **[Front-End Development](front-end-development.md)** - Complete jPulse JavaScript framework guide
+- **[Application Cluster Communication](application-cluster.md)** - Multi-server broadcasting for state synchronization
+- **[WebSocket Real-Time Communication](websockets.md)** - Bi-directional real-time interactions
 - **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation
-- **[Template Reference](template-reference.md)** - Server-side Handlebars system
-- **[Handlebars Templating](handlebars.md)** - Server-side Handlebars system
+- **[Handlebars Reference](handlebars.md)** - Complete Handlebars syntax guide (variables, conditionals, loops)
+- **[Template Reference](template-reference.md)** - Template development guide (file structure, security, patterns)
 - **[Style Reference](style-reference.md)** - Complete `jp-*` CSS framework and components
 
 ### 🚀 **Deployment**

@@ -22,6 +22,16 @@ describe('Redis Configuration (W-076)', () => {
         // Save original config
         originalAppConfig = global.appConfig;
 
+        // Set up minimal appConfig for tests
+        global.appConfig = {
+            system: {
+                hostname: 'test-host',
+                port: 8080,
+                pid: process.pid,
+                instanceId: `test-host:${process.env.NODE_APP_INSTANCE || '0'}:${process.pid}`
+            }
+        };
+
         // Import RedisManager fresh for each test
         jest.resetModules();
         const module = await import('../../../utils/redis-manager.js');
@@ -86,15 +96,24 @@ describe('Redis Configuration (W-076)', () => {
             expect(parseInt(pid)).toBeGreaterThan(0);
         });
 
-        it('should handle process environment variables', () => {
+        it('should handle process environment variables', async () => {
             const originalEnv = process.env.NODE_APP_INSTANCE;
             process.env.NODE_APP_INSTANCE = '5';
 
-            RedisManager.initialize({ enabled: false });
-            const instanceId = RedisManager.getInstanceId();
+            // Update global.appConfig to reflect the new instance ID
+            global.appConfig.system.instanceId = `test-host:5:${process.pid}`;
 
-            // Should contain the instance number, but may not be exactly ":5" due to hostname variations
-            expect(instanceId).toMatch(/:\d+$/); // Ends with colon and number
+            // Re-import RedisManager to pick up the new instanceId
+            jest.resetModules();
+            const module = await import('../../../utils/redis-manager.js');
+            const TestRedisManager = module.default;
+
+            TestRedisManager.initialize({ enabled: false });
+            const instanceId = TestRedisManager.getInstanceId();
+
+            // Should contain the instance number
+            expect(instanceId).toMatch(/^test-host:5:\d+$/); // hostname:5:pid format
+            expect(instanceId).toContain(':5:'); // Specifically has ":5:" in it
 
             // Restore original environment
             if (originalEnv !== undefined) {
@@ -102,6 +121,9 @@ describe('Redis Configuration (W-076)', () => {
             } else {
                 delete process.env.NODE_APP_INSTANCE;
             }
+
+            // Clean up
+            await TestRedisManager.shutdown();
         });
     });
 
@@ -141,12 +163,13 @@ describe('Redis Configuration (W-076)', () => {
             expect(result).toBe(false); // Should return false but not throw
         });
 
-        it('should handle subscribe broadcast when Redis unavailable', async () => {
+        it('should handle broadcast callback registration when Redis unavailable', () => {
             RedisManager.initialize({ enabled: false });
 
-            const result = await RedisManager.subscribeBroadcast('test:channel');
-
-            expect(result).toBe(false); // Should return false but not throw
+            // Should not throw even when Redis is unavailable
+            expect(() => {
+                RedisManager.registerBroadcastCallback('controller:test:channel:event', jest.fn());
+            }).not.toThrow();
         });
 
         it('should handle session store configuration when Redis unavailable', async () => {

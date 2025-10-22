@@ -87,7 +87,6 @@ async function loadAppConfig() {
         config.system.pid = pid;
         config.system.instanceName = `${serverName}:${pm2Id}:${pid}`;
         config.system.instanceId = `${serverId}:${pm2Id}:${pid}`;
-        console.log('DEBUG: process.env.NODE_APP_INSTANCE: ' + process.env.NODE_APP_INSTANCE);
         appLog(`appConfig.system.hostname: Set to ${hostname}`);
         appLog(`appConfig.system.serverName: Set to ${serverName}`);
         appLog(`appConfig.system.serverId: Set to ${serverId}`);

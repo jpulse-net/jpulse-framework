@@ -344,14 +344,6 @@
                 // Subscribe to global notifications from all cluster instances
                 if (jPulse.appCluster.broadcast) {
                     jPulse.appCluster.broadcast.subscribe(notificationChannel, (data) => {
-                        console.log(`[DEBUG] Notification received:`, {
-                            message: data.message,
-                            sender: data.sender,
-                            uuid: data.uuid,
-                            senderName: data.senderName,
-                            serverInstance: data.serverInstance
-                        });
-
                         // Add notification to feed (self-filtering handled by broadcast system)
                         this.addNotificationToFeed(data);
 
@@ -361,8 +353,6 @@
                             'info'
                         );
                     }, { omitSelf: true }); // Configure to omit self-messages
-
-                    console.log(`📡 Subscribed to ${notificationChannel} with auto-WebSocket`);
 
                     // Update connection status based on cluster mode
                     const isClusterMode = jPulse.appCluster.isClusterMode();

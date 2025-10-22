@@ -78,7 +78,7 @@ class ContextExtensions {
                         extendedContext = { ...extendedContext, ...result };
                     }
                 } catch (error) {
-                    console.warn(`Context Extensions: Provider '${providerInfo.name}' failed: ${error.message}`);
+                    LogController.logError(null, 'context-extensions.getExtendedContext', `Provider '${providerInfo.name}' failed: ${error.message}`);
                 }
             }
 
@@ -88,7 +88,7 @@ class ContextExtensions {
             return { ...baseContext, ...extendedContext };
 
         } catch (error) {
-            console.error(`Context Extensions: Failed to extend context: ${error.message}`);
+            LogController.logError(null, 'context-extensions.getExtendedContext', `Failed to extend context: ${error.message}`);
             return baseContext; // Fallback to base context
         }
     }

@@ -128,14 +128,15 @@ export async function bootstrap(options = {}) {
             AppClusterControllerModule.default.initialize();
             bootstrapLog('✅ AppClusterController: Initialized with WebSocket namespace');
         } catch (error) {
-            bootstrapLog(`❌ AppClusterController initialization failed: ${error.message}`);
-            console.error('AppClusterController error details:', error);
+            bootstrapLog(`❌ AppClusterController initialization failed: ${error.message}`, 'error');
+            bootstrapLog(`Error details: ${error.stack || error}`, 'error');
         }
 
         // Step 9: Initialize health controller clustering (W-076)
         const HealthControllerModule = await import('../controller/health.js');
         await HealthControllerModule.default.initialize();
-        bootstrapLog('✅ HealthController: Initialized with Redis clustering');
+        global.HealthController = HealthControllerModule.default;
+        bootstrapLog('✅ HealthController: Initialized with Redis clustering and registered globally');
 
         // Step 10: Set up CommonUtils globally
         global.CommonUtils = CommonUtils;

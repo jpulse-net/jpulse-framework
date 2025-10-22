@@ -1,5 +1,7 @@
 # jPulse Framework / Docs / Template Reference v0.9.7
 
+> **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
+
 Complete reference for server-side template development with the jPulse Handlebars system, covering template variables, file operations, security features, and best practices for building dynamic web pages.
 
 **🎯 Live Examples:** See the [Handlebars Examples](/jpulse-examples/handlebars.shtml) page for interactive demonstrations of all template features with working code examples.
@@ -285,358 +287,43 @@ File operations leverage caching for performance:
 - **Pre-loading**: Common includes are asynchronously pre-loaded at startup
 - **Configurable**: Caching behavior controlled via `appConfig.controller.view.cacheIncludes.enabled`
 
-## 🔀 Block Helpers
+## 🔀 Handlebars Syntax
 
-### Block Conditionals ({{#if}})
+The jPulse Framework uses Handlebars templating for dynamic server-side rendering. Handlebars provides two types of expressions:
 
-The `{{#if}}` syntax provides powerful block-level conditionals:
+**Regular Handlebars** - For outputting values:
+```handlebars
+{{user.firstName}}              <!-- Outputs: John -->
+{{app.jPulse.version}}          <!-- Outputs: 0.9.7 -->
+{{i18n.view.home.title}}        <!-- Outputs: Home -->
+```
 
-```html
-<!-- Simple conditional blocks -->
+**Block Helpers** - For control flow (conditionals and loops):
+```handlebars
+<!-- Conditionals -->
 {{#if user.isAuthenticated}}
-    <div class="user-panel">
-        <h2>Welcome, {{user.firstName}}!</h2>
-        <p>Last login: {{user.lastLogin}}</p>
-        <div class="user-actions">
-            <a href="/profile/" class="jp-btn jp-btn-primary">Edit Profile</a>
-            <a href="/auth/logout.shtml" class="jp-btn jp-btn-outline">Logout</a>
-        </div>
-    </div>
-{{/if}}
-
-<!-- If/else conditional blocks -->
-{{#if user.isAuthenticated}}
-    <nav class="main-nav">
-        <a href="/dashboard/">Dashboard</a>
-        <a href="/profile/">Profile</a>
-        {{#if user.isAdmin}}
-            <a href="/admin/">Admin</a>
-        {{/if}}
-    </nav>
+    <p>Welcome back, {{user.firstName}}!</p>
 {{else}}
-    <nav class="guest-nav">
-        <a href="/home/">Home</a>
-        <a href="/about/">About</a>
-        <a href="/auth/login.shtml">Sign In</a>
-    </nav>
-{{/if}}
-```
-
-### Complex Conditionals
-
-```html
-<!-- Complex conditionals with handlebars inside blocks -->
-{{#if config.messages.broadcast}}
-    <div class="jp-alert jp-alert-info">
-        <strong>{{i18n.messages.announcement}}</strong>
-        <p>{{config.messages.broadcast}}</p>
-        {{#if user.isAuthenticated}}
-            <small>Shown to: {{user.firstName}} {{user.lastName}}</small>
-        {{else}}
-            <small>Please <a href="/auth/login.shtml">sign in</a> for personalized content.</small>
-        {{/if}}
-    </div>
+    <p>Please log in.</p>
 {{/if}}
 
-<!-- Nested {{#if}} blocks are fully supported (v0.7.20+) -->
-{{#if user.isAuthenticated}}
-    {{#if user.isAdmin}}
-        <div class="admin-panel">Admin controls available</div>
-    {{/if}}
-{{/if}}
-```
-
-### Supported Conditions
-
-```html
-<!-- Boolean conditions -->
-{{#if user.isAuthenticated}}...{{/if}}
-{{#if config.features.enableNotifications}}...{{/if}}
-
-<!-- String/object existence checks -->
-{{#if config.messages.broadcast}}...{{/if}}
-{{#if user.profile.avatar}}...{{/if}}
-
-<!-- Numeric value checks -->
-{{#if url.port}}...{{/if}}
-{{#if user.loginCount}}...{{/if}}
-
-<!-- Array checks -->
-{{#if user.roles}}...{{/if}}
-```
-
-### Conditional Features
-- **Recursive Processing**: Handlebars within `{{#if}}` blocks are fully processed
-- **Nested Content**: Complex HTML and multiple handlebars supported within blocks
-- **Context Access**: Full template context available within conditional blocks
-- **Error Handling**: Malformed blocks show clear error messages
-- **Nested Support (v0.7.20+)**: Full support for nested `{{#if}}` and `{{#each}}` blocks with multi-line processing
-
-### Nested Handlebars (v0.7.20+)
-
-Complex template scenarios with nested blocks are fully supported:
-
-```html
-<!-- Nested {{#if}} within {{#each}} -->
+<!-- Iteration -->
 {{#each users}}
-    <div class="user-card">
-        {{#if this.active}}
-            <div class="active-badge">Active User</div>
-        {{/if}}
-        <h3>{{this.name}}</h3>
-    </div>
+    <div>{{this.name}} - Position: {{@index}}</div>
 {{/each}}
-
-<!-- Nested {{#each}} loops -->
-{{#each books}}
-    <div class="book">
-        <h2>{{this.title}}</h2>
-        {{#each this.chapters}}
-            <div class="chapter">Chapter {{@index}}: {{this}}</div>
-        {{/each}}
-    </div>
-{{/each}}
-
-<!-- Multi-line nested blocks -->
-{{#if showUsers}}
-<div class="users-section">
-    <h2>Users</h2>
-    {{#each users}}
-    <div class="user-card">
-        {{#if this.active}}
-        <div class="active-badge">
-            Active User
-        </div>
-        {{/if}}
-        <h3>{{this.name}}</h3>
-    </div>
-    {{/each}}
-</div>
-{{/if}}
 ```
 
-### Block Iteration ({{#each}})
+Block helpers support:
+- **Conditionals**: `{{#if}}`, `{{#unless}}` with optional `{{else}}`
+- **Iteration**: `{{#each}}` with special variables (`@index`, `@first`, `@last`, `@key`, `{{this}}`)
+- **Nesting**: Full support for nested blocks (conditionals within loops, etc.)
+- **Context Access**: Complete access to template context within blocks
 
-The `{{#each}}` syntax provides powerful iteration over arrays and objects with special context variables:
+### Complete Handlebars Reference
 
-```html
-<!-- Simple array iteration -->
-<ul class="fruit-list">
-{{#each fruits}}
-    <li>{{@index}}: {{this}}</li>
-{{/each}}
-</ul>
+For comprehensive documentation of all Handlebars syntax, features, and examples, see:
 
-<!-- Output with fruits = ['apple', 'banana', 'cherry'] -->
-<ul class="fruit-list">
-    <li>0: apple</li>
-    <li>1: banana</li>
-    <li>2: cherry</li>
-</ul>
-```
-
-#### Array Iteration with Objects
-
-```html
-<!-- Object array iteration -->
-<div class="user-cards">
-{{#each users}}
-    <div class="user-card {{#if @first}}first{{/if}} {{#if @last}}last{{/if}}">
-        <h3>{{this.name}}</h3>
-        <p>Age: {{this.age}}</p>
-        <p>Position: #{{@index}}</p>
-        {{#if @first}}
-            <span class="badge">Featured User</span>
-        {{/if}}
-    </div>
-{{/each}}
-</div>
-
-<!-- Output with users = [{name: 'Alice', age: 25}, {name: 'Bob', age: 30}] -->
-<div class="user-cards">
-    <div class="user-card first">
-        <h3>Alice</h3>
-        <p>Age: 25</p>
-        <p>Position: #0</p>
-        <span class="badge">Featured User</span>
-    </div>
-    <div class="user-card last">
-        <h3>Bob</h3>
-        <p>Age: 30</p>
-        <p>Position: #1</p>
-    </div>
-</div>
-```
-
-#### Object Property Iteration
-
-```html
-<!-- Object iteration using @key -->
-<div class="settings-panel">
-    <h3>Application Settings</h3>
-    <dl class="settings-list">
-    {{#each appSettings}}
-        <dt>{{@key}}</dt>
-        <dd>{{this}}</dd>
-    {{/each}}
-    </dl>
-</div>
-
-<!-- Output with appSettings = {theme: 'dark', language: 'en', notifications: true} -->
-<div class="settings-panel">
-    <h3>Application Settings</h3>
-    <dl class="settings-list">
-        <dt>theme</dt>
-        <dd>dark</dd>
-        <dt>language</dt>
-        <dd>en</dd>
-        <dt>notifications</dt>
-        <dd>true</dd>
-    </dl>
-</div>
-```
-
-#### Nested Object Properties
-
-```html
-<!-- Complex nested object iteration -->
-<div class="employee-directory">
-{{#each employees}}
-    <div class="employee-card">
-        <div class="employee-header">
-            <h4>{{this.profile.firstName}} {{this.profile.lastName}}</h4>
-            <span class="employee-id">#{{@index}}</span>
-        </div>
-        <div class="employee-details">
-            <p>Department: {{this.department}}</p>
-            <p>Email: {{this.contact.email}}</p>
-            {{#if this.contact.phone}}
-                <p>Phone: {{this.contact.phone}}</p>
-            {{/if}}
-        </div>
-        {{#if @last}}
-            <div class="directory-footer">
-                <small>End of directory ({{@index}} employees total)</small>
-            </div>
-        {{/if}}
-    </div>
-{{/each}}
-</div>
-```
-
-#### Special Context Variables
-
-The `{{#each}}` helper provides several special variables within the iteration context:
-
-| Variable | Type | Description | Example |
-|----------|------|-------------|---------|
-| `{{@index}}` | Number | Zero-based index of current iteration | `0, 1, 2, ...` |
-| `{{@first}}` | Boolean | `true` if this is the first iteration | `true` or `false` |
-| `{{@last}}` | Boolean | `true` if this is the last iteration | `true` or `false` |
-| `{{@key}}` | String | Property name (object iteration only) | `'theme', 'language'` |
-| `{{this}}` | Any | Current array element or object value | Current item |
-
-#### Practical Examples
-
-**Navigation Menu Generation:**
-```html
-<nav class="main-navigation">
-    <ul class="nav-list">
-    {{#each navigationItems}}
-        <li class="nav-item {{#if @first}}first{{/if}} {{#if @last}}last{{/if}}">
-            <a href="{{this.url}}" class="nav-link {{#if this.active}}active{{/if}}">
-                {{this.label}}
-            </a>
-            {{#if this.badge}}
-                <span class="nav-badge">{{this.badge}}</span>
-            {{/if}}
-        </li>
-    {{/each}}
-    </ul>
-</nav>
-```
-
-**Data Table Generation:**
-```html
-<table class="data-table">
-    <thead>
-        <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Status</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-    {{#each tableData}}
-        <tr class="table-row {{#if @first}}first-row{{/if}}">
-            <td>{{@index}}</td>
-            <td>{{this.name}}</td>
-            <td>
-                <span class="status status-{{this.status}}">
-                    {{this.statusLabel}}
-                </span>
-            </td>
-            <td>
-                <button class="btn-edit" data-id="{{this.id}}">Edit</button>
-                {{#if @last}}
-                    <button class="btn-add-new">Add New</button>
-                {{/if}}
-            </td>
-        </tr>
-    {{/each}}
-    </tbody>
-</table>
-```
-
-**Configuration Display:**
-```html
-<div class="config-section">
-    <h3>System Configuration</h3>
-    {{#each systemConfig}}
-        <div class="config-group">
-            <h4>{{@key}} Settings</h4>
-            <div class="config-items">
-            {{#each this}}
-                <div class="config-item">
-                    <label>{{@key}}:</label>
-                    <span class="config-value">{{this}}</span>
-                </div>
-            {{/each}}
-            </div>
-        </div>
-    {{/each}}
-</div>
-```
-
-#### Error Handling
-
-The `{{#each}}` helper includes robust error handling:
-
-```html
-<!-- Safe handling of non-iterable values -->
-{{#each possiblyUndefined}}
-    <p>{{this}}</p>
-{{/each}}
-<!-- If possiblyUndefined is null/undefined, no output is generated -->
-
-<!-- Error handling for invalid data types -->
-{{#each stringValue}}
-    <p>{{this}}</p>
-{{/each}}
-<!-- If stringValue is a string, an error comment is generated:
-     <!-- Error: Cannot iterate over non-iterable value: string. Expected array or object. -->
-```
-
-### Iteration Features
-- **Array Support**: Iterate over JavaScript arrays with index access
-- **Object Support**: Iterate over object properties with key access
-- **Nested Properties**: Access deep object properties with dot notation
-- **Context Variables**: Rich set of iteration context variables (@index, @first, @last, @key)
-- **Recursive Processing**: Full handlebars processing within iteration blocks
-- **Error Resilience**: Graceful handling of null, undefined, and invalid data types
-- **Performance Optimized**: Efficient iteration even with large datasets
-- **Type Flexibility**: Automatic handling of mixed data types in objects
+**→ [Handlebars Reference](handlebars.md)** - Complete guide to variables, conditionals, loops, context variables, file operations, and best practices
 
 ## 🛡️ Security Features
 

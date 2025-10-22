@@ -269,6 +269,63 @@ You can mix patterns in the same application:
 - Use jPulse MPA for admin dashboards (balanced)
 - Use SPA for real-time collaboration (UX critical)
 
+---
+
+## Real-Time Multi-User Communication
+
+Both MPA and SPA applications can enable real-time communication between users. jPulse provides two complementary technologies:
+
+### Application Cluster Broadcasting
+
+**Best for:** Synchronizing state changes across multiple server instances
+
+When a user makes a change (via REST API), broadcast notifications ensure all users see the update instantly - even if they're connected to different servers behind a load balancer.
+
+```javascript
+// User creates item via API
+await jPulse.appCluster.fetch('/api/1/items', {
+    method: 'POST',
+    body: { title: 'New item' }
+});
+// Server broadcasts to all instances → all users see update
+```
+
+**Use cases:** Collaborative editing, shopping cart sync, global notifications, real-time dashboards
+
+**Learn more:** [Application Cluster Communication](application-cluster.md)
+
+### WebSocket Real-Time Communication
+
+**Best for:** Persistent bi-directional communication and high-frequency interactions
+
+Direct WebSocket connections enable real-time conversations between server and clients with request/response patterns and server-initiated pushes.
+
+```javascript
+// Persistent connection for chat
+const ws = jPulse.ws.connect('/api/1/ws/chat');
+ws.send({ type: 'message', text: 'Hello!' });
+ws.onMessage((data) => displayMessage(data));
+```
+
+**Use cases:** Chat applications, live cursors, real-time gaming, interactive dashboards
+
+**Learn more:** [WebSocket Real-Time Communication](websockets.md)
+
+### Choosing the Right Technology
+
+| Your Need | Technology | Why |
+|-----------|-----------|-----|
+| Sync data changes across servers | App Cluster | REST API + broadcast notifications |
+| Chat/messaging | WebSocket | Bi-directional conversation |
+| Collaborative editing | App Cluster | REST API validates, broadcasts sync |
+| Live cursors/presence | WebSocket | High-frequency ephemeral data |
+| Shopping cart sync | App Cluster | REST API updates, broadcasts notify |
+| Real-time gaming | WebSocket | Persistent connection, low latency |
+
+**Both work with MPA and SPA!** The choice depends on your communication pattern, not your architecture pattern.
+
+---
+
 ## Best Practices
 
 ### For MPA:
@@ -326,6 +383,8 @@ The key is understanding your requirements and choosing the architecture that be
 ## See Also
 
 - [Hello Examples](examples.md#hello-examples) - Live examples of all patterns
+- [Application Cluster Communication](application-cluster.md) - Multi-server broadcasting
+- [WebSocket Real-Time Communication](websockets.md) - Persistent bi-directional patterns
 - [Front-End Development](front-end-development.md) - jPulse JavaScript utilities
 - [REST API Reference](api-reference.md) - Backend API patterns
 - [Template Reference](template-reference.md) - Server-side templates

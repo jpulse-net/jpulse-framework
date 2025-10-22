@@ -81,15 +81,35 @@ Use `#each` blocks to iterate over different data structures:
 {{/each}}
 ```
 
-#### Loop Variables
-- `{{this}}` - Current item value
-- `{{@index}}` - Zero-based index (0, 1, 2...)
-- `{{@first}}` - True for first item
-- `{{@last}}` - True for last item
-- `{{@key}}` - Property name when iterating over objects
+#### Nested Object Properties
+Access deep object properties using dot notation:
+```handlebars
+{{#each employees}}
+    <div class="employee-card">
+        <h4>{{this.profile.firstName}} {{this.profile.lastName}}</h4>
+        <p>Department: {{this.department}}</p>
+        <p>Email: {{this.contact.email}}</p>
+        {{#if this.contact.phone}}
+            <p>Phone: {{this.contact.phone}}</p>
+        {{/if}}
+    </div>
+{{/each}}
+```
+
+#### Loop Variables (Special Context Variables)
+
+The `{{#each}}` helper provides special variables within the iteration context:
+
+| Variable | Type | Description | Example |
+|----------|------|-------------|---------|
+| `{{this}}` | Any | Current array element or object value | Current item |
+| `{{@index}}` | Number | Zero-based index of current iteration | `0, 1, 2, ...` |
+| `{{@first}}` | Boolean | `true` if this is the first iteration | `true` or `false` |
+| `{{@last}}` | Boolean | `true` if this is the last iteration | `true` or `false` |
+| `{{@key}}` | String | Property name (object iteration only) | `'theme', 'language'` |
 
 ### Nested Conditionals
-You can nest conditionals for complex logic:
+You can nest conditionals for complex logic (v0.7.20+):
 ```handlebars
 {{#if user.isAuthenticated}}
     {{#if user.isAdmin}}
@@ -105,6 +125,31 @@ You can nest conditionals for complex logic:
         <p>Regular user - limited access</p>
     {{/if}}
 {{/if}}
+```
+
+### Nested Blocks
+Complex template scenarios with nested blocks are fully supported (v0.7.20+):
+
+```handlebars
+<!-- Nested {{#if}} within {{#each}} -->
+{{#each users}}
+    <div class="user-card">
+        {{#if this.active}}
+            <span class="badge">Active</span>
+        {{/if}}
+        <h3>{{this.name}}</h3>
+    </div>
+{{/each}}
+
+<!-- Nested {{#each}} loops -->
+{{#each books}}
+    <div class="book">
+        <h2>{{this.title}}</h2>
+        {{#each this.chapters}}
+            <div class="chapter">Chapter {{@index}}: {{this}}</div>
+        {{/each}}
+    </div>
+{{/each}}
 ```
 
 ## Context Variables
@@ -189,6 +234,29 @@ Check if a file exists:
 {{else}}
     {{file.include "default-template.tmpl"}}
 {{/if}}
+```
+
+### Error Handling
+
+The Handlebars system includes robust error handling:
+
+**Safe Iteration:**
+```handlebars
+<!-- Safe handling of null/undefined -->
+{{#each possiblyUndefined}}
+    <p>{{this}}</p>
+{{/each}}
+<!-- If possiblyUndefined is null/undefined, no output is generated -->
+```
+
+**Type Checking:**
+```handlebars
+<!-- Invalid data types show error comments -->
+{{#each stringValue}}
+    <p>{{this}}</p>
+{{/each}}
+<!-- If stringValue is a string (not array/object), generates:
+     <!-- Error: Cannot iterate over non-iterable value: string --> -->
 ```
 
 ## Best Practices

@@ -348,10 +348,10 @@ static async apiCreate(req, res) {
     res.json({ success: true, todo });
 }
 
-// In your view - listen for updates
-jPulse.appCluster.broadcast.subscribe('controller:todo:list:changed', () => {
-    refreshTodoList(); // Update your UI
-});</code></pre>
+// In your view - listen for updates (use view: prefix for client subscriptions)
+jPulse.appCluster.broadcast.subscribe('view:todo:list:changed', (data) => {
+    refreshTodoList(data); // Update your UI with the new data
+}, { omitSelf: true });  // Don't receive your own broadcasts</code></pre>
                 </div>
 
                 <div class="local-highlight-box">
@@ -686,20 +686,20 @@ jPulse.appCluster.broadcast.subscribe('controller:todo:list:changed', () => {
                 <h3>✅ Good Examples</h3>
                 <div class="local-code-snippet">
 <pre>
-// Framework channels
+// Framework internal channels (server-to-server only)
 controller:view:config:refresh
-controller:websocket:broadcast:hello-emoji
+controller:health:metrics:broadcast
 
-// Application channels
-controller:helloCluster:notification:sent
-controller:helloClusterTodo:list:changed
-controller:helloClusterTodo:item:updated
+// Application channels (client-facing, use view: prefix)
+view:helloNotification:message:sent
+view:helloClusterTodo:list:changed
+view:helloClusterTodo:item:updated
 
 // Real-world examples
-controller:orderSystem:payment:completed
-controller:userProfile:avatar:updated
+view:orderSystem:payment:completed
+view:userProfile:avatar:updated
 view:dashboard:metrics:refreshed
-model:inventory:stock:depleted
+controller:inventory:stock:depleted  // Server-to-server only
 </pre>
                 </div>
 

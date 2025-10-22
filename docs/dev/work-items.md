@@ -1402,6 +1402,9 @@ This is the doc to track work items, arranged in three sections:
     - webapp/controller/broadcast.js -- REST API for cross-instance broadcasting with callback system
     - webapp/controller/view.js -- config refresh broadcasting and self-registered callbacks
     - webapp/controller/config.js -- integrated with view controller broadcast system
+    - webapp/utils/redis-manager.js -- centralized broadcast message handling with specificity-based channel matching
+    - webapp/utils/redis-manager.js -- omitSelf flag support for preventing self-message processing
+    - webapp/utils/redis-manager.js -- channel schema validation (model:/view:/controller: prefixes required)
     - webapp/translations/en.conf + de.conf -- broadcast-specific i18n keys
   - WebSocket Infrastructure:
     - webapp/controller/appCluster.js -- NEW WebSocket-to-Redis bridge for real-time client sync
@@ -1414,11 +1417,20 @@ This is the doc to track work items, arranged in three sections:
     - webapp/controller/health.js
       - Redis-based health metrics aggregation across instances
       - automatic instance discovery with 30s broadcast + 90s TTL
-      - cache system data, shareda mong pm2 instances and redis
+      - graceful shutdown broadcasting (removes instances immediately from cluster metrics)
+      - omitSelf: true prevents duplicate local instance entries in metrics
+      - cache system data, shared among pm2 instances and redis
+      - request/error tracking with 1-minute rolling window (trackRequest(), trackError())
+      - enhanced instance data: version, release, environment, database status, CPU, memory%, requests/min, errors/min, error rate
     - Enhanced /api/1/health/metrics endpoint with cluster-wide statistics
+    - webapp/controller/log.js -- integrated automatic request/error tracking for health metrics
+    - webapp/utils/bootstrap.js -- registered HealthController globally for LogController access
+    - webapp/view/admin/system-status.shtml -- enhanced Instance Details display with all new metrics
+    - webapp/app.js -- graceful shutdown calls HealthController.shutdown() to broadcast removal
   - Client-Side Enhancements:
     - webapp/view/jpulse-common.js -- configurable WebSocket UUID storage (session/local/memory)
     - webapp/view/jpulse-common.js -- jPulse.appCluster API for instance info and broadcasting
+    - webapp/view/jpulse-common.js -- jPulse.appCluster.fetch() wrapper for automatic UUID injection in API calls
     - site/webapp/view/hello-websocket/templates/code-examples.tmpl -- comprehensive WebSocket documentation with UUID storage
   - Example applications:
     - /hello-app-cluster/index.shtml -- overview
@@ -1446,9 +1458,23 @@ This is the doc to track work items, arranged in three sections:
   - System-wide metadata
     - created appConfig.system with metadata: rootDir, appDir, siteDir, port, hostname, serverName, serverId, pm2Id, pid, instanceName, instanceId, docTypes
     - objective: single source of truth for system metadata
-  - Options
-    - { omitSelf: true }  // do not send message back to oneself
-    - { omitSelf: false } // send message back to oneself
+  - Documentation:
+    - docs/application-cluster.md -- NEW comprehensive guide for App Cluster Broadcasting
+      - Quick decision tree (WebSocket vs App Cluster)
+      - Comparison table with examples
+      - Client-side and server-side API reference
+      - Common patterns (collaborative editing, notifications, real-time dashboards)
+      - Migration guide and troubleshooting
+    - docs/websockets.md -- added App Cluster reference blurb at top
+    - docs/mpa-vs-spa.md -- NEW "Real-Time Multi-User Communication" section with decision table
+    - docs/handlebars.md -- enhanced with special context variables table, nested blocks, error handling
+    - docs/template-reference.md -- streamlined Handlebars section, added reference to handlebars.md
+    - docs/README.md -- added high-level descriptions of App Cluster and WebSocket features
+    - README.md -- added "Real-Time Multi-User Communication" to Key Features
+    - README.md -- added Redis and Health Metrics to Deployment Requirements
+  - App cluster broadcasting options:
+    - { omitSelf: true }  // do not send message back to oneself (default for controller:*, model:*)
+    - { omitSelf: false } // send message back to oneself (default for view:*)
 
 
 
@@ -1456,18 +1482,17 @@ This is the doc to track work items, arranged in three sections:
 
 pending:
 - jp-card: more consistent card header: normal, dialog look with gray background jp-card-dialog
-- fix hard-coded console.* in server code
-- review and remove bloat in jpulse-common.js: configureSelfMessageBehavior, _executePublish, OLD_*
-- remove DEBUG, FIXME
-- remove cruft in redis-manager: is configureSelfMessageBehavior needed?
-- remove cruft in appCluster: is configureSelfMessageBehavior needed?
+- enhance bin/configure.js, bin/jpulse-install.sh for redis install
+- bin/configure.js always key + enter, not just key prompt
+- health api & system-status page: in instances, add jpulse version & release, and site version & release
+
+
 
 
 old pending:
 - view controller: return unexpanded {{handlebars}} if not exist, instead of empty return
 - install pm2, test
 - navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
-- grab gh jpulse.net
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 

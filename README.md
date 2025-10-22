@@ -68,13 +68,17 @@ npm start
 - **MPA & SPA Support**: Choose the right architecture for each page - traditional MPA, enhanced MPA, or full SPA
 - **MVC Architecture**: Clean Model-View-Controller pattern with flexible View placement (server or browser)
 - **MEVN Stack**: MongoDB + Express + Vue.js + Node.js for full-stack JavaScript development
+- **Real-Time Multi-User Communication**:
+  - **Application Cluster Broadcasting** for state synchronization across servers (collaborative editing, notifications)
+  - **WebSocket** for bi-directional real-time interactions (chat, live updates, gaming)
+  - **Redis Clustering**: Multi-instance coordination for sessions, broadcasts, and WebSocket across servers
 - **Site Override System**: Customize without fear of losing changes during updates
 - **Zero Configuration**: Auto-discovery of controllers, routes, and APIs
+- **Health Metrics**: Aggregated across instances on all app servers
 - **Enterprise Security**: Built-in authentication, session management, and security headers
 - **Internationalization**: Complete i18n support with dynamic translation loading
-- **Testing Framework**: 637+ tests with automated cleanup and isolation
+- **Testing Framework**: 800+ tests with automated cleanup and isolation
 - **Production Ready**: nginx integration, PM2 clustering, MongoDB replica sets
-- **Redis Clustering**: Multi-instance WebSocket and session management across servers
 
 ## Deployment Requirements
 
@@ -85,7 +89,7 @@ npm start
 ### Multi-Instance (PM2 Cluster)
 - ✅ **Redis Required**: For cross-instance communication
 - ✅ **WebSocket**: Shared across all instances
-- ✅ **Health Metrics**: Aggregated across instances
+- ✅ **Sessions**: Shared across all instances
 
 ### Multi-Server (Load Balanced)
 - ✅ **Redis Required**: For cross-server communication

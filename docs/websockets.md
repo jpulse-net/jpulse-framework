@@ -1,5 +1,7 @@
 # WebSocket Real-Time Communication
 
+> **Need multi-server broadcasting instead?** If you're running multiple server instances and need to synchronize state changes across all servers (like collaborative editing), see [Application Cluster Communication](application-cluster.md) which uses REST API + Redis broadcasts for simpler state synchronization.
+
 ## Overview
 
 The jPulse Framework provides enterprise-grade WebSocket infrastructure for real-time bidirectional communication between server and browser. This enables use cases of MPAs and SPAs like:
@@ -1018,12 +1020,8 @@ jPulse.ws.getConnections()
 
 ## Next Steps
 
+- Read [Application Cluster Communication](application-cluster.md) for multi-server broadcasting patterns
 - Read [Front-End Development Guide](front-end-development.md) for MPA/SPA patterns
 - Explore `/hello-websocket/` example application
 - Check out [API Reference](api-reference.md) for complete API documentation
 - Visit `/admin/websocket-stats.shtml` to monitor your WebSocket namespaces
-
----
-
-*Last updated: 2025-10-04*
-

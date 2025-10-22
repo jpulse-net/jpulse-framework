@@ -52,12 +52,6 @@ class AppClusterController {
                 this.relayToInterestedClients(channel, data);
             }, options);
 
-            ////// W-076: Subscribe to all patterns at once to avoid multiple listeners
-            ////RedisManager.subscribeBroadcast(
-            ////    ['controller:*', 'view:*', 'model:*'],
-            ////    RedisManager._handleCallbackMessage
-            ////); // FIXME: Remove this subscription after testing
-
             LogController.logInfo(null, 'appCluster.initialize', 'App Cluster controller initialized with generic WebSocket namespace');
         } catch (error) {
             LogController.logError(null, 'appCluster.initialize', `Initialization failed: ${error.message}`);
@@ -223,19 +217,13 @@ class AppClusterController {
                 const clientChannels = AppClusterController.clientChannels.get(clientId);
                 if (!clientChannels) return;
 
-                console.log(`[DEBUG] relay: Checking client. Client ID from map key: [${clientId}]. Originating client UUID from Redis data: [${data.uuid || 'N/A'}]`);
-                console.log(`[DEBUG] relay: Full client object dump:`, client);
-
-                // W-083: Check all of client's subscriptions (including wildcards)
-                // against the incoming message channel.
+                // Check all of client's subscriptions (including wildcards) against the incoming message channel
                 for (const [subscribedChannel, channelOptions] of clientChannels.entries()) {
                     if (RedisManager._channelMatches(channel, subscribedChannel)) {
                         const shouldOmitSelf = channelOptions?.omitSelf || false;
-                        console.log(`[DEBUG] relay:   - Match found! omitSelf is [${shouldOmitSelf}]`);
 
                         // Skip self-messages if client has omitSelf enabled
                         if (shouldOmitSelf && data.uuid === clientId) {
-                            console.log(`[DEBUG] relay:   - SKIPPING client [${clientId.substring(0, 8)}...] due to omitSelf.`);
                             continue; // Don't send to this client for this matching subscription
                         }
 
@@ -272,44 +260,6 @@ class AppClusterController {
                 'appCluster.relayToInterestedClients',
                 `Error relaying to WebSocket clients: ${error.message}`
             );
-        }
-    }
-    /**
-     * Configure self-message behavior for channels
-     * @param {Object} req - Express request object
-     * @param {Object} res - Express response object
-     */
-    static configureSelfMessageBehavior(req, res) {
-        try {
-            const { channel, omitSelf } = req.body;
-
-            if (!channel || typeof omitSelf !== 'boolean') {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Invalid parameters. Expected: { channel: string, omitSelf: boolean }'
-                });
-            }
-
-            // Validate channel schema
-            if (!RedisManager._validateChannelSchema(channel)) {
-                return res.status(400).json({
-                    success: false,
-                    error: `Invalid channel schema: ${channel}. Expected: (model|view|controller):scope:type:action[:word]*[:*]?`
-                });
-            }
-
-            // Configure the behavior
-            RedisManager.configureSelfMessageBehavior(channel, omitSelf);
-
-            res.json({
-                success: true,
-                message: `Configured self-message behavior for ${channel}: ${omitSelf ? 'omit' : 'include'}`
-            });
-
-        } catch (error) {
-            global.LogController?.logError(null, 'appCluster.configureSelfMessageBehavior',
-                `Error configuring self-message behavior: ${error.message}`);
-            res.status(500).json({ success: false, error: error.message });
         }
     }
 }

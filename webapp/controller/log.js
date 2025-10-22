@@ -162,6 +162,11 @@ class LogController {
         const logScope = `===${scope}===`;
         const logLine = CommonUtils.formatLogMessage(logScope, message, '====', req);
         console.log(logLine.replace(/^-/, '===='));
+
+        // Track request for health metrics (exclude health endpoints to avoid recursion)
+        if (global.HealthController && !scope.includes('health.')) {
+            global.HealthController.trackRequest();
+        }
     }
 
     /**
@@ -198,6 +203,11 @@ class LogController {
     static logError(req, scope, error) {
         const logLine = CommonUtils.formatLogMessage(scope, error, 'ERROR', req);
         console.log(logLine);
+
+        // Track error for health metrics (exclude health endpoints to avoid recursion)
+        if (global.HealthController && !scope.includes('health.')) {
+            global.HealthController.trackError();
+        }
     }
 
     /**

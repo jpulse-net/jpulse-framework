@@ -567,46 +567,15 @@ class RedisManager {
         return await RedisManager.publishBroadcast(channel, data);
     }
 
-    /**
-     * Configure whether a channel should omit self-messages
-     * @param {string} channel - Channel name or pattern
-     * @param {boolean} omitSelf - Whether to omit self-messages
-     */
-    static configureSelfMessageBehavior(channel, omitSelf) {
-        if (typeof omitSelf !== 'boolean') {
-            throw new Error('omitSelf must be a boolean');
-        }
-
-        // Validate channel schema before configuring
-        if (!RedisManager._validateChannelSchema(channel)) {
-            throw new Error(`Invalid channel schema: ${channel}`);
-        }
-
-        RedisManager._selfMessageConfig.set(channel, omitSelf);
-        global.LogController?.logInfo(null, 'redis-manager.configureSelfMessageBehavior',
-            `Configured self-message behavior for ${channel}: ${omitSelf ? 'omit' : 'include'}`);
-    }
-
-    /**
-     * Determine if a channel should omit self-messages
-     * @private
-     */
-    static _shouldOmitSelf(channel) {
-        // Check specific channel first, then pattern matches
-        for (const [pattern, shouldOmit] of RedisManager._selfMessageConfig.entries()) {
-            if (RedisManager._channelMatches(channel, pattern)) {
-                return shouldOmit;
-            }
-        }
-        return false; // Default: include self
-    }
 
     /**
      * Register a callback for a broadcast channel
-     * @param {string} channel - Channel name or pattern
+     * @param {string} channel - Channel name or pattern (supports wildcards: 'controller:*')
      * @param {Function} callback - Callback function (channel, data, sourceInstanceId) => void
      * @param {Object} options - Optional configuration
-     * @param {boolean} options.omitSelf - Whether to omit self-messages for this callback
+     * @param {boolean} options.omitSelf - If true, callback won't be invoked for messages from its
+     *        own instance. This is useful to avoid processing own broadcasts (e.g., health metrics).
+     *        Default: false for 'view:*', true for 'controller:*' and 'model:*'
      */
     static registerBroadcastCallback(channel, callback, options = {}) {
         if (typeof callback !== 'function') {
@@ -643,11 +612,10 @@ class RedisManager {
      * @private
      */
     static _handleCallbackMessage(channel, data, sourceInstanceId) {
-        console.log(`[DEBUG] RedisManager._handleCallbackMessage: Processing ${channel} from ${sourceInstanceId}`);
-
         // Validate channel schema first
         if (!RedisManager._validateChannelSchema(channel)) {
-            console.warn(`Invalid channel schema: ${channel}`);
+            global.LogController?.logWarning(null, 'redis-manager._handleCallbackMessage',
+                `Invalid channel schema: ${channel}`);
             return;
         }
 
@@ -675,17 +643,17 @@ class RedisManager {
         // Only call the FIRST (most specific) matching callback
         for (const [registeredChannel, callback] of sortedCallbacks) {
             if (RedisManager._channelMatches(channel, registeredChannel)) {
-                ///// Determine if this channel should omit self-messages
-                ////const shouldOmitSelf = RedisManager._shouldOmitSelf(channel);
-                ////if (shouldOmitSelf && data.uuid === RedisManager.getInstanceId()) {
-                ////    return; // Don't process self-messages for this channel
-                ////} // FIXME: Remove this self-message filtering after testing
+                // Check if we should omit self-messages for this callback
+                const shouldOmitSelf = RedisManager._selfMessageConfig.get(registeredChannel);
+                if (shouldOmitSelf && sourceInstanceId === RedisManager.instanceId) {
+                    // Skip callback if omitSelf is true and message is from self
+                    return;
+                }
 
-                console.log(`[DEBUG] RedisManager._handleCallbackMessage: Calling callback for ${registeredChannel}`);
                 try {
                     callback(channel, data, sourceInstanceId);
                 } catch (error) {
-                    global.LogController?.logError(null, 'redis-manager._handleCallbackMessage',
+                    global.LogController._logError(null, 'redis-manager._handleCallbackMessage',
                         `Error in callback for channel ${channel}: ${error.message}`);
                 }
                 break; // Exit after calling the first match
@@ -731,33 +699,18 @@ class RedisManager {
     }
 
     /**
-     * Subscribe to broadcast channels from Redis
-     * @param {string|string[]} channels - The channel(s) to subscribe to
-     */
-    static subscribeBroadcast(channels) {
-        // FIXME: Remove this function after testing
-        // W-082: This function is now deprecated as subscriptions are handled centrally.
-        // It is kept for now to prevent breaking any code that might still call it.
-        const channelArray = Array.isArray(channels) ? channels : [channels];
-        global.LogController?.logWarning(null, 'redis-manager.subscribeBroadcast',
-            `subscribeBroadcast is deprecated. Subscription for ${channelArray.join(', ')} is handled automatically.`);
-        return true;
-    }
-
-    /**
      * Handle incoming broadcast messages
      * @private
      */
     static _handleBroadcastMessage(channel, messageStr) {
         try {
-            console.log(`[DEBUG] RedisManager._handleBroadcastMessage: Received raw message on channel [${channel}]`);
             // Remove prefix from channel
             const prefix = RedisManager.getKey('broadcast', '');
             const originalChannel = channel.startsWith(prefix) ? channel.substring(prefix.length) : channel;
 
             const message = JSON.parse(messageStr);
 
-            // The callback is now always _handleCallbackMessage, which is bound centrally
+            // Dispatch to registered callbacks
             RedisManager._handleCallbackMessage(originalChannel, message.data, message.instanceId);
         } catch (error) {
             global.LogController?.logError(null, 'redis-manager._handleBroadcastMessage',

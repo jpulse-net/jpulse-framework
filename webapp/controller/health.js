@@ -34,6 +34,13 @@ class HealthController {
     static healthDataCache = new Map();
     static lastCacheUpdate = 0;
 
+    // Request/Error metrics tracking (1-minute rolling window)
+    static metricsWindow = {
+        requests: [],
+        errors: [],
+        windowMs: 60000  // 1 minute
+    };
+
     // Configuration for health broadcasting
     static get config() {
         const healthConfig = global.appConfig?.controller?.health || {};
@@ -47,6 +54,50 @@ class HealthController {
     }
 
     /**
+     * Track an HTTP request for metrics
+     */
+    static trackRequest() {
+        const now = Date.now();
+        this.metricsWindow.requests.push(now);
+        this._cleanupMetricsWindow();
+    }
+
+    /**
+     * Track an HTTP error for metrics
+     */
+    static trackError() {
+        const now = Date.now();
+        this.metricsWindow.errors.push(now);
+        this._cleanupMetricsWindow();
+    }
+
+    /**
+     * Clean up old entries outside the metrics window
+     * @private
+     */
+    static _cleanupMetricsWindow() {
+        const cutoff = Date.now() - this.metricsWindow.windowMs;
+        this.metricsWindow.requests = this.metricsWindow.requests.filter(t => t > cutoff);
+        this.metricsWindow.errors = this.metricsWindow.errors.filter(t => t > cutoff);
+    }
+
+    /**
+     * Get current metrics for this instance
+     * @returns {Object} Request and error counts
+     * @private
+     */
+    static _getMetrics() {
+        this._cleanupMetricsWindow();
+        return {
+            requestsPerMin: this.metricsWindow.requests.length,
+            errorsPerMin: this.metricsWindow.errors.length,
+            errorRate: this.metricsWindow.requests.length > 0
+                ? (this.metricsWindow.errors.length / this.metricsWindow.requests.length * 100).toFixed(2)
+                : '0.00'
+        };
+    }
+
+    /**
      * Initialize health metrics clustering
      * Called during application bootstrap
      */
@@ -56,14 +107,24 @@ class HealthController {
         }
 
         // W-077: Use registerBroadcastCallback for consistent, centralized handling
+        // omitSelf: true - Skip processing our own broadcasts to avoid duplicate instance entries
+        // (one from local _buildServersArray() + one from Redis would = duplicate)
         global.RedisManager.registerBroadcastCallback('controller:health:metrics:*', (channel, data, sourceInstanceId) => {
+            // Check if this is a shutdown broadcast
+            if (channel.includes(':shutdown:')) {
+                const instanceId = channel.replace('controller:health:metrics:shutdown:', '');
+                this._removeInstanceHealth(instanceId);
+                LogController.logInfo(null, 'health.initialize', `Instance ${instanceId} shutdown - removed from cache`);
+                return;
+            }
+
             // Extract instance ID from channel (controller:health:metrics:instanceId)
             const instanceId = channel.replace('controller:health:metrics:', '');
             if (instanceId && data) {
-                // Store the received health data
+                // Store the received health data from other instances
                 this._storeInstanceHealth(instanceId, data, sourceInstanceId);
             }
-        });
+        }, { omitSelf: true });
 
         // Start broadcasting this instance's health
         this._startHealthBroadcasting();
@@ -78,6 +139,20 @@ class HealthController {
             clearInterval(this.healthBroadcastInterval);
             this.healthBroadcastInterval = null;
             LogController.logInfo(null, 'health.shutdown', 'Health broadcasting stopped');
+        }
+
+        // Broadcast removal to other instances via Redis
+        if (global.RedisManager && global.RedisManager.isRedisAvailable()) {
+            const broadcastId = `${global.appConfig.system.serverId}:${global.appConfig.system.port}:${global.appConfig.system.pm2Id}`;
+            const channel = `controller:health:metrics:shutdown:${broadcastId}`;
+
+            global.RedisManager.publishBroadcast(channel, {
+                action: 'shutdown',
+                instanceId: broadcastId,
+                timestamp: new Date().toISOString()
+            });
+
+            LogController.logInfo(null, 'health.shutdown', `Broadcasted shutdown for instance ${broadcastId}`);
         }
 
         // Clear health data cache to prevent memory leaks
@@ -417,6 +492,7 @@ class HealthController {
                     serverMap.set(hostname, {
                         serverName: hostname,
                         serverId: this._extractServerIdFromHostname(hostname),
+                        hostname: instanceData.hostname || hostname,
                         platform: instanceData.platform,
                         arch: instanceData.arch,
                         nodeVersion: instanceData.nodeVersion,
@@ -511,7 +587,10 @@ class HealthController {
 
                 instances.push({
                     pid: p.pid,
-                    instanceId: p.instanceId,
+                    pm2Id: p.instanceId,
+                    port: global.appConfig.system.port,
+                    instanceName: global.appConfig.system.instanceName,
+                    instanceId: global.appConfig.system.instanceId,
                     pm2Available: true,
                     pm2ProcessName: p.name,
                     status: p.status,
@@ -563,7 +642,10 @@ class HealthController {
 
             instances.push({
                 pid: process.pid,
-                instanceId: process.env.PM2_INSTANCE_ID || process.env.INSTANCE_ID || 0,
+                pm2Id: global.appConfig.system.pm2Id,
+                port: global.appConfig.system.port,
+                instanceName: global.appConfig.system.instanceName,
+                instanceId: global.appConfig.system.instanceId,
                 pm2Available: false,
                 reason: pm2Status === null ? "PM2 not installed or not in PATH" : null,
 
@@ -609,6 +691,7 @@ class HealthController {
         return [{
             serverName: hostname,
             serverId: serverId,
+            hostname: global.appConfig.system.hostname,
             ip: this._getPrimaryIpAddress(),
             uptime: os.uptime(),
             uptimeFormatted: this._formatUptime(os.uptime()),
@@ -742,8 +825,9 @@ class HealthController {
                 const healthData = await this._getOptimizedHealthData();
 
                 // Broadcast to other instances
-                const instanceId = global.appConfig.system.instanceId;
-                const channel = `controller:health:metrics:${instanceId}`;
+                // Use serverId:port:pm2Id for stable instance identification across restarts
+                const broadcastId = `${global.appConfig.system.serverId}:${global.appConfig.system.port}:${global.appConfig.system.pm2Id}`;
+                const channel = `controller:health:metrics:${broadcastId}`;
 
                 global.RedisManager.publishBroadcast(channel, healthData);
 
@@ -845,6 +929,18 @@ class HealthController {
     }
 
     /**
+     * W-076: Remove health data for a shutdown instance
+     * @param {string} instanceId - Instance ID to remove
+     * @private
+     */
+    static _removeInstanceHealth(instanceId) {
+        if (this.instanceHealthCache.has(instanceId)) {
+            this.instanceHealthCache.delete(instanceId);
+            LogController.logInfo(null, 'health._removeInstanceHealth', `Removed instance ${instanceId} from cache`);
+        }
+    }
+
+    /**
      * W-076: Get health data from all instances (excluding expired)
      * @returns {Map} Map of instanceId -> healthData
      * @private
@@ -908,13 +1004,19 @@ class HealthController {
 
         if (pm2Status && pm2Status.processes) {
             // Multiple PM2 instances
+            const mongoStatus = await this._getMongoDBStatus();
+            const metrics = this._getMetrics();
+
             pm2Status.processes.forEach(p => {
                 const uptime = Math.floor((Date.now() - p.uptime) / 1000);
                 const memUsage = process.memoryUsage();
 
                 instances.push({
                     pid: p.pid,
-                    instanceId: p.instanceId,
+                    pm2Id: p.instanceId,
+                    port: global.appConfig.system.port,
+                    instanceName: global.appConfig.system.instanceName,
+                    instanceId: global.appConfig.system.instanceId,
                     pm2Available: true,
                     pm2ProcessName: p.name,
                     status: p.status,
@@ -922,10 +1024,25 @@ class HealthController {
                     uptimeFormatted: this._formatUptime(uptime),
                     memory: {
                         used: p.memory,
-                        total: Math.round(memUsage.heapTotal / 1024 / 1024) // MB
+                        total: Math.round(memUsage.heapTotal / 1024 / 1024), // MB
+                        percentage: Math.round((p.memory / Math.round(memUsage.heapTotal / 1024 / 1024)) * 100)
                     },
                     cpu: p.cpu,
                     restarts: p.restarts,
+                    // Application-level metadata (instance-specific)
+                    version: global.appConfig.app.site.version,
+                    release: global.appConfig.app.site.release,
+                    environment: global.appConfig.deployment.mode,
+                    database: {
+                        status: mongoStatus.status,
+                        name: global.appConfig.deployment[global.appConfig.deployment.mode].db
+                    },
+                    // Request/Error metrics (1-minute window)
+                    metrics: {
+                        requestsPerMin: metrics.requestsPerMin,
+                        errorsPerMin: metrics.errorsPerMin,
+                        errorRate: metrics.errorRate
+                    },
                     websockets: {
                         uptime: wsStats.uptime,
                         localConnections: Math.floor(wsStats.namespaces.reduce((total, ns) => total + ns.clientCount, 0) / pm2Status.processes.length),
@@ -949,17 +1066,38 @@ class HealthController {
             // Single instance (no PM2 or PM2 not available)
             const uptime = Math.floor(process.uptime());
             const memUsage = process.memoryUsage();
+            const mongoStatus = await this._getMongoDBStatus();
+            const metrics = this._getMetrics();
 
             instances.push({
                 pid: process.pid,
-                instanceId: process.env.PM2_INSTANCE_ID || process.env.INSTANCE_ID || 0,
+                pm2Id: global.appConfig.system.pm2Id,
+                port: global.appConfig.system.port,
+                instanceName: global.appConfig.system.instanceName,
+                instanceId: global.appConfig.system.instanceId,
                 pm2Available: false,
                 reason: pm2Status === null ? "PM2 not installed or not in PATH" : null,
                 uptime: uptime,
                 uptimeFormatted: this._formatUptime(uptime),
                 memory: {
                     used: Math.round(memUsage.heapUsed / 1024 / 1024), // MB
-                    total: Math.round(memUsage.heapTotal / 1024 / 1024) // MB
+                    total: Math.round(memUsage.heapTotal / 1024 / 1024), // MB
+                    percentage: Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100)
+                },
+                cpu: null, // CPU percentage not available without PM2
+                // Application-level metadata (instance-specific)
+                version: global.appConfig.app.site.version,
+                release: global.appConfig.app.site.release,
+                environment: global.appConfig.deployment.mode,
+                database: {
+                    status: mongoStatus.status,
+                    name: global.appConfig.deployment[global.appConfig.deployment.mode].db
+                },
+                // Request/Error metrics (1-minute window)
+                metrics: {
+                    requestsPerMin: metrics.requestsPerMin,
+                    errorsPerMin: metrics.errorsPerMin,
+                    errorRate: metrics.errorRate
                 },
                 websockets: {
                     uptime: wsStats.uptime,

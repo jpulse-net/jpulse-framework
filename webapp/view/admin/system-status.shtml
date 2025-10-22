@@ -333,12 +333,17 @@
                                 <div class="jp-card">
                                     <h4 class="jp-status-title">${ '{{i18n.view.admin.systemStatus.instanceDetails.title}}'.replace('%INSTANCEID%', inst.instanceId).replace('%PID%', inst.pid) }</h4>
                                     ${this.generateMetricRows([
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.version}}', inst.version],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.release}}', inst.release],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.environment}}', inst.environment],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.dbStatus}}', inst.database?.status],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.dbName}}', inst.database?.name],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.port}}', inst.deployment?.config?.port],
+                                        ['{{i18n.view.admin.systemStatus.instanceDetails.version}}', inst.version || 'N/A'],
+                                        ['{{i18n.view.admin.systemStatus.instanceDetails.release}}', inst.release || 'N/A'],
+                                        ['{{i18n.view.admin.systemStatus.instanceDetails.environment}}', inst.environment || 'N/A'],
+                                        ['{{i18n.view.admin.systemStatus.instanceDetails.dbStatus}}', inst.database?.status || 'N/A'],
+                                        ['{{i18n.view.admin.systemStatus.instanceDetails.dbName}}', inst.database?.name || 'N/A'],
+                                        ['{{i18n.view.admin.systemStatus.instanceDetails.port}}', inst.port || 'N/A'],
+                                        ['CPU Usage', inst.cpu ? `${inst.cpu}%` : 'N/A'],
+                                        ['Memory Usage', inst.memory?.percentage ? `${inst.memory.percentage}% (${inst.memory.used} MB)` : `${inst.memory?.used || 'N/A'} MB`],
+                                        ['Requests/min', inst.metrics?.requestsPerMin !== undefined ? inst.metrics.requestsPerMin : 'N/A'],
+                                        ['Errors/min', inst.metrics?.errorsPerMin !== undefined ? inst.metrics.errorsPerMin : 'N/A'],
+                                        ['Error Rate', inst.metrics?.errorRate !== undefined ? `${inst.metrics.errorRate}%` : 'N/A'],
                                     ])}
                                 </div>
                             `).join('')}

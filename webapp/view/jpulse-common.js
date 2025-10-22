@@ -4182,24 +4182,22 @@ window.jPulse = {
         /**
          * Get client UUID for WebSocket communication
          * @returns {string|null} - The client's unique ID
-         */
-        getUuid: function() {
+             */
+            getUuid: function() {
             // Prefer UUID from WebSocket connection if available
             if (jPulse.appCluster.broadcast._websocket && jPulse.appCluster.broadcast._websocket.uuid) {
                 return jPulse.appCluster.broadcast._websocket.uuid;
             }
-            // Fallback to localStorage
+            // Fallback to localStorage (for backwards compatibility)
             try {
                 const uuid = localStorage.getItem('jPulse.appCluster.uuid');
-                if (uuid) {
-                    console.log('[DEBUG] jPulse.appCluster.getUuid():', uuid, 'from storage');
-                    return uuid;
-                }
+                    if (uuid) {
+                        return uuid;
+                    }
             } catch (e) { /* ignore */ }
-            // If all else fails
-            console.log('[DEBUG] jPulse.appCluster.getUuid(): no websocket connection or UUID available');
-            return null;
-        },
+            // No UUID available
+                return null;
+            },
 
         /**
          * Fetch wrapper that automatically includes the session-based UUID
@@ -4268,48 +4266,48 @@ window.jPulse = {
                 _subscribers: new Map(), // channel -> [callbacks]
                 _pendingSubscriptions: new Set(), // { channel, options }
 
-                /**
-                 * Subscribe to broadcast messages (view channels only)
+            /**
+             * Subscribe to broadcast messages (view channels only)
                  * @param {string} channel - The channel to subscribe to (must start with 'view:')
-                 * @param {Function} callback - Callback function to handle messages
+             * @param {Function} callback - Callback function to handle messages
                  * @param {Object} options - Optional configuration ({ omitSelf: true/false })
-                 */
-                subscribe: function(channel, callback, options = {}) {
-                    const { omitSelf = false } = options;
+             */
+            subscribe: function(channel, callback, options = {}) {
+                const { omitSelf = false } = options;
 
-                    // Validate that this is a view channel
-                    if (!channel.startsWith('view:')) {
-                        throw new Error(`View channels must start with 'view:'. Got: ${channel}`);
-                    }
+                // Validate that this is a view channel
+                if (!channel.startsWith('view:')) {
+                    throw new Error(`View channels must start with 'view:'. Got: ${channel}`);
+                }
 
-                    // Validate channel schema
+                // Validate channel schema
                     if (!self._validateChannelSchema(channel)) {
-                        throw new Error(`Invalid channel schema: ${channel}. Expected: view:scope:type:action[:word]*`);
-                    }
+                    throw new Error(`Invalid channel schema: ${channel}. Expected: view:scope:type:action[:word]*`);
+                }
 
-                    // Store local subscription
+                // Store local subscription
                     if (!self._subscribers.has(channel)) {
                         self._subscribers.set(channel, []);
-                    }
+                }
                     self._subscribers.get(channel).push({ callback, options });
 
-                    // Ensure WebSocket connection for real-time updates
+                // Ensure WebSocket connection for real-time updates
                     self._ensureWebSocketConnection();
 
-                    // Register interest in this channel with server (include omitSelf flag)
+                // Register interest in this channel with server (include omitSelf flag)
                     self._registerChannelInterest(channel, { omitSelf });
 
-                    console.log(`jPulse.appCluster: Subscribed to ${channel} (with auto-WebSocket)`);
-                },
+                console.log(`jPulse.appCluster: Subscribed to ${channel} (with auto-WebSocket)`);
+            },
 
-                /**
-                 * Publish broadcast message (view channels only)
-                 * @param {string} channel - Channel name (must start with 'view:')
+            /**
+             * Publish broadcast message (view channels only)
+             * @param {string} channel - Channel name (must start with 'view:')
                  * @param {object} data - The message payload to send
                  * @param {object} options - Optional configuration
                  * @returns {Promise|undefined} - Promise that resolves on successful publish, or undefined if not connected
-                 */
-                publish: function(channel, data, options = {}) {
+             */
+            publish: function(channel, data, options = {}) {
                     // Ensure WebSocket is ready before publishing
                     if (!self._websocket || !self._websocket.isConnected()) {
                         jPulse.UI.toast.show(
@@ -4321,16 +4319,16 @@ window.jPulse = {
 
                     // Post message to server for broadcasting
                     return self._postToServer(channel, data);
-                },
+            },
 
-                /**
+            /**
                  * Ensure WebSocket connection is active
-                 * @private
-                 */
-                _ensureWebSocketConnection: function() {
+             * @private
+             */
+            _ensureWebSocketConnection: function() {
                     if (self._websocket && jPulse.appCluster.getUuid()) {
-                        return; // Already connected or connecting
-                    }
+                    return; // Already connected or connecting
+                }
                     self._connectWebSocket();
                 },
 
@@ -4351,12 +4349,12 @@ window.jPulse = {
                                 self._processPendingSubscriptions();
                             }
                         });
-                },
+            },
 
-                /**
+            /**
                  * Handle WebSocket messages
-                 * @private
-                 */
+             * @private
+             */
                 _handleWebSocketMessage: function(message) {
                     if (message.type === 'connected') {
                         // Store the server-confirmed UUID on the WebSocket object (not localStorage)
@@ -4409,30 +4407,30 @@ window.jPulse = {
                         .then(response => response.ok ? resolve(response.json()) : reject(new Error('Failed to post message')))
                         .catch(reject);
                     });
-                },
+            },
 
-                /**
-                 * Register interest in a channel with the server
-                 * @private
-                 */
-                _registerChannelInterest: function(channel, options = {}) {
+            /**
+             * Register interest in a channel with the server
+             * @private
+             */
+            _registerChannelInterest: function(channel, options = {}) {
                     if (self._websocket && self._websocket.isConnected()) {
                         self._websocket.send({
-                            type: 'subscribe',
-                            channel: channel,
-                            omitSelf: options.omitSelf || false
-                        });
-                    } else {
-                        // WebSocket not ready, add to pending
+                        type: 'subscribe',
+                        channel: channel,
+                        omitSelf: options.omitSelf || false
+                    });
+                } else {
+                    // WebSocket not ready, add to pending
                         self._pendingSubscriptions.add({ channel, options });
-                    }
-                },
+                }
+            },
 
-                /**
-                 * Local-only publish (fallback when Redis unavailable)
-                 * @private
-                 */
-                _publishLocal: function(channel, data) {
+            /**
+             * Local-only publish (fallback when Redis unavailable)
+             * @private
+             */
+            _publishLocal: function(channel, data) {
                     const subscribers = self._subscribers.get(channel) || [];
                     const currentUuid = jPulse.appCluster.getUuid();
                     subscribers.forEach(subscriber => {
@@ -4442,17 +4440,17 @@ window.jPulse = {
                         }
                         try {
                             subscriber.callback(data);
-                        } catch (error) {
-                            console.error(`jPulse.appCluster: Error in subscriber for ${channel}:`, error);
-                        }
-                    });
-                },
+                    } catch (error) {
+                        console.error(`jPulse.appCluster: Error in subscriber for ${channel}:`, error);
+                    }
+                });
+            },
 
-                /**
+            /**
                  * Validate channel schema
-                 * @private
-                 */
-                _validateChannelSchema: function(channel) {
+             * @private
+             */
+            _validateChannelSchema: function(channel) {
                     const parts = channel.split(':');
                     return parts.length >= 4 &&
                         parts[0] === 'view' &&

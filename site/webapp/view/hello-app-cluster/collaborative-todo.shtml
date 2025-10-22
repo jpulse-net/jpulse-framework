@@ -310,18 +310,28 @@
                         'warning'
                     );
                 }
-                const listChangedChannel = 'controller:helloClusterTodo:list:changed';
-                const itemUpdatedChannel = 'controller:helloClusterTodo:item:updated';
+                const listChangedChannel = 'view:helloClusterTodo:list:changed';
+                const itemUpdatedChannel = 'view:helloClusterTodo:item:updated';
 
                 jPulse.appCluster.broadcast.subscribe(listChangedChannel, (data) => {
-                    this.showToast(`📡 Todo list updated by ${data.senderName || data.sender}`);
-                    this.loadTodos();
-                });
+                    const senderName = (data.user.firstName || data.user.username || 'another user').trim();
+                    this.showToast(`📡 Todo list updated by ${senderName}`);
+                    if (data.action === 'created') {
+                        this.addTodoItem(data.todo);
+                    } else if (data.action === 'deleted') {
+                        this.removeTodoItem(data.todo._id);
+                    }
+                }, { omitSelf: true });
 
                 jPulse.appCluster.broadcast.subscribe(itemUpdatedChannel, (data) => {
-                    this.showToast(`📡 Task '${data.todo.title}' updated by ${data.senderName || data.sender}`);
-                    this.loadTodos(); // Reload the whole list for simplicity
-                });
+                    const senderName = (data.user.firstName || data.user.username || 'another user').trim();
+                    if (data.todo && data.todo.title) {
+                        this.showToast(`📡 Task '${data.todo.title}' updated by ${senderName}`);
+                    }
+                    if (data.action === 'updated') {
+                        this.updateTodoItem(data.todo);
+                    }
+                }, { omitSelf: true });
             }
 
             async loadTodos() {
@@ -360,14 +370,11 @@
                 this.updateSyncStatus('syncing');
 
                 try {
-                    const response = await fetch('/api/1/helloClusterTodo', {
+                    const response = await jPulse.appCluster.fetch('/api/1/helloClusterTodo', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
+                        body: {
                             text: text
-                        })
+                        }
                     });
 
                     const result = await response.json();
@@ -376,34 +383,33 @@
                     }
                     this.elements.taskDescription.value = '';
 
-                    // Always update the local list after successful submission
-                    // The broadcast will sync other instances/tabs
+                    // Optimistic UI update for the originating client
                     this.showToast('To-do added successfully!', 'success');
-                    this.loadTodos();
+                    this.addTodoItem(result.todo);
 
                 } catch (error) {
                     this.showToast(`Error adding task: ${error.message}`, 'error');
                     this.updateSyncStatus('error');
                 } finally {
                     this.elements.addButton.disabled = false;
-                    this.elements.addButton.innerHTML = '<i class="jp-icon-add"></i> Add Task';
+                    this.elements.addButton.innerHTML = 'Add Task';
                 }
             }
 
             async handleToggleTodo(id) {
                 try {
-                    const response = await fetch(`/api/1/helloClusterTodo/${id}/toggle`, {
-                        method: 'PUT'
+                    const response = await jPulse.appCluster.fetch(`/api/1/helloClusterTodo/${id}/toggle`, {
+                        method: 'PUT',
+                        body: {}
                     });
                     const result = await response.json();
                     if (!result.success) {
                         throw new Error(result.message || 'Failed to toggle task');
                     }
 
-                    // Always update the local list after successful toggle
-                    // The broadcast will sync other instances/tabs
+                    // Optimistic UI update
                     this.showToast('To-do toggled successfully!', 'success');
-                    this.loadTodos();
+                    this.updateTodoItem(result.todo);
 
                 } catch (error) {
                     this.showToast(`Error toggling task: ${error.message}`, 'error');
@@ -420,18 +426,18 @@
 
                 if (result.button === 'Delete Task') {
                     try {
-                        const response = await fetch(`/api/1/helloClusterTodo/${id}`, {
-                            method: 'DELETE'
+                        const response = await jPulse.appCluster.fetch(`/api/1/helloClusterTodo/${id}`, {
+                            method: 'DELETE',
+                            body: {}
                         });
                         const result = await response.json();
                         if (!result.success) {
                             throw new Error(result.message || 'Failed to delete todo');
                         }
 
-                        // Always update the local list after successful deletion
-                        // The broadcast will sync other instances/tabs
+                        // Optimistic UI update
                         this.showToast('To-do deleted successfully!', 'success');
-                        this.loadTodos();
+                        this.removeTodoItem(id);
 
                     } catch (error) {
                         this.showToast(`Failed to delete task: ${error.message}`, 'error');
@@ -440,51 +446,121 @@
                 }
             }
 
+            // --- UI Update Methods (No network calls) ---
+
+            addTodoItem(todo) {
+                // Add to internal state
+                this.todos.unshift(todo);
+
+                // Update UI
+                this.elements.emptyState.style.display = 'none';
+                const todoHtml = this._createTodoHtml(todo);
+                this.elements.todoList.insertAdjacentHTML('afterbegin', todoHtml);
+
+                // Update stats
+                this.stats.total++;
+                if (todo.completed) {
+                    this.stats.completed++;
+                } else {
+                    this.stats.pending++;
+                }
+                this.updateStats();
+            }
+
+            removeTodoItem(todoId) {
+                const index = this.todos.findIndex(t => t._id === todoId);
+                if (index > -1) {
+                    const [removedTodo] = this.todos.splice(index, 1);
+
+                    const itemElement = this.elements.todoList.querySelector(`[data-id="${todoId}"]`);
+                    if (itemElement) {
+                        itemElement.remove();
+                    }
+
+                    if (this.todos.length === 0) {
+                        this.elements.emptyState.style.display = 'block';
+                    }
+
+                    this.stats.total--;
+                    if (removedTodo.completed) {
+                        this.stats.completed--;
+                    } else {
+                        this.stats.pending--;
+                    }
+                    this.updateStats();
+                }
+            }
+
+            updateTodoItem(updatedTodo) {
+                const index = this.todos.findIndex(t => t._id === updatedTodo._id);
+                if (index > -1) {
+                    const oldTodo = this.todos[index];
+                    this.todos[index] = updatedTodo;
+
+                    const itemElement = this.elements.todoList.querySelector(`[data-id="${updatedTodo._id}"]`);
+                    if (itemElement) {
+                        itemElement.outerHTML = this._createTodoHtml(updatedTodo);
+                    }
+
+                    if (oldTodo.completed !== updatedTodo.completed) {
+                        if (updatedTodo.completed) {
+                            this.stats.completed++;
+                            this.stats.pending--;
+                        } else {
+                            this.stats.completed--;
+                            this.stats.pending++;
+                        }
+                        this.updateStats();
+                    }
+                }
+            }
+
+            _createTodoHtml(todo) {
+                const createdAt = jPulse.date.formatLocalDate(new Date(todo.createdAt));
+                const userFullName = `${todo.userFirstName || ''} ${todo.userLastName || ''}`.trim();
+                const updatedBy = userFullName || todo.username || 'Unknown';
+                return `
+                <li class="local-todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo._id}">
+                    <input type="checkbox"
+                            class="local-todo-checkbox"
+                            ${todo.completed ? 'checked' : ''}
+                            onchange="todoApp.handleToggleTodo('${todo._id}')">
+
+                    <div class="local-todo-content">
+                        <div class="local-todo-text">${this.escapeHtml(todo.title)}</div>
+                        <div class="local-todo-meta">
+                            <span><strong>By:</strong> ${this.escapeHtml(updatedBy)}</span>
+                            <span><strong>Created:</strong> ${createdAt}</span>
+                            ${todo.completed ? `<span><strong>✅ Completed</strong></span>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="local-todo-actions">
+                        <button class="jp-btn delete"
+                                onclick="todoApp.handleDeleteTodo('${todo._id}')"
+                                title="Delete task">
+                            ❌
+                        </button>
+                    </div>
+                </li>
+                `;
+            }
+
             renderTodos() {
                 const todoList = this.elements.todoList;
                 const emptyState = this.elements.emptyState;
                 if (!todoList || !emptyState) return;
 
+                // Clear the list completely
+                todoList.innerHTML = '';
+
                 if (this.todos.length === 0) {
+                    todoList.appendChild(emptyState);
                     emptyState.style.display = 'block';
-                    const existingItems = todoList.querySelectorAll('.local-todo-item');
-                    existingItems.forEach(item => item.remove());
                 } else {
                     emptyState.style.display = 'none';
-                    const todosHtml = this.todos.map(todo => {
-                        const createdAt = jPulse.date.formatLocalDate(new Date(todo.createdAt));
-                        const userFullName = `${todo.userFirstName || ''} ${todo.userLastName || ''}`.trim();
-                        const updatedBy = userFullName || todo.username || 'Unknown';
-                        return `
-                        <li class="local-todo-item ${todo.completed ? 'completed' : ''}" data-id="${todo._id}">
-                            <input type="checkbox"
-                                   class="local-todo-checkbox"
-                                   ${todo.completed ? 'checked' : ''}
-                                   onchange="todoApp.handleToggleTodo('${todo._id}')">
-
-                            <div class="local-todo-content">
-                                <div class="local-todo-text">${this.escapeHtml(todo.title)}</div>
-                                <div class="local-todo-meta">
-                                    <span><strong>By:</strong> ${this.escapeHtml(updatedBy)}</span>
-                                    <span><strong>Created:</strong> ${createdAt}</span>
-                                    ${todo.completed ? `<span><strong>✅ Completed</strong></span>` : ''}
-                                </div>
-                            </div>
-
-                            <div class="local-todo-actions">
-                                <button class="jp-btn delete"
-                                        onclick="todoApp.handleDeleteTodo('${todo._id}')"
-                                        title="Delete task">
-                                    ❌
-                                </button>
-                            </div>
-                        </li>
-                        `;
-                    }).join('');
-
-                    const existingItems = todoList.querySelectorAll('.local-todo-item');
-                    existingItems.forEach(item => item.remove());
-                    todoList.insertAdjacentHTML('beforeend', todosHtml);
+                    const todosHtml = this.todos.map(todo => this._createTodoHtml(todo)).join('');
+                    todoList.innerHTML = todosHtml;
                 }
             }
 

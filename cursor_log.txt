@@ -32690,3 +32690,82 @@ USER: cursor log has not been updated since 2025-10-15 00:26, e.g. almost 2 days
 add the missing cursor log updates with enhancements done since then (give me text to append, don't replace!)
 
 ASSISTANT: Provided comprehensive cursor log updates covering the cluster system status dashboard implementation and complete test suite stabilization work completed over the past 2 days.
+
+
+============================================================
+2025-10-22 13:30
+
+USER: we can't delete the senderName, it's used in the client code. I solved it differently.
+
+BUT: no change at all, I have to reload tab1 and tab2 due to missed updates from the other tab on 8080
+
+bye gemini, hello claude:
+
+- please examine @collaborative-todo.shtml and@helloClusterTodo.js
+- look at logs@tt-8080.log @tt-8086.log -- has debug message
+- tab1 on 8080
+- tab2 on 8080
+- tab3 on 8086 app instance
+- bug: a tab1 or tab2 on 8080 does not get updates from a message sent by the other tab
+
+if I understand correctly, the tabs send session based uuid, e.g. unique to the tab. so why is data.uuid not equal to clientId?
+
+well, the guiding principle is "don't make me think" for site developers. I prefer to hide the uuid as much as possible in jPulse.appCluster. is it possible to automatically include the session-based uuid in the api call? maybe by calling a jPulse.appCluster function that does the actual api call?
+
+now in agent mode, please make the change
+
+ASSISTANT: Fixed critical bug in collaborative todo app where tabs on the same server instance weren't receiving updates from each other.
+
+**Root Cause:**
+The WebSocket client UUID was being stored in `localStorage`, which is shared across all tabs in the same browser. This caused the `omitSelf` filter to skip all tabs in the same browser instead of just the originating tab.
+
+**Changes Made:**
+
+1. **webapp/view/jpulse-common.js** (lines 4302-4306):
+   - Fixed localStorage bug: Changed `localStorage.setItem('jPulse.appCluster.uuid', message.clientId)` to `self._websocket.uuid = message.clientId`
+   - Each WebSocket connection now maintains its own unique UUID on the connection object
+   - This ensures each tab has a distinct UUID for proper `omitSelf` filtering
+
+2. **webapp/view/jpulse-common.js** (lines 4204-4262):
+   - Added new `jPulse.appCluster.fetch()` wrapper function
+   - Automatically injects session-based UUID into POST/PUT/DELETE request bodies
+   - Automatically sets Content-Type header for JSON requests
+   - Provides "don't make me think" API for site developers
+   - Site developers no longer need to manually include UUID in API calls
+
+3. **site/webapp/view/hello-app-cluster/collaborative-todo.shtml**:
+   - Refactored all API calls to use `jPulse.appCluster.fetch()` instead of native `fetch()`
+   - Removed manual UUID inclusion from POST request (line 373-378)
+   - Removed manual UUID inclusion from PUT request (line 401-404)
+   - Removed manual UUID inclusion from DELETE request (line 429-432)
+   - Removed manual Content-Type headers (now automatic)
+   - Cleaner, more maintainable code for site developers
+
+**Example of Improvement:**
+
+Before:
+```javascript
+const response = await fetch('/api/1/helloClusterTodo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        text: text,
+        uuid: jPulse.appCluster.getUuid()
+    })
+});
+```
+
+After:
+```javascript
+const response = await jPulse.appCluster.fetch('/api/1/helloClusterTodo', {
+    method: 'POST',
+    body: { text: text }
+});
+```
+
+**Testing Required:**
+- Test with tab1 and tab2 on 8080, tab3 on 8086
+- Verify messages from tab1 appear on tab2 and tab3
+- Verify messages from tab2 appear on tab1 and tab3
+- Verify messages from tab3 appear on tab1 and tab2
+- Verify `omitSelf: true` correctly filters originating tab only

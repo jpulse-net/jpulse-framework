@@ -209,46 +209,52 @@ class AppClusterController {
      * @param {Object} data - Broadcast message data
      */
     static relayToInterestedClients(channel, data) {
-        console.log(`[DEBUG] AppCluster.relayToInterestedClients: CALLED for channel ${channel} from ${data?._sourceInstanceId || 'unknown'}, data keys: ${Object.keys(data || {}).join(', ')}`);
-
         try {
             // Get all connected clients in the app-cluster namespace
             const namespace = WebSocketController.namespaces.get('/api/1/ws/app-cluster');
             if (!namespace) {
-                console.log(`[DEBUG] AppCluster.relayToInterestedClients: No app-cluster namespace found`);
                 return; // No namespace registered
             }
-
-            console.log(`[DEBUG] AppCluster.relayToInterestedClients: Namespace has ${namespace.clients.size} clients`);
-            console.log(`[DEBUG] AppCluster.relayToInterestedClients: Client channels: ${Array.from(AppClusterController.clientChannels.entries()).map(([clientId, channels]) => `${clientId}:[${Array.from(channels).join(',')}]`).join(', ')}`);
 
             let relayedCount = 0;
 
             // Send to clients interested in this specific channel
             namespace.clients.forEach((client, clientId) => {
                 const clientChannels = AppClusterController.clientChannels.get(clientId);
+                if (!clientChannels) return;
 
-                if (clientChannels && clientChannels.has(channel)) {
-                    const channelOptions = clientChannels.get(channel);
-                    const shouldOmitSelf = channelOptions?.omitSelf || false;
+                console.log(`[DEBUG] relay: Checking client. Client ID from map key: [${clientId}]. Originating client UUID from Redis data: [${data.uuid || 'N/A'}]`);
+                console.log(`[DEBUG] relay: Full client object dump:`, client);
 
-                    // Skip self-messages if client has omitSelf enabled
-                    if (shouldOmitSelf && data.uuid === clientId) {
-                        return; // Don't send to this client
-                    }
+                // W-083: Check all of client's subscriptions (including wildcards)
+                // against the incoming message channel.
+                for (const [subscribedChannel, channelOptions] of clientChannels.entries()) {
+                    if (RedisManager._channelMatches(channel, subscribedChannel)) {
+                        const shouldOmitSelf = channelOptions?.omitSelf || false;
+                        console.log(`[DEBUG] relay:   - Match found! omitSelf is [${shouldOmitSelf}]`);
 
-                    if (client.ws.readyState === 1) { // WebSocket.OPEN
-                        const message = {
-                            success: true,
-                            data: {
-                                type: 'broadcast',
-                                channel: channel,
-                                data: data,
-                                timestamp: new Date().toISOString()
-                            }
-                        };
+                        // Skip self-messages if client has omitSelf enabled
+                        if (shouldOmitSelf && data.uuid === clientId) {
+                            console.log(`[DEBUG] relay:   - SKIPPING client [${clientId.substring(0, 8)}...] due to omitSelf.`);
+                            continue; // Don't send to this client for this matching subscription
+                        }
 
-                        client.ws.send(JSON.stringify(message));
+                        if (client.ws.readyState === 1) { // WebSocket.OPEN
+                            const message = {
+                                success: true,
+                                data: {
+                                    type: 'broadcast',
+                                    channel: channel,
+                                    data: data,
+                                    timestamp: new Date().toISOString()
+                                }
+                            };
+                            client.ws.send(JSON.stringify(message));
+                            relayedCount++;
+                            // A message should only be sent once, even if it matches multiple
+                            // of a client's subscriptions (e.g., 'view:*' and 'view:todo:*').
+                            break;
+                        }
                     }
                 }
             });
@@ -259,8 +265,6 @@ class AppClusterController {
                     'appCluster.relayToInterestedClients',
                     `Relayed broadcast to ${relayedCount} clients on channel: ${channel}`
                 );
-            } else {
-                console.log(`[DEBUG] AppCluster.relayToInterestedClients: No clients subscribed to channel ${channel}`);
             }
         } catch (error) {
             LogController.logError(

@@ -29,6 +29,9 @@ class RedisManager {
     // Static instance for singleton pattern
     static instance = null;
 
+    // Recently processed message cache for deduplication
+    static recentlyProcessedMessages = new Set();
+
     // Connection pools
     static connections = {
         session: null,
@@ -115,6 +118,18 @@ class RedisManager {
             RedisManager.connections.broadcast.publisher = createClient('broadcast-pub');
             RedisManager.connections.broadcast.subscriber = createClient('broadcast-sub');
             RedisManager.connections.metrics = createClient('metrics');
+
+            // W-082: Subscribe to a single master pattern to prevent duplicate message events.
+            // The application will handle dispatching to the correct, most specific callback.
+            if (RedisManager.connections.broadcast.subscriber) {
+                const masterPattern = RedisManager.getKey('broadcast', '*');
+                RedisManager.connections.broadcast.subscriber.psubscribe(masterPattern);
+                RedisManager.connections.broadcast.subscriber.on('pmessage', (pattern, channel, messageStr) => {
+                    RedisManager._handleBroadcastMessage(channel, messageStr);
+                });
+                global.LogController?.logInfo(null, 'redis-manager._createConnections',
+                    `Subscribed to master broadcast pattern: ${masterPattern}`);
+            }
 
             global.LogController?.logInfo(null, 'redis-manager._createConnections',
                 `Redis connections created in ${config.mode} mode for instance ${RedisManager.instanceId}`);
@@ -414,9 +429,6 @@ class RedisManager {
         if (RedisManager.connections.broadcast?.subscriber) {
             try {
                 // Unsubscribe from all broadcast patterns
-                if (RedisManager.connections.broadcast.subscriber.unsubscribe) {
-                    await RedisManager.connections.broadcast.subscriber.unsubscribe();
-                }
                 if (RedisManager.connections.broadcast.subscriber.punsubscribe) {
                     await RedisManager.connections.broadcast.subscriber.punsubscribe();
                 }
@@ -618,14 +630,8 @@ class RedisManager {
             RedisManager._selfMessageConfig.set(channel, true);
         }
 
-        // Only subscribe and log if Redis is available and not already subscribed
+        // W-082: Do not subscribe here. Subscription is handled centrally at startup.
         if (RedisManager.isAvailable) {
-            // Subscribe to the channel automatically (only if not already subscribed)
-            if (!RedisManager.subscribedChannels.has(channel)) {
-                RedisManager.subscribeBroadcast([channel], RedisManager._handleCallbackMessage);
-                RedisManager.subscribedChannels.add(channel);
-            }
-
             global.LogController?.logInfo(null, 'redis-manager.registerBroadcastCallback',
                 `Registered callback for channel: ${channel}`);
         }
@@ -725,91 +731,37 @@ class RedisManager {
     }
 
     /**
-     * Subscribe to broadcast channels with callback
-     * @param {string|Array} channels - Channel name(s) or pattern(s) to subscribe to
-     * @param {Function} callback - Callback function (channel, data, sourceInstanceId)
-     * @returns {boolean} True if subscribed successfully, false if Redis unavailable
+     * Subscribe to broadcast channels from Redis
+     * @param {string|string[]} channels - The channel(s) to subscribe to
      */
-    static subscribeBroadcast(channels, callback) {
-        // Early bailout if Redis is not available - fail silently to avoid log noise
-        if (!RedisManager.isAvailable) {
-            return false;
-        }
-
-        const subscriber = RedisManager.getClient('broadcast', 'subscriber');
-
-        if (!subscriber) {
-            // Graceful fallback: return false without logging (Redis disabled)
-            return false;
-        }
-
-        try {
-            // Ensure channels is an array
-            const channelArray = Array.isArray(channels) ? channels : [channels];
-
-            // Add prefix to channels
-            const prefixedChannels = channelArray.map(ch => RedisManager.getKey('broadcast', ch));
-
-            // Subscribe to channels
-            if (channelArray.some(ch => ch.includes('*') || ch.includes('?'))) {
-                // Pattern subscription
-                subscriber.psubscribe(...prefixedChannels);
-            } else {
-                // Exact channel subscription
-                subscriber.subscribe(...prefixedChannels);
-            }
-
-            // Set up message handler
-            subscriber.on('message', (channel, messageStr) => {
-                RedisManager._handleBroadcastMessage(channel, messageStr, callback);
-            });
-
-            subscriber.on('pmessage', (pattern, channel, messageStr) => {
-                RedisManager._handleBroadcastMessage(channel, messageStr, callback);
-            });
-
-            global.LogController?.logInfo(null, 'redis-manager.subscribeBroadcast',
-                `Subscribed to broadcast channels: ${channelArray.join(', ')}`);
-            return true;
-        } catch (error) {
-            global.LogController?.logError(null, 'redis-manager.subscribeBroadcast',
-                `Failed to subscribe to broadcasts: ${error.message}`);
-            return false;
-        }
+    static subscribeBroadcast(channels) {
+        // FIXME: Remove this function after testing
+        // W-082: This function is now deprecated as subscriptions are handled centrally.
+        // It is kept for now to prevent breaking any code that might still call it.
+        const channelArray = Array.isArray(channels) ? channels : [channels];
+        global.LogController?.logWarning(null, 'redis-manager.subscribeBroadcast',
+            `subscribeBroadcast is deprecated. Subscription for ${channelArray.join(', ')} is handled automatically.`);
+        return true;
     }
 
     /**
      * Handle incoming broadcast messages
      * @private
      */
-    static _handleBroadcastMessage(channel, messageStr, callback) {
+    static _handleBroadcastMessage(channel, messageStr) {
         try {
+            console.log(`[DEBUG] RedisManager._handleBroadcastMessage: Received raw message on channel [${channel}]`);
             // Remove prefix from channel
             const prefix = RedisManager.getKey('broadcast', '');
-            const cleanChannel = channel.startsWith(prefix) ? channel.slice(prefix.length) : channel;
+            const originalChannel = channel.startsWith(prefix) ? channel.substring(prefix.length) : channel;
+
             const message = JSON.parse(messageStr);
 
-            // Validate channel schema first
-            if (!RedisManager._validateChannelSchema(cleanChannel)) {
-                console.warn(`Invalid channel schema: ${cleanChannel}`);
-                return;
-            }
-
-            ////// Determine if we're in single instance mode (Redis unavailable)
-            ////const isSingleInstanceMode = !RedisManager.isRedisAvailable();
-
-            ////// In cluster mode, ignore messages from our own instance to prevent loops
-            ////// In single instance mode, allow all messages (including self) for testing
-            ////if (!isSingleInstanceMode && message.instanceId === RedisManager.instanceId) {
-            ////    return;
-            ////} // FIXME: Remove this self-message filtering after testing
-
-            // Call the callback with clean channel name
-            callback(cleanChannel, message.data, message.instanceId);
-
+            // The callback is now always _handleCallbackMessage, which is bound centrally
+            RedisManager._handleCallbackMessage(originalChannel, message.data, message.instanceId);
         } catch (error) {
             global.LogController?.logError(null, 'redis-manager._handleBroadcastMessage',
-                `Error handling broadcast message: ${error.message}`);
+                `Error parsing broadcast message on channel ${channel}: ${error.message}`);
         }
     }
 
@@ -829,7 +781,7 @@ class RedisManager {
             const channelArray = Array.isArray(channels) ? channels : [channels];
             const prefixedChannels = channelArray.map(ch => RedisManager.getKey('broadcast', ch));
 
-            subscriber.unsubscribe(...prefixedChannels);
+            subscriber.punsubscribe(...prefixedChannels);
 
             global.LogController?.logInfo(null, 'redis-manager.unsubscribeBroadcast',
                 `Unsubscribed from broadcast channels: ${channelArray.join(', ')}`);

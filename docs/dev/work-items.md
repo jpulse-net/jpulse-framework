@@ -1446,7 +1446,9 @@ This is the doc to track work items, arranged in three sections:
   - System-wide metadata
     - created appConfig.system with metadata: rootDir, appDir, siteDir, port, hostname, serverName, serverId, pm2Id, pid, instanceName, instanceId, docTypes
     - objective: single source of truth for system metadata
-
+  - Options
+    - { omitSelf: true }  // do not send message back to oneself
+    - { omitSelf: false } // send message back to oneself
 
 
 

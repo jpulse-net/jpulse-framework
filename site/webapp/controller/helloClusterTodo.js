@@ -79,7 +79,7 @@ class HelloClusterTodoController {
             });
 
             // Broadcast change to all cluster instances
-            await HelloClusterTodoController._broadcastChange('created', createdTodo, req);
+            await HelloClusterTodoController._broadcastChange('created', createdTodo, req, req.body.uuid);
 
             res.status(201).json({
                 success: true,
@@ -108,7 +108,7 @@ class HelloClusterTodoController {
             const updatedTodo = await HelloTodoModel.toggleComplete(id);
 
             // Broadcast change to all cluster instances
-            await HelloClusterTodoController._broadcastChange('updated', updatedTodo, req);
+            await HelloClusterTodoController._broadcastChange('updated', updatedTodo, req, req.body.uuid);
 
             res.json({
                 success: true,
@@ -145,7 +145,7 @@ class HelloClusterTodoController {
             await HelloTodoModel.delete(id);
 
             // Broadcast change to all cluster instances
-            await HelloClusterTodoController._broadcastChange('deleted', todoToDelete, req);
+            await HelloClusterTodoController._broadcastChange('deleted', todoToDelete, req, req.body.uuid);
 
             res.json({
                 success: true,
@@ -226,34 +226,32 @@ class HelloClusterTodoController {
      * @param {string} action - The action performed (created, updated, deleted)
      * @param {object} todo - The todo item that was changed
      * @param {object} req - The Express request object for context
+     * @param {string} clientUuid - The unique ID of the client making the request
      * @private
      */
-    static async _broadcastChange(action, todo, req) {
+    static async _broadcastChange(action, todo, req, clientUuid = null) {
         if (!global.RedisManager || !global.RedisManager.isRedisAvailable()) {
             LogController.logInfo(req, 'helloClusterTodo._broadcastChange', 'warning: Redis not available, skipping broadcast');
             return;
         }
 
-        const senderName = (req.session?.user?.firstName
-            ? `${req.session.user.firstName} ${req.session.user.lastName}`
-            : req.session?.user?.username) || 'Anonymous User';
-        const sender = req.session?.user?.username || 'guest';
-        const uuid = req.body.uuid || null; // Client UUID, if provided
+        const userData = req.session?.user || { username: 'guest', firstName: 'Anonymous', lastName: 'User' };
 
-        const broadcastPayload = {
-            todo: todo,
+        // Determine channel based on action
+        const isListChange = (action === 'created' || action === 'deleted');
+        const channel = isListChange
+            ? 'view:helloClusterTodo:list:changed'
+            : 'view:helloClusterTodo:item:updated';
+
+        const payload = {
             action: action,
-            sender: sender,
-            senderName: senderName,
-            uuid: uuid
+            user: userData,
+            todo: todo, // Include the full todo object in the payload
+            uuid: clientUuid
         };
 
-        const channel = (action === 'created' || action === 'deleted')
-            ? 'controller:helloClusterTodo:list:changed'
-            : 'controller:helloClusterTodo:item:updated';
-
         try {
-            await global.RedisManager.publishBroadcast(channel, broadcastPayload);
+            await global.RedisManager.publishBroadcast(channel, payload);
             LogController.logInfo(req, 'helloClusterTodo._broadcastChange', `success: broadcasted [${action}] on channel [${channel}]`);
         } catch (error) {
             LogController.logError(req, 'helloClusterTodo._broadcastChange', `error: Failed to broadcast change: ${error.message}`);

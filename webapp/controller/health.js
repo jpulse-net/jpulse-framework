@@ -51,33 +51,22 @@ class HealthController {
      * Called during application bootstrap
      */
     static async initialize() {
-        try {
-            const appConfig = global.appConfig;
-
-            // Only initialize Redis health clustering if Redis is enabled
-            if (!appConfig.redis?.enabled) {
-                LogController.logInfo(null, 'health.initialize', 'Redis health clustering disabled (single-instance mode)');
-                return;
-            }
-
-            // W-076: Use RedisManager for health metrics broadcasting
-            // Subscribe to health metrics from other instances
-            global.RedisManager.subscribeBroadcast('controller:health:metrics:*', (channel, data, sourceInstanceId) => {
-                // Extract instance ID from channel (controller:health:metrics:instanceId)
-                const instanceId = channel.replace('controller:health:metrics:', '');
-
-                // Store health data from other instances
-                this._storeInstanceHealth(instanceId, data, sourceInstanceId);
-            });
-
-            // Start periodic health broadcasting
-            this._startHealthBroadcasting();
-
-            LogController.logInfo(null, 'health.initialize', 'Redis health metrics clustering initialized');
-
-        } catch (error) {
-            LogController.logError(null, 'health.initialize', `error: ${error.message} - falling back to single-instance mode`);
+        if (!this.config.enableBroadcasting || !global.RedisManager?.isRedisAvailable()) {
+            return;
         }
+
+        // W-077: Use registerBroadcastCallback for consistent, centralized handling
+        global.RedisManager.registerBroadcastCallback('controller:health:metrics:*', (channel, data, sourceInstanceId) => {
+            // Extract instance ID from channel (controller:health:metrics:instanceId)
+            const instanceId = channel.replace('controller:health:metrics:', '');
+            if (instanceId && data) {
+                // Store the received health data
+                this._storeInstanceHealth(instanceId, data, sourceInstanceId);
+            }
+        });
+
+        // Start broadcasting this instance's health
+        this._startHealthBroadcasting();
     }
 
     /**

@@ -78,63 +78,63 @@ const conf = {
         {
             pattern: 'package.json',
             replacements: [
-                { from: /"version": "[\d.]+(-rc\.\d+)?"/, to: (version) => `"version": "${version}"` }
+                { from: /"version": "[\d.]+(-[a-z]+\.\d+)?"/, to: (version) => `"version": "${version}"` }
             ]
         },
         {
             pattern: 'package-lock.json',
             replacements: [
-                { from: /("name": "\@peterthoeny\/jpulse-framework",\s+"version": ")[\d.]+(-rc\.\d+)?/g, to: (version, match, p1) => `${p1}${version}`, scope: 'version' }
+                { from: /("name": "\@peterthoeny\/jpulse-framework",\s+"version": ")[\d.]+(-[a-z]+\.\d+)?/g, to: (version, match, p1) => `${p1}${version}`, scope: 'version' }
             ]
         },
         {
             pattern: 'webapp/app.conf',
             replacements: [
-                { from: /(version: +['"])[\d.]+(-rc\.\d+)?/, to: (version, match, p1) => `${p1}${version}`, scope: 'version' },
+                { from: /(version: +['"])[\d.]+(-[a-z]+\.\d+)?/, to: (version, match, p1) => `${p1}${version}`, scope: 'version' },
                 { from: /(release: +['"])[\d-]+/, to: (release, match, p1) => `${p1}${release}`, scope: 'release' }
             ]
         },
         {
             pattern: 'README.md',
             replacements: [
-                { from: /^(# jPulse Framework v)[\d.]+(-rc\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'docs/*.md',
             replacements: [
-                { from: /^(# jPulse Framework.* v)[\d.]+(-rc\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# jPulse Framework.* v)[\d.]+(-[a-z]+\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'docs/**/*.md',
             replacements: [
-                { from: /^(# jPulse Framework.* v)[\d.]+(-rc\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# jPulse Framework.* v)[\d.]+(-[a-z]+\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'templates/*.md',
             replacements: [
-                { from: /^(# .* jPulse Framework v)[\d.]+(-rc\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# .* jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'templates/**/*.md',
             replacements: [
-                { from: /^(# .*jPulse Framework v)[\d.]+(-rc\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# .*jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'webapp/view/home/index.shtml',
             replacements: [
-                { from: /(jPulse Framework v)[\d.]+(-rc\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` },
+                { from: /(jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` },
             ]
         },
     ],
 
     // Header update patterns for source files
     headerUpdatePatterns: {
-        version: /([\*#] @version\s+)[\d.]+(-rc\.\d+)?/, // Captures comment prefix: * @version or # @version
+        version: /([\*#] @version\s+)[\d.]+(-[a-z]+\.\d+)?/, // Captures comment prefix: * @version or # @version
         release: /([\*#] @release\s+)[\d-]+/  // Captures comment prefix: * @release or # @release
     }
 };
@@ -161,8 +161,8 @@ if (!providedDate) {
 }
 
 // Validate version format (simple check)
-if (!/^\d+\.\d+\.\d+(-rc\.\d+)?$/.test(newVersion)) {
-  console.error('❌ Invalid version format. Use semantic versioning (e.g., 1.0.1)');
+if (!/^\d+\.\d+\.\d+(-[a-z]+\.\d+)?$/.test(newVersion)) {
+  console.error('❌ Invalid version format. Use semantic versioning (e.g., 1.0.1, or 1.0.1-rc.1)');
   process.exit(1);
 }
 

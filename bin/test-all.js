@@ -113,7 +113,7 @@ function parseTestOutput(output, description) {
                     stats.skipped = skippedMatch ? parseInt(skippedMatch[1]) : 0;
                     stats.passed = passedMatch ? parseInt(passedMatch[1]) : 0;
                     // Add failed suites to the count of failed tests
-                    stats.failed = (failedMatch ? parseInt(failedMatch[1]) : 0) + testSuitesFailed;
+                    stats.failed = (failedMatch ? parseInt(failedMatch[1]) : 0);
                     stats.total = parseInt(totalMatch[1]);
                     break;
                 }

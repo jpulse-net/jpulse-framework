@@ -61,7 +61,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
         });
 
         test('should maintain backward compatibility with app config', () => {
-            expect(mockContext.app.jPulse.version).toMatch(/^\d+\.\d+\.\d+$/);
+            expect(mockContext.app.jPulse.version).toMatch(/^\d+\.\d+\.\d+(-[a-z]+\.\d+)?$/);
             expect(mockContext.app.jPulse.release).toMatch(/^\d{4}-\d{2}-\d{2}$/);
         });
     });
@@ -242,7 +242,7 @@ describe('Responsive Layout and AppConfig Integration', () => {
 
             expect(expressions.maxWidth).toBe(1200);
             expect(expressions.minMargin).toBe(20);
-            expect(expressions.appVersion).toMatch(/^\d+\.\d+\.\d+$/);
+            expect(expressions.appVersion).toMatch(/^\d+\.\d+\.\d+(-[a-z]+\.\d+)?$/);
         });
     });
 

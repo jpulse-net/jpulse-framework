@@ -3,8 +3,8 @@
  * @tagline         Template for development deployment configuration
  * @description     Minimal configuration for local development deployment
  * @file            templates/webapp/app.conf.dev.tmpl
- * @version         0.9.7
- * @release         2025-10-12
+ * @version         1.0.0-rc.1
+ * @release         2025-10-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Site Administrator
  * @copyright       2025 Site Administrator
@@ -46,6 +46,18 @@
         standalone: {
             // Uses framework defaults with deployment.dev.db name
             // No authentication needed for development
+        }
+    },
+
+    // Redis configuration (single mode for dev PM2 clusters)
+    redis: {
+        enabled:    true,
+        mode:       'single',
+        single: {
+            host:       '%REDIS_HOST%',
+            port:       %REDIS_PORT%,
+            password:   '%REDIS_PASSWORD%',
+            db:         0
         }
     }
 

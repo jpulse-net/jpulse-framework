@@ -6,8 +6,8 @@
  #                  - Run as root: sudo npm run jpulse-install
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/jpulse-install.sh
- # @version         0.9.7
- # @release         2025-10-12
+ # @version         1.0.0-rc.1
+ # @release         2025-10-22
  # @repository      https://github.com/peterthoeny/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -52,10 +52,11 @@ echo ""
 echo "This script will install: (unless installed already)"
 echo "  1. Node.js 18 LTS"
 echo "  2. MongoDB 6.0"
-echo "  3. nginx"
-echo "  4. PM2 process manager"
-echo "  5. Configure firewall"
-echo "  6. Create application user"
+echo "  3. Redis"
+echo "  4. nginx"
+echo "  5. PM2 process manager"
+echo "  6. Configure firewall"
+echo "  7. Create application user"
 echo ""
 
 read -p "🤔 Proceed with system installation? (y/N): " -n 1 -r
@@ -91,6 +92,15 @@ EOF
     echo "✅ MongoDB installed"
 else
     echo "✅ MongoDB already installed"
+fi
+
+# Install Redis
+echo "📦 Installing Redis..."
+if ! command -v redis-cli >/dev/null 2>&1; then
+    dnf install -y redis
+    echo "✅ Redis installed"
+else
+    echo "✅ Redis already installed"
 fi
 
 # Install nginx
@@ -225,6 +235,7 @@ fi
 # Start and enable services
 echo "🚀 Starting services..."
 systemctl enable --now mongod
+systemctl enable --now redis
 systemctl enable --now nginx
 
 # Post-installation validation
@@ -238,6 +249,7 @@ echo ""
 echo "📋 Installation Summary:"
 echo "   Node.js: $(node --version)"
 echo "   MongoDB: Installed and running"
+echo "   Redis: Installed and running"
 echo "   nginx: Installed and running"
 echo "   PM2: $(pm2 --version)"
 echo "   Application user: $APP_USER"

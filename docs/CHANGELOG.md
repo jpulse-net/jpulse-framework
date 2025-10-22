@@ -1,6 +1,138 @@
-# jPulse Framework / Docs / Version History v0.9.7
+# jPulse Framework / Docs / Version History v1.0.0-rc.1
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.0.0-rc.1, W-076, 2025-10-22
+
+**Commit:** `W-076, v1.0.0-rc.1: Production-Ready WebSocket and Redis Integration`
+
+**PRODUCTION-READY WEBSOCKET AND REDIS INTEGRATION**: Complete implementation of WebSocket real-time communication and Redis-backed application cluster broadcasting system with centralized message routing, health metrics monitoring, and comprehensive documentation.
+
+**Objective**: Provide production-ready real-time communication capabilities for multi-user, multi-instance, and multi-server deployments with Redis pub/sub for cross-instance messaging, WebSocket for bi-directional communication, and Application Cluster Broadcasting for simplified state synchronization.
+
+**Key Features**:
+- **Application Cluster Broadcasting**: Simplified pub/sub system for state synchronization across users and servers
+- **WebSocket Real-Time Communication**: Bi-directional communication with custom namespace support
+- **Redis Pub/Sub Integration**: Cross-instance and cross-server message routing via Redis
+- **Centralized Message Routing**: Single Redis listener with pattern-based message dispatching
+- **Channel Schema Validation**: Strict `model:`, `view:`, `controller:` prefix enforcement
+- **omitSelf Support**: Prevent clients from receiving their own broadcast messages
+- **Health Metrics Monitoring**: Real-time instance health tracking with graceful shutdown
+- **Request/Error Tracking**: 1-minute rolling window metrics per instance
+- **Auto-UUID Injection**: Client-side UUID management via `jPulse.appCluster.fetch()`
+
+**Application Cluster Broadcasting**:
+- **Client API**: `jPulse.appCluster.publish()`, `subscribe()`, `unsubscribe()`, `fetch()`
+- **Server API**: `RedisManager.broadcastMessage()`, `registerBroadcastCallback()`
+- **Channel Naming**: `(model|view|controller):{component}:{domain}:{action}`
+- **Pattern Matching**: Specificity-based routing (longest match wins)
+- **omitSelf Defaults**: `true` for controller/model channels, `false` for view channels
+
+**WebSocket Communication**:
+- **Client API**: `jPulse.ws.connect()`, `send()`, `disconnect()`, `onMessage()`
+- **Server API**: `WebSocketController.registerNamespace()`, `broadcast()`, `getConnections()`
+- **Namespace Support**: Custom WebSocket namespaces per feature
+- **Redis Distribution**: Cross-instance message routing for multi-server deployments
+
+**Health Metrics System**:
+- **Endpoint**: `/api/1/health/metrics` - Real-time instance health data
+- **Instance Data**: CPU, memory, uptime, version, environment, database status
+- **Request Metrics**: Requests/min, errors/min, error rate (1-minute window)
+- **Graceful Shutdown**: Redis broadcast for immediate cluster cleanup
+- **UI Dashboard**: `/admin/system-status` - Visual monitoring interface
+
+**Redis Configuration**:
+- **Single Mode**: One Redis server for development and single-server production
+- **Cluster Mode**: Redis Cluster for high-availability production deployments
+- **Template Configuration**: Redis settings in `app.conf.dev.tmpl` and `app.conf.prod.tmpl`
+- **Interactive Setup**: Redis prompts in `bin/configure.js`
+- **Auto-Installation**: Redis service installation in `bin/jpulse-install.sh`
+
+**Broadcasting System Enhancements**:
+- **Centralized Listener**: Single `bc:*` pattern subscriber in RedisManager
+- **Callback Registry**: Map of channel patterns to callback functions
+- **Specificity Matching**: Prioritizes longer, more specific channel patterns
+- **omitSelf Filtering**: Server-side filtering based on `sourceInstanceId`
+- **Direct DOM Updates**: Client-side race condition prevention
+
+**LogController Integration**:
+- **Automatic Tracking**: `HealthController.trackRequest()` and `trackError()` integrated into `LogController`
+- **Scope Filtering**: Excludes `health.*` scopes from tracking to prevent recursion
+- **Global Registration**: `HealthController` registered to `global` in bootstrap
+
+**Documentation**:
+- **docs/application-cluster.md**: Comprehensive App Cluster Broadcasting guide
+- **docs/websockets.md**: WebSocket Real-Time Communication reference (enhanced)
+- **docs/mpa-vs-spa.md**: Real-Time Multi-User Communication section (NEW)
+- **docs/handlebars.md**: Enhanced with tables, nested blocks, error handling
+- **docs/template-reference.md**: Streamlined with reference to handlebars.md
+- **docs/README.md**: High-level overview of App Cluster & WebSocket features
+- **README.md**: Real-Time Communication overview and Redis requirements
+
+**Configuration Templates**:
+- **templates/webapp/app.conf.dev.tmpl**: Redis single mode configuration
+- **templates/webapp/app.conf.prod.tmpl**: Redis single/cluster mode configuration
+- **bin/config-registry.js**: Interactive Redis configuration prompts
+- **bin/jpulse-install.sh**: Redis service installation and startup
+
+**Files Modified**:
+- package.json (version bump to 1.0.0-rc.1)
+- webapp/app.conf (version bump to 1.0.0-rc.1)
+- webapp/utils/redis-manager.js (centralized routing, omitSelf support)
+- webapp/controller/health.js (graceful shutdown, metrics tracking, omitSelf)
+- webapp/controller/log.js (HealthController integration)
+- webapp/utils/bootstrap.js (global HealthController registration)
+- webapp/app.js (graceful shutdown integration)
+- webapp/view/jpulse-common.js (jPulse.appCluster.fetch() wrapper)
+- webapp/view/admin/system-status.shtml (enhanced instance details)
+- templates/webapp/app.conf.dev.tmpl (Redis configuration)
+- templates/webapp/app.conf.prod.tmpl (Redis configuration)
+- bin/config-registry.js (Redis prompts)
+- bin/jpulse-install.sh (Redis installation)
+- docs/application-cluster.md (NEW comprehensive guide)
+- docs/websockets.md (App Cluster reference)
+- docs/mpa-vs-spa.md (Real-Time Communication section)
+- docs/handlebars.md (enhanced)
+- docs/template-reference.md (streamlined)
+- docs/README.md (Real-Time features)
+- README.md (Real-Time overview, Redis requirements)
+
+**Test Files**:
+- webapp/tests/unit/utils/redis-config.test.js (fixed instanceId tests)
+
+**Bug Fixes**:
+- Fixed duplicate message issues (5x messages per broadcast)
+- Fixed inter-app communication (8080 ↔ 8086 messaging)
+- Fixed client-side race conditions in collaborative apps
+- Fixed localStorage UUID sharing across tabs (now per-WebSocket)
+- Fixed health metrics showing duplicate local instance
+- Fixed system-status.shtml showing "undefined" values
+- Fixed CPU reporting (PM2 only, null for non-PM2)
+- Fixed Requests/min tracking (global HealthController registration)
+
+**Breaking Changes**:
+- Redis is now required for multi-instance/multi-server deployments
+- Channel naming must follow strict `model:`, `view:`, or `controller:` prefix schema
+- `RedisManager.subscribeBroadcast()` removed (use `registerBroadcastCallback()`)
+- `configureSelfMessageBehavior()` removed (use `omitSelf` option in callbacks)
+
+**Migration Guide**:
+- Update `site/webapp/app.conf` with Redis configuration
+- Update broadcast channels to follow new naming schema
+- Replace `subscribeBroadcast()` calls with `registerBroadcastCallback()`
+- Use `omitSelf` option instead of `configureSelfMessageBehavior()`
+
+**Deployment Requirements**:
+- Redis 6.0+ (single or cluster mode)
+- MongoDB 6.0+
+- Node.js 18 LTS
+- PM2 (for production)
+
+**Next Steps for v1.0.0 Final**:
+- RC testing in production-like environments
+- Performance benchmarking under load
+- Final documentation review and polish
 
 ________________________________________________
 ## v0.9.7, W-079, 2025-10-12

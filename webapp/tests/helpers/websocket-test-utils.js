@@ -3,8 +3,8 @@
  * @tagline         WebSocket test utilities
  * @description     Mock WebSocket classes and helper functions for testing
  * @file            webapp/tests/helpers/websocket-test-utils.js
- * @version         0.9.7
- * @release         2025-10-12
+ * @version         1.0.0-rc.1
+ * @release         2025-10-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

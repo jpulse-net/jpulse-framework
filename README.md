@@ -1,6 +1,8 @@
-# jPulse Framework v0.9.7
+# jPulse Framework v1.0.0-rc.1
 
 A modern **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application framework designed for enterprise and government organizations. Built on **MVC architecture**, jPulse uniquely supports **both MPA and SPA patterns**, giving you the flexibility to choose the right architecture for each part of your application.
+
+**🎉 Release Candidate 1**: Production-ready WebSocket and Redis integration with real-time multi-user communication capabilities.
 
 ## Why jPulse?
 
@@ -82,19 +84,30 @@ npm start
 
 ## Deployment Requirements
 
+### System Dependencies
+- **Node.js 18 LTS** (runtime)
+- **MongoDB 6.0+** (database)
+- **Redis 6.0+** (caching, sessions, pub/sub)
+- **nginx** (reverse proxy, production)
+- **PM2** (process manager, production)
+
 ### Single Instance (Development)
 - ✅ **Redis Optional**: Sessions use memory/MongoDB fallback
 - ✅ **WebSocket**: Local only (single instance)
+- ✅ **App Cluster**: Local only (single instance)
 
 ### Multi-Instance (PM2 Cluster)
 - ✅ **Redis Required**: For cross-instance communication
-- ✅ **WebSocket**: Shared across all instances
-- ✅ **Sessions**: Shared across all instances
+- ✅ **WebSocket**: Shared across all instances via Redis pub/sub
+- ✅ **App Cluster**: Broadcasts across all instances via Redis pub/sub
+- ✅ **Sessions**: Shared across all instances via Redis storage
 
 ### Multi-Server (Load Balanced)
 - ✅ **Redis Required**: For cross-server communication
-- ✅ **WebSocket**: Shared across all servers
-- ✅ **Sessions**: Shared across all servers
+- ✅ **WebSocket**: Shared across all servers via Redis pub/sub
+- ✅ **App Cluster**: Broadcasts across all servers via Redis pub/sub
+- ✅ **Sessions**: Shared across all servers via Redis storage
+- ✅ **Health Metrics**: Aggregated across all instances and servers
 
 ## Architecture Overview
 

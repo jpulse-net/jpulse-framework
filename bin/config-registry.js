@@ -4,8 +4,8 @@
  * @tagline         Unified configuration registry for all jPulse tools
  * @description     Single source of truth for variable definitions, defaults, and template expansion
  * @file            bin/config-registry.js
- * @version         0.9.7
- * @release         2025-10-12
+ * @version         1.0.0-rc.1
+ * @release         2025-10-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -233,6 +233,80 @@ export const CONFIG_REGISTRY = {
                 config.SESSION_SECRET = userInput.trim();
             }
             // If empty, will use auto-generated default
+        }
+    },
+
+    // === REDIS VARIABLES ===
+    REDIS_MODE: {
+        default: 'single',
+        type: 'config',
+        description: 'Redis mode: single or cluster',
+
+        section: 'Redis Configuration',
+        prompt: async (config, deploymentType, question) => {
+            console.log('\n📦 Redis Configuration (Required for multi-instance/multi-server deployments):\n');
+            console.log('  single:  One Redis server (development, single-server production)');
+            console.log('  cluster: Redis Cluster (high-availability production)');
+            config.REDIS_MODE = await question('? Redis mode: (single) ') || 'single';
+        }
+    },
+
+    REDIS_HOST: {
+        default: 'localhost',
+        type: 'config',
+        description: 'Redis host (single mode)',
+
+        section: 'Redis Configuration',
+        prompt: async (config, deploymentType, question) => {
+            if (config.REDIS_MODE === 'single') {
+                config.REDIS_HOST = await question('? Redis host: (localhost) ') || 'localhost';
+            } else {
+                config.REDIS_HOST = 'localhost';  // Not used in cluster mode
+            }
+        }
+    },
+
+    REDIS_PORT: {
+        default: 6379,
+        type: 'config',
+        description: 'Redis port (single mode)',
+
+        section: 'Redis Configuration',
+        prompt: async (config, deploymentType, question) => {
+            if (config.REDIS_MODE === 'single') {
+                const port = await question('? Redis port: (6379) ');
+                config.REDIS_PORT = port ? parseInt(port) : 6379;
+            } else {
+                config.REDIS_PORT = 6379;  // Not used in cluster mode
+            }
+        }
+    },
+
+    REDIS_PASSWORD: {
+        default: '',
+        type: 'config',
+        description: 'Redis password (empty for no auth)',
+
+        section: 'Redis Configuration',
+        prompt: async (config, deploymentType, question) => {
+            config.REDIS_PASSWORD = await question('? Redis password (empty for none): ') || '';
+        }
+    },
+
+    REDIS_CLUSTER_NODES: {
+        default: '[{host:"localhost",port:7000},{host:"localhost",port:7001},{host:"localhost",port:7002}]',
+        type: 'config',
+        description: 'Redis cluster nodes JSON array',
+
+        section: 'Redis Configuration',
+        prompt: async (config, deploymentType, question) => {
+            if (config.REDIS_MODE === 'cluster') {
+                console.log('  Example: [{host:"redis1.example.com",port:7000},{host:"redis2.example.com",port:7001}]');
+                const input = await question('? Redis cluster nodes (JSON array): ');
+                config.REDIS_CLUSTER_NODES = input || '[{host:"localhost",port:7000},{host:"localhost",port:7001},{host:"localhost",port:7002}]';
+            } else {
+                config.REDIS_CLUSTER_NODES = '[]';  // Empty array for single mode
+            }
         }
     },
 

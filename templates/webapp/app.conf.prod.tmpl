@@ -3,8 +3,8 @@
  * @tagline         Template for production deployment configuration
  * @description     Production configuration with security and environment variables
  * @file            templates/webapp/app.conf.prod.tmpl
- * @version         0.9.7
- * @release         2025-10-12
+ * @version         1.0.0-rc.1
+ * @release         2025-10-22
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Site Administrator
  * @copyright       2025 Site Administrator
@@ -54,6 +54,22 @@
                     password: '%DB_PASS%'
                 }
             }
+        }
+    },
+
+    // Redis configuration
+    redis: {
+        enabled:    true,
+        mode:       '%REDIS_MODE%',
+        single: {
+            host:       '%REDIS_HOST%',
+            port:       %REDIS_PORT%,
+            password:   '%REDIS_PASSWORD%',
+            db:         0
+        },
+        cluster: {
+            nodes: %REDIS_CLUSTER_NODES%,
+            password:   '%REDIS_PASSWORD%'
         }
     }
 }

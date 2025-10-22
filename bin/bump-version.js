@@ -5,8 +5,8 @@
  * @tagline         Version bump script for jPulse Framework
  * @description     Updates version numbers and release dates across all source files
  * @file            bin/bump-version.js
- * @version         0.9.7
- * @release         2025-10-12
+ * @version         1.0.0-rc.1
+ * @release         2025-10-22
  * @repository      https://github.com/peterthoeny/web-ide-bridge
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -78,63 +78,63 @@ const conf = {
         {
             pattern: 'package.json',
             replacements: [
-                { from: /"version": "[\d.]+"/, to: (version) => `"version": "${version}"` }
+                { from: /"version": "[\d.]+(-rc\.\d+)?"/, to: (version) => `"version": "${version}"` }
             ]
         },
         {
             pattern: 'package-lock.json',
             replacements: [
-                { from: /("name": "jpulse-framework",\s+"version": ")[\d.]+/g, to: (version, match, p1) => `${p1}${version}`, scope: 'version' }
+                { from: /("name": "\@peterthoeny\/jpulse-framework",\s+"version": ")[\d.]+(-rc\.\d+)?/g, to: (version, match, p1) => `${p1}${version}`, scope: 'version' }
             ]
         },
         {
             pattern: 'webapp/app.conf',
             replacements: [
-                { from: /(version: +['"])[\d.]+/, to: (version, match, p1) => `${p1}${version}`, scope: 'version' },
+                { from: /(version: +['"])[\d.]+(-rc\.\d+)?/, to: (version, match, p1) => `${p1}${version}`, scope: 'version' },
                 { from: /(release: +['"])[\d-]+/, to: (release, match, p1) => `${p1}${release}`, scope: 'release' }
             ]
         },
         {
             pattern: 'README.md',
             replacements: [
-                { from: /^(# jPulse Framework v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# jPulse Framework v)[\d.]+(-rc\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'docs/*.md',
             replacements: [
-                { from: /^(# jPulse Framework.* v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# jPulse Framework.* v)[\d.]+(-rc\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'docs/**/*.md',
             replacements: [
-                { from: /^(# jPulse Framework.* v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# jPulse Framework.* v)[\d.]+(-rc\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'templates/*.md',
             replacements: [
-                { from: /^(# .* jPulse Framework v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# .* jPulse Framework v)[\d.]+(-rc\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'templates/**/*.md',
             replacements: [
-                { from: /^(# .*jPulse Framework v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# .*jPulse Framework v)[\d.]+(-rc\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'webapp/view/home/index.shtml',
             replacements: [
-                { from: /(jPulse Framework v)[\d.]+/m, to: (version, match, p1) => `${p1}${version}` },
+                { from: /(jPulse Framework v)[\d.]+(-rc\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` },
             ]
         },
     ],
 
     // Header update patterns for source files
     headerUpdatePatterns: {
-        version: /([\*#] @version\s+)[\d.]+/, // Captures comment prefix: * @version or # @version
+        version: /([\*#] @version\s+)[\d.]+(-rc\.\d+)?/, // Captures comment prefix: * @version or # @version
         release: /([\*#] @release\s+)[\d-]+/  // Captures comment prefix: * @release or # @release
     }
 };
@@ -161,7 +161,7 @@ if (!providedDate) {
 }
 
 // Validate version format (simple check)
-if (!/^\d+\.\d+\.\d+$/.test(newVersion)) {
+if (!/^\d+\.\d+\.\d+(-rc\.\d+)?$/.test(newVersion)) {
   console.error('❌ Invalid version format. Use semantic versioning (e.g., 1.0.1)');
   process.exit(1);
 }

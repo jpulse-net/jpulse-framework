@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v0.9.7
+# jPulse Framework / Docs / Dev / Work Items v1.0.0-rc.1
 
 This is the doc to track work items, arranged in three sections:
 
@@ -1485,6 +1485,8 @@ pending:
 - enhance bin/configure.js, bin/jpulse-install.sh for redis install
 - bin/configure.js always key + enter, not just key prompt
 - health api & system-status page: in instances, add jpulse version & release, and site version & release
+- migrate @peterthoeny/jpulse-framework to @jpulse-net/jpulse-framework
+
 
 
 
@@ -1495,7 +1497,7 @@ old pending:
 - navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
-
+- logLevel: 'warn' or 1, 2; or verboseLogging: true
 
 
 
@@ -1518,7 +1520,7 @@ finishing up work item: W-070:
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
 - assume release: W-079, v0.9.7
 - update deliverables in W-079 to document work done (don't make any other changes to this file)
-- update docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
 ### Misc
@@ -1533,12 +1535,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 0.9.5
+node bin/bump-version.js 1.0.0-rc.1
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v0.9.6
+git tag -a v1.0.0-rc.1 -m "Release Candidate 1 for v1.0.0"
 git push origin main --tags
 
 === on failed package build on github ===

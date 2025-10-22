@@ -32693,7 +32693,7 @@ ASSISTANT: Provided comprehensive cursor log updates covering the cluster system
 
 
 ============================================================
-2025-10-22 13:30
+2025-10-21 13:30
 
 USER: we can't delete the senderName, it's used in the client code. I solved it differently.
 
@@ -32772,7 +32772,7 @@ const response = await jPulse.appCluster.fetch('/api/1/helloClusterTodo', {
 
 
 ============================================================
-2025-10-22 13:45
+2025-10-21 13:45
 
 AGENT SUMMARY:
 
@@ -32811,7 +32811,7 @@ Changes accepted.
 
 
 ============================================================
-2025-10-22 13:50
+2025-10-21 13:50
 
 USER: Back to agent mode.
 
@@ -32886,7 +32886,7 @@ Changes accepted.
 
 
 ============================================================
-2025-10-22 14:05
+2025-10-21 14:05
 
 USER: investigate if RedisManager.subscribeBroadcast() can be removed:
 - I am more concerned about clean code than backward compatibility (we are pre-1.0 release)
@@ -32949,7 +32949,7 @@ Changes accepted.
 
 
 ============================================================
-2025-10-22 14:15
+2025-10-21 14:15
 
 USER: Fix tests - existing ones must pass so that we can build on GitHub
 
@@ -32992,7 +32992,7 @@ Changes accepted.
 
 
 ============================================================
-2025-10-22 14:30
+2025-10-21 14:30
 
 USER REQUEST: Create comprehensive docs/application-cluster.md documentation
 
@@ -33049,7 +33049,7 @@ Changes accepted.
 
 
 ============================================================
-2025-10-22 14:45
+2025-10-21 14:45
 
 USER REQUEST: Add high-level guidance and cross-references for real-time communication
 
@@ -33087,7 +33087,7 @@ Changes accepted.
 
 
 ============================================================
-2025-10-22 15:15
+2025-10-21 15:15
 
 USER REQUEST: Fix /api/1/health/metrics issues
 
@@ -33119,7 +33119,7 @@ FIXES TO APPLY:
 
 
 ============================================================
-2025-10-22 15:30
+2025-10-21 15:30
 
 USER REQUEST: Clean up Handlebars duplication in documentation
 
@@ -33165,7 +33165,7 @@ Changes accepted.
 
 
 ============================================================
-2025-10-22 15:45
+2025-10-21 15:45
 
 USER REQUEST: Enhance handlebars.md with content from deleted sections
 
@@ -33201,7 +33201,7 @@ Changes accepted.
 
 
 ============================================================
-2025-10-22 15:50
+2025-10-21 15:50
 
 USER ISSUE: Health metrics showing 3 instances but ps shows only 2
 
@@ -33243,7 +33243,7 @@ Changes pending user test.
 
 
 ============================================================
-2025-10-22 15:55
+2025-10-21 15:55
 
 USER REQUEST: Add graceful shutdown cleanup for health metrics
 
@@ -33301,7 +33301,7 @@ Changes accepted.
 
 
 ============================================================
-2025-10-22 16:00
+2025-10-21 16:00
 
 USER QUESTION: Do we still need TTL with graceful shutdown cleanup?
 
@@ -33339,7 +33339,7 @@ No changes needed.
 
 
 ============================================================
-2025-10-22 16:05
+2025-10-21 16:05
 
 USER ISSUE: Still seeing 3 instances instead of 2
 
@@ -33376,7 +33376,7 @@ Changes pending user test.
 
 
 ============================================================
-2025-10-22 16:10
+2025-10-21 16:10
 
 USER SUGGESTION: Use omitSelf flag instead of manual filtering
 
@@ -33404,7 +33404,7 @@ Result: Same fix, better implementation. Changes accepted.
 
 
 ============================================================
-2025-10-22 16:20
+2025-10-21 16:20
 
 USER FEEDBACK: omitSelf flag didn't work - still seeing 3 instances
 
@@ -33452,7 +33452,7 @@ Changes complete and linter clean. Ready for testing.
 
 
 ============================================================
-2025-10-22 16:25
+2025-10-21 16:25
 
 USER REQUEST: Document omitSelf flag in markdown docs
 
@@ -33485,7 +33485,7 @@ Result: Complete documentation for omitSelf flag in user-facing docs.
 
 
 ============================================================
-2025-10-22 16:30
+2025-10-21 16:30
 
 USER TEST RESULTS: Health Metrics Fix Successful!
 
@@ -33529,7 +33529,7 @@ Ready for production! 🚀
 
 
 ============================================================
-2025-10-22 16:35
+2025-10-21 16:35
 
 USER FEEDBACK: Session persistence is new behavior!
 
@@ -33570,7 +33570,7 @@ CONCLUSION: This is an IMPROVEMENT from W-076 work. Production-ready!
 
 
 ============================================================
-2025-10-22 16:40
+2025-10-21 16:40
 
 BUG REPORT: system-status.shtml Instance Details showing "undefined"
 
@@ -33629,7 +33629,7 @@ USER REQUEST: "wait with implementation until we agree on additional items"
 
 
 ============================================================
-2025-10-22 16:50
+2025-10-21 16:50
 
 USER REQUEST: Fix system-status.shtml instance details showing "undefined"
 
@@ -33679,7 +33679,7 @@ Changes ready for testing.
 
 
 ============================================================
-2025-10-22 17:00
+2025-10-21 17:00
 
 FIXES APPLIED: Version/Release N/A and CPU > 1000%
 
@@ -33719,7 +33719,7 @@ Ready for testing!
 
 
 ============================================================
-2025-10-22 17:05
+2025-10-21 17:05
 
 BUG FIX: Requests/min showing 0
 
@@ -33756,7 +33756,7 @@ Ready for testing!
 
 
 ============================================================
-2025-10-22 17:15
+2025-10-21 17:15
 
 UPDATED W-076 DELIVERABLES
 
@@ -33793,3 +33793,407 @@ OPTIONS:
 - Clarified omitSelf defaults (true for controller:*/model:*, false for view:*)
 
 All W-076 deliverables now documented!
+
+
+============================================================
+2025-10-22 11:40
+
+DEPLOYMENT SCRIPTS ENHANCEMENT DETAILS
+
+bin/config-registry.js - Added 5 Redis Configuration Variables:
+
+1. REDIS_MODE:
+   - Default: 'single'
+   - Type: 'config'
+   - Section: 'Redis Configuration'
+   - Prompt: Interactive choice between 'single' and 'cluster' modes
+   - Description: Redis mode selection with explanations
+   - Single: One Redis server (development, single-server production)
+   - Cluster: Redis Cluster (high-availability production)
+
+2. REDIS_HOST:
+   - Default: 'localhost'
+   - Type: 'config'
+   - Section: 'Redis Configuration'
+   - Prompt: Redis hostname (only for single mode)
+   - Conditional: Only prompts if REDIS_MODE === 'single'
+   - Fallback: Sets 'localhost' for cluster mode (not used)
+
+3. REDIS_PORT:
+   - Default: 6379
+   - Type: 'config'
+   - Section: 'Redis Configuration'
+   - Prompt: Redis port number (only for single mode)
+   - Conditional: Only prompts if REDIS_MODE === 'single'
+   - Validation: Parses to integer
+   - Fallback: Sets 6379 for cluster mode (not used)
+
+4. REDIS_PASSWORD:
+   - Default: '' (empty string)
+   - Type: 'config'
+   - Section: 'Redis Configuration'
+   - Prompt: Redis password (both single and cluster modes)
+   - Optional: Empty string means no authentication
+   - Security: Used for both single and cluster authentication
+
+5. REDIS_CLUSTER_NODES:
+   - Default: '[{host:"localhost",port:7000},{host:"localhost",port:7001},{host:"localhost",port:7002}]'
+   - Type: 'config'
+   - Section: 'Redis Configuration'
+   - Prompt: JSON array of cluster nodes (only for cluster mode)
+   - Conditional: Only prompts if REDIS_MODE === 'cluster'
+   - Example: [{host:"redis1.example.com",port:7000},{host:"redis2.example.com",port:7001}]
+   - Fallback: Empty array '[]' for single mode
+
+Implementation Location:
+- Inserted after SESSION_SECRET (line 238)
+- Before DEPLOYMENT VARIABLES section (line 313)
+- Total addition: ~75 lines
+- Follows established pattern: default, type, description, section, prompt
+
+Template Variable Expansion:
+- All 5 variables are replaced in app.conf.dev.tmpl and app.conf.prod.tmpl
+- Placeholders: %REDIS_MODE%, %REDIS_HOST%, %REDIS_PORT%, %REDIS_PASSWORD%, %REDIS_CLUSTER_NODES%
+
+bin/jpulse-install.sh - Added Redis Installation:
+
+1. Installation List Updated (lines 54-59):
+   - Added "3. Redis" to installation steps list
+   - Renumbered subsequent items (nginx → 4, PM2 → 5, firewall → 6, user → 7)
+
+2. Redis Installation Block (lines 97-104):
+   - Added after MongoDB installation (line 95)
+   - Added before nginx installation (line 106)
+   - Installation logic:
+     * Check if redis-cli command exists
+     * If not: dnf install -y redis
+     * If yes: Skip with "already installed" message
+   - Consistent with MongoDB and nginx installation patterns
+
+3. Service Startup (line 238):
+   - Added: systemctl enable --now redis
+   - Positioned between mongod and nginx startup
+   - Ensures Redis starts on boot and immediately
+
+4. Installation Summary (line 252):
+   - Added: "Redis: Installed and running"
+   - Listed between MongoDB and nginx in summary output
+
+Implementation Details:
+- Uses dnf package manager (RHEL/Rocky Linux)
+- Follows same error handling pattern as other services
+- No special configuration needed (uses Redis defaults)
+- Systemd integration for automatic startup
+
+Redis Configuration Defaults:
+- Port: 6379 (Redis default)
+- Bind: localhost (Redis default for security)
+- Protected mode: enabled (Redis default)
+- Password: none by default (configured via app.conf)
+- Persistence: RDB + AOF (Redis defaults)
+
+Deployment Workflow:
+1. Run: sudo npm run jpulse-install
+2. Redis installs via dnf
+3. Redis service starts via systemd
+4. Redis available at localhost:6379
+5. Application connects using app.conf settings
+
+Testing Checklist:
+- [ ] Verify redis-cli installed
+- [ ] Verify systemctl status redis shows active
+- [ ] Verify port 6379 listening (netstat -tlnp | grep 6379)
+- [ ] Verify Redis responds (redis-cli ping → PONG)
+- [ ] Verify app connects (check app logs)
+
+Production Considerations:
+- Set Redis password in production (via bin/configure.js)
+- Consider Redis persistence options (RDB vs AOF)
+- Monitor Redis memory usage (maxmemory policy)
+- Consider Redis Cluster for high availability
+- Backup Redis data directory (/var/lib/redis)
+
+Deployment scripts fully enhanced for Redis support!
+
+
+============================================================
+2025-10-22 11:45
+
+RC1 RELEASE PREPARATION COMPLETE
+
+User clarifications on RC1 scope:
+1. Remove extra dev/prod config keys (debugMode, verboseLogging, logLevel) - keep it minimal
+2. enableMetrics: always on, no config option
+3. Configure once, install multiple - agreed for RC1 manual approach
+4. Remove Redis duplication in appConfig.system - use config directly
+5. Version naming: 1.0.0-rc.1 (SemVer pre-release standard)
+
+IMPLEMENTED CHANGES:
+1. ✅ Updated package.json version to 1.0.0-rc.1
+2. ✅ Updated webapp/app.conf version to 1.0.0-rc.1 (release date 2025-10-22)
+3. ✅ Added Redis config to templates/webapp/app.conf.dev.tmpl (single mode)
+4. ✅ Added Redis config to templates/webapp/app.conf.prod.tmpl (single/cluster mode)
+5. ✅ Added Redis prompts to bin/config-registry.js:
+   - REDIS_MODE (single/cluster)
+   - REDIS_HOST (single mode)
+   - REDIS_PORT (single mode)
+   - REDIS_PASSWORD (both modes)
+   - REDIS_CLUSTER_NODES (cluster mode JSON array)
+6. ✅ Added Redis installation to bin/jpulse-install.sh:
+   - dnf install redis
+   - systemctl enable --now redis
+   - Updated installation summary
+7. ✅ Updated docs/CHANGELOG.md with comprehensive W-076 entry:
+   - Production-Ready WebSocket and Redis Integration
+   - Application Cluster Broadcasting features
+   - WebSocket Communication features
+   - Health Metrics System enhancements
+   - Redis Configuration details
+   - Broadcasting System Enhancements
+   - LogController Integration
+   - Documentation updates
+   - Configuration Templates
+   - All modified files listed
+   - Bug fixes documented
+   - Breaking changes listed
+   - Migration guide provided
+   - Deployment requirements specified
+   - Next steps for v1.0.0 final
+
+CONFIGURATION STRATEGY:
+- Keep appConfig.system focused on runtime metadata only
+- No Redis duplication in system (use global.appConfig.redis.* directly)
+- Deployment config minimal: name, db, port only
+- Redis always enabled for multi-instance/multi-server setups
+
+DEPLOYMENT APPROACH FOR RC1:
+1. Run bin/configure.js once on development machine
+2. Generates site/webapp/app.conf with Redis config
+3. Copy app.conf to all servers manually
+4. Run sudo npm run jpulse-install on each server (installs Redis)
+5. Future: automate multi-server config distribution
+
+VERSION STRATEGY:
+- 1.0.0-rc.1 (first release candidate)
+- 1.0.0-rc.2 (if needed)
+- 1.0.0 (final stable)
+
+GIT TAGGING PLAN:
+git tag -a v1.0.0-rc.1 -m "Release Candidate 1 for v1.0.0"
+git push origin v1.0.0-rc.1
+
+All RC1 deliverables complete! Ready for testing and final release.
+
+
+============================================================
+2025-10-22 11:00
+
+FINAL RC1 DOCUMENTATION UPDATES
+
+User requested:
+1. Cursor log update (completed above)
+2. Update README.md, docs/README.md, and related docs
+3. Update commit-message.txt
+
+All file changes accepted by user:
+✅ package.json (v1.0.0-rc.1)
+✅ webapp/app.conf (v1.0.0-rc.1, release 2025-10-22)
+✅ templates/webapp/app.conf.dev.tmpl (Redis single mode)
+✅ templates/webapp/app.conf.prod.tmpl (Redis single/cluster mode)
+✅ bin/config-registry.js (Redis prompts)
+✅ bin/jpulse-install.sh (Redis installation)
+✅ docs/CHANGELOG.md (W-076 comprehensive entry)
+
+Proceeding with final documentation updates...
+
+FINAL DOCUMENTATION UPDATES COMPLETED:
+
+1. ✅ README.md updated:
+   - Version bumped to v1.0.0-rc.1
+   - Added RC1 announcement with features summary
+   - Enhanced Deployment Requirements with system dependencies
+   - Clarified Redis requirements for each deployment mode
+   - Added Health Metrics aggregation mention
+
+2. ✅ docs/README.md updated:
+   - Version bumped to v1.0.0-rc.1
+   - Added RC1 announcement with comprehensive feature list
+   - Added new "Latest Release Highlights" entry for W-076
+   - Detailed Application Cluster Broadcasting features
+   - Detailed WebSocket Communication features
+   - Detailed Health Metrics System enhancements
+   - Documentation updates listed
+   - Breaking changes mentioned
+
+3. ✅ commit-message.txt created:
+   - Comprehensive W-076 commit message following established format
+   - All key features documented
+   - Application Cluster Broadcasting API
+   - WebSocket Communication API
+   - Health Metrics System details
+   - Redis Configuration options
+   - Broadcasting System Enhancements
+   - LogController Integration
+   - Documentation updates
+   - Configuration Templates
+   - Files Modified (categorized)
+   - Bug Fixes (8 major issues)
+   - Test Files updated
+   - Breaking Changes listed
+   - Migration Guide provided
+   - Deployment Requirements specified
+   - Configuration Strategy documented
+   - Deployment Approach (RC1) outlined
+   - Next steps for v1.0.0 final
+
+ALL RC1 TASKS COMPLETE! 🎉
+
+Ready for:
+- git add .
+- git commit -F commit-message.txt
+- git tag -a v1.0.0-rc.1 -m "Release Candidate 1 for v1.0.0"
+- git push origin main
+- git push origin v1.0.0-rc.1
+
+
+============================================================
+2025-10-22 11:15
+
+DEPLOYMENT SCRIPTS ENHANCEMENT DETAILS
+
+bin/config-registry.js - Added 5 Redis Configuration Variables:
+
+1. REDIS_MODE:
+   - Default: 'single'
+   - Type: 'config'
+   - Section: 'Redis Configuration'
+   - Prompt: Interactive choice between 'single' and 'cluster' modes
+   - Description: Redis mode selection with explanations
+   - Single: One Redis server (development, single-server production)
+   - Cluster: Redis Cluster (high-availability production)
+
+2. REDIS_HOST:
+   - Default: 'localhost'
+   - Type: 'config'
+   - Section: 'Redis Configuration'
+   - Prompt: Redis hostname (only for single mode)
+   - Conditional: Only prompts if REDIS_MODE === 'single'
+   - Fallback: Sets 'localhost' for cluster mode (not used)
+
+3. REDIS_PORT:
+   - Default: 6379
+   - Type: 'config'
+   - Section: 'Redis Configuration'
+   - Prompt: Redis port number (only for single mode)
+   - Conditional: Only prompts if REDIS_MODE === 'single'
+   - Validation: Parses to integer
+   - Fallback: Sets 6379 for cluster mode (not used)
+
+4. REDIS_PASSWORD:
+   - Default: '' (empty string)
+   - Type: 'config'
+   - Section: 'Redis Configuration'
+   - Prompt: Redis password (both single and cluster modes)
+   - Optional: Empty string means no authentication
+   - Security: Used for both single and cluster authentication
+
+5. REDIS_CLUSTER_NODES:
+   - Default: '[{host:"localhost",port:7000},{host:"localhost",port:7001},{host:"localhost",port:7002}]'
+   - Type: 'config'
+   - Section: 'Redis Configuration'
+   - Prompt: JSON array of cluster nodes (only for cluster mode)
+   - Conditional: Only prompts if REDIS_MODE === 'cluster'
+   - Example: [{host:"redis1.example.com",port:7000},{host:"redis2.example.com",port:7001}]
+   - Fallback: Empty array '[]' for single mode
+
+Implementation Location:
+- Inserted after SESSION_SECRET (line 238)
+- Before DEPLOYMENT VARIABLES section (line 313)
+- Total addition: ~75 lines
+- Follows established pattern: default, type, description, section, prompt
+
+Template Variable Expansion:
+- All 5 variables are replaced in app.conf.dev.tmpl and app.conf.prod.tmpl
+- Placeholders: %REDIS_MODE%, %REDIS_HOST%, %REDIS_PORT%, %REDIS_PASSWORD%, %REDIS_CLUSTER_NODES%
+
+bin/jpulse-install.sh - Added Redis Installation:
+
+1. Installation List Updated (lines 54-59):
+   - Added "3. Redis" to installation steps list
+   - Renumbered subsequent items (nginx → 4, PM2 → 5, firewall → 6, user → 7)
+
+2. Redis Installation Block (lines 97-104):
+   - Added after MongoDB installation (line 95)
+   - Added before nginx installation (line 106)
+   - Installation logic:
+     * Check if redis-cli command exists
+     * If not: dnf install -y redis
+     * If yes: Skip with "already installed" message
+   - Consistent with MongoDB and nginx installation patterns
+
+3. Service Startup (line 238):
+   - Added: systemctl enable --now redis
+   - Positioned between mongod and nginx startup
+   - Ensures Redis starts on boot and immediately
+
+4. Installation Summary (line 252):
+   - Added: "Redis: Installed and running"
+   - Listed between MongoDB and nginx in summary output
+
+Implementation Details:
+- Uses dnf package manager (RHEL/Rocky Linux)
+- Follows same error handling pattern as other services
+- No special configuration needed (uses Redis defaults)
+- Systemd integration for automatic startup
+
+Redis Configuration Defaults:
+- Port: 6379 (Redis default)
+- Bind: localhost (Redis default for security)
+- Protected mode: enabled (Redis default)
+- Password: none by default (configured via app.conf)
+- Persistence: RDB + AOF (Redis defaults)
+
+Deployment Workflow:
+1. Run: sudo npm run jpulse-install
+2. Redis installs via dnf
+3. Redis service starts via systemd
+4. Redis available at localhost:6379
+5. Application connects using app.conf settings
+
+Testing Checklist:
+- [ ] Verify redis-cli installed
+- [ ] Verify systemctl status redis shows active
+- [ ] Verify port 6379 listening (netstat -tlnp | grep 6379)
+- [ ] Verify Redis responds (redis-cli ping → PONG)
+- [ ] Verify app connects (check app logs)
+
+Production Considerations:
+- Set Redis password in production (via bin/configure.js)
+- Consider Redis persistence options (RDB vs AOF)
+- Monitor Redis memory usage (maxmemory policy)
+- Consider Redis Cluster for high availability
+- Backup Redis data directory (/var/lib/redis)
+
+Deployment scripts fully enhanced for Redis support!
+
+
+============================================================
+2025-10-23 11:56
+
+FINAL RC1 DOCUMENTATION UPDATES
+
+User requested:
+1. Cursor log update (completed above)
+2. Update README.md, docs/README.md, and related docs
+3. Update commit-message.txt
+
+All file changes accepted by user:
+✅ package.json (v1.0.0-rc.1)
+✅ webapp/app.conf (v1.0.0-rc.1, release 2025-10-22)
+✅ templates/webapp/app.conf.dev.tmpl (Redis single mode)
+✅ templates/webapp/app.conf.prod.tmpl (Redis single/cluster mode)
+✅ bin/config-registry.js (Redis prompts)
+✅ bin/jpulse-install.sh (Redis installation)
+✅ docs/CHANGELOG.md (W-076 comprehensive entry)
+
+Proceeding with final documentation updates...

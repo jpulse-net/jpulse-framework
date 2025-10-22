@@ -65,6 +65,17 @@ export function setupGlobalAppConfig() {
             },
             database: {
                 type: 'none'
+            },
+            controller: {
+                view: {
+                    cacheTemplates: { enabled: false },
+                    cacheIncludes: { enabled: false }
+                }
+            },
+            utils: {
+                i18n: {
+                    cache: { enabled: false }
+                }
             }
         };
         return false;

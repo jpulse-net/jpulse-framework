@@ -115,7 +115,7 @@ describe('Health API Integration Tests', () => {
             expect(mongoStatus).toHaveProperty('version');
             expect(mongoStatus).toHaveProperty('connections');
             expect(mongoStatus).toHaveProperty('uptime');
-            expect(mongoStatus).toHaveProperty('host');
+            expect(mongoStatus).toHaveProperty('hostname');
         });
 
         test('should build proper statistics structure', async () => {
@@ -184,7 +184,7 @@ describe('Health API Integration Tests', () => {
             expect(server).toHaveProperty('loadAverage');
             expect(server).toHaveProperty('freeMemory', 2048);
             expect(server).toHaveProperty('totalMemory', 8192);
-            expect(server).toHaveProperty('mongodb');
+            expect(server).toHaveProperty('database');
             expect(server).toHaveProperty('instances');
             expect(Array.isArray(server.instances)).toBe(true);
         });

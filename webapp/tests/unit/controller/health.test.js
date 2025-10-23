@@ -314,18 +314,6 @@ describe('HealthController', () => {
             // Logging is fully functional and tested via integration tests
         });
     });
-
-    describe('adminStatus() - SKIPPED', () => {
-        it.skip('should prepare template variables for admin status page', () => {
-            // Skipped due to Jest ES module mocking complexity
-            // Admin status page is fully functional and tested via integration tests
-        });
-
-        it.skip('should handle admin status errors gracefully', () => {
-            // Skipped due to Jest ES module mocking complexity
-            // Error handling is fully functional and tested via integration tests
-        });
-    });
 });
 
 // EOF webapp/tests/unit/controller/health.test.js

@@ -1482,9 +1482,7 @@ This is the doc to track work items, arranged in three sections:
 
 pending:
 - jp-card: more consistent card header: normal, dialog look with gray background jp-card-dialog
-- enhance bin/configure.js, bin/jpulse-install.sh for redis install
 - bin/configure.js always key + enter, not just key prompt
-- health api & system-status page: in instances, add jpulse version & release, and site version & release
 - migrate @peterthoeny/jpulse-framework to @jpulse-net/jpulse-framework
 
 

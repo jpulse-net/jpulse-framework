@@ -59,7 +59,7 @@ echo "  6. Configure firewall"
 echo "  7. Create application user"
 echo ""
 
-read -p "🤔 Proceed with system installation? (y/N): " -n 1 -r
+read -p "🤔 Proceed with system installation? (y/N): " -r
 echo ""
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "❌ Installation cancelled"

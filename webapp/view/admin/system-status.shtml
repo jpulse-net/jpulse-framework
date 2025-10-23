@@ -234,7 +234,7 @@
                         ['{{i18n.view.admin.systemStatus.serverSummaries.instances}}', server.instances?.length || 0],
                         ['{{i18n.view.admin.systemStatus.serverSummaries.loadAverage}}', loadAvg.toFixed(2)],
                         ['{{i18n.view.admin.systemStatus.serverSummaries.memoryPercentage}}', `${memPercentage}%`],
-                        ['{{i18n.view.admin.systemStatus.serverSummaries.systemUptime}}', server.uptimeFormatted || 'N/A'],
+                        ['{{i18n.view.admin.systemStatus.serverSummaries.systemUptime}}', server.uptimeFormatted || '{{i18n.view.admin.systemStatus.unknown}}'],
                     ];
                     document.getElementById(`${serverId}-metrics`).innerHTML = this.generateMetricRows(rows);
 
@@ -266,17 +266,19 @@
                     const panel = document.createElement('div');
                     panel.id = `server-panel-${serverId}`;
                     panel.className = 'jp-tab-panel';
+                    const unknown = '{{i18n.view.admin.systemStatus.unknown}}';
+                    const notApplicable = '{{i18n.view.admin.systemStatus.notApplicable}}';
 
                     const pm2InstanceDetails = (server.instances || []).map(inst => `
                         <tr>
-                            <td>${inst.pm2ProcessName ?? 'N/A'}</td>
-                            <td>${inst.instanceId ?? 'N/A'}</td>
+                            <td>${inst.pm2ProcessName ?? notApplicable}</td>
+                            <td>${inst.instanceId ?? notApplicable}</td>
                             <td>${inst.pid}</td>
-                            <td><span class="jp-badge jp-badge-${inst.status === 'online' ? 'success' : 'danger'}">${inst.status || 'N/A'}</span></td>
-                            <td>${inst.restarts ?? 'N/A'}</td>
-                            <td>${inst.cpu ? `${inst.cpu}%` : 'N/A'}</td>
-                            <td>${inst.memory ? `${inst.memory.used} MB` : 'N/A'}</td>
-                            <td>${inst.uptimeFormatted || 'N/A'}</td>
+                            <td><span class="jp-badge jp-badge-${inst.status === 'online' ? 'success' : 'danger'}">${inst.status || notApplicable}</span></td>
+                            <td>${inst.restarts ?? notApplicable}</td>
+                            <td>${inst.cpu ? `${inst.cpu}%` : unknown}</td>
+                            <td>${inst.memory ? `${inst.memory.used} MB` : unknown}</td>
+                            <td>${inst.uptimeFormatted || unknown}</td>
                         </tr>
                     `).join('');
 
@@ -292,7 +294,7 @@
                                 <h4 class="jp-status-title">{{i18n.view.admin.systemStatus.serverTabContent.systemInfo}}</h4>
                                 ${this.generateMetricRows([
                                     ['{{i18n.view.admin.systemStatus.serverTabContent.serverName}}', server.serverName],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.ipAddress}}', server.ip || 'N/A'],
+                                    ['{{i18n.view.admin.systemStatus.serverTabContent.ipAddress}}', server.ip || unknown],
                                     ['{{i18n.view.admin.systemStatus.serverTabContent.platform}}', `${server.platform} (${server.arch})`],
                                     ['{{i18n.view.admin.systemStatus.serverTabContent.cpus}}', server.cpus],
                                     ['{{i18n.view.admin.systemStatus.serverTabContent.nodeVersion}}', server.nodeVersion],
@@ -301,26 +303,27 @@
                             <div class="jp-card">
                                 <h4 class="jp-status-title">{{i18n.view.admin.systemStatus.serverTabContent.performance}}</h4>
                                 ${this.generateMetricRows([
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.oneMinute}}', server.loadAverage?.[0]?.toFixed(2) || 'N/A'],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.fiveMinutes}}', server.loadAverage?.[1]?.toFixed(2) || 'N/A'],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.fifteenMinutes}}', server.loadAverage?.[2]?.toFixed(2) || 'N/A'],
+                                    ['{{i18n.view.admin.systemStatus.serverTabContent.oneMinute}}', server.loadAverage?.[0]?.toFixed(2) || unknown],
+                                    ['{{i18n.view.admin.systemStatus.serverTabContent.fiveMinutes}}', server.loadAverage?.[1]?.toFixed(2) || unknown],
+                                    ['{{i18n.view.admin.systemStatus.serverTabContent.fifteenMinutes}}', server.loadAverage?.[2]?.toFixed(2) || unknown],
                                     ['{{i18n.view.admin.systemStatus.serverTabContent.freeMemory}}', this.formatBytes((server.freeMemory || 0) * 1024 * 1024)],
                                     ['{{i18n.view.admin.systemStatus.serverTabContent.totalMemory}}', this.formatBytes((server.totalMemory || 0) * 1024 * 1024)],
                                 ])}
                             </div>
                             <div class="jp-card">
-                                <h4 class="jp-status-title">{{i18n.view.admin.systemStatus.serverTabContent.mongodb}}</h4>
+                                <h4 class="jp-status-title">{{i18n.view.admin.systemStatus.serverTabContent.database}}</h4>
                                 ${this.generateMetricRows([
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.status}}', server.mongodb?.status || 'N/A'],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.version}}', server.mongodb?.version || 'N/A'],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.connections}}', `${server.mongodb?.connections?.current || 0} / ${server.mongodb?.connections?.available || 0}`],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.host}}', server.mongodb?.host || 'N/A'],
+                                    ['{{i18n.view.admin.systemStatus.serverTabContent.databaseType}}', server.database?.type || unknown],
+                                    ['{{i18n.view.admin.systemStatus.serverTabContent.status}}', server.database?.status || unknown],
+                                    ['{{i18n.view.admin.systemStatus.serverTabContent.version}}', server.database?.version || unknown],
+                                    ['{{i18n.view.admin.systemStatus.serverTabContent.connections}}', `${server.database?.connections?.current || 0} / ${server.database?.connections?.available || 0}`],
+                                    ['{{i18n.view.admin.systemStatus.serverTabContent.hostname}}', server.database?.hostname || unknown],
                                 ])}
                             </div>
                             <div class="jp-card">
                                 <h4 class="jp-status-title">{{i18n.view.admin.systemStatus.serverTabContent.webSockets}}</h4>
                                 ${this.generateMetricRows([
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.uptime}}', server.uptimeFormatted || 'N/A'],
+                                    ['{{i18n.view.admin.systemStatus.serverTabContent.uptime}}', server.uptimeFormatted || unknown],
                                     ['{{i18n.view.admin.systemStatus.serverTabContent.connections}}', wsStats.localConnections],
                                     ['{{i18n.view.admin.systemStatus.serverTabContent.messages}}', wsStats.localMessages],
                                 ])}
@@ -333,17 +336,17 @@
                                 <div class="jp-card">
                                     <h4 class="jp-status-title">${ '{{i18n.view.admin.systemStatus.instanceDetails.title}}'.replace('%INSTANCEID%', inst.instanceId).replace('%PID%', inst.pid) }</h4>
                                     ${this.generateMetricRows([
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.version}}', inst.version || 'N/A'],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.release}}', inst.release || 'N/A'],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.environment}}', inst.environment || 'N/A'],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.dbStatus}}', inst.database?.status || 'N/A'],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.dbName}}', inst.database?.name || 'N/A'],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.port}}', inst.port || 'N/A'],
-                                        ['CPU Usage', inst.cpu ? `${inst.cpu}%` : 'N/A'],
-                                        ['Memory Usage', inst.memory?.percentage ? `${inst.memory.percentage}% (${inst.memory.used} MB)` : `${inst.memory?.used || 'N/A'} MB`],
-                                        ['Requests/min', inst.metrics?.requestsPerMin !== undefined ? inst.metrics.requestsPerMin : 'N/A'],
-                                        ['Errors/min', inst.metrics?.errorsPerMin !== undefined ? inst.metrics.errorsPerMin : 'N/A'],
-                                        ['Error Rate', inst.metrics?.errorRate !== undefined ? `${inst.metrics.errorRate}%` : 'N/A'],
+                                        ['{{i18n.view.admin.systemStatus.instanceDetails.jPulseVersion}}', inst?.jPulse?.version || unknown],
+                                        ['{{i18n.view.admin.systemStatus.instanceDetails.siteVersion}}', inst?.site?.version || unknown],
+                                        ['{{i18n.view.admin.systemStatus.instanceDetails.environment}}', inst.environment || unknown],
+                                        ['{{i18n.view.admin.systemStatus.instanceDetails.dbStatus}}', inst.database?.status || unknown],
+                                        ['{{i18n.view.admin.systemStatus.instanceDetails.dbName}}', inst.database?.name || unknown],
+                                        ['{{i18n.view.admin.systemStatus.instanceDetails.port}}', inst.port || unknown],
+                                        ['CPU Usage', inst.cpu ? `${inst.cpu}%` : unknown],
+                                        ['Memory Usage', inst.memory?.percentage ? `${inst.memory.percentage}% (${inst.memory.used} MB)` : `${inst.memory?.used || unknown} MB`],
+                                        ['Requests/min', inst.metrics?.requestsPerMin !== undefined ? inst.metrics.requestsPerMin : unknown],
+                                        ['Errors/min', inst.metrics?.errorsPerMin !== undefined ? inst.metrics.errorsPerMin : unknown],
+                                        ['Error Rate', inst.metrics?.errorRate !== undefined ? `${inst.metrics.errorRate}%` : unknown],
                                     ])}
                                 </div>
                             `).join('')}
@@ -401,7 +404,7 @@
             },
 
             formatDateTime(isoString) {
-                if (!isoString) return 'N/A';
+                if (!isoString) return '{{i18n.view.admin.systemStatus.unknown}}';
                 return new Date(isoString).toLocaleString();
             },
 

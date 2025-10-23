@@ -142,7 +142,7 @@ class HealthController {
         }
 
         // Broadcast removal to other instances via Redis
-        if (global.RedisManager && global.RedisManager.isRedisAvailable()) {
+        if (global.RedisManager?.isRedisAvailable()) {
             const broadcastId = `${global.appConfig.system.serverId}:${global.appConfig.system.port}:${global.appConfig.system.pm2Id}`;
             const channel = `controller:health:metrics:shutdown:${broadcastId}`;
 
@@ -274,81 +274,6 @@ class HealthController {
                 error: 'Metrics collection failed',
                 code: 'METRICS_ERROR'
             });
-        }
-    }
-
-    /**
-     * Admin status page
-     * GET /admin/system-status.shtml
-     * @param {object} req - Express request object
-     * @param {object} res - Express response object
-     * @param {function} next - Express next middleware function
-     */
-    static async adminStatus(req, res, next) {
-        const startTime = Date.now();
-        LogController.logRequest(req, 'health.adminStatus', '');
-
-        try {
-            // Get comprehensive metrics for admin page
-            const uptime = Math.floor(process.uptime());
-            const memUsage = process.memoryUsage();
-            const wsStats = WebSocketController.getStats();
-
-            const statusData = {
-                system: {
-                    status: 'ok',
-                    version: global.appConfig.app.jPulse.version,
-                    release: global.appConfig.app.jPulse.release,
-                    uptime: uptime,
-                    uptimeFormatted: HealthController._formatUptime(uptime),
-                    environment: global.appConfig.deployment.mode,
-                    platform: os.platform(),
-                    arch: os.arch(),
-                    nodeVersion: process.version,
-                    hostname: os.hostname(),
-                    cpus: os.cpus().length
-                },
-                memory: {
-                    heap: {
-                        used: Math.round(memUsage.heapUsed / 1024 / 1024),
-                        total: Math.round(memUsage.heapTotal / 1024 / 1024),
-                        percentage: Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100)
-                    },
-                    system: {
-                        free: Math.round(os.freemem() / 1024 / 1024),
-                        total: Math.round(os.totalmem() / 1024 / 1024),
-                        percentage: Math.round(((os.totalmem() - os.freemem()) / os.totalmem()) * 100)
-                    }
-                },
-                database: {
-                    status: 'connected', // TODO: Add actual database health check
-                    name: global.appConfig.deployment[global.appConfig.deployment.mode].db
-                },
-                websockets: {
-                    uptime: wsStats.uptime,
-                    totalMessages: wsStats.totalMessages,
-                    namespaces: wsStats.namespaces,
-                    totalConnections: wsStats.namespaces.reduce((total, ns) => total + ns.clientCount, 0)
-                },
-                loadAverage: os.loadavg(),
-                timestamp: new Date().toISOString()
-            };
-
-            // Set template variables for the status page
-            req.templateVars = {
-                pageTitle: 'System Status',
-                statusData: statusData
-            };
-
-            const duration = Date.now() - startTime;
-            LogController.logInfo(req, 'health.adminStatus', `success: completed in ${duration}ms`);
-
-            // Let the view controller handle rendering
-            next();
-
-        } catch (error) {
-            LogController.logError(req, 'health.adminStatus', `error: ${error.message}`);
-            return global.CommonUtils.sendError(req, res, 500, 'Status page error', 'STATUS_PAGE_ERROR');
         }
     }
 
@@ -485,7 +410,7 @@ class HealthController {
             // Group instances by server (hostname)
             const serverMap = new Map();
 
-            allInstances.forEach((instanceData, instanceId) => {
+            allInstances.forEach((instanceData) => {
                 const hostname = instanceData.hostname;
 
                 if (!serverMap.has(hostname)) {
@@ -500,7 +425,7 @@ class HealthController {
                         loadAverage: instanceData.loadAverage,
                         freeMemory: instanceData.freeMemory,
                         totalMemory: instanceData.totalMemory,
-                        mongodb: instanceData.mongodb,
+                        database: instanceData.database,
                         instances: []
                     });
                 }
@@ -596,11 +521,17 @@ class HealthController {
                     status: p.status,
 
                     // Instance-specific data (moved from top-level and server-level)
-                    version: global.appConfig.app.jPulse.version,
-                    release: global.appConfig.app.jPulse.release,
+                    jPulse: {
+                        version: global.appConfig.app.jPulse.version,
+                        release: global.appConfig.app.jPulse.release,
+                    },
+                    site: {
+                        version: global.appConfig.app.site.version,
+                        release: global.appConfig.app.site.release,
+                    },
                     environment: global.appConfig.deployment.mode,
                     database: {
-                        status: 'connected', // TODO: Add actual database health check
+                        status: global.Database?.getDb() ? 'connected' : 'disconnected',
                         name: global.appConfig.deployment[global.appConfig.deployment.mode].db
                     },
                     deployment: {
@@ -650,11 +581,17 @@ class HealthController {
                 reason: pm2Status === null ? "PM2 not installed or not in PATH" : null,
 
                 // Instance-specific data (moved from top-level and server-level)
-                version: global.appConfig.app.jPulse.version,
-                release: global.appConfig.app.jPulse.release,
+                jPulse: {
+                    version: global.appConfig.app.jPulse.version,
+                    release: global.appConfig.app.jPulse.release,
+                },
+                site: {
+                    version: global.appConfig.app.site.version,
+                    release: global.appConfig.app.site.release,
+                },
                 environment: global.appConfig.deployment.mode,
                 database: {
-                    status: 'connected', // TODO: Add actual database health check
+                    status: global.Database?.getDb() ? 'connected' : 'disconnected',
                     name: global.appConfig.deployment[global.appConfig.deployment.mode].db
                 },
                 deployment: {
@@ -706,7 +643,7 @@ class HealthController {
             totalMemory: systemInfo.totalMemory,
 
             // MongoDB server status (separate from app database config)
-            mongodb: await HealthController._getMongoDBStatus(),
+            database: await HealthController._getMongoDBStatus(),
 
             instances: instances
         }];
@@ -759,56 +696,100 @@ class HealthController {
      * @private
      */
     static async _getMongoDBStatus() {
+        const db = global.Database?.getDb();
+        const deploymentMode = global.appConfig.deployment.mode;
+        const dbName = global.appConfig.deployment[deploymentMode].db || 'unknown';
+        let hostname = global.appConfig.database.standalone?.url || '';
+        if(global.appConfig.database.mode === 'replicaSet') {
+            // extract first replica set host
+            hostname = global.appConfig.database.replicaSet?.servers?.[0] || '';
+        }
+        hostname = hostname.replace(/(?:mongodb:\/\/)?([^:\.\/]*).*/, '$1') || 'unknown';
+
+        const mongoStatus = {
+            type: 'MongoDB',
+            status: 'connected',
+            version: 'unknown',
+            connections: { current: 0, available: 0 },
+            uptime: 0,
+            hostname: hostname,
+            database: dbName,
+            collections: 0,
+            dataSize: 0,
+            storageSize: 0
+        };
+
+        // Check if database is available
+        if (!db) {
+            // This instance is disconnected
+            mongoStatus.status = 'disconnected';
+            mongoStatus.error = 'Database connection not available';
+
+            // Check if ANY other instance has a connection via Redis
+            if (global.RedisManager?.isRedisAvailable()) {
+                try {
+                    // Look for any recent successful status from other instances
+                    const client = RedisManager.getClient('metrics');
+                    if (client) {
+                        const lastGoodStatus = await client.get('health:database:lastGoodStatus');
+                        if (lastGoodStatus) {
+                            const parsed = JSON.parse(lastGoodStatus);
+                            // If status is recent (< 60 seconds), use it
+                            if (Date.now() - parsed.timestamp < 60000) {
+                                return parsed.status;  // Use good status from another instance
+                            }
+                        }
+                    }
+                } catch (err) {
+                    // Fall through to return disconnected status
+                }
+            }
+
+            return mongoStatus;  // This instance disconnected, no other good status found
+        }
+
         try {
-            // Check if database is available
-            if (!global.Database || !global.Database.getDb()) {
-                return {
-                    status: 'disconnected',
-                    error: 'Database connection not available',
-                    host: global.appConfig.deployment[global.appConfig.deployment.mode].db || 'unknown'
-                };
+            // This instance IS connected - get fresh status
+            const dbStats = db.stats ? await db.stats() : {};
+            const adminDb = db.admin();
+            const serverStatus = adminDb.serverStatus ? await adminDb.serverStatus() : {};
+
+            mongoStatus.version = serverStatus.version || 'unknown';
+            mongoStatus.connections = {
+                current:   serverStatus.connections?.current || 0,
+                available: serverStatus.connections?.available || 0
+            };
+            mongoStatus.uptime = serverStatus.uptime || 0;
+            mongoStatus.collections = dbStats.collections || 0;
+            mongoStatus.dataSize = dbStats.dataSize || 0;
+            mongoStatus.storageSize = dbStats.storageSize || 0;
+
+            // Cache this good status in Redis for other instances
+            if (global.RedisManager?.isRedisAvailable()) {
+                try {
+                    const client = global.RedisManager.getClient('metrics');
+                    if (client) {
+                        await client.setex(
+                            'health:database:lastGoodStatus',
+                            60,
+                            JSON.stringify({
+                                status: mongoStatus,
+                                timestamp: Date.now()
+                            })
+                        );
+                    }
+                } catch (err) {
+                    LogController.logError(null, 'health._getMongoDBStatus', `Redis cache write failed: ${err.message}`);
+                    // Ignore cache errors
+                }
             }
-
-            const db = global.Database.getDb();
-            const dbName = global.appConfig.deployment[global.appConfig.deployment.mode].db;
-
-            try {
-                // Get database statistics
-                const dbStats = db.stats ? await db.stats() : {};
-
-                // Get server status from admin database
-                const adminDb = db.admin();
-                const serverStatus = adminDb.serverStatus ? await adminDb.serverStatus() : {};
-
-                return {
-                    status: 'connected',
-                    version: serverStatus.version || 'unknown',
-                    connections: {
-                        current: serverStatus.connections ? serverStatus.connections.current || 0 : 0,
-                        available: serverStatus.connections ? serverStatus.connections.available || 0 : 0
-                    },
-                    uptime: serverStatus.uptime || 0,
-                    host: global.appConfig.deployment[global.appConfig.deployment.mode].db || 'unknown',
-                    database: dbName,
-                    collections: dbStats.collections || 0,
-                    dataSize: dbStats.dataSize || 0,
-                    storageSize: dbStats.storageSize || 0
-                };
-            } catch (error) {
-                return {
-                    status: 'error',
-                    error: error.message,
-                    host: global.appConfig.deployment[global.appConfig.deployment.mode].db || 'unknown'
-                };
-            }
+    
+            return mongoStatus;
 
         } catch (error) {
-            // MongoDB server status not available
-            return {
-                status: 'error',
-                error: error.message,
-                host: global.appConfig.deployment[global.appConfig.deployment.mode].db || 'unknown'
-            };
+            mongoStatus.status = 'error';
+            mongoStatus.error = error.message;
+            return mongoStatus;
         }
     }
 
@@ -860,7 +841,7 @@ class HealthController {
         }
 
         // Check if Redis has recent data from any instance (cross-instance caching)
-        if (global.RedisManager && global.RedisManager.isRedisAvailable()) {
+        if (global.RedisManager?.isRedisAvailable()) {
             try {
                 const redisCacheKey = `health:cache:${global.appConfig.system.instanceId}`;
                 const redisData = await global.RedisManager.getClient('metrics').get(redisCacheKey);
@@ -891,7 +872,7 @@ class HealthController {
         this.lastCacheUpdate = now;
 
         // Share with other instances via Redis
-        if (global.RedisManager && global.RedisManager.isRedisAvailable()) {
+        if (global.RedisManager?.isRedisAvailable()) {
             try {
                 const redisCacheKey = `health:cache:${global.appConfig.system.instanceId}`;
                 const cacheData = {
@@ -1001,10 +982,10 @@ class HealthController {
 
         // Build instances array for this instance
         const instances = [];
+        const mongoStatus = await this._getMongoDBStatus();
 
         if (pm2Status && pm2Status.processes) {
             // Multiple PM2 instances
-            const mongoStatus = await this._getMongoDBStatus();
             const metrics = this._getMetrics();
 
             pm2Status.processes.forEach(p => {
@@ -1030,11 +1011,17 @@ class HealthController {
                     cpu: p.cpu,
                     restarts: p.restarts,
                     // Application-level metadata (instance-specific)
-                    version: global.appConfig.app.site.version,
-                    release: global.appConfig.app.site.release,
+                    jPulse: {
+                        version: global.appConfig.app.jPulse.version,
+                        release: global.appConfig.app.jPulse.release,
+                    },
+                    site: {
+                        version: global.appConfig.app.site.version,
+                        release: global.appConfig.app.site.release,
+                    },
                     environment: global.appConfig.deployment.mode,
                     database: {
-                        status: mongoStatus.status,
+                        status: global.Database?.getDb() ? 'connected' : 'disconnected',
                         name: global.appConfig.deployment[global.appConfig.deployment.mode].db
                     },
                     // Request/Error metrics (1-minute window)
@@ -1066,7 +1053,6 @@ class HealthController {
             // Single instance (no PM2 or PM2 not available)
             const uptime = Math.floor(process.uptime());
             const memUsage = process.memoryUsage();
-            const mongoStatus = await this._getMongoDBStatus();
             const metrics = this._getMetrics();
 
             instances.push({
@@ -1086,11 +1072,17 @@ class HealthController {
                 },
                 cpu: null, // CPU percentage not available without PM2
                 // Application-level metadata (instance-specific)
-                version: global.appConfig.app.site.version,
-                release: global.appConfig.app.site.release,
+                jPulse: {
+                    version: global.appConfig.app.jPulse.version,
+                    release: global.appConfig.app.jPulse.release,
+                },
+                site: {
+                    version: global.appConfig.app.site.version,
+                    release: global.appConfig.app.site.release,
+                },
                 environment: global.appConfig.deployment.mode,
                 database: {
-                    status: mongoStatus.status,
+                    status: global.Database?.getDb() ? 'connected' : 'disconnected',
                     name: global.appConfig.deployment[global.appConfig.deployment.mode].db
                 },
                 // Request/Error metrics (1-minute window)
@@ -1128,7 +1120,7 @@ class HealthController {
             loadAverage: systemInfo.loadAverage,
             freeMemory: systemInfo.freeMemory,
             totalMemory: systemInfo.totalMemory,
-            mongodb: await this._getMongoDBStatus(),
+            database: mongoStatus,
             totalInstances: pm2Status ? pm2Status.totalProcesses : 1,
             totalProcesses: pm2Status ? pm2Status.totalProcesses : 1,
             runningProcesses: pm2Status ? pm2Status.running : 1,

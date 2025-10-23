@@ -100,7 +100,7 @@ if [ "$SKIP_ADMIN" = true ] && [ "$SKIP_APP" = true ]; then
 fi
 
 echo ""
-read -p "🤔 Proceed with MongoDB setup? (y/N): " -n 1 -r
+read -p "🤔 Proceed with MongoDB setup? (y/N): " -r
 echo ""
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "❌ Setup cancelled"

@@ -52,8 +52,19 @@ export function setupGlobalAppConfig() {
         // Fallback config with all necessary properties
         global.appConfig = {
             app: {
-                version: '0.3.7',
-                name: 'jPulse Framework Test'
+                jPulse: {
+                    name:       'jPulse Framework',
+                    shortName:  'jPulse',
+                    version:    '1.0.0-rc.1',
+                    release:    '2025-10-22'
+                },
+                site: {
+                    name:       'My jPulse Framework Site',
+                    shortName:  'My jPulse Site',
+                    copyright:  '© 1970 My Company',
+                    version:    '0.1.0',
+                    release:    '1970-01-01'
+                }
             },
             system: {
                 appDir: path.join(projectRoot, 'webapp'),

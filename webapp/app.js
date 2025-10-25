@@ -67,14 +67,14 @@ async function loadAppConfig() {
             fs.writeFileSync(sourcesPath, JSON.stringify(config._sources, null, 2));
 
             appLog('Generated consolidated configuration in .jpulse/app.json');
-            return config;
+            // Fall through to initialize system metadata
         } else {
             // Load config from cached JSON
             appLog('Using cached configuration from .jpulse/app.json');
             config = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
         }
 
-        // Set config.system metadata that may change between app instances on same server
+        // Initialize system metadata - single source of truth
         const hostname = os.hostname();
         const serverName = hostname.split('.')[0];
         const serverId = parseInt(serverName.replace(/^[^0-9]*([0-9]*).*$/, '$1') || '0', 10) || 0;
@@ -283,6 +283,18 @@ async function startApp() {
 
     // Configure middleware
     app.use(cors(appConfig.middleware.cors));
+    app.use((req, res, next) => {
+        // Set headers, including Content-Security-Policy (CSP) and Report-To:
+        const setHeadersConf = appConfig.middleware.setHeaders;
+        setHeadersConf.headers.forEach((header) => {
+            if (setHeadersConf.availableHeaders[header]) {
+                res.setHeader(header, setHeadersConf.availableHeaders[header]);
+            } else {
+                appLog(`Header "${header}" not found in middleware.setHeaders.availableHeaders`, 'warning');
+            }
+        });
+        next();
+    });
     app.use(bodyParser.urlencoded(appConfig.middleware.bodyParser.urlencoded));
     app.use(bodyParser.json(appConfig.middleware.bodyParser.json));
 

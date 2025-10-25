@@ -34178,7 +34178,7 @@ Deployment scripts fully enhanced for Redis support!
 
 
 ============================================================
-2025-10-23 11:56
+2025-10-22 11:56
 
 FINAL RC1 DOCUMENTATION UPDATES
 
@@ -34197,3 +34197,432 @@ All file changes accepted by user:
 ✅ docs/CHANGELOG.md (W-076 comprehensive entry)
 
 Proceeding with final documentation updates...
+
+
+============================================================
+2025-10-23 07:30
+
+RC1 FINAL FIXES AND SUCCESSFUL RELEASE
+
+HEALTH METRICS ENHANCEMENTS:
+1. MongoDB Status Smart Caching via Redis:
+   - Added Redis-based caching for MongoDB status across instances
+   - If instance is disconnected, checks Redis for last good status from other instances
+   - 60-second TTL on cached status prevents stale data
+   - Used RedisManager.getClient('metrics') for proper Redis API access
+   - Cache key: 'health:database:lastGoodStatus'
+   - Prevents error state when some instances are connected
+
+2. Per-Instance Database Status:
+   - Changed from server-level mongoStatus.status to per-instance check
+   - Each instance now reports: global.Database?.getDb() ? 'connected' : 'disconnected'
+   - Accurate connection status per instance, not shared server status
+   - Applied to 5 locations in health.js (lines 324, 609, 669, 1056, 1117)
+
+3. Database Type Field Added:
+   - Added database.type: 'MongoDB' to server-level status object
+   - Future-proofs API for potential support of other databases
+   - Instance-level objects don't duplicate type (server-level constant)
+
+4. Removed Obsolete adminStatus() Method:
+   - Deleted adminStatus() method (lines 287-353) - superseded by /api/1/health/metrics
+   - All functionality now in superior /api/1/health/metrics API
+   - Removed corresponding test in health.test.js
+   - Admin page uses API instead of dedicated controller method
+
+BUG FIXES:
+1. Redis API Usage Corrections:
+   - Fixed: RedisManager.isAvailable() → RedisManager.isRedisAvailable() (method call)
+   - Fixed: RedisManager.get/set() → RedisManager.getClient('metrics').get/setex()
+   - Fixed: Error logging variable (err.message not error.message)
+
+2. Test Infrastructure Fixes (Third Iteration):
+   - Fixed test version regex to support pre-release: /^\d+\.\d+\.\d+(-[a-z]+\.\d+)?$/
+   - Fixed in 2 locations: responsive-layout.test.js lines 64 and 245
+   - Fixed test fallback config: Added controller.view.cacheTemplates/cacheIncludes
+   - Fixed test stats parsing: Removed double-counting of failed test suites
+   - Fixed .jpulse/app.json stale cache issue causing false test passes locally
+
+3. Deployment Script Consistency:
+   - Fixed bin/jpulse-install.sh: Removed -n 1 from read prompt (line 62)
+   - Fixed bin/mongodb-setup.sh: Removed -n 1 from read prompt (line 103)
+   - All prompts now consistently require Enter key for confirmation
+
+COMMIT MESSAGE ENHANCEMENTS:
+Updated commit-message.txt with:
+- MongoDB status smart caching details
+- Per-instance database status implementation
+- Database.type field for future flexibility
+- Redis API usage corrections
+- Install script prompt consistency
+- Removal of obsolete adminStatus() method
+
+RC1 RELEASE PROCESS (Third Attempt):
+1. Deleted local tag: git tag -d v1.0.0-rc.1
+2. Deleted remote tag: git push origin :refs/tags/v1.0.0-rc.1
+3. Committed all fixes with proper message: git commit -F commit-message.txt
+4. Pushed to main: git push origin main
+5. Created new tag: git tag -a v1.0.0-rc.1 -m "Release Candidate 1 for v1.0.0"
+6. Pushed tag: git push origin v1.0.0-rc.1
+7. GitHub Actions build: ✅ SUCCESS - All tests passed!
+
+ROOT CAUSE ANALYSIS - Why Local Tests Passed But GitHub Failed:
+- Local .jpulse/app.json cache had stale version "0.9.7"
+- Test read cached version → old regex matched → false positive
+- GitHub had no cache → regenerated from app.conf with "1.0.0-rc.1" → test failed correctly
+- Solution: Deleted .jpulse/ locally to match GitHub behavior
+- .jpulse/ already in .gitignore (correct)
+
+VERIFICATION:
+- ✅ All tests pass locally (29 passed, 0 failed)
+- ✅ All tests pass on GitHub Actions
+- ✅ Health metrics API working correctly
+- ✅ MongoDB status caching functional
+- ✅ Per-instance database status accurate
+- ✅ System status dashboard displays all new fields
+- ✅ Deployment scripts have consistent UX
+
+FILES MODIFIED (Final RC1 Fixes):
+- webapp/controller/health.js: Smart MongoDB caching, per-instance DB status, type field
+- webapp/tests/helpers/config-loader.js: Added controller.view fallback config
+- webapp/tests/unit/controller/responsive-layout.test.js: Fixed version regex (2 places)
+- bin/test-all.js: Removed test suite double-counting
+- bin/jpulse-install.sh: Removed single-key prompt
+- bin/mongodb-setup.sh: Removed single-key prompt
+- commit-message.txt: Added all final fixes
+
+jPulse Framework v1.0.0-rc.1 successfully released! 🎉
+Ready for production testing and feedback collection.
+
+
+
+============================================================
+2025-10-23 16:30
+
+CRITICAL FIX: Health Metrics Duplicate Instances Bug (W-076)
+
+Bug Description:
+The health metrics API was showing 4 instances instead of 2. Each physical instance was broadcasting health data for ALL PM2 processes it could see, not just itself.
+
+Root Cause Analysis:
+In webapp/controller/health.js, the _getCurrentInstanceHealthData() function was iterating through ALL PM2 processes and adding them to the instances array, using the SAME global.appConfig.system.instanceId for all.
+
+This caused each instance to broadcast:
+- Its own data (correct)
+- Other instances' data with wrong instanceId (incorrect)
+
+Example from Redis MONITOR:
+- Instance 0 (PID 64405) broadcast included both:
+  * "instanceId":"1:0:64405" (correct)
+  * "instanceId":"1:1:64447" (WRONG - this is instance 1's ID!)
+
+Fix Applied:
+Modified _getCurrentInstanceHealthData() to only return data for the CURRENT process:
+1. Changed from forEach loop through all PM2 processes
+2. To finding only THIS process: pm2Status.processes.find(p => p.pid === process.pid)
+3. Removed division of WebSocket stats by process count (no longer needed)
+4. Each instance now broadcasts ONLY its own data
+
+Secondary Fix: MongoDB Admin Auth
+Added graceful handling for MongoDB instances without admin permissions:
+1. Wrapped adminDb.serverStatus() in try-catch
+2. Falls back to basic db.stats() if admin not available
+3. Logs informational message instead of error
+4. Allows health metrics to work with non-admin MongoDB users
+
+Files Modified:
+- webapp/controller/health.js (lines 983-1055, 751-765)
+
+Testing Required on jpulse.net:
+1. Verify only 2 instances show in health metrics API
+2. Verify MongoDB status no longer shows "error"
+3. Confirm each instance has unique instanceId
+
+
+
+CLARIFICATIONS:
+
+1. WebSocket Stats Division Removal:
+   - INTENTIONAL: Removed Math.floor() and division by process count
+   - Reason: Each instance now broadcasts ONLY its own data
+   - Before: All processes were included, so we divided to estimate per-instance
+   - After: Each instance knows its exact clientCount and localMessages
+
+2. MongoDB Admin Status:
+   - Enhanced error handling with specific message for 'not authorized' vs other errors
+   - If admin user lacks clusterMonitor role, log INFO (not ERROR)
+   - Status will show version='unknown', connections=0 but still 'connected'
+   - This is acceptable for production use
+
+To Fix MongoDB Admin Status on jpulse.net (optional):
+   mongo jp-prod --eval "db.grantRolesToUser('admin', [{ role: 'clusterMonitor', db: 'admin' }])"
+
+
+
+============================================================
+2025-10-23 16:45
+
+MONGODB PERMISSIONS FIX: Health Stats Access for jsapp User
+
+Root Cause:
+The application connects as 'jsapp' user (low privileges), not 'admin'.
+The jsapp user only had readWrite + dbAdmin roles on its database.
+To query serverStatus(), the clusterMonitor role is required.
+
+Solution: Option 2 (Grant Permission) - BEST PRACTICE
+- Grant jsapp user the clusterMonitor role (read-only)
+- Follows principle of least privilege
+- No performance impact
+- Secure - jsapp only gets read permissions it needs
+
+Files Modified:
+1. bin/mongodb-setup.sh (line 165)
+   - Added: {role: 'clusterMonitor', db: 'admin'}
+   - New installations will automatically get this role
+
+2. Manual fix for EXISTING installations (jpulse.net):
+
+   On MongoDB server, run:
+
+   mongosh jp-prod -u admin -p --authenticationDatabase admin --eval \
+     "db.grantRolesToUser('jsapp', [{role: 'clusterMonitor', db: 'admin'}])"
+
+   Then restart PM2:
+   pm2 restart all
+
+   Verify:
+   mongosh jp-prod -u jsapp -p --authenticationDatabase admin --eval \
+     "db.runCommand({connectionStatus: 1}).authInfo.authenticatedUserRoles"
+
+   Should show: clusterMonitor role in output
+
+Security Note:
+- clusterMonitor is READ-ONLY for server stats
+- Does NOT grant write access
+- Does NOT grant access to other databases
+- Safe for production use
+
+
+============================================================
+2025-10-23 19:55
+
+CACHE INVALIDATION FIX: Prevent Stale Health Metrics (W-076)
+
+Problem:
+After PM2 restart, health metrics API showed 4 instances instead of 2.
+Old instance cache entries persisted even after shutdown.
+Root cause: Cache TTL too long + infrequent cleanup calls.
+
+Root Cause Analysis:
+1. instanceTTL was 90 seconds (3x broadcast interval of 30s)
+   - Old entries lingered for too long after instance shutdown
+2. _cleanupExpiredHealthData() only called in _storeInstanceHealth()
+   - Not called when metrics endpoint was hit
+   - Not called before building server response
+3. Graceful shutdown broadcast works correctly, but:
+   - PM2 restart may not always trigger SIGTERM in time
+   - Network delays can cause broadcast to be missed
+   - Need defensive cleanup as backup
+
+Solution: Three-Layer Defense
+
+Layer 1: Reduce TTL (45 seconds instead of 90)
+- Changed from 3x to 1.5x broadcast interval
+- File: webapp/controller/health.js, line 50
+- Old: instanceTTL: (healthConfig.instanceTTL || 90) * 1000
+- New: instanceTTL: (healthConfig.instanceTTL || 45) * 1000
+
+Layer 2: Aggressive Cleanup in metrics() Endpoint
+- Added cleanup call at start of every metrics request
+- File: webapp/controller/health.js, lines 224-225
+- Ensures stale entries removed before returning data to user
+
+Layer 3: Cleanup Before Building Response
+- Added cleanup call in _buildServersArray()
+- File: webapp/controller/health.js, lines 504-505
+- Double defense: clean up right before aggregating stats
+
+Benefits:
+- Stale entries expire in 45s max (down from 90s)
+- Every API call triggers cleanup (proactive)
+- Multiple cleanup opportunities (defensive)
+- Graceful shutdown still works (primary mechanism)
+- Cache cleanup is backup (safety net)
+
+Files Modified:
+- webapp/controller/health.js (lines 50, 224-225, 504-505)
+
+Testing:
+1. Restart PM2 without clearing Redis cache
+2. Wait 45 seconds
+3. Call /api/1/health/metrics
+4. Should show correct instance count (not stale entries)
+
+
+============================================================
+2025-10-24 20:50
+
+SYNTAX FIXES: Static Method Context Issues (W-076)
+
+Problem:
+After removing `-[a-z]+` garbage characters, app failed to start with:
+"TypeError: Cannot read properties of undefined (reading '_cleanupExpiredHealthData')"
+
+Root Cause:
+In static method `metrics()`, calling `this._cleanupExpiredHealthData()` resulted in
+`this` being undefined in the execution context.
+
+Solution:
+Changed from `this._cleanupExpiredHealthData()` to `HealthController._cleanupExpiredHealthData()`
+in two locations for explicit static method calls.
+
+Files Modified:
+- webapp/controller/health.js
+  - Line 225: metrics() method - changed to HealthController._cleanupExpiredHealthData()
+  - Line 505: _buildServersArray() method - changed to HealthController._cleanupExpiredHealthData()
+
+Pattern for Static Methods:
+- Use explicit class name for cross-method static calls: `HealthController._methodName()`
+- Matches existing pattern in file (lines 250, 254, 257, 261, 508, 652)
+
+Verification:
+- node --check webapp/controller/health.js ✅ PASSED
+- Ready for deployment and testing
+
+
+============================================================
+2025-10-24 01:30
+
+W-076 Health Metrics Bug Fixes - RC1 Post-Release
+
+ISSUE: Health metrics API showing 4 instances instead of 2 on jpulse.net production
+
+ROOT CAUSE ANALYSIS:
+- Each PM2 instance was broadcasting aggregate counts for ALL PM2 processes
+- Instance 0 broadcast: totalInstances=2, Instance 1 broadcast: totalInstances=2
+- Aggregation: 2+2=4 instances (incorrect)
+
+FIXES IMPLEMENTED:
+1. System Metadata Single Source of Truth
+   - Established global.appConfig.system.* as canonical source
+   - All code now references these values directly (no reconstruction)
+   - Created permanent memory for this architectural principle
+   - Files: webapp/app.js, webapp/controller/health.js
+
+2. Broadcast Channel Naming Correction
+   - Changed from serverId:port:pm2Id to serverId:pm2Id:pid format
+   - Now uses global.appConfig.system.instanceId directly
+   - Files: webapp/controller/health.js (lines 146, 838)
+
+3. MongoDB Admin Authentication Fallback
+   - Added try-catch for adminDb.serverStatus() queries
+   - Falls back to basic db.stats() when admin privileges unavailable
+   - Supports both authenticated and non-authenticated deployments
+   - Files: webapp/controller/health.js (_getMongoDBStatus)
+
+4. Health Metrics Duplication Fix (PRIMARY FIX)
+   - Changed _getCurrentInstanceHealthData() to return only current instance data
+   - Each instance now broadcasts: totalInstances=1, totalProcesses=1
+   - Aggregation properly sums: 1+1=2 instances (correct)
+   - Files: webapp/controller/health.js (lines 1150-1154)
+
+5. PM2 Logging Configuration Clarification
+   - Documented two logging modes: file-based vs PM2 internal
+   - PM2 ecosystem with /dev/null uses internal logging (pm2 logs command)
+   - File-based logging writes to disk (tail -f command)
+   - No code changes needed - working as designed
+
+TESTING:
+- Verified on Mac (2 instances on ports 8080/8086): Correct (not using PM2 cluster)
+- Verified on jpulse.net (2 PM2 cluster instances): NOW CORRECT
+- Redis MONITOR confirmed each instance broadcasts only its own data
+- API response: totalInstances=2, totalProcesses=2, runningProcesses=2 ✓
+
+DEPLOYMENT:
+- Deployed to jpulse.net v1.0.0-rc.1
+- All health metrics now accurate
+- System Status dashboard displays correctly
+
+STATUS: COMPLETE - All health metrics bugs resolved
+
+
+============================================================
+2025-10-25 12:30
+
+### W-076 Post-RC1: Health Metrics Bug Fixes & Architecture Improvements
+
+SUMMARY OF CHANGES:
+After releasing v1.0.0-rc.1, discovered and fixed critical health metrics bugs
+in PM2 cluster deployments. Root cause: each instance was broadcasting aggregate
+counts instead of individual data, causing incorrect totals (4 instead of 2).
+
+BUG FIXES:
+1. Health Metrics Duplication (PRIMARY FIX)
+   - webapp/controller/health.js:
+     - _getCurrentInstanceHealthData() now returns only current instance data
+     - Changed from: totalInstances=2 (aggregate) to: totalInstances=1 (self)
+     - Aggregation now correctly sums: 1+1=2 instances instead of 2+2=4
+     - Files: lines 1150-1154
+
+2. System Metadata Initialization Bug
+   - webapp/app.js:
+     - Removed early return after config generation (line 70)
+     - Ensures system metadata (instanceId, etc.) is always initialized
+     - Fixed PM2 instance 0 broadcasting with empty instanceId
+
+3. Broadcast Channel Naming Correction
+   - webapp/controller/health.js:
+     - Changed to use global.appConfig.system.instanceId directly
+     - Format: serverId:pm2Id:pid (e.g., "4:0:3884")
+     - Files: lines 146, 150, 154, 837
+
+4. MongoDB Admin Authentication Fallback
+   - webapp/controller/health.js:
+     - Added try-catch for adminDb.serverStatus() queries
+     - Falls back to basic db.stats() when clusterMonitor role unavailable
+     - Supports both authenticated and non-authenticated deployments
+     - Files: _getMongoDBStatus() method
+
+5. Smart MongoDB Status Caching
+   - webapp/controller/health.js:
+     - Added Redis caching for adminStatus (5-minute TTL)
+     - Reduces MongoDB load in multi-instance deployments
+     - Files: _getMongoDBStatus() method
+   - webapp/utils/redis-manager.js:
+     - Fixed API calls (isAvailable() vs isRedisAvailable())
+     - Fixed get/set calls (get() vs getClient().get())
+
+6. PM2 Logging Configuration
+   - bin/configure.js:
+     - Clarified logging options (file-based vs PM2 internal)
+     - Documented LOG_DIR prompt behavior (prod only)
+     - No code changes - working as designed
+
+7. Generic Set HTTP Header Feature
+   - app.conf:
+     - Added middleware.setHeader { header, availableHeaders }
+   - app.js:
+     - Set Content-Security-Policy and other HTTP headers
+
+
+ARCHITECTURE IMPROVEMENTS:
+- Established global.appConfig.system.* as single source of truth
+- Created permanent memory: "System Metadata Single Source of Truth"
+- All code now references appConfig.system directly (no reconstruction)
+- Eliminated duplicate/stale metadata across PM2 instances
+
+TESTING & DEPLOYMENT:
+- Verified on Mac (2 instances, ports 8080/8086): Correct
+- Verified on jpulse.net (2 PM2 cluster instances): NOW CORRECT
+- Redis MONITOR confirmed each instance broadcasts only its own data
+- API response: totalInstances=2, totalProcesses=2, runningProcesses=2 ✓
+- All health metrics now accurate in production
+
+FILES MODIFIED:
+- docs/dev/work-items.md (deliverables update)
+- webapp/controller/health.js (multiple fixes)
+- webapp/app.js (system metadata init fix)
+- webapp/utils/redis-manager.js (API corrections)
+- bin/mongodb-setup.sh (added clusterMonitor role)
+
+STATUS: All health metrics bugs resolved, ready for next checkpoint

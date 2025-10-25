@@ -1475,6 +1475,37 @@ This is the doc to track work items, arranged in three sections:
   - App cluster broadcasting options:
     - { omitSelf: true }  // do not send message back to oneself (default for controller:*, model:*)
     - { omitSelf: false } // send message back to oneself (default for view:*)
+  - Bug Fixes (Post-RC1):
+    - webapp/controller/health.js -- fixed duplicate instance counting in PM2 cluster mode
+      - _getCurrentInstanceHealthData() now returns only current instance data (totalInstances: 1)
+      - removed aggregate PM2 process counting from individual broadcasts
+      - aggregation now happens correctly at receiver (_buildClusterStatistics)
+    - webapp/controller/health.js -- corrected broadcast channel naming to use instanceId (serverId:pm2Id:pid)
+    - webapp/controller/health.js -- added MongoDB admin auth fallback for non-privileged deployments
+    - webapp/app.js -- simplified system metadata initialization (removed unnecessary function wrapper)
+  - Architecture Improvements:
+    - Established global.appConfig.system.* as single source of truth for system metadata
+    - Created permanent memory: "jPulse Framework: System Metadata Single Source of Truth"
+    - All code now references appConfig.system directly without reconstruction or duplication
+  - Deployment Configuration:
+    - bin/configure.js -- clarified logging configuration options for PM2
+    - Documented PM2 logging modes (internal /dev/null vs file-based)
+  - Post-RC1 Bug Fixes & Architecture Improvements:
+    - webapp/controller/health.js -- fixed duplicate instance counting in health metrics
+      - _getCurrentInstanceHealthData() now returns only current instance data (totalInstances: 1)
+      - each instance broadcasts its own data, aggregation happens at receiver
+      - corrected broadcast channel naming to use global.appConfig.system.instanceId directly
+      - added MongoDB admin auth fallback for deployments without clusterMonitor role
+      - smart MongoDB status caching with Redis (5-minute TTL for adminStatus)
+    - webapp/app.js -- fixed early return bug preventing system metadata initialization
+      - removed early return after config generation (line 70)
+      - ensures instanceId is always populated for PM2 instance 0
+    - webapp/utils/redis-manager.js -- MongoDB connection status caching with isAvailable checks
+    - bin/mongodb-setup.sh -- added clusterMonitor role for jpapp user (new installations)
+    - Established global.appConfig.system.* as single source of truth for system metadata
+    - All health metrics now accurate in PM2 cluster deployments
+    - Added generic setHeader in app.conf and app.js to set Content-Security-Policy and other HTTP headers
+
 
 
 
@@ -1482,8 +1513,8 @@ This is the doc to track work items, arranged in three sections:
 
 pending:
 - jp-card: more consistent card header: normal, dialog look with gray background jp-card-dialog
-- bin/configure.js always key + enter, not just key prompt
 - migrate @peterthoeny/jpulse-framework to @jpulse-net/jpulse-framework
+- site-status: sort pm2 list by instanceId
 
 
 
@@ -1556,6 +1587,8 @@ git push --force-with-lease origin main
 
 === Restart redis ===
 brew services restart redis
+redis-cli FLUSHDB
+redis-cli MONITOR | grep "health:metrics" | head -20
 
 === Port 8080 in use ===
 lsof -ti:8080
@@ -1563,7 +1596,6 @@ lsof -ti:8080
 === Tests how to ===
 npm test -- --testPathPattern=jpulse-ui-navigation
 npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
-
 
 
 

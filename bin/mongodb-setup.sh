@@ -161,7 +161,8 @@ mongosh "$DB_NAME" -u "$DB_ADMIN_USER" -p "$DB_ADMIN_PASS" --authenticationDatab
         pwd: '$DB_PASS',
         roles: [
             {role: 'readWrite', db: '$DB_NAME'},
-            {role: 'dbAdmin', db: '$DB_NAME'}
+            {role: 'dbAdmin', db: '$DB_NAME'},
+            {role: 'clusterMonitor', db: 'admin'}
         ]
     })
 "

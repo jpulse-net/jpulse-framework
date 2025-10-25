@@ -191,6 +191,18 @@ async function configureNewFeaturesOnly() {
         // Find missing variables
         const missingVars = allVars.filter(varName => !existingVars.hasOwnProperty(varName));
 
+        // Check if any missing vars are config-level (not just env vars)
+        const configLevelVars = missingVars.filter(varName => {
+            const def = CONFIG_REGISTRY[varName];
+            return def && def.type === 'config';
+        });
+
+        if (configLevelVars.length > 0) {
+            console.log(`⚠️  Warning: ${configLevelVars.join(', ')} require app config changes`);
+            console.log('💡 Please choose "Reconfigure from scratch" to update site/webapp/app.conf\n');
+            process.exit(1);
+        }
+
         if (missingVars.length === 0) {
             console.log('✅ No new configuration needed - all variables are already set.');
         process.exit(0);
@@ -425,6 +437,7 @@ async function promptConfiguration(deploymentType, existingVars = {}, forceFullC
         if (definition.section && definition.section !== currentSection && !definition.auto) {
             const sectionIcon = definition.section === 'Basic Settings' ? '📋' :
                                definition.section === 'Database Configuration' ? '🗄️' :
+                               definition.section === 'Redis Configuration' ? '📦' :
                                definition.section === 'Security Settings' ? '🔐' :
                                definition.section === 'Production Settings' ? '🌐' :
                                definition.section === 'PM2 Configuration' ? '⚡' :
@@ -477,6 +490,21 @@ async function promptConfiguration(deploymentType, existingVars = {}, forceFullC
                 case 'DB_PORT':
                 case 'DB_REPLICA_SET':
                     config[varName] = '';
+                    break;
+                case 'REDIS_MODE':
+                    config[varName] = config[varName] || 'single';
+                    break;
+                case 'REDIS_HOST':
+                    config[varName] = config[varName] || 'localhost';
+                    break;
+                case 'REDIS_PORT':
+                    config[varName] = config[varName] || 6379;
+                    break;
+                case 'REDIS_PASSWORD':
+                    config[varName] = config[varName] || '';
+                    break;
+                case 'REDIS_CLUSTER_NODES':
+                    config[varName] = config[varName] || '[]';
                     break;
                 default:
                     // For other undefined variables, set empty string
@@ -843,8 +871,9 @@ async function setup() {
                         console.log('💡 Run "npm run jpulse-update" first to sync framework files');
                         process.exit(0);
                     } else if (updateChoice === '2') {
-                        // Continue with full setup
-                        break;
+                        // Force full reconfiguration
+                        forceFullConfig = true;
+                        // Fall through to deployment type prompt below
                     } else {
                         // Configure new features only
                         return await configureNewFeaturesOnly();
@@ -892,7 +921,7 @@ async function setup() {
         const existingVars = fs.existsSync('.env') ? parseEnvFile('.env') : {};
 
         // Get configuration
-        const config = await promptConfiguration(deploymentType, existingVars, forceFullConfig);
+        const config = await promptConfiguration(deploymentType, forceFullConfig ? {} : existingVars, forceFullConfig);
         const frameworkPackage = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'));
 
         console.log('\n🏗️  Setting up jPulse site...\n');

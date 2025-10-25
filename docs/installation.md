@@ -116,6 +116,10 @@ npm run jpulse-update                     # Updates framework files
 # Or use the new update command directly:
 npm run jpulse-update                    # Update framework files
 npm run jpulse-update --dry-run             # Safe preview mode
+
+# Or to update to a pre-release (beta, RC):
+npm install @peterthoeny/jpulse-framework@1.0.0-rc.1
+npm run jpulse-update
 ```
 
 **Important**: jPulse uses a hybrid approach where `npm update` only updates the package dependency. You must run `jpulse-update` to copy the updated framework files to your site. The `npm run update` script does both steps automatically.

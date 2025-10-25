@@ -76,7 +76,7 @@ class SiteRegistry {
                     // Check if controller has API methods by reading the file
                     const content = fs.readFileSync(controllerPath, 'utf8');
                     const hasApi = content.includes('static async api(') || content.includes('static api(');
-                    
+
                     // Detect additional CRUD API methods
                     const apiMethods = {
                         api: hasApi,

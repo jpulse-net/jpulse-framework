@@ -151,6 +151,92 @@ class LogController {
     }
 
     /**
+     * Handle CSP violation reports
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
+     */
+    static async reportCspViolation(req, res) {
+        try {
+            LogController.logRequest(req, 'log.reportCspViolation', `CSP report: ${JSON.stringify(req.body).replace(/\\n/g, '').replace(/^(.{60}).*?(.{40})$/gs, '$1...$2')}`);
+
+            let violation = {};
+            let reportFormat = 'unknown';
+
+            // Handle both CSP Level 2 (report-uri) and Level 3 (report-to) formats
+            if (Array.isArray(req.body) && req.body.length > 0) {
+                // CSP Level 3 Reporting API format (report-to)
+                // Format: [{ type: 'csp-violation', body: {...}, ... }]
+                reportFormat = 'report-to (Level 3)';
+                const report = req.body[0];
+                if (report.type === 'csp-violation' && report.body) {
+                    violation = {
+                        documentUri: report.body.documentURL || report.url,
+                        violatedDirective: report.body.violatedDirective,
+                        effectiveDirective: report.body.effectiveDirective,
+                        blockedUri: report.body.blockedURL,
+                        originalPolicy: report.body.originalPolicy,
+                        sourceFile: report.body.sourceFile,
+                        lineNumber: report.body.lineNumber,
+                        columnNumber: report.body.columnNumber,
+                        statusCode: report.body.statusCode,
+                        disposition: report.body.disposition,
+                        sample: report.body.sample,
+                        userAgent: report.user_agent,
+                        age: report.age
+                    };
+                }
+            } else if (req.body?.['csp-report']) {
+                // CSP Level 2 report-uri format
+                // Format: { "csp-report": {...} }
+                reportFormat = 'report-uri (Level 2)';
+                const cspReport = req.body['csp-report'];
+                violation = {
+                    documentUri: cspReport['document-uri'],
+                    violatedDirective: cspReport['violated-directive'],
+                    effectiveDirective: cspReport['effective-directive'],
+                    blockedUri: cspReport['blocked-uri'],
+                    originalPolicy: cspReport['original-policy'],
+                    sourceFile: cspReport['source-file'] || cspReport['script-sample'],
+                    lineNumber: cspReport['line-number'],
+                    columnNumber: cspReport['column-number'],
+                    statusCode: cspReport['status-code'],
+                    disposition: cspReport['disposition'],
+                    referrer: cspReport['referrer']
+                };
+            } else {
+                // Unknown format - log as-is
+                reportFormat = 'unknown';
+                violation = req.body;
+            }
+
+            // Add timestamp and format
+            const details = {
+                format: reportFormat,
+                timestamp: new Date().toISOString(),
+                ...violation
+            };
+
+            // Clean up undefined values for cleaner logs
+            Object.keys(details).forEach(key => {
+                if (details[key] === undefined) {
+                    delete details[key];
+                }
+            });
+
+            // Log the violation with appropriate level
+            const logMessage = `CSP violation, ${reportFormat}: ${violation.violatedDirective || violation.effectiveDirective || 'unknown'} blocked ${violation.blockedUri || 'unknown'} on ${violation.documentUri || 'unknown'}, details: ${JSON.stringify(details).replace(/\\n/g, '')}`;
+            LogController.logWarning(req, 'log.reportCspViolation', logMessage);
+
+            // Respond with 204 No Content (standard for report endpoints)
+            res.status(204).end();
+        } catch (error) {
+            LogController.logError(req, 'log.reportCspViolation', `Error handling CSP report: ${error.message}`);
+            // Still return 204 to avoid browser retries
+            res.status(204).end();
+        }
+    }
+
+   /**
      * Unified console logging of request messages
      * Format: "==\ttimestamp\t===\tusername\tip\tvm\tid\t==scope==\tmessage"
      * @param {object} req - Express request object

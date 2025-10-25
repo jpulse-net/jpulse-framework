@@ -424,7 +424,7 @@ export const CONFIG_REGISTRY = {
         prompt: async (config, deploymentType, question) => {
             console.log('? Log output:');
             console.log('  1) STDOUT (console output)');
-            console.log('  2) File logging');
+            console.log('  2) File logging (select this when using pm2)');
             const logChoice = await question('? Choose (1-2): (1) ') || '1';
 
             if (logChoice === '2') {

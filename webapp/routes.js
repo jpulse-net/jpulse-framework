@@ -15,6 +15,7 @@
 import path from 'path';
 import fs from 'fs';
 import express from 'express';
+import bodyParser from 'body-parser';
 const router = express.Router();
 
 // Load controllers
@@ -73,8 +74,11 @@ router.put('/api/1/user/profile', AuthController.requireAuthentication, UserCont
 router.put('/api/1/user/password', AuthController.requireAuthentication, UserController.changePassword);
 router.get('/api/1/user/search', AuthController.requireRole(['admin', 'root']), UserController.search);
 
-// Log API routes (require authentication)
+// Log API routes (search requires authentication)
 router.get('/api/1/log/search', AuthController.requireAuthentication, logController.search);
+router.post('/api/1/log/report/csp',
+    bodyParser.json({ type: ['application/json', 'application/csp-report', 'application/reports+json'] }),
+    logController.reportCspViolation);
 
 // Serve common files first, so that {{handlebars}} are not processed by the view controller.
 // This is handled by nginx if the app is running behind a reverse proxy

@@ -47,7 +47,7 @@ class HealthController {
         return {
             broadcastInterval: (healthConfig.broadcastInterval || 30) * 1000, // Convert seconds to ms
             cacheInterval: (healthConfig.cacheInterval || 15) * 1000,        // Convert seconds to ms
-            instanceTTL: (healthConfig.instanceTTL || 90) * 1000,            // Convert seconds to ms
+            instanceTTL: (healthConfig.instanceTTL || 45) * 1000,            // 45s = 1.5x broadcast interval (was 90s)
             enableBroadcasting: global.appConfig?.redis?.enabled !== false,   // Use Redis enabled status
             omitStatusLogs: healthConfig.omitStatusLogs || false
         };
@@ -143,16 +143,15 @@ class HealthController {
 
         // Broadcast removal to other instances via Redis
         if (global.RedisManager?.isRedisAvailable()) {
-            const broadcastId = `${global.appConfig.system.serverId}:${global.appConfig.system.port}:${global.appConfig.system.pm2Id}`;
-            const channel = `controller:health:metrics:shutdown:${broadcastId}`;
+            const channel = `controller:health:metrics:shutdown:${global.appConfig.system.instanceId}`;
 
             global.RedisManager.publishBroadcast(channel, {
                 action: 'shutdown',
-                instanceId: broadcastId,
+                instanceId: global.appConfig.system.instanceId,
                 timestamp: new Date().toISOString()
             });
 
-            LogController.logInfo(null, 'health.shutdown', `Broadcasted shutdown for instance ${broadcastId}`);
+            LogController.logInfo(null, 'health.shutdown', `Broadcasted shutdown for instance ${global.appConfig.system.instanceId}`);
         }
 
         // Clear health data cache to prevent memory leaks
@@ -221,6 +220,9 @@ class HealthController {
         LogController.logRequest(req, 'health.metrics', '');
 
         try {
+            // Aggressively clean up stale cache entries on every metrics request
+            HealthController._cleanupExpiredHealthData();
+
             const isAdmin = AuthController.isAuthorized(req, ['admin', 'root']);
 
             // Base metrics available to all users (framework level only)
@@ -294,6 +296,9 @@ class HealthController {
         }
 
         try {
+            // Clean up expired cache entries before aggregating
+            this._cleanupExpiredHealthData();
+
             // Get all instance health data from cache
             const allInstances = this._getAllInstancesHealth();
 
@@ -309,9 +314,9 @@ class HealthController {
             let totalWebSocketNamespaces = 0;
             let webSocketNamespaces = new Map();
 
-            // Include current instance
+            // Include current instance using appConfig.system.instanceId for deduplication
             const currentInstanceData = await this._getCurrentInstanceHealthData(pm2Status, wsStats);
-            allInstances.set('current', currentInstanceData);
+            allInstances.set(global.appConfig.system.instanceId, currentInstanceData);
 
             // Aggregate data from all instances
             allInstances.forEach((instanceData, instanceId) => {
@@ -400,12 +405,15 @@ class HealthController {
         }
 
         try {
+            // Clean up expired cache entries before aggregating
+            this._cleanupExpiredHealthData();
+
             // Get all instance health data from cache
             const allInstances = this._getAllInstancesHealth();
 
-            // Include current instance
+            // Include current instance using appConfig.system.instanceId for deduplication
             const currentInstanceData = await this._getCurrentInstanceHealthData(pm2Status, wsStats);
-            allInstances.set('current', currentInstanceData);
+            allInstances.set(global.appConfig.system.instanceId, currentInstanceData);
 
             // Group instances by server (hostname)
             const serverMap = new Map();
@@ -498,6 +506,9 @@ class HealthController {
      * @private
      */
     static async _buildServersArray(systemInfo, wsStats, pm2Status, timestamp) {
+        // Clean up stale cache entries before building response
+        HealthController._cleanupExpiredHealthData();
+
         const hostname = systemInfo.hostname;
         const serverId = HealthController._extractServerIdFromHostname(hostname);
 
@@ -751,8 +762,24 @@ class HealthController {
         try {
             // This instance IS connected - get fresh status
             const dbStats = db.stats ? await db.stats() : {};
-            const adminDb = db.admin();
-            const serverStatus = adminDb.serverStatus ? await adminDb.serverStatus() : {};
+
+            // Try to get server status from admin (requires clusterMonitor role or higher)
+            let serverStatus = {};
+            try {
+                const adminDb = db.admin();
+                serverStatus = adminDb.serverStatus ? await adminDb.serverStatus() : {};
+            } catch (adminError) {
+                // Admin permissions not available (missing clusterMonitor role)
+                // This is fine - we'll use basic db.stats() only
+                // To fix: grant clusterMonitor role to the MongoDB admin user
+                if (adminError.message.includes('not authorized')) {
+                    LogController.logInfo(null, 'health._getMongoDBStatus',
+                        'MongoDB admin user lacks clusterMonitor role - using basic stats only');
+                } else {
+                    LogController.logError(null, 'health._getMongoDBStatus',
+                        `Admin status query failed: ${adminError.message}`);
+                }
+            }
 
             mongoStatus.version = serverStatus.version || 'unknown';
             mongoStatus.connections = {
@@ -783,7 +810,7 @@ class HealthController {
                     // Ignore cache errors
                 }
             }
-    
+
             return mongoStatus;
 
         } catch (error) {
@@ -806,9 +833,8 @@ class HealthController {
                 const healthData = await this._getOptimizedHealthData();
 
                 // Broadcast to other instances
-                // Use serverId:port:pm2Id for stable instance identification across restarts
-                const broadcastId = `${global.appConfig.system.serverId}:${global.appConfig.system.port}:${global.appConfig.system.pm2Id}`;
-                const channel = `controller:health:metrics:${broadcastId}`;
+                // Use appConfig.system.instanceId (serverId:pm2Id:pid) for stable instance identification
+                const channel = `controller:health:metrics:${global.appConfig.system.instanceId}`;
 
                 global.RedisManager.publishBroadcast(channel, healthData);
 
@@ -980,36 +1006,37 @@ class HealthController {
             lastActivity: ns.lastActivity
         }));
 
-        // Build instances array for this instance
-        const instances = [];
+        // Build instance data for THIS instance only (not all PM2 processes)
         const mongoStatus = await this._getMongoDBStatus();
+        const instances = [];
+        const memUsage = process.memoryUsage();
+        const metrics = this._getMetrics();
 
         if (pm2Status && pm2Status.processes) {
-            // Multiple PM2 instances
-            const metrics = this._getMetrics();
+            // Running under PM2 - find THIS process in the PM2 status
+            const thisProcess = pm2Status.processes.find(p => p.pid === process.pid);
 
-            pm2Status.processes.forEach(p => {
-                const uptime = Math.floor((Date.now() - p.uptime) / 1000);
-                const memUsage = process.memoryUsage();
+            if (thisProcess) {
+                const uptime = Math.floor((Date.now() - thisProcess.uptime) / 1000);
 
                 instances.push({
-                    pid: p.pid,
-                    pm2Id: p.instanceId,
+                    pid: thisProcess.pid,
+                    pm2Id: global.appConfig.system.pm2Id,
                     port: global.appConfig.system.port,
                     instanceName: global.appConfig.system.instanceName,
                     instanceId: global.appConfig.system.instanceId,
                     pm2Available: true,
-                    pm2ProcessName: p.name,
-                    status: p.status,
+                    pm2ProcessName: thisProcess.name,
+                    status: thisProcess.status,
                     uptime: uptime,
                     uptimeFormatted: this._formatUptime(uptime),
                     memory: {
-                        used: p.memory,
+                        used: thisProcess.memory,
                         total: Math.round(memUsage.heapTotal / 1024 / 1024), // MB
-                        percentage: Math.round((p.memory / Math.round(memUsage.heapTotal / 1024 / 1024)) * 100)
+                        percentage: Math.round((thisProcess.memory / Math.round(memUsage.heapTotal / 1024 / 1024)) * 100)
                     },
-                    cpu: p.cpu,
-                    restarts: p.restarts,
+                    cpu: thisProcess.cpu,
+                    restarts: thisProcess.restarts,
                     // Application-level metadata (instance-specific)
                     jPulse: {
                         version: global.appConfig.app.jPulse.version,
@@ -1032,12 +1059,12 @@ class HealthController {
                     },
                     websockets: {
                         uptime: wsStats.uptime,
-                        localConnections: Math.floor(wsStats.namespaces.reduce((total, ns) => total + ns.clientCount, 0) / pm2Status.processes.length),
-                        localMessages: Math.floor(wsStats.totalMessages / pm2Status.processes.length),
+                        localConnections: wsStats.namespaces.reduce((total, ns) => total + ns.clientCount, 0),
+                        localMessages: wsStats.totalMessages,
                         namespaces: wsStats.namespaces.map(ns => ({
                             path: ns.path,
-                            clientCount: Math.floor(ns.clientCount / pm2Status.processes.length),
-                            localMessages: Math.floor(ns.totalMessages / pm2Status.processes.length),
+                            clientCount: ns.clientCount,
+                            localMessages: ns.totalMessages,
                             messagesPerMin: ns.messagesPerMin,
                             lastActivity: ns.lastActivity
                         }))
@@ -1048,12 +1075,10 @@ class HealthController {
                         resourceUsage: process.resourceUsage ? process.resourceUsage() : null
                     }
                 });
-            });
+            }
         } else {
             // Single instance (no PM2 or PM2 not available)
             const uptime = Math.floor(process.uptime());
-            const memUsage = process.memoryUsage();
-            const metrics = this._getMetrics();
 
             instances.push({
                 pid: process.pid,
@@ -1062,7 +1087,7 @@ class HealthController {
                 instanceName: global.appConfig.system.instanceName,
                 instanceId: global.appConfig.system.instanceId,
                 pm2Available: false,
-                reason: pm2Status === null ? "PM2 not installed or not in PATH" : null,
+                reason: "PM2 not available",
                 uptime: uptime,
                 uptimeFormatted: this._formatUptime(uptime),
                 memory: {
@@ -1111,6 +1136,7 @@ class HealthController {
             });
         }
 
+        // Return data for THIS instance only - aggregation happens at the receiver
         return {
             hostname: systemInfo.hostname,
             platform: systemInfo.platform,
@@ -1121,15 +1147,15 @@ class HealthController {
             freeMemory: systemInfo.freeMemory,
             totalMemory: systemInfo.totalMemory,
             database: mongoStatus,
-            totalInstances: pm2Status ? pm2Status.totalProcesses : 1,
-            totalProcesses: pm2Status ? pm2Status.totalProcesses : 1,
-            runningProcesses: pm2Status ? pm2Status.running : 1,
-            stoppedProcesses: pm2Status ? pm2Status.stopped : 0,
-            erroredProcesses: pm2Status ? pm2Status.errored : 0,
+            totalInstances: 1,  // Just this instance
+            totalProcesses: 1,  // Just this instance
+            runningProcesses: instances.length > 0 && instances[0].status === 'online' ? 1 : 0,
+            stoppedProcesses: instances.length > 0 && instances[0].status === 'stopped' ? 1 : 0,
+            erroredProcesses: instances.length > 0 && instances[0].status === 'errored' ? 1 : 0,
             totalWebSocketConnections,
             totalWebSocketMessages: wsStats.totalMessages,
             webSocketNamespaces,
-            instances: instances,
+            instances: instances,  // Array with single instance
             timestamp: new Date().toISOString()
         };
     }

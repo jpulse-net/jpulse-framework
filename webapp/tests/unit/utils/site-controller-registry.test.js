@@ -1,10 +1,10 @@
 /**
- * @name            jPulse Framework / WebApp / Tests / Unit / Utils / Site Registry
- * @tagline         Unit tests for W-014 SiteRegistry auto-discovery utility
+ * @name            jPulse Framework / WebApp / Tests / Unit / Utils / Site Controller Registry Tests
+ * @tagline         Unit tests for W-014 SiteControllerRegistry auto-discovery utility
  * @description     Tests site controller auto-discovery and API registration functionality
- * @file            webapp/tests/unit/utils/site-registry.test.js
- * @version         1.0.0-rc.1
- * @release         2025-10-22
+ * @file            webapp/tests/unit/utils/site-controller-registry.test.js
+ * @version         1.0.0-rc.2
+ * @release         2025-10-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -28,8 +28,8 @@ jest.mock('../../../controller/log.js', () => ({
     logError: jest.fn()
 }));
 
-describe('SiteRegistry (W-014)', () => {
-    let SiteRegistry;
+describe('SiteControllerRegistry (W-014)', () => {
+    let SiteControllerRegistry;
     let LogController;
     const mockProjectRoot = '/Users/test/jpulse-framework';
 
@@ -47,14 +47,14 @@ describe('SiteRegistry (W-014)', () => {
         };
 
         // Import the modules - they will use the mocked fs
-        const { default: SiteRegistryModule } = await import('../../../utils/site-registry.js');
-        SiteRegistry = SiteRegistryModule;
+        const { default: SiteControllerRegistryModule } = await import('../../../utils/site-controller-registry.js');
+        SiteControllerRegistry = SiteControllerRegistryModule;
         LogController = await import('../../../controller/log.js');
 
         // Clear the registry to ensure clean state
-        SiteRegistry.registry.controllers.clear();
-        SiteRegistry.registry.scanPath = null;
-        SiteRegistry.registry.lastScan = null;
+        SiteControllerRegistry.registry.controllers.clear();
+        SiteControllerRegistry.registry.scanPath = null;
+        SiteControllerRegistry.registry.lastScan = null;
     });
 
     afterEach(() => {
@@ -101,14 +101,14 @@ describe('SiteRegistry (W-014)', () => {
                 default: mockAdminController
             }), { virtual: true });
 
-            await SiteRegistry.initialize();
+            await SiteControllerRegistry.initialize();
 
             expect(fs.existsSync).toHaveBeenCalledWith(controllerDir);
             expect(fs.readdirSync).toHaveBeenCalledWith(controllerDir);
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry',
-                'Discovered 2 controllers, 1 with APIs'
+                'site-controller-registry',
+                'Discovered 2 controller(s), 0 initialized, 1 API method(s)'
             );
         });
 
@@ -118,13 +118,13 @@ describe('SiteRegistry (W-014)', () => {
             // Mock directory does not exist
             fs.existsSync.mockReturnValue(false);
 
-            await SiteRegistry.initialize();
+            await SiteControllerRegistry.initialize();
 
             expect(fs.existsSync).toHaveBeenCalledWith(controllerDir);
             expect(fs.readdirSync).not.toHaveBeenCalled();
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry',
+                'site-controller-registry',
                 'Site controller directory not found - no site overrides to register'
             );
         });
@@ -157,12 +157,12 @@ describe('SiteRegistry (W-014)', () => {
                 return '';
             });
 
-            await SiteRegistry.initialize();
+            await SiteControllerRegistry.initialize();
 
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry',
-                'Discovered 3 controllers, 3 with APIs'
+                'site-controller-registry',
+                'Discovered 3 controller(s), 0 initialized, 4 API method(s)'
             );
         });
 
@@ -183,17 +183,17 @@ describe('SiteRegistry (W-014)', () => {
                 return '';
             });
 
-            await SiteRegistry.initialize();
+            await SiteControllerRegistry.initialize();
 
             expect(LogController.logError).toHaveBeenCalledWith(
                 null,
-                'site-registry',
-                expect.stringContaining('error: Failed to analyze controller broken.js')
+                'site-controller-registry',
+                expect.stringContaining('Failed to analyze controller broken.js')
             );
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry',
-                'Discovered 1 controllers, 1 with APIs'
+                'site-controller-registry',
+                'Discovered 1 controller(s), 0 initialized, 1 API method(s)'
             );
         });
     });
@@ -208,29 +208,42 @@ describe('SiteRegistry (W-014)', () => {
             };
 
             // Mock discovered controllers in the registry
-            SiteRegistry.registry.controllers.set('hello', {
+            SiteControllerRegistry.registry.controllers.set('hello', {
                 name: 'hello',
                 hasApi: true,
-                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
+                apiMethods: [
+                    { name: 'api', method: 'GET', pathSuffix: '' }
+                ],
+                hasInitialize: false,
                 path: '/mock/path/hello.js',
                 relativePath: 'controller/hello.js'
             });
-            SiteRegistry.registry.controllers.set('helloTodo', {
+            SiteControllerRegistry.registry.controllers.set('helloTodo', {
                 name: 'helloTodo',
                 hasApi: true,
-                apiMethods: { api: true, apiCreate: true, apiToggle: true, apiDelete: true, apiStats: true },
+                apiMethods: [
+                    { name: 'api', method: 'GET', pathSuffix: '' },
+                    { name: 'apiCreate', method: 'POST', pathSuffix: '' },
+                    { name: 'apiToggle', method: 'PUT', pathSuffix: '/:id/toggle' },
+                    { name: 'apiDelete', method: 'DELETE', pathSuffix: '/:id' },
+                    { name: 'apiStats', method: 'GET', pathSuffix: '/stats' }
+                ],
+                hasInitialize: false,
                 path: '/mock/path/helloTodo.js',
                 relativePath: 'controller/helloTodo.js'
             });
-            SiteRegistry.registry.controllers.set('admin', {
+            SiteControllerRegistry.registry.controllers.set('admin', {
                 name: 'admin',
                 hasApi: true,
-                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
+                apiMethods: [
+                    { name: 'api', method: 'GET', pathSuffix: '' }
+                ],
+                hasInitialize: false,
                 path: '/mock/path/admin.js',
                 relativePath: 'controller/admin.js'
             });
 
-            SiteRegistry.registerApiRoutes(mockRouter);
+            SiteControllerRegistry.registerApiRoutes(mockRouter);
 
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/helloTodo', expect.any(Function));
@@ -241,13 +254,13 @@ describe('SiteRegistry (W-014)', () => {
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/admin', expect.any(Function));
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry',
-                'Registered API route GET /api/1/hello → hello.api'
+                'site-controller-registry',
+                'Registered: GET /api/1/hello → hello.api'
             );
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry',
-                'Registered API route GET /api/1/admin → admin.api'
+                'site-controller-registry',
+                'Registered: GET /api/1/admin → admin.api'
             );
         });
 
@@ -262,18 +275,21 @@ describe('SiteRegistry (W-014)', () => {
             };
 
             // Mock discovered controller in the registry
-            SiteRegistry.registry.controllers.set('hello', {
+            SiteControllerRegistry.registry.controllers.set('hello', {
                 name: 'hello',
                 hasApi: true,
-                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
+                apiMethods: [
+                    { name: 'api', method: 'GET', pathSuffix: '' }
+                ],
+                hasInitialize: false,
                 path: '/mock/path/hello.js',
                 relativePath: 'controller/hello.js'
             });
 
-            // Mock loadController to return the mock controller
-            jest.spyOn(SiteRegistry, 'loadController').mockResolvedValue(mockController);
+            // Mock _loadController to return the mock controller
+            jest.spyOn(SiteControllerRegistry, '_loadController').mockResolvedValue(mockController);
 
-            SiteRegistry.registerApiRoutes(mockRouter);
+            SiteControllerRegistry.registerApiRoutes(mockRouter);
 
             // Verify the route was registered
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
@@ -306,20 +322,23 @@ describe('SiteRegistry (W-014)', () => {
             };
 
             // Mock discovered controller in the registry
-            SiteRegistry.registry.controllers.set('hello', {
+            SiteControllerRegistry.registry.controllers.set('hello', {
                 name: 'hello',
                 hasApi: true,
-                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
+                apiMethods: [
+                    { name: 'api', method: 'GET', pathSuffix: '' }
+                ],
+                hasInitialize: false,
                 path: '/mock/path/hello.js',
                 relativePath: 'controller/hello.js'
             });
 
-            // Mock loadController to return the mock controller
-            jest.spyOn(SiteRegistry, 'loadController').mockResolvedValue(mockController);
+            // Mock _loadController to return the mock controller
+            jest.spyOn(SiteControllerRegistry, '_loadController').mockResolvedValue(mockController);
 
             // Don't mock CommonUtils so it falls back to direct res.status/res.json
 
-            SiteRegistry.registerApiRoutes(mockRouter);
+            SiteControllerRegistry.registerApiRoutes(mockRouter);
 
             const routeHandler = mockRouter.get.mock.calls.find(call => call[0] === '/api/1/hello')[1];
             const mockReq = { method: 'GET', url: '/api/1/hello', originalUrl: '/api/1/hello' };
@@ -332,9 +351,11 @@ describe('SiteRegistry (W-014)', () => {
 
             expect(mockRes.status).toHaveBeenCalledWith(500);
             expect(mockRes.json).toHaveBeenCalledWith({
+                success: false,
                 error: 'Site API error',
+                code: 'SITE_API_ERROR',
                 path: '/api/1/hello',
-                success: false
+                details: 'Controller error'
             });
         });
 
@@ -347,29 +368,40 @@ describe('SiteRegistry (W-014)', () => {
             };
 
             // Mock controllers - one with API, one without
-            SiteRegistry.registry.controllers.set('hello', {
+            SiteControllerRegistry.registry.controllers.set('hello', {
                 name: 'hello',
                 hasApi: true,
-                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
+                apiMethods: [
+                    { name: 'api', method: 'GET', pathSuffix: '' }
+                ],
+                hasInitialize: false,
                 path: '/mock/path/hello.js',
                 relativePath: 'controller/hello.js'
             });
-            SiteRegistry.registry.controllers.set('helloTodo', {
+            SiteControllerRegistry.registry.controllers.set('helloTodo', {
                 name: 'helloTodo',
                 hasApi: true,
-                apiMethods: { api: true, apiCreate: true, apiToggle: true, apiDelete: true, apiStats: true },
+                apiMethods: [
+                    { name: 'api', method: 'GET', pathSuffix: '' },
+                    { name: 'apiCreate', method: 'POST', pathSuffix: '' },
+                    { name: 'apiToggle', method: 'PUT', pathSuffix: '/:id/toggle' },
+                    { name: 'apiDelete', method: 'DELETE', pathSuffix: '/:id' },
+                    { name: 'apiStats', method: 'GET', pathSuffix: '/stats' }
+                ],
+                hasInitialize: false,
                 path: '/mock/path/helloTodo.js',
                 relativePath: 'controller/helloTodo.js'
             });
-            SiteRegistry.registry.controllers.set('admin', {
+            SiteControllerRegistry.registry.controllers.set('admin', {
                 name: 'admin',
                 hasApi: false, // No API method
-                apiMethods: { api: false, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
+                apiMethods: [],
+                hasInitialize: false,
                 path: '/mock/path/admin.js',
                 relativePath: 'controller/admin.js'
             });
 
-            SiteRegistry.registerApiRoutes(mockRouter);
+            SiteControllerRegistry.registerApiRoutes(mockRouter);
 
             expect(mockRouter.get).toHaveBeenCalledTimes(3); // hello + helloTodo (with stats endpoint) + helloTodo main
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
@@ -393,17 +425,17 @@ describe('SiteRegistry (W-014)', () => {
                 return '';
             });
 
-            await SiteRegistry.initialize();
+            await SiteControllerRegistry.initialize();
 
             const mockRouter = { get: jest.fn() };
-            SiteRegistry.registerApiRoutes(mockRouter);
+            SiteControllerRegistry.registerApiRoutes(mockRouter);
 
             // Should auto-discover and register without manual configuration
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry',
-                'Discovered 1 controllers, 1 with APIs'
+                'site-controller-registry',
+                'Discovered 1 controller(s), 0 initialized, 1 API method(s)'
             );
         });
 
@@ -416,29 +448,38 @@ describe('SiteRegistry (W-014)', () => {
             };
 
             // Mock multiple controllers with APIs
-            SiteRegistry.registry.controllers.set('hello', {
+            SiteControllerRegistry.registry.controllers.set('hello', {
                 name: 'hello',
                 hasApi: true,
-                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
+                apiMethods: [
+                    { name: 'api', method: 'GET', pathSuffix: '' }
+                ],
+                hasInitialize: false,
                 path: '/mock/path/hello.js',
                 relativePath: 'controller/hello.js'
             });
-            SiteRegistry.registry.controllers.set('user-profile', {
+            SiteControllerRegistry.registry.controllers.set('user-profile', {
                 name: 'user-profile',
                 hasApi: true,
-                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
+                apiMethods: [
+                    { name: 'api', method: 'GET', pathSuffix: '' }
+                ],
+                hasInitialize: false,
                 path: '/mock/path/user-profile.js',
                 relativePath: 'controller/user-profile.js'
             });
-            SiteRegistry.registry.controllers.set('admin-dashboard', {
+            SiteControllerRegistry.registry.controllers.set('admin-dashboard', {
                 name: 'admin-dashboard',
                 hasApi: true,
-                apiMethods: { api: true, apiCreate: false, apiToggle: false, apiDelete: false, apiStats: false },
+                apiMethods: [
+                    { name: 'api', method: 'GET', pathSuffix: '' }
+                ],
+                hasInitialize: false,
                 path: '/mock/path/admin-dashboard.js',
                 relativePath: 'controller/admin-dashboard.js'
             });
 
-            SiteRegistry.registerApiRoutes(mockRouter);
+            SiteControllerRegistry.registerApiRoutes(mockRouter);
 
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
             expect(mockRouter.get).toHaveBeenCalledWith('/api/1/user-profile', expect.any(Function));
@@ -460,7 +501,7 @@ describe('SiteRegistry (W-014)', () => {
                 default: mockController
             }), { virtual: true });
 
-            await SiteRegistry.initialize();
+            await SiteControllerRegistry.initialize();
 
             expect(fs.existsSync).toHaveBeenCalledWith(controllerDir);
             expect(fs.existsSync).not.toHaveBeenCalledWith(
@@ -476,12 +517,12 @@ describe('SiteRegistry (W-014)', () => {
             fs.existsSync.mockReturnValue(true);
             fs.readdirSync.mockReturnValue([]);
 
-            await SiteRegistry.initialize();
+            await SiteControllerRegistry.initialize();
 
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry',
-                'Discovered 0 controllers, 0 with APIs'
+                'site-controller-registry',
+                'Discovered 0 controller(s), 0 initialized, 0 API method(s)'
             );
         });
 
@@ -493,12 +534,12 @@ describe('SiteRegistry (W-014)', () => {
                 throw new Error('Permission denied');
             });
 
-            await SiteRegistry.initialize();
+            await SiteControllerRegistry.initialize();
 
             expect(LogController.logError).toHaveBeenCalledWith(
                 null,
-                'site-registry',
-                expect.stringContaining('error: Site Registry initialization failed:')
+                'site-controller-registry',
+                expect.stringContaining('Site controller registry initialization failed:')
             );
         });
 
@@ -514,15 +555,15 @@ describe('SiteRegistry (W-014)', () => {
                 default: mockController
             }), { virtual: true });
 
-            await SiteRegistry.initialize();
+            await SiteControllerRegistry.initialize();
 
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
-                'site-registry',
-                'Discovered 1 controllers, 0 with APIs'
+                'site-controller-registry',
+                'Discovered 1 controller(s), 0 initialized, 0 API method(s)'
             );
         });
     });
 });
 
-// EOF webapp/tests/unit/utils/site-registry.test.js
+// EOF webapp/tests/unit/utils/site-controller-registry.test.js

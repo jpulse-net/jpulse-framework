@@ -1,8 +1,8 @@
-# jPulse Framework v1.0.0-rc.1
+# jPulse Framework v1.0.0-rc.2
 
 A modern **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application framework designed for enterprise and government organizations. Built on **MVC architecture**, jPulse uniquely supports **both MPA and SPA patterns**, giving you the flexibility to choose the right architecture for each part of your application.
 
-**🎉 Release Candidate 1**: Production-ready WebSocket and Redis integration with real-time multi-user communication capabilities.
+**🎉 Release Candidate 2**: Zero-configuration auto-discovery architecture with automatic controller registration, API endpoint detection, and SPA routing.
 
 ## Why jPulse?
 
@@ -75,7 +75,11 @@ npm start
   - **WebSocket** for bi-directional real-time interactions (chat, live updates, gaming)
   - **Redis Clustering**: Multi-instance coordination for sessions, broadcasts, and WebSocket across servers
 - **Site Override System**: Customize without fear of losing changes during updates
-- **Zero Configuration**: Auto-discovery of controllers, routes, and APIs
+- **Zero Configuration**: Auto-discovery of controllers, API routes, and SPA routing:
+  - Create `controller/product.js` with `static async api()` → automatically registered at `GET /api/1/product`
+  - Add `static async apiCreate()` → automatically registered at `POST /api/1/product`
+  - Add `view/my-app/index.shtml` with Vue Router → automatically detects SPA, supports page reloads on all sub-routes
+  - Just create files following naming conventions - framework handles discovery, registration, and routing!
 - **Health Metrics**: Aggregated across instances on all app servers
 - **Enterprise Security**: Built-in authentication, session management, and security headers
 - **Internationalization**: Complete i18n support with dynamic translation loading

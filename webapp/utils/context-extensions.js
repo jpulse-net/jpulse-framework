@@ -3,8 +3,8 @@
  * @tagline         Handlebars Context Extension System
  * @description     Allows site controllers to extend handlebars context (W-014)
  * @file            webapp/utils/context-extensions.js
- * @version         1.0.0-rc.1
- * @release         2025-10-22
+ * @version         1.0.0-rc.2
+ * @release         2025-10-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -146,11 +146,11 @@ class ContextExtensions {
         // Register default site provider (looks for site context extensions)
         this.registerProvider('site', async (baseContext, req) => {
             try {
-                const SiteRegistry = (await import('./site-registry.js')).default;
+                const SiteControllerRegistry = (await import('./site-controller-registry.js')).default;
 
                 // Check if site has a context provider
-                if (SiteRegistry.hasController('context')) {
-                    const ContextController = await SiteRegistry.loadController('context');
+                if (SiteControllerRegistry.hasController('context')) {
+                    const ContextController = await SiteControllerRegistry.loadController('context');
                     if (ContextController.getContext) {
                         return await ContextController.getContext(baseContext, req);
                     }

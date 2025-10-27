@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / REST API Reference v1.0.0-rc.1
+# jPulse Framework / Docs / REST API Reference v1.0.0-rc.2
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -100,6 +100,244 @@ Authenticated requests include user context in `req.session.user`:
     preferences: {
         language: "en",
         theme: "light"
+    }
+}
+```
+
+## 🚀 Automatic API Registration (W-014)
+
+jPulse Framework automatically discovers and registers site-specific API endpoints with **zero configuration required**. Simply create a controller file and follow naming conventions!
+
+### How It Works
+
+1. **Auto-Discovery**: The `SiteControllerRegistry` scans `site/webapp/controller/` on startup
+2. **Pattern Matching**: Detects all `static async api*()` methods using regex
+3. **Method Inference**: Automatically determines HTTP method (GET/POST/PUT/DELETE) from method name
+4. **Route Registration**: Creates Express routes at `/api/1/{controllerName}`
+5. **Initialization**: Calls `static async initialize()` if present
+
+### Naming Conventions
+
+#### API Method Patterns
+
+```javascript
+// Base API endpoint (GET)
+static async api(req, res) { }              // → GET /api/1/myController
+
+// Create operation (POST)
+static async apiCreate(req, res) { }        // → POST /api/1/myController
+
+// Read with ID (GET with :id parameter)
+static async apiGet(req, res) { }           // → GET /api/1/myController
+static async apiGetById(req, res) { }       // → GET /api/1/myController/:id
+
+// Update operation (PUT with :id parameter)
+static async apiUpdate(req, res) { }        // → PUT /api/1/myController/:id
+static async apiToggle(req, res) { }        // → PUT /api/1/myController/:id/toggle
+
+// Delete operation (DELETE with :id parameter)
+static async apiDelete(req, res) { }        // → DELETE /api/1/myController/:id
+
+// Custom endpoints (GET by default)
+static async apiStats(req, res) { }         // → GET /api/1/myController/stats
+static async apiSearch(req, res) { }        // → GET /api/1/myController/search
+```
+
+#### HTTP Method Inference Rules
+
+| Pattern | HTTP Method | URL Path | Example |
+|---------|-------------|----------|---------|
+| `api` | GET | `/api/1/{name}` | `static async api()` |
+| `apiCreate` | POST | `/api/1/{name}` | `static async apiCreate()` |
+| `apiUpdate` | PUT | `/api/1/{name}/:id` | `static async apiUpdate()` |
+| `apiDelete` | DELETE | `/api/1/{name}/:id` | `static async apiDelete()` |
+| `apiToggle` | PUT | `/api/1/{name}/:id/toggle` | `static async apiToggle()` |
+| `apiGet*` | GET | `/api/1/{name}` or `/:id` | `static async apiGetById()` |
+| Other | GET | `/api/1/{name}/...` | `static async apiStats()` |
+
+### Complete Example
+
+Create `site/webapp/controller/product.js`:
+
+```javascript
+/**
+ * Product Controller - Auto-discovered by SiteControllerRegistry
+ */
+import ProductModel from '../model/product.js';
+
+export default class ProductController {
+    // Optional: Called once at startup for setup
+    static async initialize() {
+        console.log('ProductController initialized');
+    }
+
+    // GET /api/1/product - List all products
+    static async api(req, res) {
+        const startTime = Date.now();
+        global.LogController.logRequest(req, 'product.api', '');
+        try {
+            const products = await ProductModel.findAll();
+            res.json({
+                success: true,
+                data: products
+            });
+            const duration = Date.now() - startTime;
+            global.LogController.logInfo(req, 'product.api', `success: data retrieved in ${duration}ms`);
+        } catch (error) {
+            global.LogController.logError(req, 'product.api', `error: ${error.message}`);
+            return global.CommonUtils.sendError(req, res, 500, 'Failed to fetch products', 'PRODUCT_FETCH_ERROR');
+        }
+    }
+
+    // POST /api/1/product - Create new product
+    static async apiCreate(req, res) {
+        const startTime = Date.now();
+        global.LogController.logRequest(req, 'product.apiCreate', JSON.stringify(req.body));
+        try {
+            const product = await ProductModel.create(req.body);
+            res.json({
+                success: true,
+                message: 'Product created',
+                data: product
+            });
+            const duration = Date.now() - startTime;
+            global.LogController.logInfo(req, 'product.apiCreate', `success: item created in ${duration}ms`);
+        } catch (error) {
+            global.LogController.logError(req, 'product.apiCreate', `error: ${error.message}`);
+            return global.CommonUtils.sendError(req, res, 400, 'Failed to create product', 'PRODUCT_CREATE_ERROR');
+        }
+    }
+
+    // GET /api/1/product/:id - Get product by ID
+    static async apiGetById(req, res) {
+        const startTime = Date.now();
+        const { id } = req.params;
+        global.LogController.logRequest(req, 'product.apiGetById', id);
+        try {
+            const product = await ProductModel.findById(id);
+            if (!product) {
+                global.LogController.logError(req, 'product.apiGetById', `error: ${error.message}`);
+                return global.CommonUtils.sendError(req, res, 404, 'Product not found', 'PRODUCT_FETCH_ERROR');
+            }
+            res.json({
+                success: true,
+                data: product
+            });
+            const duration = Date.now() - startTime;
+            global.LogController.logInfo(req, 'product.apiGetById', `success: ${id} retrieved in ${duration}ms`);
+        } catch (error) {
+            global.LogController.logError(req, 'product.apiGetById', `error: ${error.message}`);
+            return global.CommonUtils.sendError(req, res, 500, 'Failed to fetch product', 'PRODUCT_FETCH_ERROR');
+        }
+    }
+
+    // PUT /api/1/product/:id - Update product
+    static async apiUpdate(req, res) {
+        const startTime = Date.now();
+        const { id } = req.params;
+        global.LogController.logRequest(req, 'product.apiUpdate', id);
+        try {
+            const product = await ProductModel.update(id, req.body);
+            res.json({
+                success: true,
+                message: 'Product updated',
+                data: product
+            });
+            const duration = Date.now() - startTime;
+            global.LogController.logInfo(req, 'product.apiUpdate', `success: ${id} updated in ${duration}ms`);
+        } catch (error) {
+            global.LogController.logError(req, 'product.apiUpdate', `error: ${error.message}`);
+            return global.CommonUtils.sendError(req, res, 500, 'Failed to update product', 'PRODUCT_UPDATE_ERROR');
+        }
+    }
+
+    // DELETE /api/1/product/:id - Delete product
+    static async apiDelete(req, res) {
+        const startTime = Date.now();
+        const { id } = req.params;
+        global.LogController.logRequest(req, 'product.apiDelete', id);
+        try {
+            await ProductModel.delete(id);
+            res.json({
+                success: true,
+                message: 'Product deleted'
+            });
+            const duration = Date.now() - startTime;
+            global.LogController.logInfo(req, 'product.apiDelete', `success: ${id} deleted in ${duration}ms`);
+        } catch (error) {
+            global.LogController.logError(req, 'product.apiDelete', `error: ${error.message}`);
+            return global.CommonUtils.sendError(req, res, 500, 'Failed to delete product', 'PRODUCT_DELETE_ERROR');
+        }
+    }
+
+    // GET /api/1/product/stats - Custom endpoint
+    static async apiStats(req, res) {
+        const startTime = Date.now();
+        global.LogController.logRequest(req, 'product.apiStats', '');
+        try {
+            const stats = await ProductModel.getStatistics();
+            res.json({
+                success: true,
+                data: stats
+            });
+            const duration = Date.now() - startTime;
+            global.LogController.logInfo(req, 'product.apiStats', `success: stats retrieved in ${duration}ms`);
+        } catch (error) {
+            global.LogController.logError(req, 'product.apiStats', `error: ${error.message}`);
+            return global.CommonUtils.sendError(req, res, 500, 'Failed to fetch statistics', 'PRODUCT_STATS_ERROR');
+        }
+    }
+}
+```
+
+**That's it!** No route registration, no imports in `routes.js`, no manual configuration. The framework automatically:
+- ✅ Discovers the controller
+- ✅ Detects all 6 API methods
+- ✅ Infers HTTP methods (GET, POST, PUT, DELETE)
+- ✅ Registers Express routes
+- ✅ Calls `initialize()` on startup
+- ✅ Logs all registrations for debugging
+
+### Verification
+
+On startup, you'll see logs like:
+
+```
+- 2025-10-26 23:12:23  info  site-controller-registry  Initialized controller: product
+- 2025-10-26 23:12:23  info  site-controller-registry  Discovered 1 controller(s), 1 initialized, 6 API method(s)
+- 2025-10-26 23:12:23  info  site-controller-registry  Registered: GET /api/1/product → product.api
+- 2025-10-26 23:12:23  info  site-controller-registry  Registered: POST /api/1/product → product.apiCreate
+- 2025-10-26 23:12:23  info  site-controller-registry  Registered: GET /api/1/product/:id → product.apiGetById
+- 2025-10-26 23:12:23  info  site-controller-registry  Registered: PUT /api/1/product/:id → product.apiUpdate
+- 2025-10-26 23:12:23  info  site-controller-registry  Registered: DELETE /api/1/product/:id → product.apiDelete
+- 2025-10-26 23:12:23  info  site-controller-registry  Registered: GET /api/1/product/stats → product.apiStats
+- 2025-10-26 23:12:23  info  routes  Auto-registered 6 site API endpoints
+```
+
+### Best Practices
+
+1. **Consistent Naming**: Follow the naming conventions for automatic HTTP method inference
+2. **Error Handling**: Always wrap API logic in try-catch blocks
+3. **Standard Responses**: Use the standard `{ success, data/error }` format
+4. **Initialization**: Use `static async initialize()` for setup (WebSocket namespaces, cron jobs, etc.)
+5. **Type Safety**: Add JSDoc comments for better IDE support
+6. **Internal Methods**: Prefix helper methods with `_` to prevent route registration
+
+### Advanced: Internal Methods
+
+Methods prefixed with `_` are considered internal and **not registered** as routes:
+
+```javascript
+export default class ProductController {
+    // Public API - registered as GET /api/1/product
+    static async api(req, res) {
+        const products = await this._fetchProducts();
+        res.json({ success: true, data: products });
+    }
+
+    // Internal helper - NOT registered as a route
+    static async _fetchProducts() {
+        return await ProductModel.findAll();
     }
 }
 ```

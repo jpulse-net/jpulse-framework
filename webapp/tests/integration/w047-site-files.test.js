@@ -3,8 +3,8 @@
  * @tagline         Integration tests for W-047 site-specific file loading
  * @description     Tests site-common.css/js loading and handlebars processing
  * @file            webapp/tests/integration/w047-site-files.test.js
- * @version         1.0.0-rc.1
- * @release         2025-10-22
+ * @version         1.0.0-rc.2
+ * @release         2025-10-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -102,7 +102,7 @@ describe('W-047 Site-Specific Files Integration', () => {
 
             // Verify the site-common route exists
             expect(routesContent).toContain('/\\/site-common\\.(js|css)$/');
-            expect(routesContent).toContain('viewController.load');
+            expect(routesContent).toContain('ViewController.load');
         });
     });
 

@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         1.0.0-rc.1
- * @release         2025-10-22
+ * @version         1.0.0-rc.2
+ * @release         2025-10-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -222,57 +222,8 @@ global.appConfig = appConfig;
 const { bootstrap } = await import('./utils/bootstrap.js');
 const modules = await bootstrap({ isTest: false });
 
-// W-014: Initialize site registry for auto-discovery
-const SiteRegistry = (await import('./utils/site-registry.js')).default;
-const registryStats = await SiteRegistry.initialize();
-appLog(`Site registry initialized - ${registryStats.controllers} controllers, ${registryStats.apis} APIs`);
-
-// W-014: Initialize context extensions system
-const ContextExtensions = (await import('./utils/context-extensions.js')).default;
-await ContextExtensions.initialize();
-appLog('Context extensions initialized');
-
-// W-049: Build view registry for optimized routing
-function buildViewRegistry() {
-
-    // Scan framework view directories
-    const frameworkViewPath = path.join(appConfig.system.appDir, 'view');
-    let frameworkDirs = [];
-    try {
-        frameworkDirs = fs.readdirSync(frameworkViewPath, { withFileTypes: true })
-            .filter(entry => entry.isDirectory())
-            .map(entry => entry.name);
-    } catch (error) {
-        // Framework view directory doesn't exist
-    }
-
-    // Scan site view directories (takes precedence)
-    const siteViewPath = path.join(path.dirname(appConfig.system.siteDir), 'view');
-    let siteDirs = [];
-    try {
-        siteDirs = fs.readdirSync(siteViewPath, { withFileTypes: true })
-            .filter(entry => entry.isDirectory())
-            .map(entry => entry.name);
-    } catch (error) {
-        // Site view directory doesn't exist
-    }
-
-    // Combine with site precedence
-    const viewSet = new Set([...siteDirs, ...frameworkDirs]);
-    const viewList = Array.from(viewSet).sort();
-    const viewRouteRE = new RegExp('^/(' + viewList.join('|') + ')(/|$)');
-
-    return { viewList, viewRouteRE };
-}
-
-global.viewRegistry = buildViewRegistry();
-appLog(`View registry built - [${global.viewRegistry.viewList.map(v => `'${v}'`).join(', ')}]`);
-
 // Load routing
 const routes = await import('./routes.js').then(m => m.default);
-
-// Load WebSocket controller
-const WebSocketController = (await import('./controller/websocket.js')).default;
 
 // Main application function
 async function startApp() {
@@ -327,15 +278,6 @@ async function startApp() {
 
     // Initialize WebSocket server with session middleware
     await WebSocketController.initialize(server, sessionMiddleware);
-
-    // Initialize site WebSocket controllers
-    try {
-        const HelloWebsocketController = (await import('../site/webapp/controller/helloWebsocket.js')).default;
-        await HelloWebsocketController.initialize();
-    } catch (error) {
-        // Site controller may not exist - that's ok
-        LogController.logInfo(null, 'app', 'No site WebSocket controllers to initialize');
-    }
 }
 
 // Start the application

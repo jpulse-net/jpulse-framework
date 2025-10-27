@@ -3,8 +3,8 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.0.0-rc.1
- * @release         2025-10-22
+ * @version         1.0.0-rc.2
+ * @release         2025-10-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -28,7 +28,7 @@ import UserController from './controller/user.js';
 import ConfigController from './controller/config.js';
 import WebSocketController from './controller/websocket.js';
 import logController from './controller/log.js';
-import viewController from './controller/view.js';
+import ViewController from './controller/view.js';
 import CommonUtils from './utils/common.js';
 
 // API routes (must come before catch-all route)
@@ -88,19 +88,20 @@ router.use('/common', express.static(path.join(appConfig.system.appDir, 'static'
 router.get(/^\/admin\/.*/, AuthController.requireAuthentication, AuthController.requireRole(['admin', 'root']));
 
 // W-014: Auto-register site controller APIs (no manual registration needed!)
-const SiteRegistry = (await import('./utils/site-registry.js')).default;
-const registeredApis = SiteRegistry.registerApiRoutes(router);
+const SiteControllerRegistry = (await import('./utils/site-controller-registry.js')).default;
+const registeredApis = SiteControllerRegistry.registerApiRoutes(router);
 LogController.logInfo(null, 'routes', `Auto-registered ${registeredApis} site API endpoints`);
 
 // Dynamic content routes - handle {{handlebars}} in .shtml, .tmpl, and jpulse-* files only
-router.get(/\.(shtml|tmpl)$/, viewController.load);
-router.get(/\/jpulse-.*\.(js|css)$/, viewController.load);
+router.get(/\.(shtml|tmpl)$/, (req, res) => ViewController.load(req, res));
+router.get(/\/jpulse-.*\.(js|css)$/, (req, res) => ViewController.load(req, res));
 // W-047: Serve site-common files from view directory
-router.get(/\/site-common\.(js|css)$/, viewController.load);
+router.get(/\/site-common\.(js|css)$/, (req, res) => ViewController.load(req, res));
 // W-049: Use view registry for optimized routing to view directories
-router.get(global.viewRegistry.viewRouteRE, viewController.load);
+router.get(global.ViewController.getViewRouteRE(), (req, res) => ViewController.load(req, res));
+
 // Also handle non-existing view directories ending with / so view controller can render proper 404
-router.get(/^\/[a-zA-Z][a-zA-Z0-9-]*\/$/, viewController.load);
+router.get(/^\/[a-zA-Z][a-zA-Z0-9-]*\/$/, (req, res) => ViewController.load(req, res));
 router.get('/', (req, res) => {
     res.redirect('/home/');
 });

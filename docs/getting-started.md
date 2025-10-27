@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Getting Started with jPulse v1.0.0-rc.1
+# jPulse Framework / Docs / Getting Started with jPulse v1.0.0-rc.2
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the W-014 override system.
 
@@ -133,47 +133,58 @@ Visit `http://localhost:8080` - you should see your custom home page!
 Create `site/webapp/controller/hello.js`:
 
 ```javascript
-import { LogController } from '../../../webapp/controller/log.js';
-import { ViewController } from '../../../webapp/controller/view.js';
+/**
+ * Hello Controller - Automatically discovered by jPulse Framework (W-014)
+ *
+ * API endpoints are auto-registered based on method names:
+ * - static async api() → GET /api/1/hello
+ * - static async apiCreate() → POST /api/1/hello
+ * - static async apiStats() → GET /api/1/hello/stats
+ */
+import LogController from '../../../webapp/controller/log.js';
 
-class HelloController {
-    constructor() {
-        this.viewController = new ViewController();
+export default class HelloController {
+    // Optional: Called once at startup for initialization
+    static async initialize() {
+        LogController.logInfo(null, 'HelloController.initialize', 'Custom controller initialized');
     }
 
-    // Web page handler
-    async index(req, res) {
-        LogController.logInfo(req, 'HelloController.index', 'Displaying hello page');
-
-        const context = {
-            pageTitle: 'Hello World',
-            message: 'Hello from your custom controller!',
-            timestamp: new Date().toISOString()
-        };
-
-        await this.viewController.renderView(req, res, 'hello/index', context);
-    }
-
-    // API endpoint
-    api() {
-        return {
-            'GET /greeting': this.getGreeting.bind(this)
-        };
-    }
-
-    async getGreeting(req, res) {
-        LogController.logInfo(req, 'HelloController.getGreeting', 'API greeting requested');
+    // Auto-registered as: GET /api/1/hello
+    static async api(req, res) {
+        LogController.logInfo(req, 'HelloController.api', 'API greeting requested');
 
         res.json({
             success: true,
             message: 'Hello from jPulse API!',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            server: global.appConfig.system.instanceName
+        });
+    }
+
+    // Auto-registered as: GET /api/1/hello/stats
+    static async apiStats(req, res) {
+        LogController.logInfo(req, 'HelloController.apiStats', 'API stats requested');
+
+        res.json({
+            success: true,
+            data: {
+                uptime: process.uptime(),
+                memory: process.memoryUsage(),
+                version: global.appConfig.app.jPulse.version
+            }
         });
     }
 }
-
-export { HelloController };
 ```
+
+**✨ Auto-Discovery Magic:** The framework automatically:
+- Discovers your controller on startup
+- Detects all `static async api*()` methods
+- Registers routes at `/api/1/{controllerName}`
+- Calls `static async initialize()` if present
+- Logs all registrations for debugging
+
+No route registration, no imports in `routes.js`, no manual configuration needed!
 
 ### Create the View Template
 Create `site/webapp/view/hello/index.shtml`:
@@ -195,10 +206,15 @@ Create `site/webapp/view/hello/index.shtml`:
 <script>
 document.getElementById('apiTest').addEventListener('click', async () => {
     try {
-        const response = await fetch('/api/1/hello/greeting');
+        // Call auto-registered API endpoint
+        const response = await fetch('/api/1/hello');
         const data = await response.json();
         document.getElementById('apiResult').innerHTML =
-            `<div class="jp-alert jp-alert-success">API Response: ${data.message}</div>`;
+            `<div class="jp-alert jp-alert-success">
+                API Response: ${data.message}<br>
+                Server: ${data.server}<br>
+                Time: ${data.timestamp}
+            </div>`;
     } catch (error) {
         document.getElementById('apiResult').innerHTML =
             `<div class="jp-alert jp-alert-error">Error: ${error.message}</div>`;
@@ -218,7 +234,17 @@ document.getElementById('apiTest').addEventListener('click', async () => {
 ### Test Your Controller
 Restart the server and visit:
 - `http://localhost:8080/hello/` - Your custom page
-- `http://localhost:8080/api/1/hello/greeting` - Your API endpoint
+- `http://localhost:8080/api/1/hello` - Your API endpoint (auto-registered!)
+- `http://localhost:8080/api/1/hello/stats` - Stats endpoint (auto-registered!)
+
+Check your server logs to see the auto-registration messages:
+```
+- info  site-controller-registry  Initialized controller: hello
+- info  site-controller-registry  Discovered 1 controller(s), 1 initialized, 2 API method(s)
+- info  site-controller-registry  Registered: GET /api/1/hello → hello.api
+- info  site-controller-registry  Registered: GET /api/1/hello/stats → hello.apiStats
+- info  routes  Auto-registered 2 site API endpoints
+```
 
 ## Step 5: Customize Styling
 

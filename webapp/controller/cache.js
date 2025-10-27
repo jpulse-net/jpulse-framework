@@ -3,8 +3,8 @@
  * @tagline         Cache management API controller for the jPulse Framework
  * @description     Provides REST API endpoints for cache invalidation and statistics
  * @file            webapp/controller/cache.js
- * @version         1.0.0-rc.1
- * @release         2025-10-22
+ * @version         1.0.0-rc.2
+ * @release         2025-10-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -90,6 +90,9 @@ class CacheController {
                 const message = global.i18n.translate(req, 'controller.cache.notAuthorized');
                 return CommonUtils.sendError(req, res, 403, message, 'NOT_AUTHORIZED');
             }
+
+            ViewController.refreshViewRegistry();
+            ViewController.refreshSpaCache('default');
 
             await cacheManager.refreshCache('TemplateCache');
             await cacheManager.refreshCache('IncludeCache');

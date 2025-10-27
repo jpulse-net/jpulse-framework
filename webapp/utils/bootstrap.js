@@ -3,8 +3,8 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.0.0-rc.1
- * @release         2025-10-22
+ * @version         1.0.0-rc.2
+ * @release         2025-10-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -83,6 +83,7 @@ export async function bootstrap(options = {}) {
         const ViewControllerModule = await import('../controller/view.js');
         bootstrapLog('ViewController: Module loaded, ready for initialization');
         await ViewControllerModule.default.initialize();
+        global.ViewController = ViewControllerModule.default;
         bootstrapLog('✅ ViewController: Initialized');
 
         // Step 6: Initialize Redis Manager (W-076 - depends on LogController)
@@ -142,6 +143,38 @@ export async function bootstrap(options = {}) {
         global.CommonUtils = CommonUtils;
         bootstrapLog('✅ CommonUtils: Available globally');
 
+        // Step 11: Initialize site controller registry (W-014)
+        // Discovers site controllers and their API methods
+        let siteControllerRegistry = null;
+        if (!isTest) {  // Only for app, not tests
+            const SiteControllerRegistryModule = await import('./site-controller-registry.js');
+            const registryStats = await SiteControllerRegistryModule.default.initialize();
+            global.SiteControllerRegistry = SiteControllerRegistryModule.default;
+            siteControllerRegistry = SiteControllerRegistryModule.default;
+            bootstrapLog(`✅ SiteControllerRegistry: ${registryStats.controllers} controllers, ${registryStats.apis} APIs`);
+        }
+
+        // Step 12: Initialize context extensions (W-014)
+        // Extends template context with site-specific data
+        const ContextExtensionsModule = await import('./context-extensions.js');
+        await ContextExtensionsModule.default.initialize();
+        global.ContextExtensions = ContextExtensionsModule.default;
+        bootstrapLog('✅ ContextExtensions: Initialized with providers');
+
+        // Step 13: Build viewRegistry for routes.js compatibility
+        // Legacy global for routes.js to use
+        global.viewRegistry = {
+            viewList: global.ViewController.getViewList(),
+            viewRouteRE: global.ViewController.getViewRouteRE()
+        };
+        bootstrapLog(`✅ viewRegistry: Built with ${global.viewRegistry.viewList.length} directories`);
+
+        // Step 14: Prepare WebSocketController (but don't initialize server yet)
+        // Server initialization requires Express app and http.Server
+        const WebSocketControllerModule = await import('../controller/websocket.js');
+        global.WebSocketController = WebSocketControllerModule.default;
+        bootstrapLog('✅ WebSocketController: Class available (server init pending)');
+
         bootstrapLog(`🎉 ${isTest ? 'Test' : 'App'} initialization complete!`);
 
         return {
@@ -150,7 +183,9 @@ export async function bootstrap(options = {}) {
             database: database,
             redisManager: redisManager,
             sessionStore: sessionStore,
-            healthController: HealthControllerModule.default
+            healthController: HealthControllerModule.default,
+            siteControllerRegistry: siteControllerRegistry,
+            webSocketController: WebSocketControllerModule.default
         };
 
     } catch (error) {

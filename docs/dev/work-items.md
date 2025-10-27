@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.0.0-rc.1
+# jPulse Framework / Docs / Dev / Work Items v1.0.0-rc.2
 
 This is the doc to track work items, arranged in three sections:
 
@@ -1505,6 +1505,34 @@ This is the doc to track work items, arranged in three sections:
     - Established global.appConfig.system.* as single source of truth for system metadata
     - All health metrics now accurate in PM2 cluster deployments
     - Added generic setHeader in app.conf and app.js to set Content-Security-Policy and other HTTP headers
+  - Site Controller Registry & SPA Auto-Discovery:
+    - webapp/utils/bootstrap.js -- integrated SiteControllerRegistry, ContextExtensions, viewRegistry, and WebSocketController initialization
+      - Step 11: SiteControllerRegistry with automatic API discovery
+      - Step 12: ContextExtensions for site-specific template data
+      - Step 13: viewRegistry creation for routes.js compatibility
+      - Step 14: WebSocketController class availability (server init deferred)
+    - webapp/utils/site-controller-registry.js -- renamed from site-registry.js, major refactor
+      - Dynamic API method detection using regex pattern matching
+      - Automatic HTTP method inference (GET/POST/PUT/DELETE)
+      - Controller initialize() method discovery and execution
+      - Fixed path construction bug (duplicate 'webapp' removed)
+      - All internal methods prefixed with underscore
+    - webapp/controller/view.js -- converted to static class with SPA auto-detection
+      - Moved _buildViewRegistry() from app.js
+      - Added static isSPA(namespace) with caching for automatic SPA detection
+      - Fixed siteViewPath construction to include site view directories
+      - Updated viewRouteRE regex to match SPA sub-routes (/namespace/sub-path)
+      - Removed redundant W-049 documentation fallback code
+      - Uses PathResolver for site-first, framework-second resolution
+    - webapp/routes.js -- fixed static method context binding
+      - Wrapped ViewController.load in arrow functions to preserve `this` context
+      - All 5 route patterns updated (shtml/tmpl, jpulse-*, site-common, viewRouteRE, fallback)
+    - webapp/app.js -- removed all hardcoded controller initialization
+      - Removed HelloWebsocketController.initialize() call
+      - Removed duplicate ViewController initialization
+      - Simplified to call bootstrap() only
+    - Architecture: Complete auto-discovery (no hardcoded routes, imports, or WebSocket initialization)
+    - Bug fixes: Context loss in static methods, missing site view directories, SPA detection path resolution
 
 
 
@@ -1514,8 +1542,7 @@ This is the doc to track work items, arranged in three sections:
 pending:
 - jp-card: more consistent card header: normal, dialog look with gray background jp-card-dialog
 - migrate @peterthoeny/jpulse-framework to @jpulse-net/jpulse-framework
-- site-status: sort pm2 list by instanceId
-
+- add SiteControllerRegistry.getStats() to metrics api & system-status
 
 
 
@@ -1547,7 +1574,7 @@ next work item: W-0...
 finishing up work item: W-070:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-079, v0.9.7
+- assume release: W-076, v1.0.0-rc.2
 - update deliverables in W-079 to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -1564,12 +1591,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.0.0-rc.1
+node bin/bump-version.js 1.0.0-rc.2
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag -a v1.0.0-rc.1 -m "Release Candidate 1 for v1.0.0"
+git tag -a v1.0.0-rc.2 -m "Release Candidate 1 for v1.0.0"
 git push origin main --tags
 
 === on failed package build on github ===

@@ -34604,7 +34604,6 @@ BUG FIXES:
    - app.js:
      - Set Content-Security-Policy and other HTTP headers
 
-
 ARCHITECTURE IMPROVEMENTS:
 - Established global.appConfig.system.* as single source of truth
 - Created permanent memory: "System Metadata Single Source of Truth"
@@ -34626,3 +34625,251 @@ FILES MODIFIED:
 - bin/mongodb-setup.sh (added clusterMonitor role)
 
 STATUS: All health metrics bugs resolved, ready for next checkpoint
+
+
+============================================================
+
+2025-10-26 23:26
+
+USER: W-076 Post-RC1: Site Controller Registry & SPA Auto-Discovery - Final Architecture Cleanup
+
+SUMMARY:
+Completed refactoring of site controller registration and SPA detection to eliminate all hardcoded routes and manual initialization. Moved core initialization to bootstrap.js for proper dependency ordering. Fixed critical bugs in ViewController causing static method context loss and missing site view directories.
+
+CHANGES:
+
+1. Bootstrap Module Enhancements
+   - webapp/utils/bootstrap.js:
+     - Added Step 11: SiteControllerRegistry initialization with API discovery
+     - Added Step 12: ContextExtensions initialization
+     - Added Step 13: viewRegistry creation for routes.js compatibility
+     - Added Step 14: WebSocketController class availability
+     - Return object now includes siteControllerRegistry and webSocketController
+
+2. Site Controller Registry Refactoring
+   - webapp/utils/site-controller-registry.js (renamed from site-registry.js):
+     - Refactored _scanControllers() to dynamically detect API methods per controller
+     - API methods stored as array of {name, method, pathSuffix} objects
+     - Enhanced _detectApiMethods() with regex `/\bstatic\s+(?:async\s+)?(api(?:[A-Z]\w*)?)\s*\(/g`
+     - Added _inferHttpMethodAndPath() for automatic HTTP method detection
+     - Added _initializeControllers() to call static initialize() on controllers
+     - registerApiRoutes() now loops through controllers and API methods dynamically
+     - Fixed siteControllerDir path construction (removed duplicate 'webapp')
+     - Prefixed all internal methods with underscore (_)
+     - Changed default HTTP method inference from POST to GET
+
+3. View Controller Class Conversion
+   - webapp/controller/view.js:
+     - Converted to static class pattern (like HealthController, WebSocketController)
+     - Moved _buildViewRegistry() from app.js to ViewController
+     - Added static isSPA(namespace) method with caching
+     - Added static refreshSPACache(namespace) method
+     - Implemented SPA sub-route detection in load() method
+     - Fixed siteViewPath construction (removed incorrect path.dirname())
+     - Updated viewRouteRE regex from `(/|$)` to `(/.*)?$` for SPA sub-routes
+     - All static properties: templateCache, includeCache, globalConfig, viewDirectories, viewRouteRE, spaCache
+     - Removed redundant W-049 documentation fallback code (lines 266-288)
+
+4. Routes Configuration
+   - webapp/routes.js:
+     - Fixed context binding for ViewController.load using arrow functions
+     - Changed from `ViewController.load` to `(req, res) => ViewController.load(req, res)`
+     - Applied to all 5 route registrations (shtml/tmpl, jpulse-*, site-common, viewRouteRE, fallback)
+     - Updated import from `viewController` to `ViewController` (class name)
+
+5. App.js Cleanup
+   - webapp/app.js:
+     - Removed hardcoded HelloWebsocketController.initialize() call (lines 331-338)
+     - Removed duplicate ViewController initialization (lines 235-239)
+     - Simplified global.ViewController assignment (bootstrap handles init)
+     - Removed manual viewRegistry creation (now in bootstrap)
+
+BUG FIXES:
+
+1. Context Loss in Static Methods
+   - Issue: ViewController.load() called with undefined `this` context in routes.js
+   - Root Cause: Passing static method as callback loses `this` binding
+   - Fix: Wrapped all ViewController.load calls in arrow functions
+   - Impact: "Cannot read properties of undefined (reading 'templateCache')" resolved
+
+2. Missing Site View Directories
+   - Issue: View registry only showed framework dirs (admin, auth, etc), missing site dirs
+   - Root Cause: Line 811 used `path.dirname(siteDir)` removing 'webapp' from path
+   - Fix: Changed to `path.join(global.appConfig.system.siteDir, 'view')`
+   - Impact: SPA page reloads now work for `/hello-vue/todo-demo` and all site SPAs
+
+3. SPA Detection Path Resolution
+   - Issue: isSPA() only checked framework view directory
+   - Root Cause: Used `path.join(appDir, 'view', ...)` instead of PathResolver
+   - Fix: Use PathResolver.resolveModule() to check site first, then framework
+   - Impact: Site SPAs now correctly detected for reload handling
+
+4. Duplicate Bootstrap Execution
+   - Issue: Two "App initialization complete!" messages in logs
+   - Root Cause: Leftover completion message after Step 10 (line 145)
+   - Fix: Removed duplicate log message, kept only final one after Step 14
+   - Impact: Clean bootstrap sequence, no confusion about initialization state
+
+5. Site Controller Directory Not Found
+   - Issue: SiteControllerRegistry reported "Site controller directory not found"
+   - Root Cause: Path construction had duplicate 'webapp' (siteDir already includes it)
+   - Fix: Line 41 changed from `path.join(siteDir, 'webapp', 'controller')` to `path.join(siteDir, 'controller')`
+   - Impact: Site controllers now properly discovered and registered
+
+6. Base API Method Not Detected
+   - Issue: GET /api/1/helloTodo returned 404
+   - Root Cause: Regex `api[A-Z]\w*` required capital after 'api', missing `static async api()`
+   - Fix: Changed regex to `api(?:[A-Z]\w*)?` making capital letter optional
+   - Impact: Base API methods (api, apiGet) now correctly detected and registered
+
+ARCHITECTURE IMPROVEMENTS:
+
+1. Complete Auto-Discovery
+   - No hardcoded controller imports in app.js
+   - No hardcoded API routes in routes.js
+   - No hardcoded WebSocket initialization
+   - No hardcoded SPA route configuration
+   - Everything discovered automatically at startup
+
+2. Clean Separation of Concerns
+   - bootstrap.js: Orchestration and dependency ordering
+   - site-controller-registry.js: Site controller discovery and API registration
+   - view.js: View resolution, SPA detection, template rendering
+   - routes.js: Route pattern configuration only
+   - app.js: Express setup and middleware configuration
+
+3. Proper Initialization Order
+   - Step 1-10: Core framework (LogController, i18n, Database, Redis, Health, etc.)
+   - Step 11: SiteControllerRegistry (discovers site APIs and controllers)
+   - Step 12: ContextExtensions (site-specific template data)
+   - Step 13: viewRegistry (for routes.js compatibility)
+   - Step 14: WebSocketController (class available, server init later)
+
+4. Site Override Support
+   - PathResolver used throughout for site-first, framework-second resolution
+   - isSPA() checks site view directories first
+   - View registry merges site and framework directories (site first in Set)
+   - API discovery works for both site and framework controllers
+
+TESTING:
+
+1. Manual Testing Completed:
+   - Pages load correctly (fixed context binding)
+   - SPA page reload works for /hello-vue/todo-demo, /hello-vue/overview
+   - Site view directories properly registered (hello, hello-vue, hello-websocket, hello-todo, hello-app-cluster)
+   - View registry regex matches SPA sub-routes correctly
+   - /hello-websocket/#emoji WebSocket namespace registered automatically
+   - Site override scenario analyzed (works correctly with PathResolver)
+
+2. Unit Tests Need Fixing:
+   - webapp/tests/unit/utils/site-controller-registry.test.js (8 failures)
+   - Log message format changes ("1 controller(s), 0 initialized, 1 API method(s)")
+   - API method structure changed (now array of objects, not hard-coded)
+   - Method renamed: loadController → _loadController (prefixed with underscore)
+   - Error message format changed (removed "error:" prefix)
+
+FILES MODIFIED:
+- webapp/utils/bootstrap.js (added Steps 11-14)
+- webapp/utils/site-controller-registry.js (major refactor, renamed from site-registry.js)
+- webapp/controller/view.js (converted to static class, SPA detection, bug fixes)
+- webapp/routes.js (fixed context binding, updated imports)
+- webapp/app.js (removed hardcoded initializations)
+
+STATUS: Architecture complete, manual testing passed, unit tests need updates
+
+
+============================================================
+
+2025-10-27 00:50
+
+User Request: Update documentation for v1.0.0-rc.2 release (W-076 Post-RC1)
+- Update README.md, docs/README.md, docs/CHANGELOG.md
+- Update commit-message.txt (don't commit)
+- Don't document regression bug fixes, only bugs that were in RC1
+- Don't document test fixes (failures caused by code changes)
+- Document bugs and architecture changes in changelog
+
+Assistant Response:
+
+DOCUMENTATION UPDATES COMPLETED:
+
+1. docs/CHANGELOG.md
+   - Added comprehensive v1.0.0-rc.2 entry (W-076 Post-RC1)
+   - Updated title from v1.0.0-rc.1 to v1.0.0-rc.2
+   - Documented Zero-Configuration Auto-Discovery Architecture
+   - Detailed Architecture Improvements section
+   - Complete Auto-Discovery Features section
+   - Documentation Enhancements section
+   - Files Modified with detailed changes
+   - Test Files section
+   - Benefits checklist
+   - Developer Experience code example
+   - Startup Logs example
+   - Next Steps for v1.0.0 Final
+
+2. commit-message.txt
+   - Complete rewrite for v1.0.0-rc.2
+   - Title: "W-076, v1.0.0-rc.2: Zero-Configuration Auto-Discovery Architecture"
+   - Comprehensive summary of all architecture improvements
+   - Auto-Discovery Features with complete list
+   - Documentation Enhancements with line counts
+   - Files Modified (Architecture) section
+   - Test Files section
+   - Benefits checklist
+   - Developer Experience code example
+   - Startup Logs example
+   - Next Steps for v1.0.0 Final
+
+3. docs/README.md
+   - Updated title from v1.0.0-rc.1 to v1.0.0-rc.2
+   - Updated RC tagline from RC1 to RC2 with auto-discovery focus
+   - Added comprehensive RC2 release highlight as first bullet
+   - Detailed explanation of SiteControllerRegistry, ViewController, Bootstrap integration
+   - Complete auto-discovery features and benefits
+   - Enhanced documentation references
+
+4. README.md
+   - Updated title from v1.0.0-rc.1 to v1.0.0-rc.2
+   - Updated RC tagline to focus on zero-configuration auto-discovery
+   - Enhanced "Zero Configuration" key feature with detailed examples:
+     * Controller API method auto-registration
+     * SPA detection and routing
+     * Concrete code examples showing what happens automatically
+   - Clear "just create files following naming conventions" message
+
+KEY CHANGES DOCUMENTED:
+
+Architecture Improvements:
+- SiteControllerRegistry: Auto-discovers controllers and API methods
+- ViewController Static Class: Automatic SPA detection with caching
+- Bootstrap Integration: Centralized initialization
+- Routes Simplification: Eliminated hardcoded imports
+
+Auto-Discovery Features:
+- API Method Detection: Regex pattern for finding all api* methods
+- HTTP Method Inference: Smart defaults based on method names
+- SPA Detection Patterns: Vue Router, History API detection
+- View Registry: Site-first resolution with caching
+
+Documentation Enhancements:
+- docs/api-reference.md: 233 new lines on auto-registration
+- docs/getting-started.md: Updated controller examples
+- docs/mpa-vs-spa.md: 82 new lines on SPA auto-detection
+- README.md: Enhanced zero-configuration description
+
+Benefits:
+- Zero route registration required
+- Zero controller imports
+- Zero SPA configuration
+- Automatic WebSocket initialization
+- Complete transparency via logs
+- "Don't make me think" developer experience
+
+NOTES:
+- Did not document regression bugs from refactoring work
+- Did not document test fixes (caused by code changes)
+- Focused on architecture improvements and developer experience
+- All version numbers updated to v1.0.0-rc.2
+- Ready for version bump and release (user will handle git operations)
+
+STATUS: All documentation updated for v1.0.0-rc.2, ready for version bump script

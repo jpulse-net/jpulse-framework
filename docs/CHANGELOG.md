@@ -1,6 +1,140 @@
-# jPulse Framework / Docs / Version History v1.0.0-rc.1
+# jPulse Framework / Docs / Version History v1.0.0-rc.2
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.0.0-rc.2, W-076, 2025-10-27
+
+**Commit:** `W-076, v1.0.0-rc.2: Zero-Configuration Auto-Discovery Architecture`
+
+**ZERO-CONFIGURATION AUTO-DISCOVERY ARCHITECTURE**: Complete implementation of automatic controller registration, API endpoint discovery, and SPA routing detection, eliminating all manual route configuration and controller initialization while maintaining full flexibility and control.
+
+**Objective**: Achieve true "zero configuration" architecture where developers simply create files following naming conventions, and the framework automatically discovers, registers, and initializes all components with comprehensive logging for transparency.
+
+**Architecture Improvements**:
+- **SiteControllerRegistry**: Auto-discovers site controllers and API methods using regex pattern matching
+  - Scans `site/webapp/controller/` on startup
+  - Detects all `static async api*()` methods automatically
+  - Infers HTTP method (GET/POST/PUT/DELETE) from method name
+  - Registers Express routes at `/api/1/{controllerName}`
+  - Calls `static async initialize()` if present
+  - Prefixed internal methods with `_` to separate public/private API
+- **ViewController Static Class**: Converted to static class pattern for consistency
+  - Moved `_buildViewRegistry()` from app.js to ViewController
+  - Added `static isSPA(namespace)` with caching for automatic SPA detection
+  - Implemented SPA sub-route detection in `load()` method
+  - Scans for Vue Router, history.pushState + popstate patterns
+  - Dynamic route creation matching all SPA sub-paths
+- **Bootstrap Integration**: Centralized initialization in proper dependency order
+  - Step 11: SiteControllerRegistry initialization
+  - Step 12: ContextExtensions initialization
+  - Step 13: viewRegistry creation for routes.js compatibility
+  - Step 14: WebSocketController class availability
+- **Routes Simplification**: Eliminated all hardcoded controller imports and route registrations
+  - Fixed static method context binding with arrow functions
+  - Dynamic API route registration via SiteControllerRegistry
+  - Automatic SPA route pattern generation
+
+**Auto-Discovery Features**:
+- **API Method Detection**: Regex `/\bstatic\s+(?:async\s+)?(api(?:[A-Z]\w*)?)\s*\(/g` finds all API methods
+- **HTTP Method Inference**:
+  - `api` → GET
+  - `apiCreate` → POST
+  - `apiUpdate` → PUT
+  - `apiDelete` → DELETE
+  - `apiToggle` → PUT with `:id/toggle`
+  - `apiGet*` → GET with optional `:id`
+  - Others → GET with path suffix
+- **SPA Detection Patterns**:
+  - `vue-router.min.js` or `vue-router.js` imports
+  - `VueRouter.createRouter()` calls
+  - `history.pushState()` + `popstate` event handlers
+- **View Registry**:  Scans both `site/webapp/view/` and `webapp/view/`
+  - Site views take precedence (checked first)
+  - Regex pattern `/^/(namespace1|namespace2|...)(\/.*)?$/` matches all sub-routes
+  - Cached detection results for performance
+
+**Documentation Enhancements**:
+- **docs/api-reference.md**: NEW "Automatic API Registration (W-014)" section
+  - Complete auto-discovery explanation
+  - Naming conventions with examples
+  - HTTP method inference rules table
+  - Full ProductController example with 6 endpoints
+  - Verification logs and best practices
+- **docs/getting-started.md**: Updated Step 4 with auto-discovery patterns
+  - Static class controller examples
+  - Auto-registered API endpoints
+  - Server log verification examples
+- **docs/mpa-vs-spa.md**: NEW "SPA Page Reload Support (W-014)" section
+  - Auto-detection mechanism explained
+  - Complete Vue Router SPA example
+  - Manual detection patterns
+  - Verification guide
+- **README.md**: Enhanced "Zero Configuration" feature description
+
+**Files Modified**:
+- webapp/utils/bootstrap.js (integrated SiteControllerRegistry, ContextExtensions, viewRegistry, WebSocketController)
+- webapp/utils/site-controller-registry.js (renamed from site-registry.js, major refactor)
+  - Dynamic API method detection
+  - Automatic HTTP method inference
+  - Controller initialize() discovery and execution
+  - All internal methods prefixed with `_`
+- webapp/controller/view.js (converted to static class)
+  - Moved _buildViewRegistry() from app.js
+  - Added static isSPA(namespace) with caching
+  - Fixed siteViewPath construction to include site views
+  - Updated viewRouteRE regex from `(/|$)` to `(/.*)?$` for SPA sub-routes
+  - Removed redundant W-049 documentation fallback code
+- webapp/routes.js (fixed static method context binding)
+  - Wrapped ViewController.load in arrow functions
+  - All 5 route patterns updated for context preservation
+- webapp/app.js (removed all hardcoded initialization)
+  - Removed HelloWebsocketController.initialize() call
+  - Removed duplicate ViewController initialization
+  - Simplified to call bootstrap() only
+- docs/api-reference.md (233 new lines documenting auto-registration)
+- docs/getting-started.md (updated controller examples)
+- docs/mpa-vs-spa.md (82 new lines on SPA auto-detection)
+- README.md (enhanced zero-configuration description)
+
+**Test Files**:
+- webapp/tests/unit/utils/site-controller-registry.test.js (updated for new API structure)
+
+**Benefits**:
+- ✅ Zero route registration required
+- ✅ Zero controller imports in routes.js
+- ✅ Zero SPA configuration needed
+- ✅ Automatic WebSocket initialization via controller.initialize()
+- ✅ Complete transparency via startup logs
+- ✅ Maintains full flexibility and control
+- ✅ "Don't make me think" developer experience
+
+**Developer Experience**:
+```javascript
+// Create site/webapp/controller/product.js
+export default class ProductController {
+    static async initialize() { /* setup */ }
+    static async api(req, res) { /* GET /api/1/product */ }
+    static async apiCreate(req, res) { /* POST /api/1/product */ }
+    static async apiUpdate(req, res) { /* PUT /api/1/product/:id */ }
+}
+// That's it! Framework auto-discovers and registers everything.
+```
+
+**Startup Logs**:
+```
+- info  site-controller-registry  Initialized controller: product
+- info  site-controller-registry  Discovered 1 controller(s), 1 initialized, 3 API method(s)
+- info  site-controller-registry  Registered: GET /api/1/product → product.api
+- info  site-controller-registry  Registered: POST /api/1/product → product.apiCreate
+- info  site-controller-registry  Registered: PUT /api/1/product/:id → product.apiUpdate
+- info  routes  Auto-registered 3 site API endpoints
+```
+
+**Next Steps for v1.0.0 Final**:
+- Production testing with auto-discovered controllers
+- Performance validation under load
+- Final documentation polish
 
 ________________________________________________
 ## v1.0.0-rc.1, W-076, 2025-10-22

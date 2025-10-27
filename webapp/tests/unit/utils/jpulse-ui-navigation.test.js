@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.navigation Widget (W-069)
  * @description     Tests for client-side site navigation dropdown and mobile hamburger menu
  * @file            webapp/tests/unit/utils/jpulse-ui-navigation.test.js
- * @version         1.0.0-rc.1
- * @release         2025-10-22
+ * @version         1.0.0-rc.2
+ * @release         2025-10-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

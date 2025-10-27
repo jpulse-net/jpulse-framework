@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / MPA vs. SPA: Architecture Comparison v1.0.0-rc.1
+# jPulse Framework / Docs / MPA vs. SPA: Architecture Comparison v1.0.0-rc.2
 
 Understanding the key differences between Multi-Page Applications (MPA) and Single Page Applications (SPA) helps you choose the right architecture for your web application.
 
@@ -367,6 +367,89 @@ ws.onMessage((data) => displayMessage(data));
 - Fast navigation after load (no server round-trip)
 - Memory can grow over time (requires cleanup)
 - Excellent for returning users
+
+## SPA Page Reload Support (W-014)
+
+jPulse Framework automatically handles client-side routing for SPAs with **zero configuration**! When a user bookmarks or refreshes a SPA sub-route like `/hello-vue/todo-demo`, the framework automatically serves the correct `index.shtml` file.
+
+### How It Works
+
+1. **Auto-Detection**: Framework scans view directories for SPA indicators:
+   - `vue-router.min.js` or `vue-router.js` imports
+   - `VueRouter.createRouter()` calls
+   - `history.pushState()` + `popstate` event handlers
+
+2. **Dynamic Routing**: Creates Express routes matching all sub-paths under detected SPAs
+
+3. **Transparent Fallback**: SPA sub-routes automatically redirect to `index.shtml` on the server, then client-side router takes over
+
+### Example
+
+Create `/site/webapp/view/my-app/index.shtml`:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My SPA</title>
+    <script src="/common/vue/vue.min.js"></script>
+    <script src="/common/vue/vue-router.min.js"></script>
+</head>
+<body>
+    <div id="app"></div>
+    <script>
+        // Define routes
+        const routes = [
+            { path: '/my-app/', component: Home },
+            { path: '/my-app/about', component: About },
+            { path: '/my-app/contact', component: Contact }
+        ];
+
+        // Create router
+        const router = VueRouter.createRouter({
+            history: VueRouter.createWebHistory(),
+            routes
+        });
+
+        // Create app
+        const app = Vue.createApp({...});
+        app.use(router);
+        app.mount('#app');
+    </script>
+</body>
+</html>
+```
+
+**That's it!** The framework automatically:
+- ✅ Detects your SPA (scans for `vue-router.min.js` + `VueRouter.createRouter`)
+- ✅ Creates route pattern `/my-app/*` that matches all sub-paths
+- ✅ Serves `index.shtml` for all routes: `/my-app/`, `/my-app/about`, `/my-app/contact`
+- ✅ Caches detection result for performance
+- ✅ Supports site view overrides (checks `site/webapp/view/` first)
+
+### Manual Detection
+
+If your SPA uses custom routing without Vue Router, use `history.pushState()` + `popstate` for detection:
+
+```javascript
+// This pattern is auto-detected as SPA
+window.addEventListener('popstate', (e) => {
+    const path = window.location.pathname;
+    history.pushState({ path }, '', path);
+    // Your routing logic...
+});
+```
+
+### Verification
+
+Check your server logs on startup:
+
+```
+- info  view.initialize  View registry: [..., my-app, ...]
+- info  view.initialize  regex: /^/(admin|auth|...|my-app|...)(\/.*)?$/
+```
+
+The regex `(/.*)?` pattern ensures all sub-routes are captured!
 
 ## Conclusion
 

@@ -3,8 +3,8 @@
  * @tagline         Jest Global Setup
  * @description     Global setup for Jest tests runs once before all tests start
  * @file            webapp/tests/setup/global-setup.js
- * @version         1.0.0-rc.1
- * @release         2025-10-22
+ * @version         1.0.0-rc.2
+ * @release         2025-10-27
  * @repository      https://github.com/peterthoeny/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -148,10 +148,10 @@ export default async function globalSetup() {
         const { bootstrap } = await import('../../utils/bootstrap.js');
         await bootstrap({ isTest: true, skipDatabase: false, skipRedis: true });
 
-        // W-014: Initialize site registry AFTER bootstrap to ensure db is ready for controllers
-        const SiteRegistryModule = await import('../../utils/site-registry.js');
-        await SiteRegistryModule.default.initialize();
-        console.log('🔧 SiteRegistry initialized for tests');
+        // W-014: Initialize site controller registry AFTER bootstrap to ensure db is ready for controllers
+        const SiteControllerRegistryModule = await import('../../utils/site-controller-registry.js');
+        await SiteControllerRegistryModule.default.initialize();
+        console.log('🔧 SiteControllerRegistry initialized for tests');
 
         // W-014: Initialize context extensions system
         const ContextExtensionsModule = await import('../../utils/context-extensions.js');

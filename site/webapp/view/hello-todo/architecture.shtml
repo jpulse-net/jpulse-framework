@@ -62,10 +62,58 @@
                 <h2>🏗️ MVC Architecture</h2>
 
                 <div class="jp-info-box">
-                    <p>Understanding how the Model, View, and Controller work together to create a clean, maintainable application.</p>
+                    <p>Understanding how the Model, View, and Controller work together in jPulse MPA (Hybrid) architecture. The server provides HTML scaffolding and REST APIs, while browser JavaScript handles rendering and DOM updates.</p>
                 </div>
 
-                <h3>📋 Request Flow Diagram</h3>
+                <h3>📋 Initial Page Load Flow</h3>
+                <p>Here's what happens when a user first visits the to-do app:</p>
+
+                <div class="local-flow-diagram">
+                    <div class="local-flow-step">
+                        <strong>1. Browser (Client)</strong><br>
+                        User visits: <code>/hello-todo/todo-app.shtml</code><br>
+                        Browser requests the page from server
+                    </div>
+                    <div class="local-flow-arrow">↓</div>
+                    <div class="local-flow-step">
+                        <strong>2. Server (View Controller)</strong><br>
+                        Server renders HTML scaffolding (page structure)<br>
+                        <strong>No todos data yet</strong> - just empty containers and JavaScript
+                    </div>
+                    <div class="local-flow-arrow">↓</div>
+                    <div class="local-flow-step">
+                        <strong>3. Browser</strong><br>
+                        Receives HTML page with embedded JavaScript<br>
+                        Page structure loads, JavaScript executes<br>
+                        <code>HelloTodoApp.init()</code> runs automatically
+                    </div>
+                    <div class="local-flow-arrow">↓</div>
+                    <div class="local-flow-step">
+                        <strong>4. Browser JavaScript</strong><br>
+                        Calls API: <code>jPulse.api.call('/api/1/helloTodo')</code><br>
+                        Fetches todos data from server
+                    </div>
+                    <div class="local-flow-arrow">↓</div>
+                    <div class="local-flow-step">
+                        <strong>5. Controller → Model</strong><br>
+                        Controller calls <code>HelloTodoModel.findAll()</code><br>
+                        Model queries MongoDB and returns todos array
+                    </div>
+                    <div class="local-flow-arrow">↑</div>
+                    <div class="local-flow-step">
+                        <strong>6. Controller → Browser</strong><br>
+                        Controller returns JSON: <code>{ success: true, data: todos }</code>
+                    </div>
+                    <div class="local-flow-arrow">↑</div>
+                    <div class="local-flow-step">
+                        <strong>7. Browser JavaScript</strong><br>
+                        Receives JSON data<br>
+                        Calls <code>renderTodos()</code> to update DOM<br>
+                        Todos appear in the list
+                    </div>
+                </div>
+
+                <h3>📋 User Action Flow (Adding a To-Do)</h3>
                 <p>Here's what happens when a user adds a new to-do:</p>
 
                 <div class="local-flow-diagram">
@@ -127,26 +175,28 @@
                 <h3>🔄 Data Flow Patterns</h3>
 
                 <div class="jp-card" style="background: #e3f2fd; border-left: 4px solid #2196f3;">
-                    <h4 style="margin-top: 0;">Page Load (Traditional MPA)</h4>
+                    <h4 style="margin-top: 0;">Page Load (jPulse MPA Hybrid)</h4>
                     <p><strong>Request:</strong> User visits <code>/hello-todo/todo-app.shtml</code></p>
                     <ol>
-                        <li>Router calls <code>HelloTodoController.index()</code></li>
-                        <li>Controller calls <code>HelloTodoModel.getAll(username)</code></li>
-                        <li>Model queries MongoDB and returns todos array</li>
-                        <li>Controller renders View with todos data</li>
-                        <li>Server sends complete HTML page to browser</li>
+                        <li>Server renders HTML scaffolding (page structure, empty containers)</li>
+                        <li>Browser loads page with embedded JavaScript</li>
+                        <li>JavaScript automatically calls <code>jPulse.api.call('/api/1/helloTodo')</code></li>
+                        <li>Controller returns JSON data from Model</li>
+                        <li>JavaScript renders todos into DOM using <code>renderTodos()</code></li>
                     </ol>
+                    <p class="jp-help-text">💡 <strong>Key difference:</strong> Server sends structure only, browser fetches and renders data!</p>
                 </div>
 
                 <div class="jp-card" style="background: #f3e5f5; border-left: 4px solid #9c27b0;">
-                    <h4 style="margin-top: 0;">API Request (AJAX)</h4>
+                    <h4 style="margin-top: 0;">API Request (User Action)</h4>
                     <p><strong>Request:</strong> User clicks "Add To-Do" button</p>
                     <ol>
                         <li>JavaScript makes AJAX POST to <code>/api/1/helloTodo</code></li>
                         <li>Controller receives JSON, calls Model</li>
                         <li>Model creates todo in MongoDB</li>
                         <li>Controller returns JSON response</li>
-                        <li>JavaScript reloads page to show new todo</li>
+                        <li>JavaScript reloads page: <code>location.reload()</code></li>
+                        <li>Page reload triggers initial load flow above, showing new todo</li>
                     </ol>
                 </div>
 
@@ -168,8 +218,8 @@
                         </tr>
                         <tr>
                             <td><strong>View</strong></td>
-                            <td>User Interface</td>
-                            <td>HTML structure, styling, Handlebars templates</td>
+                            <td>Browser-rendered Interface</td>
+                            <td>HTML scaffolding (structure), JavaScript rendering logic, API integration, DOM updates</td>
                         </tr>
                         <tr>
                             <td><strong>Controller</strong></td>
@@ -192,14 +242,16 @@
 
                 <h3>🔀 Compare: MPA vs SPA</h3>
                 <div class="jp-card" style="background: #fff3cd; border-left: 4px solid #ff6b6b;">
-                    <h4 style="margin-top: 0;">This To-Do App (MPA)</h4>
+                    <h4 style="margin-top: 0;">This To-Do App (jPulse MPA Hybrid)</h4>
                     <ul>
-                        <li>✅ Server renders complete HTML pages</li>
-                        <li>✅ Browser reloads after each action</li>
-                        <li>✅ Simple, traditional approach</li>
-                        <li>✅ Works without JavaScript enabled</li>
-                        <li>❌ Full page reload on every action</li>
+                        <li>✅ Server renders HTML scaffolding (structure, no data)</li>
+                        <li>✅ Browser JavaScript fetches data via REST API</li>
+                        <li>✅ Browser JavaScript updates DOM dynamically</li>
+                        <li>✅ Page reloads on navigation (MPA pattern)</li>
+                        <li>⚠️ Requires JavaScript for functionality (API calls)</li>
+                        <li>❌ Full page reload on each action</li>
                     </ul>
+                    <p class="jp-help-text">💡 <strong>Architecture:</strong> Model + Controller on server, View logic in browser</p>
                 </div>
 
                 <div class="jp-card" style="background: #e8f5e9; border-left: 4px solid #4caf50; margin-top: 1rem;">

@@ -1,6 +1,8 @@
 /**
  * @name            jPulse Framework / WebApp / Controller / Health
  * @tagline         Health Controller for jPulse Framework WebApp
+ * @note            ATTENTION: When new sensitive metrics data is added, it needs to be sanitized
+ *                  for non-admin users in the _sanitizeMetricsData() method!
  * @description     This is the health controller for the jPulse Framework WebApp
  * @file            webapp/controller/health.js
  * @version         1.0.0-rc.2
@@ -170,23 +172,36 @@ class HealthController {
         const startTime = Date.now();
 
         // Check if health logging is enabled
-        const omitStatusLogs = this.config.omitStatusLogs;
+        const omitStatusLogs = HealthController.config.omitStatusLogs;
         if (!omitStatusLogs) {
             LogController.logRequest(req, 'health.health', '');
         }
 
         try {
-            const response = {
-                success: true,
-                data: {
-                    version: global.appConfig.app.jPulse.version,
-                    release: global.appConfig.app.jPulse.release,
-                    uptime: Math.floor(process.uptime()),
-                    environment: global.appConfig.deployment.mode,
-                    database: 'connected', // TODO: Add actual database health check
-                    timestamp: new Date().toISOString()
-                }
-            };
+
+            const requiredRoles = global.appConfig.controller?.health?.requiredRoles?.status || [ '_public', 'user' ];
+            const isAuthorized = AuthController.isAuthorized(req, requiredRoles);
+
+            let response;
+            if(isAuthorized) {
+                response = {
+                    success: true,
+                    message: 'jPulse Framework health status',
+                    data: {
+                        version: global.appConfig.app.jPulse.version,
+                        release: global.appConfig.app.jPulse.release,
+                        uptime: Math.floor(process.uptime()),
+                        environment: global.appConfig.deployment.mode,
+                        database: 'connected', // TODO: Add actual database health check
+                        timestamp: new Date().toISOString()
+                    }
+                };
+            } else {
+                response = {
+                    success: false,
+                    message: 'Not authorized to see jPulse Framework health status'
+                };
+            }
             res.json(response);
 
             if (!omitStatusLogs) {
@@ -223,18 +238,20 @@ class HealthController {
             // Aggressively clean up stale cache entries on every metrics request
             HealthController._cleanupExpiredHealthData();
 
-            const isAdmin = AuthController.isAuthorized(req, ['admin', 'root']);
+            const requiredRoles = global.appConfig.controller?.health?.requiredRoles?.metrics || [ 'admin', 'root' ];
+            const isAuthorized = AuthController.isAuthorized(req, requiredRoles);
 
             // Base metrics available to all users (framework level only)
             const baseMetrics = {
                 success: true,
+                message: 'jPulse Framework metrics data',
                 data: {
                     timestamp: new Date().toISOString()
                 }
             };
 
             // Additional metrics for admin users
-            if (isAdmin) {
+            if (isAuthorized) {
                 const wsStats = WebSocketController.getStats();
                 const systemInfo = {
                     platform: os.platform(),
@@ -259,15 +276,24 @@ class HealthController {
                 // W-076: Build servers array with cross-instance data
                 const servers = await HealthController._buildClusterServersArray(systemInfo, wsStats, pm2Status, baseMetrics.data.timestamp);
                 baseMetrics.data.servers = servers;
+
             } else {
-                baseMetrics.data.note = 'Only admin users can see more metrics data';
+                baseMetrics.success = false;
+                baseMetrics.message = 'Not authorized to see more jPulse Framework metrics data';
+            }
+
+            const isAdmin = AuthController.isAuthorized(req, [ 'admin', 'root' ]);
+            if(!isAdmin) {
+                // Obfuscate sensitive metrics data for non-admin users
+                // ATTENTION: When new sensitive metrics data is added, it needs to be sanitized as well
+                HealthController._sanitizeMetricsData(baseMetrics.data);
             }
 
             res.json(baseMetrics);
 
             const duration = Date.now() - startTime;
             LogController.logInfo(req, 'health.metrics',
-                `success: completed in ${duration}ms (admin: ${isAdmin})`);
+                `success: completed in ${duration}ms (isAuthorized: ${isAuthorized})`);
 
         } catch (error) {
             LogController.logError(req, 'health.metrics', `error: ${error.message}`);
@@ -275,6 +301,46 @@ class HealthController {
                 success: false,
                 error: 'Metrics collection failed',
                 code: 'METRICS_ERROR'
+            });
+        }
+    }
+    /**
+     * Build cluster-wide statistics (legacy method for single-instance fallback)
+     * ATTENTION: When new sensitive metrics data is added, it needs to be sanitized as well
+     * @param {Object} metricsData - Metrics data to sanitize
+     * @param {Object} wsStats - WebSocket statistics
+     * @param {string} timestamp - Current timestamp
+     * @returns {Object} Statistics object
+     * @private
+     */
+    static _sanitizeMetricsData(metricsData) {
+        if(Array.isArray(metricsData.servers)) {
+            metricsData.servers.forEach(server => {
+                server.serverName = '********';
+                server.serverId = '999';
+                server.hostname = '********';
+                server.ip = '192.99.99.99';
+                Object.keys(server.database.connections).forEach(key => {
+                    server.database.connections[key] = 99999;
+                });
+                server.database.hostname = '********';
+                server.database.database = '********';
+                server.database.dataSize = 99999;
+                server.database.storageSize = 99999;
+                server.instances.forEach(instance => {
+                    instance.pid = 99999;
+                    instance.port = 9999;
+                    instance.instanceName = '********:' + instance.pm2Id + ':99999';
+                    instance.instanceId = '999:' + instance.pm2Id + ':99999';
+                    instance.database.name = '********';
+                    instance.processInfo.ppid = 99999;
+                    Object.keys(instance.processInfo.memoryUsage).forEach(key => {
+                        instance.processInfo.memoryUsage[key] = 99999;
+                    });
+                    Object.keys(instance.processInfo.resourceUsage).forEach(key => {
+                        instance.processInfo.resourceUsage[key] = 99999;
+                    });
+                });
             });
         }
     }
@@ -518,7 +584,6 @@ class HealthController {
         if (pm2Status && pm2Status.processes) {
             // Multiple PM2 instances
             pm2Status.processes.forEach(p => {
-                const uptime = Math.floor((Date.now() - p.uptime) / 1000);
                 const memUsage = process.memoryUsage();
 
                 instances.push({
@@ -550,8 +615,8 @@ class HealthController {
                         config: global.appConfig.deployment[global.appConfig.deployment.mode]
                     },
 
-                    uptime: uptime,
-                    uptimeFormatted: HealthController._formatUptime(uptime),
+                    uptime: p.uptime,
+                    uptimeFormatted: p.uptimeFormatted,
                     memory: {
                         used: p.memory,
                         total: Math.round(memUsage.heapTotal / 1024 / 1024) // MB
@@ -825,7 +890,7 @@ class HealthController {
      * @private
      */
     static async _startHealthBroadcasting() {
-        if (!this.config.enableBroadcasting) return;
+        if (!HealthController.config.enableBroadcasting) return;
 
         const broadcastHealth = async () => {
             try {
@@ -845,9 +910,9 @@ class HealthController {
 
         // Broadcast immediately and then on interval
         broadcastHealth();
-        this.healthBroadcastInterval = setInterval(broadcastHealth, this.config.broadcastInterval);
+        this.healthBroadcastInterval = setInterval(broadcastHealth, HealthController.config.broadcastInterval);
 
-        LogController.logInfo(null, 'health._startHealthBroadcasting', `Started health broadcasting every ${this.config.broadcastInterval}s (with ${this.config.cacheInterval}s caching)`);
+        LogController.logInfo(null, 'health._startHealthBroadcasting', `Started health broadcasting every ${HealthController.config.broadcastInterval}s (with ${HealthController.config.cacheInterval}s caching)`);
     }
 
     /**
@@ -862,7 +927,7 @@ class HealthController {
 
         // Check if we have recent cached data locally
         const cachedData = this.healthDataCache.get(cacheKey);
-        if (cachedData && (now - this.lastCacheUpdate) < this.config.cacheInterval) {
+        if (cachedData && (now - this.lastCacheUpdate) < HealthController.config.cacheInterval) {
             return cachedData;
         }
 
@@ -875,7 +940,7 @@ class HealthController {
                 if (redisData) {
                     const parsedData = JSON.parse(redisData);
                     // Check if Redis data is still fresh
-                    if (parsedData.timestamp && (now - parsedData.timestamp) < this.config.cacheInterval) {
+                    if (parsedData.timestamp && (now - parsedData.timestamp) < HealthController.config.cacheInterval) {
                         // Use Redis data and cache locally
                         this.healthDataCache.set(cacheKey, parsedData.data);
                         this.lastCacheUpdate = now;
@@ -905,7 +970,7 @@ class HealthController {
                     data: healthData,
                     timestamp: now
                 };
-                await global.RedisManager.getClient('metrics').setex(redisCacheKey, Math.floor(this.config.cacheInterval / 1000), JSON.stringify(cacheData));
+                await global.RedisManager.getClient('metrics').setex(redisCacheKey, Math.floor(HealthController.config.cacheInterval / 1000), JSON.stringify(cacheData));
             } catch (error) {
                 LogController.logError(null, 'health._getOptimizedHealthData', `Redis cache write failed: ${error.message}`);
             }
@@ -966,7 +1031,7 @@ class HealthController {
         const expiredKeys = [];
 
         this.instanceHealthCache.forEach((healthData, instanceId) => {
-            if (now - healthData.receivedAt > this.config.instanceTTL) {
+            if (now - healthData.receivedAt > HealthController.config.instanceTTL) {
                 expiredKeys.push(instanceId);
             }
         });
@@ -1028,8 +1093,8 @@ class HealthController {
                     pm2Available: true,
                     pm2ProcessName: thisProcess.name,
                     status: thisProcess.status,
-                    uptime: uptime,
-                    uptimeFormatted: this._formatUptime(uptime),
+                    uptime: thisProcess.uptime,
+                    uptimeFormatted: thisProcess.uptimeFormatted,
                     memory: {
                         used: thisProcess.memory,
                         total: Math.round(memUsage.heapTotal / 1024 / 1024), // MB
@@ -1198,6 +1263,7 @@ class HealthController {
 
             if (jpulseProcesses.length === 0) return null;
 
+            const now = Date.now(); // milliseconds
             return {
                 totalProcesses: jpulseProcesses.length,
                 running: jpulseProcesses.filter(p => p.pm2_env.status === 'online').length,
@@ -1208,8 +1274,8 @@ class HealthController {
                     pid: p.pid,
                     instanceId: p.pm2_env.INSTANCE_ID || p.pm2_env.NODE_APP_INSTANCE || 0,
                     status: p.pm2_env.status,
-                    uptime: Date.now() - p.pm2_env.created_at,
-                    uptimeFormatted: HealthController._formatUptime(Math.floor((Date.now() - p.pm2_env.created_at) / 1000)),
+                    uptime: Math.floor((now - p.pm2_env.pm_uptime) / 1000),
+                    uptimeFormatted: HealthController._formatUptime(Math.floor((now - p.pm2_env.pm_uptime) / 1000)),
                     memory: p.monit ? Math.round(p.monit.memory / 1024 / 1024) : 0, // MB
                     cpu: p.monit ? p.monit.cpu : 0,
                     restarts: p.pm2_env.restart_time || 0

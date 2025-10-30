@@ -34873,3 +34873,52 @@ NOTES:
 - Ready for version bump and release (user will handle git operations)
 
 STATUS: All documentation updated for v1.0.0-rc.2, ready for version bump script
+
+
+============================================================
+
+2025-10-29 13:14
+
+User Request: Fix architecture.shtml - the content is not correct in describing the MPA. It assumes jPulse has the traditional MVC where the server renders the complete HTML content. In reality, the server sends only the page scaffolding, and the view (browser js) does calls to get the data via api, and updates the dom. The doc needs to describe the jPulse version of MVC. See mpa-vs-spa.md for reference.
+
+Assistant Response:
+
+CORRECTED ARCHITECTURE DOCUMENTATION:
+
+1. Updated Info Box:
+   - Changed description to clarify jPulse MPA (Hybrid) architecture
+   - Explained that server provides HTML scaffolding and REST APIs
+   - Noted that browser JavaScript handles rendering and DOM updates
+
+2. Added Initial Page Load Flow Diagram:
+   - New section showing 7-step flow for initial page load
+   - Clarifies server sends HTML scaffolding (no data)
+   - Shows browser JavaScript fetches data via API
+   - Demonstrates browser JavaScript renders todos into DOM
+   - Separated from user action flow for clarity
+
+3. Fixed "Page Load (Traditional MPA)" Section:
+   - Renamed to "Page Load (jPulse MPA Hybrid)"
+   - Corrected flow: Server renders scaffolding only
+   - Browser JavaScript makes API call automatically
+   - JavaScript renders data into DOM
+   - Added helpful note about key difference
+
+4. Updated "Key Design Principles" Table:
+   - View responsibility changed to "Browser-rendered Interface"
+   - View description updated to: "HTML scaffolding (structure), JavaScript rendering logic, API integration, DOM updates"
+
+5. Fixed "This To-Do App (MPA)" Comparison:
+   - Renamed to "This To-Do App (jPulse MPA Hybrid)"
+   - Removed incorrect claims (server renders complete HTML, works without JS)
+   - Added correct descriptions: server renders scaffolding, browser JS fetches data, browser JS updates DOM
+   - Added note about requiring JavaScript for functionality
+   - Added architecture clarification: "Model + Controller on server, View logic in browser"
+
+6. Updated User Action Flow:
+   - Added step 6: Page reload triggers initial load flow
+   - Clarifies the complete cycle
+
+All changes align with mpa-vs-spa.md documentation which correctly describes jPulse MPA (Hybrid) architecture where Model + Controller are on server, but View logic runs in the browser.
+
+STATUS: Architecture documentation corrected to accurately reflect jPulse MPA (Hybrid) pattern

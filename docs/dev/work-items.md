@@ -1596,7 +1596,7 @@ git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag -a v1.0.0-rc.2 -m "Release Candidate 1 for v1.0.0"
+git tag v1.0.0-rc.2
 git push origin main --tags
 
 === on failed package build on github ===

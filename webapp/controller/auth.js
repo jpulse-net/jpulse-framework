@@ -118,24 +118,28 @@ class AuthController {
     /**
      * Check if authenticated user has required role(s) (utility function)
      * @param {object} req - Express request object
-     * @param {array|string} roles - Required role(s) - user must have at least one
-     * @returns {boolean} True if user has at least one of the required roles
+     * @param {array|string} roles - Required role(s) - user must have at least one,
+     *                               or '_public' role if not authenticated
+     * @returns {boolean} True if user has at least one of the required roles,
+     *                    or is not authenticated and roles includes '_public' role
      */
     static isAuthorized(req, roles) {
-        if (!AuthController.isAuthenticated(req)) {
-            return false;
-        }
-
-        const user = req.session.user;
-        if (!user.roles || !Array.isArray(user.roles)) {
-            return false;
-        }
 
         // Convert single role to array for consistent handling
         const requiredRoles = Array.isArray(roles) ? roles : [roles];
 
-        // Check if user has any of the required roles
-        return user.roles.some(userRole => requiredRoles.includes(userRole));
+        if (!AuthController.isAuthenticated(req)) {
+            // Authorized if not authenticated and roles includes '_public' role
+            return requiredRoles.includes('_public');
+        }
+
+        if (!Array.isArray(req.session?.user?.roles)) {
+            // Not authorized if authenticated and roles is not an array
+            return false;
+        }
+
+        // Authorized if user has any of the required roles
+        return req.session.user.roles.some(userRole => requiredRoles.includes(userRole));
     }
 
     // ============================================================================

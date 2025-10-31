@@ -97,9 +97,8 @@
 
             <!-- Cluster Status -->
             <div class="jp-card">
-                <h2>🖥️ Current Cluster Status
-                    <span class="jp-subheading">This shows the current state of your jPulse Framework instance and Redis configuration.</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">🖥️ Current Cluster Status</h2>
+                <div class="jp-card-subheading">This shows the current state of your jPulse Framework instance and Redis configuration.</div>
 
                 <div class="jp-stats-grid">
                     <div class="jp-stat-card">
@@ -146,9 +145,8 @@
 
             <!-- Demo Applications Comparison -->
             <div class="jp-card local-card">
-                <h2>🚀 Two Demo Applications
-                    <span class="jp-subheading">We've created two complementary demos to show different broadcasting patterns.</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">🚀 Two Demo Applications</h2>
+                <div class="jp-card-subheading">We've created two complementary demos to show different broadcasting patterns.</div>
 
                 <div class="jp-status-grid">
                     <!-- Global Notifications -->
@@ -205,9 +203,8 @@
 
             <!-- Getting Started -->
             <div class="jp-card">
-                <h2>🚀 Getting Started
-                    <span class="jp-subheading">Recommended learning path to get started with the App Cluster demo.</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">🚀 Getting Started</h2>
+                <div class="jp-card-subheading">Recommended learning path to get started with the App Cluster demo.</div>
                 <p><strong>Recommended Learning Path:</strong></p>
                 <ol style="padding-left: 20px;">
                     <li><strong>Start Simple:</strong> Try the <a href="/hello-app-cluster/notifications.shtml">Global Notifications</a> demo to understand basic broadcasting</li>

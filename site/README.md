@@ -218,8 +218,12 @@ window.jPulse = window.jPulse || {};
 // Site-specific functionality
 jPulse.site = {
     config: {
-        name: 'My Custom Site',
-        version: '1.0.0'
+        // or define in site/webapp/app.conf
+        features: {
+            analytics: true,
+            chatbot: false,
+            newsletter: true
+        }
     },
 
     // Site-specific methods
@@ -295,11 +299,9 @@ jPulse.site = {
 };
 
 // Auto-initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', jPulse.site.init);
-} else {
+jPulse.dom.ready(() => {
     jPulse.site.init();
-}
+});
 ```
 
 ### HTML Integration

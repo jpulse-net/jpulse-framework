@@ -368,7 +368,7 @@ ws.onMessage((data) => displayMessage(data));
 - Memory can grow over time (requires cleanup)
 - Excellent for returning users
 
-## SPA Page Reload Support (W-014)
+## SPA Page Reload Support
 
 jPulse Framework automatically handles client-side routing for SPAs with **zero configuration**! When a user bookmarks or refreshes a SPA sub-route like `/hello-vue/todo-demo`, the framework automatically serves the correct `index.shtml` file.
 

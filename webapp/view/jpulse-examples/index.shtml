@@ -78,32 +78,28 @@
 
         <!-- Getting Started Section -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>🎯 Getting Started</h3>
+            <h2 class="jp-card-dialog-heading">🎯 Getting Started</h2>
+            <p>New to jPulse? Start with these recommended learning paths:</p>
+
+            <div class="jp-info-box">
+                <h4>For Beginners:</h4>
+                <ol>
+                    <li><strong>Handlebars Templates</strong> - Learn the basics of server-side templating</li>
+                    <li><strong>Layout Examples</strong> - Understand responsive design patterns</li>
+                    <li><strong>UI Widgets</strong> - Add interactive components to your pages</li>
+                </ol>
             </div>
-            <div class="jp-card-body">
-                <p>New to jPulse? Start with these recommended learning paths:</p>
 
-                <div class="jp-info-box">
-                    <h4>For Beginners:</h4>
-                    <ol>
-                        <li><strong>Handlebars Templates</strong> - Learn the basics of server-side templating</li>
-                        <li><strong>Layout Examples</strong> - Understand responsive design patterns</li>
-                        <li><strong>UI Widgets</strong> - Add interactive components to your pages</li>
-                    </ol>
-                </div>
-
-                <div class="jp-info-box">
-                    <h4>For Experienced Developers:</h4>
-                    <ol>
-                        <li><strong>API Integration</strong> - Build dynamic, data-driven applications</li>
-                        <li><strong>Forms</strong> - Master advanced form handling and validation</li>
-                        <li><strong>UI Widgets</strong> - Create sophisticated user interfaces</li>
-                    </ol>
-                </div>
-
-                <p>Each example page includes interactive demonstrations and copy-paste source code to help you learn quickly.</p>
+            <div class="jp-info-box">
+                <h4>For Experienced Developers:</h4>
+                <ol>
+                    <li><strong>API Integration</strong> - Build dynamic, data-driven applications</li>
+                    <li><strong>Forms</strong> - Master advanced form handling and validation</li>
+                    <li><strong>UI Widgets</strong> - Create sophisticated user interfaces</li>
+                </ol>
             </div>
+
+            <p>Each example page includes interactive demonstrations and copy-paste source code to help you learn quickly.</p>
         </div>
     </div>
 

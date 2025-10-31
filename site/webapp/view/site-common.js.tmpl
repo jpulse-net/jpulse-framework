@@ -23,8 +23,6 @@ window.jPulse = window.jPulse || {};
 jPulse.site = {
     // Site configuration
     config: {
-        name: 'My Custom Site',
-        version: '1.0.0',
         features: {
             analytics: true,
             chatbot: false,
@@ -194,7 +192,7 @@ jPulse.site = {
      * Initialize site-specific functionality
      */
     init: () => {
-        console.log(`Initializing ${jPulse.site.config.name} v${jPulse.site.config.version}`);
+        console.log(`Initializing {{app.site.name}} v{{app.site.version}}`);
 
         // Initialize analytics if enabled
         if (jPulse.site.config.features.analytics) {
@@ -228,7 +226,7 @@ jPulse.site = {
             // Example: Ctrl+Shift+H to show help dialog
             if (event.ctrlKey && event.shiftKey && event.key === 'H') {
                 event.preventDefault();
-                jPulse.site.dialog.show('Site-specific help content here', 'info', {
+                jPulse.UI.infoDialog('Site-specific help content here', {
                     title: 'Site Help'
                 });
             }
@@ -331,10 +329,8 @@ if (jPulse.form) {
 // ========================================
 
 // Initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', jPulse.site.init);
-} else {
+jPulse.dom.ready(() => {
     jPulse.site.init();
-}
+});
 
 // EOF site/webapp/view/site-common.js.tmpl

@@ -167,7 +167,7 @@
         </div> 
 
         <script>
-            document.addEventListener('DOMContentLoaded', function() {
+            jPulse.dom.ready(() => {
                 // Wait for site JavaScript to load
                 setTimeout(() => {
                     if (typeof jPulse.site !== 'undefined') {

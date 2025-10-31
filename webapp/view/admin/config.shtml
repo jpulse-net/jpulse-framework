@@ -30,21 +30,11 @@
             margin-bottom: 30px;
         }
 
-        .local-config-section .jp-card-header {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            margin: -20px -20px 20px -20px;
-            padding: 20px;
-            border-radius: 8px 8px 0 0;
-        }
-
-        .local-config-section .jp-card-header h3 {
-            margin: 0;
+        .local-config-section .jp-card-dialog-heading {
             color: #007acc;
-            font-size: 1.2em;
         }
 
-        .local-config-section .jp-card-header p {
-            margin: 5px 0 0 0;
+        .local-config-section .jp-card-subheading {
             color: #666;
             font-size: 0.9em;
         }
@@ -146,11 +136,8 @@
             <form id="configForm" class="local-config-form">
                 <!-- Email Settings Section -->
                 <div class="jp-card local-config-section">
-                    <div class="jp-card-header">
-                        <h3>{{i18n.view.admin.config.emailSettings}}</h3>
-                        <p>{{i18n.view.admin.config.emailSettingsDesc}}</p>
-                    </div>
-                    <div class="jp-card-body">
+                    <h2 class="jp-card-dialog-heading">{{i18n.view.admin.config.emailSettings}}</h2>
+                    <div class="jp-card-subheading">{{i18n.view.admin.config.emailSettingsDesc}}</div>
                         <div class="local-form-row">
                             <div class="jp-form-group">
                                 <label for="adminEmail" class="jp-form-label">{{i18n.view.admin.config.adminEmail}}</label>
@@ -193,21 +180,16 @@
                             <input type="checkbox" id="useTls" name="useTls" value="true">
                             <label for="useTls">{{i18n.view.admin.config.useTls}}</label>
                         </div>
-                    </div>
                 </div>
 
                 <!-- Messages Section -->
                 <div class="jp-card local-config-section">
-                    <div class="jp-card-header">
-                        <h3>{{i18n.view.admin.config.messageSettings}}</h3>
-                        <p>{{i18n.view.admin.config.messageSettingsDesc}}</p>
-                    </div>
-                    <div class="jp-card-body">
-                        <div class="local-form-row local-full-width">
-                            <div class="jp-form-group">
-                                <label for="broadcast" class="jp-form-label">{{i18n.view.admin.config.broadcast}}</label>
-                                <textarea id="broadcast" name="broadcast" class="jp-form-textarea" rows="3" placeholder="{{i18n.view.admin.config.broadcastPlaceholder}}"></textarea>
-                            </div>
+                    <h2 class="jp-card-dialog-heading">{{i18n.view.admin.config.messageSettings}}</h2>
+                    <div class="jp-card-subheading">{{i18n.view.admin.config.messageSettingsDesc}}</div>
+                    <div class="local-form-row local-full-width">
+                        <div class="jp-form-group">
+                            <label for="broadcast" class="jp-form-label">{{i18n.view.admin.config.broadcast}}</label>
+                            <textarea id="broadcast" name="broadcast" class="jp-form-textarea" rows="3" placeholder="{{i18n.view.admin.config.broadcastPlaceholder}}"></textarea>
                         </div>
                     </div>
                 </div>

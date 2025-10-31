@@ -34922,3 +34922,215 @@ CORRECTED ARCHITECTURE DOCUMENTATION:
 All changes align with mpa-vs-spa.md documentation which correctly describes jPulse MPA (Hybrid) architecture where Model + Controller are on server, but View logic runs in the browser.
 
 STATUS: Architecture documentation corrected to accurately reflect jPulse MPA (Hybrid) pattern
+
+
+
+============================================================
+2025-10-30 01:43
+
+User request: Unified and simplified jp-card with headings and sub-headings
+
+WORK COMPLETED:
+
+PHASE 1: CSS Implementation and Card Heading System
+1. Implemented unified card heading CSS system in jpulse-common.css:
+   - Removed implicit dialog-style header from all .jp-card > h2:first-child
+   - Created new .jp-card-dialog-heading class for explicit opt-in dialog-style headers
+   - Created .jp-card-subheading class for subheadings positioned to the right of dialog headings
+   - Used absolute positioning with relative parent to position subheadings inside dialog header bar
+   - Added overflow: hidden and padding adjustments to accommodate subheadings
+   - Positioned subheadings at right: 20px, top: 5px within the dialog header area
+
+2. Fixed example files from each category for testing:
+   - Category A (h2 + span.jp-subheading): websocket-test.shtml - moved span outside h2, changed to div.jp-card-subheading, added jp-card-dialog-heading class
+   - Category B (jp-card-header wrapper): api.shtml - removed wrapper divs, converted h3 to h2 with jp-card-dialog-heading
+   - Category C (simple h2 in .shtml): hello-todo/architecture.shtml - added jp-card-dialog-heading class
+   - Category D (simple h2 in .tmpl): hello-websocket/templates/architecture.tmpl - added jp-card-dialog-heading class
+
+PHASE 2: Bulk Fix All Remaining Files
+3. Fixed all remaining files with Category A pattern (h2 + span.jp-subheading):
+   - websocket-status.shtml: Fixed activity log heading with subheading
+   - hello-app-cluster/index.shtml: Fixed 3 instances (Cluster Status, Two Demo Applications, Getting Started)
+   - hello-app-cluster/code-examples.shtml: Fixed 5 instances
+   - hello-app-cluster/architecture.shtml: Fixed 7 instances
+
+4. Fixed all remaining files with Category B pattern (jp-card-header wrapper):
+   - api.shtml: Fixed 5 instances (Loading States, Form Data, Error Handling, Real-time Data, API Best Practices)
+   - ui-widgets.shtml: Fixed 7 instances (Tab Interface, Accordion, Collapsible, Buttons & Dialog, Notification System, Form Validation, Content Boxes, Source Code)
+   - handlebars.shtml: Fixed 7 instances (Basic Variables, Conditional Rendering, i18n, Template Includes, Nested Handlebars, Loops, Available Context Variables)
+   - forms.shtml: Fixed 4 instances (Basic Form Validation, AJAX Form Submission, Multi-step Form, Form Styling Guide)
+   - layout.shtml: Fixed 6 instances (Card Grid, Flexbox Layouts, Information Boxes, Responsive Breakpoints, Spacing and Typography, Layout Best Practices)
+   - index.shtml: Fixed 1 instance (Getting Started)
+   - config.shtml: Fixed 2 instances (Email Settings, Messages Settings)
+   - Also simplified nested cards in layout.shtml card grid examples
+
+5. Fixed all remaining files with Category C/D pattern (simple h2):
+   - hello-vue/templates/code-examples.tmpl: Added jp-card-dialog-heading class
+   - hello-websocket/templates/code-examples.tmpl: Added jp-card-dialog-heading class
+
+PHASE 3: Cleanup and Documentation
+6. Removed deprecated CSS classes from jpulse-common.css:
+   - Removed .jp-card-header (26 lines of CSS) - no longer used
+   - Removed .jp-card-body (3 lines of CSS) - no longer used
+   - Removed .jp-card-footer (6 lines of CSS) - no longer used
+   All three classes were replaced by the new simplified structure.
+
+7. Updated code examples in template files:
+   - layout.shtml: Updated card grid example code to show simplified structure (removed wrapper divs)
+   - ui-widgets.shtml: Updated HTML example to show jp-card-dialog-heading instead of wrapper divs
+
+8. Updated documentation files:
+   - style-reference.md: Completely rewrote "Card Components" section with new CSS examples showing jp-card-dialog-heading and jp-card-subheading patterns, removed all references to deprecated classes
+   - docs/dev/working/W-025-view-component-styling.md: Updated component reference list
+   - docs/dev/work-items.md: Updated work item reference from .jp-card-header to .jp-card-dialog-heading
+
+PHASE 4: Spacing Fixes
+9. Fixed spacing issues:
+   - Added margin-bottom: 1rem to .jp-table to increase bottom padding of tables (handlebars.shtml)
+   - Increased card margin-bottom from 25px to 30px for better vertical spacing between cards
+   - Reduced .jp-dashboard-grid margin-bottom from 2rem to 1rem to fix excessive spacing after side-by-side cards
+   - Added .jp-dashboard-grid .jp-card { margin-bottom: 1rem; } to prevent double spacing in grid layouts
+   - Added .jp-card > h3 { margin-top: 0; } to fix excessive top margin on h3 headings in cards (site-override.shtml)
+
+The new card system provides:
+- Explicit opt-in for dialog-style headers (jp-card-dialog-heading class)
+- Simple default styling for regular h2 headings
+- Subheadings positioned correctly inside dialog headers
+- Simplified HTML structure without wrapper divs
+- Consistent visual appearance while reducing HTML complexity
+
+STATUS: All changes completed and accepted by user
+
+
+============================================================
+
+2025-10-31 18:18
+
+Created two new documentation files for Gen-AI development:
+
+1. docs/genai-development.md - Gen-AI Development Guide for site developers
+   - Overview of AI-assisted development ("vibe coding")
+   - Comparison of AI tools (Cursor, Cline, Copilot, Windsurf)
+   - Critical instruction: Point AI to docs/genai-instructions.md
+   - Repository management guidance with cross-link to getting-started.md
+   - Effective prompting strategies with examples
+   - Architecture awareness and framework patterns
+   - Building common features with AI
+   - Testing, debugging, and refactoring guidance
+   - Common pitfalls and solutions
+   - Example AI development sessions
+   - Best practices summary
+
+2. docs/genai-instructions.md - Machine-readable instructions for AI assistants
+   - Core directives and critical rules (site override, API-first, client-side heavy)
+   - Framework vs site file distinctions (CSS: jpulse-common.css vs site-common.css.tmpl, JS: jpulse-common.js vs site-common.js.tmpl)
+   - CSS prefix rules: local-* for page-specific, site-* for site-wide, never jp-* (framework-only)
+   - Reference implementations section pointing to living code examples
+   - Documentation reference guide (where to find what)
+   - High-level implementation guidance (avoid stale code snippets)
+   - Framework utilities quick reference
+   - Finding information (version in package.json, not hardcoded)
+   - Code quality checklist
+   - Common mistakes to avoid
+   - Response guidelines for AI
+   - Philosophy: point to source of truth, avoid documenting details that change
+
+Key design decisions:
+- No W-014 references - explained concept and pointed to site-customization.md
+- Repository setup cross-linked to getting-started.md (single source of truth)
+- Instructions doc avoids long code snippets (will get stale), points to reference files instead
+- Instructions doc avoids hardcoded version numbers, points to package.json
+- Heavy use of reference file links (helloTodo.js, hello-vue, hello-websocket examples)
+
+TIMEOUT occurred during cursor log update attempt
+
+STATUS: Changes accepted, but need to fix misunderstanding in genai-instructions.md about AI code generation
+
+Fixed genai-instructions.md misunderstanding:
+- Clarified that the DOCUMENT avoids code snippets (to prevent staleness)
+- But the AI SHOULD generate complete code for users (that's the AI's job!)
+- Updated "Implementation Guidance" section with proper guidance
+- Fixed "Common Mistakes" to show AI should provide complete code
+- Updated "Response Guidelines" with examples showing full code generation
+- Added "Avoiding Stale Information" section explaining the distinction
+- User made additional corrections: site-common.css (not .tmpl), added handlebars reference
+
+TIMEOUT occurred during final cursor log update
+
+STATUS: All changes completed and accepted
+
+Documentation enhancements for Gen-AI visibility:
+
+1. docs/README.md:
+   - Added new "AI-Assisted Development" section highlighting Gen-AI benefits
+   - Listed 5 key reasons why jPulse works great with AI (clear patterns, rich docs, reference implementations, safe defaults, zero configuration)
+   - Added Gen-AI Development Guide to Getting Started section
+   - Added Gen-AI Development Guide to Site Development section
+
+2. docs/getting-started.md:
+   - Added Pro Tip in Prerequisites section pointing to Gen-AI guide
+   - Added Gen-AI Development Guide as #1 in Next Steps (moved to top priority)
+
+3. docs/site-customization.md:
+   - Added intro paragraph with Gen-AI guide reference
+
+4. docs/front-end-development.md:
+   - Added paragraph after live examples pointing to Gen-AI guide
+
+5. docs/api-reference.md:
+   - Added paragraph after live examples pointing to Gen-AI guide
+
+All documentation now highlights the benefits of AI-assisted "vibe coding" and directs developers to the comprehensive Gen-AI development resources.
+
+STATUS: All documentation updates completed and accepted
+
+Current work context:
+- Upgrading jpulse.net from v0.x to v1.0.0-rc.2
+- Making admin pages publicly accessible for demo: system-status, websocket-status, websocket-test
+- Added _public virtual role support in AuthController for public access control
+- Health metrics API now supports role-based access via appConfig.controller.health.requiredRoles
+- Added data sanitization for non-admin users (removes sensitive infrastructure details)
+- Fixed PM2 uptime calculation bug (was using p.uptime as timestamp instead of seconds)
+- Fixed logs.shtml filter preset buttons (selector mismatch: buttons use jp-btn-outline, listeners looked for jp-btn-secondary)
+
+
+
+============================================================
+2025-10-31 00:23
+
+Created additional documentation:
+- docs/genai-development.md -- comprehensive guide for site developers using Gen-AI assistants
+   - Complete guide for "vibe coding" with jPulse Framework
+   - Covers all major AI tools (Cursor, Cline, Copilot, Windsurf)
+   - Initial setup and configuration guidance
+   - Effective prompting strategies and architecture-aware development
+   - Building common features with AI assistance
+   - Testing, debugging, and code quality practices
+   - Common pitfalls and solutions
+   - Example AI development sessions with conversation flows
+   - Checklists for AI-assisted development
+- docs/genai-instructions.md -- machine-readable instructions for AI coding agents
+   - Critical framework patterns and conventions (Site Override System, API-First, Client-Side Heavy, Auto-Discovery)
+   - CSS and JavaScript conventions (jp-* vs site-* vs local-* prefixes)
+   - Framework vs Site file distinctions
+   - Reference implementations pointing to living code examples
+   - Implementation guidance for controllers, views, models
+   - Code quality checklist and security considerations
+   - Response guidelines for AI assistants
+   - Philosophy: document stays fresh, AI generates current code
+
+Fixed site-common.js.tmpl to use Handlebars server-side expansion
+
+Fixed site/webapp/view/site-common.js.tmpl init() method to use Handlebars placeholders {{app.site.name}} and {{app.site.version}} instead of attempting to access window.appConfig (which is not available in view templates - appConfig is server-side only).
+
+The .tmpl files are processed by ViewController.load() which expands Handlebars server-side before the JavaScript reaches the browser.
+
+Changed from:
+console.log(`Initializing ${jPulse.site.config.name} v${jPulse.site.config.version}`);
+
+To:
+console.log(`Initializing {{app.site.name}} v{{app.site.version}}`);
+
+This ensures the site name and version are properly injected during server-side template processing.
+
+STATUS: Change accepted and applied

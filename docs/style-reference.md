@@ -93,44 +93,47 @@ Primary content container with background and shadow:
 ### Card Components
 
 #### Basic Card
-Reusable card component with header, body, and footer structure:
+Reusable card component with optional dialog-style headings:
 
 ```css
 .jp-card {
     background: white;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    overflow: hidden;
+    padding: 20px;
+    margin-bottom: 25px;
 }
 
-.jp-card-header {
-    background: #f8f9fa;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid #e9ecef;
-}
-
-.jp-card-body {
-    padding: 1.5rem;
-}
-
-.jp-card-footer {
-    background: #f8f9fa;
-    padding: 1rem 1.5rem;
-    border-top: 1px solid #e9ecef;
+.jp-card-dialog-heading {
+    background: #f5f5f5;
+    margin: -20px -20px 25px -20px;
+    padding: 15px 20px;
+    border-radius: 8px 8px 0 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #333;
 }
 ```
 
 ```html
+<!-- Simple card with dialog-style header -->
 <div class="jp-card">
-    <div class="jp-card-header">
-        <h3>User Profile</h3>
-    </div>
-    <div class="jp-card-body">
-        <p>Profile information and settings.</p>
-    </div>
-    <div class="jp-card-footer">
-        <button class="jp-btn jp-btn-primary">Save Changes</button>
-    </div>
+    <h2 class="jp-card-dialog-heading">User Profile</h2>
+    <p>Profile information and settings.</p>
+    <button class="jp-btn jp-btn-primary">Save Changes</button>
+</div>
+
+<!-- Card with subheading -->
+<div class="jp-card">
+    <h2 class="jp-card-dialog-heading">Settings</h2>
+    <div class="jp-card-subheading">Configure your preferences</div>
+    <p>Settings content goes here...</p>
+</div>
+
+<!-- Simple card without dialog header (regular h2) -->
+<div class="jp-card">
+    <h2>Simple Card Title</h2>
+    <p>Card content goes here...</p>
 </div>
 ```
 
@@ -904,9 +907,7 @@ Flexible layout utilities for common patterns:
 <!-- Centered content -->
 <div class="jp-flex-center" style="min-height: 200px;">
     <div class="jp-card">
-        <div class="jp-card-body">
-            <p>Centered card content</p>
-        </div>
+        <p>Centered card content</p>
     </div>
 </div>
 ```
@@ -1262,11 +1263,10 @@ Example of a complete page using jPulse components:
             <!-- User Cards -->
             <div class="jp-flex jp-gap-20 jp-flex-wrap">
                 <div class="jp-card" style="flex: 1; min-width: 300px;">
-                    <div class="jp-card-body">
-                        <div class="jp-user-info">
-                            <div class="jp-user-avatar">JS</div>
-                            <div class="jp-user-details">
-                                <div class="jp-user-name">John Smith</div>
+                    <div class="jp-user-info">
+                        <div class="jp-user-avatar">JS</div>
+                        <div class="jp-user-details">
+                            <div class="jp-user-name">John Smith</div>
                                 <div class="jp-user-login">jsmith</div>
                             </div>
                             <div>
@@ -1274,8 +1274,9 @@ Example of a complete page using jPulse components:
                                 <span class="jp-status-badge jp-status-active">Active</span>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="jp-action-section">
+                    <div class="jp-action-section">
                             <div class="jp-btn-group">
                                 <button class="jp-btn jp-btn-outline">Edit</button>
                                 <button class="jp-btn jp-btn-danger">Delete</button>

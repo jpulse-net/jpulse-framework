@@ -445,7 +445,7 @@
             });
 
             // Filter presets
-            document.querySelectorAll('.jp-btn-secondary').forEach(btn => {
+            document.querySelectorAll('[data-preset]').forEach(btn => {
                 btn.addEventListener('click', () => setDatePreset(btn.dataset.preset));
             });
 
@@ -515,7 +515,7 @@
         }
 
         function setPresetActive(preset) {
-            document.querySelectorAll('.jp-btn-secondary').forEach(btn => {
+            document.querySelectorAll('[data-preset]').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.preset === preset);
             });
         }

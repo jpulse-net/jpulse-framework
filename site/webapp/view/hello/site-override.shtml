@@ -109,7 +109,7 @@
         </div> 
 
         <script>
-            document.addEventListener('DOMContentLoaded', function() {
+            jPulse.dom.ready(() => {
                 // Original API test functionality
                 const testBtn = document.getElementById('testApiBtn');
                 const responseDiv = document.getElementById('apiResponse');

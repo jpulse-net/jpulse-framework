@@ -4,6 +4,8 @@ Complete guide to client-side development with the jPulse JavaScript framework, 
 
 **🎯 Live Examples:** See the [UI Widgets Examples](/jpulse-examples/ui-widgets.shtml) and [Form Examples](/jpulse-examples/forms.shtml) pages for interactive demonstrations of all concepts with working code.
 
+**💡 Using AI assistance?** The [Gen-AI Development Guide](genai-development.md) shows how to leverage AI coding assistants to implement these patterns quickly while maintaining framework best practices.
+
 ## 🎯 Overview
 
 The jPulse Framework provides a comprehensive client-side utility library available globally as `jPulse`. This framework eliminates code duplication, provides consistent patterns across all views, and implements the "don't make me think" philosophy for front-end development.
@@ -25,7 +27,7 @@ The jPulse Framework provides a comprehensive client-side utility library availa
 - **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation
 - **[Style Reference](style-reference.md)** - Complete `jp-*` styling framework
 - **[Template Reference](template-reference.md)** - Server-side Handlebars integration
-- **[Site Customization](site-customization.md)** - W-014 override system for site-specific code
+- **[Site Customization](site-customization.md)** - Site override system for site-specific code
 - **[Getting Started](getting-started.md)** - Quick start tutorial for new developers
 
 ## 🔌 API Call Utilities
@@ -286,7 +288,7 @@ jPulse.form.validate.required('value'); // true/false
 ### Complete Form Example
 
 ```javascript
-document.addEventListener('DOMContentLoaded', () => {
+jPulse.dom.ready(() => {
     const loginForm = document.getElementById('loginForm');
 
     loginForm.addEventListener('submit', async (e) => {
@@ -571,7 +573,7 @@ jPulse.form.setLoadingState(button, false); // Clear loading state
 
 ```javascript
 // Recommended application initialization pattern
-document.addEventListener('DOMContentLoaded', async () => {
+jPulse.dom.ready(async () => {
     try {
         // Initialize global components
         initializeNavigation();
@@ -829,7 +831,7 @@ class UserTable {
 ### Getting Started
 - **[Installation Guide](installation.md)** - Setup for development and production
 - **[Getting Started](getting-started.md)** - Quick start tutorial
-- **[Site Customization](site-customization.md)** - W-014 override system guide
+- **[Site Customization](site-customization.md)** - Site override system guide
 - **[Examples](examples.md)** - Real-world code examples
 
 ### Advanced Topics

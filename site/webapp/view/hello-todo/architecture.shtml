@@ -59,7 +59,7 @@
             </nav>
 
             <div class="jp-card">
-                <h2>🏗️ MVC Architecture</h2>
+                <h2 class="jp-card-dialog-heading">🏗️ MVC Architecture</h2>
 
                 <div class="jp-info-box">
                     <p>Understanding how the Model, View, and Controller work together in jPulse MPA (Hybrid) architecture. The server provides HTML scaffolding and REST APIs, while browser JavaScript handles rendering and DOM updates.</p>

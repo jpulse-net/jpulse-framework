@@ -186,7 +186,7 @@ docs/
 ├── README.md             # User-facing documentation overview
 ├── installation.md       # Installation and setup guide
 ├── getting-started.md    # Quick start tutorial
-├── site-customization.md # W-014 override system guide
+├── site-customization.md # Site override system guide
 ├── examples.md           # Code examples and use cases
 ├── deployment.md         # Production deployment guide
 ├── api-reference.md      # REST API documentation

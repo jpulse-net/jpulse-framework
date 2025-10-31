@@ -185,9 +185,8 @@
 
             <!-- Pattern Comparison -->
             <div class="jp-card">
-                <h2>🔄 Broadcasting Patterns Overview
-                    <span class="jp-subheading">Understanding the two different approaches to cluster communication</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">🔄 Broadcasting Patterns Overview</h2>
+                <div class="jp-card-subheading">Understanding the two different approaches to cluster communication</div>
                 <div class="jp-card-content">
                     <div class="local-pattern-comparison">
                         <!-- Client-Side Pattern -->
@@ -233,9 +232,8 @@
 
             <!-- Client-Side Broadcasting Examples -->
             <div class="jp-card">
-                <h2>📢 Client-Side Broadcasting Examples
-                    <span class="jp-subheading">Simple direct broadcasting without server-side logic</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">📢 Client-Side Broadcasting Examples</h2>
+                <div class="jp-card-subheading">Simple direct broadcasting without server-side logic</div>
 
                 <!-- Basic Publishing -->
                 <h3>📤 Publishing a Message</h3>
@@ -303,9 +301,8 @@ controller:health:metrics:broadcast          // Internal server-to-server
 
             <!-- Server-Side Broadcasting Examples -->
             <div class="jp-card">
-                <h2>✅ Server-Side Broadcasting Examples
-                    <span class="jp-subheading">Full MVC pattern with database persistence and validation</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">✅ Server-Side Broadcasting Examples</h2>
+                <div class="jp-card-subheading">Full MVC pattern with database persistence and validation</div>
 
                 <!-- Controller Implementation -->
                 <h3>🎛️ Controller: `apiCreate` Method</h3>
@@ -427,9 +424,8 @@ class HelloClusterTodoController {
 
             <!-- API Reference -->
             <div class="jp-card">
-                <h2>📚 API Reference
-                    <span class="jp-subheading">Complete API endpoints for the collaborative todo demo</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">📚 API Reference</h2>
+                <div class="jp-card-subheading">Complete API endpoints for the collaborative todo demo</div>
                 <table class="local-api-table">
                     <thead>
                         <tr>
@@ -476,10 +472,8 @@ class HelloClusterTodoController {
 
             <!-- Broadcasting API Reference -->
             <div class="jp-card">
-                <h2>📡 Broadcasting API Reference
-                    <h2>📡 Broadcasting API Reference</h2>
-                    <span class="jp-subheading">Core jPulse broadcasting methods and patterns</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">📡 Broadcasting API Reference</h2>
+                <div class="jp-card-subheading">Core jPulse broadcasting methods and patterns</div>
 
                 <!-- Quick Reference -->
                 <h3>⚡ Quick Reference</h3>

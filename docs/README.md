@@ -72,7 +72,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - Natural `{{i18n.key}}` template syntax
 - Variable substitution in translations
 
-### 🔧 **Site Customization (W-014)**
+### 🔧 **Site Customization**
 - Seamless framework updates with site preservation
 - Automatic file resolution priority (`site/webapp/` → `webapp/`)
 - Zero-configuration site controller discovery
@@ -91,15 +91,34 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - Enhanced message truncation for large payloads
 - Analytics-ready log format for monitoring tools
 
+## 🤖 **AI-Assisted Development**
+
+jPulse Framework is designed for **Gen-AI development** (aka "vibe coding") - leveraging AI assistants like Cursor, Cline, GitHub Copilot, or Windsurf to accelerate development while maintaining framework best practices.
+
+**Why jPulse works great with AI**:
+- 🎯 **Clear Patterns**: Consistent MVC architecture that AI can learn and replicate
+- 📚 **Rich Documentation**: Comprehensive guides AI can reference for accurate code generation
+- 🔍 **Reference Implementations**: Complete working examples (hello-todo, hello-vue) AI can study
+- 🛡️ **Safe Defaults**: Framework conventions prevent common mistakes even in AI-generated code
+- 🚀 **Zero Configuration**: Auto-discovery means less boilerplate for AI to remember
+
+**Get Started with AI Development**:
+- **[Gen-AI Development Guide](genai-development.md)** - Complete guide for developers using AI assistants
+- **[Gen-AI Instructions](genai-instructions.md)** - Machine-readable instructions for AI coding agents
+
+Whether you code manually or with AI assistance, jPulse's "don't make me think" philosophy ensures productive, maintainable development.
+
 ## 📚 Documentation Guide
 
 ### 🚀 **Getting Started**
 - **[Installation Guide](installation.md)** - Setup for development and production environments
 - **[Getting Started Tutorial](getting-started.md)** - Build your first jPulse application
 - **[Examples](examples.md)** - Real-world implementation patterns and use cases
+- **[Gen-AI Development Guide](genai-development.md)** - AI-assisted development with vibe coding
 
 ### 👨‍💻 **Site Development**
 - **[Site Customization](site-customization.md)** - Override system for update-safe customizations
+- **[Gen-AI Development Guide](genai-development.md)** - AI-assisted development ("vibe coding")
 - **[MPA vs. SPA Guide](mpa-vs-spa.md)** - Architecture comparison with diagrams and use cases
 - **[Front-End Development](front-end-development.md)** - Complete jPulse JavaScript framework guide
 - **[Application Cluster Communication](application-cluster.md)** - Multi-server broadcasting for state synchronization

@@ -439,7 +439,7 @@ Standard structure for page templates:
 
 <!-- Client-side enhancement -->
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
+jPulse.dom.ready(async () => {
     // Load dynamic content via API
     const stats = await jPulse.api.get('/api/1/dashboard/stats');
     const activity = await jPulse.api.get('/api/1/dashboard/activity');
@@ -512,7 +512,7 @@ Template pattern for forms with validation:
 
 <!-- Client-side: Enhanced form handling -->
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+jPulse.dom.ready(() => {
     const form = document.getElementById('profileForm');
 
     // Enhanced form submission with API
@@ -628,7 +628,7 @@ Template pattern for administrative interfaces:
 
 <!-- Client-side: Dynamic user management -->
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+jPulse.dom.ready(() => {
     // Initialize user management interface
     const userManager = new UserManager();
     userManager.loadUsers();

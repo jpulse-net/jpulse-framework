@@ -162,7 +162,7 @@
         }
 
         // Auto-logout if ?auto=true parameter is present
-        document.addEventListener('DOMContentLoaded', function() {
+        jPulse.dom.ready(() => {
             const urlParams = new URLSearchParams(window.location.search);
             const autoLogout = urlParams.get('auto');
 

@@ -34,25 +34,22 @@
 
         <!-- Basic Variables Example -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Basic Variables</h3>
-            </div>
-            <div class="jp-card-body">
-                <!-- Tab interface for example/source -->
-                <div id="variables-tabs" class="jp-tabs"></div>
-                <div id="variables-example-panel" class="jp-panel">
-                    <div class="jp-info-box">
-                        <ul>
-                            <li><strong>App Name:</strong> {{app.site.name}}</li>
-                            <li><strong>Version:</strong> {{app.site.version}}</li>
-                            <li><strong>Current User:</strong> {{#if user.isAuthenticated}}{{user.firstName}} {{user.lastName}}{{else}}Guest{{/if}}</li>
-                            <li><strong>Current URL:</strong> {{url.domain}}{{url.pathname}}</li>
-                            <li><strong>Admin Email:</strong> {{config.email.adminEmail}}</li>
-                        </ul>
-                    </div>
+            <h2 class="jp-card-dialog-heading">Basic Variables</h2>
+            <!-- Tab interface for example/source -->
+            <div id="variables-tabs" class="jp-tabs"></div>
+            <div id="variables-example-panel" class="jp-panel">
+                <div class="jp-info-box">
+                    <ul>
+                        <li><strong>App Name:</strong> {{app.site.name}}</li>
+                        <li><strong>Version:</strong> {{app.site.version}}</li>
+                        <li><strong>Current User:</strong> {{#if user.isAuthenticated}}{{user.firstName}} {{user.lastName}}{{else}}Guest{{/if}}</li>
+                        <li><strong>Current URL:</strong> {{url.domain}}{{url.pathname}}</li>
+                        <li><strong>Admin Email:</strong> {{config.email.adminEmail}}</li>
+                    </ul>
                 </div>
-                <div id="variables-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="html">
+            </div>
+            <div id="variables-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
 &lt;ul&gt;
     &lt;li&gt;&lt;strong&gt;App Name:&lt;/strong&gt; &#123;&#123;app.site.name&#125;&#125;&lt;/li&gt;
     &lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; &#123;&#123;app.site.version&#125;&#125;&lt;/li&gt;
@@ -60,37 +57,32 @@
     &lt;li&gt;&lt;strong&gt;Current URL:&lt;/strong&gt; &#123;&#123;url.domain&#125;&#125;&#123;&#123;url.pathname&#125;&#125;&lt;/li&gt;
     &lt;li&gt;&lt;strong&gt;Admin Email:&lt;/strong&gt; &#123;&#123;config.email.adminEmail&#125;&#125;&lt;/li&gt;
 &lt;/ul&gt;
-                    </div>
                 </div>
-
             </div>
         </div>
 
         <!-- Conditional Rendering Example -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Conditional Rendering</h3>
-            </div>
-            <div class="jp-card-body">
-                <!-- Tab interface for example/source -->
-                <div id="conditionals-tabs" class="jp-tabs"></div>
-                <div id="conditionals-example-panel" class="jp-panel">
-                    <div class="jp-warning-box">
-                        <h4>Authentication Status</h4>
-                        {{#if user.isAuthenticated}}
-                            <p>✅ Welcome back, {{user.firstName}}!</p>
-                            <p>Your roles: {{user.roles}}</p>
-                            {{#if user.isAdmin}}
-                                <p>🔧 You have admin privileges</p>
-                            {{/if}}
-                        {{else}}
-                            <p>👋 Hello, guest! Please <a href="/auth/login.shtml">log in</a> to access more features.</p>
+            <h2 class="jp-card-dialog-heading">Conditional Rendering</h2>
+            <!-- Tab interface for example/source -->
+            <div id="conditionals-tabs" class="jp-tabs"></div>
+            <div id="conditionals-example-panel" class="jp-panel">
+                <div class="jp-warning-box">
+                    <h4>Authentication Status</h4>
+                    {{#if user.isAuthenticated}}
+                        <p>✅ Welcome back, {{user.firstName}}!</p>
+                        <p>Your roles: {{user.roles}}</p>
+                        {{#if user.isAdmin}}
+                            <p>🔧 You have admin privileges</p>
                         {{/if}}
-                    </div>
+                    {{else}}
+                        <p>👋 Hello, guest! Please <a href="/auth/login.shtml">log in</a> to access more features.</p>
+                    {{/if}}
                 </div>
+            </div>
 
-                <div id="conditionals-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="html">
+            <div id="conditionals-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
 &#123;&#123;#if user.isAuthenticated&#125;&#125;
     &lt;p&gt;✅ Welcome back, &#123;&#123;user.firstName&#125;&#125;!&lt;/p&gt;
     &lt;p&gt;Your roles: &#123;&#123;user.roles&#125;&#125;&lt;/p&gt;
@@ -100,62 +92,54 @@
 &#123;&#123;else&#125;&#125;
     &lt;p&gt;👋 Hello, guest! Please &lt;a href="/auth/login.shtml"&gt;log in&lt;/a&gt; to access more features.&lt;/p&gt;
 &#123;&#123;/if&#125;&#125;
-                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Internationalization Example -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Internationalization (i18n)</h3>
-            </div>
-            <div class="jp-card-body">
-                <!-- Tab interface for example/source -->
-                <div id="i18n-tabs" class="jp-tabs"></div>
-                <div id="i18n-example-panel" class="jp-panel">
-                    <div class="jp-info-box">
-                        <p><strong>Welcome Message:</strong> {{i18n.view.home.introduction}}</p>
-                        <p><strong>Login Status:</strong> {{#if user.isAuthenticated}}{{i18n.view.home.welcomeBack}}{{else}}{{i18n.view.home.notLoggedIn}}{{/if}}</p>
-                        <p><strong>Authentication Message:</strong> {{i18n.view.auth.common.notAuthenticated}}</p>
-                    </div>
+            <h2 class="jp-card-dialog-heading">Internationalization (i18n)</h2>
+            <!-- Tab interface for example/source -->
+            <div id="i18n-tabs" class="jp-tabs"></div>
+            <div id="i18n-example-panel" class="jp-panel">
+                <div class="jp-info-box">
+                    <p><strong>Welcome Message:</strong> {{i18n.view.home.introduction}}</p>
+                    <p><strong>Login Status:</strong> {{#if user.isAuthenticated}}{{i18n.view.home.welcomeBack}}{{else}}{{i18n.view.home.notLoggedIn}}{{/if}}</p>
+                    <p><strong>Authentication Message:</strong> {{i18n.view.auth.common.notAuthenticated}}</p>
                 </div>
+            </div>
 
-                <div id="i18n-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="html">
+            <div id="i18n-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
 &lt;p&gt;&lt;strong&gt;Welcome Message:&lt;/strong&gt; &#123;&#123;i18n.view.home.introduction&#125;&#125;&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;Login Status:&lt;/strong&gt; &#123;&#123;#if user.isAuthenticated&#125;&#125;&#123;&#123;i18n.view.home.welcomeBack&#125;&#125;&#123;&#123;else&#125;&#125;&#123;&#123;i18n.view.home.notLoggedIn&#125;&#125;&#123;&#123;/if&#125;&#125;&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;Authentication Message:&lt;/strong&gt; &#123;&#123;i18n.view.auth.common.notAuthenticated&#125;&#125;&lt;/p&gt;
-                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Template Includes Example -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Template Includes</h3>
-            </div>
-            <div class="jp-card-body">
-                <!-- Tab interface for example/source -->
-                <div id="includes-tabs" class="jp-tabs"></div>
-                <div id="includes-example-panel" class="jp-panel">
-                    <div class="jp-info-box">
-                        <p>This page includes the header and footer templates:</p>
-                        <ul>
-                            <li><code>jpulse-header.tmpl</code> - Contains CSS, meta tags, and navigation</li>
-                            <li><code>jpulse-footer.tmpl</code> - Contains JavaScript libraries and closing tags</li>
-                            <li><code>.tmpl</code> - Contains the navigation tabs for this page</li>
-                        </ul>
-                        <p>File timestamp: Used for browser cache busting</p>
-                        <ul>
-                            <li><code>jpulse-common.css</code> timestamp: {{file.timestamp "jpulse-common.css"}}</li>
-                        </ul>
-                   </div>
+            <h2 class="jp-card-dialog-heading">Template Includes</h2>
+            <!-- Tab interface for example/source -->
+            <div id="includes-tabs" class="jp-tabs"></div>
+            <div id="includes-example-panel" class="jp-panel">
+                <div class="jp-info-box">
+                    <p>This page includes the header and footer templates:</p>
+                    <ul>
+                        <li><code>jpulse-header.tmpl</code> - Contains CSS, meta tags, and navigation</li>
+                        <li><code>jpulse-footer.tmpl</code> - Contains JavaScript libraries and closing tags</li>
+                        <li><code>.tmpl</code> - Contains the navigation tabs for this page</li>
+                    </ul>
+                    <p>File timestamp: Used for browser cache busting</p>
+                    <ul>
+                        <li><code>jpulse-common.css</code> timestamp: {{file.timestamp "jpulse-common.css"}}</li>
+                    </ul>
                 </div>
+            </div>
 
-                <div id="includes-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="html">
+            <div id="includes-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
 &lt;!-- Server side include in the &lt;head&gt; section --&gt;
 &#123;&#123;file.include "jpulse-header.tmpl"&#125;&#125;
 
@@ -167,44 +151,40 @@
 
 &lt;!-- Link to file with timestamp for browser cache busting --&gt;
 &lt;link rel="stylesheet" href="/jpulse-common.css?t=&#123;&#123;file.timestamp "jpulse-common.css"&#125;&#125;"&gt;
-                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Nested Handlebars Example (v0.7.20+) -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Nested Handlebars (v0.7.20+)</h3>
-            </div>
-            <div class="jp-card-body">
-                <!-- Tab interface for example/source -->
-                <div id="nested-tabs" class="jp-tabs"></div>
-                <div id="nested-example-panel" class="jp-panel">
-                    <div class="jp-warning-box">
-                        <h4>Multi-level Conditional Example</h4>
-                        {{#if user.isAuthenticated}}
-                            <p>User: {{user.firstName}} {{user.lastName}}</p>
-                            {{#if user.isAdmin}}
-                                <div class="jp-info-box">
-                                    <p>Admin Panel Access:</p>
-                                    {{#if config.features.adminPanel}}
-                                        <p>✅ Admin panel is enabled</p>
-                                    {{else}}
-                                        <p>❌ Admin panel is disabled</p>
-                                    {{/if}}
-                                </div>
-                            {{else}}
-                                <p>Regular user - limited access</p>
-                            {{/if}}
+            <h2 class="jp-card-dialog-heading">Nested Handlebars (v0.7.20+)</h2>
+            <!-- Tab interface for example/source -->
+            <div id="nested-tabs" class="jp-tabs"></div>
+            <div id="nested-example-panel" class="jp-panel">
+                <div class="jp-warning-box">
+                    <h4>Multi-level Conditional Example</h4>
+                    {{#if user.isAuthenticated}}
+                        <p>User: {{user.firstName}} {{user.lastName}}</p>
+                        {{#if user.isAdmin}}
+                            <div class="jp-info-box">
+                                <p>Admin Panel Access:</p>
+                                {{#if config.features.adminPanel}}
+                                    <p>✅ Admin panel is enabled</p>
+                                {{else}}
+                                    <p>❌ Admin panel is disabled</p>
+                                {{/if}}
+                            </div>
                         {{else}}
-                            <p>Please log in to see personalized content</p>
+                            <p>Regular user - limited access</p>
                         {{/if}}
-                    </div>
+                    {{else}}
+                        <p>Please log in to see personalized content</p>
+                    {{/if}}
                 </div>
+            </div>
 
-                <div id="nested-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="html">
+            <div id="nested-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
 &#123;&#123;#if user.isAuthenticated&#125;&#125;
     &lt;p&gt;User: &#123;&#123;user.firstName&#125;&#125; &#123;&#123;user.lastName&#125;&#125;&lt;/p&gt;
     &#123;&#123;#if user.isAdmin&#125;&#125;
@@ -222,60 +202,56 @@
 &#123;&#123;else&#125;&#125;
     &lt;p&gt;Please log in to see personalized content&lt;/p&gt;
 &#123;&#123;/if&#125;&#125;
-                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Loops Example -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Loops</h3>
-            </div>
-            <div class="jp-card-body">
-                <!-- Tab interface for example/source -->
-                <div id="loops-tabs" class="jp-tabs"></div>
-                <div id="loops-example-panel" class="jp-panel">
-                    <div class="jp-info-box">
-                        <h4>Array of Strings (User Roles)</h4>
-                        <p>Current user roles:
-                        {{#each user.roles}}
-                            <span class="jp-role-badge jp-role-{{this}}">{{this}}</span>
-                        {{/each}}
-                        </p>
-                    </div>
+            <h2 class="jp-card-dialog-heading">Loops</h2>
+            <!-- Tab interface for example/source -->
+            <div id="loops-tabs" class="jp-tabs"></div>
+            <div id="loops-example-panel" class="jp-panel">
+                <div class="jp-info-box">
+                    <h4>Array of Strings (User Roles)</h4>
+                    <p>Current user roles:
+                    {{#each user.roles}}
+                        <span class="jp-role-badge jp-role-{{this}}">{{this}}</span>
+                    {{/each}}
+                    </p>
+                </div>
 
-                    <div class="jp-warning-box">
-                        <h4>Loop Variables Example</h4>
-                        <ul>
-                        {{#each user.roles}}
-                            <li>Role {{@index}}: {{this}} {{#if @first}}(first){{/if}}{{#if @last}}(last){{/if}}</li>
-                        {{/each}}
-                        </ul>
-                    </div>
+                <div class="jp-warning-box">
+                    <h4>Loop Variables Example</h4>
+                    <ul>
+                    {{#each user.roles}}
+                        <li>Role {{@index}}: {{this}} {{#if @first}}(first){{/if}}{{#if @last}}(last){{/if}}</li>
+                    {{/each}}
+                    </ul>
+                </div>
 
-                    <div class="jp-info-box">
-                        <h4>Array of Objects Example</h4>
-                        <p><em>Note: This example shows the concept. In a real application, you would pass an array of user objects to the template.</em></p>
-                        <div class="jp-user-card" style="border: 1px solid #ddd; padding: 10px; margin: 5px 0;">
-                            <h5>{{user.firstName}} {{user.lastName}}</h5>
-                            <p>Email: {{user.email}}</p>
-                        </div>
-                    </div>
-
-                    <div class="jp-warning-box">
-                        <h4>Object Keys Example</h4>
-                        <p><em>Iterating over session user object properties:</em></p>
-                        <ul>
-                            {{#each user}}
-                            <li><strong>{{@key}}:</strong> {{this}}</li>
-                            {{/each}}
-                        </ul>
+                <div class="jp-info-box">
+                    <h4>Array of Objects Example</h4>
+                    <p><em>Note: This example shows the concept. In a real application, you would pass an array of user objects to the template.</em></p>
+                    <div class="jp-user-card" style="border: 1px solid #ddd; padding: 10px; margin: 5px 0;">
+                        <h5>{{user.firstName}} {{user.lastName}}</h5>
+                        <p>Email: {{user.email}}</p>
                     </div>
                 </div>
 
-                <div id="loops-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="html">
+                <div class="jp-warning-box">
+                    <h4>Object Keys Example</h4>
+                    <p><em>Iterating over session user object properties:</em></p>
+                    <ul>
+                        {{#each user}}
+                        <li><strong>{{@key}}:</strong> {{this}}</li>
+                        {{/each}}
+                    </ul>
+                </div>
+            </div>
+
+            <div id="loops-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
 &lt;!-- Array of Strings --&gt;
 &#123;&#123;#each user.roles&#125;&#125;
     &lt;span class="jp-role-badge jp-role-&#123;&#123;this&#125;&#125;"&gt;&#123;&#123;this&#125;&#125;&lt;/span&gt;
@@ -298,215 +274,210 @@
 &#123;&#123;#each user&#125;&#125;
     &lt;div&gt;&lt;strong&gt;&#123;&#123;@key&#125;&#125;:&lt;/strong&gt; &#123;&#123;this&#125;&#125;&lt;/div&gt;
 &#123;&#123;/each&#125;&#125;
-                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Available Context Variables -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Available Context Variables</h3>
-            </div>
-            <div class="jp-card-body">
-                <p>jPulse provides these context variables in all templates:</p>
+            <h2 class="jp-card-dialog-heading">Available Context Variables</h2>
+            <p>jPulse provides these context variables in all templates:</p>
 
-                <div class="jp-card-grid">
-                    <div class="jp-info-box">
-                        <h4>App Context</h4>
-                        <table class="jp-table">
-                            <tr>
-                                <th>Variable</th>
-                                <th>Handlebar</th>
-                                <th>Expanded</th>
-                            </tr>
-                            <tr>
-                                <td>Application name</td>
-                                <td><code>&#123;&#123;app.site.name&#125;&#125;</code></td>
-                                <td><code>{{app.site.name}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>Current application version</td>
-                                <td><code>&#123;&#123;app.site.version&#125;&#125;</code></td>
-                                <td><code>{{app.site.version}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>Current application release</td>
-                                <td><code>&#123;&#123;app.site.release&#125;&#125;</code></td>
-                                <td><code>{{app.site.release}}</code></td>
-                            </tr>
-                        </table>
-                    </div>
+            <div class="jp-card-grid">
+                <div class="jp-info-box">
+                    <h4>App Context</h4>
+                    <table class="jp-table">
+                        <tr>
+                            <th>Variable</th>
+                            <th>Handlebar</th>
+                            <th>Expanded</th>
+                        </tr>
+                        <tr>
+                            <td>Application name</td>
+                            <td><code>&#123;&#123;app.site.name&#125;&#125;</code></td>
+                            <td><code>{{app.site.name}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>Current application version</td>
+                            <td><code>&#123;&#123;app.site.version&#125;&#125;</code></td>
+                            <td><code>{{app.site.version}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>Current application release</td>
+                            <td><code>&#123;&#123;app.site.release&#125;&#125;</code></td>
+                            <td><code>{{app.site.release}}</code></td>
+                        </tr>
+                    </table>
+                </div>
 
-                    <div class="jp-info-box">
-                        <h4>User Context</h4>
-                        <table class="jp-table">
-                            <tr>
-                                <th>Variable</th>
-                                <th>Handlebar</th>
-                                <th>Expanded</th>
-                            </tr>
-                            <tr>
-                                <td>Login status</td>
-                                <td><code>&#123;&#123;user.isAuthenticated&#125;&#125;</code></td>
-                                <td><code>{{user.isAuthenticated}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>First name</td>
-                                <td><code>&#123;&#123;user.firstName&#125;&#125;</code></td>
-                                <td><code>{{user.firstName}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>Last name</td>
-                                <td><code>&#123;&#123;user.lastName&#125;&#125;</code></td>
-                                <td><code>{{user.lastName}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>Email address</td>
-                                <td><code>&#123;&#123;user.email&#125;&#125;</code></td>
-                                <td><code>{{user.email}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>User roles</td>
-                                <td><code>&#123;&#123;user.roles&#125;&#125;</code></td>
-                                <td><code>{{user.roles}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>Admin status</td>
-                                <td><code>&#123;&#123;user.isAdmin&#125;&#125;</code></td>
-                                <td><code>{{user.isAdmin}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>User initials</td>
-                                <td><code>&#123;&#123;user.initials&#125;&#125;</code></td>
-                                <td><code>{{user.initials}}</code></td>
-                            </tr>
-                        </table>
-                    </div>
+                <div class="jp-info-box">
+                    <h4>User Context</h4>
+                    <table class="jp-table">
+                        <tr>
+                            <th>Variable</th>
+                            <th>Handlebar</th>
+                            <th>Expanded</th>
+                        </tr>
+                        <tr>
+                            <td>Login status</td>
+                            <td><code>&#123;&#123;user.isAuthenticated&#125;&#125;</code></td>
+                            <td><code>{{user.isAuthenticated}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>First name</td>
+                            <td><code>&#123;&#123;user.firstName&#125;&#125;</code></td>
+                            <td><code>{{user.firstName}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>Last name</td>
+                            <td><code>&#123;&#123;user.lastName&#125;&#125;</code></td>
+                            <td><code>{{user.lastName}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>Email address</td>
+                            <td><code>&#123;&#123;user.email&#125;&#125;</code></td>
+                            <td><code>{{user.email}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>User roles</td>
+                            <td><code>&#123;&#123;user.roles&#125;&#125;</code></td>
+                            <td><code>{{user.roles}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>Admin status</td>
+                            <td><code>&#123;&#123;user.isAdmin&#125;&#125;</code></td>
+                            <td><code>{{user.isAdmin}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>User initials</td>
+                            <td><code>&#123;&#123;user.initials&#125;&#125;</code></td>
+                            <td><code>{{user.initials}}</code></td>
+                        </tr>
+                    </table>
+                </div>
 
-                    <div class="jp-info-box">
-                        <h4>URL Context</h4>
-                        <table class="jp-table">
-                            <tr>
-                                <th>Variable</th>
-                                <th>Handlebar</th>
-                                <th>Expanded</th>
-                            </tr>
-                            <tr>
-                                <td>HTTP/HTTPS</td>
-                                <td><code>&#123;&#123;url.protocol&#125;&#125;</code></td>
-                                <td><code>{{url.protocol}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>Domain name</td>
-                                <td><code>&#123;&#123;url.hostname&#125;&#125;</code></td>
-                                <td><code>{{url.hostname}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>Port number</td>
-                                <td><code>&#123;&#123;url.port&#125;&#125;</code></td>
-                                <td><code>{{url.port}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>URL path</td>
-                                <td><code>&#123;&#123;url.pathname&#125;&#125;</code></td>
-                                <td><code>{{url.pathname}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>Query string</td>
-                                <td><code>&#123;&#123;url.search&#125;&#125;</code></td>
-                                <td><code>{{url.search}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>Full domain</td>
-                                <td><code>&#123;&#123;url.domain&#125;&#125;</code></td>
-                                <td><code>{{url.domain}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>Query parameters</td>
-                                <td><code>&#123;&#123;url.param.name&#125;&#125;</code></td>
-                                <td><code>{{url.param.name}}</code></td>
-                            </tr>
-                        </table>
-                    </div>
+                <div class="jp-info-box">
+                    <h4>URL Context</h4>
+                    <table class="jp-table">
+                        <tr>
+                            <th>Variable</th>
+                            <th>Handlebar</th>
+                            <th>Expanded</th>
+                        </tr>
+                        <tr>
+                            <td>HTTP/HTTPS</td>
+                            <td><code>&#123;&#123;url.protocol&#125;&#125;</code></td>
+                            <td><code>{{url.protocol}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>Domain name</td>
+                            <td><code>&#123;&#123;url.hostname&#125;&#125;</code></td>
+                            <td><code>{{url.hostname}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>Port number</td>
+                            <td><code>&#123;&#123;url.port&#125;&#125;</code></td>
+                            <td><code>{{url.port}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>URL path</td>
+                            <td><code>&#123;&#123;url.pathname&#125;&#125;</code></td>
+                            <td><code>{{url.pathname}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>Query string</td>
+                            <td><code>&#123;&#123;url.search&#125;&#125;</code></td>
+                            <td><code>{{url.search}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>Full domain</td>
+                            <td><code>&#123;&#123;url.domain&#125;&#125;</code></td>
+                            <td><code>{{url.domain}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>Query parameters</td>
+                            <td><code>&#123;&#123;url.param.name&#125;&#125;</code></td>
+                            <td><code>{{url.param.name}}</code></td>
+                        </tr>
+                    </table>
+                </div>
 
-                    <div class="jp-info-box">
-                        <h4>Configuration</h4>
-                        <table class="jp-table">
-                            <tr>
-                                <th>Variable</th>
-                                <th>Handlebar</th>
-                                <th>Expanded</th>
-                            </tr>
-                            <tr>
-                                <td>Admin email</td>
-                                <td><code>&#123;&#123;config.email.adminEmail&#125;&#125;</code></td>
-                                <td><code>{{config.email.adminEmail}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>Feature flags</td>
-                                <td><code>&#123;&#123;config.features.*&#125;&#125;</code></td>
-                                <td><code>{{config.features.*}}</code></td>
-                            </tr>
-                        </table>
-                    </div>
+                <div class="jp-info-box">
+                    <h4>Configuration</h4>
+                    <table class="jp-table">
+                        <tr>
+                            <th>Variable</th>
+                            <th>Handlebar</th>
+                            <th>Expanded</th>
+                        </tr>
+                        <tr>
+                            <td>Admin email</td>
+                            <td><code>&#123;&#123;config.email.adminEmail&#125;&#125;</code></td>
+                            <td><code>{{config.email.adminEmail}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>Feature flags</td>
+                            <td><code>&#123;&#123;config.features.*&#125;&#125;</code></td>
+                            <td><code>{{config.features.*}}</code></td>
+                        </tr>
+                    </table>
+                </div>
 
-                    <div class="jp-info-box">
-                        <h4>Internationalization</h4>
-                        <table class="jp-table">
-                            <tr>
-                                <th>Variable</th>
-                                <th>Handlebar</th>
-                                <th>Expanded</th>
-                            </tr>
-                            <tr>
-                                <td>Home page messages</td>
-                                <td><code>&#123;&#123;i18n.view.home.*&#125;&#125;</code></td>
-                                <td><code>{{i18n.view.home.*}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>Example Introduction message</td>
-                                <td><code>&#123;&#123;i18n.view.home.introduction&#125;&#125;</code></td>
-                                <td><code>{{i18n.view.home.introduction}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>Auth messages</td>
-                                <td><code>&#123;&#123;i18n.view.auth.*&#125;&#125;</code></td>
-                                <td><code>{{i18n.view.auth.*}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>Common messages</td>
-                                <td><code>&#123;&#123;i18n.common.*&#125;&#125;</code></td>
-                                <td><code>{{i18n.common.*}}</code></td>
-                            </tr>
-                        </table>
-                    </div>
+                <div class="jp-info-box">
+                    <h4>Internationalization</h4>
+                    <table class="jp-table">
+                        <tr>
+                            <th>Variable</th>
+                            <th>Handlebar</th>
+                            <th>Expanded</th>
+                        </tr>
+                        <tr>
+                            <td>Home page messages</td>
+                            <td><code>&#123;&#123;i18n.view.home.*&#125;&#125;</code></td>
+                            <td><code>{{i18n.view.home.*}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>Example Introduction message</td>
+                            <td><code>&#123;&#123;i18n.view.home.introduction&#125;&#125;</code></td>
+                            <td><code>{{i18n.view.home.introduction}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>Auth messages</td>
+                            <td><code>&#123;&#123;i18n.view.auth.*&#125;&#125;</code></td>
+                            <td><code>{{i18n.view.auth.*}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>Common messages</td>
+                            <td><code>&#123;&#123;i18n.common.*&#125;&#125;</code></td>
+                            <td><code>{{i18n.common.*}}</code></td>
+                        </tr>
+                    </table>
+                </div>
 
-                    <div class="jp-info-box">
-                        <h4>File Operations</h4>
-                        <table class="jp-table">
-                            <tr>
-                                <th>Variable</th>
-                                <th>Handlebar</th>
-                                <th>Expanded</th>
-                            </tr>
-                            <tr>
-                                <td>Include template</td>
-                                <td><code>&#123;&#123;file.include "template.tmpl"&#125;&#125;</code></td>
-                                <td><code>{{file.include "template.tmpl"}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>File timestamp</td>
-                                <td><code>&#123;&#123;file.timestamp "jpulse-header.tmpl"&#125;&#125;</code></td>
-                                <td><code>{{file.timestamp "jpulse-header.tmpl"}}</code></td>
-                            </tr>
-                            <tr>
-                                <td>File exists</td>
-                                <td><code>&#123;&#123;file.exists "jpulse-footer.tmpl"&#125;&#125;</code></td>
-                                <td><code>{{file.exists "jpulse-footer.tmpl"}}</code></td>
-                            </tr>
-                        </table>
-                    </div>
+                <div class="jp-info-box">
+                    <h4>File Operations</h4>
+                    <table class="jp-table">
+                        <tr>
+                            <th>Variable</th>
+                            <th>Handlebar</th>
+                            <th>Expanded</th>
+                        </tr>
+                        <tr>
+                            <td>Include template</td>
+                            <td><code>&#123;&#123;file.include "template.tmpl"&#125;&#125;</code></td>
+                            <td><code>{{file.include "template.tmpl"}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>File timestamp</td>
+                            <td><code>&#123;&#123;file.timestamp "jpulse-header.tmpl"&#125;&#125;</code></td>
+                            <td><code>{{file.timestamp "jpulse-header.tmpl"}}</code></td>
+                        </tr>
+                        <tr>
+                            <td>File exists</td>
+                            <td><code>&#123;&#123;file.exists "jpulse-footer.tmpl"&#125;&#125;</code></td>
+                            <td><code>{{file.exists "jpulse-footer.tmpl"}}</code></td>
+                        </tr>
+                    </table>
                 </div>
             </div>
         </div>

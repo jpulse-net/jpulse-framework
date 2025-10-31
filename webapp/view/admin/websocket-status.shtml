@@ -178,7 +178,7 @@
 
             <!-- Namespace Statistics -->
             <div class="jp-card">
-                <h2>{{i18n.view.admin.websocketStatus.namespaceStats}}</h2>
+                <h2 class="jp-card-dialog-heading">{{i18n.view.admin.websocketStatus.namespaceStats}}</h2>
                 <div id="namespaceGrid" class="local-namespace-grid">
                     <p class="jp-info-text">{{i18n.view.admin.websocketStatus.waitingForData}}</p>
                 </div>
@@ -186,9 +186,8 @@
 
             <!-- Activity Log -->
             <div class="jp-card">
-                <h2>{{i18n.view.admin.websocketStatus.activityLog}}
-                    <span class="jp-subheading">{{i18n.view.admin.websocketStatus.lastUpdate}}: <span id="lastUpdate">-</span></span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">{{i18n.view.admin.websocketStatus.activityLog}}</h2>
+                <div class="jp-card-subheading">{{i18n.view.admin.websocketStatus.lastUpdate}}: <span id="lastUpdate">-</span></div>
                 <div id="activityLog" class="local-activity-log">
                     <p class="jp-info-text">{{i18n.view.admin.websocketStatus.noActivity}}</p>
                 </div>

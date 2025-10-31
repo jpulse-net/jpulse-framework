@@ -9,9 +9,8 @@ This guide documents the migration from inline styles to the `jp-` component sys
 - `.jp-container` - Responsive container with max-width
 - `.jp-main` - Main content area with white background
 - `.jp-card` - Reusable card component with shadow
-- `.jp-card-header` - Card header with bottom border
-- `.jp-card-body` - Card content area
-- `.jp-card-footer` - Card footer with top border
+- `.jp-card-dialog-heading` - Dialog-style card heading (h2 with background bar)
+- `.jp-card-subheading` - Subheading positioned to the right of dialog heading
 
 ### UI Components
 - `.jp-btn` + `.jp-btn-primary/secondary/success/danger/outline`

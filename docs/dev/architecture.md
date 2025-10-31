@@ -20,7 +20,7 @@ webapp/
 **Views** primarily client-side JavaScript with API calls, with minimal server-side Handlebars for initial page structure
 **Utils** offer shared functionality across the application
 
-### 2. Site Override Architecture (W-014)
+### 2. Site Override Architecture
 The framework implements a powerful override system enabling:
 
 - **Clean separation** between framework and site code

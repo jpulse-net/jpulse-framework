@@ -131,7 +131,7 @@ jpulse-framework/
 ```
 
 ### Key Components
-- **PathResolver**: Site override system (W-014)
+- **PathResolver**: Site override system
 - **CommonUtils**: Data processing and schema queries
 - **SiteRegistry**: Auto-discovery of site controllers
 - **Bootstrap**: Application initialization

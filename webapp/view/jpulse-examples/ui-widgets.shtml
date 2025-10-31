@@ -60,61 +60,58 @@
 
         <!-- Tab Interface Widget -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Tab Interface Widget</h3>
+            <h2 class="jp-card-dialog-heading">Tab Interface Widget</h2>
+            <div class="jp-info-box">
+                <p><strong>What you learn:</strong> How to create both panel tabs (content switching) and navigation tabs (page navigation) with programmatic control, slide animations, and event callbacks.</p>
+                <p><strong>Two Types:</strong> <strong>Panel Tabs</strong> switch content within the same page (like the examples below). <strong>Navigation Tabs</strong> navigate between different pages (like the main navigation at the top of this page).</p>
             </div>
-            <div class="jp-card-body">
-                <div class="jp-info-box">
-                    <p><strong>What you learn:</strong> How to create both panel tabs (content switching) and navigation tabs (page navigation) with programmatic control, slide animations, and event callbacks.</p>
-                    <p><strong>Two Types:</strong> <strong>Panel Tabs</strong> switch content within the same page (like the examples below). <strong>Navigation Tabs</strong> navigate between different pages (like the main navigation at the top of this page).</p>
-                </div>
-                <div id="tabs-demo-tabs" class="jp-tabs"></div>
-                <div id="tabs-example-panel" class="jp-panel">
-                            <p>Here's a live demonstration of the tab interface widget:</p>
+            <div id="tabs-demo-tabs" class="jp-tabs"></div>
+            <div id="tabs-example-panel" class="jp-panel">
+                <p>Here's a live demonstration of the tab interface widget:</p>
 
-                            <!-- Demo tab interface -->
-                            <div id="demo-tabs" class="jp-tabs"></div>
-                            <div id="tab1" class="jp-panel">
-                                <h4>📊 Dashboard Panel</h4>
-                                <p>This is the dashboard content with key metrics and overview information.</p>
-                                <div class="jp-info-box">
-                                    <p>Dashboard features:</p>
-                                    <ul>
-                                        <li>Real-time data updates</li>
-                                        <li>Interactive charts</li>
-                                        <li>Quick action buttons</li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div id="tab2" class="jp-panel">
-                                <h4>📈 Analytics Panel</h4>
-                                <p>Detailed analytics and reporting tools for data analysis.</p>
-                                <div class="jp-warning-box">
-                                    <p>Analytics tools:</p>
-                                    <ul>
-                                        <li>Custom date ranges</li>
-                                        <li>Export capabilities</li>
-                                        <li>Trend analysis</li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div id="tab3" class="jp-panel">
-                                <h4>⚙️ Settings Panel</h4>
-                                <p>Configuration options and preferences management.</p>
-                                <div class="jp-info-box">
-                                    <p>Settings categories:</p>
-                                    <ul>
-                                        <li>User preferences</li>
-                                        <li>Notification settings</li>
-                                        <li>Security options</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <button id="testTabsBtn" class="jp-btn jp-btn-primary" style="margin-top: 15px;">Test Programmatic Control</button>
+                <!-- Demo tab interface -->
+                <div id="demo-tabs" class="jp-tabs"></div>
+                <div id="tab1" class="jp-panel">
+                    <h4>📊 Dashboard Panel</h4>
+                    <p>This is the dashboard content with key metrics and overview information.</p>
+                    <div class="jp-info-box">
+                        <p>Dashboard features:</p>
+                        <ul>
+                            <li>Real-time data updates</li>
+                            <li>Interactive charts</li>
+                            <li>Quick action buttons</li>
+                        </ul>
+                    </div>
                 </div>
-                <div id="tabs-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="html">
+                <div id="tab2" class="jp-panel">
+                    <h4>📈 Analytics Panel</h4>
+                    <p>Detailed analytics and reporting tools for data analysis.</p>
+                    <div class="jp-warning-box">
+                        <p>Analytics tools:</p>
+                        <ul>
+                            <li>Custom date ranges</li>
+                            <li>Export capabilities</li>
+                            <li>Trend analysis</li>
+                        </ul>
+                    </div>
+                </div>
+                <div id="tab3" class="jp-panel">
+                    <h4>⚙️ Settings Panel</h4>
+                    <p>Configuration options and preferences management.</p>
+                    <div class="jp-info-box">
+                        <p>Settings categories:</p>
+                        <ul>
+                            <li>User preferences</li>
+                            <li>Notification settings</li>
+                            <li>Security options</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <button id="testTabsBtn" class="jp-btn jp-btn-primary" style="margin-top: 15px;">Test Programmatic Control</button>
+            </div>
+            <div id="tabs-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
 &lt;!-- PANEL TABS: Content switching within same page --&gt;
 &lt;div id="demo-tabs" class="jp-tabs"&gt;&lt;/div&gt;
 &lt;div id="tab1" class="jp-panel"&gt;
@@ -164,71 +161,67 @@ jPulse.dom.ready(() =&gt; {
     });
 });
 &lt;/script&gt;
-                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Accordion Widget -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Accordion Widget</h3>
+            <h2 class="jp-card-dialog-heading">Accordion Widget</h2>
+            <div class="jp-info-box">
+                <p><strong>What you learn:</strong> How to create collapsible accordion interfaces with exclusive or multiple open sections, smooth animations, and programmatic control.</p>
+                <p><strong>Behind the scenes:</strong> Uses jPulse's accordion system with configurable behavior, section state management, and callback functions for interaction tracking.</p>
             </div>
-            <div class="jp-card-body">
-                <div class="jp-info-box">
-                    <p><strong>What you learn:</strong> How to create collapsible accordion interfaces with exclusive or multiple open sections, smooth animations, and programmatic control.</p>
-                    <p><strong>Behind the scenes:</strong> Uses jPulse's accordion system with configurable behavior, section state management, and callback functions for interaction tracking.</p>
-                </div>
-                <div id="accordion-demo-tabs" class="jp-tabs"></div>
-                <div id="accordion-example-panel" class="jp-panel">
-                            <p>Accordion widgets provide collapsible content sections:</p>
+            <div id="accordion-demo-tabs" class="jp-tabs"></div>
+            <div id="accordion-example-panel" class="jp-panel">
+                <p>Accordion widgets provide collapsible content sections:</p>
 
-                            <div id="demo-accordion" class="jp-accordion">
-                                <div class="jp-accordion-section">
-                                    <h4>Getting Started</h4>
-                                    <div class="jp-accordion-content">
-                                        <p>This section contains information about getting started with jPulse Framework.</p>
-                                        <ul>
-                                            <li>Installation instructions</li>
-                                            <li>Basic configuration</li>
-                                            <li>First steps tutorial</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                                <div class="jp-accordion-section">
-                                    <h4>Advanced Features</h4>
-                                    <div class="jp-accordion-content">
-                                        <p>Learn about advanced jPulse features and capabilities.</p>
-                                        <div class="jp-info-box">
-                                            <p>Advanced topics include:</p>
-                                            <ul>
-                                                <li>Custom middleware development</li>
-                                                <li>Database integration patterns</li>
-                                                <li>API design best practices</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="jp-accordion-section">
-                                    <h4>Troubleshooting</h4>
-                                    <div class="jp-accordion-content">
-                                        <p>Common issues and their solutions.</p>
-                                        <div class="jp-warning-box">
-                                            <p><strong>Common Problems:</strong></p>
-                                            <ul>
-                                                <li>Port conflicts during development</li>
-                                                <li>Database connection issues</li>
-                                                <li>Template rendering problems</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
+                <div id="demo-accordion" class="jp-accordion">
+                    <div class="jp-accordion-section">
+                        <h4>Getting Started</h4>
+                        <div class="jp-accordion-content">
+                            <p>This section contains information about getting started with jPulse Framework.</p>
+                            <ul>
+                                <li>Installation instructions</li>
+                                <li>Basic configuration</li>
+                                <li>First steps tutorial</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="jp-accordion-section">
+                        <h4>Advanced Features</h4>
+                        <div class="jp-accordion-content">
+                            <p>Learn about advanced jPulse features and capabilities.</p>
+                            <div class="jp-info-box">
+                                <p>Advanced topics include:</p>
+                                <ul>
+                                    <li>Custom middleware development</li>
+                                    <li>Database integration patterns</li>
+                                    <li>API design best practices</li>
+                                </ul>
                             </div>
-
-                            <button id="testAccordionBtn" class="jp-btn jp-btn-secondary" style="margin-top: 15px;">Test Programmatic Control</button>
+                        </div>
+                    </div>
+                    <div class="jp-accordion-section">
+                        <h4>Troubleshooting</h4>
+                        <div class="jp-accordion-content">
+                            <p>Common issues and their solutions.</p>
+                            <div class="jp-warning-box">
+                                <p><strong>Common Problems:</strong></p>
+                                <ul>
+                                    <li>Port conflicts during development</li>
+                                    <li>Database connection issues</li>
+                                    <li>Template rendering problems</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div id="accordion-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="html">
+
+                <button id="testAccordionBtn" class="jp-btn jp-btn-secondary" style="margin-top: 15px;">Test Programmatic Control</button>
+            </div>
+            <div id="accordion-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
 &lt;!-- HTML Structure --&gt;
 &lt;div id="demo-accordion" class="jp-accordion"&gt;
     &lt;div class="jp-accordion-section"&gt;
@@ -263,50 +256,46 @@ jPulse.dom.ready(() =&gt; {
     });
 });
 &lt;/script&gt;
-                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Collapsible Widget -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>🧭 Collapsible Widget</h3>
-                <p class="jp-text-muted jp-text-small">Part of Content Navigation &amp; Show/Hide widgets</p>
+            <h2 class="jp-card-dialog-heading">🧭 Collapsible Widget</h2>
+            <div class="jp-card-subheading">Part of Content Navigation &amp; Show/Hide widgets</div>
+            <div class="jp-info-box">
+                <p><strong>What you learn:</strong> How to create collapsible content sections with expand/collapse functionality, programmatic control, and event callbacks.</p>
+                <p><strong>Behind the scenes:</strong> Uses jPulse's collapsible system with automatic arrow indicators, smooth animations, and flexible HTML structure support.</p>
             </div>
-            <div class="jp-card-body">
-                <div class="jp-info-box">
-                    <p><strong>What you learn:</strong> How to create collapsible content sections with expand/collapse functionality, programmatic control, and event callbacks.</p>
-                    <p><strong>Behind the scenes:</strong> Uses jPulse's collapsible system with automatic arrow indicators, smooth animations, and flexible HTML structure support.</p>
-                </div>
-                <div id="collapsible-demo-tabs" class="jp-tabs"></div>
-                <div id="collapsible-example-panel" class="jp-panel">
-                            <p>Interactive collapsible sections:</p>
+            <div id="collapsible-demo-tabs" class="jp-tabs"></div>
+            <div id="collapsible-example-panel" class="jp-panel">
+                <p>Interactive collapsible sections:</p>
 
-                            <div id="demo-collapsible" class="jp-collapsible">
-                                <h3>📚 Documentation Section</h3>
-                                <div class="jp-collapsible-content">
-                                    <p>This section contains detailed documentation about the feature.</p>
-                                    <ul>
-                                        <li>Installation instructions</li>
-                                        <li>Configuration options</li>
-                                        <li>Usage examples</li>
-                                        <li>Troubleshooting guide</li>
-                                    </ul>
-                                    <div class="jp-info-box">
-                                        <p><strong>Pro tip:</strong> Collapsible sections are great for organizing large amounts of content without overwhelming the user.</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="jp-btn-group" style="margin-top: 15px;">
-                                <button id="expandBtn" class="jp-btn jp-btn-success">Expand</button>
-                                <button id="collapseBtn" class="jp-btn jp-btn-warning">Collapse</button>
-                                <button id="toggleBtn" class="jp-btn jp-btn-primary">Toggle</button>
-                            </div>
+                <div id="demo-collapsible" class="jp-collapsible">
+                    <h3>📚 Documentation Section</h3>
+                    <div class="jp-collapsible-content">
+                        <p>This section contains detailed documentation about the feature.</p>
+                        <ul>
+                            <li>Installation instructions</li>
+                            <li>Configuration options</li>
+                            <li>Usage examples</li>
+                            <li>Troubleshooting guide</li>
+                        </ul>
+                        <div class="jp-info-box">
+                            <p><strong>Pro tip:</strong> Collapsible sections are great for organizing large amounts of content without overwhelming the user.</p>
+                        </div>
+                    </div>
                 </div>
-                <div id="collapsible-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="html">
+
+                <div class="jp-btn-group" style="margin-top: 15px;">
+                    <button id="expandBtn" class="jp-btn jp-btn-success">Expand</button>
+                    <button id="collapseBtn" class="jp-btn jp-btn-warning">Collapse</button>
+                    <button id="toggleBtn" class="jp-btn jp-btn-primary">Toggle</button>
+                </div>
+            </div>
+            <div id="collapsible-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
 &lt;!-- HTML Structure --&gt;
 &lt;div id="demo-collapsible" class="jp-collapsible"&gt;
     &lt;h3&gt;📚 Documentation Section&lt;/h3&gt;
@@ -343,7 +332,6 @@ jPulse.dom.ready(() =&gt; {
     });
 });
 &lt;/script&gt;
-                    </div>
                 </div>
             </div>
         </div>
@@ -359,28 +347,25 @@ jPulse.dom.ready(() =&gt; {
 
         <!-- Buttons & Dialog Widget -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Buttons &amp; Dialog Widget</h3>
+            <h2 class="jp-card-dialog-heading">Buttons &amp; Dialog Widget</h2>
+            <div class="jp-info-box">
+                <p><strong>What you learn:</strong> How to create modal dialogs for user interactions including alerts, confirmations, and custom content dialogs with async/await patterns.</p>
+                <p><strong>Behind the scenes:</strong> Uses jPulse's dialog system with promise-based responses, customizable buttons, HTML content support, and automatic focus management.</p>
             </div>
-            <div class="jp-card-body">
-                <div class="jp-info-box">
-                    <p><strong>What you learn:</strong> How to create modal dialogs for user interactions including alerts, confirmations, and custom content dialogs with async/await patterns.</p>
-                    <p><strong>Behind the scenes:</strong> Uses jPulse's dialog system with promise-based responses, customizable buttons, HTML content support, and automatic focus management.</p>
-                </div>
-                <div id="dialog-demo-tabs" class="jp-tabs"></div>
-                <div id="dialog-example-panel" class="jp-panel">
-                            <p>jPulse provides several types of dialog widgets:</p>
+            <div id="dialog-demo-tabs" class="jp-tabs"></div>
+            <div id="dialog-example-panel" class="jp-panel">
+                <p>jPulse provides several types of dialog widgets:</p>
 
-                            <div class="jp-btn-group">
-                                <button id="alertBtn" class="jp-btn jp-btn-danger">Alert Dialog</button>
-                                <button id="infoBtn" class="jp-btn jp-btn-primary">Info Dialog</button>
-                                <button id="confirmBtn" class="jp-btn jp-btn-warning">Confirm Dialog</button>
-                                <button id="customBtn" class="jp-btn jp-btn-success">Custom Dialog</button>
-                                <button id="complexBtn" class="jp-btn jp-btn-secondary">Complex Dialog</button>
-                            </div>
+                <div class="jp-btn-group">
+                    <button id="alertBtn" class="jp-btn jp-btn-danger">Alert Dialog</button>
+                    <button id="infoBtn" class="jp-btn jp-btn-primary">Info Dialog</button>
+                    <button id="confirmBtn" class="jp-btn jp-btn-warning">Confirm Dialog</button>
+                    <button id="customBtn" class="jp-btn jp-btn-success">Custom Dialog</button>
+                    <button id="complexBtn" class="jp-btn jp-btn-secondary">Complex Dialog</button>
                 </div>
-                <div id="dialog-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="html">
+            </div>
+            <div id="dialog-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
 &lt;!-- HTML Buttons --&gt;
 &lt;button id="alertBtn" class="jp-btn jp-btn-danger"&gt;Alert Dialog&lt;/button&gt;
 &lt;button id="infoBtn" class="jp-btn jp-btn-primary"&gt;Info Dialog&lt;/button&gt;
@@ -474,34 +459,30 @@ document.getElementById('complexBtn').addEventListener('click', async () =&gt; {
     });
 });
 &lt;/script&gt;
-                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Notification System -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Non-Blocking Notification System</h3>
+            <h2 class="jp-card-dialog-heading">Non-Blocking Notification System</h2>
+            <div class="jp-info-box">
+                <p><strong>What you learn:</strong> How to display different types of user notifications including success, error, warning, and info messages with customizable duration and styling.</p>
+                <p><strong>Behind the scenes:</strong> Uses jPulse's slidedown notification system with automatic positioning, fade animations, and configurable display options.</p>
             </div>
-            <div class="jp-card-body">
-                <div class="jp-info-box">
-                    <p><strong>What you learn:</strong> How to display different types of user notifications including success, error, warning, and info messages with customizable duration and styling.</p>
-                    <p><strong>Behind the scenes:</strong> Uses jPulse's slidedown notification system with automatic positioning, fade animations, and configurable display options.</p>
-                </div>
-                <div id="notification-demo-tabs" class="jp-tabs"></div>
-                <div id="notification-example-panel" class="jp-panel">
-                            <p>Show different types of notifications to users:</p>
+            <div id="notification-demo-tabs" class="jp-tabs"></div>
+            <div id="notification-example-panel" class="jp-panel">
+                <p>Show different types of notifications to users:</p>
 
-                            <div class="jp-btn-group">
-                                <button id="successBtn" class="jp-btn jp-btn-success">Success Message</button>
-                                <button id="errorBtn" class="jp-btn jp-btn-danger">Error Message</button>
-                                <button id="warningBtn" class="jp-btn jp-btn-warning">Warning Message</button>
-                                <button id="infoNotifyBtn" class="jp-btn jp-btn-primary">Info Message</button>
-                            </div>
+                <div class="jp-btn-group">
+                    <button id="successBtn" class="jp-btn jp-btn-success">Success Message</button>
+                    <button id="errorBtn" class="jp-btn jp-btn-danger">Error Message</button>
+                    <button id="warningBtn" class="jp-btn jp-btn-warning">Warning Message</button>
+                    <button id="infoNotifyBtn" class="jp-btn jp-btn-primary">Info Message</button>
                 </div>
-                <div id="notification-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="js">
+            </div>
+            <div id="notification-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="js">
 &lt;!-- JavaScript Notifications --&gt;
 &lt;script&gt;
 // Success notification
@@ -522,7 +503,6 @@ jPulse.UI.toast.show('Custom message', 'info', {
     closable: true
 });
 &lt;/script&gt;
-                    </div>
                 </div>
             </div>
         </div>
@@ -538,36 +518,33 @@ jPulse.UI.toast.show('Custom message', 'info', {
 
         <!-- Form Validation Helpers -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Form Validation Helpers</h3>
+            <h2 class="jp-card-dialog-heading">Form Validation Helpers</h2>
+            <div class="jp-info-box">
+                <p><strong>What you learn:</strong> How to implement client-side form validation with real-time error feedback, custom validation rules, and user-friendly error messages.</p>
+                <p><strong>Behind the scenes:</strong> Demonstrates manual validation techniques using JavaScript event handling, form data extraction, and dynamic error display management.</p>
             </div>
-            <div class="jp-card-body">
-                <div class="jp-info-box">
-                    <p><strong>What you learn:</strong> How to implement client-side form validation with real-time error feedback, custom validation rules, and user-friendly error messages.</p>
-                    <p><strong>Behind the scenes:</strong> Demonstrates manual validation techniques using JavaScript event handling, form data extraction, and dynamic error display management.</p>
-                </div>
-                <div id="validation-demo-tabs" class="jp-tabs"></div>
-                <div id="validation-example-panel" class="jp-panel">
-                            <p>jPulse provides form validation helpers for common scenarios:</p>
+            <div id="validation-demo-tabs" class="jp-tabs"></div>
+            <div id="validation-example-panel" class="jp-panel">
+                <p>jPulse provides form validation helpers for common scenarios:</p>
 
-                            <form id="demo-form" class="jp-form">
-                                <div class="jp-form-group">
-                                    <label for="email">Email Address:</label>
-                                    <input type="email" id="email" name="email" class="jp-form-input" required>
-                                    <div class="jp-form-error" id="email-error"></div>
-                                </div>
+                <form id="demo-form" class="jp-form">
+                    <div class="jp-form-group">
+                        <label for="email">Email Address:</label>
+                        <input type="email" id="email" name="email" class="jp-form-input" required>
+                        <div class="jp-form-error" id="email-error"></div>
+                    </div>
 
-                                <div class="jp-form-group">
-                                    <label for="password">Password:</label>
-                                    <input type="password" id="password" name="password" class="jp-form-input" required>
-                                    <div class="jp-form-error" id="password-error"></div>
-                                </div>
+                    <div class="jp-form-group">
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" name="password" class="jp-form-input" required>
+                        <div class="jp-form-error" id="password-error"></div>
+                    </div>
 
-                                <button type="submit" class="jp-btn jp-btn-primary">Validate Form</button>
-                            </form>
-                </div>
-                <div id="validation-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="html">
+                    <button type="submit" class="jp-btn jp-btn-primary">Validate Form</button>
+                </form>
+            </div>
+            <div id="validation-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
 &lt;!-- HTML Form --&gt;
 &lt;form id="demo-form" class="jp-form"&gt;
     &lt;div class="jp-form-group"&gt;
@@ -606,74 +583,70 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
     }
 });
 &lt;/script&gt;
-                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Content Boxes & Visual Elements -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>📋 Content Boxes &amp; Visual Elements</h3>
-                <p class="jp-text-muted jp-text-small">Part of Content widgets</p>
+            <h2 class="jp-card-dialog-heading">📋 Content Boxes &amp; Visual Elements</h2>
+            <div class="jp-card-subheading">Part of Content widgets</div>
+            <div class="jp-info-box">
+                <p><strong>What you learn:</strong> How to use informational content boxes, visual spacers, and decorative elements to organize and enhance your page layouts.</p>
+                <p><strong>Behind the scenes:</strong> Uses jPulse's content box system with consistent styling, semantic colors, and responsive design for better user experience.</p>
             </div>
-            <div class="jp-card-body">
+            <div id="content-boxes-demo-tabs" class="jp-tabs"></div>
+            <div id="content-boxes-example-panel" class="jp-panel">
+                <p>Examples of content boxes and visual elements:</p>
+
+                <h4>Information Boxes</h4>
                 <div class="jp-info-box">
-                    <p><strong>What you learn:</strong> How to use informational content boxes, visual spacers, and decorative elements to organize and enhance your page layouts.</p>
-                    <p><strong>Behind the scenes:</strong> Uses jPulse's content box system with consistent styling, semantic colors, and responsive design for better user experience.</p>
+                    <h4>Information Box</h4>
+                    <p>Use <code>.jp-info-box</code> for helpful information, tips, or neutral content. Perfect for explanations, documentation notes, or general information.</p>
+                    <ul>
+                        <li>Helpful tips and guidance</li>
+                        <li>Documentation notes</li>
+                        <li>General information</li>
+                    </ul>
                 </div>
-                <div id="content-boxes-demo-tabs" class="jp-tabs"></div>
-                <div id="content-boxes-example-panel" class="jp-panel">
-                            <p>Examples of content boxes and visual elements:</p>
 
-                            <h4>Information Boxes</h4>
-                            <div class="jp-info-box">
-                                <h4>Information Box</h4>
-                                <p>Use <code>.jp-info-box</code> for helpful information, tips, or neutral content. Perfect for explanations, documentation notes, or general information.</p>
-                                <ul>
-                                    <li>Helpful tips and guidance</li>
-                                    <li>Documentation notes</li>
-                                    <li>General information</li>
-                                </ul>
-                            </div>
-
-                            <div class="jp-warning-box">
-                                <h4>Warning Box</h4>
-                                <p>Use <code>.jp-warning-box</code> for important warnings, cautions, or things users should pay attention to. Great for highlighting potential issues.</p>
-                                <ul>
-                                    <li>Important warnings</li>
-                                    <li>Caution messages</li>
-                                    <li>Things to pay attention to</li>
-                                </ul>
-                            </div>
-
-                            <div class="jp-error-box">
-                                <h4>Error Box</h4>
-                                <p>Use <code>.jp-error-box</code> for error messages, critical issues, or things that require immediate attention. Perfect for validation errors or system issues.</p>
-                                <ul>
-                                    <li>Error messages</li>
-                                    <li>Critical issues</li>
-                                    <li>Validation problems</li>
-                                </ul>
-                            </div>
-
-                            <h4>Visual Spacer Elements</h4>
-                            <p>Colorful gradient blocks for visual separation and demonstration purposes:</p>
-
-                            <div class="demo-spacer demo-spacer-1">
-                                <h4>📊 Spacer Block 1 - Blue Gradient</h4>
-                            </div>
-
-                            <div class="demo-spacer demo-spacer-2">
-                                <h4>💜 Spacer Block 2 - Purple Gradient</h4>
-                            </div>
-
-                            <div class="demo-spacer demo-spacer-3">
-                                <h4>🌱 Spacer Block 3 - Green Gradient</h4>
-                            </div>
+                <div class="jp-warning-box">
+                    <h4>Warning Box</h4>
+                    <p>Use <code>.jp-warning-box</code> for important warnings, cautions, or things users should pay attention to. Great for highlighting potential issues.</p>
+                    <ul>
+                        <li>Important warnings</li>
+                        <li>Caution messages</li>
+                        <li>Things to pay attention to</li>
+                    </ul>
                 </div>
-                <div id="content-boxes-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="html">
+
+                <div class="jp-error-box">
+                    <h4>Error Box</h4>
+                    <p>Use <code>.jp-error-box</code> for error messages, critical issues, or things that require immediate attention. Perfect for validation errors or system issues.</p>
+                    <ul>
+                        <li>Error messages</li>
+                        <li>Critical issues</li>
+                        <li>Validation problems</li>
+                    </ul>
+                </div>
+
+                <h4>Visual Spacer Elements</h4>
+                <p>Colorful gradient blocks for visual separation and demonstration purposes:</p>
+
+                <div class="demo-spacer demo-spacer-1">
+                    <h4>📊 Spacer Block 1 - Blue Gradient</h4>
+                </div>
+
+                <div class="demo-spacer demo-spacer-2">
+                    <h4>💜 Spacer Block 2 - Purple Gradient</h4>
+                </div>
+
+                <div class="demo-spacer demo-spacer-3">
+                    <h4>🌱 Spacer Block 3 - Green Gradient</h4>
+                </div>
+            </div>
+            <div id="content-boxes-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
 &lt;!-- Information Boxes --&gt;
 &lt;div class="jp-info-box"&gt;
     &lt;h4&gt;Information Box&lt;/h4&gt;
@@ -715,27 +688,23 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
 .demo-spacer-2 { background: linear-gradient(45deg, #f3e5f5, #e1bee7); }
 .demo-spacer-3 { background: linear-gradient(45deg, #e8f5e8, #c8e6c9); }
 &lt;/style&gt;
-                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Source Code Widget -->
         <div class="jp-card">
-            <div class="jp-card-header">
-                <h3>Source Code Widget</h3>
-            </div>
-            <div class="jp-card-body">
+            <h2 class="jp-card-dialog-heading">Source Code Widget</h2>
                 <div class="jp-info-box">
                     <p><strong>What you learn:</strong> How to display syntax-highlighted code blocks with copy functionality, language labels, and automatic Prism.js integration.</p>
                     <p><strong>Behind the scenes:</strong> Uses jPulse's source code system with automatic syntax highlighting, clipboard integration, and customizable display options.</p>
                 </div>
                 <div id="sourcecode-demo-tabs" class="jp-tabs"></div>
                 <div id="sourcecode-example-panel" class="jp-panel">
-                            <p>Examples of syntax-highlighted code blocks:</p>
+                    <p>Examples of syntax-highlighted code blocks:</p>
 
-                            <h4>JavaScript Example:</h4>
-                            <div class="jp-source-code" data-lang="js" data-show-lang="true">
+                    <h4>JavaScript Example:</h4>
+                    <div class="jp-source-code" data-lang="js" data-show-lang="true">
 // Example JavaScript function
 function calculateTotal(items) {
     return items.reduce((sum, item) => {
@@ -751,23 +720,19 @@ const cartItems = [
 
 const total = calculateTotal(cartItems);
 console.log(`Total: $${total.toFixed(2)}`);
-                            </div>
+                    </div>
 
-                            <h4>HTML Example:</h4>
-                            <div class="jp-source-code" data-lang="html" data-show-lang="true">
+                    <h4>HTML Example:</h4>
+                    <div class="jp-source-code" data-lang="html" data-show-lang="true">
 &lt;div class="jp-card"&gt;
-    &lt;div class="jp-card-header"&gt;
-        &lt;h3&gt;Card Title&lt;/h3&gt;
-    &lt;/div&gt;
-    &lt;div class="jp-card-body"&gt;
-        &lt;p&gt;Card content goes here...&lt;/p&gt;
-        &lt;button class="jp-btn jp-btn-primary"&gt;Action&lt;/button&gt;
-    &lt;/div&gt;
+    &lt;h2 class="jp-card-dialog-heading"&gt;Card Title&lt;/h2&gt;
+    &lt;p&gt;Card content goes here...&lt;/p&gt;
+    &lt;button class="jp-btn jp-btn-primary"&gt;Action&lt;/button&gt;
 &lt;/div&gt;
-                            </div>
+                    </div>
 
-                            <h4>CSS Example:</h4>
-                            <div class="jp-source-code" data-lang="css" data-show-lang="true">
+                    <h4>CSS Example:</h4>
+                    <div class="jp-source-code" data-lang="css" data-show-lang="true">
 .jp-custom-widget {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 8px;
@@ -781,7 +746,7 @@ console.log(`Total: $${total.toFixed(2)}`);
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
-                            </div>
+                    </div>
                 </div>
                 <div id="sourcecode-source-panel" class="jp-panel">
                     <div class="jp-source-code" data-lang="html">

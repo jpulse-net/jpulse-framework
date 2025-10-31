@@ -157,7 +157,7 @@
         .local-comparison-table th,
         .local-comparison-table td {
             text-align: left;
-            padding: 15px;
+            padding: 5px 15px;
             border-bottom: 1px solid #e9ecef;
             vertical-align: top;
         }
@@ -266,9 +266,8 @@
 
             <!-- System Overview -->
             <div class="jp-card">
-                <h2>🌐 System Overview
-                    <span class="jp-subheading">High-level architecture of jPulse Framework clustering</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">🌐 System Overview</h2>
+                <div class="jp-card-subheading">High-level architecture of jPulse Framework clustering</div>
                 <div class="local-diagram">
 <pre>
     ┌─────────────────────────────────────────────────────────────────────────────────────┐
@@ -322,8 +321,8 @@
 
             <!-- Getting Started Examples -->
             <div class="jp-card">
-                <h2>🚀 Getting Started Examples</h2>
-                <p class="jp-subheading">Minimal code examples to get you started quickly</p>
+                <h2 class="jp-card-dialog-heading">🚀 Getting Started Examples</h2>
+                <div class="jp-card-subheading">Minimal code examples to get you started quickly</div>
 
                 <h3>📢 Simple Notification Broadcasting</h3>
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
@@ -362,9 +361,8 @@ jPulse.appCluster.broadcast.subscribe('view:todo:list:changed', (data) => {
 
             <!-- Core Components -->
             <div class="jp-card">
-                <h2>🧩 Core Components
-                    <span class="jp-subheading">Essential building blocks of the clustering system</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">🧩 Core Components</h2>
+                <div class="jp-card-subheading">Essential building blocks of the clustering system</div>
                 <div class="local-component-grid">
                     <!-- Redis Manager -->
                     <div class="local-component-card">
@@ -478,8 +476,8 @@ jPulse.appCluster.broadcast.subscribe('view:todo:list:changed', (data) => {
 
             <!-- Quick Start Guide -->
             <div class="jp-card">
-                <h2>🎯 Quick Start Guide</h2>
-                <p class="jp-subheading">Choose the right pattern for your use case</p>
+                <h2 class="jp-card-dialog-heading">🎯 Quick Start Guide</h2>
+                <div class="jp-card-subheading">Choose the right pattern for your use case</div>
 
                 <div class="local-highlight-box">
                     <h4>🚀 For Beginners & Simple Cases</h4>
@@ -509,9 +507,8 @@ jPulse.appCluster.broadcast.subscribe('view:todo:list:changed', (data) => {
 
             <!-- Broadcasting Patterns -->
             <div class="jp-card">
-                <h2>🔄 Broadcasting Patterns
-                    <span class="jp-subheading">Two complementary approaches to cluster communication</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">🔄 Broadcasting Patterns</h2>
+                <div class="jp-card-subheading">Two complementary approaches to cluster communication</div>
 
                 <!-- Client-Side Pattern -->
                 <h3>📢 Client-Side Broadcasting Pattern</h3>
@@ -642,9 +639,8 @@ jPulse.appCluster.broadcast.subscribe('view:todo:list:changed', (data) => {
 
             <!-- Channel Naming Convention -->
             <div class="jp-card">
-                <h2>🏷️ Channel Naming Convention
-                    <span class="jp-subheading">Structured approach to broadcast channel organization</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">🏷️ Channel Naming Convention</h2>
+                <div class="jp-card-subheading">Structured approach to broadcast channel organization</div>
                 <div class="local-highlight-box">
                     <h4>📋 Standard Pattern: {layer}:{component}:{domain}:{action}</h4>
                     <p>This four-part naming convention ensures clear, collision-free channel names that are easy to understand and maintain.</p>
@@ -725,9 +721,8 @@ payment:completed
 
             <!-- Configuration & Deployment -->
             <div class="jp-card">
-                <h2>⚙️ Configuration & Deployment
-                    <span class="jp-subheading">Setting up clustering in different environments</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">⚙️ Configuration & Deployment</h2>
+                <div class="jp-card-subheading">Setting up clustering in different environments</div>
 
                 <h3>🔧 Redis Configuration</h3>
                 <div class="local-code-snippet">

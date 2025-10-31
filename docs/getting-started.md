@@ -1,6 +1,6 @@
 # jPulse Framework / Docs / Getting Started with jPulse v1.0.0-rc.2
 
-This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the W-014 override system.
+This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the site override system.
 
 ## Prerequisites
 
@@ -9,6 +9,8 @@ Before starting, ensure you have:
 - Node.js 18+ and npm/yarn
 - Basic knowledge of HTML, CSS, and JavaScript
 - Text editor or IDE
+
+**💡 Pro Tip**: Using an AI coding assistant like Cursor, Cline, or GitHub Copilot? See the [Gen-AI Development Guide](genai-development.md) to accelerate your development with AI-assisted "vibe coding" while following framework best practices.
 
 ## Step 1: Create Your First Site
 
@@ -134,7 +136,7 @@ Create `site/webapp/controller/hello.js`:
 
 ```javascript
 /**
- * Hello Controller - Automatically discovered by jPulse Framework (W-014)
+ * Hello Controller - Automatically discovered by jPulse Framework
  *
  * API endpoints are auto-registered based on method names:
  * - static async api() → GET /api/1/hello
@@ -288,7 +290,7 @@ Create `site/webapp/static/site-common.css`:
 
 ## Step 6: Understanding the Override System
 
-The W-014 override system automatically resolves files in this priority:
+The site override system automatically resolves files in this priority:
 
 1. **Site files first**: `site/webapp/view/home/index.shtml`
 2. **Framework fallback**: `webapp/view/home/index.shtml`
@@ -505,10 +507,11 @@ git commit -am "Update framework to v0.7.14"
 
 Now that you have a working jPulse site, explore these topics:
 
-1. **[Site Customization Guide](site-customization.md)** - Deep dive into the W-014 override system
-2. **[Examples](examples.md)** - Real-world implementation patterns
-3. **[API Reference](api-reference.md)** - Complete framework API documentation
-4. **[Deployment Guide](deployment.md)** - Production deployment strategies
+1. **[Gen-AI Development Guide](genai-development.md)** - Accelerate development with AI assistance ("vibe coding")
+2. **[Site Customization Guide](site-customization.md)** - Deep dive into the site override system
+3. **[Examples](examples.md)** - Real-world implementation patterns
+4. **[API Reference](api-reference.md)** - Complete framework API documentation
+5. **[Deployment Guide](deployment.md)** - Production deployment strategies
 
 ## Key Concepts Learned
 

@@ -4,6 +4,8 @@ Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints wi
 
 **🎯 Live Examples:** See the [API Integration Examples](/jpulse-examples/api.shtml) page for interactive demonstrations of all API patterns with working code examples.
 
+**💡 Using AI assistance?** The [Gen-AI Development Guide](genai-development.md) shows how to use AI coding assistants to quickly implement API endpoints following these patterns.
+
 ## 🔌 API Overview
 
 jPulse provides a comprehensive RESTful API under the `/api/1/` prefix with the following features:
@@ -104,7 +106,7 @@ Authenticated requests include user context in `req.session.user`:
 }
 ```
 
-## 🚀 Automatic API Registration (W-014)
+## 🚀 Automatic API Registration
 
 jPulse Framework automatically discovers and registers site-specific API endpoints with **zero configuration required**. Simply create a controller file and follow naming conventions!
 

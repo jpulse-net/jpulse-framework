@@ -1,11 +1,13 @@
 # jPulse Framework / Docs / Site Customization Guide v1.0.0-rc.2
 
-This guide covers the W-014 Site Override Architecture - jPulse's powerful system for creating custom sites while maintaining clean framework updates.
+This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
+
+**💡 Using AI assistance?** See the [Gen-AI Development Guide](genai-development.md) to leverage AI coding assistants while following these customization patterns.
 
 ________________________________________________
 ## Overview
 
-The W-014 override system enables:
+The site override system enables:
 - **Seamless framework updates** without losing customizations
 - **Zero-configuration** site development
 - **Automatic file resolution** with site priority
@@ -562,4 +564,4 @@ ________________________________________________
 
 ---
 
-*The W-014 Site Override Architecture provides powerful customization capabilities while maintaining clean framework updates.*
+*The Site Override Architecture provides powerful customization capabilities while maintaining clean framework updates.*

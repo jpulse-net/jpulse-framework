@@ -66,7 +66,7 @@ The jPulse Framework follows a **client-side heavy** architecture where:
 
 <script>
 // Client-side: Primary application logic
-document.addEventListener('DOMContentLoaded', async () => {
+jPulse.dom.ready(async () => {
     // Load fresh data via API
     const response = await jPulse.api.get('/api/1/user/profile');
     if (response.success) {

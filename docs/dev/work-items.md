@@ -463,7 +463,7 @@ This is the doc to track work items, arranged in three sections:
         <div class="jp-login-card"> ==> <div class="jp-card jp-login-card">
       - else:
         <div class="jp-login-card"> ==> <div class="jp-card">
-    - page .jp-login-header ==> common .jp-card-header
+    - page .jp-login-header ==> common .jp-card-dialog-heading
     - page .jp-divider ==> common .jp-divider
   - webapp/view/auth/login.shtml and webapp/view/auth/signup.shtml:
     - they have different form validation and submit handling,
@@ -1458,20 +1458,6 @@ This is the doc to track work items, arranged in three sections:
   - System-wide metadata
     - created appConfig.system with metadata: rootDir, appDir, siteDir, port, hostname, serverName, serverId, pm2Id, pid, instanceName, instanceId, docTypes
     - objective: single source of truth for system metadata
-  - Documentation:
-    - docs/application-cluster.md -- NEW comprehensive guide for App Cluster Broadcasting
-      - Quick decision tree (WebSocket vs App Cluster)
-      - Comparison table with examples
-      - Client-side and server-side API reference
-      - Common patterns (collaborative editing, notifications, real-time dashboards)
-      - Migration guide and troubleshooting
-    - docs/websockets.md -- added App Cluster reference blurb at top
-    - docs/mpa-vs-spa.md -- NEW "Real-Time Multi-User Communication" section with decision table
-    - docs/handlebars.md -- enhanced with special context variables table, nested blocks, error handling
-    - docs/template-reference.md -- streamlined Handlebars section, added reference to handlebars.md
-    - docs/README.md -- added high-level descriptions of App Cluster and WebSocket features
-    - README.md -- added "Real-Time Multi-User Communication" to Key Features
-    - README.md -- added Redis and Health Metrics to Deployment Requirements
   - App cluster broadcasting options:
     - { omitSelf: true }  // do not send message back to oneself (default for controller:*, model:*)
     - { omitSelf: false } // send message back to oneself (default for view:*)
@@ -1533,18 +1519,90 @@ This is the doc to track work items, arranged in three sections:
       - Simplified to call bootstrap() only
     - Architecture: Complete auto-discovery (no hardcoded routes, imports, or WebSocket initialization)
     - Bug fixes: Context loss in static methods, missing site view directories, SPA detection path resolution
-
+  - Unified and simplified jp-card with headings and sub-headings
+    - enhanced webapp/view/jpulse-common.css:
+      - Created new .jp-card-dialog-heading class for explicit opt-in dialog-style headers
+      - Created .jp-card-subheading class for subheadings positioned to the right of dialog headings
+    - fixed all .html pages and .tmpl files
+  - Public Demo Access Configuration:
+    - webapp/controller/auth.js -- added _public virtual role support in isAuthorized()
+      - _public role allows unauthenticated access when configured
+      - empty requiredRoles array means open to all
+      - supports mixed access (e.g., ['_public', 'admin'] for public OR admin)
+    - webapp/controller/health.js -- role-based access control for health endpoints
+      - appConfig.controller.health.requiredRoles.status: controls /api/1/health/status access
+      - appConfig.controller.health.requiredRoles.metrics: controls /api/1/health/metrics access
+      - default: admin/root required, empty array = public, _public = unauthenticated only
+    - webapp/controller/health.js -- data sanitization for non-admin users
+      - removes sensitive infrastructure data (hostnames, IPs, PIDs, database names)
+      - sanitizes processInfo, database connection details, server identifiers
+      - preserves demo functionality while protecting infrastructure details
+    - site/webapp/view/jpulse-admin-demo/ -- public demo pages cloned from admin
+      - system-status.shtml -- cluster-wide system monitoring (public access)
+      - websocket-status.shtml -- WebSocket namespace monitoring (public access)
+      - websocket-test.shtml -- WebSocket testing tool (public access)
+  - Health Metrics Bug Fixes:
+    - webapp/controller/health.js -- fixed PM2 uptime calculation bug
+      - corrected _getPM2Status() to use pm2_env.pm_uptime correctly (milliseconds timestamp)
+      - fixed _buildServersArray() to reuse calculated uptime instead of recalculating
+      - uptime now correctly shows seconds since last restart, not 55 years
+    - webapp/view/admin/logs.shtml -- fixed filter preset buttons
+      - changed event listener selector from .jp-btn-secondary to [data-preset]
+      - preset buttons (Today, Yesterday, etc.) now work correctly
+      - setPresetActive() also updated to use [data-preset] selector
+  - Template Configuration Structure Alignment:
+    - site/webapp/view/site-common.js.tmpl -- fixed init() to use Handlebars {{app.site.name}} and {{app.site.version}} for server-side expansion
+      - Corrected misconception that window.appConfig is available in view templates (appConfig is server-side only)
+      - Templates (.tmpl files) are processed by ViewController.load() which expands Handlebars before JavaScript reaches browser
+    - templates/webapp/app.conf.dev.tmpl -- structure aligned with webapp/app.conf (app.site.name/shortName nested structure)
+    - templates/webapp/app.conf.prod.tmpl -- structure aligned with webapp/app.conf (app.site.name/shortName nested structure)
+      - Note: Template variables (%SITE_NAME%, etc.) remain unchanged - only structure was modified to match framework defaults
+  - Documentation:
+    - docs/application-cluster.md -- NEW comprehensive guide for App Cluster Broadcasting
+      - Quick decision tree (WebSocket vs App Cluster)
+      - Comparison table with examples
+      - Client-side and server-side API reference
+      - Common patterns (collaborative editing, notifications, real-time dashboards)
+      - Migration guide and troubleshooting
+    - docs/websockets.md -- added App Cluster reference blurb at top
+    - docs/mpa-vs-spa.md -- NEW "Real-Time Multi-User Communication" section with decision table
+    - docs/handlebars.md -- enhanced with special context variables table, nested blocks, error handling
+    - docs/template-reference.md -- streamlined Handlebars section, added reference to handlebars.md
+    - docs/README.md -- added high-level descriptions of App Cluster and WebSocket features
+    - README.md -- added "Real-Time Multi-User Communication" to Key Features
+    - README.md -- added Redis and Health Metrics to Deployment Requirements
+    - docs/genai-development.md -- NEW comprehensive guide for site developers using Gen-AI assistants
+      - Complete guide for "vibe coding" with jPulse Framework
+      - Covers all major AI tools (Cursor, Cline, Copilot, Windsurf)
+      - Initial setup and configuration guidance
+      - Effective prompting strategies and architecture-aware development
+      - Building common features with AI assistance
+      - Testing, debugging, and code quality practices
+      - Common pitfalls and solutions
+      - Example AI development sessions with conversation flows
+      - Checklists for AI-assisted development
+    - docs/genai-instructions.md -- NEW machine-readable instructions for AI coding agents
+      - Critical framework patterns and conventions (Site Override System, API-First, Client-Side Heavy, Auto-Discovery)
+      - CSS and JavaScript conventions (jp-* vs site-* vs local-* prefixes)
+      - Framework vs Site file distinctions
+      - Reference implementations pointing to living code examples
+      - Implementation guidance for controllers, views, models
+      - Code quality checklist and security considerations
+      - Response guidelines for AI assistants
+      - Philosophy: document stays fresh, AI generates current code
+    - docs/README.md -- added "AI-Assisted Development" section highlighting Gen-AI benefits
+    - docs/getting-started.md -- added Gen-AI guide references in Prerequisites and Next Steps
+    - docs/site-customization.md -- added Gen-AI guide reference in introduction
+    - docs/front-end-development.md -- added Gen-AI guide reference after live examples
+    - docs/api-reference.md -- added Gen-AI guide reference after live examples
 
 
 
 
 
 pending:
-- jp-card: more consistent card header: normal, dialog look with gray background jp-card-dialog
 - migrate @peterthoeny/jpulse-framework to @jpulse-net/jpulse-framework
-- add SiteControllerRegistry.getStats() to metrics api & system-status
-
-
+- license review
 
 
 old pending:
@@ -1554,6 +1612,8 @@ old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
+- add SiteControllerRegistry.getStats() to metrics api & system-status
+- jp-card: more consistent card header: normal, dialog look with gray background jp-card-dialog
 
 
 

@@ -21,6 +21,9 @@ Revolutionary site override architecture enables framework updates without losin
 ### 🎭 **MEVN Stack**
 Full-stack JavaScript with **MongoDB** for data, **Express** for routing, **Vue.js** for SPAs, and **Node.js** as the runtime. Optional Vue.js usage means you can build traditional MPAs and/or modern SPAs based on your needs.
 
+### 🤖 **AI-Assisted Development**
+jPulse Framework is designed for **Gen-AI development** (aka "vibe coding") - leveraging AI assistants like Cursor, Cline, GitHub Copilot, or Windsurf to accelerate application development while maintaining framework best practices.
+
 ## Quick Start
 
 ### For Site Development (Recommended)

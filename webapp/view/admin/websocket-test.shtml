@@ -82,7 +82,7 @@
             <div class="jp-dashboard-grid">
                 <!-- Connection Controls -->
                 <div class="jp-card">
-                    <h2>{{i18n.view.admin.websocketTest.connectionControls}}</h2>
+                    <h2 class="jp-card-dialog-heading">{{i18n.view.admin.websocketTest.connectionControls}}</h2>
                     <div class="local-controls">
                         <button id="btnConnect" class="jp-btn jp-btn-primary">{{i18n.view.admin.websocketTest.connect}}</button>
                         <button id="btnDisconnect" class="jp-btn jp-btn-secondary" disabled>{{i18n.view.admin.websocketTest.disconnect}}</button>
@@ -91,7 +91,7 @@
 
                 <!-- Connection Status -->
                 <div class="jp-card">
-                    <h2>{{i18n.view.admin.websocketTest.connectionStatus}}</h2>
+                    <h2 class="jp-card-dialog-heading">{{i18n.view.admin.websocketTest.connectionStatus}}</h2>
                     <p>{{i18n.view.admin.websocketTest.status}}: <span id="connectionStatus" class="local-status disconnected">{{i18n.view.admin.websocketStatus.disconnected}}</span></p>
                     <p>{{i18n.view.admin.websocketTest.username}}: <code>{{user.username}}</code></p>
                     <p>{{i18n.view.admin.websocketTest.namespace}}: <code>/api/1/ws/jpulse-ws-test</code></p>
@@ -101,9 +101,8 @@
 
             <!-- Send Custom Message -->
             <div class="jp-card">
-                <h2>{{i18n.view.admin.websocketTest.sendCustom}}
-                    <span class="jp-subheading">{{i18n.view.admin.websocketTest.sendCustomDesc}}</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">{{i18n.view.admin.websocketTest.sendCustom}}</h2>
+                <div class="jp-card-subheading">{{i18n.view.admin.websocketTest.sendCustomDesc}}</div>
                 <div class="local-controls">
                     <input type="text" id="customMessage" class="jp-form-input local-input" placeholder="{{i18n.view.admin.websocketTest.customPlaceholder}}">
                     <button id="btnSendCustom" class="jp-btn jp-btn-primary" disabled>{{i18n.view.admin.websocketTest.sendMessage}}</button>
@@ -112,9 +111,8 @@
 
             <!-- Send Test Message by Type -->
             <div class="jp-card">
-                <h2>{{i18n.view.admin.websocketTest.sendTestType}}
-                    <span class="jp-subheading">{{i18n.view.admin.websocketTest.sendTestTypeDesc}}</span>
-                </h2>
+                <h2 class="jp-card-dialog-heading">{{i18n.view.admin.websocketTest.sendTestType}}</h2>
+                <div class="jp-card-subheading">{{i18n.view.admin.websocketTest.sendTestTypeDesc}}</div>
                 <div class="local-controls">
                     <button id="btnSendInfo" class="jp-btn jp-btn-secondary" disabled>{{i18n.view.admin.websocketTest.infoMessage}}</button>
                     <button id="btnSendSuccess" class="jp-btn jp-btn-secondary" disabled>{{i18n.view.admin.websocketTest.successMessage}}</button>
@@ -125,7 +123,7 @@
 
             <!-- Message Log -->
             <div class="jp-card">
-                <h2>{{i18n.view.admin.websocketTest.messageLog}}</h2>
+                <h2 class="jp-card-dialog-heading">{{i18n.view.admin.websocketTest.messageLog}}</h2>
                 <div id="messageLog" class="local-log">
                     <div class="local-log-item">
                         <span class="local-log-timestamp">--:--:--</span>
@@ -137,7 +135,7 @@
 
             <!-- Instructions -->
             <div class="jp-card">
-                <h2>{{i18n.view.admin.websocketTest.instructions}}</h2>
+                <h2 class="jp-card-dialog-heading">{{i18n.view.admin.websocketTest.instructions}}</h2>
                 <ol>
                     <li>Click <strong>Connect</strong> to establish WebSocket connection</li>
                     <li>Send test messages using the buttons above</li>

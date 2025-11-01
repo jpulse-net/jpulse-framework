@@ -88,7 +88,7 @@ echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc
 mkdir my-jpulse-site && cd my-jpulse-site
 
 # Install framework locally in your site directory
-npm install @peterthoeny/jpulse-framework
+npm install @jpulse-net/jpulse-framework
 npx jpulse-configure
 npm install
 ```
@@ -110,7 +110,7 @@ npm run update
 npm run update --dry-run
 
 # Or manually (2-step process):
-npm update @peterthoeny/jpulse-framework  # Updates npm package
+npm update @jpulse-net/jpulse-framework  # Updates npm package
 npm run jpulse-update                     # Updates framework files
 
 # Or use the new update command directly:
@@ -118,7 +118,7 @@ npm run jpulse-update                    # Update framework files
 npm run jpulse-update --dry-run             # Safe preview mode
 
 # Or to update to a pre-release (beta, RC):
-npm install @peterthoeny/jpulse-framework@1.0.0-rc.1
+npm install @jpulse-net/jpulse-framework@1.0.0-rc.1
 npm run jpulse-update
 ```
 

@@ -39,7 +39,7 @@ Complete guide for site developers building jPulse applications with Gen-AI assi
 **Create your jPulse site**:
 ```bash
 mkdir my-jpulse-site && cd my-jpulse-site
-npm install @peterthoeny/jpulse-framework
+npm install @jpulse-net/jpulse-framework
 npx jpulse-configure
 npm install
 npm start

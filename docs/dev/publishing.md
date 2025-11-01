@@ -104,7 +104,7 @@ git push origin main --tags
 **GitHub Actions Workflow:**
 - Triggered by version tags (`v*`)
 - Runs complete test suite
-- Publishes to `@peterthoeny/jpulse-framework`
+- Publishes to `@jpulse-net/jpulse-framework`
 - Creates GitHub release with installation instructions
 
 #### Build Failure Troubleshooting
@@ -114,7 +114,7 @@ If the automated build fails, follow these steps:
 **Step 1: Identify the Issue**
 ```bash
 # Check GitHub Actions logs at:
-# https://github.com/peterthoeny/jpulse-framework/actions
+# https://github.com/jpulse-net/jpulse-framework/actions
 
 # Common failure types:
 # - npm ci dependency sync issues
@@ -170,7 +170,7 @@ git push origin vX.X.X
 **Step 4: Monitor the Rebuild**
 ```bash
 # GitHub Actions will automatically trigger on the new tag
-# Monitor at: https://github.com/peterthoeny/jpulse-framework/actions
+# Monitor at: https://github.com/jpulse-net/jpulse-framework/actions
 ```
 
 ### Method 2: Manual Publishing
@@ -232,14 +232,14 @@ git push origin main --tags
 
 ```bash
 # 1. Verify package is available
-npm view @peterthoeny/jpulse-framework --registry=https://npm.pkg.github.com
+npm view @jpulse-net/jpulse-framework --registry=https://npm.pkg.github.com
 
 # 2. Test installation in clean directory (requires auth for private repo)
 mkdir test-install && cd test-install
 export GITHUB_TOKEN=your_github_token
 echo "@peterthoeny:registry=https://npm.pkg.github.com" >> .npmrc
 echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> .npmrc
-npm install -g @peterthoeny/jpulse-framework
+npm install -g @jpulse-net/jpulse-framework
 
 mkdir test-install && cd test-install
 npx jpulse-setup
@@ -249,7 +249,7 @@ npm install
 npm start
 ```
 
-> **Note**: Once repository is public, steps 2-3 will simplify to just: `npm install -g @peterthoeny/jpulse-framework && npx jpulse-setup`
+> **Note**: Once repository is public, steps 2-3 will simplify to just: `npm install -g @jpulse-net/jpulse-framework && npx jpulse-setup`
 
 ## Package Configuration
 
@@ -297,19 +297,19 @@ cat ~/.npmrc
 ### Publishing Failures
 ```bash
 # Check package name and scope
-npm view @peterthoeny/jpulse-framework --registry=https://npm.pkg.github.com
+npm view @jpulse-net/jpulse-framework --registry=https://npm.pkg.github.com
 
 # Verify version doesn't already exist
-npm view @peterthoeny/jpulse-framework versions --json --registry=https://npm.pkg.github.com
+npm view @jpulse-net/jpulse-framework versions --json --registry=https://npm.pkg.github.com
 
 # Check GitHub Packages permissions
-# Visit: https://github.com/peterthoeny/jpulse-framework/packages
+# Visit: https://github.com/jpulse-net/jpulse-framework/packages
 ```
 
 ### GitHub Actions Issues
 ```bash
 # Check workflow status
-# Visit: https://github.com/peterthoeny/jpulse-framework/actions
+# Visit: https://github.com/jpulse-net/jpulse-framework/actions
 
 # Common issues:
 # - GITHUB_TOKEN permissions

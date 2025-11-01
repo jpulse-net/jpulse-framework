@@ -84,8 +84,8 @@ pm2 start deploy/ecosystem.prod.config.cjs && pm2 save  # Start production
 - **Quick Troubleshooting**: Run `npm run jpulse-validate` for diagnostics
 
 ### Framework Support
-- [GitHub Repository](https://github.com/peterthoeny/jpulse-framework)
-- [Issue Tracker](https://github.com/peterthoeny/jpulse-framework/issues)
+- [GitHub Repository](https://github.com/jpulse-net/jpulse-framework)
+- [Issue Tracker](https://github.com/jpulse-net/jpulse-framework/issues)
 
 ---
 
@@ -97,9 +97,9 @@ pm2 start deploy/ecosystem.prod.config.cjs && pm2 save  # Start production
  * @generated       %GENERATION_DATE%
  * @file            templates/README.md
  * @release         2025-10-27
- * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @license         AGPL v3, see LICENSE file
- * @genai           60%, Cursor 1.2, Claude Sonnet 4
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->

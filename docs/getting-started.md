@@ -20,7 +20,7 @@ Before starting, ensure you have:
 mkdir my-first-site && cd my-first-site
 
 # Install framework locally in your site
-npm install @peterthoeny/jpulse-framework
+npm install @jpulse-net/jpulse-framework
 
 # Configure your site
 npx jpulse-configure
@@ -53,7 +53,7 @@ my-first-site/
 │   ├── model/            # Custom models
 │   ├── view/             # Custom templates
 │   └── static/           # Site assets
-└── package.json          # Dependencies (@peterthoeny/jpulse-framework)
+└── package.json          # Dependencies (@jpulse-net/jpulse-framework)
 ```
 
 ## Step 3: Create Your First Custom Page
@@ -476,7 +476,7 @@ npm run jpulse-update                    # Update framework files
 npm run jpulse-update --dry-run          # Safe preview mode
 
 # Or manually (2-step process):
-npm update @peterthoeny/jpulse-framework  # Updates npm package
+npm update @jpulse-net/jpulse-framework  # Updates npm package
 npm run jpulse-update                    # Updates framework files
 
 # Review changes
@@ -495,7 +495,7 @@ git commit -am "Update framework to v0.7.14"
 
 - **`npm run jpulse-update`** - Recommended: Runs both steps automatically with enhanced safety
 - **Manual process** requires two steps:
-  1. `npm update @peterthoeny/jpulse-framework` - Downloads the latest framework package
+  1. `npm update @jpulse-net/jpulse-framework` - Downloads the latest framework package
   2. `npm run jpulse-update` - Copies the updated framework files to your site
 
 **Why two steps?** jPulse uses a hybrid approach:

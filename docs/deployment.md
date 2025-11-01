@@ -202,7 +202,7 @@ source .env && echo "Connecting as: $DB_USER to $DB_NAME"
 ```bash
 # Safe update process
 npm run update --dry-run  # Preview changes
-npm update @peterthoeny/jpulse-framework
+npm update @jpulse-net/jpulse-framework
 npm run jpulse-update  # Sync framework files
 
 # If update fails:
@@ -450,7 +450,7 @@ git commit -m "Initial commit: jPulse site setup
 
 - Complete jPulse site structure with framework files
 - Site customization directory structure
-- Package.json with @peterthoeny/jpulse-framework dependency
+- Package.json with @jpulse-net/jpulse-framework dependency
 - Deployment configuration templates
 - README and documentation files
 

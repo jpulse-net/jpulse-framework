@@ -1602,7 +1602,8 @@ This is the doc to track work items, arranged in three sections:
 
 pending:
 - migrate @peterthoeny/jpulse-framework to @jpulse-net/jpulse-framework
-- license review
+- license change to BSL 1.1
+- docs/dev/roadmap.md update
 
 
 old pending:

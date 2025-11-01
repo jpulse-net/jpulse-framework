@@ -23,11 +23,11 @@ Technical documentation for developers working on the jPulse Framework itself. T
 - **Utilities**: CommonUtils framework for data processing and schema-based queries
 - **Testing**: Jest with automated cleanup, global setup/teardown, and 337+ tests
 - **Build Tools**: npm scripts, native ES modules, version management
-- **Distribution**: npm package (@peterthoeny/jpulse-framework) with CLI tools (W-051)
+- **Distribution**: npm package (@jpulse-net/jpulse-framework) with CLI tools (W-051)
 - **Production**: nginx reverse proxy + PM2 process management
 
 ### Package Distribution (W-051)
-- **Framework Package**: `@peterthoeny/jpulse-framework` published to GitHub Packages
+- **Framework Package**: `@jpulse-net/jpulse-framework` published to GitHub Packages
 - **CLI Tools**: `jpulse-setup` (site creation), `jpulse-sync` (framework updates), `jpulse-update` (safe updates with dry-run)
 - **Site Structure**: Independent repositories with committed framework files
 - **Update Workflow**: `npm run update` (recommended) or `jpulse-update` with dry-run support
@@ -266,7 +266,7 @@ The original dev/README.md (2180 lines) should be broken into focused documents:
 ### Quick Start
 ```bash
 # Clone the framework repository
-git clone https://github.com/peterthoeny/jpulse-framework.git
+git clone https://github.com/jpulse-net/jpulse-framework.git
 cd jpulse-framework
 npm install && npm test && npm start
 ```

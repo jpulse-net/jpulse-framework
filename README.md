@@ -175,13 +175,12 @@ npm update @peterthoeny/jpulse-framework && npm run jpulse-update
 - ✅ **Hello To-Do MVC Demo (v0.8.4)** - Complete Model-View-Controller demonstration with MongoDB integration and REST API patterns
 - ✅ **[MPA vs. SPA Architecture Guide](docs/mpa-vs-spa.md)** - Comprehensive comparison with diagrams showing when to use each pattern
 - ✅ **Package Distribution (v0.6.0+)** - npm-based site creation with `npx jpulse-configure`
-- ✅ **Dual Licensing (v0.5.5)** - AGPL v3 open source with commercial licensing options
 
 ## Community & Support
 
 - **Documentation**: Complete guides in `/docs/` directory
 - **GitHub**: Issues, discussions, and contributions welcome
-- **License**: AGPL v3 (with commercial licensing available)
+- **License**: BSL 1.1 (with commercial licensing available)
 - **Roadmap**: [Development roadmap](docs/dev/roadmap.md) with clear milestones
 
 ## Enterprise Advantages
@@ -194,35 +193,18 @@ npm update @peterthoeny/jpulse-framework && npm run jpulse-update
 
 ## Licensing
 
-jPulse Framework uses **dual licensing** to balance open source community benefits with commercial sustainability:
+jPulse Framework uses **Business Source License 1.1 (BSL 1.1)**:
 
-### 🆓 **AGPL v3 (Open Source)**
-- **Free for**: Open source projects, educational use, evaluation, and development
-- **Requirements**: Applications using jPulse must provide source code to users (including web applications)
-- **Perfect for**: Government agencies, educational institutions, non-profits, and open source projects
-- **Community**: Full access to source code, contributions welcome, transparent development
+- **Free for**: Evaluation, development, testing, and learning
+- **Source Code**: Fully accessible at [GitHub](https://github.com/jpulse-net/jpulse-framework)
+- **Production Use**: Requires commercial license (contact [team@jpulse.net](mailto:team@jpulse.net))
+- **Future**: Automatically converts to AGPL v3.0 on **2030-01-01**
 
-### 💼 **Commercial License**
-- **For**: Proprietary applications, SaaS products, and enterprise deployments
-- **Benefits**: No source code disclosure requirements, commercial support, enterprise features
-- **Pricing**: Flexible tiers from startup to enterprise (contact for pricing)
-- **Includes**: Priority support, commercial plugins, indemnification, and custom development
+**Quick Guide:**
+- ✅ **Development/testing**: Free (BSL 1.1)
+- ❌ **Production/SaaS**: Commercial license required
 
-### 🤔 **Which License Do I Need?**
-
-**Use AGPL v3 if:**
-- Building open source applications
-- Educational or research projects
-- Government/non-profit applications where source sharing is acceptable
-- Evaluating jPulse for future commercial use
-
-**Need Commercial License if:**
-- Building proprietary web applications or SaaS products
-- Cannot share source code due to business/regulatory requirements
-- Need enterprise support, SLA, or indemnification
-- Want access to commercial-only features and plugins
-
-**Contact**: [licensing@jpulse.net](mailto:licensing@jpulse.net) for commercial licensing inquiries.
+For detailed licensing information, see [License Documentation](docs/license.md).
 
 ---
 

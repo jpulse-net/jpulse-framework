@@ -22,7 +22,7 @@ This guide covers setting up the jPulse Framework for core development and contr
 ### 1. Clone Repository
 ```bash
 # Clone the jPulse Framework repository
-git clone https://github.com/peterthoeny/jpulse-framework.git
+git clone https://github.com/jpulse-net/jpulse-framework.git
 cd jpulse-framework
 ```
 

@@ -13,7 +13,7 @@ Strategic requirements and specifications for the jPulse Framework, targeting en
 - **Client-Side Heavy Views**: Primary view logic in browser JavaScript with API calls, minimal server-side Handlebars
 - **Schema-Enforced Models**: NoSQL database with enforced data schemas and validation
 - **RESTful Controllers**: API-first design interfacing between models and views
-- **Open Source**: AGPL v3 license with commercial licensing for government and enterprise adoption
+- **Source Available**: BSL 1.1 license with commercial licensing for government and enterprise adoption
 
 ### Target Audience
 - **Government Agencies**: Federal, state, and local government applications

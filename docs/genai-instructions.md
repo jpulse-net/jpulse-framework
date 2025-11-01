@@ -386,7 +386,7 @@ jPulse.date.formatLocalDateAndTime(dateObj) // YYYY-MM-DD HH:MM:SS
 ### Version and Configuration
 
 **Framework version**:
-- Check `package.json` → `dependencies["@peterthoeny/jpulse-framework"]`
+- Check `package.json` → `dependencies["@jpulse-net/jpulse-framework"]`
 
 **Node.js requirement**:
 - Check `package.json` → `engines.node`

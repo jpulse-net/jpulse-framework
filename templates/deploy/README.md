@@ -119,7 +119,7 @@ tar -czf /backup/site-$(date +%Y%m%d).tar.gz /opt/jpulse/
 #### Framework Updates
 ```bash
 ## Safe update process
-npm update @peterthoeny/jpulse-framework
+npm update @jpulse-net/jpulse-framework
 npx jpulse-sync  ## Preserves site customizations
 npm run jpulse-validate  ## Validate after update
 ```
@@ -134,7 +134,7 @@ npm run jpulse-validate  ## Validate after update
 #### Getting Help
 1. **Run diagnostics**: `npm run jpulse-validate`
 2. **Framework docs**: Visit https://%DOMAIN_NAME%/jpulse/deployment
-3. **Support**: https://github.com/peterthoeny/jpulse-framework/issues
+3. **Support**: https://github.com/jpulse-net/jpulse-framework/issues
 
 ___________________________________________________________
 ## 💻 For Developers
@@ -285,7 +285,7 @@ All available on your running site:
 
 ---
 
-**Framework Support**: https://github.com/peterthoeny/jpulse-framework/issues
+**Framework Support**: https://github.com/jpulse-net/jpulse-framework/issues
 
 <!--
  * @name            jPulse Framework / Deploy / README
@@ -295,9 +295,9 @@ All available on your running site:
  * @generated       %GENERATION_DATE%
  * @file            templates/deploy/README.md
  * @release         2025-10-27
- * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @license         AGPL v3, see LICENSE file
- * @genai           60%, Cursor 1.2, Claude Sonnet 4
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->

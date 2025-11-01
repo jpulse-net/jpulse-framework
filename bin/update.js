@@ -6,11 +6,11 @@
  * @file            bin/update.js
  * @version         1.0.0-rc.2
  * @release         2025-10-27
- * @repository      https://github.com/peterthoeny/jpulse-framework
+ * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @license         AGPL v3, see LICENSE file
- * @genai           60%, Cursor 1.2, Claude Sonnet 4
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 1.7, Claude Sonnet 4
  */
 
 import { execSync } from 'child_process';
@@ -20,7 +20,7 @@ function update() {
 
     if (isDryRun) {
         console.log('🔍 DRY RUN: jPulse Framework update simulation');
-        console.log('📦 Would run: npm update @peterthoeny/jpulse-framework');
+        console.log('📦 Would run: npm update @jpulse-net/jpulse-framework');
         console.log('📁 Would run: npx jpulse-sync');
         console.log('💡 No changes made (dry run mode)');
         console.log('');
@@ -33,7 +33,7 @@ function update() {
 
         // Update npm package
         console.log('📦 Updating framework package...');
-        execSync('npm update @peterthoeny/jpulse-framework', { stdio: 'inherit' });
+        execSync('npm update @jpulse-net/jpulse-framework', { stdio: 'inherit' });
 
         // Sync framework files
         console.log('📁 Syncing framework files...');

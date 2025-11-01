@@ -37,9 +37,6 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - ✅ **Standardized Error Handling & Testing (v0.7.16)**: Complete error handling standardization across all controllers, enhanced test framework with dynamic statistics, and comprehensive sendError functionality
 - ✅ **Clean Deployment Strategy (v0.7.0)**: Complete "don't make me think" deployment automation with interactive setup, production templates, and MongoDB security
 - ✅ **Package Distribution (v0.6.0+)**: Create new sites with `npx jpulse-configure` - clean repository separation
-- ✅ **Dual Licensing (v0.5.5)**: AGPL v3 open source with commercial licensing options for enterprise use
-- ✅ **Markdown Documentation System (v0.5.4+)**: Complete documentation system with API standardization, content filtering, and i18n support
-- ✅ **Enterprise UI Widgets (v0.5.2)**: Complete UI widget system with draggable dialogs and form interactions
 
 ## Key Features
 
@@ -143,7 +140,7 @@ Whether you code manually or with AI assistance, jPulse's "don't make me think" 
 
 ```bash
 # Create a new jPulse site
-npm install -g @peterthoeny/jpulse-framework
+npm install -g @jpulse-net/jpulse-framework
 mkdir my-jpulse-site && cd my-jpulse-site
 # Configure site
 npx jpulse-configure
@@ -176,7 +173,7 @@ my-jpulse-site/
 │   ├── view/               # Site pages and templates
 │   └── static/             # Site-specific assets
 ├── logs -> /var/log/...    # Symbolic link to system log directory
-├── package.json            # Dependencies (@peterthoeny/jpulse-framework)
+├── package.json            # Dependencies (@jpulse-net/jpulse-framework)
 └── .jpulse/                # Framework metadata
     ├── app.json            # Consolidated runtime configuration
     └── config-sources.json # Source file tracking

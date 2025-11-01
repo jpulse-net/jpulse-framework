@@ -1,10 +1,10 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.0.0-rc.2
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.0.0
 
 **For Site Administrators & Site Developers**
 
 Welcome to the jPulse Framework documentation - your complete guide to building enterprise-grade web applications.
 
-**🎉 Release Candidate 2**: Zero-configuration auto-discovery architecture with automatic controller registration, API endpoint detection, and SPA routing - eliminating all manual configuration while maintaining full transparency and control.
+**🎉 Version 1.0.0**: Production-ready Redis infrastructure for scalable multi-instance deployments, zero-configuration auto-discovery architecture, comprehensive real-time communication, and enterprise-grade clustering capabilities.
 
 ## What is jPulse?
 
@@ -12,6 +12,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.0.0 - Production Milestone**: Complete Redis infrastructure for scalable multi-instance and multi-server deployments. Features zero-configuration auto-discovery architecture with automatic controller registration and API endpoint detection. Application Cluster Broadcasting for state synchronization across servers. WebSocket real-time communication with Redis pub/sub for cross-instance messaging. Aggregated health metrics across all instances and servers. Redis-based session sharing for seamless load balancing. Comprehensive Gen-AI development guides for AI-assisted coding. BSL 1.1 licensing with commercial options. Repository migration to jpulse-net organization. Production-ready deployment automation with PM2 clustering and Redis integration.
 - ✅ **Zero-Configuration Auto-Discovery Architecture (v1.0.0-rc.2)**: Complete implementation of automatic controller registration, API endpoint discovery, and SPA routing detection. Features SiteControllerRegistry that auto-discovers all site controllers on startup, detects all `static async api*()` methods automatically, infers HTTP method (GET/POST/PUT/DELETE) from method name, and registers Express routes at `/api/1/{controllerName}` with zero configuration. ViewController converted to static class pattern with automatic SPA detection via cached `isSPA(namespace)` method that scans for Vue Router or History API patterns. Bootstrap integration provides centralized initialization in proper dependency order. Routes simplification eliminates all hardcoded controller imports and route registrations. Comprehensive startup logging provides full transparency of auto-discovered controllers, API methods, and SPA routes. Enhanced documentation in `docs/api-reference.md`, `docs/getting-started.md`, and `docs/mpa-vs-spa.md` with complete examples and verification guides. Perfect "don't make me think" developer experience - just create a controller file, framework handles the rest.
 - ✅ **Production-Ready WebSocket and Redis Integration (v1.0.0-rc.1)**: Complete implementation of real-time communication capabilities for multi-user, multi-instance, and multi-server deployments. Features Application Cluster Broadcasting for simplified state synchronization across users and servers, WebSocket for bi-directional real-time communication, centralized Redis pub/sub message routing with pattern-based dispatching, channel schema validation with strict `model:`, `view:`, `controller:` prefixes, and `omitSelf` support to prevent echo messages. Enhanced Health Metrics System with real-time instance tracking, graceful shutdown broadcasting, request/error tracking with 1-minute rolling windows, and visual monitoring dashboard at `/admin/system-status`. Comprehensive documentation including new `docs/application-cluster.md` guide, enhanced `docs/websockets.md` and `docs/mpa-vs-spa.md`, and improved `docs/handlebars.md`. Redis configuration templates for single and cluster modes, interactive setup via `bin/configure.js`, and automated installation with `bin/jpulse-install.sh`. Breaking changes include Redis requirement for multi-instance/multi-server deployments and strict channel naming enforcement. Perfect for collaborative applications, real-time dashboards, and distributed systems with production-ready Redis clustering support.
 - ✅ **Centralized Cache Management with Smart Invalidation (v0.9.7)**: Complete cache invalidation strategy implementation with centralized CacheManager utility for file-based caching across view controller, i18n utility, and markdown controller. Features periodic smart refresh with configurable intervals (minutes), synchronous file access with "does not exist" caching, cache API endpoints for manual refresh and statistics, and graceful shutdown handling. Eliminates need for app restarts when template, translation, or documentation files change. Includes comprehensive test environment compatibility and production-ready implementation with zero filesystem access on cache hits for optimal performance.
@@ -140,16 +141,15 @@ Whether you code manually or with AI assistance, jPulse's "don't make me think" 
 
 ```bash
 # Create a new jPulse site
-npm install -g @jpulse-net/jpulse-framework
 mkdir my-jpulse-site && cd my-jpulse-site
-# Configure site
+npm install @jpulse-net/jpulse-framework
 npx jpulse-configure
-# Install dependencies
 npm install
-# Start the server app
 npm start
 # Visit http://localhost:8080
 ```
+
+📖 **Complete Installation Guide**: See [Installation Documentation](installation.md) for detailed setup instructions, production deployment, and troubleshooting.
 
 > **Framework Development**: See [Framework Development Guide](dev/README.md) for contributing to jPulse itself.
 

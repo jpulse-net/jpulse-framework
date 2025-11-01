@@ -1,6 +1,277 @@
-# jPulse Framework / Docs / Version History v1.0.0-rc.2
+# jPulse Framework / Docs / Version History v1.0.0
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.0.0, W-076, 2025-11-01
+
+**Commit:** `W-076, v1.0.0: Redis Infrastructure for a Scalable jPulse Framework`
+
+**PRODUCTION MILESTONE - REDIS INFRASTRUCTURE FOR SCALABLE MULTI-INSTANCE DEPLOYMENTS**: Complete implementation of production-ready Redis infrastructure enabling scalable multi-instance and multi-server deployments with zero-configuration auto-discovery, Application Cluster Broadcasting, WebSocket real-time communication, aggregated health metrics, Redis-based session sharing, and enterprise-grade clustering capabilities.
+
+**Objective**: Enable jPulse Framework to work with full functionality across multiple Node.js instances (PM2 cluster) on a single app server and across multiple app servers in a load-balanced configuration, providing seamless scaling without sacrificing features or developer experience.
+
+**Key Achievements**:
+- ✅ **Zero-Configuration Architecture**: Complete auto-discovery eliminates all manual route registration and controller initialization
+- ✅ **Production-Ready Redis Infrastructure**: Comprehensive Redis support for sessions, broadcasting, WebSocket coordination, and health metrics
+- ✅ **Enterprise Clustering**: Multi-instance and multi-server deployments with seamless coordination
+- ✅ **Real-Time Communication**: Application Cluster Broadcasting and WebSocket support for collaborative applications
+- ✅ **Enterprise Licensing**: BSL 1.1 with commercial licensing options
+- ✅ **AI-Assisted Development**: Comprehensive Gen-AI guides for modern development workflows
+
+**Core Redis Infrastructure**:
+- **webapp/app.conf**: Comprehensive Redis configuration (single/cluster modes, connection prefixes/TTLs)
+- **site/webapp/app.conf.tmpl**: Redis configuration overrides for site owners
+- **webapp/utils/redis-manager.js**: Centralized Redis connection management with graceful fallback
+  - Redis/Memory/MongoDB session store hierarchy
+  - Centralized broadcast message handling with pattern-based channel matching
+  - Channel schema validation (model:/view:/controller: prefixes required)
+  - omitSelf flag support for preventing echo messages
+  - MongoDB connection status caching
+- **webapp/utils/bootstrap.js**: Integrated Redis initialization and session store configuration
+- **webapp/app.js**: Simplified session middleware using bootstrap-provided session store
+- **System Metadata**: Created appConfig.system as single source of truth (hostname, serverName, serverId, pm2Id, pid, instanceName, instanceId, docTypes)
+
+**Zero-Configuration Auto-Discovery Architecture**:
+- **webapp/utils/site-controller-registry.js**: Auto-discovers site controllers and API methods using regex pattern matching
+  - Scans `site/webapp/controller/` on startup
+  - Detects all `static async api*()` methods automatically
+  - Infers HTTP method (GET/POST/PUT/DELETE) from method name
+  - Registers Express routes at `/api/1/{controllerName}`
+  - Calls `static async initialize()` if present
+  - All internal methods prefixed with `_` to separate public/private API
+- **webapp/controller/view.js**: Converted to static class pattern with automatic SPA detection
+  - `static isSPA(namespace)` with caching for automatic SPA detection
+  - Scans for Vue Router, history.pushState + popstate patterns
+  - Dynamic route creation matching all SPA sub-paths
+- **webapp/utils/bootstrap.js**: Centralized initialization in proper dependency order
+  - Step 11: SiteControllerRegistry initialization
+  - Step 12: ContextExtensions initialization
+  - Step 13: viewRegistry creation for routes.js compatibility
+  - Step 14: WebSocketController class availability
+- **webapp/routes.js**: Eliminated all hardcoded controller imports and route registrations
+  - Fixed static method context binding with arrow functions
+  - Dynamic API route registration via SiteControllerRegistry
+  - Automatic SPA route pattern generation
+
+**Session Management**:
+- **webapp/utils/redis-manager.js**: `configureSessionStore()` with Redis/Memory/MongoDB fallback hierarchy
+- Global RedisManager availability for all controllers
+- Changed `user.authenticated` to `user.isAuthenticated` in session and Handlebars context
+
+**Broadcasting System**:
+- **webapp/controller/broadcast.js**: REST API for cross-instance broadcasting with callback system
+- **webapp/controller/view.js**: Config refresh broadcasting and self-registered callbacks
+- **webapp/controller/config.js**: Integrated with view controller broadcast system
+- **webapp/utils/redis-manager.js**: Centralized broadcast message handling with specificity-based channel matching
+- **Channel Schema**: Strict validation requiring `model:`, `view:`, `controller:` prefixes
+- **omitSelf Support**: Default `true` for controller/model channels, `false` for view channels
+- **webapp/translations/en.conf + de.conf**: Broadcast-specific i18n keys
+
+**WebSocket Infrastructure**:
+- **webapp/controller/appCluster.js**: NEW WebSocket-to-Redis bridge for real-time client sync
+- **webapp/controller/websocket.js**: Migrated endpoints from `/ws/` to `/api/1/ws/` for API consistency
+- **webapp/controller/websocket.js**: Redis-based cross-instance WebSocket broadcasting (HTTP fallbacks removed)
+- **webapp/view/admin/websocket-test.shtml**: Updated for new endpoint structure
+- **webapp/view/admin/websocket-status.shtml**: Updated for new endpoint structure
+- **site/webapp/controller/helloWebsocket.js**: Updated namespace registration for new endpoints
+
+**Health Metrics Clustering**:
+- **webapp/controller/health.js**: Redis-based health metrics aggregation across instances
+  - Automatic instance discovery with 30s broadcast + 90s TTL
+  - Graceful shutdown broadcasting (removes instances immediately from cluster metrics)
+  - omitSelf: true prevents duplicate local instance entries in metrics
+  - Cache system data, shared among pm2 instances and redis
+  - Request/error tracking with 1-minute rolling window (trackRequest(), trackError())
+  - Enhanced instance data: version, release, environment, database status, CPU, memory%, requests/min, errors/min, error rate
+- Enhanced `/api/1/health/metrics` endpoint with cluster-wide statistics
+- **webapp/controller/log.js**: Integrated automatic request/error tracking for health metrics
+- **webapp/utils/bootstrap.js**: Registered HealthController globally for LogController access
+- **webapp/view/admin/system-status.shtml**: Enhanced Instance Details display with all new metrics
+- **webapp/app.js**: Graceful shutdown calls HealthController.shutdown() to broadcast removal
+
+**Client-Side Enhancements**:
+- **webapp/view/jpulse-common.js**: Configurable WebSocket UUID storage (session/local/memory)
+- **webapp/view/jpulse-common.js**: jPulse.appCluster API for instance info and broadcasting
+- **webapp/view/jpulse-common.js**: jPulse.appCluster.fetch() wrapper for automatic UUID injection in API calls
+- **site/webapp/view/hello-websocket/templates/code-examples.tmpl**: Comprehensive WebSocket documentation with UUID storage
+
+**Example Applications**:
+- `/hello-app-cluster/index.shtml` - Overview
+- `/hello-app-cluster/notifications.shtml` - App showcasing client-side broadcasting pattern
+- `/hello-app-cluster/collaborative-todo.shtml` - To-do app showcasing server-side (full MVC) broadcasting pattern
+- **site/webapp/controller/helloClusterTodo.js**: Refactored to use HelloTodoModel, adhering to MVC
+- `/hello-app-cluster/code-examples.shtml` - Updated with accurate, final code examples for both patterns
+- `/hello-app-cluster/architecture.shtml` - Updated with accurate architecture diagrams and component roles
+
+**UI/UX Improvements**:
+- **webapp/view/admin/logs.shtml**: Better i18n without concatenating i18n strings (Japanese language support)
+- **site/webapp/view/hello-websocket/templates/code-examples.tmpl**: Escaped HTML in pre blocks for proper rendering
+- **site/webapp/view/hello-todo/todo-app.shtml**: Replaced "loading..." message with spinner icon (eliminates page reload flicker)
+- **site/webapp/view/hello-todo/code-examples.shtml**: Escaped HTML in pre blocks for proper rendering
+- **webapp/view/user/profile.shtml**: Fixed async loading race condition for language/theme dropdowns
+
+**Public Demo Access Configuration**:
+- **webapp/controller/auth.js**: Added `_public` virtual role support in `isAuthorized()`
+  - `_public` role allows unauthenticated access when configured
+  - Empty `requiredRoles` array means open to all
+  - Supports mixed access (e.g., `['_public', 'admin']` for public OR admin)
+- **webapp/controller/health.js**: Role-based access control for health endpoints
+  - `appConfig.controller.health.requiredRoles.status`: Controls `/api/1/health/status` access
+  - `appConfig.controller.health.requiredRoles.metrics`: Controls `/api/1/health/metrics` access
+  - Default: admin/root required, empty array = public, `_public` = unauthenticated only
+- **webapp/controller/health.js**: Data sanitization for non-admin users
+  - Removes sensitive infrastructure data (hostnames, IPs, PIDs, database names)
+  - Sanitizes processInfo, database connection details, server identifiers
+  - Preserves demo functionality while protecting infrastructure details
+- **site/webapp/view/jpulse-admin-demo/**: Public demo pages cloned from admin
+  - `system-status.shtml` - Cluster-wide system monitoring (public access)
+  - `websocket-status.shtml` - WebSocket namespace monitoring (public access)
+  - `websocket-test.shtml` - WebSocket testing tool (public access)
+
+**Bug Fixes**:
+- **webapp/controller/health.js**: Fixed duplicate instance counting in PM2 cluster mode
+  - `_getCurrentInstanceHealthData()` now returns only current instance data (totalInstances: 1)
+  - Removed aggregate PM2 process counting from individual broadcasts
+  - Aggregation now happens correctly at receiver (`_buildClusterStatistics`)
+- **webapp/controller/health.js**: Corrected broadcast channel naming to use `instanceId` (serverId:pm2Id:pid)
+- **webapp/controller/health.js**: Added MongoDB admin auth fallback for non-privileged deployments
+- **webapp/app.js**: Simplified system metadata initialization (removed unnecessary function wrapper)
+- **webapp/app.js**: Fixed early return bug preventing system metadata initialization
+  - Removed early return after config generation (line 70)
+  - Ensures instanceId is always populated for PM2 instance 0
+- **webapp/controller/health.js**: Fixed PM2 uptime calculation bug
+  - Corrected `_getPM2Status()` to use `pm2_env.pm_uptime` correctly (milliseconds timestamp)
+  - Fixed `_buildServersArray()` to reuse calculated uptime instead of recalculating
+  - Uptime now correctly shows seconds since last restart, not 55 years
+- **webapp/view/admin/logs.shtml**: Fixed filter preset buttons
+  - Changed event listener selector from `.jp-btn-secondary` to `[data-preset]`
+  - Preset buttons (Today, Yesterday, etc.) now work correctly
+  - `setPresetActive()` also updated to use `[data-preset]` selector
+
+**Architecture Improvements**:
+- Established `global.appConfig.system.*` as single source of truth for system metadata
+- Created permanent memory: "jPulse Framework: System Metadata Single Source of Truth"
+- All code now references `appConfig.system` directly without reconstruction or duplication
+- All health metrics now accurate in PM2 cluster deployments
+- Added generic `setHeader` in `app.conf` and `app.js` to set Content-Security-Policy and other HTTP headers
+- **bin/configure.js**: Clarified logging configuration options for PM2
+- Documented PM2 logging modes (internal `/dev/null` vs file-based)
+- **bin/mongodb-setup.sh**: Added `clusterMonitor` role for jpapp user (new installations)
+
+**Template Configuration Structure Alignment**:
+- **site/webapp/view/site-common.js.tmpl**: Fixed `init()` to use Handlebars `{{app.site.name}}` and `{{app.site.version}}` for server-side expansion
+  - Corrected misconception that `window.appConfig` is available in view templates (appConfig is server-side only)
+  - Templates (`.tmpl` files) are processed by `ViewController.load()` which expands Handlebars before JavaScript reaches browser
+- **templates/webapp/app.conf.dev.tmpl**: Structure aligned with `webapp/app.conf` (app.site.name/shortName nested structure)
+- **templates/webapp/app.conf.prod.tmpl**: Structure aligned with `webapp/app.conf` (app.site.name/shortName nested structure)
+  - Note: Template variables (%SITE_NAME%, etc.) remain unchanged - only structure was modified to match framework defaults
+
+**Page Title Fix**:
+- Fixed broken `{{app.shortName}}` to `{{app.site.shortName}}` in `<title>` tag of all pages
+
+**Common Styles**:
+- Tweaked `jp-*` styles for more consistent look, and a bit more condensed look
+- **webapp/view/jpulse-common.css**: Unified and simplified `jp-card` with headings and sub-headings
+  - Created new `.jp-card-dialog-heading` class for explicit opt-in dialog-style headers
+  - Created `.jp-card-subheading` class for subheadings positioned to the right of dialog headings
+- Fixed all `.html` pages and `.tmpl` files
+
+**Package Dependencies**:
+- **package.json**: Added `connect-redis` and `ioredis` for Redis session management
+
+**Architecture Simplification**:
+- Removed complex HTTP fallback code from WebSocket controller
+- Simplified to Redis-only approach for multi-instance deployments
+- Updated documentation to clarify Redis requirements
+
+**Documentation**:
+- **docs/application-cluster.md**: NEW comprehensive guide for App Cluster Broadcasting
+  - Quick decision tree (WebSocket vs App Cluster)
+  - Comparison table with examples
+  - Client-side and server-side API reference
+  - Common patterns (collaborative editing, notifications, real-time dashboards)
+  - Migration guide and troubleshooting
+- **docs/websockets.md**: Added App Cluster reference blurb at top
+- **docs/mpa-vs-spa.md**: NEW "Real-Time Multi-User Communication" section with decision table
+- **docs/handlebars.md**: Enhanced with special context variables table, nested blocks, error handling
+- **docs/template-reference.md**: Streamlined Handlebars section, added reference to `handlebars.md`
+- **docs/README.md**: Added high-level descriptions of App Cluster and WebSocket features
+- **README.md**: Added "Real-Time Multi-User Communication" to Key Features
+- **README.md**: Added Redis and Health Metrics to Deployment Requirements
+- **docs/genai-development.md**: NEW comprehensive guide for site developers using Gen-AI assistants
+  - Complete guide for "vibe coding" with jPulse Framework
+  - Covers all major AI tools (Cursor, Cline, Copilot, Windsurf)
+  - Initial setup and configuration guidance
+  - Effective prompting strategies and architecture-aware development
+  - Building common features with AI assistance
+  - Testing, debugging, and code quality practices
+  - Common pitfalls and solutions
+  - Example AI development sessions with conversation flows
+  - Checklists for AI-assisted development
+- **docs/genai-instructions.md**: NEW machine-readable instructions for AI coding agents
+  - Critical framework patterns and conventions (Site Override System, API-First, Client-Side Heavy, Auto-Discovery)
+  - CSS and JavaScript conventions (`jp-*` vs `site-*` vs `local-*` prefixes)
+  - Framework vs Site file distinctions
+  - Reference implementations pointing to living code examples
+  - Implementation guidance for controllers, views, models
+  - Code quality checklist and security considerations
+  - Response guidelines for AI assistants
+  - Philosophy: document stays fresh, AI generates current code
+- **docs/README.md**: Added "AI-Assisted Development" section highlighting Gen-AI benefits
+- **docs/getting-started.md**: Added Gen-AI guide references in Prerequisites and Next Steps
+- **docs/site-customization.md**: Added Gen-AI guide reference in introduction
+- **docs/front-end-development.md**: Added Gen-AI guide reference after live examples
+- **docs/api-reference.md**: Added Gen-AI guide reference after live examples
+
+**License Migration to BSL 1.1**:
+- Migrate from AGPL 3 to Business Source License 1.1
+  - Change Date: 2030-01-01 (automatic conversion to AGPL v3.0)
+  - Commercial licensing contact: team@jpulse.net
+- **docs/license.md**: Comprehensive licensing documentation
+  - BSL 1.1 explanation and use cases
+  - Free vs. commercial license guidance
+  - FAQ section covering common scenarios
+  - License conversion details and future dual licensing path
+- **Source File Headers**: Standardized license format across all source files
+  - Format: "BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net"
+  - Updated 182 files with new header format
+- **package.json**: Updated package metadata
+  - Package name: `@jpulse-net/jpulse-framework`
+  - Repository: github.com/jpulse-net/jpulse-framework
+  - License: BSL-1.1
+- **README.md**: Streamlined licensing section
+  - Quick reference for development vs. production use
+  - Link to detailed `docs/license.md` documentation
+
+**Repository Migration**:
+- Migrated from github.com/peterthoeny/jpulse-framework to github.com/jpulse-net/jpulse-framework
+- All branches pushed (main, vuejs-trial)
+- All 52 version tags migrated
+- Old repository archived
+- Updated all repository references in codebase (bin scripts, templates, tests)
+- **Documentation**:
+  - **docs/dev/working/W-052-business-dual-licensing-agpl-and-commercial.md**: Added BSL 1.1 strategy section with rationale
+  - Updated all documentation with new repository URLs
+
+**Files Modified**: Extensive changes across 100+ files including controllers, utilities, views, documentation, configuration templates, and package metadata.
+
+**Test Coverage**: All existing tests updated and passing. Comprehensive test coverage maintained for all new features.
+
+**Benefits**:
+- ✅ Production-ready multi-instance and multi-server deployments
+- ✅ Zero configuration for controllers and API routes
+- ✅ Seamless Redis-based coordination across instances
+- ✅ Real-time communication for collaborative applications
+- ✅ Enterprise-grade licensing with commercial options
+- ✅ Comprehensive AI-assisted development guidance
+- ✅ Complete developer transparency via startup logs
+- ✅ "Don't make me think" developer experience
+
+**Next Steps**:
+- Community feedback integration
+- Performance optimization under high load
+- Additional deployment automation enhancements
 
 ________________________________________________
 ## v1.0.0-rc.2, W-076, 2025-10-27

@@ -1595,14 +1595,43 @@ This is the doc to track work items, arranged in three sections:
     - docs/site-customization.md -- added Gen-AI guide reference in introduction
     - docs/front-end-development.md -- added Gen-AI guide reference after live examples
     - docs/api-reference.md -- added Gen-AI guide reference after live examples
+  - License Migration to BSL 1.1:
+    - Migrate from AGPL 3 to Business Source License 1.1
+      - Change Date: 2030-01-01 (automatic conversion to AGPL v3.0)
+      - Commercial licensing contact: team@jpulse.net
+    - docs/license.md: Comprehensive licensing documentation
+      - BSL 1.1 explanation and use cases
+      - Free vs. commercial license guidance
+      - FAQ section covering common scenarios
+      - License conversion details and future dual licensing path
+    - Source File Headers: Standardized license format across all source files
+      - Format: "BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net"
+      - Updated 182 files with new header format
+    - package.json: Updated package metadata
+      - Package name: @jpulse-net/jpulse-framework
+      - Repository: github.com/jpulse-net/jpulse-framework
+      - License: BSL-1.1
+    - README.md: Streamlined licensing section
+      - Quick reference for development vs. production use
+      - Link to detailed docs/license.md documentation
+  - Repository Migration:
+    - Migrated from github.com/peterthoeny/jpulse-framework to github.com/jpulse-net/jpulse-framework
+    - All branches pushed (main, vuejs-trial)
+    - All 52 version tags migrated
+    - Old repository archived
+    - Updated all repository references in codebase (bin scripts, templates, tests)
+    - Documentation:
+      - docs/dev/working/W-052-business-dual-licensing-agpl-and-commercial.md: Added BSL 1.1 strategy section with rationale
+      - Updated all documentation with new repository URLs
+
+
+
 
 
 
 
 
 pending:
-- migrate @peterthoeny/jpulse-framework to @jpulse-net/jpulse-framework
-- license change to BSL 1.1
 - docs/dev/roadmap.md update
 
 
@@ -1614,7 +1643,8 @@ old pending:
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
 - add SiteControllerRegistry.getStats() to metrics api & system-status
-- jp-card: more consistent card header: normal, dialog look with gray background jp-card-dialog
+
+
 
 
 
@@ -1623,6 +1653,11 @@ old pending:
 - W-068: view: create responsive sidebar
 - W-0: view: page headers with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific translations
+- W-037: view: create themes
+- W-0: deployment: docker strategy
+- W-0: auth controller: authentication with OAuth2
+- W-0: auth controller: authentication with LDAP
+- W-0: auth controller: MFA (multi-factor authentication)
 
 ### Chat instructions
 
@@ -1635,8 +1670,8 @@ next work item: W-0...
 finishing up work item: W-070:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-076, v1.0.0-rc.2
-- update deliverables in W-079 to document work done (don't make any other changes to this file)
+- assume release: W-076, v1.0.0
+- update deliverables in W-076 to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
@@ -1652,7 +1687,7 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.0.0-rc.2
+node bin/bump-version.js 1.0.0
 git diff
 git status
 git add .

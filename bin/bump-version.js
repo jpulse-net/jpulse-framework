@@ -5,8 +5,8 @@
  * @tagline         Version bump script for jPulse Framework
  * @description     Updates version numbers and release dates across all source files
  * @file            bin/bump-version.js
- * @version         1.0.0-rc.2
- * @release         2025-10-27
+ * @version         1.0.0
+ * @release         2025-11-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -78,56 +78,66 @@ const conf = {
         {
             pattern: 'package.json',
             replacements: [
-                { from: /"version": "[\d.]+(-[a-z]+\.\d+)?"/, to: (version) => `"version": "${version}"` }
+                { from: /"version": "[\d.]+(-[a-z]+\.\d+)?"/,
+                  to: (version) => `"version": "${version}"` }
             ]
         },
         {
             pattern: 'package-lock.json',
             replacements: [
-                { from: /("name": "\@peterthoeny\/jpulse-framework",\s+"version": ")[\d.]+(-[a-z]+\.\d+)?/g, to: (version, match, p1) => `${p1}${version}`, scope: 'version' }
+                { from: /("name": "\@jpulse-net\/jpulse-framework",\s+"version": ")[\d.]+(-[a-z]+\.\d+)?/g,
+                  to: (version, match, p1) => `${p1}${version}`, scope: 'version' }
             ]
         },
         {
             pattern: 'webapp/app.conf',
             replacements: [
-                { from: /(version: +['"])[\d.]+(-[a-z]+\.\d+)?/, to: (version, match, p1) => `${p1}${version}`, scope: 'version' },
-                { from: /(release: +['"])[\d-]+/, to: (release, match, p1) => `${p1}${release}`, scope: 'release' }
+                { from: /(version: +['"])[\d.]+(-[a-z]+\.\d+)?/,
+                  to: (version, match, p1) => `${p1}${version}`, scope: 'version' },
+                { from: /(release: +['"])[\d-]+/,
+                  to: (release, match, p1) => `${p1}${release}`, scope: 'release' }
             ]
         },
         {
             pattern: 'README.md',
             replacements: [
-                { from: /^(# jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m,
+                  to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'docs/*.md',
             replacements: [
-                { from: /^(# jPulse Framework.* v)[\d.]+(-[a-z]+\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# jPulse Framework.* v)[\d.]+(-[a-z]+\.\d+)?/m,
+                  to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'docs/**/*.md',
             replacements: [
-                { from: /^(# jPulse Framework.* v)[\d.]+(-[a-z]+\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# jPulse Framework.* v)[\d.]+(-[a-z]+\.\d+)?/m,
+                  to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'templates/*.md',
             replacements: [
-                { from: /^(# .* jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# .* jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m,
+                  to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'templates/**/*.md',
             replacements: [
-                { from: /^(# .*jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` }
+                { from: /^(# .*jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m,
+                  to: (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'webapp/view/home/index.shtml',
             replacements: [
-                { from: /(jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m, to: (version, match, p1) => `${p1}${version}` },
+                { from: /(jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m,
+                  to: (version, match, p1) => `${p1}${version}` },
             ]
         },
     ],

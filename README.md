@@ -1,8 +1,8 @@
-# jPulse Framework v1.0.0-rc.2
+# jPulse Framework v1.0.0
 
 A modern **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application framework designed for enterprise and government organizations. Built on **MVC architecture**, jPulse uniquely supports **both MPA and SPA patterns**, giving you the flexibility to choose the right architecture for each part of your application.
 
-**🎉 Release Candidate 2**: Zero-configuration auto-discovery architecture with automatic controller registration, API endpoint detection, and SPA routing.
+**🎉 Version 1.0.0**: Production-ready Redis infrastructure for scalable multi-instance deployments, zero-configuration auto-discovery architecture, comprehensive real-time communication, and enterprise-grade clustering capabilities.
 
 ## Why jPulse?
 
@@ -13,7 +13,7 @@ Designed specifically for midsize to large organizations in government and priva
 Clean APIs, zero-configuration auto-discovery, and intuitive development patterns that eliminate cognitive load and accelerate development.
 
 ### 🔄 **Seamless Updates**
-Revolutionary site override architecture enables framework updates without losing customizations - your site code stays safe in the `site/` directory.
+A solid site override architecture enables framework updates without losing customizations - your site code stays safe in the `site/` directory.
 
 ### 🏗️ **Flexible Architecture**
 **MVC at the core** with support for both **Multi-Page Applications (MPA)** and **Single Page Applications (SPA)**. Use traditional MPA for content-focused pages, enhanced MPA for interactive features, or full SPA for app-like experiences - all in the same application.
@@ -29,37 +29,22 @@ jPulse Framework is designed for **Gen-AI development** (aka "vibe coding") - le
 ### For Site Development (Recommended)
 
 ```bash
-# Install jpulse-framework (currently a private repo - requires GitHub token)
-# (once public, omit export and ~/.npmrc creation)
-export GITHUB_TOKEN=your_github_token
-echo "@peterthoeny:registry=https://npm.pkg.github.com" >> ~/.npmrc
-echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc
-# For production servers, use sudo:
-sudo npm install -g @peterthoeny/jpulse-framework
-# else for service account/sysadmin user account:
-#    npm install -g @peterthoeny/jpulse-framework
-
 # Create a new jPulse site
 mkdir my-jpulse-site && cd my-jpulse-site
+npm install @jpulse-net/jpulse-framework
 npx jpulse-configure
-
-# Install dependencies and start development
 npm install
-npm run dev
+npm start
 # Visit http://localhost:8080
-
-# Production deployment commands (generated automatically)
-sudo npm run jpulse-install       # Install system dependencies
-npm run jpulse-mongodb-setup      # Setup database
-npm run jpulse-validate           # Validate installation
-npm run jpulse-update             # Update framework files
 ```
+
+📖 **Complete Installation Guide**: See [Installation Documentation](docs/installation.md) for detailed setup instructions, production deployment, and troubleshooting.
 
 ### For Framework Development
 
 ```bash
 # Clone and install
-git clone https://github.com/peterthoeny/jpulse-framework.git
+git clone https://github.com/jpulse-net/jpulse-framework.git
 cd jpulse-framework
 npm install
 
@@ -134,7 +119,7 @@ my-jpulse-site/
 │   ├── view/             # Custom views
 │   └── static/           # Custom assets
 ├── logs -> /var/log/...  # Symbolic link to system log directory
-└── package.json          # Dependencies (@peterthoeny/jpulse-framework)
+└── package.json          # Dependencies (@jpulse-net/jpulse-framework)
 ```
 
 **File Resolution Priority:**
@@ -145,7 +130,7 @@ my-jpulse-site/
 ```bash
 npm run update  # Updates framework to latest version
 # or manually:
-npm update @peterthoeny/jpulse-framework && npm run jpulse-update
+npm update @jpulse-net/jpulse-framework && npm run jpulse-update
 ```
 
 ## Documentation
@@ -171,8 +156,9 @@ npm update @peterthoeny/jpulse-framework && npm run jpulse-update
 
 ## Latest Release Highlights
 
-- ✅ **Vue.js SPA Demo & Enhanced Utilities (v0.8.5)** - Complete Single Page Application with Vue.js 3, Vue Router, and enhanced jPulse utilities for date formatting and error handling
-- ✅ **Hello To-Do MVC Demo (v0.8.4)** - Complete Model-View-Controller demonstration with MongoDB integration and REST API patterns
+- ✅ **Version 1.0.0 - Production Milestone**: Complete Redis infrastructure for scalable multi-instance and multi-server deployments with zero-configuration auto-discovery, Application Cluster Broadcasting, WebSocket real-time communication, aggregated health metrics, Redis-based session sharing, and enterprise-grade clustering. Includes BSL 1.1 licensing, repository migration to jpulse-net organization, comprehensive Gen-AI development guides, and production-ready deployment automation.
+- ✅ **Zero-Configuration Auto-Discovery (v1.0.0-rc.2)** - Complete automatic controller registration, API endpoint discovery, and SPA routing detection
+- ✅ **Production-Ready WebSocket and Redis Integration (v1.0.0-rc.1)** - Complete real-time communication capabilities for multi-user, multi-instance, and multi-server deployments
 - ✅ **[MPA vs. SPA Architecture Guide](docs/mpa-vs-spa.md)** - Comprehensive comparison with diagrams showing when to use each pattern
 - ✅ **Package Distribution (v0.6.0+)** - npm-based site creation with `npx jpulse-configure`
 

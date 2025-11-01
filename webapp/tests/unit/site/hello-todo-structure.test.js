@@ -3,8 +3,8 @@
  * @tagline         Unit tests for refactored hello-todo MPA structure
  * @description     Tests for the 4-page hello-todo MPA structure (W-075 refactor)
  * @file            webapp/tests/unit/hello-todo-structure.test.js
- * @version         1.0.0-rc.2
- * @release         2025-10-27
+ * @version         1.0.0
+ * @release         2025-11-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -55,7 +55,7 @@ describe('Hello-Todo MPA Structure', () => {
 
         test('architecture.shtml should explain MVC flow', () => {
             const content = fs.readFileSync(path.join(helloTodoDir, 'architecture.shtml'), 'utf-8');
-            expect(content).toContain('Request Flow Diagram');
+            expect(content).toContain('Initial Page Load Flow');
             expect(content).toContain('File Structure');
             expect(content).toContain('MPA vs SPA');
         });

@@ -35134,3 +35134,41 @@ console.log(`Initializing {{app.site.name}} v{{app.site.version}}`);
 This ensures the site name and version are properly injected during server-side template processing.
 
 STATUS: Change accepted and applied
+
+
+============================================================
+2025-11-01 00:03
+
+PROMPT: AGPL alternatives? License migration and repository migration guidance
+
+SUMMARY:
+- Analyzed Business Source License (BSL) 1.1 as alternative to AGPL v3 for jPulse Framework
+- Provided comprehensive BSL 1.1 license text tailored for jPulse with Change Date 2030-01-01 (automatic conversion to AGPL v3.0)
+- Created complete license documentation (docs/license.md) with FAQ, use cases, and commercial licensing information
+- Updated all source file headers with new license format: "BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net"
+- Updated LICENSE file to BSL 1.1 with simplified Change Date (removed "whichever comes first" clause)
+- Updated package.json: license field to "BSL-1.1", repository URL to jpulse-net/jpulse-framework, package name to @jpulse-net/jpulse-framework
+- Updated README.md with shortened licensing section linking to docs/license.md
+- Guided complete repository migration from github.com/peterthoeny/jpulse-framework to github.com/jpulse-net/jpulse-framework
+- Fixed all repository references in codebase (bin scripts, templates, documentation)
+- Resolved repository push authentication issues by switching from HTTPS to SSH
+- Successfully migrated all branches (main, vuejs-trial) and all 52 version tags
+- Archived old repository after successful migration
+- Updated W-052 business dual licensing document with BSL 1.1 rationale and implementation strategy
+
+KEY DELIVERABLES:
+- LICENSE: Complete BSL 1.1 license text with Change Date 2030-01-01
+- docs/license.md: Comprehensive licensing documentation (256 lines)
+- Updated all source file headers with consistent license format
+- package.json: Updated package name, repository URL, and license field
+- README.md: Shortened licensing section with link to detailed docs
+- Complete repository migration to jpulse-net organization
+
+TECHNICAL NOTES:
+- BSL 1.1 provides source transparency with commercial licensing requirement for production use
+- Automatic conversion to AGPL v3.0 on Change Date enables future dual licensing model
+- SSH authentication resolved HTTPS 400 errors (organization token restrictions)
+- All 182 files updated with repository and license references
+- Copyright maintained as "Peter Thoeny" (individual, not organization entity)
+
+STATUS: All changes accepted and applied. Repository migration complete.

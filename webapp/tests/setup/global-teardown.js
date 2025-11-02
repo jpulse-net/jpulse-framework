@@ -3,7 +3,7 @@
  * @tagline         Jest Global Teardown
  * @description     Global teardown for Jest tests runs once after all tests complete
  * @file            webapp/tests/setup/global-teardown.js
- * @version         1.0.1
+ * @version         1.0.2
  * @release         2025-11-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

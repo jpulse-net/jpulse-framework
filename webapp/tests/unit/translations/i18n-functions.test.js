@@ -3,7 +3,7 @@
  * @tagline         Unit tests for i18n functionality using mock objects
  * @description     Tests for i18n translation functions and logic
  * @file            webapp/tests/unit/translations/i18n-functions.test.js
- * @version         1.0.1
+ * @version         1.0.2
  * @release         2025-11-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.0.1
+# jPulse Framework / Docs / Dev / Work Items v1.0.2
 
 This is the doc to track work items, arranged in three sections:
 
@@ -1624,7 +1624,7 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-076, v1.0.1: framework: comparison document; simplified package udpate
+### W-076, v1.0.1 & v1.0.2: framework: comparison document; simplified package update
 - status: 🚧 IN_PROGRESS
 - type: Feature
 - patch release with deliverables:
@@ -1717,12 +1717,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.0.1
+node bin/bump-version.js 1.0.2
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.1
+git tag v1.0.2
 git push origin main --tags
 
 === on failed package build on github ===

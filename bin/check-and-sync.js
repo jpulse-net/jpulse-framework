@@ -4,7 +4,7 @@
  * @tagline         Automatic framework sync on package update
  * @description     Detects framework package updates and automatically syncs files
  * @file            bin/check-and-sync.js
- * @version         1.0.1
+ * @version         1.0.2
  * @release         2025-11-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

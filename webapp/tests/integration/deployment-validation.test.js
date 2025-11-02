@@ -5,7 +5,7 @@
  *                  validates configuration of PM2 and nginx, validates deployment context,
  *                  validates environment configuration
  * @file            webapp/tests/integration/deployment-validation.test.js
- * @version         1.0.1
+ * @version         1.0.2
  * @release         2025-11-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

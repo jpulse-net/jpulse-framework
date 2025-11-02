@@ -657,6 +657,7 @@ function createSitePackageJson(config) {
             start: "node webapp/app.js",
             dev: "node webapp/app.js",
             prod: "NODE_ENV=production node webapp/app.js",
+            "postupdate": "node node_modules/@jpulse-net/jpulse-framework/bin/check-and-sync.js",
             "jpulse-configure": "npx jpulse-framework jpulse-configure",
             "jpulse-install": "npx jpulse-framework jpulse-install",
             "jpulse-mongodb-setup": "bash -c 'source .env && npx jpulse-framework jpulse-mongodb-setup'",

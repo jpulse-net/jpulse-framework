@@ -16,15 +16,18 @@
 import { execSync } from 'child_process';
 
 function update() {
-    const isDryRun = process.argv.includes('--dry-run');
+    // Check for --dry-run flag (can be passed via npm run update -- --dry-run)
+    // npm strips flags before --, so we check process.argv directly
+    const args = process.argv.slice(2);
+    const isDryRun = args.includes('--dry-run');
 
     if (isDryRun) {
         console.log('🔍 DRY RUN: jPulse Framework update simulation');
         console.log('📦 Would run: npm update @jpulse-net/jpulse-framework');
-        console.log('📁 Would run: npx jpulse-sync');
+        console.log('📁 Would run: npm run jpulse-update --dry-run');
         console.log('💡 No changes made (dry run mode)');
         console.log('');
-        console.log('To actually update: npx jpulse-update');
+        console.log('To actually update: npm run update');
         return;
     }
 
@@ -37,7 +40,7 @@ function update() {
 
         // Sync framework files
         console.log('📁 Syncing framework files...');
-        execSync('npx jpulse-sync', { stdio: 'inherit' });
+        execSync('npm run jpulse-update', { stdio: 'inherit' });
 
         console.log('✅ Framework update complete!');
 

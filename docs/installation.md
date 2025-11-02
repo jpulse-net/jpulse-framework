@@ -86,30 +86,26 @@ npm start
 
 The application will be available at `http://localhost:8080`
 
-### 3. Update Framework (When Needed)
+### 3. Update jPulse Framework (When Needed)
 ```bash
-# Update to latest framework version (recommended)
-npm run update
+# Update framework
+npm update @jpulse-net/jpulse-framework
+# Files get automatically synchronized to webapp after package update
 
-# Test update without making changes (safe)
-npm run update --dry-run
+# Preview changes before syncing (manual sync only)
+npm run jpulse-update --dry-run
 
-# Or manually (2-step process):
-npm update @jpulse-net/jpulse-framework  # Updates npm package
-npm run jpulse-update                     # Updates framework files
-
-# Or use the new update command directly:
-npm run jpulse-update                    # Update framework files
-npm run jpulse-update --dry-run             # Safe preview mode
-
-# Or to update to a pre-release (beta, RC):
-npm install @jpulse-net/jpulse-framework@1.0.0-rc.1
+# Manual sync (if needed after manual package update)
 npm run jpulse-update
+
+# Update to a pre-release (beta, RC):
+npm install @jpulse-net/jpulse-framework@1.0.0-rc.1
+# Files get automatically synchronized to webapp after package update
 ```
 
-**Important**: jPulse uses a hybrid approach where `npm update` only updates the package dependency. You must run `jpulse-update` to copy the updated framework files to your site. The `npm run update` script does both steps automatically.
+**How it works**: When you run `npm update @jpulse-net/jpulse-framework`, the framework package is updated and files are automatically synchronized to your site. No extra steps needed!
 
-**New in v0.7.3**: Enhanced update safety with `--dry-run` support to preview changes before applying them.
+**Advanced**: Use `npm run jpulse-update` if you need to manually sync files, or `npm run jpulse-update --dry-run` to preview changes without applying them.
 
 ### 4. Validate Installation (Optional)
 ```bash

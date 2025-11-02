@@ -460,48 +460,38 @@ npm start
 # Test your custom API: Click "Test Custom API" button
 ```
 
-## Framework Updates
+## jPulse Framework Updates
 
 Keep your framework up to date with the latest features and fixes:
 
 ```bash
-# Update framework to latest version (recommended)
-npm run jpulse-update
+# Update framework
+npm update @jpulse-net/jpulse-framework
+# Files get automatically synchronized to webapp after package update
 
-# Preview update without making changes (NEW in v0.7.3)
+# Preview changes before syncing (manual sync only)
 npm run jpulse-update --dry-run
 
-# Or use the new update command directly:
-npm run jpulse-update                    # Update framework files
-npm run jpulse-update --dry-run          # Safe preview mode
+# Manual sync (if needed)
+npm run jpulse-update
 
-# Or manually (2-step process):
-npm update @jpulse-net/jpulse-framework  # Updates npm package
-npm run jpulse-update                    # Updates framework files
+# Update to a pre-release (beta, RC):
+npm install @jpulse-net/jpulse-framework@1.0.0-rc.1
+# Files get automatically synchronized to webapp after package update
 
 # Review changes
 git diff webapp/
-git commit -am "Update framework to v0.7.14"
+git commit -am "Update framework to v1.0.1"
 ```
 
-**Enhanced update features**: Update safety and reliability:
+**How it works**: When you run `npm update @jpulse-net/jpulse-framework`, the framework package is updated and files are automatically synchronized to your site. No extra steps needed!
 
-- **`--dry-run` support** - Preview changes before applying them
-- **`jpulse-update` command** - Direct CLI tool for framework updates
-- **Improved error handling** - Better feedback and troubleshooting
-- **Smart version constraints** - Seamless updates within 0.x.x versions
+**Enhanced update features**:
 
-**Important**: Understanding the update process:
-
-- **`npm run jpulse-update`** - Recommended: Runs both steps automatically with enhanced safety
-- **Manual process** requires two steps:
-  1. `npm update @jpulse-net/jpulse-framework` - Downloads the latest framework package
-  2. `npm run jpulse-update` - Copies the updated framework files to your site
-
-**Why two steps?** jPulse uses a hybrid approach:
-- **npm package** - Contains the framework source and CLI tools
-- **Site files** - Generated templates copied to your site for customization
-- Running `npm update` alone only updates the package, not your site's files!
+- **Automatic sync** - Framework files sync automatically after package update
+- **`--dry-run` support** - Preview changes before applying them (manual sync only)
+- **`jpulse-update` command** - Manual CLI tool for framework file syncs (advanced use)
+- **Smart version detection** - Only syncs when framework version actually changes
 
 ## Next Steps
 

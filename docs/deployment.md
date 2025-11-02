@@ -198,12 +198,11 @@ source .env && echo "Connecting as: $DB_USER to $DB_NAME"
 
 #### 3. Framework Update Issues
 
-**Symptoms**: Site breaks after `npm update` or `jpulse-sync`
+**Symptoms**: Site breaks after `npm update`
 ```bash
 # Safe update process
-npm run update --dry-run  # Preview changes
-npm update @jpulse-net/jpulse-framework
-npm run jpulse-update  # Sync framework files
+npm run jpulse-update --dry-run  # Preview changes (before update)
+npm update @jpulse-net/jpulse-framework  # Updates package + auto-syncs files
 
 # If update fails:
 # 1. Check site/webapp/app.conf for compatibility

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Generative-AI Instructions for AI Assistants v1.0.0
+# jPulse Framework / Docs / Generative-AI Instructions for AI Assistants v1.0.1
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 

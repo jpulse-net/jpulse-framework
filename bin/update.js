@@ -4,8 +4,8 @@
  * @tagline         Framework update wrapper with dry-run support
  * @description     Safely updates framework package and syncs files
  * @file            bin/update.js
- * @version         1.0.0
- * @release         2025-11-01
+ * @version         1.0.1
+ * @release         2025-11-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

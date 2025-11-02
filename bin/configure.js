@@ -4,8 +4,8 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         1.0.0
- * @release         2025-11-01
+ * @version         1.0.1
+ * @release         2025-11-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -676,6 +676,32 @@ function createSitePackageJson(config) {
 }
 
 /**
+ * Create .npmrc file for GitHub Packages registry
+ */
+function createNpmrc() {
+    const npmrcContent = '@jpulse-net:registry=https://npm.pkg.github.com\n';
+
+    // Check if .npmrc already exists
+    if (fs.existsSync('.npmrc')) {
+        const existingContent = fs.readFileSync('.npmrc', 'utf8');
+
+        // Check if the registry config already exists
+        if (existingContent.includes('@jpulse-net:registry=')) {
+            console.log('ℹ️  .npmrc already configured for GitHub Packages');
+            return;
+        }
+
+        // Append to existing .npmrc if it has other content
+        fs.appendFileSync('.npmrc', npmrcContent);
+        console.log('✅ Updated .npmrc for GitHub Packages registry');
+    } else {
+        // Create new .npmrc file
+        fs.writeFileSync('.npmrc', npmrcContent);
+        console.log('✅ Created .npmrc for GitHub Packages registry');
+    }
+}
+
+/**
  * Create site directory structure
  */
 function createSiteStructure() {
@@ -868,6 +894,10 @@ async function setup() {
                     const updateChoice = await question('? Choose (1-3): (1) ');
 
                     if (updateChoice === '3') {
+                        // Ensure .npmrc exists even when exiting (automatic setup)
+                        if (!fs.existsSync('.npmrc') || !fs.readFileSync('.npmrc', 'utf8').includes('@jpulse-net:registry=')) {
+                            createNpmrc();
+                        }
                         console.log('💡 Run "npm run jpulse-update" first to sync framework files');
                         process.exit(0);
                     } else if (updateChoice === '2') {
@@ -885,6 +915,10 @@ async function setup() {
                     const existingChoice = await question('? Choose (1-2): (2) ');
 
                     if (existingChoice === '2') {
+                        // Ensure .npmrc exists even when exiting (automatic setup)
+                        if (!fs.existsSync('.npmrc') || !fs.readFileSync('.npmrc', 'utf8').includes('@jpulse-net:registry=')) {
+                            createNpmrc();
+                        }
                         console.log('✅ No configuration changes needed');
                         process.exit(0);
                     }
@@ -965,6 +999,9 @@ async function setup() {
 
         // Always generate .env file
         generateEnvFile(config, frameworkPackage.version);
+
+        // Always create/update .npmrc for GitHub Packages (for both new sites and upgrades)
+        createNpmrc();
 
         console.log('\n✅ jPulse site setup complete!\n');
 

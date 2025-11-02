@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.0.0-rc.2
+# jPulse Framework / Docs / Dev / Work Items v1.0.1
 
 This is the doc to track work items, arranged in three sections:
 
@@ -1337,23 +1337,8 @@ This is the doc to track work items, arranged in three sections:
   - webapp/tests/integration/cache-api.test.js - cache API integration tests
   - webapp/app.conf - cache configuration with periodic refresh intervals
 
-
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-076, v1.0.0: framework: redis infrastrucure for a scaleable jPulse Framework
-- status: 🚧 IN_PROGRESS
+- status: DONE ✅
 - type: Feature
 - objective: support multiple node instances (pm2 cluster) on an app server, support a pool of app servers in a load-balanced configuration
 - architecture & spec discussion:
@@ -1631,13 +1616,42 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-082: jpulse.net: site content creation
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives: build trust, demonstrate value, drive commercial license inquiries
+- audience:
+  - primary: enterprise decision-makers (C-level executives, IT directors, project managers)
+  - secondary: developers evaluating frameworks
+
+
+
+
+
+
+
+
+
+
+
+
 pending:
-- docs/dev/roadmap.md update
+- jpulse.net site content
+- jpulse 1.0 project assessment
+
+
 
 
 old pending:
 - view controller: return unexpanded {{handlebars}} if not exist, instead of empty return
-- install pm2, test
 - navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
@@ -1670,7 +1684,7 @@ next work item: W-0...
 finishing up work item: W-070:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-076, v1.0.0
+- assume release: W-076, v1.0.1
 - update deliverables in W-076 to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -1687,12 +1701,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.0.0
+node bin/bump-version.js 1.0.1
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.0-rc.2
+git tag v1.0.1
 git push origin main --tags
 
 === on failed package build on github ===

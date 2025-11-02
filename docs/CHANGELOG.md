@@ -1,6 +1,59 @@
-# jPulse Framework / Docs / Version History v1.0.0
+# jPulse Framework / Docs / Version History v1.0.1
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.0.1, W-076, 2025-11-01
+
+**Commit:** `W-076, v1.0.1: Framework Comparison Documentation and Automated GitHub Packages Registry Configuration`
+
+**DOCUMENTATION & DEVELOPER EXPERIENCE ENHANCEMENTS**: Comprehensive framework comparison guide and automated GitHub Packages registry configuration eliminating manual setup steps for seamless package installation.
+
+**Objective**: Provide framework comparison documentation to help organizations evaluate jPulse against alternatives, and automate GitHub Packages registry configuration to eliminate manual setup friction.
+
+**Framework Comparison Documentation**:
+- **docs/framework-comparison.md**: NEW comprehensive comparison guide (562 lines)
+  - Quick comparison matrix comparing jPulse with 8 major frameworks
+  - Detailed comparisons with NestJS, LoopBack, Sails.js, Next.js/Nuxt, Django, Rails, Laravel, Express
+  - Low-code platform comparisons (OutSystems, Mendix)
+  - Key jPulse differentiators highlighted
+  - Decision framework for choosing jPulse vs alternatives
+  - Migration considerations and cost comparisons
+  - Comprehensive analysis for enterprise decision-makers
+
+**Automated GitHub Packages Registry Configuration**:
+- **bin/configure.js**: Automated `.npmrc` creation for GitHub Packages
+  - `createNpmrc()` function automatically creates `.npmrc` with `@jpulse-net:registry=https://npm.pkg.github.com`
+  - Handles existing `.npmrc` files gracefully (checks for existing config, appends if needed)
+  - Creates `.npmrc` for both new sites and existing sites (even when exiting configuration)
+  - Eliminates manual `npm config set @jpulse-net:registry` steps
+  - Follows "don't make me think" philosophy - zero manual configuration needed
+- Automatic `.npmrc` creation integrated into site setup flow
+- Works for new site creation and site reconfiguration
+
+**Documentation Updates**:
+- **README.md**: Updated to v1.0.1 with framework comparison reference
+- **docs/README.md**: Updated to v1.0.1, added framework-comparison.md to documentation guide
+- **docs/CHANGELOG.md**: Complete v1.0.1 entry
+
+**Benefits**:
+- ✅ Comprehensive framework evaluation guide for decision-makers
+- ✅ Zero manual registry configuration required
+- ✅ Seamless package installation experience
+- ✅ Enhanced developer onboarding
+- ✅ Clear framework comparison for organizational decision-making
+
+**Files Modified**:
+- bin/configure.js (added createNpmrc() function and integration)
+- docs/framework-comparison.md (NEW - 562 lines)
+- README.md (version and highlights updated)
+- docs/README.md (version, highlights, and documentation guide updated)
+- docs/CHANGELOG.md (v1.0.1 entry added)
+
+**Next Steps**:
+- Framework comparison guide available for jpulse.net and other sites
+- Automated registry configuration working for all new sites
+- Enhanced developer experience eliminates manual setup steps
 
 ________________________________________________
 ## v1.0.0, W-076, 2025-11-01

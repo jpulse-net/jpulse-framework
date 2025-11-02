@@ -1,10 +1,12 @@
-# jPulse Framework v1.0.0
+# jPulse Framework v1.0.1
 
-A modern **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application framework designed for enterprise and government organizations. Built on **MVC architecture**, jPulse uniquely supports **both MPA and SPA patterns**, giving you the flexibility to choose the right architecture for each part of your application.
+jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
-**🎉 Version 1.0.0**: Production-ready Redis infrastructure for scalable multi-instance deployments, zero-configuration auto-discovery architecture, comprehensive real-time communication, and enterprise-grade clustering capabilities.
+**🎉 Version 1.0**: Production-ready Redis infrastructure for scalable multi-instance deployments, zero-configuration auto-discovery architecture, comprehensive real-time communication, and enterprise-grade clustering capabilities.
 
 ## Why jPulse?
+
+**📊 Considering jPulse?** See our [Framework Comparison Guide](docs/framework-comparison.md) comparing jPulse with NestJS, Django, Rails, Laravel, Next.js, and other alternatives.
 
 ### 🎯 **Enterprise-Focused**
 Designed specifically for midsize to large organizations in government and private sectors, with built-in security, compliance, and scalability features.
@@ -138,6 +140,7 @@ npm update @jpulse-net/jpulse-framework && npm run jpulse-update
 ### For Site Administrators & Site Developers
 - **[Getting Started](docs/getting-started.md)** - Build your first jPulse site
 - **[Installation Guide](docs/installation.md)** - Setup for all environments
+- **[Framework Comparison](docs/framework-comparison.md)** - jPulse vs. alternatives (NestJS, Django, Rails, etc.)
 - **[Site Customization](docs/site-customization.md)** - Master the override system
 - **[API Reference](docs/api-reference.md)** - Complete framework API
 - **[Examples](docs/examples.md)** - Real-world enterprise scenarios
@@ -156,6 +159,7 @@ npm update @jpulse-net/jpulse-framework && npm run jpulse-update
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.0.1 - Documentation & Developer Experience**: Framework comparison guide comparing jPulse with NestJS, Django, Rails, Laravel, Next.js, and alternatives. Automated `.npmrc` creation for GitHub Packages registry - no manual configuration needed. Enhanced developer experience following "don't make me think" philosophy.
 - ✅ **Version 1.0.0 - Production Milestone**: Complete Redis infrastructure for scalable multi-instance and multi-server deployments with zero-configuration auto-discovery, Application Cluster Broadcasting, WebSocket real-time communication, aggregated health metrics, Redis-based session sharing, and enterprise-grade clustering. Includes BSL 1.1 licensing, repository migration to jpulse-net organization, comprehensive Gen-AI development guides, and production-ready deployment automation.
 - ✅ **Zero-Configuration Auto-Discovery (v1.0.0-rc.2)** - Complete automatic controller registration, API endpoint discovery, and SPA routing detection
 - ✅ **Production-Ready WebSocket and Redis Integration (v1.0.0-rc.1)** - Complete real-time communication capabilities for multi-user, multi-instance, and multi-server deployments

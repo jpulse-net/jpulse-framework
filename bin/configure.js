@@ -4,7 +4,7 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         1.0.2
+ * @version         1.0.3
  * @release         2025-11-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -657,7 +657,7 @@ function createSitePackageJson(config) {
             start: "node webapp/app.js",
             dev: "node webapp/app.js",
             prod: "NODE_ENV=production node webapp/app.js",
-            "postupdate": "node node_modules/@jpulse-net/jpulse-framework/bin/check-and-sync.js",
+            "update": "npm update @jpulse-net/jpulse-framework && npm run jpulse-update",
             "jpulse-configure": "npx jpulse-framework jpulse-configure",
             "jpulse-install": "npx jpulse-framework jpulse-install",
             "jpulse-mongodb-setup": "bash -c 'source .env && npx jpulse-framework jpulse-mongodb-setup'",

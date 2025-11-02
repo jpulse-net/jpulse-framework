@@ -1,6 +1,125 @@
-# jPulse Framework / Docs / Version History v1.0.2
+# jPulse Framework / Docs / Version History v1.0.3
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.0.3, W-076, 2025-11-02
+
+**Commit:** `W-076, v1.0.3: Fix Framework Update Process - Replace Broken Lifecycle Hooks with Working Wrapper Script`
+
+**BUGFIX**: Fixed broken automatic framework update feature from v1.0.2. Replaced non-functional npm lifecycle hooks with reliable wrapper script approach for seamless framework updates.
+
+**Objective**: Restore working framework update process by replacing the broken lifecycle hook approach from v1.0.2 with a reliable wrapper script that combines package update and file synchronization.
+
+**Framework Update Process Fix**:
+- **bin/configure.js**: Replaced non-functional `postupdate` hook with working `"update"` script
+  - `"update"` script: `"npm update @jpulse-net/jpulse-framework && npm run jpulse-update"`
+  - Combines package update and file sync in single command
+  - Works reliably unlike lifecycle hooks
+  - Follows "don't make me think" philosophy - single command does everything
+- **bin/check-and-sync.js**: REMOVED (non-functional lifecycle hook approach)
+- **bin/update.js**: REMOVED (superseded by npm script)
+- Documentation updated to use `npm run update` instead of `npm update @jpulse-net/jpulse-framework`
+
+**Root Cause Resolution**:
+- v1.0.2 attempted automatic sync via npm lifecycle hooks (`postupdate`/`postinstall`)
+- npm hooks only run for workspace-level operations (`npm install`), not package-specific operations (`npm install/update <package>`)
+- This caused automatic sync to never execute for the intended use case
+- v1.0.3 resolves this by using explicit npm script wrapper approach
+
+**Documentation Updates**:
+- **docs/installation.md**: Updated to use `npm run update`, removed references to automatic hooks
+- **docs/getting-started.md**: Updated framework update instructions
+- **docs/deployment.md**: Updated troubleshooting section
+
+**Files Modified**:
+- bin/configure.js (removed postupdate, added update script)
+- docs/installation.md (updated update instructions)
+- docs/getting-started.md (updated update instructions)
+- docs/deployment.md (updated troubleshooting)
+- docs/CHANGELOG.md (v1.0.3 entry)
+
+**Files Removed**:
+- bin/check-and-sync.js (non-functional lifecycle hook approach)
+- bin/update.js (superseded by npm script)
+
+**Benefits**:
+- ✅ Framework update process now works reliably
+- ✅ Single command `npm run update` updates package and syncs files
+- ✅ Clear separation: `npm run update` (recommended) vs `npm run jpulse-update` (manual sync only)
+- ✅ "Don't make me think" developer experience restored
+
+**Developer Experience**:
+- Simple workflow: Run `npm run update` to update framework and sync files
+- No confusion: Explicit wrapper script makes update process transparent
+- Reliable: Wrapper approach works consistently across all npm versions
+
+________________________________________________
+## v1.0.2, W-076, 2025-11-02
+
+**Commit:** `W-076, v1.0.2: Framework Comparison Documentation, Automated GitHub Packages Registry Configuration, and Simplified Update Process`
+
+**NOTE**: This release attempted to simplify the framework update process using npm lifecycle hooks, but the automatic sync feature did not work as intended. Please see v1.0.3 for the fix.
+
+**DOCUMENTATION & DEVELOPER EXPERIENCE ENHANCEMENTS**: Framework comparison documentation, automated GitHub Packages registry configuration, and attempt to simplify update process with automatic file synchronization.
+
+**Objective**: Provide framework comparison documentation, automate GitHub Packages registry configuration, and simplify the framework update process to a single command with automatic file synchronization.
+
+**Framework Comparison Documentation**:
+- **docs/framework-comparison.md**: Comprehensive comparison guide (562 lines)
+  - Quick comparison matrix comparing jPulse with 8 major frameworks
+  - Detailed comparisons with NestJS, LoopBack, Sails.js, Next.js/Nuxt, Django, Rails, Laravel, Express
+  - Low-code platform comparisons (OutSystems, Mendix)
+  - Key jPulse differentiators highlighted
+  - Decision framework for choosing jPulse vs alternatives
+  - Migration considerations and cost comparisons
+  - Comprehensive analysis for enterprise decision-makers
+
+**Automated GitHub Packages Registry Configuration**:
+- **bin/configure.js**: Automated `.npmrc` creation for GitHub Packages
+  - `createNpmrc()` function automatically creates `.npmrc` with `@jpulse-net:registry=https://npm.pkg.github.com`
+  - Handles existing `.npmrc` files gracefully (checks for existing config, appends if needed)
+  - Creates `.npmrc` for both new sites and existing sites (even when exiting configuration)
+  - Eliminates manual `npm config set @jpulse-net:registry` steps
+  - Follows "don't make me think" philosophy - zero manual configuration needed
+
+**Simplified Update Process (Attempted)**:
+- **bin/configure.js**: Added `postupdate` hook integration (later found to be non-functional)
+  - Attempted to automatically sync framework files after `npm update @jpulse-net/jpulse-framework`
+  - **Issue**: npm lifecycle hooks (`postinstall`/`postupdate`) only run for workspace-level `npm install`, not for specific package updates
+  - This caused automatic sync to never execute for the intended use case
+  - Fixed in v1.0.3 with wrapper script approach
+- **bin/check-and-sync.js**: Created to detect framework version changes and trigger `jpulse-update`
+  - Removed in v1.0.3 as lifecycle hook approach proved unreliable
+
+**Documentation Updates**:
+- **README.md**: Updated to v1.0.2 with framework comparison reference
+- **docs/README.md**: Updated to v1.0.2, added framework-comparison.md to documentation guide
+- **docs/CHANGELOG.md**: Complete v1.0.2 entry
+
+**Known Issues**:
+- Automatic framework file synchronization did not work as intended
+- Lifecycle hooks did not trigger for package-specific update operations
+- Users needed to manually run `npm run jpulse-update` after package updates
+
+**Resolution in v1.0.3**:
+- Replaced lifecycle hook approach with explicit `npm run update` wrapper script
+- Wrapper script reliably combines package update and file sync
+- Clear separation between `npm run update` (recommended) and `npm run jpulse-update` (manual sync only)
+
+**Files Modified**:
+- bin/configure.js (added createNpmrc() function, attempted postupdate hook integration)
+- bin/check-and-sync.js (NEW - automatic framework sync detection, removed in v1.0.3)
+- docs/framework-comparison.md (NEW - 562 lines)
+- docs/deployment.md (updated troubleshooting)
+- README.md (version and highlights updated)
+- docs/README.md (version, highlights, and documentation guide updated)
+- docs/CHANGELOG.md (v1.0.2 entry added)
+
+**Benefits**:
+- ✅ Comprehensive framework evaluation guide for decision-makers
+- ✅ Zero manual registry configuration required
+- ⚠️ Simplified update process (intended) - required fix in v1.0.3
 
 ________________________________________________
 ## v1.0.1, W-076, 2025-11-01

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Production Deployment Guide v1.0.2
+# jPulse Framework / Docs / Production Deployment Guide v1.0.3
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -202,7 +202,7 @@ source .env && echo "Connecting as: $DB_USER to $DB_NAME"
 ```bash
 # Safe update process
 npm run jpulse-update --dry-run  # Preview changes (before update)
-npm update @jpulse-net/jpulse-framework  # Updates package + auto-syncs files
+npm run update  # Updates package + auto-syncs files
 
 # If update fails:
 # 1. Check site/webapp/app.conf for compatibility

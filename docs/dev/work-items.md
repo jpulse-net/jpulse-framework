@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.0.2
+# jPulse Framework / Docs / Dev / Work Items v1.0.3
 
 This is the doc to track work items, arranged in three sections:
 
@@ -1624,20 +1624,18 @@ This is the doc to track work items, arranged in three sections:
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-076, v1.0.1 & v1.0.2: framework: comparison document; simplified package update
+### W-076, v1.0.1, v1.0.2, v1.0.3: framework: comparison document
 - status: 🚧 IN_PROGRESS
 - type: Feature
 - patch release with deliverables:
   - bin/configure.js -- automated .npmrc creation for GitHub Packages
-  - bin/check-and-sync.js -- NEW automatic framework sync on package update
-  - bin/configure.js -- added postupdate npm lifecycle hook
-  - README.md -- updated to v1.0.1 with framework comparison reference
-  - docs/README.md -- updated to v1.0.1, added framework-comparison.md to documentation guide
+  - README.md -- updated to v1.0.3 with framework comparison reference
+  - docs/README.md -- updated to v1.0.3, added framework-comparison.md to documentation guide
   - docs/framework-comparison.md -- NEW comprehensive comparison guide (562 lines)
-  - docs/installation.md -- simplified update instructions, removed confusing options
-  - docs/getting-started.md -- updated framework update section with automatic sync
   - docs/deployment.md -- updated troubleshooting section for new update process
-  - docs/CHANGELOG.md -- complete v1.0.1 entry
+  - docs/CHANGELOG.md -- complete v1.0.3 entry
+  - tried and retracted failed attempt to simplify jPulse Framework upgrade
+
 
 
 ### W-082: jpulse.net: site content creation

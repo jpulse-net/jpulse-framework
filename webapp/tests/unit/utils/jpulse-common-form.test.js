@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for jPulse Common Client-Side Form Utilities
  * @description     Tests for client-side form submission utilities in jpulse-common.js
  * @file            webapp/tests/unit/utils/jpulse-common-form.test.js
- * @version         1.0.2
+ * @version         1.0.3
  * @release         2025-11-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

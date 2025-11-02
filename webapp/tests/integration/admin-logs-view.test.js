@@ -3,7 +3,7 @@
  * @tagline         Integration tests for admin logs view functionality
  * @description     Tests for admin logs page, docTypes integration, search functionality, and error handling
  * @file            webapp/tests/integration/admin-logs-view.test.js
- * @version         1.0.2
+ * @version         1.0.3
  * @release         2025-11-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -10,10 +10,10 @@
 
 ### Visual Theme Concept
 
-**Core Visual**: **Pulse Wave Transformation**
-- Hero image: Complex framework diagram transforming into simple pulse wave
-- Show "before" (complex spaghetti architecture) → "after" (clean pulse wave)
-- Represents: "Don't make me think" philosophy, complexity reduction
+**Core Visual**: **Peregrine Falcon + Pulse Wave Speed Metaphor**
+- Hero image: Peregrine falcon in motion (fastest bird, 240+ mph) with speed trails, transforming complex framework architecture into streamlined delivery path
+- Show "before" (complex spaghetti architecture) → "after" (clean, fast delivery with falcon + pulse wave)
+- Represents: Speed (weeks not months), precision (don't make me think), and simplicity (pulse wave)
 
 **Color Palette**:
 - Primary: Professional blue (trust, enterprise) - matches current logo
@@ -23,10 +23,11 @@
 
 **Design Style**:
 - Clean, modern, enterprise-grade
-- Subtle animations: pulse waves, smooth transitions
-- Professional photography: real enterprise environments, diverse teams
+- Dynamic animations: peregrine falcon in motion (speed trails), pulse waves, smooth transitions
+- Visual metaphor: Speed + precision (falcon) + simplicity (pulse wave) = fast delivery
 - Trust indicators: Security badges, compliance logos, customer logos
 - Less code snippets, more conceptual diagrams (for decision-makers)
+- Professional but memorable: Stands out from typical corporate imagery
 
 **Tone**:
 - Professional but approachable
@@ -36,22 +37,24 @@
 
 ### Why This Theme Works
 
-1. **Memorable**: Pulse wave visual is unique in framework space (most use abstract tech imagery)
-2. **Relevant**: Literal representation of "jPulse" name
-3. **Professional**: Clean, enterprise-appropriate aesthetics
-4. **Differentiated**: Stands out from NestJS (cat), Nuxt (tech showcase), others (generic)
-5. **Message Reinforcement**: Visual metaphor reinforces "simplicity" core value
+1. **Memorable**: Peregrine falcon + pulse wave combination is unique in framework space (most use abstract tech imagery or generic corporate photos)
+2. **Speed Metaphor**: Peregrine falcon (fastest bird) represents rapid development and delivery
+3. **Precision Alignment**: Falcon's accuracy aligns with "don't make me think" precision and zero-configuration auto-discovery
+4. **Professional**: Clean, enterprise-appropriate aesthetics while being distinctive
+5. **Differentiated**: Stands out from NestJS (cat), Nuxt (tech showcase), others (generic corporate)
+6. **Message Reinforcement**: Visual metaphor reinforces "speed + simplicity" core values
+7. **Relevant**: Pulse wave remains literal representation of "jPulse" name, integrated with speed theme
 
 ## Page Structure
 
 ### 1. Homepage (`/home/`)
 
 **Hero Section**:
-- Headline: "Enterprise Web Applications. Simplified."
-- Subheadline: "Zero-configuration framework with built-in enterprise features for government, healthcare, and regulated industries"
+- Headline: "Deliver Enterprise Apps in Weeks, Not Months"
+- Subheadline: "Intuitive framework with 'don't make me think' design and AI-assisted development accelerates your time to production"
 - Primary CTA: "Get Started" (links to /getting-started)
 - Secondary CTA: "Compare Frameworks" (links to /compare)
-- Visual: Animated pulse wave transforming complex architecture into simple solution
+- Visual: Animated peregrine falcon with speed trails transforming complex architecture into streamlined delivery path, integrated with pulse wave elements
 
 **Value Proposition Cards** (3-4):
 - "Don't Make Me Think" - Zero-configuration auto-discovery
@@ -165,7 +168,7 @@
 
 ---
 
-### 4. Industries (`/industries/` or `/use-cases/`)
+### 4. Industries (`/sectors/`, `/industries/`, or `/use-cases/`)
 
 **Government**:
 - Federal, state, local agencies
@@ -237,29 +240,64 @@
 ### 6. Pricing (`/pricing/`)
 
 **BSL 1.1 Licensing Model**:
-- Free for: Development, testing, evaluation
-- Commercial License: Required for production use
+- **Free for**: Development, testing, evaluation, learning
+- **Commercial License**: Required for production use
+- **Source Code**: Fully accessible at GitHub (transparency)
+- **Future**: Automatically converts to AGPL v3.0 on **2030-01-01**
 
 **License Tiers** (from W-052):
-- Developer License (Free) - Development/testing only
-- Startup License ($2,000/year) - Up to 25 employees
-- Enterprise License ($10,000+/year) - Unlimited developers
-- Enterprise Plus ($25,000+/year) - Premium features
 
-**What's Included**:
+**DEVELOPER LICENSE (Free)**
+- Up to 5 developers
+- Development and testing only
+- No production deployment rights
+- Community support only
+- 30-day evaluation period
+
+**STARTUP LICENSE ($2,000/year)**
+- Up to 25 employees
+- Production deployment rights (single application)
+- Email support included
+- Basic commercial add-ons included
+- Quarterly business reviews
+
+**ENTERPRISE LICENSE ($10,000+/year)**
+- Unlimited developers
+- Multiple production deployments
+- Phone support and SLA (4-hour response)
+- All commercial add-ons included
+- Custom development options
+- Dedicated customer success manager
+
+**ENTERPRISE PLUS ($25,000+/year)**
+- Everything in Enterprise
+- Source code escrow
+- Indemnification coverage
+- Priority feature development
+- On-site training and consulting
+
+**What's Included with Commercial Licenses**:
 - Commercial production rights
-- Framework updates
-- Support options
-- Enterprise features
+- Framework updates and new releases
+- Support options (varies by tier)
+- Enterprise features and add-ons
+- Legal protection and compliance
 
 **Contact Sales**:
 - CTA for custom enterprise quotes
-- Contact form or email
+- Contact form or email: team@jpulse.net
+- Free evaluation and consultation
 
 **Visuals**:
-- Pricing cards
-- Feature comparison
+- Pricing cards with tier comparison
+- Feature comparison matrix
 - ROI calculator (optional)
+- Clear CTA for each tier
+
+**Additional Content**:
+- FAQ section (common licensing questions)
+- Comparison: BSL 1.1 vs. fully open source vs. proprietary
+- Evaluation vs. production use clarification
 
 ---
 
@@ -524,10 +562,10 @@
 
 ## Summary
 
-**Theme**: "Simplicity Through Intelligence" with pulse wave visual motif
+**Theme**: "Speed Through Intelligence" with peregrine falcon + pulse wave visual motif
 **Tone**: Professional, enterprise-focused, outcome-driven
 **Audience**: Primarily enterprise decision-makers, secondarily developers
-**Differentiation**: Zero-configuration + enterprise features + unique positioning
+**Differentiation**: Rapid development (weeks not months) + intuitive framework + enterprise features + unique positioning
 
 **Key Pages**:
 1. Homepage (hero, value prop, trust)
@@ -542,4 +580,267 @@
 10. Contact/Sales (conversion)
 
 This structure balances enterprise credibility with developer authenticity, providing decision-makers with the information they need while maintaining technical depth for evaluators.
+
+---
+
+## Development History & Decisions
+
+### Competitive Landscape Analysis
+
+**Major Competitors Identified** (5 categories, 18 competitors):
+
+1. **Node.js/JavaScript Enterprise Frameworks**:
+   - NestJS (TypeScript-first, DI, enterprise-focused)
+   - LoopBack (IBM, API-focused, declining maintenance)
+   - Sails.js (MVC, real-time, declining)
+   - AdonisJS (Full-stack MVC, smaller community)
+   - FeathersJS (Real-time API, service-oriented)
+
+2. **Full-Stack JavaScript Frameworks**:
+   - Next.js/Nuxt.js (SSR/SSG, massive communities)
+   - Meteor (Full-stack, declining popularity)
+
+3. **Traditional Enterprise Frameworks**:
+   - Django (Python, mature, government adoption)
+   - Ruby on Rails (Rapid development, large ecosystem)
+   - Laravel (PHP, growing enterprise adoption)
+   - Spring Boot (Java, enterprise standard)
+
+4. **Low-Code/Platform Solutions**:
+   - OutSystems (Low-code, expensive, vendor lock-in)
+   - Mendix (Low-code, expensive, vendor lock-in)
+   - Salesforce Platform (CRM platform, vendor lock-in)
+   - Microsoft Power Platform (Low-code, Microsoft stack)
+
+5. **Express-Based Minimal Frameworks**:
+   - Express.js (Minimal, flexible, proven)
+   - Koa.js (Modern, minimal, async/await)
+   - Fastify (Performance-focused, modern)
+
+**Key Differentiators Documented**:
+- Only Node.js framework with zero-config + enterprise features + MPA+SPA flexibility
+- Only framework with site override system
+- Strongest commercial protection (BSL 1.1)
+- Government/healthcare/education focus
+- AI-assisted development optimization
+
+**Framework Comparison Document**: Created `docs/framework-comparison.md` (600+ lines) with detailed competitor comparisons, decision framework, and migration guides.
+
+### URL Structure Decisions
+
+**Pattern Chosen**: Directory-based routing (`/page/` instead of `/home/page.shtml`)
+
+**Rationale**:
+- Cleaner URLs (no file extensions)
+- Consistent with framework's `/home/` pattern
+- Better SEO
+- Framework-friendly (auto-maps to `page/index.shtml`)
+- More RESTful
+
+**Final URL Structure**:
+- `/home/` → Homepage
+- `/why-jpulse/` → Why jPulse page
+- `/features/` → Features page
+- `/sectors/` or `/industries/` or `/use-cases/` → Industries page
+- `/compare/` → Framework comparison
+- `/pricing/` → Pricing/licensing
+- `/docs/` → Documentation hub
+- `/examples/` → Examples/demos
+- `/resources/` → Learning resources
+- `/contact/` or `/sales/` → Contact/sales
+
+### Headline & Messaging Evolution
+
+**Initial**: "Enterprise Web Applications. Simplified."
+
+**Final**: "Deliver Enterprise Apps in Weeks, Not Months"
+
+**Evolution Process**:
+1. User feedback: Not attention-grabbing, needs speed focus
+2. Options explored: "time to market", "time to release", "weeks not months"
+3. Decision: Speed-focused headline emphasizing rapid delivery
+4. Subheadline refined to emphasize efficiency drivers:
+   - "Intuitive framework" (not "zero-configuration" - more accurate)
+   - "'Don't make me think' design" (KISS principle)
+   - "AI-assisted development" (vibe coding)
+
+**Final Messaging**:
+- Headline: "Deliver Enterprise Apps in Weeks, Not Months"
+- Subheadline: "Intuitive framework with 'don't make me think' design and AI-assisted development accelerates your time to production"
+
+### Visual Theme Evolution
+
+**Initial Concept**: "Simplicity Through Intelligence" with pulse wave transformation
+
+**Final Theme**: "Speed Through Intelligence" with peregrine falcon + pulse wave
+
+**Evolution Process**:
+1. Initial: Pulse wave transforming complex → simple
+2. User feedback: "Real enterprise environments, diverse teams" too boring
+3. Exploration: Animal representing speed, reliability, accuracy
+4. Decision: Peregrine falcon (fastest bird, 240+ mph, precision hunter)
+5. Integration: Falcon + pulse wave combination
+
+**Final Visual Concept**:
+- Peregrine falcon in motion with speed trails
+- Transforming complex architecture into streamlined delivery path
+- Integrated with pulse wave elements (brand connection)
+- Represents: Speed (weeks not months), precision (don't make me think), simplicity (pulse wave)
+
+**Why Peregrine Falcon**:
+- Speed: Fastest bird/animal (240+ mph dives)
+- Precision: Accuracy aligns with "don't make me think" precision
+- Reliability: Consistent performance
+- Unique: Stands out from competitors (NestJS cat, Nuxt tech showcase)
+- Memorable: Distinctive visual in framework space
+- Professional: Enterprise-appropriate while being distinctive
+
+### Documentation Integration
+
+**Links Added to Framework Documentation**:
+- `README.md`: Added framework comparison link in "Why jPulse?" section and Documentation section
+- `docs/README.md`: Added framework comparison link in Getting Started section
+- `docs/mpa-vs-spa.md`: Added framework comparison link in See Also section
+
+**Purpose**: Ensure framework comparison document is discoverable from key entry points for evaluators.
+
+### Competitive Analysis Summary
+
+**Added to W-052 Document**:
+- Comprehensive competitive landscape analysis (lines 325-467)
+- 5 competitor categories with 18 detailed comparisons
+- Competitive positioning summary
+- Competitive response analysis with expected reactions and moats
+
+**Key Findings**:
+- jPulse unique position: Only framework combining zero-config + enterprise features + MPA+SPA + site override
+- Strongest commercial protection with BSL 1.1
+- Target market focus differentiates from general-purpose frameworks
+
+---
+
+## Next Steps for jpulse.net Repository
+
+### Recommended Working File Structure
+
+**Option 1: `_working/` Directory (Recommended)**
+```
+jpulse.net/
+├── _working/                    # Working documents, drafts, planning
+│   ├── W-082-jpulse-net-site-structure.md
+│   ├── content-drafts/           # Draft content for pages
+│   ├── design-sketches/          # Design mockups, wireframes
+│   ├── competitive-analysis/     # Competitor research
+│   └── notes/                    # Meeting notes, ideas
+├── site/webapp/view/             # Production pages
+├── site/webapp/static/           # Production assets
+└── docs/                         # Documentation (if needed)
+```
+
+**Rationale**:
+- Underscore prefix is common pattern for "non-production" files
+- Clear and discoverable
+- Easy to add to `.gitignore` if needed
+- Separates working files from production content
+- Matches common web development patterns (Jekyll `_includes`, etc.)
+
+**Option 2: `docs/working/` (Alternative)**
+```
+jpulse.net/
+├── docs/
+│   └── working/                  # Working documents
+│       └── W-082-jpulse-net-site-structure.md
+├── site/webapp/view/             # Production pages
+└── site/webapp/static/           # Production assets
+```
+
+**Rationale**:
+- Matches jPulse Framework pattern (`docs/dev/working/`)
+- Familiar structure if coming from framework repo
+- Clear separation from production content
+
+**Recommendation**: Use `_working/` because:
+1. It's a website project (not framework development)
+2. Clear visual distinction from production files
+3. Common web development pattern
+4. Easy to ignore in production builds
+5. Can organize by subdirectories for different work types
+
+### File Organization Recommendations
+
+**Within `_working/`**:
+```
+_working/
+├── W-082-jpulse-net-site-structure.md    # Main strategy document
+├── content/
+│   ├── homepage-draft.md                 # Homepage content drafts
+│   ├── why-jpulse-draft.md              # Why jPulse content
+│   ├── features-draft.md                 # Features content
+│   └── ...                               # Other page drafts
+├── design/
+│   ├── wireframes/                       # Wireframe sketches
+│   ├── mockups/                          # Design mockups
+│   └── assets/                           # Design assets (PSD, Figma exports)
+├── competitive/
+│   ├── nestjs-analysis.md               # Competitor research
+│   ├── django-analysis.md               # Competitor research
+│   └── ...                               # Other competitor notes
+└── notes/
+    ├── meeting-notes/                    # Meeting notes
+    ├── ideas.md                          # Random ideas
+    └── todo.md                           # Task list
+```
+
+### Git Workflow Recommendations
+
+**`.gitignore` additions** (if needed):
+```
+# Working files (if you want to keep them private)
+# _working/design/mockups/*.psd
+# _working/design/mockups/*.fig
+# _working/notes/private/
+```
+
+**Branch Strategy**:
+- `main`: Production-ready content
+- `develop`: Staging/development content
+- `feature/*`: Feature branches for new pages/content
+
+### Migration Checklist
+
+When moving to jpulse.net repo:
+- [ ] Copy `W-082-jpulse-net-site-structure.md` to `_working/`
+- [ ] Review all placeholder pages against structure document
+- [ ] Create content drafts for Phase 1 pages (Homepage, Why jPulse, Features, Compare, Pricing, Contact)
+- [ ] Set up design assets directory structure
+- [ ] Create competitive analysis notes directory
+- [ ] Update any framework references (link to framework docs)
+- [ ] Set up analytics tracking strategy
+- [ ] Plan SEO keyword strategy
+- [ ] Create content calendar for blog/news (Phase 3)
+
+---
+
+## Reference Documents
+
+**Framework Documentation** (for linking):
+- Framework Comparison: `docs/framework-comparison.md`
+- Getting Started: `docs/getting-started.md`
+- Installation: `docs/installation.md`
+- MPA vs SPA: `docs/mpa-vs-spa.md`
+- API Reference: `docs/api-reference.md`
+
+**Business Strategy**:
+- Dual Licensing: `docs/dev/working/W-052-business-dual-licensing-agpl-and-commercial.md` (framework repository)
+- Competitive Analysis: Lines 325-467 in W-052
+- Pricing Tiers: Lines 149-178 in W-052 (extracted above)
+
+**Note**: W-052 remains in framework repository (business strategy document, not marketing content). Pricing details extracted above for marketing site use.
+
+**Framework Repository**: `https://github.com/jpulse-net/jpulse-framework`
+
+---
+
+*Document last updated: 2025-11-02*
+*Ready for migration to jpulse.net repository*
 

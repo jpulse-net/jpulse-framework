@@ -1,6 +1,6 @@
 # jPulse Framework / Docs / Dev / Work Items v1.0.3
 
-This is the doc to track work items, arranged in three sections:
+This is the doc to track jPulse Framework work items, arranged in three sections:
 
 - ✅ DONE & ❌ CANCELED
 - 🚧 IN_PROGRESS
@@ -1609,23 +1609,8 @@ This is the doc to track work items, arranged in three sections:
       - docs/dev/working/W-052-business-dual-licensing-agpl-and-commercial.md: Added BSL 1.1 strategy section with rationale
       - Updated all documentation with new repository URLs
 
-
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-076, v1.0.1, v1.0.2, v1.0.3: framework: comparison document
-- status: 🚧 IN_PROGRESS
+- status: DONE ✅
 - type: Feature
 - patch release with deliverables:
   - bin/configure.js -- automated .npmrc creation for GitHub Packages
@@ -1636,10 +1621,8 @@ This is the doc to track work items, arranged in three sections:
   - docs/CHANGELOG.md -- complete v1.0.3 entry
   - tried and retracted failed attempt to simplify jPulse Framework upgrade
 
-
-
 ### W-082: jpulse.net: site content creation
-- status: 🚧 IN_PROGRESS
+- status: ❌ CANCELED
 - type: Feature
 - objectives: build trust, demonstrate value, drive commercial license inquiries
 - audience:
@@ -1657,10 +1640,24 @@ This is the doc to track work items, arranged in three sections:
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
+
+
+
+
+
+
+
+
+
+
 pending:
 - jpulse.net site content
-- jpulse 1.0 project assessment
-
+- docs publishing: .jpulse-ignore is ignored
 
 
 
@@ -1715,12 +1712,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.0.2
+node bin/bump-version.js 1.0.3
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.2
+git tag v1.0.3
 git push origin main --tags
 
 === on failed package build on github ===

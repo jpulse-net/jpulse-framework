@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.0.3
- * @release         2025-11-02
+ * @version         0.1.4
+ * @release         2025-11-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -692,21 +692,31 @@ window.jPulse = {
         /**
          * Show alert dialog with red header styling
          * @param {string} message - The message to display (supports simple HTML)
-         * @param {Object} options - Configuration options
+         * @param {string|Object} titleOrOptions - Title string or options object (if object, title is in options.title)
          * @returns {Promise<void>} Promise that resolves when dialog is closed
          */
-        alertDialog: (message, options = {}) => {
-            return jPulse.UI._showDialog(message, 'alert', options);
+        alertDialog: (message, titleOrOptions = {}) => {
+            return jPulse.UI._showSimpleDialog(message, 'alert', titleOrOptions);
         },
 
         /**
          * Show info dialog with blue header styling
          * @param {string} message - The message to display (supports simple HTML)
-         * @param {Object} options - Configuration options
+         * @param {string|Object} titleOrOptions - Title string or options object (if object, title is in options.title)
          * @returns {Promise<void>} Promise that resolves when dialog is closed
          */
-        infoDialog: (message, options = {}) => {
-            return jPulse.UI._showDialog(message, 'info', options);
+        infoDialog: (message, titleOrOptions = {}) => {
+            return jPulse.UI._showSimpleDialog(message, 'info', titleOrOptions);
+        },
+
+        /**
+         * Show success dialog with green header styling
+         * @param {string} message - The message to display (supports simple HTML)
+         * @param {string|Object} titleOrOptions - Title string or options object (if object, title is in options.title)
+         * @returns {Promise<void>} Promise that resolves when dialog is closed
+         */
+        successDialog: (message, titleOrOptions = {}) => {
+            return jPulse.UI._showSimpleDialog(message, 'success', titleOrOptions);
         },
 
         /**
@@ -719,6 +729,7 @@ window.jPulse = {
                 title: null,
                 message: 'Are you sure?',
                 buttons: ['Cancel', 'OK'],
+                type: 'confirm', // Dialog type for styling: 'alert', 'info', 'success', or 'confirm'
                 width: null,
                 minWidth: 400,
                 height: null,
@@ -736,7 +747,7 @@ window.jPulse = {
 
                 // Create dialog elements
                 const overlay = jPulse.UI._createDialogOverlay();
-                const dialog = jPulse.UI._createDialogElement(title, config.message, 'confirm', config);
+                const dialog = jPulse.UI._createDialogElement(title, config.message, config.type, config);
 
                 // Handle different button configurations
                 const buttonContainer = dialog.querySelector('.jp-dialog-buttons');
@@ -789,10 +800,13 @@ window.jPulse = {
                 overlay.appendChild(dialog);
                 document.body.appendChild(overlay);
 
-                // Set z-index (confirm dialogs use base z-index)
-                const zIndex = config.zIndex || (jPulse.UI._baseZIndex + jPulse.UI._dialogStack.length * 10);
+                // Set z-index (alert/info/success dialogs always on top, confirm uses base z-index)
+                const isSimpleDialog = ['alert', 'info', 'success'].includes(config.type);
+                const zIndex = config.zIndex || (isSimpleDialog
+                    ? (jPulse.UI._alertZIndex + jPulse.UI._dialogStack.length)
+                    : (jPulse.UI._baseZIndex + jPulse.UI._dialogStack.length * 10));
                 overlay.style.zIndex = zIndex;
-                jPulse.UI._dialogStack.push({ overlay, dialog, type: 'confirm' });
+                jPulse.UI._dialogStack.push({ overlay, dialog, type: config.type });
 
                 // Show with animation
                 setTimeout(() => {
@@ -3169,70 +3183,57 @@ window.jPulse = {
         // ========================================
 
         /**
-         * Show a dialog with specified type and styling
+         * Show a simple dialog (alert/info/success) using confirmDialog internally
          * @param {string} message - The message to display
-         * @param {string} type - Dialog type: 'alert' or 'info'
-         * @param {Object} options - Configuration options
+         * @param {string} type - Dialog type: 'alert', 'info', or 'success'
+         * @param {string|Object} titleOrOptions - Title string or options object
          * @returns {Promise<void>} Promise that resolves when dialog is closed
          */
-        _showDialog: (message, type, options = {}) => {
+        _showSimpleDialog: (message, type, titleOrOptions = {}) => {
+            // Detect if 2nd param is string (title) or object (options)
+            let options = {};
+            if (typeof titleOrOptions === 'string') {
+                options.title = titleOrOptions;
+            } else if (typeof titleOrOptions === 'object' && titleOrOptions !== null) {
+                options = { ...titleOrOptions };
+            }
+
+            // Set default options
             const defaultOptions = {
                 title: null,
                 width: null,
                 minWidth: 300,
                 height: null,
-                minHeight: 150
+                minHeight: 150,
+                buttons: ['OK']
             };
 
             const config = { ...defaultOptions, ...options };
 
-            return new Promise((resolve) => {
-                // Get i18n title if not provided
-                const defaultTitle = type === 'alert'
-                    ? (window.i18n?.view?.ui?.alertDialog?.title || 'Alert')
-                    : (window.i18n?.view?.ui?.infoDialog?.title || 'Information');
-
-                const title = config.title || defaultTitle;
-                const buttonText = window.i18n?.view?.ui?.alertDialog?.oKButton || 'OK';
-
-                // Create dialog elements
-                const overlay = jPulse.UI._createDialogOverlay();
-                const dialog = jPulse.UI._createDialogElement(title, message, type, config);
-                const button = jPulse.UI._createDialogButton(buttonText, () => {
-                    jPulse.UI._closeDialog(overlay, dialog);
-                    resolve();
-                });
-
-                // Add button to dialog
-                const buttonContainer = dialog.querySelector('.jp-dialog-buttons');
-                buttonContainer.appendChild(button);
-
-                // Add to DOM and show
-                overlay.appendChild(dialog);
-                document.body.appendChild(overlay);
-
-                // Set z-index (alerts/info always on top)
-                overlay.style.zIndex = jPulse.UI._alertZIndex + jPulse.UI._dialogStack.length;
-                jPulse.UI._dialogStack.push({ overlay, dialog, type: 'alert-info' });
-
-                // Show with animation
-                setTimeout(() => {
-                    overlay.classList.add('jp-dialog-show');
-                    dialog.classList.add('jp-dialog-show');
-                }, 10);
-
-                // Handle ESC key
-                const handleEscape = (e) => {
-                    if (e.key === 'Escape') {
-                        document.removeEventListener('keydown', handleEscape);
-                        jPulse.UI._closeDialog(overlay, dialog);
-                        resolve();
-                    }
+            // Get default title from i18n if not provided
+            if (!config.title) {
+                const i18nKeys = {
+                    alert: 'alertDialog',
+                    info: 'infoDialog',
+                    success: 'successDialog'
                 };
-                document.addEventListener('keydown', handleEscape);
+                const i18nKey = i18nKeys[type] || 'infoDialog';
+                config.title = window.i18n?.view?.ui?.[i18nKey]?.title ||
+                    (type === 'alert' ? 'Alert' :
+                     type === 'success' ? 'Success' : 'Information');
+            }
 
-                // Focus management
-                jPulse.UI._trapFocus(dialog, overlay);
+            // Use confirmDialog with single OK button and type-specific styling
+            return jPulse.UI.confirmDialog({
+                ...config,
+                message: message,
+                type: type, // Pass type for styling ('alert', 'info', 'success')
+                buttons: config.buttons,
+                minWidth: config.minWidth || 300,
+                minHeight: config.minHeight || 150
+            }).then(() => {
+                // confirmDialog returns result object, but simple dialogs just resolve
+                return Promise.resolve();
             });
         },
 

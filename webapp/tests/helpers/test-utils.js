@@ -3,8 +3,8 @@
  * @tagline         Test utilities for the jPulse Framework WebApp
  * @description     Common utilities and helpers for testing
  * @file            webapp/tests/helpers/test-utils.js
- * @version         1.0.3
- * @release         2025-11-02
+ * @version         0.1.4
+ * @release         2025-11-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Front-End Development Guide v1.0.3
+# jPulse Framework / Docs / Front-End Development Guide v0.1.4
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -24,6 +24,7 @@ The jPulse Framework provides a comprehensive client-side utility library availa
 - **Device Detection**: Responsive design and feature detection utilities
 
 ### Related Documentation
+- **[jPulse.UI Widget Reference](jpulse-ui-reference.md)** - Complete `jPulse.UI.*` widget documentation
 - **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation
 - **[Style Reference](style-reference.md)** - Complete `jp-*` styling framework
 - **[Template Reference](template-reference.md)** - Server-side Handlebars integration
@@ -317,51 +318,67 @@ jPulse.dom.ready(() => {
 });
 ```
 
-## 💬 Toast Message System
+## 💬 UI Widgets Overview
 
-Display non-blocking slide-down messages with smooth animations and intelligent stacking.
+The jPulse Framework provides a comprehensive set of UI widgets under the `jPulse.UI.*` namespace. For complete documentation, see the **[jPulse.UI Widget Reference](jpulse-ui-reference.md)**.
 
-### Basic Usage
+### Available Widgets
 
-```javascript
-// Basic slide-down messages with configurable auto-hide durations
-jPulse.UI.toast.success('Operation completed successfully!'); // 3s duration
-jPulse.UI.toast.error('Please check your input and try again.'); // 6s duration
-jPulse.UI.toast.info('Your session will expire in 5 minutes.'); // 3s duration
-jPulse.UI.toast.warning('This action cannot be undone.'); // 5s duration
+- **[Toast Notifications](jpulse-ui-reference.md#toast-notifications)** - Non-blocking slide-down messages (`jPulse.UI.toast`)
+- **[Dialog Widgets](jpulse-ui-reference.md#dialog-widgets)** - Modal dialogs (`alertDialog`, `infoDialog`, `successDialog`, `confirmDialog`)
+- **[Collapsible Components](jpulse-ui-reference.md#collapsible-components)** - Expandable/collapsible sections (`jPulse.UI.collapsible`)
+- **[Accordion Component](jpulse-ui-reference.md#accordion-component)** - Grouped sections with mutual exclusion (`jPulse.UI.accordion`)
+- **[Tab Interface](jpulse-ui-reference.md#tab-interface)** - Navigation and panel tabs (`jPulse.UI.tabs`)
+- **[Source Code Display](jpulse-ui-reference.md#source-code-display)** - Syntax-highlighted code blocks (`jPulse.UI.sourceCode`)
 
-// Custom duration (overrides config defaults)
-jPulse.UI.toast.show('Custom message', 'info', 10000);
-
-// Clear all slide-down messages
-jPulse.UI.toast.clearAll();
-```
-
-### Features
-- **Non-blocking**: Messages overlay content without shifting page layout
-- **Smooth animations**: 0.6s slide transitions from behind header
-- **Dynamic stacking**: Multiple messages stack intelligently with 5px gaps
-- **Responsive design**: Adapts to screen size using `appConfig.view.toastMessage` settings
-- **Independent timing**: Each message respects its configured duration without interference
-
-### Integration with Forms
+### Quick Examples
 
 ```javascript
-// Automatic success/error messages with form submission
-jPulse.form.bindSubmission(form, '/api/1/user/profile', {
-    successMessage: 'Profile updated successfully!',
-    onSuccess: (data) => {
-        // Additional success logic
-        updateProfileDisplay(data);
-    },
-    onError: (error) => {
-        // Custom error handling (prevents default error message)
-        jPulse.UI.toast.error(`Update failed: ${error}`);
-    }
+// Toast notifications
+jPulse.UI.toast.success('Operation completed!');
+jPulse.UI.toast.error('An error occurred.');
+
+// Dialog widgets
+await jPulse.UI.alertDialog('Warning message', 'Alert');
+await jPulse.UI.infoDialog('Information message', 'Info');
+await jPulse.UI.successDialog('Success message', 'Success'); // New in v1.0.4
+
+// Confirm dialog with options
+const result = await jPulse.UI.confirmDialog({
+    title: 'Confirm Action',
+    message: 'Are you sure?',
+    buttons: ['Cancel', 'OK']
 });
 ```
 
-## 🔽 Collapsible Component System
+> **📖 Complete Documentation:** See [jPulse.UI Widget Reference](jpulse-ui-reference.md) for full API documentation, examples, and advanced usage patterns.
+
+## 🔽 Collapsible & Accordion Components
+
+For complete documentation on collapsible sections and accordion components, see:
+- **[Collapsible Components](jpulse-ui-reference.md#collapsible-components)** - Expandable/collapsible sections
+- **[Accordion Component](jpulse-ui-reference.md#accordion-component)** - Grouped sections with mutual exclusion
+
+### Quick Example
+
+```javascript
+// Collapsible section
+const collapsible = jPulse.UI.collapsible.register('mySection', {
+    initOpen: false,
+    onOpen: () => console.log('Opened'),
+    onClose: () => console.log('Closed')
+});
+
+// Accordion
+const accordion = jPulse.UI.accordion.register('myAccordion', {
+    exclusive: true,
+    initOpen: 0
+});
+```
+
+---
+
+## 🔽 Collapsible Component System (Detailed)
 
 Production-ready collapsible sections with clean API design and comprehensive functionality.
 
@@ -369,7 +386,7 @@ Production-ready collapsible sections with clean API design and comprehensive fu
 
 ```javascript
 // Register a collapsible section and get handle
-const securityCollapsible = jPulse.collapsible.register('securitySection', {
+const securityCollapsible = jPulse.UI.collapsible.register('securitySection', {
     initOpen: false,
     onOpen: () => {
         // Show password fields when opened
@@ -711,7 +728,7 @@ class ProfileManager {
     }
 
     setupSecuritySection() {
-        this.securitySection = jPulse.collapsible.register('securitySection', {
+        this.securitySection = jPulse.UI.collapsible.register('securitySection', {
             initOpen: false,
             onOpen: () => {
                 // Focus first password field when opened

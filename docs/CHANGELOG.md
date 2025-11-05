@@ -1,6 +1,107 @@
-# jPulse Framework / Docs / Version History v1.0.3
+# jPulse Framework / Docs / Version History v0.1.4
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.0.4, W-083, 2025-11-04
+
+**Commit:** `W-083, v1.0.4: minor v1.0 enhancements & bug fixes`
+
+**MINOR RELEASE ENHANCEMENTS & BUG FIXES**: Documentation publishing improvements, enhanced UI dialog widgets, comprehensive UI reference documentation, and security documentation.
+
+**Objective**: Stabilize v1.0 release with minor enhancements and bug fixes for improved developer experience and documentation completeness.
+
+**Documentation Publishing Fix**:
+- **bin/jpulse-update.js**: Fixed `.jpulse-ignore` support - docs publishing now respects ignore patterns
+  - Added `loadIgnorePatterns()` and `shouldIgnore()` functions (duplicated from markdown controller)
+  - Modified `syncDirectory()` to accept `baseDir` and `ignorePatterns` parameters
+  - Files/directories matching `.jpulse-ignore` patterns are now skipped during docs publishing
+  - Ensures consistent behavior between markdown documentation serving and framework update process
+
+**UI Dialog Widget Enhancements**:
+- **jPulse.UI.successDialog()**: Added new success dialog with green header styling (#28a745)
+  - Consistent API with `alertDialog()` and `infoDialog()`
+  - Supports both `(message, title)` and `(message, options)` signatures
+  - Integrated with i18n system (en/de translations)
+- **jPulse.UI.alertDialog() & infoDialog()**: Enhanced to detect 2nd parameter type
+  - String → treated as title: `dialog(message, 'Title')`
+  - Object → treated as options: `dialog(message, {title: 'Title', width: 400})`
+  - Backward compatible with existing code
+- **Dialog Refactoring**: Unified `alertDialog/infoDialog/successDialog` to use `confirmDialog()` internally
+  - Reduced code duplication by centralizing dialog logic
+  - All simple dialogs now use `confirmDialog()` with appropriate defaults and styling
+  - Improved z-index management for different dialog types
+  - Enhanced `confirmDialog()` to accept `type` option for styling (alert/info/success/confirm)
+
+**Comprehensive UI Reference Documentation**:
+- **docs/jpulse-ui-reference.md**: Complete `jPulse.UI.*` widget reference documentation (NEW, 531 lines)
+  - Toast Notifications: Complete API with examples
+  - Dialog Widgets: `alertDialog`, `infoDialog`, `successDialog`, `confirmDialog` with full API details
+  - Collapsible Components: Usage patterns and configuration
+  - Accordion Component: Grouped sections with mutual exclusion
+  - Tab Interface: Navigation and panel tabs
+  - Source Code Display: Syntax-highlighted code blocks
+  - All sections include parameters, return values, and code examples
+- **docs/front-end-development.md**: Updated with abbreviated widget list and links to UI reference
+  - Replaced detailed widget sections with overview and links to comprehensive reference
+  - Fixed bug: `jPulse.collapsible.register()` → `jPulse.UI.collapsible.register()`
+  - Improved discoverability with clear navigation to detailed documentation
+
+**Security Documentation**:
+- **docs/security-and-auth.md**: Comprehensive security and authentication documentation (NEW, 505 lines)
+  - Authentication: Session management, password hashing, roles, login/logout flows
+  - Authorization: Role-based access control, middleware patterns
+  - Security Features: Session security, password policy, nginx headers, rate limiting, SSL/TLS, input validation
+  - Deployment Security: Production deployment considerations
+  - Security Gaps: Documented known gaps (CSRF, MFA, OAuth2/LDAP, CSP tightening) for future work
+- **Security Documentation Links**: Added to multiple documentation files
+  - `docs/README.md`: Added Security section with link
+  - `docs/getting-started.md`: Added to Next Steps section
+  - `docs/api-reference.md`: Added note in Authentication & Authorization section
+  - `docs/deployment.md`: Added note in Security Considerations section
+
+**Work Item Management**:
+- **W-084 work item**: Created with security hardening to-dos for future enhancements
+  - CSRF Protection, Password Policy Enforcement, Account Lockout
+  - Security Audit Logging, Session Management UI, Security Headers Audit
+  - Dependency Scanning, Security Monitoring, MFA/OAuth2/LDAP (planned as plugins)
+
+**Other Enhancements**:
+- **webapp/static/apple-touch-icon.png**: Updated from webapp/static/images/jpulse-logo/apple-touch-icon.png
+- **webapp/view/jpulse-examples/ui-widgets.shtml**: Updated with new dialog signatures and `successDialog` examples
+- **webapp/translations/en.conf & de.conf**: Added `successDialog` i18n translations (title, message, oKButton)
+
+**Files Modified**:
+- bin/jpulse-update.js (added .jpulse-ignore support)
+- webapp/view/jpulse-common.js (dialog enhancements, successDialog addition)
+- webapp/view/jpulse-common.css (successDialog styling)
+- webapp/translations/en.conf (successDialog i18n)
+- webapp/translations/de.conf (successDialog i18n)
+- webapp/view/jpulse-examples/ui-widgets.shtml (updated examples)
+- webapp/static/apple-touch-icon.png (updated icon)
+- docs/jpulse-ui-reference.md (NEW - complete UI widget reference)
+- docs/front-end-development.md (updated widget list, fixed collapsible reference)
+- docs/security-and-auth.md (NEW - comprehensive security documentation)
+- docs/README.md (added security doc link)
+- docs/getting-started.md (added security doc link)
+- docs/api-reference.md (added security doc link)
+- docs/deployment.md (added security doc link)
+- docs/dev/work-items.md (W-083 deliverables, W-084 creation)
+- docs/CHANGELOG.md (v1.0.4 entry)
+
+**Benefits**:
+- ✅ Documentation publishing now respects `.jpulse-ignore` patterns consistently
+- ✅ Enhanced UI dialog API with flexible signatures and new success dialog
+- ✅ Comprehensive UI widget reference documentation for developers
+- ✅ Complete security documentation covering authentication, authorization, and best practices
+- ✅ Improved developer experience with better documentation organization
+- ✅ Clear identification of security gaps for future hardening (W-084)
+
+**Developer Experience**:
+- More intuitive dialog API: `infoDialog('Message', 'Title')` or `infoDialog('Message', {title: 'Title', width: 400})`
+- Complete UI widget reference in one place for easy lookup
+- Comprehensive security guide for implementing secure applications
+- Better documentation organization with clear navigation paths
 
 ________________________________________________
 ## v1.0.3, W-076, 2025-11-02

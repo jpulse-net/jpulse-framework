@@ -4,8 +4,8 @@
  * @tagline         Framework update synchronization CLI tool
  * @description     Updates local framework files from installed package
  * @file            bin/jpulse-update.js
- * @version         1.0.3
- * @release         2025-11-02
+ * @version         0.1.4
+ * @release         2025-11-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,11 +18,90 @@ import path from 'path';
 import { CONFIG_REGISTRY, buildCompleteConfig, expandAllVariables } from './config-registry.js';
 
 /**
+ * Load and parse .jpulse-ignore file for a directory
+ * @param {string} baseDir - Base directory containing .jpulse-ignore
+ * @returns {Array} Array of ignore pattern objects
+ */
+function loadIgnorePatterns(baseDir) {
+    const ignoreFile = path.join(baseDir, '.jpulse-ignore');
+
+    try {
+        const content = fs.readFileSync(ignoreFile, 'utf8');
+        const patterns = content
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line && !line.startsWith('#'))
+            .map(pattern => {
+                // Convert glob pattern to regex
+                // Escape special regex chars except * and ?
+                let regexPattern = pattern
+                    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+                    .replace(/\*/g, '.*')
+                    .replace(/\?/g, '.');
+
+                // Handle directory patterns (ending with /)
+                const isDirectory = pattern.endsWith('/');
+                if (isDirectory) {
+                    regexPattern = regexPattern.slice(0, -1); // Remove trailing /
+                }
+
+                return {
+                    pattern: pattern,
+                    regex: new RegExp(`^${regexPattern}$`),
+                    isDirectory: isDirectory
+                };
+            });
+
+        return patterns;
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            return []; // No ignore file, no patterns
+        }
+        throw error;
+    }
+}
+
+/**
+ * Check if a file or directory should be ignored
+ * @param {string} relativePath - Relative path from base directory
+ * @param {boolean} isDirectory - Whether the path is a directory
+ * @param {Array} ignorePatterns - Array of ignore pattern objects
+ * @returns {boolean} True if should be ignored
+ */
+function shouldIgnore(relativePath, isDirectory, ignorePatterns) {
+    for (const pattern of ignorePatterns) {
+        // For directory patterns (ending with /), check both exact match and subdirectory match
+        if (pattern.isDirectory) {
+            const dirPath = pattern.pattern.slice(0, -1); // Remove trailing /
+
+            // Exact directory match
+            if (isDirectory && relativePath === dirPath) {
+                return true;
+            }
+
+            // File or subdirectory inside ignored directory
+            if (relativePath.startsWith(dirPath + '/')) {
+                return true;
+            }
+        } else {
+            // File patterns - only match files
+            if (!isDirectory && pattern.regex.test(relativePath)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+/**
  * Copy directory recursively, preserving existing files
  * @param {string} src - Source directory
  * @param {string} dest - Destination directory
+ * @param {string} baseDir - Base directory for relative path calculation (for ignore patterns)
+ * @param {Array} ignorePatterns - Ignore patterns (optional)
  */
-function syncDirectory(src, dest) {
+function syncDirectory(src, dest, baseDir = null, ignorePatterns = null) {
     if (!fs.existsSync(dest)) {
         fs.mkdirSync(dest, { recursive: true });
     }
@@ -33,8 +112,18 @@ function syncDirectory(src, dest) {
         const srcPath = path.join(src, entry.name);
         const destPath = path.join(dest, entry.name);
 
+        // Calculate relative path for ignore pattern checking
+        let relativePath = null;
+        if (baseDir && ignorePatterns) {
+            relativePath = path.relative(baseDir, srcPath).replace(/\\/g, '/');
+            if (shouldIgnore(relativePath, entry.isDirectory(), ignorePatterns)) {
+                console.log(`⏭️  Skipping ignored: ${relativePath}`);
+                continue;
+            }
+        }
+
         if (entry.isDirectory()) {
-            syncDirectory(srcPath, destPath);
+            syncDirectory(srcPath, destPath, baseDir, ignorePatterns);
         } else if (entry.isSymbolicLink()) {
             // Skip symlinks - we handle jpulse docs separately
             console.log(`⏭️  Skipping symlink: ${entry.name}`);
@@ -131,7 +220,14 @@ function sync() {
                     fs.rmSync(docsDestination, { recursive: true, force: true });
                 }
 
-                syncDirectory(docsSource, docsDestination);
+                // Load ignore patterns from .jpulse-ignore file
+                const ignorePatterns = loadIgnorePatterns(docsSource);
+                if (ignorePatterns.length > 0) {
+                    console.log(`📋 Found ${ignorePatterns.length} ignore pattern(s) in .jpulse-ignore`);
+                }
+
+                // Sync docs with ignore pattern support
+                syncDirectory(docsSource, docsDestination, docsSource, ignorePatterns);
                 console.log('✅ Documentation copied successfully');
             } else {
                 console.warn('⚠️  Documentation source not found');

@@ -4,8 +4,8 @@
  * @tagline         Interactive UI widget examples and demonstrations
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
- * @version         1.0.3
- * @release         2025-11-02
+ * @version         0.1.4
+ * @release         2025-11-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -359,8 +359,9 @@ jPulse.dom.ready(() =&gt; {
                 <div class="jp-btn-group">
                     <button id="alertBtn" class="jp-btn jp-btn-danger">Alert Dialog</button>
                     <button id="infoBtn" class="jp-btn jp-btn-primary">Info Dialog</button>
+                    <button id="successDialogBtn" class="jp-btn jp-btn-success">Success Dialog</button>
                     <button id="confirmBtn" class="jp-btn jp-btn-warning">Confirm Dialog</button>
-                    <button id="customBtn" class="jp-btn jp-btn-success">Custom Dialog</button>
+                    <button id="customBtn" class="jp-btn jp-btn-secondary">Custom Dialog</button>
                     <button id="complexBtn" class="jp-btn jp-btn-secondary">Complex Dialog</button>
                 </div>
             </div>
@@ -369,19 +370,25 @@ jPulse.dom.ready(() =&gt; {
 &lt;!-- HTML Buttons --&gt;
 &lt;button id="alertBtn" class="jp-btn jp-btn-danger"&gt;Alert Dialog&lt;/button&gt;
 &lt;button id="infoBtn" class="jp-btn jp-btn-primary"&gt;Info Dialog&lt;/button&gt;
+&lt;button id="successDialogBtn" class="jp-btn jp-btn-success"&gt;Success Dialog&lt;/button&gt;
 &lt;button id="confirmBtn" class="jp-btn jp-btn-warning"&gt;Confirm Dialog&lt;/button&gt;
 &lt;button id="complexBtn" class="jp-btn jp-btn-secondary"&gt;Complex Dialog&lt;/button&gt;
 
 &lt;!-- JavaScript --&gt;
 &lt;script&gt;
-// Alert dialog
+// Alert dialog - simple usage
 document.getElementById('alertBtn').addEventListener('click', async () =&gt; {
-    await jPulse.UI.alertDialog('This is an alert message!');
+    await jPulse.UI.alertDialog('This is an alert dialog with important information!');
 });
 
-// Info dialog
+// Info dialog - with title as 2nd parameter
 document.getElementById('infoBtn').addEventListener('click', async () =&gt; {
-    await jPulse.UI.infoDialog('This is an informational message.');
+    await jPulse.UI.infoDialog('This is an informational dialog with helpful details.', 'Important Notice');
+});
+
+// Success dialog - new in v1.0.4
+document.getElementById('successDialogBtn').addEventListener('click', async () =&gt; {
+    await jPulse.UI.successDialog('Operation completed successfully!', 'Success');
 });
 
 // Confirm dialog
@@ -404,7 +411,7 @@ document.getElementById('confirmBtn').addEventListener('click', async () =&gt; {
     }
 });
 
-// Custom dialog with HTML content
+// Custom dialog with HTML content - using options object
 document.getElementById('customBtn').addEventListener('click', async () =&gt; {
     await jPulse.UI.infoDialog(
         '&lt;p&gt;This dialog supports &lt;b&gt;HTML content&lt;/b&gt;:&lt;/p&gt;' +
@@ -909,7 +916,13 @@ jPulse.UI.sourceCode.initAll();
             });
 
             document.getElementById('infoBtn').addEventListener('click', async () => {
-                await jPulse.UI.infoDialog('This is an informational dialog with helpful details.');
+                // New: title as 2nd parameter (string)
+                await jPulse.UI.infoDialog('This is an informational dialog with helpful details.', 'Important Notice');
+            });
+
+            document.getElementById('successDialogBtn').addEventListener('click', async () => {
+                // New in v1.0.4: successDialog with title as 2nd parameter
+                await jPulse.UI.successDialog('Operation completed successfully!', 'Success');
             });
 
             document.getElementById('confirmBtn').addEventListener('click', async () => {
@@ -932,6 +945,7 @@ jPulse.UI.sourceCode.initAll();
             });
 
             document.getElementById('customBtn').addEventListener('click', async () => {
+                // Using options object for full control
                 await jPulse.UI.infoDialog(
                     '<p>This dialog supports <b>HTML content</b>:</p>' +
                     '<ul><li>Formatted text</li><li>Lists and bullets</li><li>Custom styling</li></ul>',

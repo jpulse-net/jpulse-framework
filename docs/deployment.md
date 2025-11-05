@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Production Deployment Guide v1.0.3
+# jPulse Framework / Docs / Production Deployment Guide v0.1.4
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -301,6 +301,8 @@ Available on all jPulse sites at `/jpulse-docs/`:
 
 ## 🔒 Security Considerations
 
+> **📖 Complete Security Guide**: See [Security & Authentication](security-and-auth.md) for comprehensive documentation on authentication, authorization, session management, security headers, and security best practices.
+
 ### Automated Security Setup
 The deployment scripts handle:
 - MongoDB authentication and user creation
@@ -315,6 +317,7 @@ After deployment, review:
 - **SSL Certificates**: Ensure auto-renewal is configured
 - **Database Access**: Verify MongoDB is not publicly accessible
 - **Application Logs**: Monitor for security events
+- **Session Security**: Review session secret and cookie settings (see [Security Guide](security-and-auth.md#session-management))
 
 ### Security Updates
 - **System Updates**: Configure automatic security updates

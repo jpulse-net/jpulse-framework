@@ -7,8 +7,8 @@
  #                  - Auto-run by jpulse-validate.sh
  #                  - Context-aware: respects dev vs prod deployment settings
  # @file            bin/jpulse-validate.sh
- # @version         1.0.3
- # @release         2025-11-02
+ # @version         0.1.4
+ # @release         2025-11-05
  # @repository      https://github.com/jpulse-net/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Generative-AI Development Guide v1.0.3
+# jPulse Framework / Docs / Generative-AI Development Guide v0.1.4
 
 Complete guide for site developers building jPulse applications with Gen-AI assistance, aka vibe coding, using IDEs like Cline, Cursor, GitHub Copilot, or Windsurf.
 
@@ -219,7 +219,7 @@ Use jPulse.date.formatLocalDate() for date display."
 **Example prompt**:
 ```
 "Add a collapsible FAQ section to the home page.
-- Use jPulse.collapsible.register() for behavior
+- Use jPulse.UI.collapsible.register() for behavior
 - Style with jp-collapsible framework classes
 - Add local-* styles for custom appearance
 - Reference the collapsible example in front-end-development.md"

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Framework Development Installation v1.0.3
+# jPulse Framework / Docs / Dev / Framework Development Installation v0.1.4
 
 This guide covers setting up the jPulse Framework for core development and contributions.
 

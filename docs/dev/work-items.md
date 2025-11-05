@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.0.3
+# jPulse Framework / Docs / Dev / Work Items v0.1.4
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1628,7 +1628,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - audience:
   - primary: enterprise decision-makers (C-level executives, IT directors, project managers)
   - secondary: developers evaluating frameworks
-
+- this is handled by work item T-001 in the jpulse.net project
 
 
 
@@ -1644,8 +1644,23 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-
-
+### W-083, v1.0.4: minor v1.0 enhancements & bug fixes
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives: stabilize release
+- deliverables:
+  - bin/jpulse-update.js: Fixed .jpulse-ignore support - docs publishing now respects ignore patterns
+  - jPulse.UI.successDialog(): Added new success dialog with green header styling
+  - jPulse.UI.alertDialog() & infoDialog(): Enhanced to detect 2nd param type (string=title, object=options)
+  - Dialog refactoring: Unified alertDialog/infoDialog/successDialog to use confirmDialog() internally
+  - docs/jpulse-ui-reference.md: Complete jPulse.UI.* widget reference documentation
+  - docs/front-end-development.md: Updated with abbreviated widget list and links to UI reference
+  - docs/security-and-auth.md: Comprehensive security and authentication documentation
+  - Security doc links: Added to README.md, getting-started.md, api-reference.md, deployment.md
+  - W-084 work item: Created with security hardening to-dos
+  - webapp/static/apple-touch-icon.png: Updated from webapp/static/images/jpulse-logo/apple-touch-icon.png
+  - webapp/view/jpulse-examples/ui-widgets.shtml: Updated with new dialog signatures and successDialog examples
+  - webapp/translations/en.conf & de.conf: Added successDialog i18n translations
 
 
 
@@ -1656,12 +1671,10 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 pending:
-- jpulse.net site content
-- docs publishing: .jpulse-ignore is ignored
-
 
 
 old pending:
+- bin/bump-version.js: generalize for site dev work; externalize config
 - view controller: return unexpanded {{handlebars}} if not exist, instead of empty return
 - navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
@@ -1695,7 +1708,7 @@ next work item: W-0...
 finishing up work item: W-070:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-076, v1.0.1
+- assume release: W-083, v1.0.4
 - update deliverables in W-076 to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -1712,12 +1725,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.0.3
+node bin/bump-version.js 1.0.4
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.3
+git tag v1.0.4
 git push origin main --tags
 
 === on failed package build on github ===
@@ -1889,6 +1902,45 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
                 // show minimized message again after N hours:
                 nagTimeHours: { type: 'number', default: 4 } // 0: disable
             }
+
+### W-084: security: harden security
+- status: 🕑 PENDING
+- type: Feature
+- objective: meet and exceed expectations in enterprise
+- prerequisites:
+  - docs/security-and-auth.md: Security & Auth documentation (created in W-083)
+- to-do:
+  - CSRF Protection: Token-based CSRF protection for form submissions
+  - Password Policy Enforcement: Configurable password complexity requirements (uppercase, lowercase, numbers, special chars)
+  - Account Lockout: Automatic account lockout after N failed login attempts (configurable threshold)
+  - Security Audit Logging: Enhanced logging for security events (failed logins, privilege escalations, etc.)
+  - Session Management UI: User-facing session management (view active sessions, revoke sessions)
+  - Security Headers Audit: Review and tighten CSP policy (reduce unsafe-inline, unsafe-eval)
+  - Dependency Scanning: Automated vulnerability scanning for npm dependencies (npm audit integration)
+  - Security Monitoring: Set up alerts for suspicious authentication patterns
+  - MFA (Multi-Factor Authentication): SMS or authenticator app support (planned as plugin, see W-0 auth controller MFA)
+  - OAuth2 Authentication: OAuth2 provider integration (planned as plugin, see W-0 auth controller OAuth2)
+  - LDAP Authentication: LDAP/Active Directory integration (planned as plugin, see W-0 auth controller LDAP)
+
+### W-085: build: make bump-version.js script available to site developers
+- status: 🕑 PENDING
+- type: Feature
+- objective: better build env for site developers
+- to-do:
+  - externalize configuration: file list, regex patterns
+  - make bump script available to site developers (where? how?)
+  - document usage (config & run)
+
+### W-086: gen-ai: review developer facing doc and AI agent facing doc
+- status: 🕑 PENDING
+- type: Feature
+- objective: more effective vibe coding
+- prerequisites:
+  - docs/genai-development.md
+  - docs/genai-instructions.md
+  - docs/dev/working/W-086-genai-docs-review.md
+- to-do:
+  - review and enhance both docs
 
 ### W-081: tests: restructure for better maintainability
 - status: 🕑 PENDING (post-1.0)

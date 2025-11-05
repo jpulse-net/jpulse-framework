@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / REST API Reference v1.0.3
+# jPulse Framework / Docs / REST API Reference v0.1.4
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -35,6 +35,8 @@ https://your-domain.com/api/1/
 ```
 
 ## 🔐 Authentication & Authorization
+
+> **📖 Complete Security Guide**: See [Security & Authentication](security-and-auth.md) for comprehensive documentation on authentication, authorization, session management, and security best practices.
 
 ### Middleware Stack
 All API endpoints use a standardized middleware stack for security and access control:

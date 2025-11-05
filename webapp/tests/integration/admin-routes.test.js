@@ -3,7 +3,7 @@
  * @tagline         Integration tests for admin route authentication (W-013)
  * @description     Tests admin route protection and authentication middleware
  * @file            webapp/tests/integration/admin-routes.test.js
- * @version         0.1.4
+ * @version         1.0.4
  * @release         2025-11-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

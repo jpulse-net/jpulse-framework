@@ -118,7 +118,7 @@ Whether you code manually or with AI assistance, jPulse's "don't make me think" 
 # Create a new jPulse site
 mkdir my-jpulse-site && cd my-jpulse-site
 npm install @jpulse-net/jpulse-framework
-npx jpulse-configure
+npx jpulse configure
 npm install
 npm start
 # Visit http://localhost:8080
@@ -204,7 +204,7 @@ jPulse is designed for:
 - ✅ **Markdown Documentation Filtering (v0.7.17)**: Complete .jpulse-ignore implementation for content control with gitignore-like syntax and enhanced test runner with color support
 - ✅ **Standardized Error Handling & Testing (v0.7.16)**: Complete error handling standardization across all controllers, enhanced test framework with dynamic statistics, and comprehensive sendError functionality
 - ✅ **Clean Deployment Strategy (v0.7.0)**: Complete "don't make me think" deployment automation with interactive setup, production templates, and MongoDB security
-- ✅ **Package Distribution (v0.6.0+)**: Create new sites with `npx jpulse-configure` - clean repository separation
+- ✅ **Package Distribution (v0.6.0+)**: Create new sites with `npx jpulse configure` - clean repository separation
 
 ---
 

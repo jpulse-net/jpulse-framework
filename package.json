@@ -5,9 +5,7 @@
     "type": "module",
     "main": "webapp/app.js",
     "bin": {
-        "jpulse-configure": "./bin/configure.js",
-        "jpulse-update": "./bin/jpulse-update.js",
-        "jpulse-framework": "./bin/jpulse-framework.js"
+        "jpulse": "./bin/jpulse-framework.js"
     },
     "scripts": {
         "start": "node webapp/app.js",

@@ -40,7 +40,7 @@ Complete guide for site developers building jPulse applications with Gen-AI assi
 ```bash
 mkdir my-jpulse-site && cd my-jpulse-site
 npm install @jpulse-net/jpulse-framework
-npx jpulse-configure
+npx jpulse configure
 npm install
 npm start
 ```

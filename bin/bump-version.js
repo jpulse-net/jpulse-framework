@@ -14,160 +14,102 @@
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
  */
 
-const conf = {
-    // Explicit file patterns for each directory of interest
-    filePatterns: [
-        // Root level files
-        'package.json',
-        'package-lock.json',
-        'README.md',
-        'babel.config.cjs',
-
-        // Bin directory
-        'bin/*.js',
-        'bin/*.sh',
-
-        // Docs directory
-        'docs/*.md',
-        'docs/dev/*.md',
-
-        // WebApp directory
-        'webapp/*.conf',
-        'webapp/*.js',
-        'webapp/controller/*.js',
-        'webapp/model/*.js',
-        'webapp/utils/*.js',
-        'webapp/translations/*.js',
-        'webapp/translations/*.conf',
-        'webapp/view/*.css',
-        'webapp/view/*.js',
-        'webapp/view/*.tmpl',
-        'webapp/view/*/*.shtml',
-
-        // Site directory
-        'site/webapp/*.conf.tmpl',
-        'site/webapp/*.js',
-        'site/webapp/controller/*.js',
-        'site/webapp/model/*.js',
-        'site/webapp/translations/*.conf',
-        'site/webapp/view/*.css',
-        'site/webapp/view/*.js',
-        'site/webapp/view/*.tmpl',
-        'site/webapp/view/**/*.css',
-        'site/webapp/view/**/*.js',
-        'site/webapp/view/**/*.shtml',
-        'site/webapp/view/**/*.tmpl',
-
-        // Template files
-        'templates/README.md',
-        'templates/**/*.md',
-        'templates/**/*.sh',
-        'templates/**/*.js',
-        'templates/**/*.cjs',
-        'templates/**/*.conf',
-        'templates/**/*.tmpl',
-        'templates/**/*.shtml',
-
-        // Test files
-        'webapp/tests/**/*.js',
-        'webapp/tests/**/*.conf',
-    ],
-
-    // Specific file update patterns for version/content replacement
-    fileUpdateRules: [
-        {
-            pattern: 'package.json',
-            replacements: [
-                { from: /"version": "[\d.]+(-[a-z]+\.\d+)?"/,
-                  to: (version) => `"version": "${version}"` }
-            ]
-        },
-        {
-            pattern: 'package-lock.json',
-            replacements: [
-                { from: /("name": "\@jpulse-net\/jpulse-framework",\s+"version": ")[\d.]+(-[a-z]+\.\d+)?/g,
-                  to: (version, match, p1) => `${p1}${version}`, scope: 'version' }
-            ]
-        },
-        {
-            pattern: 'webapp/app.conf',
-            replacements: [
-                { from: /(version: +['"])[\d.]+(-[a-z]+\.\d+)?/,
-                  to: (version, match, p1) => `${p1}${version}`, scope: 'version' },
-                { from: /(release: +['"])[\d-]+/,
-                  to: (release, match, p1) => `${p1}${release}`, scope: 'release' }
-            ]
-        },
-        {
-            pattern: 'README.md',
-            replacements: [
-                { from: /^(# jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m,
-                  to: (version, match, p1) => `${p1}${version}` }
-            ]
-        },
-        {
-            pattern: 'docs/*.md',
-            replacements: [
-                { from: /^(# jPulse Framework.* v)[\d.]+(-[a-z]+\.\d+)?/m,
-                  to: (version, match, p1) => `${p1}${version}` }
-            ]
-        },
-        {
-            pattern: 'docs/**/*.md',
-            replacements: [
-                { from: /^(# jPulse Framework.* v)[\d.]+(-[a-z]+\.\d+)?/m,
-                  to: (version, match, p1) => `${p1}${version}` }
-            ]
-        },
-        {
-            pattern: 'templates/*.md',
-            replacements: [
-                { from: /^(# .* jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m,
-                  to: (version, match, p1) => `${p1}${version}` }
-            ]
-        },
-        {
-            pattern: 'templates/**/*.md',
-            replacements: [
-                { from: /^(# .*jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m,
-                  to: (version, match, p1) => `${p1}${version}` }
-            ]
-        },
-        {
-            pattern: 'webapp/view/home/index.shtml',
-            replacements: [
-                { from: /(jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m,
-                  to: (version, match, p1) => `${p1}${version}` },
-            ]
-        },
-    ],
-
-    // Header update patterns for source files
-    headerUpdatePatterns: {
-        version: /([\*#] @version\s+)[\d.]+(-[a-z]+\.\d+)?/, // Captures comment prefix: * @version or # @version
-        release: /([\*#] @release\s+)[\d-]+/  // Captures comment prefix: * @release or # @release
-    }
-};
-
 import fs from 'fs';
 import path from 'path';
+
+/**
+ * Find bump-version configuration file based on context
+ */
+function findBumpConfig() {
+    // Check if we're in a site (has site/webapp/app.conf)
+    if (fs.existsSync('site/webapp/app.conf')) {
+        const siteConfig = 'site/webapp/bump-version.conf';
+        if (fs.existsSync(siteConfig)) {
+            return siteConfig;
+        }
+        return null; // Show instructions
+    }
+
+    // Framework repo (has webapp/app.conf directly, not in node_modules)
+    if (fs.existsSync('webapp/app.conf') && !process.cwd().includes('node_modules')) {
+        const frameworkConfig = 'bin/bump-version.conf';
+        if (fs.existsSync(frameworkConfig)) {
+            return frameworkConfig;
+        }
+        return null; // Show instructions
+    }
+
+    return null;
+}
+
+/**
+ * Load configuration from file
+ */
+function loadBumpConfig() {
+    const configPath = findBumpConfig();
+
+    if (!configPath) {
+        showConfigInstructions();
+        return null;
+    }
+
+    try {
+        const content = fs.readFileSync(configPath, 'utf8');
+        return new Function(`return (${content})`)();
+    } catch (error) {
+        console.error(`❌ Error loading ${configPath}: ${error.message}`);
+        process.exit(1);
+    }
+}
+
+/**
+ * Detect execution context
+ */
+function detectContext() {
+    if (fs.existsSync('site/webapp/app.conf')) {
+        return 'site';
+    }
+    if (fs.existsSync('webapp/app.conf') && !process.cwd().includes('node_modules')) {
+        return 'framework';
+    }
+    return 'unknown';
+}
+
+/**
+ * Show error when configuration file is missing
+ */
+function showConfigInstructions() {
+    const context = detectContext();
+    const configPath = context === 'framework' ? 'bin/bump-version.conf' : 'site/webapp/bump-version.conf';
+
+    console.error(`\n❌ Configuration file not found: ${configPath}`);
+    console.error('');
+    console.error('💡 Create the configuration file before using bump-version.');
+    if (context === 'site') {
+        console.error('📖 See https://your-domain/jpulse/getting-started#version-management for configuration file format.');
+        console.error(`💡 Or copy from template: cp node_modules/@jpulse-net/jpulse-framework/templates/webapp/bump-version.conf.tmpl ${configPath}`);
+    }
+}
 
 const newVersion = process.argv[2];
 const providedDate = process.argv[3];
 const newDate = providedDate || new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
 if (!newVersion) {
+  // Check if config exists first
+  const configPath = findBumpConfig();
+  if (!configPath) {
+      showConfigInstructions();
+      process.exit(1);
+  }
+
+  // Config exists but no version - show usage
   console.error('❌ Please provide a new version number');
-  console.error('Usage: node bin/bump-version.js <new-version> [new-date]');
-  console.error('Example: node bin/bump-version.js 1.0.1');
-  console.error('Example: node bin/bump-version.js 1.0.1 2025-01-27');
+  console.error('Usage: npx jpulse bump-version <new-version> [new-date]');
+  console.error('Example: npx jpulse bump-version 1.0.1');
+  console.error('Example: npx jpulse bump-version 1.0.1 2025-01-27');
   console.error('Note: If no date is provided, today\'s date will be used automatically');
   process.exit(1);
-}
-
-// Show what date is being used
-if (!providedDate) {
-  console.log(`📅 No date provided, using today's date: ${newDate}`);
 }
 
 // Validate version format (simple check)
@@ -182,9 +124,18 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
   process.exit(1);
 }
 
-console.log(`🚀 Bumping version to ${newVersion} with release date ${newDate}...`);
+// Load configuration
+const conf = loadBumpConfig();
+if (!conf) {
+    process.exit(1);
+}
 
-// Configuration moved to conf object above
+// Show what date is being used
+if (!providedDate) {
+  console.log(`📅 No date provided, using today's date: ${newDate}`);
+}
+
+console.log(`🚀 Bumping version to ${newVersion} with release date ${newDate}...`);
 
 let updatedFiles = 0;
 let errors = 0;
@@ -214,7 +165,7 @@ function discoverFiles(dir = '.') {
                     scanDirectory(fullPath);
                 } else if (entry.isFile()) {
                     // Check if file matches any pattern
-                    const shouldInclude = conf.filePatterns.some(pattern => 
+                    const shouldInclude = conf.filePatterns.some(pattern =>
                         matchesPattern(relativePath, pattern)
                     );
                     if (shouldInclude) {
@@ -236,7 +187,7 @@ function updateFileContent(filePath, content) {
     let hasChanges = false;
 
     // Find matching update rules
-    const matchingRules = conf.fileUpdateRules.filter(rule => 
+    const matchingRules = conf.fileUpdateRules.filter(rule =>
         matchesPattern(filePath, rule.pattern)
     );
     for (const rule of matchingRules) {
@@ -267,7 +218,7 @@ function updateFileHeaders(filePath, content) {
     // Update version in header using capture group
     if (conf.headerUpdatePatterns.version.test(updatedContent)) {
         updatedContent = updatedContent.replace(
-            conf.headerUpdatePatterns.version, 
+            conf.headerUpdatePatterns.version,
             '$1' + newVersion
         );
         hasChanges = true;
@@ -276,7 +227,7 @@ function updateFileHeaders(filePath, content) {
     // Update release date in header using capture group
     if (conf.headerUpdatePatterns.release.test(updatedContent)) {
         updatedContent = updatedContent.replace(
-            conf.headerUpdatePatterns.release, 
+            conf.headerUpdatePatterns.release,
             '$1' + newDate
         );
         hasChanges = true;

@@ -237,7 +237,7 @@ npm view @jpulse-net/jpulse-framework --registry=https://npm.pkg.github.com
 # 2. Test installation in clean directory (requires auth for private repo)
 mkdir test-install && cd test-install
 npm install @jpulse-net/jpulse-framework
-npx jpulse-configure
+npx jpulse configure
 
 # 3. Install dependencies and verify CLI tools work
 npm install

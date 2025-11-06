@@ -15,6 +15,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 import { CONFIG_REGISTRY, buildCompleteConfig, expandAllVariables } from './config-registry.js';
 
 /**
@@ -159,6 +160,31 @@ function getVersionInfo(packagePath) {
 }
 
 /**
+ * Update framework package
+ * @param {string|null} versionArg - Optional version argument (e.g., "@jpulse-net/jpulse-framework@1.0.0-rc.1")
+ */
+function updatePackage(versionArg) {
+    if (versionArg) {
+        // Parse version argument
+        const match = versionArg.match(/^@jpulse-net\/jpulse-framework@(.+)$/);
+        if (!match) {
+            console.error('❌ Invalid version format.');
+            console.error('Usage: npx jpulse update [@jpulse-net/jpulse-framework@version]');
+            console.error('Example: npx jpulse update');
+            console.error('Example: npx jpulse update @jpulse-net/jpulse-framework@1.0.0-rc.1');
+            process.exit(1);
+        }
+        const version = match[1];
+        console.log(`📦 Installing @jpulse-net/jpulse-framework@${version}...`);
+        execSync(`npm install @jpulse-net/jpulse-framework@${version}`, { stdio: 'inherit' });
+    } else {
+        // Update to latest
+        console.log('📦 Updating @jpulse-net/jpulse-framework to latest...');
+        execSync('npm update @jpulse-net/jpulse-framework', { stdio: 'inherit' });
+    }
+}
+
+/**
  * Main sync function
  */
 function sync() {
@@ -262,6 +288,11 @@ function sync() {
     }
 }
 
+// Parse command line arguments
+const versionArg = process.argv[2] || null;
+
+// Update package first, then sync files
+updatePackage(versionArg);
 sync();
 
 // EOF bin/jpulse-update.js

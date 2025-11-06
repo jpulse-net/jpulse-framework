@@ -23,7 +23,7 @@ mkdir my-first-site && cd my-first-site
 npm install @jpulse-net/jpulse-framework
 
 # Configure your site
-npx jpulse-configure
+npx jpulse configure
 ```
 
 ### Install Dependencies, and Start Server
@@ -60,7 +60,7 @@ my-first-site/
 
 ### Understanding Site Structure
 ```bash
-# Site structure is already created by jpulse-configure
+# Site structure is already created by npx jpulse configure
 # Your site directory includes:
 ls -la
 # webapp/           - Framework files (managed by jpulse-update)
@@ -465,33 +465,43 @@ npm start
 Keep your framework up to date with the latest features and fixes:
 
 ```bash
-# Update framework
-npm run update
-# Files get automatically synchronized to webapp after package update
-
-# Preview changes before syncing (manual sync only)
-npm run jpulse-update --dry-run
-
-# Manual sync (if needed)
-npm run jpulse-update
+# Update to latest production version:
+npx jpulse update
 
 # Update to a pre-release (beta, RC):
-npm install @jpulse-net/jpulse-framework@1.0.0-rc.1
-npm run jpulse-update  # Sync framework files
+npx jpulse update @jpulse-net/jpulse-framework@1.0.0-rc.1
 
 # Review changes
 git diff webapp/
-git commit -am "Update framework to v1.0.1" # fix version
+git commit -am "Update framework to v1.0.1"
 ```
 
-**How it works**: When you run `npm run update`, the framework package is updated and files are automatically synchronized to your site. No extra steps needed!
+**How it works**: `npx jpulse update` automatically updates the framework package to the latest version and syncs files. To test a specific version (beta/RC), provide the version argument: `npx jpulse update @jpulse-net/jpulse-framework@version`.
 
-**Enhanced update features**:
+**Version Management**:
 
-- **Automatic sync** - Framework files sync automatically after package update
-- **`--dry-run` support** - Preview changes before applying them (manual sync only)
-- **`jpulse-update` command** - Manual CLI tool for framework file syncs (advanced use)
-- **Smart version detection** - Only syncs when framework version actually changes
+- **Bump site version** - Use `npx jpulse bump-version <version>` to update version numbers across site files
+- **Configuration file** - `site/webapp/bump-version.conf` controls which files are updated (created automatically on initial setup)
+- **See documentation** - Visit `/jpulse/getting-started#version-management` for complete version bumping guide
+
+### Version Management
+
+Keep your site version numbers synchronized across all files:
+
+```bash
+# Bump version to 0.2.0
+npx jpulse bump-version 0.2.0
+
+# Bump version with specific release date
+npx jpulse bump-version 0.2.0 2025-01-27
+```
+
+**Configuration**: The `site/webapp/bump-version.conf` file (created automatically on initial setup) controls:
+- Which files to process (file patterns)
+- How to update version numbers (regex patterns)
+- Header update patterns for source files
+
+**Customization**: Edit `site/webapp/bump-version.conf` to add or modify file patterns and update rules for your specific needs.
 
 ## Next Steps
 

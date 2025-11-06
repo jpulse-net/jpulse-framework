@@ -35441,6 +35441,7 @@ CHANGES ACCEPTED:
 - webapp/translations/de.conf: successDialog i18n added
 - webapp/view/jpulse-examples/ui-widgets.shtml: Updated examples
 
+
 ============================================================
 2025-11-04 20:04
 
@@ -35470,3 +35471,61 @@ CHANGES COMPLETED:
 - commit-message.txt: Complete v1.0.4 release message following established format
 
 STATUS: Ready for version bump and release. All documentation updated, bugs fixed, commit message prepared.
+
+
+============================================================
+2025-11-05 23:09
+
+- check if a beta/rc update actually works with our changes!
+  - possible gotcha: npm install of a specific version works,
+  - but what about the npx jpulse update after that?
+  - does it re-install the latest prod version?
+
+SUMMARY:
+- Verified that `npx jpulse update` only syncs files from the currently installed package - it does NOT run `npm update`
+- Confirmed beta/RC workflow works correctly: `npm install @jpulse-net/jpulse-framework@1.0.0-rc.1` followed by `npx jpulse update` will sync from the installed RC version, not upgrade to production
+- Fixed misleading documentation that incorrectly stated `npx jpulse update` updates the package automatically
+- Updated all documentation to clarify the two-step process: (1) update package with `npm update` or `npm install`, (2) sync files with `npx jpulse update`
+- Updated working document to reflect actual implementation (auto-update was not implemented to preserve ability to test specific versions)
+
+CHANGES COMPLETED:
+- docs/installation.md: Fixed misleading comments, clarified two-step update process, added explanation of beta/RC workflow
+- docs/getting-started.md: Fixed misleading comments, clarified two-step update process, added explanation of beta/RC workflow
+- docs/deployment.md: Fixed update command to show two-step process
+- docs/dev/work-items.md: Updated command description to clarify sync-only behavior
+- docs/dev/working/W-085-npx-tools-strategy.md: Updated to reflect actual implementation (sync-only, not auto-update)
+
+STATUS: Documentation corrected. Beta/RC update workflow verified to work correctly - `npx jpulse update` respects the installed package version and does not upgrade to latest production.
+
+
+============================================================
+2025-11-05 23:19
+
+- implement as agent
+- update docs
+
+SUMMARY:
+- Implemented Option 2: Single command with optional version argument for `npx jpulse update`
+- Modified `bin/jpulse-update.js` to:
+  - Accept optional version argument: `@jpulse-net/jpulse-framework@version`
+  - If no argument: runs `npm update @jpulse-net/jpulse-framework` (updates to latest)
+  - If version provided: runs `npm install @jpulse-net/jpulse-framework@version` (specific version)
+  - Then syncs framework files from installed package
+- Updated help text in `bin/jpulse-framework.js` to reflect new command syntax
+- Updated all documentation to reflect new single-command workflow:
+  - docs/installation.md: Simplified to single command examples
+  - docs/getting-started.md: Updated update workflow section
+  - docs/deployment.md: Simplified troubleshooting section
+  - docs/dev/work-items.md: Updated command description
+  - docs/dev/working/W-085-npx-tools-strategy.md: Updated implementation details
+
+CHANGES COMPLETED:
+- bin/jpulse-update.js: Added `updatePackage()` function, imports `execSync`, parses version argument, runs npm update/install before syncing
+- bin/jpulse-framework.js: Updated help text for update command
+- docs/installation.md: Changed from two-step to single-command workflow
+- docs/getting-started.md: Changed from two-step to single-command workflow
+- docs/deployment.md: Simplified update command in troubleshooting
+- docs/dev/work-items.md: Updated command description
+- docs/dev/working/W-085-npx-tools-strategy.md: Updated implementation section with actual behavior
+
+STATUS: Implementation complete. Option 2 provides intuitive single-command workflow for common case (update to latest) while supporting edge cases (beta/RC versions) with familiar npm pattern.

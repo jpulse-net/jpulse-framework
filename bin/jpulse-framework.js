@@ -16,6 +16,7 @@
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,49 +24,110 @@ const __dirname = path.dirname(__filename);
 const command = process.argv[2];
 
 const commands = {
-    'jpulse-configure': './configure.js',
     'configure': './configure.js',
-    'jpulse-update': './jpulse-update.js',
+    'config': './configure.js',
     'update': './jpulse-update.js',
-    'jpulse-install': './jpulse-install.sh',
+    'bump-version': './bump-version.js',
+    'version-bump': './bump-version.js',
     'install': './jpulse-install.sh',
-    'jpulse-mongodb-setup': './mongodb-setup.sh',
     'mongodb-setup': './mongodb-setup.sh',
-    'jpulse-validate': './jpulse-validate.sh',
+    'db-setup': './mongodb-setup.sh',
     'validate': './jpulse-validate.sh'
 };
 
-if (!command || !commands[command]) {
+/**
+ * Detect execution context (framework repo vs site)
+ */
+function detectContext() {
+    const cwd = process.cwd();
+
+    // Site: has site/webapp/app.conf and framework in node_modules
+    if (fs.existsSync('site/webapp/app.conf') &&
+        fs.existsSync('node_modules/@jpulse-net/jpulse-framework')) {
+        return 'site';
+    }
+
+    // Framework repo: has webapp/app.conf directly (not in node_modules)
+    if (fs.existsSync('webapp/app.conf') && !cwd.includes('node_modules')) {
+        return 'framework';
+    }
+
+    return 'unknown';
+}
+
+/**
+ * Show context-aware help
+ */
+function showHelp(context) {
     console.log('jPulse Framework CLI');
     console.log('');
-    console.log('Available commands:');
-    console.log('  jpulse-configure - Configure jPulse site (setup/update configuration)');
-    console.log('  jpulse-update    - Update framework files');
-    console.log('  install          - Install system dependencies (run as root)');
-    console.log('  mongodb-setup    - Setup MongoDB database');
-    console.log('  validate         - Validate deployment installation');
-    console.log('');
-    console.log('Usage:');
-    console.log('  npx jpulse-framework <command>');
-    console.log('  npm run jpulse-<command>  (recommended)');
+
+    if (context === 'framework') {
+        console.log('Available commands (framework development):');
+        console.log('  bump-version    - Bump version numbers across framework files');
+        console.log('');
+        console.log('Usage:');
+        console.log('  npx jpulse bump-version <version> [date]');
+        console.log('  node bin/bump-version.js <version> [date]');
+        console.log('');
+        console.log('Example:');
+        console.log('  npx jpulse bump-version 1.0.5');
+        console.log('  npx jpulse bump-version 1.0.5 2025-01-27');
+    } else if (context === 'site') {
+        console.log('Available commands:');
+        console.log('  configure       - Configure jPulse site (setup/update configuration)');
+        console.log('  update          - Update framework to latest and sync files');
+        console.log('  bump-version    - Bump version numbers across site files');
+        console.log('  install         - Install system dependencies (run as root)');
+        console.log('  mongodb-setup   - Setup MongoDB database');
+        console.log('  validate        - Validate deployment installation');
+        console.log('');
+        console.log('Usage:');
+        console.log('  npx jpulse <command> [options]');
+        console.log('');
+        console.log('Examples:');
+        console.log('  npx jpulse configure');
+        console.log('  npx jpulse update');
+        console.log('  npx jpulse update @jpulse-net/jpulse-framework@1.0.0-rc.1');
+        console.log('  npx jpulse bump-version 0.2.0');
+        console.log('  npx jpulse validate');
+    } else {
+        // Unknown context - show all commands
+        console.log('Available commands:');
+        console.log('  configure       - Configure jPulse site (setup/update configuration)');
+        console.log('  update          - Update framework to latest and sync files');
+        console.log('  bump-version    - Bump version numbers across files');
+        console.log('  install         - Install system dependencies (run as root)');
+        console.log('  mongodb-setup   - Setup MongoDB database');
+        console.log('  validate        - Validate deployment installation');
+        console.log('');
+        console.log('Usage:');
+        console.log('  npx jpulse <command> [options]');
+    }
+}
+
+if (!command || !commands[command]) {
+    const context = detectContext();
+    showHelp(context);
     process.exit(1);
 }
 
 const scriptPath = path.join(__dirname, commands[command]);
+const args = process.argv.slice(3); // Pass through remaining arguments
 
 // Determine if it's a Node.js script or shell script
 const isNodeScript = commands[command].endsWith('.js');
 
 let child;
 if (isNodeScript) {
-    // Execute Node.js script
-    child = spawn('node', [scriptPath], {
+    // Execute Node.js script with remaining arguments
+    child = spawn('node', [scriptPath, ...args], {
         stdio: 'inherit',
         cwd: process.cwd()
     });
 } else {
-    // Execute shell script
-    child = spawn('bash', [scriptPath], {
+    // Execute shell script with remaining arguments
+    child = spawn('bash', [scriptPath, ...args], {
         stdio: 'inherit',
         cwd: process.cwd()
     });

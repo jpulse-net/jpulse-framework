@@ -34,7 +34,7 @@ jPulse Framework is designed for **Gen-AI development** (aka "vibe coding") - le
 # Create a new jPulse site
 mkdir my-jpulse-site && cd my-jpulse-site
 npm install @jpulse-net/jpulse-framework
-npx jpulse-configure
+npx jpulse configure
 npm install
 npm start
 # Visit http://localhost:8080
@@ -105,7 +105,7 @@ npm start
 
 ## Architecture Overview
 
-### Site Structure (After `npx jpulse-configure`)
+### Site Structure (After `npx jpulse configure`)
 
 ```
 my-jpulse-site/
@@ -130,9 +130,9 @@ my-jpulse-site/
 
 **Framework Updates:**
 ```bash
-npm run update  # Updates framework to latest version
+npx jpulse update  # Updates framework package and syncs files
 # or manually:
-npm update @jpulse-net/jpulse-framework && npm run jpulse-update
+npm update @jpulse-net/jpulse-framework && npx jpulse update
 ```
 
 ## Documentation
@@ -164,7 +164,7 @@ npm update @jpulse-net/jpulse-framework && npm run jpulse-update
 - ✅ **Zero-Configuration Auto-Discovery (v1.0.0-rc.2)** - Complete automatic controller registration, API endpoint discovery, and SPA routing detection
 - ✅ **Production-Ready WebSocket and Redis Integration (v1.0.0-rc.1)** - Complete real-time communication capabilities for multi-user, multi-instance, and multi-server deployments
 - ✅ **[MPA vs. SPA Architecture Guide](docs/mpa-vs-spa.md)** - Comprehensive comparison with diagrams showing when to use each pattern
-- ✅ **Package Distribution (v0.6.0+)** - npm-based site creation with `npx jpulse-configure`
+- ✅ **Package Distribution (v0.6.0+)** - npm-based site creation with `npx jpulse configure`
 
 ## Community & Support
 

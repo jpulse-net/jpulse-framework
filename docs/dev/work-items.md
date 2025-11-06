@@ -1630,22 +1630,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - secondary: developers evaluating frameworks
 - this is handled by work item T-001 in the jpulse.net project
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-083, v1.0.4: minor v1.0 enhancements & bug fixes
-- status: 🚧 IN_PROGRESS
+- status: DONE ✅
 - type: Feature
 - objectives: stabilize release
 - deliverables:
@@ -1670,11 +1656,49 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-085: tools: npx strategy; make bump-version.js script available to site developers
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: more intuitive tools env for site developers
+- prerequisites:
+  - docs/dev/working/W-085-npx-tools-strategy.md
+- to-do:
+  - define strategy for npm jpulse for all utilities
+  - externalize configuration: file list, regex patterns
+  - make bump script available to site developers (where? how?)
+  - document usage (config & run)
+- consolidated command for jpulse-framework development:
+  - npx jpulse bump-version 1.1.0
+- consolidated commands for site development:
+  - npx jpulse configure       - configure jPulse site (setup/update configuration)
+  - npx jpulse update          - update framework to latest and sync files (or specify version: @jpulse-net/jpulse-framework@version)
+  - npx jpulse bump-version    - bump version numbers across site files
+  - npx jpulse install         - install system dependencies (run as root)
+  - npx jpulse mongodb-setup   - setup MongoDB database
+  - npx jpulse validate        - validate deployment installation
+- deliverables:
+  - bin/bump-version.js -- modified to use .conf file
+  - bin/bump-version.conf -- NEW configuration file
+  - bin/configure.js -- 
+  - bin/jpulse-framework.js -- 
+  - package.json -- 
+
+
+
+
+
+
+
 pending:
 
 
 old pending:
-- bin/bump-version.js: generalize for site dev work; externalize config
 - view controller: return unexpanded {{handlebars}} if not exist, instead of empty return
 - navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
@@ -1687,6 +1711,7 @@ old pending:
 
 
 ### Potential next items:
+- W-086: gen-ai: review developer facing doc and AI agent facing doc
 - W-045: architecture: create plugin infrastructure
 - W-068: view: create responsive sidebar
 - W-0: view: page headers with anchor links for copy & paste in browser URL bar
@@ -1921,15 +1946,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - MFA (Multi-Factor Authentication): SMS or authenticator app support (planned as plugin, see W-0 auth controller MFA)
   - OAuth2 Authentication: OAuth2 provider integration (planned as plugin, see W-0 auth controller OAuth2)
   - LDAP Authentication: LDAP/Active Directory integration (planned as plugin, see W-0 auth controller LDAP)
-
-### W-085: build: make bump-version.js script available to site developers
-- status: 🕑 PENDING
-- type: Feature
-- objective: better build env for site developers
-- to-do:
-  - externalize configuration: file list, regex patterns
-  - make bump script available to site developers (where? how?)
-  - document usage (config & run)
 
 ### W-086: gen-ai: review developer facing doc and AI agent facing doc
 - status: 🕑 PENDING

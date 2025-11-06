@@ -1,6 +1,6 @@
 # %SITE_NAME% - Site based on jPulse Framework v1.0.4
 
-A production-ready jPulse Framework site created with `npx jpulse-setup`.
+A production-ready jPulse Framework site created with `npx jpulse configure`.
 
 ___________________________________________________________
 ## 📝 About This README
@@ -56,10 +56,10 @@ open http://localhost:8080/
 
 ### Production Deployment
 ```bash
-sudo npm run jpulse-install     # System setup (as root)
+sudo npx jpulse install         # System setup (as root)
 nano .env                       # Configure environment
-npm run jpulse-mongodb-setup    # Database setup
-npm run jpulse-validate         # Validate installation
+npx jpulse mongodb-setup        # Database setup
+npx jpulse validate             # Validate installation
 pm2 start deploy/ecosystem.prod.config.cjs && pm2 save  # Start production
 ```
 
@@ -81,7 +81,7 @@ pm2 start deploy/ecosystem.prod.config.cjs && pm2 save  # Start production
 
 ### Deployment Guides
 - **Site Integration**: `deploy/README.md` (comprehensive deployment procedures)
-- **Quick Troubleshooting**: Run `npm run jpulse-validate` for diagnostics
+- **Quick Troubleshooting**: Run `npx jpulse validate` for diagnostics
 
 ### Framework Support
 - [GitHub Repository](https://github.com/jpulse-net/jpulse-framework)
@@ -92,7 +92,7 @@ pm2 start deploy/ecosystem.prod.config.cjs && pm2 save  # Start production
 <!--
  * @name            jPulse Framework / Site README
  * @tagline         Site-specific README for sites based on jPulse Framework
- * @description     Generated README for sites created with jpulse-setup
+ * @description     Generated README for sites created with npx jpulse configure
  * @site            %SITE_NAME%
  * @generated       %GENERATION_DATE%
  * @file            templates/README.md

@@ -228,7 +228,7 @@ async function configureNewFeaturesOnly() {
         await generateIncrementalEnv(existingVars, config, templateSections, missingVars);
 
         console.log('\n✅ Configuration updated successfully!');
-        console.log('💡 Run "npm run jpulse-validate" to test your configuration.');
+        console.log('💡 Run "npx jpulse validate" to test your configuration.');
 
         process.exit(0);
 
@@ -656,13 +656,7 @@ function createSitePackageJson(config) {
         scripts: {
             start: "node webapp/app.js",
             dev: "node webapp/app.js",
-            prod: "NODE_ENV=production node webapp/app.js",
-            "update": "npm update @jpulse-net/jpulse-framework && npm run jpulse-update",
-            "jpulse-configure": "npx jpulse-framework jpulse-configure",
-            "jpulse-install": "npx jpulse-framework jpulse-install",
-            "jpulse-mongodb-setup": "bash -c 'source .env && npx jpulse-framework jpulse-mongodb-setup'",
-            "jpulse-validate": "bash -c 'source .env && npx jpulse-framework jpulse-validate'",
-            "jpulse-update": "npx jpulse-framework jpulse-update"
+            prod: "NODE_ENV=production node webapp/app.js"
         },
         dependencies: {
             "@jpulse-net/jpulse-framework": frameworkPackage.version.startsWith('0.') ? `~0` : `^${frameworkPackage.version}`
@@ -792,6 +786,14 @@ function copySiteTemplates(config, frameworkVersion, deploymentType) {
         const processedContent = expandAllVariables(templateContent, config, deploymentType);
         fs.writeFileSync('site/webapp/view/site-common.js.tmpl', processedContent);
     }
+
+    // Copy bump-version.conf template
+    const bumpVersionTemplateSrc = path.join(packageRoot, 'templates/webapp/bump-version.conf.tmpl');
+    if (fs.existsSync(bumpVersionTemplateSrc)) {
+        const templateContent = fs.readFileSync(bumpVersionTemplateSrc, 'utf8');
+        const processedContent = expandAllVariables(templateContent, config, deploymentType);
+        fs.writeFileSync('site/webapp/bump-version.conf', processedContent);
+    }
 }
 
 /**
@@ -891,7 +893,7 @@ async function setup() {
                     console.log('? What would you like to do?');
                     console.log('  1) Configure new features only (recommended)');
                     console.log('  2) Reconfigure from scratch');
-                    console.log('  3) Exit (run jpulse-update first)');
+                    console.log('  3) Exit (run "npx jpulse update" first)');
                     const updateChoice = await question('? Choose (1-3): (1) ');
 
                     if (updateChoice === '3') {
@@ -899,7 +901,7 @@ async function setup() {
                         if (!fs.existsSync('.npmrc') || !fs.readFileSync('.npmrc', 'utf8').includes('@jpulse-net:registry=')) {
                             createNpmrc();
                         }
-                        console.log('💡 Run "npm run jpulse-update" first to sync framework files');
+                        console.log('💡 Run "npx jpulse update" first to sync framework files');
                         process.exit(0);
                     } else if (updateChoice === '2') {
                         // Force full reconfiguration
@@ -1017,16 +1019,16 @@ async function setup() {
         if (config.generateDeployment && deploymentType === 'prod') {
             console.log(`${stepNum++}. Review deployment guide: cat deploy/README.md`);
             console.log(`${stepNum++}. Review environment: cat .env`);
-            console.log(`${stepNum++}. Setup system: sudo npm run jpulse-install`);
-            console.log(`${stepNum++}. Setup database: npm run jpulse-mongodb-setup`);
-            console.log(`${stepNum++}. Validate installation: npm run jpulse-validate`);
+            console.log(`${stepNum++}. Setup system: sudo npx jpulse install`);
+            console.log(`${stepNum++}. Setup database: npx jpulse mongodb-setup`);
+            console.log(`${stepNum++}. Validate installation: npx jpulse validate`);
             console.log(`${stepNum++}. Start application: pm2 start deploy/ecosystem.prod.config.cjs`);
             console.log(`${stepNum++}. Save PM2 configuration: pm2 save`);
         } else {
             console.log(`${stepNum++}. Start ${deploymentType === 'dev' ? 'development' : 'production'}: npm ${deploymentType === 'dev' ? 'run dev' : 'run prod'}`);
         }
         console.log('');
-        console.log('💡 To update framework: npm run update');
+        console.log('💡 To update framework: npx jpulse update');
 
     } catch (error) {
         console.error('\n❌ Setup failed:', error.message);

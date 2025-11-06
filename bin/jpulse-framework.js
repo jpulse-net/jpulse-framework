@@ -4,8 +4,8 @@
  * @tagline         Command dispatcher for jPulse Framework tools
  * @description     Dispatches commands to appropriate shell scripts
  * @file            bin/jpulse-framework.js
- * @version         1.0.4
- * @release         2025-11-05
+ * @version         1.1.0
+ * @release         2025-11-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -113,7 +113,7 @@ if (!command || !commands[command]) {
 }
 
 const scriptPath = path.join(__dirname, commands[command]);
-const args = process.argv.slice(3); // Pass through remaining arguments
+const args = process.argv.slice(3); // Skip command, pass remaining args
 
 // Determine if it's a Node.js script or shell script
 const isNodeScript = commands[command].endsWith('.js');

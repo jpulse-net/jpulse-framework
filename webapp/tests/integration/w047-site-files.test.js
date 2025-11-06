@@ -3,8 +3,8 @@
  * @tagline         Integration tests for W-047 site-specific file loading
  * @description     Tests site-common.css/js loading and handlebars processing
  * @file            webapp/tests/integration/w047-site-files.test.js
- * @version         1.0.4
- * @release         2025-11-05
+ * @version         1.1.0
+ * @release         2025-11-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

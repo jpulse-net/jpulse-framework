@@ -3,11 +3,11 @@
  # @name            jPulse Framework / Bin / Install System
  # @tagline         Install system dependencies for jPulse site
  # @description     This script will install system dependencies for jPulse site
- #                  - Run as root: sudo npm run jpulse-install
+ #                  - Run as root: sudo npx jpulse install
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/jpulse-install.sh
- # @version         1.0.4
- # @release         2025-11-05
+ # @version         1.1.0
+ # @release         2025-11-06
  # @repository      https://github.com/jpulse-net/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,7 +20,7 @@ set -e
 # Security check - must run as root
 if [ "$EUID" -ne 0 ]; then
     echo "❌ SECURITY ERROR: This script must run as root"
-    echo "💡 Run with: sudo npm run jpulse-install"
+    echo "💡 Run with: sudo npx jpulse install"
     exit 1
 fi
 
@@ -241,7 +241,7 @@ systemctl enable --now nginx
 # Post-installation validation
 echo ""
 echo "🧪 Post-installation validation available..."
-echo "💡 Run validation after deployment: npm run jpulse-validate"
+echo "💡 Run validation after deployment: npx jpulse validate"
 
 echo ""
 echo "✅ System installation complete!"
@@ -259,14 +259,14 @@ echo "💡 Next steps:"
 if [[ "$APP_USER" == "jpulse" ]]; then
     echo "   1. Switch to application user: sudo -u jpulse -i"
     echo "   2. Navigate to your jPulse site directory"
-    echo "   3. Setup database: npm run jpulse-mongodb-setup"
-    echo "   4. Validate installation: npm run jpulse-validate"
+    echo "   3. Setup database: npx jpulse mongodb-setup"
+    echo "   4. Validate installation: npx jpulse validate"
     echo "   5. Start application: pm2 start deploy/ecosystem.prod.config.cjs"
     echo "   6. Save PM2 configuration: pm2 save"
 else
     echo "   1. Navigate to your jPulse site directory"
-    echo "   2. Setup database: npm run jpulse-mongodb-setup"
-    echo "   3. Validate installation: npm run jpulse-validate"
+    echo "   2. Setup database: npx jpulse mongodb-setup"
+    echo "   3. Validate installation: npx jpulse validate"
     echo "   4. Start application: pm2 start deploy/ecosystem.prod.config.cjs"
     echo "   5. Save PM2 configuration: pm2 save"
 fi

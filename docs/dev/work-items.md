@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.0.4
+# jPulse Framework / Docs / Dev / Work Items v1.1.0
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1668,11 +1668,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - objective: more intuitive tools env for site developers
 - prerequisites:
   - docs/dev/working/W-085-npx-tools-strategy.md
-- to-do:
-  - define strategy for npm jpulse for all utilities
-  - externalize configuration: file list, regex patterns
-  - make bump script available to site developers (where? how?)
-  - document usage (config & run)
 - consolidated command for jpulse-framework development:
   - npx jpulse bump-version 1.1.0
 - consolidated commands for site development:
@@ -1683,11 +1678,25 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - npx jpulse mongodb-setup   - setup MongoDB database
   - npx jpulse validate        - validate deployment installation
 - deliverables:
-  - bin/bump-version.js -- modified to use .conf file
-  - bin/bump-version.conf -- NEW configuration file
-  - bin/configure.js -- 
-  - bin/jpulse-framework.js -- 
-  - package.json -- 
+  - bin/bump-version.js -- modified to use .conf file, context-aware config discovery (framework vs site)
+  - bin/bump-version.conf -- NEW configuration file for framework version bumping
+  - bin/jpulse-update.js -- enhanced to accept optional version argument, automatically updates package before syncing
+  - bin/jpulse-framework.js -- unified CLI dispatcher with context-aware help, argument passthrough
+  - bin/configure.js -- updated to copy bump-version.conf.tmpl during site setup, updated command references
+  - package.json -- updated bin entry to single "jpulse" command, removed separate jpulse-* entries
+  - templates/webapp/bump-version.conf.tmpl -- NEW template for site-specific version bumping configuration
+  - docs/installation.md -- updated with new single-command update workflow
+  - docs/getting-started.md -- updated framework updates section with new command syntax
+  - docs/deployment.md -- simplified troubleshooting with new update command
+  - docs/dev/work-items.md -- updated command descriptions
+  - docs/dev/working/W-085-npx-tools-strategy.md -- complete strategy documentation with implementation details
+  - README.md -- updated all command references to npx jpulse <command>
+  - docs/README.md -- updated Quick Start and command references
+  - templates/README.md -- updated command references
+  - templates/deploy/README.md -- updated command references
+  - docs/genai-development.md -- updated command references
+  - docs/dev/publishing.md -- updated command references
+  - docs/dev/README.md -- updated CLI tools description
 
 
 
@@ -1733,7 +1742,7 @@ next work item: W-0...
 finishing up work item: W-070:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-083, v1.0.4
+- assume release: W-085, v1.1.0
 - update deliverables in W-076 to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)

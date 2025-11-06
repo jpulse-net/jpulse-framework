@@ -4,8 +4,8 @@
  * @tagline         Comprehensive MongoDB setup validation to prevent authentication failures
  * @description     Tests password hashing compatibility, command structure, and YAML configuration
  * @file            bin/test-mongodb-validation.js
- * @version         1.0.4
- * @release         2025-11-05
+ * @version         1.1.0
+ * @release         2025-11-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -306,23 +306,55 @@ class CrossPlatformTests {
     }
 
     /**
-     * Test 2: Environment variable sourcing in npm scripts
+     * Test 2: Environment variable sourcing guidance
      */
     async testNpmScriptEnvironment() {
-        // Check that npm scripts properly source .env
-        const packageJsonPath = path.join(process.cwd(), 'templates', 'webapp', 'package.json');
+        // With unified CLI (npx jpulse), users run commands directly
+        // Shell scripts should provide clear guidance on environment loading
+        const shellScripts = [
+            'bin/mongodb-setup.sh',
+            'bin/jpulse-validate.sh'
+        ];
 
-        // Since we don't have a template package.json, check the generated one from configure.js
-        const configureScript = fs.readFileSync('bin/configure.js', 'utf8');
+        for (const scriptPath of shellScripts) {
+            if (fs.existsSync(scriptPath)) {
+                const scriptContent = fs.readFileSync(scriptPath, 'utf8');
 
-        // Look for npm script generation that includes environment sourcing
-        if (!configureScript.includes('source .env &&')) {
-            throw new Error('npm scripts should source .env file before running commands');
+                // Check that script validates environment variables
+                if (!scriptContent.includes('-z "$')) {
+                    throw new Error(`${scriptPath} should validate required environment variables`);
+                }
+
+                // Check that script provides guidance on environment loading
+                // Should mention either "source .env" or "npx jpulse" with environment
+                const hasEnvGuidance = scriptContent.includes('source .env') ||
+                                      scriptContent.includes('npx jpulse') ||
+                                      scriptContent.includes('Run: npx jpulse');
+
+                if (!hasEnvGuidance) {
+                    throw new Error(`${scriptPath} should provide guidance on running with environment variables`);
+                }
+            }
         }
 
-        // Check for bash -c wrapper for compatibility
-        if (!configureScript.includes('bash -c ')) {
-            throw new Error('npm scripts should use bash -c wrapper for shell compatibility');
+        // Verify configure.js doesn't generate npm scripts with .env sourcing (we use npx jpulse now)
+        const configureScript = fs.readFileSync('bin/configure.js', 'utf8');
+
+        // Check the createSitePackageJson function doesn't include bash -c 'source .env'
+        if (configureScript.includes("bash -c 'source .env &&") &&
+            configureScript.includes('createSitePackageJson')) {
+            throw new Error('configure.js should not generate npm scripts with .env sourcing (use npx jpulse instead)');
+        }
+
+        // Verify generated package.json structure (scripts should be simple, no .env sourcing)
+        // This is validated by checking that createSitePackageJson only creates start/dev/prod scripts
+        const packageJsonMatch = configureScript.match(/scripts:\s*\{[\s\S]*?\}/);
+        if (packageJsonMatch) {
+            const scriptsSection = packageJsonMatch[0];
+            // Should not have bash -c with source .env
+            if (scriptsSection.includes("bash -c 'source .env")) {
+                throw new Error('Generated package.json should not include npm scripts with .env sourcing');
+            }
         }
     }
 

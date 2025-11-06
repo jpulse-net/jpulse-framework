@@ -4,8 +4,8 @@
  * @tagline         Framework update synchronization CLI tool
  * @description     Updates local framework files from installed package
  * @file            bin/jpulse-update.js
- * @version         1.0.4
- * @release         2025-11-05
+ * @version         1.1.0
+ * @release         2025-11-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -192,7 +192,7 @@ function sync() {
 
     // Check if site is initialized
     if (!fs.existsSync('webapp') || !fs.existsSync('package.json')) {
-        console.error('❌ Site not initialized. Run "npx jpulse-setup" first.');
+        console.error('❌ Site not initialized. Run "npx jpulse configure" first.');
         process.exit(1);
     }
 

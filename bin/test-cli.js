@@ -4,8 +4,8 @@
  * @tagline         Test script for CLI tools validation
  * @description     Tests setup and sync CLI tools in isolated environment
  * @file            bin/test-cli.js
- * @version         1.0.4
- * @release         2025-11-05
+ * @version         1.1.0
+ * @release         2025-11-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -67,7 +67,7 @@ async function testCLI() {
         console.log('📁 Created test directory:', testDir);
 
         // Test setup command with environment variables for non-interactive testing
-        console.log('🚀 Testing jpulse-configure...');
+        console.log('🚀 Testing npx jpulse configure...');
 
         // Set environment variables for automated testing
         process.env.JPULSE_TEST_MODE = 'true';
@@ -133,9 +133,9 @@ async function testCLI() {
             }
         }
 
-        // Verify npm scripts were generated
+        // Verify npm scripts were generated (simplified - no jpulse-* scripts, use npx jpulse instead)
         const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-        const expectedScripts = ['jpulse-install', 'jpulse-mongodb-setup', 'jpulse-validate', 'jpulse-update'];
+        const expectedScripts = ['start', 'dev', 'prod'];
 
         for (const script of expectedScripts) {
             if (!packageJson.scripts[script]) {
@@ -250,7 +250,7 @@ async function testCLI() {
                 // This should exit with code 0 and suggest using jpulse-sync
             } catch (error) {
                 const errorOutput = error.stderr?.toString() || error.stdout?.toString() || '';
-                if (errorOutput.includes('Use "npx jpulse-sync"')) {
+                if (errorOutput.includes('Use "npx jpulse update"')) {
                     // Expected behavior - setup detected existing site
                 } else {
                     throw new Error(`Unexpected error: ${errorOutput}`);

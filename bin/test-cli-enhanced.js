@@ -4,8 +4,8 @@
  * @tagline         Comprehensive CLI validation tests to catch deployment issues early
  * @description     Advanced testing for configuration, template expansion, and deployment validation
  * @file            bin/test-cli-enhanced.js
- * @version         1.0.4
- * @release         2025-11-05
+ * @version         1.1.0
+ * @release         2025-11-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -241,7 +241,7 @@ DB_PASS=%DB_PASS%
             process.env.JPULSE_TEST_DEPLOYMENT = 'prod';
             process.env.JPULSE_TEST_GENERATE_DEPLOY = 'true';
 
-            // Run jpulse-configure with minimal config to generate files
+            // Run npx jpulse configure with minimal config to generate files
             const configInput = [
                 'My Test Site',           // Site name
                 'Test',                   // Site short name
@@ -347,7 +347,7 @@ DB_PASS=%DB_PASS%
             process.env.JPULSE_TEST_DEPLOYMENT = 'prod';
             process.env.JPULSE_TEST_GENERATE_DEPLOY = 'true';
 
-            // Run jpulse-configure to generate package.json
+            // Run npx jpulse configure to generate package.json
             const configInput = [
                 'Test Site',              // Site name
                 'Test',                   // Site short name
@@ -395,25 +395,25 @@ DB_PASS=%DB_PASS%
             filesToCheck.forEach(file => {
                 if (fs.existsSync(file)) {
                     const content = fs.readFileSync(file, 'utf8');
-                    // Look for npm run commands
-                    const commands = content.match(/npm run ([a-z-]+)/g) || [];
+                    // Look for old npm run jpulse-* commands - these should NOT exist anymore
+                    // We now use npx jpulse <command> instead
+                    const commands = content.match(/npm run (jpulse-[a-z-]+)/g) || [];
                     commands.forEach(cmd => {
                         const scriptName = cmd.replace('npm run ', '');
-                        if (!packageJson.scripts || !packageJson.scripts[scriptName]) {
-                            missingCommands.push({
-                                file: path.basename(file),
-                                command: scriptName
-                            });
-                        }
+                        // Any reference to old jpulse-* scripts is an error
+                        missingCommands.push({
+                            file: path.basename(file),
+                            command: scriptName
+                        });
                     });
                 }
             });
 
             if (missingCommands.length > 0) {
                 const errorMsg = missingCommands.map(item =>
-                    `${item.file} references "npm run ${item.command}" but script doesn't exist`
+                    `${item.file} references "npm run ${item.command}" - should use "npx jpulse" instead`
                 ).join('\n  ');
-                throw new Error(`Missing npm script references:\n  ${errorMsg}`);
+                throw new Error(`Outdated npm script references found:\n  ${errorMsg}`);
             }
 
         } finally {
@@ -570,7 +570,7 @@ class EnvironmentConsistencyTests {
         process.env.JPULSE_TEST_GENERATE_DEPLOY = 'true';
 
         try {
-            // Run jpulse-configure to generate .env
+            // Run npx jpulse configure to generate .env
             execSync('node ../bin/configure.js', { stdio: 'pipe' });
 
             // Read generated .env

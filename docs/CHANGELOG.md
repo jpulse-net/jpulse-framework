@@ -1,6 +1,114 @@
-# jPulse Framework / Docs / Version History v1.0.4
+# jPulse Framework / Docs / Version History v1.1.0
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.1.0, W-085, 2025-11-05
+
+**Commit:** `W-085, v1.1.0: unified CLI tools with intuitive npx jpulse commands`
+
+**UNIFIED CLI TOOLS & DEVELOPER EXPERIENCE**: Complete unified command-line interface with single `npx jpulse` entry point, configuration-driven version bumping, and intuitive update workflow following "don't make me think" philosophy.
+
+**Objective**: Create intuitive, unified tools environment for site developers with single entry point, zero configuration, and consistent command patterns.
+
+**Unified CLI Entry Point**:
+- **package.json**: Single `"jpulse": "./bin/jpulse-framework.js"` bin entry replaces multiple `jpulse-*` commands
+  - Removed `jpulse-configure` and `jpulse-update` separate entries
+  - All commands now accessible via `npx jpulse <command>`
+- **bin/jpulse-framework.js**: Central command dispatcher with context-aware help
+  - Auto-detects execution context (framework repo vs site)
+  - Shows relevant commands based on context
+  - Passes through all arguments to dispatched scripts
+  - Framework context: shows only `bump-version` command
+  - Site context: shows all site development commands
+
+**Configuration-Driven Version Bumping**:
+- **bin/bump-version.js**: Generalized for both framework and site use cases
+  - Removed hard-coded configuration
+  - Context-aware config discovery: `bin/bump-version.conf` (framework) or `site/webapp/bump-version.conf` (site)
+  - Shows helpful instructions if config file missing
+  - Supports both `npx jpulse bump-version` and direct `node bin/bump-version.js` usage
+- **bin/bump-version.conf**: NEW framework configuration file (151 lines)
+  - Defines file patterns, update rules, and header patterns for framework versioning
+  - JavaScript object format (consistent with app.conf style)
+- **templates/webapp/bump-version.conf.tmpl**: NEW site template (78 lines)
+  - Automatically copied during `npx jpulse configure` initial setup
+  - Site-specific versioning configuration with placeholders
+  - Includes comprehensive file patterns for typical jPulse sites
+
+**Intuitive Update Workflow**:
+- **bin/jpulse-update.js**: Enhanced with automatic package update
+  - Single command for common case: `npx jpulse update` (updates to latest + syncs)
+  - Version argument support: `npx jpulse update @jpulse-net/jpulse-framework@version` (beta/RC)
+  - Automatically runs `npm update` or `npm install` before syncing files
+  - Follows familiar npm pattern for edge cases
+  - Eliminates two-step process for better developer experience
+
+**Site Setup Integration**:
+- **bin/configure.js**: Enhanced to copy version bumping template
+  - Automatically creates `site/webapp/bump-version.conf` during initial site setup
+  - Updated all command references to `npx jpulse <command>` format
+  - Simplified site package.json (removed all `jpulse-*` npm scripts)
+
+**Comprehensive Documentation Updates**:
+- **docs/installation.md**: Updated with single-command update workflow
+- **docs/getting-started.md**: Updated framework updates section with new command syntax
+- **docs/deployment.md**: Simplified troubleshooting with new update command
+- **docs/dev/working/W-085-npx-tools-strategy.md**: Complete strategy documentation (621 lines)
+  - Design decisions, command structure, configuration file strategy
+  - Implementation details, usage examples, migration guide
+- **README.md**: Updated all command references to unified `npx jpulse` format
+- **docs/README.md**: Updated Quick Start and all command references
+- **templates/README.md**: Updated command references for site developers
+- **templates/deploy/README.md**: Updated deployment command references
+- **docs/genai-development.md**: Updated command references
+- **docs/dev/publishing.md**: Updated command references
+- **docs/dev/README.md**: Updated CLI tools description
+
+**Files Modified**:
+- bin/jpulse-framework.js (unified dispatcher, context-aware help)
+- bin/jpulse-update.js (automatic package update, version argument support)
+- bin/bump-version.js (configuration-driven, context-aware)
+- bin/bump-version.conf (NEW - framework versioning config)
+- bin/configure.js (template copying, command reference updates)
+- package.json (single bin entry)
+- templates/webapp/bump-version.conf.tmpl (NEW - site versioning template)
+- docs/installation.md (single-command update workflow)
+- docs/getting-started.md (updated command syntax)
+- docs/deployment.md (simplified troubleshooting)
+- docs/dev/work-items.md (W-085 deliverables)
+- docs/dev/working/W-085-npx-tools-strategy.md (complete strategy doc)
+- README.md (unified command references)
+- docs/README.md (updated command references)
+- templates/README.md (updated command references)
+- templates/deploy/README.md (updated command references)
+- docs/genai-development.md (updated command references)
+- docs/dev/publishing.md (updated command references)
+- docs/dev/README.md (updated CLI description)
+- docs/CHANGELOG.md (v1.1.0 entry)
+
+**Benefits**:
+- ✅ Single entry point (`npx jpulse`) for all framework tools
+- ✅ Intuitive command structure following "don't make me think" principle
+- ✅ Configuration-driven version bumping (no hard-coded configs)
+- ✅ Automatic package update in single command (no two-step process)
+- ✅ Context-aware help and command availability
+- ✅ Consistent command patterns across all tools
+- ✅ Zero configuration for common use cases
+- ✅ Better developer experience with shorter, memorable commands
+
+**Developer Experience**:
+- **Before**: `npm run jpulse-update` or `npx jpulse-framework jpulse-update` (inconsistent, verbose)
+- **After**: `npx jpulse update` (intuitive, consistent)
+- **Before**: Two-step update process (npm update + npx jpulse update)
+- **After**: Single command (`npx jpulse update`) handles everything
+- **Before**: Hard-coded version bumping config (not reusable)
+- **After**: Configuration files for both framework and sites (reusable, customizable)
+
+**Migration Notes**:
+- Existing sites: Update `package.json` to remove `jpulse-*` npm scripts (optional, commands still work)
+- Framework developers: Can use either `npx jpulse bump-version` or `node bin/bump-version.js`
+- Site developers: `site/webapp/bump-version.conf` created automatically on initial setup via `npx jpulse configure`
 
 ________________________________________________
 ## v1.0.4, W-083, 2025-11-04

@@ -1,4 +1,4 @@
-# jPulse Framework v1.0.4
+# jPulse Framework v1.1.0
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -130,9 +130,11 @@ my-jpulse-site/
 
 **Framework Updates:**
 ```bash
-npx jpulse update  # Updates framework package and syncs files
-# or manually:
-npm update @jpulse-net/jpulse-framework && npx jpulse update
+# Update to latest production version:
+npx jpulse update
+
+# Update to specific version (beta/RC):
+npx jpulse update @jpulse-net/jpulse-framework@1.0.0-rc.1
 ```
 
 ## Documentation

@@ -5,8 +5,8 @@
  * @tagline         Version bump script for jPulse Framework
  * @description     Updates version numbers and release dates across all source files
  * @file            bin/bump-version.js
- * @version         1.0.4
- * @release         2025-11-05
+ * @version         1.1.0
+ * @release         2025-11-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,17 +21,8 @@ import path from 'path';
  * Find bump-version configuration file based on context
  */
 function findBumpConfig() {
-    // Check if we're in a site (has site/webapp/app.conf)
-    if (fs.existsSync('site/webapp/app.conf')) {
-        const siteConfig = 'site/webapp/bump-version.conf';
-        if (fs.existsSync(siteConfig)) {
-            return siteConfig;
-        }
-        return null; // Show instructions
-    }
-
-    // Framework repo (has webapp/app.conf directly, not in node_modules)
-    if (fs.existsSync('webapp/app.conf') && !process.cwd().includes('node_modules')) {
+    // Framework: has bin/jpulse-framework.js
+    if (fs.existsSync('bin/jpulse-framework.js')) {
         const frameworkConfig = 'bin/bump-version.conf';
         if (fs.existsSync(frameworkConfig)) {
             return frameworkConfig;
@@ -39,7 +30,12 @@ function findBumpConfig() {
         return null; // Show instructions
     }
 
-    return null;
+    // Site: everything else
+    const siteConfig = 'site/webapp/bump-version.conf';
+    if (fs.existsSync(siteConfig)) {
+        return siteConfig;
+    }
+    return null; // Show instructions
 }
 
 /**
@@ -66,13 +62,12 @@ function loadBumpConfig() {
  * Detect execution context
  */
 function detectContext() {
-    if (fs.existsSync('site/webapp/app.conf')) {
-        return 'site';
-    }
-    if (fs.existsSync('webapp/app.conf') && !process.cwd().includes('node_modules')) {
+    // Framework: has bin/jpulse-framework.js
+    if (fs.existsSync('bin/jpulse-framework.js')) {
         return 'framework';
     }
-    return 'unknown';
+    // Site: everything else
+    return 'site';
 }
 
 /**

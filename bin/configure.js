@@ -4,8 +4,8 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         1.0.4
- * @release         2025-11-05
+ * @version         1.1.0
+ * @release         2025-11-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -854,7 +854,7 @@ async function setup() {
             console.log('');
             console.log('💡 Solution: Fix file ownership first:');
             console.log(`   sudo chown -R $(whoami):$(whoami) .`);
-            console.log('   Then re-run: npx jpulse-setup');
+            console.log('   Then re-run: npx jpulse configure');
             process.exit(1);
         }
 
@@ -949,7 +949,7 @@ async function setup() {
                     console.log('❌ Unknown directory state');
                     console.log('💡 This directory contains files that might conflict with jPulse setup');
                     console.log('🔍 Found files:', fs.readdirSync('.').filter(f => !f.startsWith('.')).join(', '));
-                    console.log('\n💡 Please run jpulse-setup in an empty directory or existing jPulse site');
+                    console.log('\n💡 Please run npx jpulse configure in an empty directory or existing jPulse site');
                     process.exit(1);
             }
         }

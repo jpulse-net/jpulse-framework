@@ -3,12 +3,12 @@
  # @name            jPulse Framework / Bin / Deployment Validation
  # @tagline         Validate jPulse deployment installation
  # @description     This script validates system installation and configuration
- #                  - Run with: npm run jpulse-validate
+ #                  - Run with: npx jpulse validate
  #                  - Auto-run by jpulse-validate.sh
  #                  - Context-aware: respects dev vs prod deployment settings
  # @file            bin/jpulse-validate.sh
- # @version         1.0.4
- # @release         2025-11-05
+ # @version         1.1.0
+ # @release         2025-11-06
  # @repository      https://github.com/jpulse-net/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,8 +20,8 @@ set -e
 
 # Require environment variables to be loaded
 if [[ -z "$JPULSE_SITE_ID" || -z "$JPULSE_DOMAIN_NAME" ]]; then
-    echo "❌ Environment not loaded. Run: npm run jpulse-validate"
-    echo "💡 Or with environment: source .env && npx jpulse-framework validate"
+    echo "❌ Environment not loaded. Run: npx jpulse validate"
+    echo "💡 Or with environment: source .env && npx jpulse validate"
     exit 1
 fi
 
@@ -476,7 +476,7 @@ main() {
         echo "💡 Next steps, if not done already:"
         if [[ "$DEPLOYMENT_TYPE" == "prod" ]]; then
             echo "   1. Configure environment: nano .env"
-            echo "   2. Setup database: npm run jpulse-mongodb-setup"
+            echo "   2. Setup database: npx jpulse mongodb-setup"
             echo "   3. Start application: pm2 start deploy/ecosystem.prod.config.cjs"
         else
             echo "   1. Install dependencies: npm install"

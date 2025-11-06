@@ -6,8 +6,8 @@
  #                  - Run with environment: source .env && ./bin/mongodb-setup.sh
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/mongodb-setup.sh
- # @version         1.0.4
- # @release         2025-11-05
+ # @version         1.1.0
+ # @release         2025-11-06
  # @repository      https://github.com/jpulse-net/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -19,15 +19,15 @@ set -e
 
 # Require environment variables to be loaded
 if [[ -z "$DB_NAME" || -z "$DB_USER" || -z "$JPULSE_SITE_ID" ]]; then
-    echo "❌ Environment not loaded. Run: npm run jpulse-mongodb-setup"
-    echo "💡 Or with environment: source .env && npx jpulse-framework mongodb-setup"
+    echo "❌ Environment not loaded. Run: npx jpulse mongodb-setup"
+    echo "💡 Or with environment: source .env && npx jpulse mongodb-setup"
     exit 1
 fi
 
 # Security check - must NOT run as root
 if [ "$EUID" -eq 0 ]; then
     echo "❌ SECURITY ERROR: Do not run this script as root!"
-    echo "💡 Run as application user: npm run jpulse-mongodb-setup"
+    echo "💡 Run as application user: npx jpulse mongodb-setup"
     exit 1
 fi
 

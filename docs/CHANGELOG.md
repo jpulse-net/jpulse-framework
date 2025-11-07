@@ -1161,7 +1161,7 @@ ________________________________________________
 
 **Files Created**:
 - `webapp/view/admin/logs.shtml` (970 lines) - Complete admin logs search interface
-- `docs/dev/working/W-040-deliverables-summary.md` - Comprehensive implementation documentation
+- `docs/dev/working/W-040-admin-logs-view.md` - Comprehensive implementation documentation
 
 **Files Enhanced**:
 - `webapp/model/log.js` - Enhanced logging format and consistency

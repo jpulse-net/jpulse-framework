@@ -125,7 +125,7 @@
 
 ## Files Created
 1. `webapp/view/admin/logs.shtml` (970 lines) - Main admin logs interface
-2. `docs/dev/W-040-deliverables-summary.md` (this file) - Implementation summary
+2. `docs/dev/W-040-admin-logs-view.md` (this file) - Implementation summary
 
 ## Files Modified
 1. `webapp/model/log.js` - Enhanced logging format and consistency

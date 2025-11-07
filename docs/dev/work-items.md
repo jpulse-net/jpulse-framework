@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.1.1
+# jPulse Framework / Docs / Dev / Work Items v1.1.0
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -460,9 +460,9 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - page .jp-login-container ==> common .jp-container-400
     - page .jp-login-card ==> common .jp-card
       - if jp-login-card is needed:
-        <div class="jp-login-card"> ==> <div class="jp-card jp-login-card">
+        `<div class="jp-login-card"> ==> <div class="jp-card jp-login-card">`
       - else:
-        <div class="jp-login-card"> ==> <div class="jp-card">
+        `<div class="jp-login-card"> ==> <div class="jp-card">`
     - page .jp-login-header ==> common .jp-card-dialog-heading
     - page .jp-divider ==> common .jp-divider
   - webapp/view/auth/login.shtml and webapp/view/auth/signup.shtml:
@@ -473,7 +473,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - define standard for page assets:
-  - webapp/static/assets/<page-name>/*
+  - `webapp/static/assets/<page-name>/*`
 - define common dashboard grid and icon buttons
 - create webapp/view/admin/index.shtml -- admin home
   - with square icon buttons linking to config.shtml, logs.shtml, users.shtml
@@ -862,7 +862,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - 2. multiple panels tabs:
     - single content area with multiple panels, each associated with a tab
     - similar to accordions, just horizontal instead of vertical
-    - defined by <ul> list with href attributes pointing to panel ID
+    - defined by `<ul>` list with href attributes pointing to panel ID
       - or by tabOptions as above (with optional panelWidth, panelHeight properties)
     - inspiration: jQuery UI Tabs, https://jqueryui.com/tabs
 - questions:
@@ -928,7 +928,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - api-reference.md and docs/deployment.md: fix incorrect links to jPulse docs from /jpulse/ to /jpulse-docs/
   - site/README.md: reference and link to "Version Control and Site Management" in docs/deployment.md
   - reverse sequence in HTML title in all .shtml pages to:
-    <title>Page title - {{app.shortName}}</title>
+    `<title>Page title - {{app.shortName}}</title>`
   - webapp/static/: add updated favicons to static root
   - bin/test-all.js: add elapsed time to each test, and total in grand total
 
@@ -1437,7 +1437,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - Simplified to Redis-only approach for multi-instance deployments
     - Updated documentation to clarify Redis requirements
   - Page title:
-    - in <title> tag of all pages, fixed broken {{app.shortName}} to {{app.site.shortName}}
+    - in `<title>` tag of all pages, fixed broken {{app.shortName}} to {{app.site.shortName}}
   - Common styles:
     - tweaked jp-* styles for more consistent look, and a bit more condensed look
   - System-wide metadata
@@ -1676,7 +1676,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/deployment.md -- simplified troubleshooting with new update command
   - docs/dev/work-items.md -- updated command descriptions
   - docs/dev/working/W-085-npx-tools-strategy.md -- complete strategy documentation with implementation details
-  - README.md -- updated all command references to npx jpulse <command>
+  - README.md -- updated all command references to `npx jpulse <command>`
   - docs/README.md -- updated Quick Start and command references
   - templates/README.md -- updated command references
   - templates/deploy/README.md -- updated command references
@@ -1684,22 +1684,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/dev/publishing.md -- updated command references
   - docs/dev/README.md -- updated CLI tools description
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-086, v1.1.1: gen-ai: review developer facing doc and AI agent facing doc
-- status: 🕑 PENDING
+- status: DONE ✅
 - type: Feature
 - objective: more effective vibe coding
 - prerequisites:
@@ -1730,6 +1716,24 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
+
+
+
+
+
+
+
+
 pending:
 
 
@@ -1746,7 +1750,6 @@ old pending:
 
 
 ### Potential next items:
-- W-086: gen-ai: review developer facing doc and AI agent facing doc
 - W-045: architecture: create plugin infrastructure
 - W-068: view: create responsive sidebar
 - W-0: view: page headers with anchor links for copy & paste in browser URL bar
@@ -1785,12 +1788,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.1.0
+node bin/bump-version.js 1.1.1
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.1.0
+git tag v1.1.1
 git push origin main --tags
 
 === on failed package build on github ===
@@ -2019,18 +2022,18 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - type: Feature
 - objective: more flexible handlebars
 - syntax:
-  - {{#if}} and {{#unless}} accept an optional operator identified by a trailing colon, followed by operands:
-    - {{#if <operator>: <operand1> <operand2> <operand3>...}} ... {{else}} ... {{/if}}
-    - {{#unless <operator>: <operand1> <operand2> <operand3>...}} ... {{/unless}}
+  - `{{#if}}` and `{{#unless}}` accept an optional operator identified by a trailing colon, followed by operands:
+    - `{{#if <operator>: <operand1> <operand2> <operand3>...}} ... {{else}} ... {{/if}}`
+    - `{{#unless <operator>: <operand1> <operand2> <operand3>...}} ... {{/unless}}`
   - example with existing syntax:
-    - {{#if some.condition}} true block {{else}} false block {{/if}}
+    - `{{#if some.condition}} true block {{else}} false block {{/if}}`
   - examples with operator and operands:
-    - {{#if and: some.condition other.condition}} true block {{else}} false block {{/if}}
-    - {{#if or: some.val other.val etc.val}} true block {{else}} false block {{/if}}
-    - {{#if eq: some.string "DONE"}} true block {{else}} false block {{/if}}
-    - {{#if gt: some.val 1}} true block {{else}} false block {{/if}}
+    - `{{#if and: some.condition other.condition}} true block {{else}} false block {{/if}}`
+    - `{{#if or: some.val other.val etc.val}} true block {{else}} false block {{/if}}`
+    - `{{#if eq: some.string "DONE"}} true block {{else}} false block {{/if}}`
+    - `{{#if gt: some.val 1}} true block {{else}} false block {{/if}}`
 - deliverables:
-  - webapp/controller/view.js -- enhanced {{#if}} and {{#unless}} block handlebars
+  - webapp/controller/view.js -- enhanced `{{#if}}` and `{{#unless}}` block handlebars
 
 ### W-0: handlebars: new {{#set}} block handlebar
 - status: 🕑 PENDING

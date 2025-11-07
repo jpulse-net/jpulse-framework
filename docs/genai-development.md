@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Generative-AI Development Guide v1.1.0
+# jPulse Framework / Docs / Generative-AI Development Guide v1.1.1
 
 Complete guide for site developers building jPulse applications with Gen-AI assistance, aka vibe coding, using IDEs like Cline, Cursor, GitHub Copilot, or Windsurf.
 
@@ -66,6 +66,23 @@ This single instruction ensures your AI assistant understands:
 ```
 When working on jPulse Framework sites, always reference and follow docs/genai-instructions.md
 ```
+
+### Best Practices for Effective AI Assistance
+
+**Chain of Thought Reasoning**:
+Encourage your AI to think through problems before responding. This leads to better solutions and helps you understand the reasoning. Example prompt: "Think through this step-by-step before suggesting a solution."
+
+**Avoid Hallucination**:
+If your AI seems uncertain or makes assumptions, ask it to clarify or look up information rather than guessing. Good AI assistants will say "I don't know" when appropriate rather than inventing details.
+
+**Maintain Development Logs**:
+Consider asking your AI to maintain a log file (`genai-log.txt` or `cursor-log.txt`) tracking your development session. This helps with:
+- Reviewing what was discussed
+- Understanding what changes were made
+- Tracking what worked and what didn't
+- Resuming work after breaks
+
+Example prompt: "Please maintain a genai-log.txt file in the project root to track our conversation and the changes we make."
 
 ### Essential Context for AI
 

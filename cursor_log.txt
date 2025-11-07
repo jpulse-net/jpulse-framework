@@ -35529,3 +35529,29 @@ CHANGES COMPLETED:
 - docs/dev/working/W-085-npx-tools-strategy.md: Updated implementation section with actual behavior
 
 STATUS: Implementation complete. Option 2 provides intuitive single-command workflow for common case (update to latest) while supporting edge cases (beta/RC versions) with familiar npm pattern.
+
+
+============================================================
+2025-11-06 16:52
+
+User requested: W-086: gen-ai: review developer facing doc and AI agent facing doc
+- Objective: concise genai instructions doc that is complete, and tailored for AI consumption
+- Remove redundant info that might overwhelm the AI (e.g., "Common Mistakes to Avoid" section)
+- Add missing details learned from T-001 (template patterns, when NOT to use controllers/models)
+- Keep Chain of Thought, No Guessing, and Gen-AI History Log for educational purposes
+
+I streamlined genai-instructions.md (reduced from 714 to 563 lines, ~21% reduction):
+- Removed redundant "Common Mistakes to Avoid" section (80 lines)
+- Streamlined Chain of Thought, No Guessing, and Gen-AI History Log directives
+- Clarified "Client-Side Heavy" applies to application pages, not content pages
+- Added "Creating Reusable Templates" section with .shtml vs .tmpl guidance
+- Added "When You DON'T Need Controllers/Models" decision framework
+- Enhanced "Creating a View Template" with template include patterns
+- Streamlined "Response Guidelines" (removed verbose examples)
+- Condensed "Framework Philosophy" section
+
+I also added educational content to genai-development.md:
+- Added "Best Practices for Effective AI Assistance" section explaining Chain of Thought, avoiding hallucination, and maintaining development logs
+- Provides context for new users while keeping AI-facing doc concise
+
+All changes completed successfully with no linter errors.

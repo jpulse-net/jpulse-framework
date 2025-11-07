@@ -1,6 +1,57 @@
-# jPulse Framework / Docs / Version History v1.1.0
+# jPulse Framework / Docs / Version History v1.1.1
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.1.1, W-086, 2025-11-06
+
+**Commit:** `W-086, v1.1.1: gen-ai: review developer facing doc and AI agent facing doc`
+
+**GEN-AI DOCUMENTATION IMPROVEMENTS**: Streamlined AI-facing documentation for better AI consumption and added educational content for new users, making Gen-AI development (vibe coding) more effective.
+
+**Objective**: Create concise, complete, and AI-tailored genai-instructions.md while maintaining educational value for new users in genai-development.md.
+
+**Streamlined AI-Facing Documentation**:
+- **docs/genai-instructions.md**: Reduced from 714 to 563 lines (~21% reduction)
+  - Removed redundant "Common Mistakes to Avoid" section (80 lines)
+  - Streamlined Chain of Thought, No Guessing, and Gen-AI History Log directives
+  - Clarified "Client-Side Heavy" applies to application pages, not content pages
+  - Added "Creating Reusable Templates" section with `.shtml` vs `.tmpl` guidance
+  - Added "When You DON'T Need Controllers/Models" decision framework
+  - Enhanced "Creating a View Template" with template include patterns
+  - Streamlined "Response Guidelines" (removed verbose examples)
+  - Condensed "Framework Philosophy" section
+
+**Enhanced User-Facing Documentation**:
+- **docs/genai-development.md**: Added educational content for new users
+  - Added "Best Practices for Effective AI Assistance" section
+  - Explains Chain of Thought reasoning, avoiding hallucination, maintaining development logs
+  - Provides context for new users while keeping AI-facing doc concise
+
+**Documentation Fixes**:
+- Fixed markdown rendering issues by escaping HTML tags (`<style>`, `<script>`) in documentation
+- Ensures proper rendering in markdown viewers
+
+**Files Modified**:
+- docs/genai-instructions.md (streamlined, AI-focused)
+- docs/genai-development.md (added educational section)
+- docs/CHANGELOG.md (v1.1.1 entry)
+- docs/dev/work-items.md (W-086 deliverables)
+
+**Benefits**:
+- ✅ More concise AI-facing documentation (easier for AI to process)
+- ✅ Clearer guidance on when to use controllers/models vs template-only pages
+- ✅ Better template development patterns documented
+- ✅ Educational content for new Gen-AI users
+- ✅ Fixed markdown rendering issues
+
+**Developer Experience**:
+- Before: 714-line AI instructions doc with redundant sections
+- After: 563-line streamlined doc focused on AI consumption
+- Before: Missing guidance on template development and when NOT to use MVC
+- After: Complete patterns for templates and decision framework for MVC usage
+- Before: No educational content for new Gen-AI users
+- After: Best practices section explaining effective AI assistance
 
 ________________________________________________
 ## v1.1.0, W-085, 2025-11-05
@@ -2061,7 +2112,7 @@ Files Modified:
 - api-reference.md and docs/deployment.md: fix incorrect links to jPulse docs from /jpulse/ to /jpulse-docs/
 - site/README.md: reference and link to "Version Control and Site Management" in docs/deployment.md
 - reverse sequence in HTML title in all .shtml pages to:
-  <title>Page title - {{app.shortName}}</title>
+  `<title>Page title - {{app.shortName}}</title>`
 - webapp/static/: add updated favicons to static root to new blue jPulse logo:
   - favicon-16x16.png
   - favicon-32x32.png
@@ -3743,7 +3794,7 @@ ________________________________________________
 ### Performance and Monitoring:
 - Elapsed time tracking for all search operations (user.search, log.search)
 - Performance metrics included in JSON responses and console logs
-- Consistent error logging format: <type>.<function> failed: across all controllers
+- Consistent error logging format: `<type>.<function>` failed: across all controllers
 - Enhanced LogController.error() calls for early authentication/authorization failures
 - Request timing and completion logging for all API endpoints
 

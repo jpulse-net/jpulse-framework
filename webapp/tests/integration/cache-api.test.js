@@ -3,8 +3,8 @@
  * @tagline         Integration tests for cache API endpoints
  * @description     Tests for cache refresh and statistics API endpoints (SKIPPED - ES module compatibility)
  * @file            webapp/tests/integration/cache-api.test.js
- * @version         1.1.0
- * @release         2025-11-06
+ * @version         1.1.1
+ * @release         2025-11-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

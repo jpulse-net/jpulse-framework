@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.1.0
+# jPulse Framework / Docs / Dev / Work Items v1.1.1
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1648,22 +1648,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/view/jpulse-examples/ui-widgets.shtml: Updated with new dialog signatures and successDialog examples
   - webapp/translations/en.conf & de.conf: Added successDialog i18n translations
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
-### W-085: tools: npx strategy; make bump-version.js script available to site developers
-- status: 🚧 IN_PROGRESS
+### W-085, v1.1.0: tools: npx strategy; make bump-version.js script available to site developers
+- status: DONE ✅
 - type: Feature
 - objective: more intuitive tools env for site developers
 - prerequisites:
@@ -1698,6 +1684,46 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/dev/publishing.md -- updated command references
   - docs/dev/README.md -- updated CLI tools description
 
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-086, v1.1.1: gen-ai: review developer facing doc and AI agent facing doc
+- status: 🕑 PENDING
+- type: Feature
+- objective: more effective vibe coding
+- prerequisites:
+  - docs/genai-development.md
+  - docs/genai-instructions.md
+  - docs/dev/working/W-086-genai-docs-review.md
+- to-do:
+  - review and enhance both docs
+- deliverables:
+  - docs/genai-instructions.md -- Streamlined for AI consumption (reduced from 714 to 563 lines, ~21% reduction)
+    - Removed redundant "Common Mistakes to Avoid" section (80 lines)
+    - Streamlined Chain of Thought, No Guessing, and Gen-AI History Log directives
+    - Clarified "Client-Side Heavy" applies to application pages, not content pages
+    - Added "Creating Reusable Templates" section with .shtml vs .tmpl guidance
+    - Added "When You DON'T Need Controllers/Models" decision framework
+    - Enhanced "Creating a View Template" with template include patterns
+    - Streamlined "Response Guidelines" (removed verbose examples)
+    - Condensed "Framework Philosophy" section
+  - docs/genai-development.md -- Added educational content for new users
+    - Added "Best Practices for Effective AI Assistance" section
+    - Explains Chain of Thought reasoning, avoiding hallucination, maintaining development logs
+    - Provides context for new users while keeping AI-facing doc concise
+  - docs/CHANGELOG.md -- v1.1.1 entry documenting improvements
+  - Fixed markdown rendering issues (escaped HTML tags in documentation)
 
 
 
@@ -1742,8 +1768,8 @@ next work item: W-0...
 finishing up work item: W-070:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-085, v1.1.0
-- update deliverables in W-076 to document work done (don't make any other changes to this file)
+- assume release: W-086, v1.1.1
+- update deliverables in W-086 to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
@@ -1759,12 +1785,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.0.4
+node bin/bump-version.js 1.1.0
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.4
+git tag v1.1.0
 git push origin main --tags
 
 === on failed package build on github ===
@@ -1955,17 +1981,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - MFA (Multi-Factor Authentication): SMS or authenticator app support (planned as plugin, see W-0 auth controller MFA)
   - OAuth2 Authentication: OAuth2 provider integration (planned as plugin, see W-0 auth controller OAuth2)
   - LDAP Authentication: LDAP/Active Directory integration (planned as plugin, see W-0 auth controller LDAP)
-
-### W-086: gen-ai: review developer facing doc and AI agent facing doc
-- status: 🕑 PENDING
-- type: Feature
-- objective: more effective vibe coding
-- prerequisites:
-  - docs/genai-development.md
-  - docs/genai-instructions.md
-  - docs/dev/working/W-086-genai-docs-review.md
-- to-do:
-  - review and enhance both docs
 
 ### W-081: tests: restructure for better maintainability
 - status: 🕑 PENDING (post-1.0)

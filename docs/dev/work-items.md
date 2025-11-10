@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.1.2
+# jPulse Framework / Docs / Dev / Work Items v1.1.3
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1760,7 +1760,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 pending:
 
 
-### W-087, v1.1.3: email: strategy for sending email from jPulse Framework
+### W-087, v1.1.4: email: strategy for sending email from jPulse Framework
 - status: 🚧 IN_PROGRESS
 - type: Feature
 - objective: provide standardized email sending capability for jPulse Framework and site applications
@@ -1831,11 +1831,11 @@ git tag v1.1.2
 git push origin main --tags
 
 === on failed package build on github ===
-git tag -d v1.1.2
-git push --delete origin v1.1.2
 git add .
 git commit --amend --no-edit
-git tag -a v1.1.2 -m "W-072, v1.1.2: Vue.js SPA Demo & Enhanced jPulse Utilities for Modern Web Development"
+git tag -d v1.1.2
+git push origin :refs/tags/v1.1.2
+git tag v1.1.2
 git push origin main --force-with-lease
 git push origin v1.1.2
 

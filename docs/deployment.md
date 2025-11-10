@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Production Deployment Guide v1.1.2
+# jPulse Framework / Docs / Production Deployment Guide v1.1.3
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 

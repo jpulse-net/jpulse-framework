@@ -1,8 +1,9 @@
-# jPulse Framework / Docs / Version History v1.1.2
+# jPulse Framework / Docs / Version History v1.1.3
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
 ________________________________________________
-## v1.1.2, W-088, 2025-11-10
+## v1.1.3, W-088, 2025-11-10
 
 **Commit:** `W-088, v1.1.2: controller: extract Handlebars processing to dedicated controller`
 
@@ -148,6 +149,11 @@ ________________________________________________
 - After: Event-driven architecture with generic broadcast events
 - Before: Cache pollution between ViewController and Handlebars processing
 - After: Clean separation with dedicated caches per controller
+
+________________________________________________
+## v1.1.2, W-088, 2025-11-10
+
+**⚠️ NOTE: v1.1.2 was published with test failures. Please use v1.1.3 instead.**
 
 ________________________________________________
 ## v1.1.1, W-086, 2025-11-06

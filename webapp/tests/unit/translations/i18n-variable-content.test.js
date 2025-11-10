@@ -18,7 +18,7 @@ import TestUtils from '../../helpers/test-utils.js';
 
 describe('I18N Variable Content', () => {
 
-    describe('processI18nHandlebars', () => {
+    describe('expandI18nHandlebars', () => {
         let mockContext;
 
         beforeEach(() => {

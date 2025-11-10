@@ -515,36 +515,43 @@ class RedisManager {
      * @returns {boolean} True if published successfully, false if Redis unavailable
      */
     static async publishBroadcast(channel, data) {
-        // Early bailout if Redis is not available - fail silently to avoid log noise
-        if (!RedisManager.isAvailable) {
-            return false;
-        }
+        if (RedisManager.isAvailable) {
+            // Redis available - publish to Redis for cluster-wide distribution
+            const publisher = RedisManager.getClient('broadcast', 'publisher');
 
-        const publisher = RedisManager.getClient('broadcast', 'publisher');
+            if (!publisher) {
+                // Graceful fallback: call local callbacks if publisher not available
+                RedisManager._handleCallbackMessage(channel, data, RedisManager.instanceId);
+                return true;
+            }
 
-        if (!publisher) {
-            // Graceful fallback: return false without logging (Redis disabled)
-            return false;
-        }
+            try {
+                const message = {
+                    channel,
+                    data,
+                    instanceId: RedisManager.instanceId,
+                    timestamp: Date.now()
+                };
 
-        try {
-            const message = {
-                channel,
-                data,
-                instanceId: RedisManager.instanceId,
-                timestamp: Date.now()
-            };
+                const key = RedisManager.getKey('broadcast', channel);
+                await publisher.publish(key, JSON.stringify(message));
 
-            const key = RedisManager.getKey('broadcast', channel);
-            await publisher.publish(key, JSON.stringify(message));
-
+                global.LogController?.logInfo(null, 'redis-manager.publishBroadcast',
+                    `Broadcast published: ${channel} from ${RedisManager.instanceId}`);
+                return true;
+            } catch (error) {
+                global.LogController?.logError(null, 'redis-manager.publishBroadcast',
+                    `Failed to publish broadcast ${channel}: ${error.message}`);
+                // Fallback to local callbacks on error
+                RedisManager._handleCallbackMessage(channel, data, RedisManager.instanceId);
+                return true;
+            }
+        } else {
+            // Redis not available - call local callbacks directly (single-instance mode)
+            RedisManager._handleCallbackMessage(channel, data, RedisManager.instanceId);
             global.LogController?.logInfo(null, 'redis-manager.publishBroadcast',
-                `Broadcast published: ${channel} from ${RedisManager.instanceId}`);
+                `Broadcast handled locally (Redis unavailable): ${channel} from ${RedisManager.instanceId}`);
             return true;
-        } catch (error) {
-            global.LogController?.logError(null, 'redis-manager.publishBroadcast',
-                `Failed to publish broadcast ${channel}: ${error.message}`);
-            return false;
         }
     }
 

@@ -373,13 +373,13 @@ class I18n {
     }
 
     /**
-     * Process only i18n handlebars in content, leaving other handlebars untouched
+     * Expand only i18n handlebars in content, leaving other handlebars untouched
      * This is used to preprocess i18n translations before main template processing
      * @param {object} req - Express request object (for user language preference)
      * @param {string} content - Template content with handlebars
-     * @returns {string} Content with i18n handlebars processed
+     * @returns {string} Content with i18n handlebars expanded
      */
-    processI18nHandlebars(req, content) {
+    expandI18nHandlebars(req, content) {
         // Only process {{i18n.}} and {{@i18n.}} handlebars
         return content.replace(/\{\{(@?i18n\.[^}]+)\}\}/g, (match, expression) => {
             try {

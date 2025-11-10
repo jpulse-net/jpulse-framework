@@ -21,29 +21,47 @@ import LogController from './log.js';
  */
 class ConfigController {
     /**
+     * Initialize config controller
+     * Validates that defaultDocName is configured
+     */
+    static initialize() {
+        this.defaultDocName = global.appConfig?.controller?.config?.defaultDocName;
+        if (!this.defaultDocName) {
+            throw new Error('controller.config.defaultDocName must be set in app.conf');
+        }
+    }
+
+    /**
+     * Get the default config document name
+     * @returns {string} Default config document ID
+     */
+    static getDefaultDocName() {
+        return ConfigController.defaultDocName;
+    }
+
+    /**
      * Get config by ID
-     * GET /api/1/config/:id
+     * GET /api/1/config/_default (resolved to default) or GET /api/1/config/:id
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
     static async get(req, res) {
         const startTime = Date.now();
-        const id = req.params.id;
+        // Resolve _default to actual default doc name
+        const defaultDocName = ConfigController.getDefaultDocName();
+        let id = req.params.id && req.params.id.trim();
+        if (id === '_default' || !id) {
+            id = defaultDocName;
+        }
         LogController.logRequest(req, 'config.get', id || '');
         try {
-            if (!id) {
-                LogController.logError(req, 'config.get', 'error: id is required');
-                const message = global.i18n.translate(req, 'controller.config.configIdRequired');
-                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_ID');
-            }
 
             let config = await ConfigModel.findById(id);
 
-            // If config not found and this is the default site config, create it
-            const defaultId = 'site';
-            if (!config && id === defaultId) {
+            // If config not found and this is the default config, create it
+            if (!config && id === defaultDocName) {
                 const defaultConfig = {
-                    _id: defaultId,
+                    _id: defaultDocName,
                     parent: null,
                     data: {
                         email: {
@@ -66,7 +84,7 @@ class ConfigController {
                 }
 
                 config = await ConfigModel.create(defaultConfig);
-                LogController.logInfo(req, 'config.get', `success: created default config for id: ${defaultId}`);
+                LogController.logInfo(req, 'config.get', `success: created default config for id: ${defaultDocName}`);
             }
 
             if (!config) {
@@ -243,16 +261,19 @@ class ConfigController {
             }
             const config = await ConfigModel.updateById(id, updateData);
 
-            // W-076: Refresh global config cache for local and broadcast to cluster
-            if (id === 'global') {
-                try {
-                    const ViewControllerModule = await import('./view.js');
-                    await ViewControllerModule.default.refreshGlobalConfig('local');
-                    LogController.logInfo(req, 'config.update', 'Global config refresh initiated');
-                } catch (error) {
-                    // Don't fail the update if refresh fails
-                    LogController.logError(req, 'config.update', `Config refresh failed: ${error.message}`);
-                }
+            // W-088: Publish generic config change event (notification-only pattern)
+            // Subscribers (e.g., HandlebarController) will fetch fresh data from DB
+            // RedisManager handles fallback to local callbacks when Redis is unavailable
+            try {
+                await global.RedisManager.publishBroadcast('controller:config:data:changed', {
+                    id: id,
+                    action: 'update',
+                    timestamp: Date.now()
+                });
+                LogController.logInfo(req, 'config.update', `Config change event published for id: ${id}`);
+            } catch (error) {
+                // Don't fail the update if event publish fails
+                LogController.logError(req, 'config.update', `Config change event failed: ${error.message}`);
             }
 
             // Log the update
@@ -278,20 +299,20 @@ class ConfigController {
 
     /**
      * Create or update config (upsert)
-     * PUT /api/1/config/:id/upsert
+     * PUT /api/1/config/_default (resolved to default) or PUT /api/1/config/:id/upsert
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
     static async upsert(req, res) {
-        const id = req.params.id;
+        // Resolve _default to actual default doc name
+        const defaultDocName = ConfigController.getDefaultDocName();
+        let id = req.params.id && req.params.id.trim();
+        if (id === '_default' || !id) {
+            id = defaultDocName;
+        }
         const configData = req.body;
         LogController.logRequest(req, 'config.upsert', `${id || ''}, ${JSON.stringify(configData)}`);
         try {
-            if (!id) {
-                LogController.logError(req, 'config.upsert', 'error: id is required');
-                const message = global.i18n.translate(req, 'controller.config.configIdRequired');
-                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_ID');
-            }
             if (!configData || Object.keys(configData).length === 0) {
                 LogController.logError(req, 'config.upsert', 'error: config data is required');
                 const message = global.i18n.translate(req, 'controller.config.configDataRequired');
@@ -307,6 +328,21 @@ class ConfigController {
             const isUpdate = !!existingConfig;
 
             const config = await ConfigModel.upsert(id, configData);
+
+            // W-088: Publish generic config change event (notification-only pattern)
+            // Subscribers (e.g., HandlebarController) will fetch fresh data from DB
+            try {
+                const action = isUpdate ? 'update' : 'create';
+                await global.RedisManager.publishBroadcast('controller:config:data:changed', {
+                    id: id,
+                    action: action,
+                    timestamp: Date.now()
+                });
+                LogController.logInfo(req, 'config.upsert', `Config change event published for id: ${id}`);
+            } catch (error) {
+                // Don't fail the upsert if event publish fails
+                LogController.logError(req, 'config.upsert', `Config change event failed: ${error.message}`);
+            }
 
             // Log the change (create or update)
             const action = isUpdate ? 'update' : 'create';
@@ -357,6 +393,20 @@ class ConfigController {
             }
 
             const deleted = await ConfigModel.deleteById(id);
+
+            // W-088: Publish generic config change event (notification-only pattern)
+            // Subscribers (e.g., HandlebarController) will fetch fresh data from DB
+            try {
+                await global.RedisManager.publishBroadcast('controller:config:data:changed', {
+                    id: id,
+                    action: 'delete',
+                    timestamp: Date.now()
+                });
+                LogController.logInfo(req, 'config.delete', `Config change event published for id: ${id}`);
+            } catch (error) {
+                // Don't fail the delete if event publish fails
+                LogController.logError(req, 'config.delete', `Config change event failed: ${error.message}`);
+            }
 
             // Log the deletion
             await LogController.logChange(req, 'config', 'delete', id, oldConfig, null);

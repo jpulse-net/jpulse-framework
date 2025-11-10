@@ -244,7 +244,7 @@
 
             async function loadConfig() {
                 try {
-                    const result = await jPulse.api.call('/api/1/config/site');
+                    const result = await jPulse.api.call('/api/1/config/_default');
                     if (result.success && result.data) {
                         populateForm(result.data);
                         originalData = getFormData();
@@ -325,13 +325,12 @@
                 }
 
                 const formData = getFormData();
-                const defaultId = 'site'; // Use the default config ID
 
                 try {
                     saveBtn.classList.add('jp-btn-loading');
                     saveBtn.disabled = true;
 
-                    const result = await jPulse.api.call(`/api/1/config/${defaultId}/upsert`, {
+                    const result = await jPulse.api.call('/api/1/config/_default', {
                         method: 'PUT',
                         body: formData
                     });

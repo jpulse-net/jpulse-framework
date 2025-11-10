@@ -36,7 +36,7 @@ describe('Broadcast Channel Naming (W-076)', () => {
     describe('MVC Naming Convention', () => {
         it('should accept valid framework channel names', () => {
             const frameworkChannels = [
-                'controller:view:config:refresh',
+                'controller:config:data:changed',
                 'controller:websocket:broadcast:hello-emoji',
                 'model:user:profile:updated',
                 'view:dashboard:refresh:requested',
@@ -226,9 +226,9 @@ describe('Broadcast Channel Naming (W-076)', () => {
 
     describe('Channel Documentation Examples', () => {
         it('should support documented framework examples', () => {
-            // Examples from the W-076 documentation
+            // Examples from the W-088 documentation
             const documentedChannels = [
-                'controller:view:config:refresh',
+                'controller:config:data:changed',
                 'controller:websocket:broadcast:hello-emoji',
                 'model:user:profile:updated',
                 'view:dashboard:refresh:requested'

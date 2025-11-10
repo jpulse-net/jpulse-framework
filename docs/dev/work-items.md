@@ -1751,7 +1751,15 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 pending:
-
+- view controller:
+  - getCacheStats(), why global.HandlebarController?.includeCache ? global.HandlebarController.includeCache.getStats() ?
+  - isSPA(), why global.HandlebarController.includeCache.getFileSync(indexPath) ?
+- i18n:
+  - for consistency, rename processI18nHandlebars to expandI18nHandlebars
+- handlebar controller:
+  - i18n (for reference see markdown controller)
+  - apiExpand: request: change "template" to "text"
+  - apiExpand: response: change "result" to "text"
 
 
 ### W-087, v1.1.3: email: strategy for sending email from jPulse Framework

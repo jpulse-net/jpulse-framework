@@ -35577,3 +35577,305 @@ I updated the W-087 strategy document with all decisions made:
 The document is now ready for implementation after W-0 completion.
 
 Changes were accepted and document updated successfully.
+
+
+============================================================
+2025-11-09 21:48
+
+User requested to continue with W-088 implementation - updating tests to use HandlebarController
+
+I updated all test files to use HandlebarController.expandHandlebars() instead of ViewController.processHandlebars():
+
+1. webapp/tests/unit/controller/view.test.js:
+   - Added HandlebarController import
+   - Added config model mock
+   - Added beforeAll hook to initialize HandlebarController
+   - Updated all test descriptions to reference HandlebarController.expandHandlebars()
+   - Updated all test calls from ViewController.processHandlebars(content, context, req) to await HandlebarController.expandHandlebars(req, content, context)
+   - Updated all describe blocks to reference HandlebarController.expandHandlebars()
+
+2. webapp/tests/unit/controller/template-includes.test.js:
+   - Added HandlebarController import
+   - Updated conditional expressions test to use HandlebarController.expandHandlebars()
+   - Made test function async
+
+All tests now use the new HandlebarController API with correct parameter order:
+- Old: processHandlebars(content, context, req, depth)
+- New: expandHandlebars(req, template, context, depth)
+
+The tests are ready to run and should work with the new HandlebarController implementation.
+
+Changes were accepted and tests updated successfully.
+
+
+============================================================
+2025-11-09 23:23
+
+User requested to implement notification-only pattern for config refresh events
+
+Implemented cleaner separation of concerns using event-driven architecture:
+
+1. ConfigController changes:
+   - Updated update(), upsert(), and delete() methods to publish generic 'controller:config:data:changed' event
+   - Event payload contains minimal data: { id, action, timestamp }
+   - Removed HandlebarController-specific channel dependency
+   - All config changes now publish the same generic event
+
+2. HandlebarController changes:
+   - Changed subscription from 'controller:handlebar:config:refresh' to 'controller:config:data:changed'
+   - Callback now checks if data.id === 'global' before refreshing
+   - Simplified refreshGlobalConfig() method - removed broadcasting logic (now handled by ConfigController)
+   - Method now only fetches fresh data from database
+
+3. Test updates:
+   - Updated broadcast-channels.test.js to use new channel name 'controller:config:data:changed'
+   - Updated documentation reference from W-076 to W-088
+
+This implementation follows the notification-only pattern (cache invalidation pattern) where:
+- ConfigController publishes minimal notification events
+- Subscribers fetch fresh data from source of truth (database)
+- Clean separation of concerns - ConfigController doesn't know about HandlebarController
+- More flexible - other components can subscribe to config changes in the future
+
+Changes were accepted and implementation completed successfully.
+
+
+============================================================
+2025-11-09 23:56
+
+User requested to make config document ID configurable via app.conf
+
+Implemented configurable default config document ID:
+
+1. app.conf changes (user already made):
+   - Added controller.config.defaultDocName: 'global' to app.conf
+
+2. ConfigController changes:
+   - Updated get() method to use global.appConfig.controller.config.defaultDocName
+   - Fallback to 'site' for backward compatibility
+   - Updated comment to reflect "default config" instead of "default site config"
+
+3. HandlebarController changes:
+   - Updated initialize() to use configurable default with fallback to 'global'
+   - Updated broadcast callback to check against configurable default
+   - Updated refreshGlobalConfig() to use configurable default
+   - Updated all log messages to say "default config" instead of "global config"
+   - All references now use: global.appConfig?.controller?.config?.defaultDocName || 'global'
+
+This allows framework developers to configure the default config document ID in app.conf,
+making it easier to support different naming conventions (e.g., 'global', 'site', 'main', etc.)
+while maintaining backward compatibility with fallback values.
+
+Changes were accepted and implementation completed successfully.
+
+
+============================================================
+2025-11-10 00:02
+
+User requested to remove backward compatibility and have ConfigController set global.defaultDocName
+
+Implemented cleaner approach with global.defaultDocName:
+
+1. ConfigController changes:
+   - Added static initialize() method that sets global.defaultDocName from app.conf
+   - Throws error if controller.config.defaultDocName is not set in app.conf
+   - Updated get() method to use global.defaultDocName (removed fallback)
+   - Removed all backward compatibility fallbacks
+
+2. HandlebarController changes:
+   - Updated initialize() to use global.defaultDocName (removed fallback)
+   - Updated broadcast callback to use global.defaultDocName (removed fallback)
+   - Updated refreshGlobalConfig() to use global.defaultDocName (removed fallback)
+   - Removed all backward compatibility fallbacks
+
+3. Bootstrap changes:
+   - Added Step 12.1: Initialize ConfigController before HandlebarController
+   - ConfigController.initialize() sets global.defaultDocName early in bootstrap
+   - Ensures global.defaultDocName is available when HandlebarController initializes
+
+Benefits:
+- Single source of truth: global.defaultDocName set once in ConfigController
+- Cleaner code: No repeated config path lookups
+- No backward compatibility: Fails fast if config is missing (early stage)
+- Easy reference: Any code can use global.defaultDocName without config path
+
+Changes were accepted and implementation completed successfully.
+
+
+============================================================
+2025-11-10 00:08
+
+User requested to change from global.defaultDocName to global.ConfigController.getDefaultDocName()
+
+Refactored to use method instead of global variable for better encapsulation:
+
+1. ConfigController changes:
+   - Removed global.defaultDocName variable setting from initialize()
+   - Added static getDefaultDocName() method that returns the value from app.conf
+   - Updated initialize() to only validate that defaultDocName is configured
+   - Updated get() method to use this.getDefaultDocName() instead of global variable
+
+2. HandlebarController changes:
+   - Updated initialize() to use global.ConfigController.getDefaultDocName()
+   - Updated broadcast callback to use global.ConfigController.getDefaultDocName()
+   - Updated refreshGlobalConfig() to use global.ConfigController.getDefaultDocName()
+
+3. Bootstrap changes:
+   - Updated to register ConfigController globally: global.ConfigController
+   - Updated log message to use ConfigController.getDefaultDocName() method
+
+Benefits:
+- Better encapsulation: Method clearly indicates it's ConfigController-related
+- No global variable pollution: Uses method instead of global variable
+- Clearer naming: global.ConfigController.getDefaultDocName() is self-documenting
+- Consistent pattern: Follows same pattern as other global controllers
+
+All references to global.defaultDocName have been removed and replaced with the method call.
+
+Changes were accepted and implementation completed successfully.
+
+
+============================================================
+2025-11-10 00:31
+
+User requested to remove hardcoded '/api/1/config/site' from config.shtml and use '/api/1/config/' with controller handling default
+
+Implemented optional ID parameter support:
+
+1. Routes changes (webapp/routes.js):
+   - Added route: router.get('/api/1/config/', ConfigController.get) for default config (no ID)
+   - Added route: router.put('/api/1/config/', ConfigController.upsert) for default config upsert (no ID)
+   - Routes are ordered correctly: specific routes (with trailing slash) before parameterized routes
+
+2. ConfigController changes (webapp/controller/config.js):
+   - Updated get() method to use defaultDocName when req.params.id is missing
+   - Updated upsert() method to use defaultDocName when req.params.id is missing
+   - Removed ID validation errors - now defaults to defaultDocName
+   - Updated JSDoc comments to reflect optional ID parameter
+
+3. View changes (webapp/view/admin/config.shtml):
+   - Changed loadConfig() from '/api/1/config/site' to '/api/1/config/'
+   - Changed save from '/api/1/config/${defaultId}/upsert' to '/api/1/config/'
+   - Removed hardcoded 'site' defaultId variable
+
+Benefits:
+- No hardcoded config ID in view - uses controller's default
+- Cleaner API: /api/1/config/ automatically uses default config
+- Flexible: Can still use /api/1/config/:id for specific configs
+- Consistent: Both GET and PUT support default config via trailing slash
+
+Express router supports this pattern - routes with trailing slash match before parameterized routes.
+
+Changes were accepted and implementation completed successfully.
+
+
+============================================================
+2025-11-10 00:43
+
+User reported error: TypeError: Cannot read properties of undefined (reading 'defaultDocName') in upsert method
+
+Fixed context binding issue in static methods:
+
+1. ConfigController changes:
+   - Updated getDefaultDocName() to use ConfigController.defaultDocName instead of this.defaultDocName
+   - Updated get() method to use ConfigController.getDefaultDocName() instead of this.defaultDocName
+   - Updated upsert() method to use ConfigController.getDefaultDocName() instead of this.defaultDocName
+   - All methods now use explicit class name to avoid context binding issues when called as Express route handlers
+
+Root cause:
+- When Express calls static methods as route handlers, 'this' context may not be preserved
+- Using explicit class name (ConfigController) ensures correct property access regardless of call context
+
+The initialize() method still uses this.defaultDocName which is fine since it's called directly during bootstrap, not as a route handler.
+
+Changes were accepted and implementation completed successfully.
+
+
+============================================================
+2025-11-10 00:50
+
+User reported empty config values when accessing /admin/config.shtml - should show 'global' config
+
+Fixed route matching issue:
+
+1. Problem identified:
+   - Log showed config.list was called instead of config.get
+   - Express router was matching /api/1/config/ (with trailing slash) to the list route
+   - This happened because Express may normalize trailing slashes or route order
+
+2. ConfigController changes:
+   - Updated list() method to check if req.path ends with '/'
+   - If path ends with '/', delegate to get() method instead
+   - This ensures /api/1/config/ correctly loads the default config
+   - Also improved id handling in get() and upsert() to trim empty strings
+
+3. Root cause:
+   - Express router matches routes in order
+   - /api/1/config (without slash) matches list route
+   - /api/1/config/ (with slash) was also matching list route due to normalization
+   - The explicit /api/1/config/ route wasn't being matched first
+
+Solution:
+- Check in list() method for trailing slash and delegate to get()
+- This works regardless of Express's trailing slash handling
+- Ensures default config is loaded correctly
+
+Changes were accepted and implementation completed successfully.
+
+
+============================================================
+2025-11-10 01:01
+
+User requested implementation of /api/1/config/_default endpoint to replace trailing slash approach
+
+Implementation completed:
+
+1. Routes updated (webapp/routes.js):
+   - Added explicit route `/api/1/config/_default` before `/:id` route
+   - Added PUT route `/api/1/config/_default` for upsert
+   - Removed trailing slash routes `/api/1/config/` (GET and PUT)
+
+2. ConfigController updated (webapp/controller/config.js):
+   - Updated `get()` method to resolve `_default` ID to `getDefaultDocName()`
+   - Updated `upsert()` method to resolve `_default` ID to `getDefaultDocName()`
+   - Removed workaround in `list()` method that checked for trailing slash
+   - Both methods now handle `_default` or empty/missing ID by resolving to default
+
+3. View updated (webapp/view/admin/config.shtml):
+   - Changed `/api/1/config/` to `/api/1/config/_default` in loadConfig()
+   - Changed `/api/1/config/` to `/api/1/config/_default` in form submit handler
+
+Benefits:
+- Clean separation: `_default` is a reserved system identifier (underscore prefix convention)
+- No conflict: Users can still create configs with ID 'default' (without underscore)
+- Explicit and semantic: The endpoint clearly indicates it's accessing the default config
+- No route matching ambiguity: Explicit route comes before parameterized route
+
+Changes were accepted and implementation completed successfully.
+
+
+============================================================
+2025-11-10 01:15
+
+Multi-instance broadcast test successful:
+
+Test scenario:
+- Instance 8080 (id:0) and Instance 8086 (id:1) running with Redis enabled
+- Updated config on instance 8080 via /api/1/config/_default
+- Verified instance 8086 received broadcast and refreshed cache
+
+Results:
+✅ Instance 8080: Config updated successfully (broadcast message: "Welcome message 1" → "Welcome message 2")
+✅ Broadcast event published: controller:config:data:changed with id: "global"
+✅ Instance 8086: Received broadcast event at same timestamp (1762766034326)
+✅ Instance 8086: HandlebarController.refreshGlobalConfig() called automatically
+✅ Instance 8086: Next config.get() should show updated values
+
+Key observations:
+- Broadcast event timestamp matches exactly between instances
+- Redis pub/sub working correctly across instances
+- HandlebarController cache refresh working as expected
+- No race conditions or timing issues observed
+- Both instances correctly resolve _default to "global" ID
+
+Implementation verified working correctly in multi-instance environment.

@@ -15,6 +15,7 @@
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
 import TestUtils from '../../helpers/test-utils.js';
 import ViewController from '../../../controller/view.js';
+import HandlebarController from '../../../controller/handlebar.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -334,14 +335,14 @@ describe('Template Includes System', () => {
             expect(processedContent).toContain('1200');
         });
 
-        test('should handle conditional expressions', () => {
+        test('should handle conditional expressions', async () => {
             const conditionalTemplate = `
                 {{#if user.isAuthenticated}}Welcome back!{{else}}Please sign in{{/if}}
             `;
 
             // Test both states
-            const authenticatedResult = ViewController.processHandlebars(conditionalTemplate, { ...mockContext, user: { ...mockContext.user, isAuthenticated: true } }, mockReq);
-            const guestResult = ViewController.processHandlebars(conditionalTemplate, { ...mockContext, user: { ...mockContext.user, isAuthenticated: false } }, mockReq);
+            const authenticatedResult = await HandlebarController.expandHandlebars(mockReq, conditionalTemplate, { ...mockContext, user: { ...mockContext.user, isAuthenticated: true } });
+            const guestResult = await HandlebarController.expandHandlebars(mockReq, conditionalTemplate, { ...mockContext, user: { ...mockContext.user, isAuthenticated: false } });
 
             expect(authenticatedResult).toContain('Welcome back!');
             expect(guestResult).toContain('Please sign in');

@@ -29,6 +29,7 @@ import ConfigController from './controller/config.js';
 import WebSocketController from './controller/websocket.js';
 import logController from './controller/log.js';
 import ViewController from './controller/view.js';
+import HandlebarController from './controller/handlebar.js';
 import CommonUtils from './utils/common.js';
 
 // API routes (must come before catch-all route)
@@ -43,9 +44,11 @@ router.get('/api/1/broadcast/status', BroadcastController.status);
 
 // Config API routes
 router.get('/api/1/config', ConfigController.list);
+router.get('/api/1/config/_default', ConfigController.get);  // Default config (reserved ID)
 router.get('/api/1/config/:id', ConfigController.get);
 router.get('/api/1/config/:id/effective', ConfigController.getEffective);
 router.post('/api/1/config', ConfigController.create);
+router.put('/api/1/config/_default', ConfigController.upsert);  // Default config upsert (reserved ID)
 router.put('/api/1/config/:id', ConfigController.update);
 router.put('/api/1/config/:id/upsert', ConfigController.upsert);
 router.delete('/api/1/config/:id', ConfigController.delete);
@@ -59,6 +62,9 @@ router.get('/api/1/auth/themes', AuthController.getThemes);
 
 // Markdown API routes
 router.get('/api/1/markdown/*', MarkdownController.api);
+
+// Handlebar API routes (W-088)
+router.post('/api/1/handlebar/expand', HandlebarController.apiExpand);
 
 // W-079: Cache API routes (require admin role)
 router.post('/api/1/cache/refresh', CacheController.refreshAll);

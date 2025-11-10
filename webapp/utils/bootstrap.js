@@ -161,7 +161,19 @@ export async function bootstrap(options = {}) {
         global.ContextExtensions = ContextExtensionsModule.default;
         bootstrapLog('✅ ContextExtensions: Initialized with providers');
 
-        // Step 13: Build viewRegistry for routes.js compatibility
+        // Step 13: Initialize ConfigController
+        const ConfigControllerModule = await import('../controller/config.js');
+        ConfigControllerModule.default.initialize();
+        global.ConfigController = ConfigControllerModule.default;
+        bootstrapLog(`✅ ConfigController: Initialized (defaultDocName: ${ConfigControllerModule.default.getDefaultDocName()})`);
+
+        // Step 14: Initialize HandlebarController (W-088)
+        const HandlebarControllerModule = await import('../controller/handlebar.js');
+        await HandlebarControllerModule.default.initialize();
+        global.HandlebarController = HandlebarControllerModule.default;
+        bootstrapLog('✅ HandlebarController: Initialized');
+
+        // Step 15: Build viewRegistry for routes.js compatibility
         // Legacy global for routes.js to use
         global.viewRegistry = {
             viewList: global.ViewController.getViewList(),
@@ -169,7 +181,7 @@ export async function bootstrap(options = {}) {
         };
         bootstrapLog(`✅ viewRegistry: Built with ${global.viewRegistry.viewList.length} directories`);
 
-        // Step 14: Prepare WebSocketController (but don't initialize server yet)
+        // Step 16: Prepare WebSocketController (but don't initialize server yet)
         // Server initialization requires Express app and http.Server
         const WebSocketControllerModule = await import('../controller/websocket.js');
         global.WebSocketController = WebSocketControllerModule.default;

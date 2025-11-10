@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Redis configuration validation (W-076)
  * @description     Tests Redis config parsing, validation, and fallback behavior
  * @file            webapp/tests/unit/utils/redis-config.test.js
- * @version         1.1.1
- * @release         2025-11-07
+ * @version         1.1.2
+ * @release         2025-11-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -160,7 +160,8 @@ describe('Redis Configuration (W-076)', () => {
 
             const result = await RedisManager.publishBroadcast('test:channel', { data: 'test' });
 
-            expect(result).toBe(false); // Should return false but not throw
+            // Returns true because it successfully processes local callbacks (graceful fallback)
+            expect(result).toBe(true); // Should return true (local callbacks processed) but not throw
         });
 
         it('should handle broadcast callback registration when Redis unavailable', () => {

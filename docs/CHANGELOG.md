@@ -1,6 +1,153 @@
-# jPulse Framework / Docs / Version History v1.1.1
+# jPulse Framework / Docs / Version History v1.1.2
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+________________________________________________
+## v1.1.2, W-088, 2025-11-10
+
+**Commit:** `W-088, v1.1.2: controller: extract Handlebars processing to dedicated controller`
+
+**HANDLEBARS PROCESSING EXTRACTION**: Extracted Handlebars template processing from ViewController to dedicated HandlebarController, providing better separation of concerns, reusable template processing API, and enabling future email template processing and client-side Handlebars expansion.
+
+**Objective**: Create dedicated HandlebarController for all Handlebars processing logic, enabling reusable template processing API and clean separation from ViewController.
+
+**HandlebarController Implementation**:
+- **webapp/controller/handlebar.js**: NEW dedicated controller for all Handlebars processing
+  - Extracted all template processing logic from ViewController
+  - Clean API: `HandlebarController.expandHandlebars(req, template, context, depth)`
+  - Manages its own include cache separate from ViewController template cache
+  - Builds internal context with app, user, config, appConfig, url, and i18n data
+  - Context filtering based on authentication status (protects sensitive config paths)
+  - Wildcard path filtering support (`appConfig.**.port`, `appConfig.**.password`)
+  - Event-driven config refresh via Redis broadcast (`controller:config:data:changed`)
+  - Graceful fallback when Redis unavailable (local callback processing)
+
+**API Endpoints**:
+- **POST /api/1/handlebar/expand**: Client-side Handlebars expansion endpoint
+  - Expands Handlebars expressions with server-side context
+  - Optional custom context augmentation
+  - Context filtering based on authentication status
+  - Supports long templates and complex nested objects (POST for JSON body)
+- **GET /api/1/config/_default**: Default configuration endpoint (reserved `_default` ID)
+- **PUT /api/1/config/_default**: Default configuration upsert endpoint
+
+**ConfigController Enhancements**:
+- **webapp/controller/config.js**: Enhanced with default document name management
+  - Static `getDefaultDocName()` method for consistent access
+  - Configurable default document ID via `appConfig.controller.config.defaultDocName`
+  - `_default` reserved identifier resolution in get/upsert methods
+  - Generic broadcast event publishing (`controller:config:data:changed`)
+  - Clean separation of concerns (no direct HandlebarController dependency)
+
+**ViewController Refactoring**:
+- **webapp/controller/view.js**: Removed Handlebars processing logic
+  - Deleted `processHandlebars()` method (now calls `HandlebarController.expandHandlebars()`)
+  - Removed `includeCache` and `globalConfig` properties (moved to HandlebarController)
+  - Removed `ContextExtensions` import (only needed in HandlebarController)
+  - Clean cache separation: ViewController manages `templateCache`, HandlebarController manages `includeCache`
+  - Updated `getCacheStats()` to return only template cache stats
+  - Updated `isSPA()` to use `this.templateCache` instead of HandlebarController cache
+
+**Redis Manager Enhancement**:
+- **webapp/utils/redis-manager.js**: Graceful fallback for single-instance deployments
+  - `publishBroadcast()` now processes local callbacks when Redis unavailable
+  - Transparent broadcast mechanism (works in both single and multi-instance environments)
+  - Ensures messages are always processed locally if Redis is not active
+
+**Bootstrap Integration**:
+- **webapp/utils/bootstrap.js**: Added HandlebarController and ConfigController initialization
+  - Step 13: Initialize ConfigController (reads default document name from app.conf)
+  - Step 14: Initialize HandlebarController (loads default config, registers broadcast callback)
+  - Proper dependency order ensures ConfigController available before HandlebarController
+
+**Internationalization**:
+- **webapp/utils/i18n.js**: Renamed `processI18nHandlebars()` to `expandI18nHandlebars()`
+  - Consistent naming with HandlebarController API
+  - Updated all references in ViewController and tests
+
+**Configuration**:
+- **webapp/app.conf**: Added HandlebarController configuration
+  - `controller.config.defaultDocName`: Configurable default config document ID
+  - `controller.handlebar.contextFilter`: Authentication-based context filtering rules
+  - `controller.handlebar.maxIncludeDepth`: Maximum template include depth
+  - `controller.handlebar.cacheIncludes`: Include cache configuration
+
+**Testing**:
+- **webapp/tests/unit/controller/view.test.js**: Updated for HandlebarController
+  - All `ViewController.processHandlebars()` calls replaced with `HandlebarController.expandHandlebars()`
+  - Added ConfigController and HandlebarController initialization in `beforeAll`
+  - Mocked RedisManager and config model for proper test isolation
+- **webapp/tests/unit/controller/template-includes.test.js**: Updated with same initialization pattern
+- **webapp/tests/unit/utils/redis-config.test.js**: Updated expectation for graceful fallback behavior
+- **webapp/tests/unit/utils/broadcast-channels.test.js**: Updated channel name to `controller:config:data:changed`
+- **webapp/tests/unit/translations/i18n-variable-content.test.js**: Updated method name to `expandI18nHandlebars`
+- **webapp/tests/helpers/test-utils.js**: Added controller config sections to fallback appConfig
+
+**Documentation**:
+- **docs/api-reference.md**: Complete API documentation
+  - Added "Handlebars Template Processing API" section with `POST /api/1/handlebar/expand`
+  - Documented `/api/1/config/_default` endpoints
+  - Explained why POST is used (URL length limits, complex data, common pattern)
+  - Included request/response examples, use cases, and security notes
+- **docs/handlebars.md**: Added client-side expansion section
+  - Mentioned `/api/1/handlebar/expand` endpoint
+  - Linked to `front-end-development.md` for complete documentation
+- **docs/template-reference.md**: Added client-side expansion section
+  - Explained when to use the API endpoint
+  - Included example with custom context
+  - Linked to `front-end-development.md`
+- **docs/front-end-development.md**: Comprehensive Handlebars section
+  - Explained server-side vs client-side expansion
+  - Detailed "When to Use Client-Side Expansion" guidelines
+  - Three real-world examples (Dynamic User Card, Email Template Preview, Notification Messages)
+  - Documented available server context and security filtering
+  - Error handling examples and performance considerations
+
+**Files Modified**:
+- webapp/controller/handlebar.js (NEW - dedicated Handlebars controller)
+- webapp/controller/view.js (removed Handlebars processing, delegates to HandlebarController)
+- webapp/controller/config.js (default document name management, generic broadcast events)
+- webapp/routes.js (added `/api/1/handlebar/expand`, added `/api/1/config/_default` routes)
+- webapp/utils/bootstrap.js (added ConfigController and HandlebarController initialization)
+- webapp/utils/i18n.js (renamed `processI18nHandlebars` to `expandI18nHandlebars`)
+- webapp/utils/redis-manager.js (graceful fallback for local callbacks)
+- webapp/app.conf (added controller.config and controller.handlebar sections)
+- webapp/view/admin/config.shtml (updated to use `/api/1/config/_default`)
+- webapp/tests/unit/controller/view.test.js (updated for HandlebarController)
+- webapp/tests/unit/controller/template-includes.test.js (updated initialization)
+- webapp/tests/unit/utils/redis-config.test.js (updated graceful fallback expectation)
+- webapp/tests/unit/utils/broadcast-channels.test.js (updated channel name)
+- webapp/tests/unit/translations/i18n-variable-content.test.js (updated method name)
+- webapp/tests/helpers/test-utils.js (added controller config to fallback)
+- webapp/translations/en.conf (added controller.handlebar translations)
+- webapp/translations/de.conf (added controller.handlebar translations)
+- docs/api-reference.md (complete API documentation)
+- docs/handlebars.md (client-side expansion section)
+- docs/template-reference.md (client-side expansion section)
+- docs/front-end-development.md (comprehensive Handlebars section)
+- docs/CHANGELOG.md (v1.1.2 entry)
+- docs/dev/work-items.md (W-088 deliverables)
+
+**Benefits**:
+- ✅ Better separation of concerns (ViewController vs HandlebarController)
+- ✅ Reusable template processing API for controllers and views
+- ✅ Client-side Handlebars expansion with server context
+- ✅ Context filtering protects sensitive configuration data
+- ✅ Event-driven config refresh ensures multi-instance consistency
+- ✅ Graceful fallback for single-instance deployments
+- ✅ Enables future email template processing (W-087)
+- ✅ Clean API design following "don't make me think" philosophy
+
+**Developer Experience**:
+- Before: Handlebars processing mixed with view loading logic
+- After: Dedicated HandlebarController with clean, reusable API
+- Before: No client-side Handlebars expansion capability
+- After: `POST /api/1/handlebar/expand` endpoint with full server context
+- Before: Hard-coded default config document ID
+- After: Configurable via `appConfig.controller.config.defaultDocName`
+- Before: Direct coupling between ConfigController and HandlebarController
+- After: Event-driven architecture with generic broadcast events
+- Before: Cache pollution between ViewController and Handlebars processing
+- After: Clean separation with dedicated caches per controller
 
 ________________________________________________
 ## v1.1.1, W-086, 2025-11-06

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Front-End Development Guide v1.1.1
+# jPulse Framework / Docs / Front-End Development Guide v1.1.2
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -94,6 +94,215 @@ All API calls return a standardized response format:
 ```
 
 > **See Also:** [REST API Reference](api-reference.md) for complete endpoint documentation and authentication requirements.
+
+## 🔄 Handlebars Template Expansion
+
+The jPulse Framework processes Handlebars templates server-side by default, so templates in `.shtml` files are fully expanded before reaching the browser. However, for dynamic client-side content generation, you can expand Handlebars templates on demand using the API endpoint.
+
+### Server-Side vs Client-Side Expansion
+
+**Server-Side (Default):**
+- Templates in `.shtml` files are automatically expanded during page rendering
+- Full access to server context (user, app, config, i18n, etc.)
+- No JavaScript required - works with progressive enhancement
+- See [Handlebars Reference](handlebars.md) for complete template syntax
+
+**Client-Side (On Demand):**
+- Use `/api/1/handlebar/expand` endpoint for dynamic content
+- Same server context available as server-side templates
+- Can augment with custom context data
+- Perfect for user interactions and real-time updates
+
+### When to Use Client-Side Expansion
+
+Use the API endpoint when you need to:
+- **Generate dynamic content** based on user interactions (clicks, form submissions, etc.)
+- **Update templates in real-time** without page reload
+- **Combine server context with client data** (e.g., user info + API response data)
+- **Preview templates** in admin interfaces (email templates, notifications, etc.)
+- **Handle user-generated content** that needs server context (e.g., user mentions in comments)
+
+**Don't use it for:**
+- Initial page rendering (use server-side templates instead)
+- Static content (use regular server-side Handlebars)
+- Content that doesn't need server context (use plain JavaScript string interpolation)
+
+### Basic Usage
+
+```javascript
+// Expand a simple template
+const result = await jPulse.api.post('/api/1/handlebar/expand', {
+    text: 'Hello {{user.firstName}}! Welcome to {{app.site.name}}.'
+});
+
+if (result.success) {
+    document.getElementById('greeting').innerHTML = result.text;
+    // Output: "Hello John! Welcome to My Site."
+}
+```
+
+### Using Custom Context
+
+You can augment the server context with custom data:
+
+```javascript
+// Expand template with custom context
+const result = await jPulse.api.post('/api/1/handlebar/expand', {
+    text: 'Hello {{user.firstName}}! You have {{notificationCount}} new messages.',
+    context: {
+        notificationCount: 5
+    }
+});
+
+if (result.success) {
+    document.getElementById('notification-badge').textContent = result.text;
+    // Output: "Hello John! You have 5 new messages."
+}
+```
+
+### Real-World Example: Dynamic User Card
+
+```javascript
+// Generate user card HTML with server context + API data
+async function renderUserCard(userId) {
+    // Fetch user data from API
+    const userData = await jPulse.api.get(`/api/1/user/${userId}`);
+
+    if (!userData.success) {
+        jPulse.UI.toast.error('Failed to load user');
+        return;
+    }
+
+    // Expand template with server context + API data
+    const result = await jPulse.api.post('/api/1/handlebar/expand', {
+        text: `
+            <div class="user-card">
+                <h3>{{user.firstName}} {{user.lastName}}</h3>
+                <p>Email: {{user.email}}</p>
+                <p>Role: {{user.roles}}</p>
+                {{#if profileData.bio}}
+                    <p class="bio">{{profileData.bio}}</p>
+                {{/if}}
+                <p>Last login: {{profileData.lastLogin}}</p>
+            </div>
+        `,
+        context: {
+            profileData: userData.data
+        }
+    });
+
+    if (result.success) {
+        document.getElementById('user-container').innerHTML = result.text;
+    }
+}
+```
+
+### Real-World Example: Email Template Preview
+
+```javascript
+// Preview email template in admin interface
+async function previewEmailTemplate(templateText, recipientData) {
+    const result = await jPulse.api.post('/api/1/handlebar/expand', {
+        text: templateText,
+        context: {
+            recipient: recipientData,
+            customData: {
+                resetLink: 'https://example.com/reset?token=abc123',
+                expiryHours: 24
+            }
+        }
+    });
+
+    if (result.success) {
+        // Display preview in modal or preview pane
+        document.getElementById('email-preview').innerHTML = result.text;
+    }
+}
+```
+
+### Real-World Example: Notification Messages
+
+```javascript
+// Generate personalized notification messages
+async function showNotification(notificationType, data) {
+    const templates = {
+        orderShipped: 'Great news, {{user.firstName}}! Your order {{order.id}} has been shipped.',
+        newMessage: 'You have a new message from {{sender.name}}.',
+        friendRequest: '{{sender.firstName}} wants to connect with you.'
+    };
+
+    const result = await jPulse.api.post('/api/1/handlebar/expand', {
+        text: templates[notificationType],
+        context: data
+    });
+
+    if (result.success) {
+        jPulse.UI.toast.success(result.text);
+    }
+}
+
+// Usage
+showNotification('orderShipped', {
+    order: { id: 'ORD-12345' }
+});
+```
+
+### Available Server Context
+
+The endpoint automatically provides the same context as server-side templates:
+
+- **`user`** - Current user information (filtered based on authentication)
+  - `user.firstName`, `user.lastName`, `user.email`, `user.roles`, `user.isAuthenticated`, etc.
+- **`app`** - Application metadata
+  - `app.jPulse.name`, `app.jPulse.version`, `app.site.name`, etc.
+- **`config`** - Site configuration from MongoDB
+  - `config.email.adminEmail`, `config.messages.broadcast`, etc.
+- **`appConfig`** - Application configuration (filtered based on authentication)
+- **`url`** - Current request URL information
+- **`i18n`** - Internationalization translations
+
+### Security and Context Filtering
+
+The endpoint automatically filters sensitive configuration data based on authentication status:
+- **Unauthenticated users**: System, deployment, database, and controller configs are filtered
+- **Authenticated users**: Additional filtering for passwords, ports, and sensitive paths
+- **Custom context**: Your custom context data is always included (you control what's sent)
+
+See `appConfig.controller.handlebar.contextFilter` for detailed filtering rules.
+
+### Error Handling
+
+```javascript
+try {
+    const result = await jPulse.api.post('/api/1/handlebar/expand', {
+        text: 'Hello {{user.firstName}}!'
+    });
+
+    if (result.success) {
+        // Use expanded text
+        document.getElementById('content').innerHTML = result.text;
+    } else {
+        // Handle API error
+        jPulse.UI.toast.error(result.error || 'Failed to expand template');
+    }
+} catch (error) {
+    // Handle network or other errors
+    console.error('Template expansion failed:', error);
+    jPulse.UI.toast.error('Network error. Please try again.');
+}
+```
+
+### Performance Considerations
+
+- **Caching**: Consider caching expanded templates on the client side if the same template is used multiple times
+- **Batch Operations**: For multiple templates, consider batching or using a single template with conditional logic
+- **Template Size**: Very large templates may impact performance; consider breaking them into smaller pieces
+
+### Related Documentation
+
+- **[Handlebars Reference](handlebars.md)** - Complete Handlebars syntax and server-side template guide
+- **[Template Reference](template-reference.md)** - Server-side template development patterns
+- **[REST API Reference](api-reference.md)** - Complete API endpoint documentation
 
 ## ⚡ Real-Time Communication with WebSocket
 

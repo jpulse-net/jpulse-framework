@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Template Reference v1.1.1
+# jPulse Framework / Docs / Template Reference v1.1.2
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -761,6 +761,33 @@ jPulse.dom.ready(() => {
 </body>
 </html>
 ```
+
+## 🔄 Client-Side Handlebars Expansion
+
+For dynamic content that needs to be generated on the client side, you can use the Handlebars expansion API endpoint:
+
+**API Endpoint:** `POST /api/1/handlebar/expand`
+
+This allows you to expand Handlebars templates in JavaScript with full server-side context (user, app, config, etc.) plus custom context data.
+
+**When to Use:**
+- Dynamic content that changes based on user interactions
+- Real-time template updates without page reload
+- User-generated content that needs server context
+- Email template previews in admin interfaces
+
+**Example:**
+```javascript
+// Expand template with server context + custom data
+const result = await jPulse.api.post('/api/1/handlebar/expand', {
+    text: 'Welcome {{user.firstName}}! Your order {{order.id}} is {{order.status}}.',
+    context: {
+        order: { id: 'ORD-123', status: 'shipped' }
+    }
+});
+```
+
+> **See Also:** [Front-End Development Guide](front-end-development.md) for complete client-side Handlebars expansion documentation, use cases, and examples.
 
 ## 🔧 Best Practices
 

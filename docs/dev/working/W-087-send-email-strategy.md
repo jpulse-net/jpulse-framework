@@ -1,12 +1,12 @@
 # W-087: Send Email Strategy
 
-**Status:** Proposed  
-**Date:** 2025-11-08 
-**Updated:** 2025-11-09  
-**Priority:** High (Core framework feature)  
-**Estimated Effort:** 2-3 hours (after W-088 completion)  
-**Category:** Framework Enhancement  
-**Depends on:** W-088 (HandlebarsController extraction)
+**Status:** Proposed
+**Date:** 2025-11-08
+**Updated:** 2025-11-09
+**Priority:** High (Core framework feature)
+**Estimated Effort:** 2-3 hours (after W-088 completion)
+**Category:** Framework Enhancement
+**Depends on:** W-088 (HandlebarController extraction) ✅ COMPLETE
 
 ---
 
@@ -20,7 +20,7 @@
 3. API endpoint for client-side email sending (authenticated users only)
 4. Support for multiple email scenarios (transactional, notifications, admin alerts)
 5. Graceful fallback when email not configured
-6. Template processing handled by callers using HandlebarsController (from W-0)
+6. Template processing handled by callers using HandlebarController (from W-088)
 
 ---
 
@@ -109,14 +109,14 @@ const result = await jPulse.api.post('/api/1/email/send', {
    - Future: support config hierarchy (global, americas, emea, asia)
 
 4. **Template Processing** (handled by callers)
-   - Controllers: Use `HandlebarsController.processHandlebars()` (from W-0) + manual %TOKEN% replacement
+   - Controllers: Use `HandlebarController.expandHandlebars()` (from W-088) + manual %TOKEN% replacement
    - Views: Manual %TOKEN% replacement only (handlebars already expanded)
    - Template files: Load using `PathResolver.resolveAsset()` from `static/assets/{app-name}/`
 
 **Benefits:**
 - ✅ Simplicity: EmailManager focused only on sending emails
 - ✅ Flexibility: Callers control template processing
-- ✅ Reusability: HandlebarsController usable everywhere
+- ✅ Reusability: HandlebarController usable everywhere
 - ✅ Security: API endpoint enforces authentication
 - ✅ Testability: separate concerns, easy to mock
 - ✅ Auditability: all client-initiated emails logged
@@ -259,7 +259,7 @@ class EmailManager {
      * @returns {Promise<boolean>} Success status
      */
     static async initialize()
-    
+
     /**
      * Send email
      * @param {object} options - Email options
@@ -274,7 +274,7 @@ class EmailManager {
      * @returns {Promise<object>} { success, messageId, error }
      */
     static async sendEmail(options)
-    
+
     /**
      * Send email to admin (convenience method)
      * @param {string} subject - Email subject
@@ -283,7 +283,7 @@ class EmailManager {
      * @returns {Promise<object>} { success, messageId, error }
      */
     static async sendAdminNotification(subject, text, html = null)
-    
+
     /**
      * Check if email is configured
      * @returns {boolean} True if email is configured and ready
@@ -292,7 +292,7 @@ class EmailManager {
 }
 ```
 
-**Note:** No template processing methods - templates handled by callers using HandlebarsController
+**Note:** No template processing methods - templates handled by callers using HandlebarController
 
 **Usage Example (Simple Email):**
 ```javascript
@@ -322,7 +322,7 @@ await EmailManager.sendAdminNotification(
 **Usage Example (With Template - Controller):**
 ```javascript
 import EmailManager from '../utils/email-manager.js';
-import HandlebarsController from '../controller/handlebars.js';
+import HandlebarController from '../controller/handlebar.js';
 import PathResolver from '../utils/path-resolver.js';
 import fs from 'fs/promises';
 
@@ -332,7 +332,7 @@ const template = await fs.readFile(templatePath, 'utf8');
 
 // Expand handlebars (context augments internal context)
 const context = { user: { name: 'John' } };
-let processed = HandlebarsController.processHandlebars(template, context, req);
+let processed = await HandlebarController.expandHandlebars(req, template, context);
 
 // Expand %TOKENS%
 processed = processed.replace(/%([A-Z0-9_]+)%/g, (match, token) => {
@@ -359,11 +359,11 @@ const result = await EmailManager.sendEmail({...});
 if (!result.success) {
     if (result.error === 'Email not configured') {
         // Email not set up, handle gracefully
-        global.LogController.logWarning(req, 'my-controller', 
+        global.LogController.logWarning(req, 'my-controller',
             'Email not configured, notification not sent');
     } else {
         // SMTP error, log for investigation
-        global.LogController.logError(req, 'my-controller', 
+        global.LogController.logError(req, 'my-controller',
             `Email send failed: ${result.error}`);
     }
 }
@@ -424,23 +424,23 @@ class EmailController {
     static async apiSend(req, res) {
         // 1. Check authentication
         if (!req.session.user) {
-            return CommonUtils.sendError(req, res, 401, 
+            return CommonUtils.sendError(req, res, 401,
                 'Authentication required', 'UNAUTHORIZED');
         }
-        
+
         // 2. Extract and validate input
         const { to, subject, message, html } = req.body;
-        
+
         if (!to || !subject || !message) {
-            return CommonUtils.sendError(req, res, 400, 
+            return CommonUtils.sendError(req, res, 400,
                 'Missing required fields', 'MISSING_FIELDS');
         }
-        
+
         if (!CommonUtils.isValidEmail(to)) {
-            return CommonUtils.sendError(req, res, 400, 
+            return CommonUtils.sendError(req, res, 400,
                 'Invalid recipient email', 'INVALID_EMAIL');
         }
-        
+
         // 3. Send email (rate limiting deferred to future enhancement)
         const result = await EmailManager.sendEmail({
             to: to,
@@ -449,24 +449,24 @@ class EmailController {
             text: message,
             html: html || message.replace(/\n/g, '<br>')
         });
-        
+
         // 4. Log audit trail
-        global.LogController.logInfo(req, 'email', 
+        global.LogController.logInfo(req, 'email',
             `Email sent to ${to} by ${req.session.user.username}: ${subject}`);
-        
+
         // 5. Return response
         if (result.success) {
-            return res.json({ 
-                success: true, 
-                messageId: result.messageId 
+            return res.json({
+                success: true,
+                messageId: result.messageId
             });
         } else {
-            return CommonUtils.sendError(req, res, 500, 
-                'Failed to send email', 'EMAIL_SEND_FAILED', 
+            return CommonUtils.sendError(req, res, 500,
+                'Failed to send email', 'EMAIL_SEND_FAILED',
                 result.error);
         }
     }
-    
+
 }
 ```
 
@@ -479,7 +479,7 @@ try {
         subject: 'Check out this page',
         message: 'I found something interesting...'
     });
-    
+
     if (result.success) {
         jPulse.UI.toast.success('Email sent successfully!');
     } else {
@@ -522,7 +522,7 @@ import ConfigModel from '../model/config.js';
 
 async function bootstrap(options = {}) {
     // ... existing bootstrap code (after database initialization) ...
-    
+
     // Initialize email manager (loads config from MongoDB)
     const emailReady = await EmailManager.initialize();
     if (emailReady) {
@@ -530,7 +530,7 @@ async function bootstrap(options = {}) {
     } else {
         bootstrapLog('Email manager failed to initialize or not configured', 'warning');
     }
-    
+
     // ... rest of bootstrap ...
 }
 ```
@@ -562,8 +562,8 @@ const template = await fs.readFile(templatePath, 'utf8');
 
 **Two token formats supported:**
 
-1. **Handlebars:** `${variable}` or `{{variable}}` (for controllers only, requires W-0)
-   - Processed by `HandlebarsController.processHandlebars()`
+1. **Handlebars:** `{{variable}}` (for controllers only, requires W-088)
+   - Processed by `HandlebarController.expandHandlebars(req, template, context)`
    - Context augments internal context (e.g., `{ user: { name: 'John' } }`)
    - Note: `app.name` not needed - internal context already includes app info
 
@@ -575,7 +575,7 @@ const template = await fs.readFile(templatePath, 'utf8');
 
 ```javascript
 import EmailManager from '../utils/email-manager.js';
-import HandlebarsController from '../controller/handlebars.js';
+import HandlebarController from '../controller/handlebar.js';
 import PathResolver from '../utils/path-resolver.js';
 import fs from 'fs/promises';
 
@@ -585,7 +585,7 @@ const template = await fs.readFile(templatePath, 'utf8');
 
 // Step 1: Expand handlebars (context augments internal context)
 const context = { user: { name: 'John' } };
-let processed = HandlebarsController.processHandlebars(template, context, req);
+let processed = await HandlebarController.expandHandlebars(req, template, context);
 
 // Step 2: Expand %TOKENS%
 processed = processed.replace(/%([A-Z0-9_]+)%/g, (match, token) => {
@@ -634,7 +634,7 @@ const processed = template.replace(/%([A-Z0-9_]+)%/g, (match, token) => {
 ```javascript
 // Always check user is logged in
 if (!req.session.user) {
-    return CommonUtils.sendError(req, res, 401, 
+    return CommonUtils.sendError(req, res, 401,
         'Authentication required', 'UNAUTHORIZED');
 }
 ```
@@ -650,7 +650,7 @@ if (!req.session.user) {
 ```javascript
 // Validate recipient email
 if (!CommonUtils.isValidEmail(to)) {
-    return CommonUtils.sendError(req, res, 400, 
+    return CommonUtils.sendError(req, res, 400,
         'Invalid email address', 'INVALID_EMAIL');
 }
 
@@ -663,12 +663,12 @@ const sanitizedMessage = CommonUtils.sanitizeString(message);
 ```javascript
 // Optional: detect spam keywords
 const spamKeywords = ['viagra', 'casino', 'lottery'];
-const hasSpam = spamKeywords.some(kw => 
+const hasSpam = spamKeywords.some(kw =>
     message.toLowerCase().includes(kw)
 );
 
 if (hasSpam) {
-    return CommonUtils.sendError(req, res, 400, 
+    return CommonUtils.sendError(req, res, 400,
         'Message contains prohibited content', 'SPAM_DETECTED');
 }
 ```
@@ -697,15 +697,15 @@ if (hasSpam) {
 **Log All Email Activity:**
 ```javascript
 // Success
-global.LogController.logInfo(req, 'email', 
+global.LogController.logInfo(req, 'email',
     `Email sent to ${to} by ${username}: ${subject}`);
 
 // Failure
-global.LogController.logError(req, 'email', 
+global.LogController.logError(req, 'email',
     `Email send failed to ${to}: ${error.message}`);
 
 // Rate limit hit
-global.LogController.logWarning(req, 'email', 
+global.LogController.logWarning(req, 'email',
     `Rate limit exceeded for user ${username}`);
 ```
 
@@ -752,7 +752,7 @@ describe('EmailManager', () => {
         });
         expect(result).toBe(true);
     });
-    
+
     it('should send email successfully', async () => {
         const result = await EmailManager.sendEmail({
             to: 'test@example.com',
@@ -762,7 +762,7 @@ describe('EmailManager', () => {
         expect(result.success).toBe(true);
         expect(result.messageId).toBeDefined();
     });
-    
+
     it('should handle send failure gracefully', async () => {
         // Mock SMTP error
         const result = await EmailManager.sendEmail({
@@ -784,24 +784,24 @@ describe('EmailController', () => {
     it('should reject unauthenticated requests', async () => {
         const req = { session: {}, body: {} };
         const res = mockResponse();
-        
+
         await EmailController.apiSend(req, res);
-        
+
         expect(res.status).toHaveBeenCalledWith(401);
     });
-    
+
     it('should validate email format', async () => {
         const req = {
             session: { user: { username: 'test' } },
             body: { to: 'invalid-email', subject: 'Test', message: 'Test' }
         };
         const res = mockResponse();
-        
+
         await EmailController.apiSend(req, res);
-        
+
         expect(res.status).toHaveBeenCalledWith(400);
     });
-    
+
     it('should enforce rate limiting', async () => {
         // Send emails until rate limit hit
         // Expect 429 status code
@@ -819,7 +819,7 @@ describe('Email API', () => {
     it('should send email via API when authenticated', async () => {
         // Login first
         const session = await loginTestUser();
-        
+
         // Send email
         const response = await request(app)
             .post('/api/1/email/send')
@@ -829,7 +829,7 @@ describe('Email API', () => {
                 subject: 'Test Email',
                 message: 'This is a test'
             });
-        
+
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
     });
@@ -907,18 +907,18 @@ if (!result.success) {
     // Email not sent, handle gracefully
     if (result.error === 'Email not configured') {
         // Expected in development, just log
-        global.LogController.logInfo(req, 'controller', 
+        global.LogController.logInfo(req, 'controller',
             'Email not configured, skipping notification');
     } else {
         // Unexpected error, investigate
-        global.LogController.logError(req, 'controller', 
+        global.LogController.logError(req, 'controller',
             `Email error: ${result.error}`);
     }
-    
+
     // Continue with application logic
-    return res.json({ 
-        success: true, 
-        message: 'Action completed (email notification pending)' 
+    return res.json({
+        success: true,
+        message: 'Action completed (email notification pending)'
     });
 }
 ```
@@ -975,7 +975,7 @@ return res.json({ success: true });
 
 // Option 2: Fire and forget (faster response)
 EmailManager.sendEmail({...}).catch(err => {
-    global.LogController.logError(null, 'email', 
+    global.LogController.logError(null, 'email',
         `Async email failed: ${err.message}`);
 });
 return res.json({ success: true });
@@ -1120,7 +1120,7 @@ For frequent sends, consider connection pooling:
 ## Success Criteria
 
 **W-087 Complete When:**
-- [ ] W-0 (HandlebarsController) completed first
+- [x] W-088 (HandlebarController) completed ✅
 - [ ] EmailManager utility implemented (minimal API)
 - [ ] EmailController API endpoint implemented
 - [ ] Bootstrap integration completed
@@ -1141,7 +1141,7 @@ For frequent sends, consider connection pooling:
 
 ## Time Estimate
 
-**Prerequisite:** W-0 (HandlebarsController extraction) - 2-3 hours
+**Prerequisite:** W-088 (HandlebarController extraction) ✅ COMPLETE
 
 | Task | Estimated Time |
 |------|---------------|
@@ -1160,7 +1160,7 @@ For frequent sends, consider connection pooling:
 ## Dependencies
 
 **Required:**
-- **W-0: HandlebarsController extraction** (must be completed first)
+- **W-088: HandlebarController extraction** ✅ COMPLETE
 - `nodemailer` ^6.9.8 (npm package)
 - SMTP server credentials
 - MongoDB config system (existing)
@@ -1191,18 +1191,18 @@ For frequent sends, consider connection pooling:
 
 ---
 
-**Document Version:** 2.0.0  
-**Last Updated:** 2025-01-XX  
-**Author:** AI Assistant (Cursor, Claude Sonnet 4.5)  
+**Document Version:** 2.0.0
+**Last Updated:** 2025-01-XX
+**Author:** AI Assistant (Cursor, Claude Sonnet 4.5)
 **Status:** Ready for implementation (after W-0 completion)
 
 **Changes in v2.0.0:**
 - Simplified EmailManager (no template processing)
-- Template processing handled by callers using HandlebarsController
+- Template processing handled by callers using HandlebarController
 - Configuration moved to MongoDB only (not app.conf)
 - Rate limiting deferred to future enhancement
 - Added template processing section with examples
-- Updated to depend on W-0 (HandlebarsController extraction)  
+- Updated to depend on W-088 (HandlebarController extraction) ✅ COMPLETE
 
 ---
 

@@ -1,4 +1,4 @@
-# jPulse Framework v1.1.1
+# jPulse Framework v1.1.2
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -161,6 +161,8 @@ npx jpulse update @jpulse-net/jpulse-framework@1.0.0-rc.1
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.1.2 - Handlebars Processing Extraction**: Extracted Handlebars template processing to dedicated `HandlebarController` for better separation of concerns and reusable template processing API. Added `POST /api/1/handlebar/expand` endpoint for client-side Handlebars expansion with server context. Added `/api/1/config/_default` endpoint for default configuration management. Context filtering based on authentication status protects sensitive configuration data. Event-driven config refresh via Redis broadcast ensures multi-instance cache consistency. Enables future email template processing and "Try Your Own Handlebars" demo functionality.
+- ✅ **Version 1.1.0 - Unified CLI tools with intuitive npx jpulse commands**: Unified command-line interface with single entry point, configuration-driven version bumping, and intuitive update workflow following "don't make me think" philosophy
 - ✅ **Version 1.0.1 - Documentation & Developer Experience**: Framework comparison guide comparing jPulse with NestJS, Django, Rails, Laravel, Next.js, and alternatives. Automated `.npmrc` creation for GitHub Packages registry - no manual configuration needed. Enhanced developer experience following "don't make me think" philosophy.
 - ✅ **Version 1.0.0 - Production Milestone**: Complete Redis infrastructure for scalable multi-instance and multi-server deployments with zero-configuration auto-discovery, Application Cluster Broadcasting, WebSocket real-time communication, aggregated health metrics, Redis-based session sharing, and enterprise-grade clustering. Includes BSL 1.1 licensing, repository migration to jpulse-net organization, comprehensive Gen-AI development guides, and production-ready deployment automation.
 - ✅ **Zero-Configuration Auto-Discovery (v1.0.0-rc.2)** - Complete automatic controller registration, API endpoint discovery, and SPA routing detection

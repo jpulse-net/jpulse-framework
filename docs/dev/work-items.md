@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.1.0
+# jPulse Framework / Docs / Dev / Work Items v1.1.2
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1726,40 +1726,38 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 ## 🚧 IN_PROGRESS Work Items
 
 ### W-088, v1.1.2: controller: extract Handlebars processing to dedicated controller
-- status: 🕑 PENDING
-- type: Idea
+- status: 🚧 IN_PROGRESS
+- type: Feature
 - objectives: better separation of concerns, reusable template processing API
 - depends on: none
 - to-do:
-  - create webapp/controller/handlebars.js with dedicated Handlebars processing logic
-  - extract all template processing from view.js to handlebars.js
-  - provide clean API: HandlebarController.expandHandlebars(template, context, options)
-  - maintain backward compatibility with existing view controller behavior only (not method name)
+  - create webapp/controller/handlebar.js with dedicated Handlebars processing logic
+  - extract all template processing from view.js to handlebar.js
+  - provide clean API: HandlebarController.expandHandlebars(req, template, context, depth)
+  - maintain backward compatibility with existing view controller behavior
   - add standalone processing method for non-view contexts
-  - add /api/1/handlebar/expand endpoint for views
+  - add POST /api/1/handlebar/expand endpoint for views
   - enable future "Try Your Own Handlebars" demo functionality
   - fix existing tests for new controller
-  - document HandlebarController usage
+  - context filtering based on authentication status
+  - config change broadcast integration for cache invalidation
+  - document HandlebarController usage (in code comments and W-087 doc)
 - deliverables:
-  - FIXME file -- description
-
-
-
+  - webapp/controller/handlebar.js -- NEW handlebar processing controller
+  - webapp/controller/view.js -- remove handlebar processing code
+  - webapp/routes.js -- add /api/1/handlebar/expand, add /api/1/config/_default
+  - webapp/tests/unit/* -- update unit tests for handlebar controller
+  - webapp/translations/*.conf -- add controller.handlebar translation
+  - webapp/utils/bootstrap.js -- add ConfigController and HandlebarController initialize
+	- webapp/utils/i18n.js -- rename processI18nHandlebars() to expandI18nHandlebars()
+	- webapp/utils/redis-manager.js -- single-instance mode: call local callbacks directly
+	- webapp/view/admin/config.shtml -- fix API endpoint to /api/1/config/_default
 
 
 
 
 
 pending:
-- view controller:
-  - getCacheStats(), why global.HandlebarController?.includeCache ? global.HandlebarController.includeCache.getStats() ?
-  - isSPA(), why global.HandlebarController.includeCache.getFileSync(indexPath) ?
-- i18n:
-  - for consistency, rename processI18nHandlebars to expandI18nHandlebars
-- handlebar controller:
-  - i18n (for reference see markdown controller)
-  - apiExpand: request: change "template" to "text"
-  - apiExpand: response: change "result" to "text"
 
 
 ### W-087, v1.1.3: email: strategy for sending email from jPulse Framework
@@ -1804,11 +1802,11 @@ next work item: W-0...
 - plan how to implement (wait for my go ahead)
 - current timestamp: 2025-10-04 17:55
 
-finishing up work item: W-070:
+finishing up work item: W-088:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-086, v1.1.1
-- update deliverables in W-086 to document work done (don't make any other changes to this file)
+- assume release: W-088, v1.1.2
+- update deliverables in W-088 to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
@@ -1824,22 +1822,22 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.1.1
+node bin/bump-version.js 1.1.2
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.1.1
+git tag v1.1.2
 git push origin main --tags
 
 === on failed package build on github ===
-git tag -d v0.8.5
-git push --delete origin v0.8.5
+git tag -d v1.1.2
+git push --delete origin v1.1.2
 git add .
 git commit --amend --no-edit
-git tag -a v0.8.5 -m "W-072, v0.8.5: Vue.js SPA Demo & Enhanced jPulse Utilities for Modern Web Development"
+git tag -a v1.1.2 -m "W-072, v1.1.2: Vue.js SPA Demo & Enhanced jPulse Utilities for Modern Web Development"
 git push origin main --force-with-lease
-git push origin v0.8.5
+git push origin v1.1.2
 
 === amend commit message ===
 git commit --amend -F commit-message.txt

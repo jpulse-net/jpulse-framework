@@ -3,8 +3,8 @@
  * @tagline         Test utilities for the jPulse Framework WebApp
  * @description     Common utilities and helpers for testing
  * @file            webapp/tests/helpers/test-utils.js
- * @version         1.1.1
- * @release         2025-11-07
+ * @version         1.1.2
+ * @release         2025-11-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -202,6 +202,19 @@ export class TestUtils {
                 // Add other critical config sections that modules might need
                 database: { mode: 'standalone' },
                 controller: {
+                    config: {
+                        defaultDocName: 'global'
+                    },
+                    handlebar: {
+                        cacheIncludes: {
+                            enabled: false  // Disabled for tests
+                        },
+                        contextFilter: {
+                            withoutAuth: [],
+                            withAuth: []
+                        },
+                        maxIncludeDepth: 10
+                    },
                     view: { defaultTemplate: 'index.shtml' }
                 }
             };

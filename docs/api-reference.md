@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / REST API Reference v1.1.1
+# jPulse Framework / Docs / REST API Reference v1.1.2
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -618,14 +618,18 @@ GET /api/1/user/search?limit=25&page=2&sort=-lastLogin
 ### Configuration Endpoints
 
 #### Get Configuration
-Retrieve configuration by ID.
+Retrieve configuration by ID or default configuration.
 
-**Route:** `GET /api/1/config/:id`
+**Route:** `GET /api/1/config/_default` or `GET /api/1/config/:id`
 **Middleware:** `AuthController.requireAuthentication`, `AuthController.requireRole(['admin', 'root'])`
 **Authentication:** Required (Admin/Root roles only)
 
 **Parameters:**
-- `id` (path): Configuration ID (e.g., "global")
+- `_default` (path): Reserved identifier that resolves to the configured default config document (e.g., "global")
+- `id` (path): Configuration ID (e.g., "global", "americas", "emea")
+
+**Special Endpoint:**
+- `GET /api/1/config/_default` - Returns the default configuration document as defined in `appConfig.controller.config.defaultDocName`
 
 **Response (200):**
 ```json
@@ -695,11 +699,14 @@ Create a new configuration document.
 ```
 
 #### Update Configuration
-Update an existing configuration document.
+Update an existing configuration document or default configuration.
 
-**Route:** `PUT /api/1/config/:id`
+**Route:** `PUT /api/1/config/_default` or `PUT /api/1/config/:id`
 **Middleware:** `AuthController.requireAuthentication`, `AuthController.requireRole(['admin', 'root'])`
 **Authentication:** Required (Admin/Root roles only)
+
+**Special Endpoint:**
+- `PUT /api/1/config/_default` - Updates the default configuration document (resolves to configured default)
 
 **Request Body:**
 ```json
@@ -952,6 +959,98 @@ GET /api/1/markdown/jpulse-docs/dev/architecture.md
 # List files in a site's custom documentation namespace
 GET /api/1/markdown/docs/
 ```
+
+## 🔧 Handlebars Template Processing API
+
+### Handlebars Expansion Endpoint
+
+#### Expand Handlebars Template
+Expand Handlebars expressions in text with server-side context and optional custom context.
+
+**Route:** `POST /api/1/handlebar/expand`
+**Middleware:** None (public endpoint)
+**Authentication:** Not required (but context filtering applies based on authentication status)
+
+**Note:** POST is used instead of GET because:
+- Templates can be long (exceeding URL length limits)
+- Context data can be complex nested objects (better suited for JSON body)
+- Common pattern for transformation/action endpoints that don't modify server state
+
+**Request Body:**
+```json
+{
+    "text": "Hello {{user.firstName}}! Welcome to {{app.site.name}}.",
+    "context": {
+        "custom": "value"
+    }
+}
+```
+
+**Request Parameters:**
+- `text` (string, required): Template text containing Handlebars expressions (e.g., `{{user.firstName}}`)
+- `context` (object, optional): Additional context data that augments the internal server context
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "text": "Hello John! Welcome to My Site."
+}
+```
+
+**Error Responses:**
+- **400**: Missing or invalid `text` parameter
+- **500**: Internal server error during template processing
+
+**Context Available:**
+The endpoint automatically provides server-side context including:
+- `user` - Current user information (filtered based on authentication)
+- `app` - Application metadata (jPulse and site info)
+- `config` - Site configuration from MongoDB
+- `appConfig` - Application configuration (filtered based on authentication)
+- `url` - Current request URL information
+- `i18n` - Internationalization translations
+
+**Custom Context:**
+The optional `context` parameter augments the internal context. For example:
+```json
+{
+    "text": "Hello {{user.firstName}}! Your order {{order.id}} is ready.",
+    "context": {
+        "order": {
+            "id": "ORD-12345",
+            "status": "shipped"
+        }
+    }
+}
+```
+
+**Use Cases:**
+- Client-side dynamic content generation with server context
+- Email template preview in admin interfaces
+- Real-time template expansion for user-generated content
+- Testing Handlebars expressions without page reload
+
+**Example Usage:**
+```javascript
+// Expand template with user context
+const result = await jPulse.api.post('/api/1/handlebar/expand', {
+    text: 'Welcome back, {{user.firstName}}! You have {{notificationCount}} new messages.',
+    context: {
+        notificationCount: 5
+    }
+});
+
+if (result.success) {
+    document.getElementById('welcome-message').innerHTML = result.text;
+    // Output: "Welcome back, John! You have 5 new messages."
+}
+```
+
+**Security Note:**
+- Context is automatically filtered based on authentication status
+- Sensitive configuration paths are removed for unauthenticated users
+- See `appConfig.controller.handlebar.contextFilter` for filtering rules
 
 ## 🏥 System Health and Metrics API
 

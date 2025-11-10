@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Handlebars Templating v1.1.1
+# jPulse Framework / Docs / Handlebars Templating v1.1.2
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -331,8 +331,28 @@ Site-specific templates can override framework templates by placing them in the 
 
 For live examples of Handlebars usage, see the [Handlebars Examples](/jpulse-examples/handlebars.shtml) page, which provides interactive examples with source code for all the concepts covered in this guide.
 
+## Client-Side Handlebars Expansion
+
+For client-side dynamic content generation, you can expand Handlebars templates on demand using the API endpoint:
+
+**API Endpoint:** `POST /api/1/handlebar/expand`
+
+This endpoint allows you to expand Handlebars expressions in JavaScript with full access to server-side context (user, app, config, etc.) plus any custom context you provide.
+
+**Example:**
+```javascript
+const result = await jPulse.api.post('/api/1/handlebar/expand', {
+    text: 'Hello {{user.firstName}}! You have {{count}} notifications.',
+    context: { count: 5 }
+});
+// Result: "Hello John! You have 5 notifications."
+```
+
+> **See Also:** [Front-End Development Guide](front-end-development.md) for complete client-side Handlebars expansion documentation and use cases.
+
 ## Related Documentation
 
 - [Template Reference](template-reference.md) - Complete template syntax reference
+- [Front-End Development Guide](front-end-development.md) - Client-side Handlebars expansion
 - [Site Customization](site-customization.md) - Customizing templates for your site
 - [Getting Started](getting-started.md) - Basic jPulse development guide

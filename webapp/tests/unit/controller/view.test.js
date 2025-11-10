@@ -3,8 +3,8 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         1.1.1
- * @release         2025-11-07
+ * @version         1.1.2
+ * @release         2025-11-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,6 +16,7 @@ import { describe, test, expect, beforeEach, afterEach, beforeAll, jest } from '
 import TestUtils from '../../helpers/test-utils.js';
 import ViewController from '../../../controller/view.js';
 import HandlebarController from '../../../controller/handlebar.js';
+import ConfigController from '../../../controller/config.js';
 
 // Mock dependencies
 jest.mock('../../../controller/log.js', () => ({
@@ -30,11 +31,32 @@ jest.mock('../../../model/config.js', () => ({
     }
 }));
 
+// Mock RedisManager
+global.RedisManager = {
+    registerBroadcastCallback: jest.fn(),
+    isRedisAvailable: jest.fn().mockReturnValue(false)
+};
+
 // Mock appConfig globally for this test
 global.appConfig = {
     app: {
         version: '0.9.3',  // This will be overridden by TestUtils
         release: '2025-10-08'  // This will be overridden by TestUtils
+    },
+    controller: {
+        config: {
+            defaultDocName: 'global'
+        },
+        handlebar: {
+            cacheIncludes: {
+                enabled: false  // Disabled for tests
+            },
+            contextFilter: {
+                withoutAuth: [],
+                withAuth: []
+            },
+            maxIncludeDepth: 10
+        }
     },
     view: {
         defaultTemplate: 'index.shtml',
@@ -50,6 +72,28 @@ describe('View Controller Unit Tests', () => {
     let mockReq, mockContext;
 
     beforeAll(async () => {
+        // Setup consolidated config first
+        TestUtils.setupGlobalMocksWithConsolidatedConfig();
+
+        // Ensure controller config exists (may be overridden by consolidated config)
+        if (!global.appConfig.controller) {
+            global.appConfig.controller = {};
+        }
+        if (!global.appConfig.controller.config) {
+            global.appConfig.controller.config = { defaultDocName: 'global' };
+        }
+        if (!global.appConfig.controller.handlebar) {
+            global.appConfig.controller.handlebar = {
+                cacheIncludes: { enabled: false },
+                contextFilter: { withoutAuth: [], withAuth: [] },
+                maxIncludeDepth: 10
+            };
+        }
+
+        // Initialize ConfigController before HandlebarController
+        ConfigController.initialize();
+        global.ConfigController = ConfigController;
+
         // Initialize HandlebarController for tests
         await HandlebarController.initialize();
     });

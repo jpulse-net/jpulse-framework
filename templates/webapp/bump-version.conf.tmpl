@@ -18,6 +18,7 @@
         // Root level
         'README.md',
         'package.json',
+        'package-lock.json',
 
         // Site directory
         'site/webapp/*.conf',
@@ -39,31 +40,32 @@
             pattern: 'README.md',
             replacements: [
                 { from: /^(# .* v)[\d.]+(-[a-z]+\.\d+)?/m,
-                  to: (version, match, p1) => `${p1}${version}` }
+                  to:   (version, match, p1) => `${p1}${version}` }
             ]
         },
         {
             pattern: 'package.json',
             replacements: [
-                {
-                    from: /"version": "[\d.]+(-[a-z]+\.\d+)?"/,
-                    to: (version) => `"version": "${version}"`
-                }
+                { from: /"version": "[\d.]+(-[a-z]+\.\d+)?"/,
+                  to:   (version) => `"version": "${version}"` }
+            ]
+        },
+        {
+            pattern: 'package-lock.json',
+            replacements: [
+                { from: /"version": "[\d.]+(-[a-z]+\.\d+)?"/,
+                  to:   (version) => `"version": "${version}"` },
+                { from: /("": \{\s+"name": "[^\"]+",\s+"version": ")[\d.]+(-[a-z]+\.\d+)?/,
+                  to:   (version, match, p1) => `${p1}${version}`, scope: 'version' }
             ]
         },
         {
             pattern: 'site/webapp/app.conf',
             replacements: [
-                {
-                    from: /(version: +['"])[\d.]+(-[a-z]+\.\d+)?/,
-                    to: (version, match, p1) => `${p1}${version}`,
-                    scope: 'version'
-                },
-                {
-                    from: /(release: +['"])[\d-]+/,
-                    to: (release, match, p1) => `${p1}${release}`,
-                    scope: 'release'
-                }
+                { from: /(version: +['"])[\d.]+(-[a-z]+\.\d+)?/,
+                  to:   (version, match, p1) => `${p1}${version}`, scope: 'version' },
+                { from: /(release: +['"])[\d-]+/,
+                  to:   (release, match, p1) => `${p1}${release}`, scope: 'release' }
             ]
         }
     ],

@@ -279,10 +279,7 @@
 
                         // Show toast if Redis not available
                         if (!clusterData.redisAvailable) {
-                            jPulse.UI.toast.show(
-                                '⚠️ Redis not available - running in local-only mode. The examples will not broadcast the data',
-                                'warning'
-                            );
+                            jPulse.UI.toast.warning('⚠️ Redis not available - running in local-only mode. The examples will not broadcast the data');
                         }
                     }
                 })

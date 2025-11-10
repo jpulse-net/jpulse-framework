@@ -348,10 +348,7 @@
                         this.addNotificationToFeed(data);
 
                         // Show toast for notifications from other instances/tabs
-                        jPulse.UI.toast.show(
-                            `📡 New notification from ${data.senderName?.trim() || data.sender}`,
-                            'info'
-                        );
+                        jPulse.UI.toast.info(`📡 New notification from ${data.senderName?.trim() || data.sender}`);
                     }, { omitSelf: true }); // Configure to omit self-messages
 
                     // Update connection status based on cluster mode
@@ -359,10 +356,7 @@
                     this.updateConnectionStatus(isClusterMode);
 
                     if (!isClusterMode) {
-                        jPulse.UI.toast.show(
-                            '⚠️ Redis not available - running in local-only mode. Messages will only appear in this browser tab.',
-                            'warning'
-                        );
+                        jPulse.UI.toast.warning('⚠️ Redis not available - running in local-only mode. Messages will only appear in this browser tab.');
                     }
                 } else {
                     console.warn('⚠️ jPulse.appCluster.broadcast not available - running in fallback mode');
@@ -381,7 +375,7 @@
                 const type = typeSelect.value;
 
                 if (!message) {
-                    jPulse.UI.toast.show('Please enter a message', 'error');
+                    jPulse.UI.toast.error('Please enter a message');
                     return;
                 }
 
@@ -406,10 +400,10 @@
                     if (jPulse.appCluster.isClusterMode()) {
                         // Use the new publish API (handles WebSocket timing automatically)
                         jPulse.appCluster.broadcast.publish(notificationChannel, notificationData, { omitSelf: true });
-                        jPulse.UI.toast.show('📡 Notification broadcasted to all servers!', 'success');
+                        jPulse.UI.toast.success('📡 Notification broadcasted to all servers!');
                     } else {
                         // Redis not available: show locally only (single server mode)
-                        jPulse.UI.toast.show('📱 Notification shown locally (cluster not available)', 'warning');
+                        jPulse.UI.toast.warning('📱 Notification shown locally (cluster not available)');
                     }
 
                     // Reset form
@@ -418,7 +412,7 @@
 
                 } catch (error) {
                     console.error('Error broadcasting notification:', error);
-                    jPulse.UI.toast.show('Failed to broadcast notification: ' + error.message, 'error');
+                    jPulse.UI.toast.error('Failed to broadcast notification: ' + error.message);
                 } finally {
                     sendButton.disabled = false;
                     sendButton.textContent = '📡 Broadcast to All Servers';
@@ -497,7 +491,7 @@
             clearNotifications() {
                 this.notifications = [];
                 this.renderNotifications();
-                jPulse.UI.toast.show('🗑️ Notification feed cleared', 'info');
+                jPulse.UI.toast.info('🗑️ Notification feed cleared');
             }
 
             getTypeIcon(type) {

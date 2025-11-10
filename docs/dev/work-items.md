@@ -1725,7 +1725,23 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-
+### W-088, v1.1.2: controller: extract Handlebars processing to dedicated controller
+- status: 🕑 PENDING
+- type: Idea
+- objectives: better separation of concerns, reusable template processing API
+- depends on: none
+- to-do:
+  - create webapp/controller/handlebars.js with dedicated Handlebars processing logic
+  - extract all template processing from view.js to handlebars.js
+  - provide clean API: HandlebarController.expandHandlebars(template, context, options)
+  - maintain backward compatibility with existing view controller behavior only (not method name)
+  - add standalone processing method for non-view contexts
+  - add /api/1/handlebar/expand endpoint for views
+  - enable future "Try Your Own Handlebars" demo functionality
+  - fix existing tests for new controller
+  - document HandlebarController usage
+- deliverables:
+  - FIXME file -- description
 
 
 
@@ -1735,6 +1751,18 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 pending:
+
+
+
+### W-087, v1.1.3: email: strategy for sending email from jPulse Framework
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: provide standardized email sending capability for jPulse Framework and site applications
+- prerequisites:
+  - docs/dev/working/W-087-send-email-strategy.md
+  - W-088, v1.1.2: controller: extract Handlebars processing to dedicated controller
+- deliverables:
+  - FIXME file -- description
 
 
 old pending:
@@ -2092,21 +2120,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - type: Feature
 - objective: allow site admins/developers define site-specific translations for MPA and SPA
 - how: deep merge of site/webapp/translations/* files into webapp/translations/
-
-### W-0: controller: extract Handlebars processing to dedicated controller
-- status: 🕑 PENDING
-- type: Idea
-- objectives: better separation of concerns, reusable template processing API
-- depends on: none
-- deliverables:
-  - create webapp/controller/handlebars.js with dedicated Handlebars processing logic
-  - extract all template processing from view.js to handlebars.js
-  - provide clean API: HandlebarsController.process(template, context, options)
-  - maintain backward compatibility with existing view controller behavior
-  - add standalone processing method for non-view contexts
-  - enable future "Try Your Own Handlebars" demo functionality
-  - comprehensive test coverage for new controller
-  - documentation for new API patterns
 
 ### W-0: config controller: nested site config
 - status: 🕑 PENDING

@@ -349,7 +349,7 @@
                     }
                 } catch (error) {
                     console.error('Error loading to-dos:', error);
-                    jPulse.UI.toast.show('Failed to load to-dos: ' + error.message, 'error');
+                    jPulse.UI.toast.error('Failed to load to-dos: ' + error.message);
                 } finally {
                     this.setLoading(false);
                 }
@@ -364,7 +364,7 @@
                 console.log('📝 To-do title:', title);
 
                 if (!title) {
-                    jPulse.UI.toast.show('Please enter a to-do title', 'error');
+                    jPulse.UI.toast.error('Please enter a to-do title');
                     return;
                 }
 
@@ -399,14 +399,14 @@
 
                     if (response.success) {
                         titleInput.value = '';
-                        jPulse.UI.toast.show('To-do added successfully!', 'success');
+                        jPulse.UI.toast.success('To-do added successfully!');
                         await this.loadTodos(); // Reload to get updated stats
                     } else {
                         throw new Error(response.message || 'Failed to add to-do');
                     }
                 } catch (error) {
                     console.error('Error adding to-do:', error);
-                    jPulse.UI.toast.show('Failed to add to-do: ' + error.message, 'error');
+                    jPulse.UI.toast.error('Failed to add to-do: ' + error.message);
                 } finally {
                     const addButton = document.getElementById('addButton');
                     addButton.disabled = false;
@@ -433,7 +433,7 @@
                     }
                 } catch (error) {
                     console.error('Error toggling to-do:', error);
-                    jPulse.UI.toast.show(error.message || 'Failed to update to-do', 'error');
+                    jPulse.UI.toast.error(error.message || 'Failed to update to-do');
                 }
             }
 
@@ -453,14 +453,14 @@
                     });
 
                     if (response.success) {
-                        jPulse.UI.toast.show('To-do deleted successfully!', 'success');
+                        jPulse.UI.toast.success('To-do deleted successfully!');
                         await this.loadTodos(); // Reload to get updated list and stats
                     } else {
                         throw new Error(response.message || 'Failed to delete to-do');
                     }
                 } catch (error) {
                     console.error('Error deleting to-do:', error);
-                    jPulse.UI.toast.show(error.message || 'Failed to delete to-do', 'error');
+                    jPulse.UI.toast.error(error.message || 'Failed to delete to-do');
                 }
             }
 

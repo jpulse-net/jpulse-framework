@@ -35555,3 +35555,25 @@ I also added educational content to genai-development.md:
 - Provides context for new users while keeping AI-facing doc concise
 
 All changes completed successfully with no linter errors.
+
+
+============================================================
+2025-11-09 17:46
+
+User requested update to W-087-send-email-strategy.md based on our discussion
+
+I updated the W-087 strategy document with all decisions made:
+- Simplified EmailManager (no template processing methods)
+- Template processing handled by callers using HandlebarsController.processHandlebars() (from W-0)
+- Configuration moved to MongoDB only (not app.conf)
+- Rate limiting deferred to future enhancement (not in v1)
+- Added comprehensive template processing section with examples
+- Updated to depend on W-0 (HandlebarsController extraction)
+- Template files: .tmpl extension, loaded via PathResolver.resolveAsset()
+- App-specific namespaces (e.g., contact-us, not email/)
+- Views can use {{file.include}} for templates
+- Context in processHandlebars() only augments internal context
+
+The document is now ready for implementation after W-0 completion.
+
+Changes were accepted and document updated successfully.

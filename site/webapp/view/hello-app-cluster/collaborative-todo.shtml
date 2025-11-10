@@ -305,10 +305,7 @@
 
             setupBroadcastListening() {
                 if (!jPulse.appCluster.isClusterMode()) {
-                    jPulse.UI.toast.show(
-                        '⚠️ Redis not available - running in local-only mode. To-do tasks will only appear in this browser tab.',
-                        'warning'
-                    );
+                    jPulse.UI.toast.warning('⚠️ Redis not available - running in local-only mode. To-do tasks will only appear in this browser tab.');
                 }
                 const listChangedChannel = 'view:helloClusterTodo:list:changed';
                 const itemUpdatedChannel = 'view:helloClusterTodo:item:updated';

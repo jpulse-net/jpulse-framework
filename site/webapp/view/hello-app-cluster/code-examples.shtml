@@ -252,7 +252,7 @@ const notificationData = {
 // sends the message to the server, which then broadcasts it via Redis.
 jPulse.appCluster.broadcast.publish(notificationChannel, notificationData);
 
-jPulse.UI.toast.show('📡 Notification broadcasted!', 'success');</code></pre>
+jPulse.UI.toast.success('📡 Notification broadcasted!');</code></pre>
                 </div>
 
                 <!-- Subscribing to Messages -->
@@ -270,10 +270,7 @@ jPulse.appCluster.broadcast.subscribe(notificationChannel, (data) => {
     addNotificationToFeed(data);
 
     // Show a toast notification
-    jPulse.UI.toast.show(
-        `📡 New notification from ${data.senderName}`,
-        'info'
-    );
+    jPulse.UI.toast.info(`📡 New notification from ${data.senderName}`);
 }, { omitSelf: true });
 
 function addNotificationToFeed(notification) {

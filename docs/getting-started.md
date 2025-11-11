@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Getting Started with jPulse v1.1.3
+# jPulse Framework / Docs / Getting Started with jPulse v1.1.4
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the site override system.
 
@@ -512,7 +512,8 @@ Now that you have a working jPulse site, explore these topics:
 3. **[Examples](examples.md)** - Real-world implementation patterns
 4. **[API Reference](api-reference.md)** - Complete framework API documentation
 5. **[Security & Authentication](security-and-auth.md)** - Authentication, authorization, and security best practices
-6. **[Deployment Guide](deployment.md)** - Production deployment strategies
+6. **[Sending Email](sending-email.md)** - Configure and send emails from your application
+7. **[Deployment Guide](deployment.md)** - Production deployment strategies
 
 ## Key Concepts Learned
 

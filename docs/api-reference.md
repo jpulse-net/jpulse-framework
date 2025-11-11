@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / REST API Reference v1.1.3
+# jPulse Framework / Docs / REST API Reference v1.1.4
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -1051,6 +1051,107 @@ if (result.success) {
 - Context is automatically filtered based on authentication status
 - Sensitive configuration paths are removed for unauthenticated users
 - See `appConfig.controller.handlebar.contextFilter` for filtering rules
+
+## 📧 Email API
+
+### Email Sending Endpoint
+
+#### Send Email
+Send email from client-side code. Requires authentication.
+
+**Route:** `POST /api/1/email/send`
+**Middleware:** `AuthController.requireAuthentication`
+**Authentication:** Required (logged-in users only)
+
+**Request Body:**
+```json
+{
+    "to": "recipient@example.com",
+    "subject": "Email subject",
+    "message": "Plain text message body",
+    "html": "<p>Optional HTML body</p>",
+    "emailConfig": {
+        "smtpServer": "smtp.gmail.com",
+        "smtpPort": 587,
+        "smtpUser": "test@gmail.com",
+        "smtpPass": "password",
+        "useTls": true,
+        "adminEmail": "test@gmail.com",
+        "adminName": "Test"
+    }
+}
+```
+
+**Note:** `emailConfig` is optional and only used for testing. If provided, it overrides the saved configuration temporarily.
+
+**Response (Success - 200):**
+```json
+{
+    "success": true,
+    "messageId": "message-id-from-smtp-server"
+}
+```
+
+**Response (Error - 400):**
+```json
+{
+    "success": false,
+    "error": "Missing required fields",
+    "code": "MISSING_FIELDS"
+}
+```
+
+**Response (Error - 401):**
+```json
+{
+    "success": false,
+    "error": "Authentication required",
+    "code": "UNAUTHORIZED"
+}
+```
+
+**Response (Error - 500):**
+```json
+{
+    "success": false,
+    "error": "Failed to send email",
+    "code": "EMAIL_SEND_FAILED",
+    "details": "SMTP connection error details"
+}
+```
+
+**Error Codes:**
+- `UNAUTHORIZED` - Authentication required
+- `MISSING_FIELDS` - Missing required fields (to, subject, message)
+- `INVALID_EMAIL` - Invalid recipient email format
+- `EMAIL_NOT_CONFIGURED` - Email service not configured
+- `EMAIL_SEND_FAILED` - SMTP send failure
+
+**Example Request:**
+```javascript
+// Client-side usage
+const result = await jPulse.api.post('/api/1/email/send', {
+    to: 'colleague@company.com',
+    subject: 'Check out this page',
+    message: 'I found something interesting...'
+});
+
+if (result.success) {
+    jPulse.UI.toast.success('Email sent successfully!');
+} else {
+    jPulse.UI.toast.error(result.error || 'Failed to send email');
+}
+```
+
+**Security Notes:**
+- All email sends are logged with username and IP address
+- Input validation ensures valid email format
+- Rate limiting deferred to future enhancement (v2)
+- Test email functionality available in admin UI (`/admin/config`)
+
+**Related Documentation:**
+- **[Sending Email Guide](sending-email.md)** - Complete email configuration and usage guide
+- **[Server-Side Email](sending-email.md#server-side-usage)** - EmailController utility methods
 
 ## 🏥 System Health and Metrics API
 

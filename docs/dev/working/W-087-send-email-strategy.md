@@ -104,14 +104,15 @@ const result = await jPulse.api.post('/api/1/email/send', {
    - **No rate limiting in v1** (deferred to future enhancement)
 
 3. **Configuration** (MongoDB config document)
-   - SMTP settings stored in MongoDB config doc (ID: 'site')
+   - SMTP settings stored in MongoDB config doc (use `ConfigController.getDefaultDocName()`)
    - Admin email defaults (adminEmail, adminName)
    - Future: support config hierarchy (global, americas, emea, asia)
 
 4. **Template Processing** (handled by callers)
-   - Controllers: Use `HandlebarController.expandHandlebars()` (from W-088) + manual %TOKEN% replacement
-   - Views: Manual %TOKEN% replacement only (handlebars already expanded)
+   - Controllers: Use `HandlebarController.expandHandlebars()` (from W-088) with context object
+   - Views: Handlebars already expanded by ViewController, use context for dynamic values
    - Template files: Load using `PathResolver.resolveAsset()` from `static/assets/{app-name}/`
+   - **Only Handlebars syntax** (`{{variable}}`) - no %TOKEN% format
 
 **Benefits:**
 - ✅ Simplicity: EmailManager focused only on sending emails
@@ -127,7 +128,7 @@ const result = await jPulse.api.post('/api/1/email/send', {
 
 ### SMTP Settings in MongoDB Config Document
 
-**Source:** MongoDB config document (ID: 'site' for now, future: hierarchy support)
+**Source:** MongoDB config document (ID from `ConfigController.getDefaultDocName()`, typically 'site')
 
 **Schema:** (Already defined in `webapp/model/config.js`)
 ```javascript
@@ -255,7 +256,7 @@ const result = await jPulse.api.post('/api/1/email/send', {
 class EmailManager {
     /**
      * Initialize email manager (called during app bootstrap)
-     * Loads config from MongoDB config document (ID: 'site')
+     * Loads config from MongoDB config document (ID from ConfigController.getDefaultDocName())
      * @returns {Promise<boolean>} Success status
      */
     static async initialize()
@@ -276,6 +277,20 @@ class EmailManager {
     static async sendEmail(options)
 
     /**
+     * Send email from template (convenience method)
+     * Loads template, expands Handlebars, and sends email
+     * @param {object} req - Express request object (for HandlebarController context)
+     * @param {object} options - Email options
+     * @param {string} options.to - Recipient email address
+     * @param {string} options.templatePath - Path to template file (relative to assets/)
+     * @param {object} options.context - Context for Handlebars expansion (optional)
+     * @param {string} options.subject - Email subject
+     * @param {string} options.from - Sender (optional, uses config default)
+     * @returns {Promise<object>} { success, messageId, error }
+     */
+    static async sendEmailFromTemplate(req, options)
+
+    /**
      * Send email to admin (convenience method)
      * @param {string} subject - Email subject
      * @param {string} text - Email body (plain text)
@@ -289,12 +304,18 @@ class EmailManager {
      * @returns {boolean} True if email is configured and ready
      */
     static isConfigured()
+
+    /**
+     * Get health status (standardized format)
+     * @returns {object} Health status object
+     */
+    static getHealthStatus()
 }
 ```
 
-**Note:** No template processing methods - templates handled by callers using HandlebarController
+**Note:** Template processing via `sendEmailFromTemplate()` convenience method or manual HandlebarController usage
 
-**Usage Example (Simple Email):**
+**Usage Example (Simple Email - Controller):**
 ```javascript
 import EmailManager from '../utils/email-manager.js';
 
@@ -319,7 +340,7 @@ await EmailManager.sendAdminNotification(
 );
 ```
 
-**Usage Example (With Template - Controller):**
+**Usage Example (With Template - Manual):**
 ```javascript
 import EmailManager from '../utils/email-manager.js';
 import HandlebarController from '../controller/handlebar.js';
@@ -331,17 +352,11 @@ const templatePath = PathResolver.resolveAsset('assets/contact-us/welcome.tmpl')
 const template = await fs.readFile(templatePath, 'utf8');
 
 // Expand handlebars (context augments internal context)
-const context = { user: { name: 'John' } };
-let processed = await HandlebarController.expandHandlebars(req, template, context);
-
-// Expand %TOKENS%
-processed = processed.replace(/%([A-Z0-9_]+)%/g, (match, token) => {
-    const tokens = {
-        RESET_LINK: 'https://example.com/reset?token=abc123',
-        USER_NAME: context.user.name
-    };
-    return tokens[token] !== undefined ? String(tokens[token]) : match;
-});
+const context = {
+    resetLink: 'https://example.com/reset?token=abc123',
+    userName: 'John'
+};
+const processed = await HandlebarController.expandHandlebars(req, template, context);
 
 // Send email
 await EmailManager.sendEmail({
@@ -350,6 +365,26 @@ await EmailManager.sendEmail({
     text: processed,
     html: processed.replace(/\n/g, '<br>')
 });
+```
+
+**Usage Example (With Template - Convenience Method):**
+```javascript
+import EmailManager from '../utils/email-manager.js';
+
+// Send email from template (loads, expands, sends)
+const result = await EmailManager.sendEmailFromTemplate(req, {
+    to: user.email,
+    templatePath: 'assets/contact-us/welcome.tmpl',
+    context: {
+        resetLink: 'https://example.com/reset?token=abc123',
+        userName: 'John'
+    },
+    subject: 'Welcome'
+});
+
+if (result.success) {
+    console.log('Email sent:', result.messageId);
+}
 ```
 
 **Error Handling:**
@@ -401,7 +436,7 @@ if (!result.success) {
 ```json
 {
     "success": false,
-    "error": "Rate limit exceeded"
+    "error": "Authentication required"
 }
 ```
 
@@ -535,7 +570,7 @@ async function bootstrap(options = {}) {
 }
 ```
 
-**Note:** EmailManager.initialize() loads config from MongoDB config document (ID: 'site') using ConfigModel.getEffectiveConfig()
+**Note:** EmailManager.initialize() loads config from MongoDB config document (ID from `ConfigController.getDefaultDocName()`) using `ConfigModel.getEffectiveConfig()`
 
 ---
 
@@ -560,19 +595,15 @@ const template = await fs.readFile(templatePath, 'utf8');
 
 ### Template Syntax
 
-**Two token formats supported:**
-
-1. **Handlebars:** `{{variable}}` (for controllers only, requires W-088)
-   - Processed by `HandlebarController.expandHandlebars(req, template, context)`
-   - Context augments internal context (e.g., `{ user: { name: 'John' } }`)
-   - Note: `app.name` not needed - internal context already includes app info
-
-2. **Custom Tokens:** `%TOKEN%` (for both controllers and views)
-   - Replaced manually in code using simple string replacement
-   - Example: `%RESET_LINK%`, `%USER_NAME%`
+**Handlebars only:** `{{variable}}` or `{{variable.property}}`
+- Processed by `HandlebarController.expandHandlebars(req, template, context)`
+- Context augments internal context (e.g., `{ resetLink: 'https://...', userName: 'John' }`)
+- Internal context already includes: `app`, `user`, `config`, `url`, `i18n`
+- Example template: `Welcome {{userName}}! Click here: {{resetLink}}`
 
 ### Processing in Controllers
 
+**Option 1: Manual processing**
 ```javascript
 import EmailManager from '../utils/email-manager.js';
 import HandlebarController from '../controller/handlebar.js';
@@ -583,20 +614,14 @@ import fs from 'fs/promises';
 const templatePath = PathResolver.resolveAsset('assets/contact-us/welcome.tmpl');
 const template = await fs.readFile(templatePath, 'utf8');
 
-// Step 1: Expand handlebars (context augments internal context)
-const context = { user: { name: 'John' } };
-let processed = await HandlebarController.expandHandlebars(req, template, context);
+// Expand handlebars (context augments internal context)
+const context = {
+    resetLink: 'https://example.com/reset?token=abc123',
+    userName: 'John'
+};
+const processed = await HandlebarController.expandHandlebars(req, template, context);
 
-// Step 2: Expand %TOKENS%
-processed = processed.replace(/%([A-Z0-9_]+)%/g, (match, token) => {
-    const tokens = {
-        RESET_LINK: 'https://example.com/reset?token=abc123',
-        USER_NAME: context.user.name
-    };
-    return tokens[token] !== undefined ? String(tokens[token]) : match;
-});
-
-// Step 3: Send email
+// Send email
 await EmailManager.sendEmail({
     to: user.email,
     subject: 'Welcome',
@@ -605,22 +630,19 @@ await EmailManager.sendEmail({
 });
 ```
 
-### Processing in Views
-
-**Option 1: Include template in view (recommended)**
-```handlebars
-{{file.include "assets/contact-us/welcome.tmpl"}}
-```
-- Handlebars already expanded by ViewController
-- Only need to replace %TOKENS% in JavaScript
-
-**Option 2: Load template in JavaScript**
+**Option 2: Convenience method (recommended)**
 ```javascript
-// Template already loaded via {{file.include}}, just replace %TOKENS%
-const template = document.getElementById('email-template').textContent;
-const processed = template.replace(/%([A-Z0-9_]+)%/g, (match, token) => {
-    const tokens = { RESET_LINK: resetLink };
-    return tokens[token] !== undefined ? String(tokens[token]) : match;
+import EmailManager from '../utils/email-manager.js';
+
+// Loads template, expands Handlebars, sends email
+await EmailManager.sendEmailFromTemplate(req, {
+    to: user.email,
+    templatePath: 'assets/contact-us/welcome.tmpl',
+    context: {
+        resetLink: 'https://example.com/reset?token=abc123',
+        userName: 'John'
+    },
+    subject: 'Welcome'
 });
 ```
 
@@ -1121,10 +1143,13 @@ For frequent sends, consider connection pooling:
 
 **W-087 Complete When:**
 - [x] W-088 (HandlebarController) completed ✅
-- [ ] EmailManager utility implemented (minimal API)
-- [ ] EmailController API endpoint implemented
+- [ ] EmailManager utility implemented (minimal API + sendEmailFromTemplate)
+- [ ] EmailManager.getHealthStatus() implemented (standardized format)
+- [ ] EmailController API endpoint implemented (with i18n messages)
 - [ ] Bootstrap integration completed
-- [ ] Configuration loaded from MongoDB
+- [ ] Configuration loaded from MongoDB (using ConfigController.getDefaultDocName())
+- [ ] Health endpoint integration (email status in /api/1/health/metrics)
+- [ ] i18n translations added for all user-facing messages
 - [ ] Documentation created (`docs/sending-email.md`)
 - [ ] Unit tests pass
 - [ ] Integration tests pass

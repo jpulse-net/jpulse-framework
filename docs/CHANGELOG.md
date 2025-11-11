@@ -1,6 +1,86 @@
-# jPulse Framework / Docs / Version History v1.1.3
+# jPulse Framework / Docs / Version History v1.1.4
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.1.4, W-087, 2025-11-11
+
+**Commit:** `W-087, v1.1.4: email: strategy for sending email from jPulse Framework`
+
+**EMAIL SENDING STRATEGY**: Implemented standardized email sending capability for jPulse Framework and site applications, providing both server-side utility methods and client-side API endpoints with MongoDB-based configuration.
+
+**Objective**: Provide standardized email sending capability for jPulse Framework and site applications with graceful fallback when email not configured.
+
+**EmailController Implementation**:
+- **webapp/controller/email.js**: NEW email controller with utility methods and API endpoint
+  - Server-side utility methods: `sendEmail()`, `sendEmailFromTemplate()`, `sendAdminNotification()`
+  - Client-side API endpoint: `POST /api/1/email/send` (authenticated users only)
+  - MongoDB-based configuration (not app.conf)
+  - Support for ports 587 (STARTTLS) and 465 (Direct SSL)
+  - Test email functionality with config override
+  - Error handling with structured error codes
+  - Audit logging for all email sends
+  - Health status reporting (`getHealthStatus()`)
+
+**Configuration**:
+- **webapp/model/config.js**: Updated to preserve empty strings for `smtpUser` and `smtpPass`
+  - Explicit MongoDB `$set` with dot notation for nested fields
+  - Ensures empty strings are correctly saved and retrieved
+- **MongoDB Config Document**: Email settings stored in config document (ID from `ConfigController.getDefaultDocName()`)
+  - Schema: `adminEmail`, `adminName`, `smtpServer`, `smtpPort`, `smtpUser`, `smtpPass`, `useTls`
+  - Supports all major SMTP providers (Gmail, SendGrid, AWS SES, Office 365, Mailgun)
+
+**Routes**:
+- **webapp/routes.js**: Added `POST /api/1/email/send` route with authentication middleware
+
+**Bootstrap Integration**:
+- **webapp/utils/bootstrap.js**: Added EmailController initialization
+  - Step 15: Initialize EmailController (loads config from MongoDB)
+  - Proper dependency order ensures ConfigController available before EmailController
+
+**Health Endpoint Integration**:
+- **webapp/controller/health.js**: Email health status integration
+  - Instance-specific email status in `/api/1/health/metrics`
+  - Component health status system (config-driven)
+  - Sanitization for non-admin users (obfuscates `adminEmail`)
+  - Normalized JSON structure (empty strings/objects instead of null)
+
+**Admin UI**:
+- **webapp/view/admin/config.shtml**: Test email button
+  - "Send Test Email" button in email settings section
+  - Uses current form values for testing
+  - Validates SMTP connection before sending
+  - Improved dirty detection for password fields (Firefox compatibility)
+  - Form population handles empty strings correctly
+
+**Internationalization**:
+- **webapp/translations/en.conf**: Added email controller i18n keys
+  - `controller.email.notConfigured`, `sendSuccess`, `sendFailed`, `missingFields`, `invalidRecipient`, `internalError`
+  - `view.admin.config.testEmail`, `testEmailDesc`, `testEmailNoRecipient`, `testEmailSuccess`, `testEmailFailed`, `testEmailError`
+- **webapp/translations/de.conf**: German translations for all email-related messages
+
+**Testing**:
+- **webapp/tests/unit/controller/email-controller.test.js**: Unit tests for EmailController
+  - Tests for `isConfigured()`, `getHealthStatus()`, `_getI18nKey()`
+  - Verifies boolean return values (not strings)
+- **webapp/tests/integration/email-api.test.js**: Integration tests for email API
+  - Structure validation, health status integration, error code mapping
+
+**Documentation**:
+- **docs/sending-email.md**: NEW comprehensive email sending guide
+  - Configuration, server-side usage, client-side API, template processing
+  - SMTP provider examples, troubleshooting, security considerations
+- **docs/api-reference.md**: Added Email API section
+  - Complete endpoint documentation with examples
+- **docs/getting-started.md**: Added link to email documentation in Next Steps
+- **docs/dev/work-items.md**: Updated deliverables list
+
+**Dependencies**:
+- `nodemailer` ^6.9.8 (npm package)
+
+**Deferred to Future (v2)**:
+- Rate limiting for API endpoint
+- Content filtering for spam detection
 
 ________________________________________________
 ## v1.1.3, W-088, 2025-11-10

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.1.3
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.1.4
 
 **For Site Administrators & Site Developers**
 
@@ -23,6 +23,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - Advanced JavaScript-based configuration system
 - MongoDB integration with replica set support
 - Comprehensive session management
+- Email sending with SMTP support (Gmail, SendGrid, AWS SES, Office 365, Mailgun)
 
 ### 🎨 **Modern User Experience**
 - **Real-Time Multi-User Communication**:
@@ -178,7 +179,8 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
-- ✅ **Version 1.1.2 - Handlebars Processing Extraction**: Extracted Handlebars template processing to dedicated `HandlebarController` for better separation of concerns and reusable template processing API. Added `POST /api/1/handlebar/expand` endpoint for client-side Handlebars expansion with server context. Added `/api/1/config/_default` endpoint for default configuration management. Context filtering based on authentication status protects sensitive configuration data. Event-driven config refresh via Redis broadcast ensures multi-instance cache consistency. Enables future email template processing and "Try Your Own Handlebars" demo functionality.
+- ✅ **Version 1.1.4 - Email Sending Strategy**: Implemented standardized email sending capability for jPulse Framework and site applications. EmailController provides server-side utility methods (sendEmail, sendEmailFromTemplate, sendAdminNotification) and client-side API endpoint (POST /api/1/email/send). MongoDB-based configuration enables per-instance SMTP settings with support for all major providers (Gmail, SendGrid, AWS SES, Office 365, Mailgun). Features test email functionality in admin UI, health monitoring integration, Handlebars template support, and graceful fallback when email not configured. Complete documentation and comprehensive test coverage.
+- ✅ **Version 1.1.3 - Handlebars Processing Extraction**: Extracted Handlebars template processing to dedicated `HandlebarController` for better separation of concerns and reusable template processing API. Added `POST /api/1/handlebar/expand` endpoint for client-side Handlebars expansion with server context. Added `/api/1/config/_default` endpoint for default configuration management. Context filtering based on authentication status protects sensitive configuration data. Event-driven config refresh via Redis broadcast ensures multi-instance cache consistency. Enables future email template processing and "Try Your Own Handlebars" demo functionality.
 - ✅ **Version 1.1.0 - Unified CLI tools with intuitive npx jpulse commands**: Unified command-line interface with single entry point, configuration-driven version bumping, and intuitive update workflow following "don't make me think" philosophy
 - ✅ **Version 1.1.0 - Unified CLI Tools & Developer Experience**: Complete unified command-line interface with single `npx jpulse` entry point for all framework tools. Configuration-driven version bumping with context-aware config discovery (framework vs site). Intuitive update workflow with automatic package update in single command - `npx jpulse update` updates to latest and syncs files, or specify version for beta/RC testing. Context-aware help shows relevant commands based on execution environment. Eliminates two-step update process and provides consistent command patterns following "don't make me think" philosophy.
 - ✅ **Version 1.0.1 - Documentation & Developer Experience**: Comprehensive framework comparison guide comparing jPulse with major alternatives (NestJS, Django, Rails, Laravel, Next.js, Express, and low-code platforms). Automated `.npmrc` creation for GitHub Packages registry - eliminates manual registry configuration. Enhanced developer onboarding following "don't make me think" philosophy.
@@ -204,10 +206,6 @@ jPulse is designed for:
 - ✅ **Nested Handlebars Support & Multi-line Blocks (v0.7.20)**: Complete nested {{#if}} and {{#each}} handlebars implementation with multi-line block support, left-to-right processing, and comprehensive test coverage for complex template scenarios
 - ✅ **{{#each}} Handlebars Helper & Template Iteration (v0.7.19)**: Complete {{#each}} implementation with array and object iteration, special context variables (@index, @first, @last, @key), nested property access, and comprehensive error handling
 - ✅ **TSV Logging System & API Standardization (v0.7.18)**: Complete conversion to tab-separated values (TSV) logging format with scope-based organization, standardized API request tracking, and enhanced analytics capabilities
-- ✅ **Markdown Documentation Filtering (v0.7.17)**: Complete .jpulse-ignore implementation for content control with gitignore-like syntax and enhanced test runner with color support
-- ✅ **Standardized Error Handling & Testing (v0.7.16)**: Complete error handling standardization across all controllers, enhanced test framework with dynamic statistics, and comprehensive sendError functionality
-- ✅ **Clean Deployment Strategy (v0.7.0)**: Complete "don't make me think" deployment automation with interactive setup, production templates, and MongoDB security
-- ✅ **Package Distribution (v0.6.0+)**: Create new sites with `npx jpulse configure` - clean repository separation
 
 ---
 

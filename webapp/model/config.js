@@ -3,8 +3,8 @@
  * @tagline         Config Model for jPulse Framework WebApp
  * @description     This is the config model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/config.js
- * @version         1.1.3
- * @release         2025-11-10
+ * @version         1.1.4
+ * @release         2025-11-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -187,6 +187,13 @@ class ConfigModel {
             result.createdAt = now;
             result.saveCount = 1;
         }
+
+        // Deep clone to preserve empty strings and null values
+        // MongoDB $set will preserve empty strings, but we need to ensure nested objects are properly structured
+        if (result.data) {
+            result.data = JSON.parse(JSON.stringify(result.data));
+        }
+
         return result;
     }
 
@@ -268,15 +275,40 @@ class ConfigModel {
                 return null;
             }
 
-            // Prepare update data
+            // Prepare update data - ensure empty strings are preserved
             let updateData = this.prepareSaveData(data, true);
             updateData.saveCount = (current.saveCount || 0) + 1;
+
+            // Ensure nested data structure preserves empty strings
+            // MongoDB $set with nested objects needs explicit field paths to preserve empty strings
+            const setOperation = { $set: {} };
+
+            // Set top-level fields
+            Object.keys(updateData).forEach(key => {
+                if (key !== 'data') {
+                    setOperation.$set[key] = updateData[key];
+                }
+            });
+
+            // Set nested data fields explicitly to preserve empty strings
+            if (updateData.data) {
+                if (updateData.data.email) {
+                    Object.keys(updateData.data.email).forEach(key => {
+                        setOperation.$set[`data.email.${key}`] = updateData.data.email[key];
+                    });
+                }
+                if (updateData.data.messages) {
+                    Object.keys(updateData.data.messages).forEach(key => {
+                        setOperation.$set[`data.messages.${key}`] = updateData.data.messages[key];
+                    });
+                }
+            }
 
             // Update in database
             const collection = this.getCollection();
             const result = await collection.updateOne(
                 { _id: id },
-                { $set: updateData }
+                setOperation
             );
 
             if (result.matchedCount === 0) {

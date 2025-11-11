@@ -3,8 +3,8 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.1.3
- * @release         2025-11-10
+ * @version         1.1.4
+ * @release         2025-11-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -30,6 +30,7 @@ import WebSocketController from './controller/websocket.js';
 import logController from './controller/log.js';
 import ViewController from './controller/view.js';
 import HandlebarController from './controller/handlebar.js';
+import EmailController from './controller/email.js';
 import CommonUtils from './utils/common.js';
 
 // API routes (must come before catch-all route)
@@ -79,6 +80,9 @@ router.get('/api/1/user/profile', AuthController.requireAuthentication, UserCont
 router.put('/api/1/user/profile', AuthController.requireAuthentication, UserController.update);
 router.put('/api/1/user/password', AuthController.requireAuthentication, UserController.changePassword);
 router.get('/api/1/user/search', AuthController.requireRole(['admin', 'root']), UserController.search);
+
+// Email API routes (W-087)
+router.post('/api/1/email/send', AuthController.requireAuthentication, EmailController.apiSend);
 
 // Log API routes (search requires authentication)
 router.get('/api/1/log/search', AuthController.requireAuthentication, logController.search);

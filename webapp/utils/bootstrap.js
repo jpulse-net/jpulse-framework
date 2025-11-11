@@ -3,13 +3,13 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.1.3
- * @release         2025-11-10
+ * @version         1.1.4
+ * @release         2025-11-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4
  */
 
 import CommonUtils from './common.js';
@@ -173,7 +173,17 @@ export async function bootstrap(options = {}) {
         global.HandlebarController = HandlebarControllerModule.default;
         bootstrapLog('✅ HandlebarController: Initialized');
 
-        // Step 15: Build viewRegistry for routes.js compatibility
+        // Step 15: Initialize EmailController (W-087)
+        const EmailControllerModule = await import('../controller/email.js');
+        const emailReady = await EmailControllerModule.default.initialize();
+        global.EmailController = EmailControllerModule.default;
+        if (emailReady) {
+            bootstrapLog('✅ EmailController: Initialized');
+        } else {
+            bootstrapLog('⚠️  EmailController: Not configured (email sending disabled)');
+        }
+
+        // Step 16: Build viewRegistry for routes.js compatibility
         // Legacy global for routes.js to use
         global.viewRegistry = {
             viewList: global.ViewController.getViewList(),

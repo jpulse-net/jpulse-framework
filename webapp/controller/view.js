@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         1.1.3
- * @release         2025-11-10
+ * @version         1.1.4
+ * @release         2025-11-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -83,12 +83,37 @@ class ViewController {
     }
 
     /**
-     * W-079: Get cache statistics for ViewController
-     * @returns {Object} Cache statistics
+     * Get health status (standardized format)
+     * Returns hard-coded English message (like HealthController)
+     * @returns {object} Health status object
      */
-    static getCacheStats() {
+    static getHealthStatus() {
+        const isConfigured = this.templateCache !== null && this.viewDirectories !== null;
+
+        const cacheStats = {
+            template: this.templateCache ? this.templateCache.getStats() : {
+                name: 'TemplateCache',
+                fileCount: 0,
+                directoryCount: 0,
+                config: { enabled: false }
+            }
+        };
+        const templateCacheStats = cacheStats.template || {};
+
         return {
-            template: this.templateCache ? this.templateCache.getStats() : { name: 'TemplateCache', fileCount: 0, directoryCount: 0, config: { enabled: false } }
+            status: isConfigured ? 'ok' : 'not_configured',
+            configured: isConfigured,
+            message: isConfigured ? '' : 'ViewController not initialized', // Hard-coded English
+            details: isConfigured ? {
+                viewDirectories: this.viewDirectories?.length || 0,
+                viewDirectoriesList: this.viewDirectories || [],
+                templateCache: {
+                    enabled: templateCacheStats.config?.enabled || false,
+                    fileCount: templateCacheStats.fileCount || 0,
+                    directoryCount: templateCacheStats.directoryCount || 0
+                }
+            } : {} // Empty object instead of null for easier parsing
+            // Note: timestamp is added by HealthController._addComponentHealthStatuses()
         };
     }
 

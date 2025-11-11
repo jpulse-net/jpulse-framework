@@ -5,13 +5,13 @@
  *                  for non-admin users in the _sanitizeMetricsData() method!
  * @description     This is the health controller for the jPulse Framework WebApp
  * @file            webapp/controller/health.js
- * @version         1.1.3
- * @release         2025-11-10
+ * @version         1.1.4
+ * @release         2025-11-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
  */
 
 import LogController from './log.js';
@@ -51,8 +51,61 @@ class HealthController {
             cacheInterval: (healthConfig.cacheInterval || 15) * 1000,        // Convert seconds to ms
             instanceTTL: (healthConfig.instanceTTL || 45) * 1000,            // 45s = 1.5x broadcast interval (was 90s)
             enableBroadcasting: global.appConfig?.redis?.enabled !== false,   // Use Redis enabled status
-            omitStatusLogs: healthConfig.omitStatusLogs || false
+            omitStatusLogs: healthConfig.omitStatusLogs || false,
+            // W-087: Component health status providers (instance-specific)
+            componentProviders: healthConfig.componentProviders || [
+                { name: 'email', provider: 'EmailController', method: 'getHealthStatus' }
+            ]
         };
+    }
+
+    /**
+     * Add component health statuses to instance object
+     * @param {object} instance - Instance object to add components to
+     * @returns {object} Instance object with component health statuses added
+     * @private
+     */
+    static _addComponentHealthStatuses(instance) {
+        const timestamp = new Date().toISOString();
+        const componentProviders = this.config.componentProviders || [];
+
+        componentProviders.forEach(component => {
+            try {
+                const provider = global[component.provider];
+                if (provider && typeof provider[component.method] === 'function') {
+                    const healthStatus = provider[component.method]();
+                    // Normalize null values to empty string/object for easier parsing
+                    // Add timestamp from HealthController (not from component)
+                    instance[component.name] = {
+                        ...healthStatus,
+                        message: healthStatus.message ?? '',
+                        details: healthStatus.details ?? {},
+                        timestamp: timestamp
+                    };
+                } else {
+                    // Provider not available or method doesn't exist
+                    instance[component.name] = {
+                        status: 'not_configured',
+                        configured: false,
+                        message: `${component.provider} not initialized`,
+                        details: {}, // Empty object instead of null for easier parsing
+                        timestamp: timestamp
+                    };
+                }
+            } catch (error) {
+                LogController.logError(null, 'health._addComponentHealthStatuses',
+                    `error: Failed to get health status for ${component.name}: ${error.message}`);
+                instance[component.name] = {
+                    status: 'error',
+                    configured: false,
+                    message: `Error getting ${component.name} health status: ${error.message}`,
+                    details: {}, // Empty object instead of null for easier parsing
+                    timestamp: timestamp
+                };
+            }
+        });
+
+        return instance;
     }
 
     /**
@@ -340,6 +393,12 @@ class HealthController {
                     Object.keys(instance.processInfo.resourceUsage).forEach(key => {
                         instance.processInfo.resourceUsage[key] = 99999;
                     });
+                    // Sanitize component health statuses (W-087)
+                    // Email component: obfuscate adminEmail
+                    if (instance.email && instance.email.details && instance.email.details.adminEmail) {
+                        instance.email.details.adminEmail = '********@********';
+                    }
+                    // Note: handlebars and view components don't contain sensitive data
                 });
             });
         }
@@ -614,7 +673,6 @@ class HealthController {
                         mode: global.appConfig.deployment.mode,
                         config: global.appConfig.deployment[global.appConfig.deployment.mode]
                     },
-
                     uptime: p.uptime,
                     uptimeFormatted: p.uptimeFormatted,
                     memory: {
@@ -641,6 +699,9 @@ class HealthController {
                         resourceUsage: process.resourceUsage ? process.resourceUsage() : null
                     }
                 });
+
+                // W-087: Add component health statuses (instance-specific)
+                this._addComponentHealthStatuses(instances[instances.length - 1]);
             });
         } else {
             // Single instance (no PM2 or PM2 not available)
@@ -699,6 +760,9 @@ class HealthController {
                     resourceUsage: process.resourceUsage ? process.resourceUsage() : null
                 }
             });
+
+            // W-087: Add component health statuses (instance-specific)
+            this._addComponentHealthStatuses(instances[instances.length - 1]);
         }
 
         return [{
@@ -1140,6 +1204,9 @@ class HealthController {
                         resourceUsage: process.resourceUsage ? process.resourceUsage() : null
                     }
                 });
+
+                // W-087: Add component health statuses (instance-specific)
+                this._addComponentHealthStatuses(instances[instances.length - 1]);
             }
         } else {
             // Single instance (no PM2 or PM2 not available)
@@ -1199,6 +1266,9 @@ class HealthController {
                     resourceUsage: process.resourceUsage ? process.resourceUsage() : null
                 }
             });
+
+            // W-087: Add component health statuses (instance-specific)
+            this._addComponentHealthStatuses(instances[instances.length - 1]);
         }
 
         // Return data for THIS instance only - aggregation happens at the receiver

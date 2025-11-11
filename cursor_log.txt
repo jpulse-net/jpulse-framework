@@ -35994,3 +35994,149 @@ All documentation follows "don't make me think" philosophy:
 - Cross-references between related documentation
 
 Changes were accepted and documentation is complete.
+
+
+============================================================
+2025-11-10 20:58
+
+W-087, v1.1.4: email: strategy for sending email from jPulse Framework
+
+Request: Implement Phase 1 and Phase 2 of W-087 email sending strategy:
+- Updated W-087 spec document with revised requirements (Handlebars only, no %TOKEN%)
+- Installed nodemailer ^6.9.8 dependency
+- Created EmailManager utility (webapp/utils/email-manager.js) with:
+  - initialize() - loads config from MongoDB using ConfigController.getDefaultDocName()
+  - sendEmail() - core email sending method
+  - sendEmailFromTemplate() - convenience method for template-based emails
+  - sendAdminNotification() - convenience method for admin emails
+  - isConfigured() - check if email is ready
+  - getHealthStatus() - standardized health check format
+- Created EmailController API endpoint (webapp/controller/email.js):
+  - POST /api/1/email/send - authenticated email sending endpoint
+  - Full input validation and i18n error messages
+  - Audit logging for all email sends
+- Added email route to routes.js with authentication middleware
+- Integrated EmailManager into bootstrap.js (after ConfigController initialization)
+- Added i18n translations for email (en.conf and de.conf):
+  - notConfigured, sendSuccess, sendFailed, missingFields, invalidRecipient, internalError
+- Updated HealthController to include email health status in /api/1/health/metrics
+
+All user-facing messages use i18n translations (translated strings, not keys).
+Email health status follows standardized format: { status, configured, message, details, timestamp }.
+
+Changes were accepted and implementation is complete.
+
+
+============================================================
+2025-11-10 21:39
+
+W-087: Merged EmailManager into EmailController
+
+Request: Merge EmailManager into EmailController and use error codes (Option 2) instead of i18n-ized messages.
+
+Changes:
+- Merged webapp/utils/email-manager.js into webapp/controller/email.js
+- Updated EmailController to return error codes (EMAIL_NOT_CONFIGURED, EMAIL_SEND_FAILED, etc.) instead of i18n messages
+- Added _getI18nKey() helper method to map error codes to i18n translation keys
+- Updated getHealthStatus() to use hard-coded English (like HealthController)
+- Updated bootstrap.js to initialize EmailController instead of EmailManager
+- Updated HealthController to use EmailController.getHealthStatus()
+- Deleted webapp/utils/email-manager.js
+
+Error handling pattern:
+- Utility methods (sendEmail, sendEmailFromTemplate, sendAdminNotification) return { success, messageId, errorCode, error }
+- API endpoint (apiSend) translates error codes to i18n messages using _getI18nKey() helper
+- No req dependency in utility methods - works everywhere (API, background jobs, system alerts)
+
+Changes were accepted and merge is complete.
+
+
+============================================================
+2025-11-10 22:18
+
+User request: Refactor health endpoint to reduce code duplication and make component health status config-driven. Two issues:
+1. Instance 8086 shows "not_configured" for email (likely not restarted with new code)
+2. Code duplication: 4 places where email health is added to instances
+
+Implementation:
+- Created config-driven approach: Added `componentProviders` array to `HealthController.config` with default `[{ name: 'email', provider: 'EmailController', method: 'getHealthStatus' }]`
+- Created `_addComponentHealthStatuses()` helper method to reduce duplication from 4 places to 1 reusable method
+- Removed timestamp from `EmailController.getHealthStatus()` - HealthController now adds timestamp consistently
+- Updated all 4 instance creation locations to use `_addComponentHealthStatuses()`:
+  - `_buildServersArray()` - PM2 instances
+  - `_buildServersArray()` - single instance
+  - `_getCurrentInstanceHealthData()` - PM2 instances
+  - `_getCurrentInstanceHealthData()` - single instance
+- Component providers can be configured in `app.conf` under `controller.health.componentProviders`
+- HealthController adds timestamp to all component health statuses (not components themselves)
+- Error handling: Gracefully handles missing providers or methods
+
+Summary: Reduced code duplication from 4 locations to 1 reusable method, made component health status config-driven, and standardized timestamp handling. The 8086 instance issue should resolve after restart with new code.
+
+Changes were accepted.
+
+User request: Improve JSON structure for easier parsing:
+- Change "message": null to "message": "" (empty string)
+- Change "details": null to "details": {} (empty object)
+
+Implementation:
+- Updated EmailController.getHealthStatus() to return empty string for message when configured, empty object for details when not configured
+- Updated HealthController._addComponentHealthStatuses() to normalize null values using nullish coalescing (??) operator
+- All component health statuses now use empty string/object instead of null for easier parsing
+
+Changes were accepted.
+
+User request: Fix ViewController and HandlebarController for proper health reporting.
+
+Implementation:
+- Added getHealthStatus() method to ViewController:
+  - Checks if initialized (templateCache and viewDirectories exist)
+  - Returns status, configured, message, details
+  - Details include: viewDirectories count/list, templateCache stats (enabled, fileCount, directoryCount)
+- Added getHealthStatus() method to HandlebarController:
+  - Checks if initialized (includeCache and globalConfig exist)
+  - Returns status, configured, message, details
+  - Details include: configDocument name, configLoaded status, includeCache stats (enabled, fileCount, directoryCount)
+- Both methods follow the same pattern as EmailController.getHealthStatus()
+- Both use empty string for message when configured, empty object for details when not configured
+- Components already configured in app.conf, so health endpoint will now show proper status instead of "not_configured"
+
+Changes were accepted.
+
+
+============================================================
+2025-11-11 00:48
+
+User: anything left for W-087 besides tests and docs?
+
+Summary: Reviewed W-087 implementation status. Confirmed all code implementation is complete:
+- EmailController with all methods (initialize, sendEmail, sendEmailFromTemplate, sendAdminNotification, isConfigured, getHealthStatus, apiSend)
+- Bootstrap integration
+- Routes configured (/api/1/email/send)
+- Health endpoint integration (instance-specific)
+- i18n translations (English & German)
+- Admin UI test email button
+- SMTP configuration from MongoDB
+- Support for ports 587 (STARTTLS) and 465 (SSL)
+- Error handling with error codes
+- Audit logging
+- Test email functionality
+
+Remaining: Unit tests, integration tests, and documentation (docs/sending-email.md).
+
+User then requested review of health data structure:
+- Issue 1: email "configured" field was returning email string instead of boolean
+- Issue 2: adminEmail in health details should be sanitized for non-admin users
+
+Fixed:
+1. Changed isConfigured() to return !!(...) to ensure boolean return value
+2. Added sanitization in _sanitizeMetricsData() to obfuscate instance.email.details.adminEmail to '********@********' for non-admin users
+
+User tested by adding '_public' to requiredRoles.metrics and confirmed:
+- configured: true (boolean) ✓
+- adminEmail: "********@********" (sanitized) ✓
+
+Changes were accepted.
+
+
+============================================================

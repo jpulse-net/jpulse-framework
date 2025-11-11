@@ -1,6 +1,6 @@
 {
     "name": "@jpulse-net/jpulse-framework",
-    "version": "1.1.3",
+    "version": "1.1.4",
     "description": "Generic web application framework using MongoDB, Node.js, Express",
     "type": "module",
     "main": "webapp/app.js",
@@ -49,6 +49,7 @@
         "express-session": "^1.17.3",
         "ioredis": "^5.4.1",
         "mongodb": "^6.3.0",
+        "nodemailer": "^6.10.1",
         "ws": "^8.18.0"
     },
     "devDependencies": {
@@ -88,7 +89,9 @@
             "html"
         ],
         "testEnvironment": "node",
-        "setupFiles": ["<rootDir>/webapp/tests/setup/env-setup.js"],
+        "setupFiles": [
+            "<rootDir>/webapp/tests/setup/env-setup.js"
+        ],
         "globalSetup": "./webapp/tests/setup/global-setup.js",
         "globalTeardown": "./webapp/tests/setup/global-teardown.js"
     }

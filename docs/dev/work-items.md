@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.1.3
+# jPulse Framework / Docs / Dev / Work Items v1.1.4
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1711,22 +1711,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/CHANGELOG.md -- v1.1.1 entry documenting improvements
   - Fixed markdown rendering issues (escaped HTML tags in documentation)
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
-### W-088, v1.1.2: controller: extract Handlebars processing to dedicated controller
-- status: 🚧 IN_PROGRESS
+### W-088, v1.1.3: controller: extract Handlebars processing to dedicated controller
+- status: DONE ✅
 - type: Feature
 - objectives: better separation of concerns, reusable template processing API
 - depends on: none
@@ -1757,8 +1743,15 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-pending:
 
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
 
 ### W-087, v1.1.4: email: strategy for sending email from jPulse Framework
 - status: 🚧 IN_PROGRESS
@@ -1768,7 +1761,25 @@ pending:
   - docs/dev/working/W-087-send-email-strategy.md
   - W-088, v1.1.2: controller: extract Handlebars processing to dedicated controller
 - deliverables:
-  - FIXME file -- description
+  - webapp/controller/email.js -- EmailController with utility methods (sendEmail, sendEmailFromTemplate, sendAdminNotification) and API endpoint (apiSend)
+  - webapp/routes.js -- added POST /api/1/email/send route with authentication middleware
+  - webapp/utils/bootstrap.js -- EmailController initialization during app startup
+  - webapp/controller/health.js -- email health status integration (instance-specific) and sanitization for non-admin users
+  - webapp/model/config.js -- updated to preserve empty strings for smtpUser and smtpPass fields
+  - webapp/view/admin/config.shtml -- test email button with form validation and dirty detection improvements
+  - webapp/translations/en.conf -- i18n translations for email controller and admin UI
+  - webapp/translations/de.conf -- German translations for email controller and admin UI
+  - webapp/tests/unit/controller/email-controller.test.js -- unit tests for EmailController methods
+  - webapp/tests/integration/email-api.test.js -- integration tests for email API structure
+  - docs/sending-email.md -- document how to send email
+  - docs/api-reference.md -- document new email endpoint
+
+
+
+
+
+
+pending:
 
 
 old pending:
@@ -1802,11 +1813,11 @@ next work item: W-0...
 - plan how to implement (wait for my go ahead)
 - current timestamp: 2025-10-04 17:55
 
-finishing up work item: W-088:
+finishing up work item: W-087:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-088, v1.1.2
-- update deliverables in W-088 to document work done (don't make any other changes to this file)
+- assume release: W-087, v1.1.4
+- update deliverables in W-087 to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
@@ -1822,12 +1833,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.1.2
+node bin/bump-version.js 1.1.4
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.1.2
+git tag v1.1.4
 git push origin main --tags
 
 === on failed package build on github ===

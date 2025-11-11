@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.1.3
- * @release         2025-11-10
+ * @version         1.1.4
+ * @release         2025-11-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -717,12 +717,38 @@ class HandlebarController {
     }
 
     /**
-     * W-079: Get cache statistics for HandlebarController
-     * @returns {Object} Cache statistics
+     * Get health status (standardized format)
+     * Returns hard-coded English message (like HealthController)
+     * @returns {object} Health status object
      */
-    static getCacheStats() {
+    static getHealthStatus() {
+        const isConfigured = this.includeCache !== null && this.globalConfig !== null;
+
+        const cacheStats = {
+            include: this.includeCache ? this.includeCache.getStats() : {
+                name: 'IncludeCache',
+                fileCount: 0,
+                directoryCount: 0,
+                config: { enabled: false }
+            }
+        };
+        const includeCacheStats = cacheStats.include || {};
+        const defaultDocName = global.ConfigController?.getDefaultDocName() || '';
+
         return {
-            include: this.includeCache ? this.includeCache.getStats() : { name: 'IncludeCache', fileCount: 0, directoryCount: 0, config: { enabled: false } }
+            status: isConfigured ? 'ok' : 'not_configured',
+            configured: isConfigured,
+            message: isConfigured ? '' : 'HandlebarController not initialized', // Hard-coded English
+            details: isConfigured ? {
+                configDocument: defaultDocName,
+                configLoaded: this.globalConfig !== null,
+                includeCache: {
+                    enabled: includeCacheStats.config?.enabled || false,
+                    fileCount: includeCacheStats.fileCount || 0,
+                    directoryCount: includeCacheStats.directoryCount || 0
+                }
+            } : {} // Empty object instead of null for easier parsing
+            // Note: timestamp is added by HealthController._addComponentHealthStatuses()
         };
     }
 

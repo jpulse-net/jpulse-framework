@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.1.4
+# jPulse Framework / Docs / Dev / Work Items v1.1.5
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1739,22 +1739,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 	- webapp/utils/redis-manager.js -- single-instance mode: call local callbacks directly
 	- webapp/view/admin/config.shtml -- fix API endpoint to /api/1/config/_default
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-087, v1.1.4: email: strategy for sending email from jPulse Framework
-- status: 🚧 IN_PROGRESS
+- status: DONE ✅
 - type: Feature
 - objective: provide standardized email sending capability for jPulse Framework and site applications
 - prerequisites:
@@ -1773,6 +1759,28 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/tests/integration/email-api.test.js -- integration tests for email API structure
   - docs/sending-email.md -- document how to send email
   - docs/api-reference.md -- document new email endpoint
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-089, v1.1.5: log: log proper external IP address when jPulse is behind a reverse proxy
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: log proper IP address behind a reverse proxy
+- deliverables:
+  - webapp/utils/common.js -- IP address based on sequence: x-forwarded-for, x-real-ip, request ip
+
 
 
 

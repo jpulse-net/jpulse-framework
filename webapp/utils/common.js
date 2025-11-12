@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.1.4
- * @release         2025-11-11
+ * @version         1.1.5
+ * @release         2025-11-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -410,14 +410,26 @@ class CommonUtils {
         }
 
         // Extract IP address from request
+        // Priority: X-Forwarded-For (first IP), X-Real-IP, req.ip, connection remoteAddress
+        // This handles proxy scenarios (nginx, load balancers) where real IP is in headers
         if (req) {
-            context.ip = req.ip ||
-                       req.connection?.remoteAddress ||
-                       req.socket?.remoteAddress ||
-                       (req.headers?.['x-forwarded-for'] || '').split(',')[0].trim() ||
-                       '0.0.0.0';
+            if (req.headers?.['x-forwarded-for']) {
+                // X-Forwarded-For can contain multiple IPs: "client, proxy1, proxy2"
+                // The first one is the original client IP
+                context.ip = req.headers['x-forwarded-for'].split(',')[0].trim();
+            } else if (req.headers?.['x-real-ip']) {
+                context.ip = req.headers['x-real-ip'].trim();
+            } else if (req.ip) {
+                context.ip = req.ip;
+            } else if (req.connection?.remoteAddress) {
+                context.ip = req.connection.remoteAddress;
+            } else if (req.socket?.remoteAddress) {
+                context.ip = req.socket.remoteAddress;
+            } else {
+                context.ip = '0.0.0.0';
+            }
 
-            // Clean up IPv6 mapped IPv4 addresses
+            // Clean up IPv6 mapped IPv4 addresses (::ffff:127.0.0.1 -> 127.0.0.1)
             if (context.ip.startsWith('::ffff:')) {
                 context.ip = context.ip.substring(7);
             }

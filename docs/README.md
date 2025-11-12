@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.1.4
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.1.5
 
 **For Site Administrators & Site Developers**
 

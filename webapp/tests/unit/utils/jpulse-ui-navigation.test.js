@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.navigation Widget (W-069)
  * @description     Tests for client-side site navigation dropdown and mobile hamburger menu
  * @file            webapp/tests/unit/utils/jpulse-ui-navigation.test.js
- * @version         1.1.5
- * @release         2025-11-12
+ * @version         1.1.6
+ * @release         2025-11-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -35,7 +35,15 @@ global.CustomEvent = dom.window.CustomEvent;
 global.window.appConfig = {
     view: {
         pageDecoration: {
-            showSiteNavigation: true
+            siteNavigation: {
+                enabled: true,
+                openDelay: 300,
+                closeDelay: 500,
+                submenuCloseDelay: 600
+            },
+            breadcrumbs: {
+                enabled: true
+            }
         },
         navigation: {
             admin: {
@@ -831,7 +839,9 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
         window.appConfig = {
             view: {
                 pageDecoration: {
-                    showBreadcrumbs: true
+                    breadcrumbs: {
+                        enabled: true
+                    }
                 }
             }
         };

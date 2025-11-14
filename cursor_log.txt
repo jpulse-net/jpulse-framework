@@ -36140,3 +36140,31 @@ Changes were accepted.
 
 
 ============================================================
+2025-11-13 18:51
+
+User requested: W-090, v1.1.6: view: make site nav menu open/close delay configurable; restructure view.pageDecoration
+
+Summary of changes:
+1. Removed OLD_pageDecoration from webapp/app.conf
+2. Updated webapp/view/jpulse-footer.tmpl to use new pageDecoration structure:
+   - Changed showSiteNavigation to siteNavigation.enabled
+   - Changed showBreadcrumbs to breadcrumbs.enabled
+   - Added delay configs to navigation.init() with parseInt() to convert Handlebars strings to numbers
+3. Updated webapp/view/jpulse-common.js:
+   - Added _openDelay, _closeDelay, _submenuCloseDelay, and _openTimeout to navigation object
+   - Updated init() to accept and store delay configs (with string-to-number conversion)
+   - Refactored _setupEventHandlers() to use config delays instead of hardcoded values
+   - Implemented openDelay with cancel-on-mouse-leave logic for both logo and dropdown hover
+   - Updated _destroy() to clean up all timeouts including _openTimeout
+4. Updated webapp/tests/unit/utils/jpulse-ui-navigation.test.js to use new pageDecoration structure
+5. Updated docs/dev/work-items.md to mark W-090 as completed and moved to DONE section
+
+All changes implemented according to requirements:
+- Open delay cancels if mouse leaves before open action
+- Combined open delay for icon and menu into one setting (openDelay)
+- No backward compatibility needed, removed OLD_pageDecoration
+- Kept configuration structure as view.pageDecoration.siteNavigation
+- Handled Handlebars string-to-number conversion properly
+
+
+============================================================

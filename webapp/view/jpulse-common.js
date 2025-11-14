@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.1.5
- * @release         2025-11-12
+ * @version         1.1.6
+ * @release         2025-11-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -2377,12 +2377,19 @@ window.jPulse = {
             _registeredPages: {},  // Dynamic pages registered by SPAs
             _navConfig: null,  // Navigation structure from server
             _hideTimeouts: new Map(),  // Map of submenu -> timeout for tracking individual hide operations
+            _openDelay: 300,  // ms delay before opening menu (default)
+            _closeDelay: 500,  // ms delay before closing menu (default)
+            _submenuCloseDelay: 600,  // ms delay before closing submenus (default)
+            _openTimeout: null,  // Timeout for open delay (can be cancelled)
 
             /**
              * Initialize site navigation from appConfig
              * @param {Object} options - Configuration
              * @param {string} options.currentUrl - Current page URL for active state
              * @param {Array} options.userRoles - User roles for visibility control
+             * @param {number} options.openDelay - Delay before opening menu (ms)
+             * @param {number} options.closeDelay - Delay before closing menu (ms)
+             * @param {number} options.submenuCloseDelay - Delay before closing submenus (ms)
              * @returns {Object} Handle object with navigation control methods
              */
             init: (options = {}) => {
@@ -2403,6 +2410,17 @@ window.jPulse = {
                 // Store config
                 jPulse.UI.navigation._currentUrl = options.currentUrl || window.location.pathname;
                 jPulse.UI.navigation._userRoles = options.userRoles || [];
+
+                // Store delay configs (convert to numbers if strings, with defaults)
+                jPulse.UI.navigation._openDelay = typeof options.openDelay === 'number'
+                    ? options.openDelay
+                    : (typeof options.openDelay === 'string' ? parseInt(options.openDelay, 10) : 300);
+                jPulse.UI.navigation._closeDelay = typeof options.closeDelay === 'number'
+                    ? options.closeDelay
+                    : (typeof options.closeDelay === 'string' ? parseInt(options.closeDelay, 10) : 500);
+                jPulse.UI.navigation._submenuCloseDelay = typeof options.submenuCloseDelay === 'number'
+                    ? options.submenuCloseDelay
+                    : (typeof options.submenuCloseDelay === 'string' ? parseInt(options.submenuCloseDelay, 10) : 600);
 
                 // Get navigation structure from options parameter (passed from server)
                 const navConfig = options.navigation;
@@ -2663,43 +2681,85 @@ window.jPulse = {
                     return;
                 }
 
-                // Show dropdown on hover over logo/app name
-                let dropdownHideTimeout = null;
-                logo.addEventListener('mouseenter', () => {
+                // Helper function to show dropdown (with openDelay if configured)
+                const showDropdown = () => {
                     // Clear any pending hide timeout
-                    if (dropdownHideTimeout) {
-                        clearTimeout(dropdownHideTimeout);
-                        dropdownHideTimeout = null;
+                    if (jPulse.UI.navigation._hideTimeouts.has('main')) {
+                        clearTimeout(jPulse.UI.navigation._hideTimeouts.get('main'));
+                        jPulse.UI.navigation._hideTimeouts.delete('main');
+                    }
+                    // Clear any pending open timeout
+                    if (jPulse.UI.navigation._openTimeout) {
+                        clearTimeout(jPulse.UI.navigation._openTimeout);
+                        jPulse.UI.navigation._openTimeout = null;
                     }
                     dropdown.classList.remove('jp-site-nav-hidden');
+                };
+
+                // Helper function to schedule dropdown opening (with openDelay)
+                const scheduleShowDropdown = () => {
+                    // Clear any pending hide timeout
+                    if (jPulse.UI.navigation._hideTimeouts.has('main')) {
+                        clearTimeout(jPulse.UI.navigation._hideTimeouts.get('main'));
+                        jPulse.UI.navigation._hideTimeouts.delete('main');
+                    }
+                    // Clear any existing open timeout
+                    if (jPulse.UI.navigation._openTimeout) {
+                        clearTimeout(jPulse.UI.navigation._openTimeout);
+                    }
+                    // Schedule opening with delay
+                    if (jPulse.UI.navigation._openDelay > 0) {
+                        jPulse.UI.navigation._openTimeout = setTimeout(() => {
+                            showDropdown();
+                            jPulse.UI.navigation._openTimeout = null;
+                        }, jPulse.UI.navigation._openDelay);
+                    } else {
+                        // No delay, show immediately
+                        showDropdown();
+                    }
+                };
+
+                // Helper function to cancel opening and hide dropdown
+                const cancelAndHideDropdown = () => {
+                    // Cancel any pending open timeout
+                    if (jPulse.UI.navigation._openTimeout) {
+                        clearTimeout(jPulse.UI.navigation._openTimeout);
+                        jPulse.UI.navigation._openTimeout = null;
+                    }
+                    // Schedule hiding with closeDelay
+                    if (jPulse.UI.navigation._hideTimeouts.has('main')) {
+                        clearTimeout(jPulse.UI.navigation._hideTimeouts.get('main'));
+                    }
+                    const timeout = setTimeout(() => {
+                        dropdown.classList.add('jp-site-nav-hidden');
+                        jPulse.UI.navigation._hideTimeouts.delete('main');
+                    }, jPulse.UI.navigation._closeDelay);
+                    jPulse.UI.navigation._hideTimeouts.set('main', timeout);
+                };
+
+                // Show dropdown on hover over logo/app name (with openDelay)
+                logo.addEventListener('mouseenter', () => {
+                    scheduleShowDropdown();
                 });
 
                 // Hide dropdown when mouse leaves logo (with delay)
                 // Allows user to move from logo to dropdown without closing
                 logo.addEventListener('mouseleave', (e) => {
                     if (dropdown.contains(e.relatedTarget)) {
+                        // Mouse is moving to dropdown, don't hide
                         return;
                     }
-                    dropdownHideTimeout = setTimeout(() => {
-                        dropdown.classList.add('jp-site-nav-hidden');
-                        dropdownHideTimeout = null;
-                    }, 600);
+                    cancelAndHideDropdown();
                 });
 
                 // Hide dropdown when mouse leaves dropdown area (with delay to prevent accidental closure)
                 dropdown.addEventListener('mouseleave', () => {
-                    dropdownHideTimeout = setTimeout(() => {
-                        dropdown.classList.add('jp-site-nav-hidden');
-                    }, 500);  // 500ms delay before closing
+                    cancelAndHideDropdown();
                 });
 
-                // Keep dropdown visible when hovering over it (cancel hide timeout)
+                // Show dropdown on hover over dropdown (with openDelay, cancels hide timeout)
                 dropdown.addEventListener('mouseenter', () => {
-                    if (dropdownHideTimeout) {
-                        clearTimeout(dropdownHideTimeout);
-                        dropdownHideTimeout = null;
-                    }
-                    dropdown.classList.remove('jp-site-nav-hidden');
+                    scheduleShowDropdown();
                 });
 
                 // Hide dropdown when mouse leaves header area entirely (with delay)
@@ -2709,13 +2769,7 @@ window.jPulse = {
                     const dropdownRect = dropdown.getBoundingClientRect();
 
                     if (e.clientY > Math.max(rect.bottom, dropdownRect.bottom)) {
-                        // Add delay before closing
-                        if (dropdownHideTimeout) {
-                            clearTimeout(dropdownHideTimeout);
-                        }
-                        dropdownHideTimeout = setTimeout(() => {
-                            dropdown.classList.add('jp-site-nav-hidden');
-                        }, 500);  // 500ms delay
+                        cancelAndHideDropdown();
                     }
                 });
 
@@ -2762,7 +2816,7 @@ window.jPulse = {
                                     }
                                 });
                                 jPulse.UI.navigation._hideTimeouts.delete(submenu);
-                            }, 600);
+                            }, jPulse.UI.navigation._submenuCloseDelay);
                             jPulse.UI.navigation._hideTimeouts.set(submenu, timeout);
                         });
                     }
@@ -2786,7 +2840,7 @@ window.jPulse = {
                                     }
                                 });
                                 jPulse.UI.navigation._hideTimeouts.delete(submenu);
-                            }, 600);
+                            }, jPulse.UI.navigation._submenuCloseDelay);
                             jPulse.UI.navigation._hideTimeouts.set(submenu, timeout);
                         }
                     });
@@ -2898,7 +2952,7 @@ window.jPulse = {
                                     }
                                 });
                                 jPulse.UI.navigation._hideTimeouts.delete(submenu);
-                            }, 600);
+                            }, jPulse.UI.navigation._submenuCloseDelay);
                             jPulse.UI.navigation._hideTimeouts.set(submenu, timeout);
                         });
                     }
@@ -2922,7 +2976,7 @@ window.jPulse = {
                                     }
                                 });
                                 jPulse.UI.navigation._hideTimeouts.delete(submenu);
-                            }, 600);
+                            }, jPulse.UI.navigation._submenuCloseDelay);
                             jPulse.UI.navigation._hideTimeouts.set(submenu, timeout);
                         }
                     });
@@ -2937,6 +2991,16 @@ window.jPulse = {
                 if (dropdown) {
                     dropdown.remove();
                 }
+
+                // Clean up timeouts
+                if (jPulse.UI.navigation._openTimeout) {
+                    clearTimeout(jPulse.UI.navigation._openTimeout);
+                    jPulse.UI.navigation._openTimeout = null;
+                }
+                jPulse.UI.navigation._hideTimeouts.forEach((timeout) => {
+                    clearTimeout(timeout);
+                });
+                jPulse.UI.navigation._hideTimeouts.clear();
 
                 // Clean up mobile menu
                 jPulse.UI.navigation._destroyMobileMenu();

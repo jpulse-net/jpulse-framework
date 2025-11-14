@@ -4,8 +4,8 @@
  * @tagline         Footer template for jPulse pages
  * @description     Footer included in all jPulse pages to provide a consistent page layout
  * @file            webapp/view/jpulse-footer.tmpl
- * @version         1.1.5
- * @release         2025-11-12
+ * @version         1.1.6
+ * @release         2025-11-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,7 +16,7 @@
 <header class="jp-header">
     <div class="jp-header-content">
         <!-- Mobile Hamburger Menu Icon (W-069) -->
-        {{#if appConfig.view.pageDecoration.showSiteNavigation}}
+        {{#if appConfig.view.pageDecoration.siteNavigation.enabled}}
         <button class="jp-hamburger" id="jp-hamburger" aria-label="Menu" aria-expanded="false">
             <span></span>
             <span></span>
@@ -58,7 +58,7 @@
 </header>
 
 <!-- Mobile Menu Overlay (W-069) -->
-{{#if appConfig.view.pageDecoration.showSiteNavigation}}
+{{#if appConfig.view.pageDecoration.siteNavigation.enabled}}
 <div class="jp-mobile-menu-overlay" id="jp-mobile-menu-overlay"></div>
 <nav class="jp-mobile-menu" id="jp-mobile-menu" aria-label="Mobile Navigation"></nav>
 {{/if}}
@@ -78,7 +78,7 @@
 <!-- Site Navigation Initialization (W-069) -->
 {{file.include "jpulse-navigation.tmpl"}}
 <style>
-{{#if appConfig.view.pageDecoration.showSiteNavigation}}
+{{#if appConfig.view.pageDecoration.siteNavigation.enabled}}
 :root {
     --jp-header-height: {{appConfig.view.pageDecoration.headerHeight}}px;
 }
@@ -86,15 +86,19 @@
 </style>
 <script>
 jPulse.dom.ready(() => {
-    {{#if appConfig.view.pageDecoration.showSiteNavigation}}
+    {{#if appConfig.view.pageDecoration.siteNavigation.enabled}}
     // Initialize site navigation when DOM is ready
+    // Note: Handlebars values are strings, so convert to numbers
     jPulse.UI.navigation.init({
         currentUrl: '{{url.pathname}}',
         userRoles: {{user.roles}},
-        navigation: window.jPulseSiteNavigation
+        navigation: window.jPulseSiteNavigation,
+        openDelay: parseInt('{{appConfig.view.pageDecoration.siteNavigation.openDelay}}', 10),
+        closeDelay: parseInt('{{appConfig.view.pageDecoration.siteNavigation.closeDelay}}', 10),
+        submenuCloseDelay: parseInt('{{appConfig.view.pageDecoration.siteNavigation.submenuCloseDelay}}', 10)
     });
     {{/if}}
-    {{#if appConfig.view.pageDecoration.showBreadcrumbs}}
+    {{#if appConfig.view.pageDecoration.breadcrumbs.enabled}}
     // Initialize breadcrumbs when DOM is ready
     jPulse.UI.breadcrumbs.init({
         currentUrl: '{{url.pathname}}',

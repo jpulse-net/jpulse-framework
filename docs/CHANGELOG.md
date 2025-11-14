@@ -1,6 +1,75 @@
-# jPulse Framework / Docs / Version History v1.1.5
+# jPulse Framework / Docs / Version History v1.1.6
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.1.6, W-090, 2025-11-13
+
+**Commit:** `W-090, v1.1.6: view: make site nav menu open/close delay configurable; restructure view.pageDecoration`
+
+**CONFIGURABLE NAVIGATION DELAYS & RESTRUCTURED PAGE DECORATION**: Restructured `view.pageDecoration` configuration with nested structure for better site overrides, and made site navigation menu open/close delays fully configurable via `app.conf`.
+
+**Objective**: Better site overrides for site nav menu with configurable delays for improved UX customization.
+
+**Configuration Restructure**:
+- **webapp/app.conf**: Restructured `view.pageDecoration` (breaking change)
+  - Removed `OLD_pageDecoration` structure
+  - New nested structure: `siteNavigation`, `breadcrumbs`, `sidebar`
+  - `siteNavigation` includes delay configuration: `openDelay`, `closeDelay`, `submenuCloseDelay`
+  - All delays configurable in milliseconds with sensible defaults
+
+**Site Navigation Delay Configuration**:
+- **webapp/view/jpulse-footer.tmpl**: Updated to use new structure
+  - Changed `showSiteNavigation` → `siteNavigation.enabled`
+  - Changed `showBreadcrumbs` → `breadcrumbs.enabled`
+  - Passes delay configs to `navigation.init()` with proper string-to-number conversion
+- **webapp/view/jpulse-common.js**: Complete delay system implementation
+  - `navigation.init()` accepts `openDelay`, `closeDelay`, `submenuCloseDelay` options
+  - Handles Handlebars string-to-number conversion automatically
+  - Implements `openDelay` with cancel-on-mouse-leave logic
+  - Combined open delay for both logo and dropdown hover (single `openDelay` setting)
+  - Replaced all hardcoded delays (500ms, 600ms) with config values
+  - Proper timeout cleanup in `_destroy()` method
+
+**Default Delay Values**:
+- `openDelay`: 300ms (delay before opening menu on hover)
+- `closeDelay`: 500ms (delay before closing menu)
+- `submenuCloseDelay`: 600ms (delay before closing submenus)
+
+**User Experience Improvements**:
+- Open delay cancels if mouse leaves before menu opens (prevents accidental triggers)
+- Smooth hover interactions with configurable timing
+- Site administrators can fine-tune delays for their specific UX needs
+- Follows "don't make me think" philosophy - simple configuration in `app.conf`
+
+**Testing**:
+- **webapp/tests/unit/utils/jpulse-ui-navigation.test.js**: Updated test mocks to use new `pageDecoration` structure
+
+**Breaking Changes**:
+- `appConfig.view.pageDecoration.showSiteNavigation` → `appConfig.view.pageDecoration.siteNavigation.enabled`
+- `appConfig.view.pageDecoration.showBreadcrumbs` → `appConfig.view.pageDecoration.breadcrumbs.enabled`
+- `OLD_pageDecoration` removed (no backward compatibility)
+
+**Files Modified**:
+- webapp/app.conf (removed OLD_pageDecoration, kept new structure)
+- webapp/view/jpulse-footer.tmpl (updated conditionals and delay config passing)
+- webapp/view/jpulse-common.js (delay system implementation)
+- webapp/tests/unit/utils/jpulse-ui-navigation.test.js (updated test mocks)
+- docs/dev/work-items.md (completed W-090)
+
+**Benefits**:
+- Site administrators can customize menu timing for their specific UX needs
+- Better structure for future page decoration features (sidebar, etc.)
+- Cleaner configuration with nested structure
+- No hardcoded delays - all configurable
+- Proper timeout cleanup prevents memory leaks
+
+________________________________________________
+## v1.1.5, W-089, 2025-11-12
+
+**Commit:** `W-089, v1.1.5: log: log proper external IP address when jPulse is behind a reverse proxy`
+
+Fix bug where local IP address 127.0.0.1 was shown in the logs when jPulse is behind a reverse proxy.
 
 ________________________________________________
 ## v1.1.4, W-087, 2025-11-11

@@ -1760,6 +1760,13 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/sending-email.md -- document how to send email
   - docs/api-reference.md -- document new email endpoint
 
+### W-089, v1.1.5: log: log proper external IP address when jPulse is behind a reverse proxy
+- status: DONE ✅
+- type: Bug
+- objective: log proper IP address behind a reverse proxy
+- deliverables:
+  - webapp/utils/common.js -- IP address based on sequence: x-forwarded-for, x-real-ip, request ip
+
 
 
 
@@ -1774,12 +1781,26 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-089, v1.1.5: log: log proper external IP address when jPulse is behind a reverse proxy
+### W-090, v1.1.6: view: make site nav menu open/close delay configurable; restructure view.pageDecoration
 - status: 🚧 IN_PROGRESS
 - type: Feature
-- objective: log proper IP address behind a reverse proxy
+- objective: better site overrides for site nav menu
+- to-do:
+  - restructure app.conf's view.pageDecoration (breaking change)
+    - siteNavigation
+    - breadcrumbs
+    - sidebar (placeholder for now)
+  - fix all code to reflect new structure
 - deliverables:
-  - webapp/utils/common.js -- IP address based on sequence: x-forwarded-for, x-real-ip, request ip
+  - webapp/app.conf -- modified view.pageDecoration structure with siteNavigation, breadcrumbs, sidebar
+  - webapp/view/jpulse-footer.tmpl
+    - updated to use siteNavigation.enabled and breadcrumbs.enabled
+    - passes delay configs to navigation.init()
+  - webapp/view/jpulse-common.js
+    - updated navigation.init() to accept delay configs
+    - implemented openDelay with cancel-on-mouse-leave
+    - replaced all hardcoded delays with config values
+  - webapp/tests/unit/utils/jpulse-ui-navigation.test.js -- updated test mocks to use new pageDecoration structure
 
 
 
@@ -1805,7 +1826,7 @@ old pending:
 ### Potential next items:
 - W-045: architecture: create plugin infrastructure
 - W-068: view: create responsive sidebar
-- W-0: view: page headers with anchor links for copy & paste in browser URL bar
+- W-0: view: headings with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific translations
 - W-037: view: create themes
 - W-0: deployment: docker strategy
@@ -1824,8 +1845,8 @@ next work item: W-0...
 finishing up work item: W-087:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-087, v1.1.4
-- update deliverables in W-087 to document work done (don't make any other changes to this file)
+- assume release: W-090, v1.1.6
+- update deliverables in W-090 to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
@@ -1841,12 +1862,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.1.4
+node bin/bump-version.js 1.1.6
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.1.4
+git tag v1.1.6
 git push origin main --tags
 
 === on failed package build on github ===
@@ -1971,10 +1992,10 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - open on command (hamburger menu?)
 - fix /jpulse-docs/ markdown SPA to be based on common sidebar
 
-### W-0: view: page headers with anchor links for copy & paste in browser URL bar
+### W-0: view: headings with anchor links for copy & paste in browser URL bar
 - status: 🕑 PENDING
 - type: Feature
-- objectives: shared content with deep links, should work on any jpulse rendered page, not just markdown docs
+- objectives: ability to share content with deep links, should work on any jpulse rendered page, not just markdown docs
 - depends on: W-049: docs: views render markdown docs for jPulse docs and site docs
 - feature:
   - on hover on any page heading, show a '#' on the left of the heading
@@ -2074,11 +2095,17 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - status: 🕑 PENDING
 - type: Feature
 - objective: more flexible handlebars
+- note on syntax:
+  - it follows the Polish notation, also called Łukasiewicz notation
+  - normal notation: A and B
+  - Polish notation: and, A, B
+  - reverse Polish notation: A, B, and
 - syntax:
+  - block handlebars that expect a boolean parameter support operators:
   - `{{#if}}` and `{{#unless}}` accept an optional operator identified by a trailing colon, followed by operands:
     - `{{#if <operator>: <operand1> <operand2> <operand3>...}} ... {{else}} ... {{/if}}`
     - `{{#unless <operator>: <operand1> <operand2> <operand3>...}} ... {{/unless}}`
-  - example with existing syntax:
+  - example without operator:
     - `{{#if some.condition}} true block {{else}} false block {{/if}}`
   - examples with operator and operands:
     - `{{#if and: some.condition other.condition}} true block {{else}} false block {{/if}}`
@@ -2086,7 +2113,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
     - `{{#if eq: some.string "DONE"}} true block {{else}} false block {{/if}}`
     - `{{#if gt: some.val 1}} true block {{else}} false block {{/if}}`
 - deliverables:
-  - webapp/controller/view.js -- enhanced `{{#if}}` and `{{#unless}}` block handlebars
+  - webapp/controller/handlebar.js -- enhanced `{{#if}}` and `{{#unless}}` block handlebars
 
 ### W-0: handlebars: new {{#set}} block handlebar
 - status: 🕑 PENDING

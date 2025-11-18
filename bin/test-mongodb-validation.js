@@ -4,7 +4,7 @@
  * @tagline         Comprehensive MongoDB setup validation to prevent authentication failures
  * @description     Tests password hashing compatibility, command structure, and YAML configuration
  * @file            bin/test-mongodb-validation.js
- * @version         1.1.7
+ * @version         1.1.8
  * @release         2025-11-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -278,7 +278,7 @@ class CrossPlatformTests {
      */
     async testShellCompatibility() {
         const shellScripts = [
-            'bin/jpulse-install.sh',
+            'bin/jpulse-setup.sh',
             'bin/mongodb-setup.sh',
             'bin/jpulse-validate.sh'
         ];
@@ -363,7 +363,7 @@ class CrossPlatformTests {
      */
     async testPathAndPermissions() {
         const shellScripts = [
-            'bin/jpulse-install.sh',
+            'bin/jpulse-setup.sh',
             'bin/mongodb-setup.sh',
             'bin/jpulse-validate.sh'
         ];
@@ -398,7 +398,7 @@ class CrossPlatformTests {
      */
     async testShellScriptSyntax() {
         const shellScripts = [
-            'bin/jpulse-install.sh',
+            'bin/jpulse-setup.sh',
             'bin/mongodb-setup.sh',
             'bin/jpulse-validate.sh'
         ];

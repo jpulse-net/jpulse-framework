@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Package Publishing Guide v1.1.7
+# jPulse Framework / Docs / Dev / Package Publishing Guide v1.1.8
 
 This guide covers publishing the jPulse Framework to GitHub Packages for framework maintainers and core developers.
 
@@ -234,17 +234,15 @@ git push origin main --tags
 # 1. Verify package is available
 npm view @jpulse-net/jpulse-framework --registry=https://npm.pkg.github.com
 
-# 2. Test installation in clean directory (requires auth for private repo)
+# 2. Test installation in clean directory (requires GitHub Packages auth)
 mkdir test-install && cd test-install
-npm install @jpulse-net/jpulse-framework
+npx jpulse-install
 npx jpulse configure
 
 # 3. Install dependencies and verify CLI tools work
 npm install
 npm start
 ```
-
-> **Note**: Once repository is public, steps 2-3 will simplify to just: `npm install -g @jpulse-net/jpulse-framework && npx jpulse-setup`
 
 ## Package Configuration
 

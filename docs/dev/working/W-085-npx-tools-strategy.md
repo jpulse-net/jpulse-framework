@@ -1,8 +1,8 @@
 # W-085: npx Tools Strategy & Unified CLI Entry Point
 
-**Status**: 🕑 PENDING  
-**Type**: Feature  
-**Objective**: Create intuitive, unified tools environment for site developers  
+**Status**: 🕑 PENDING
+**Type**: Feature
+**Objective**: Create intuitive, unified tools environment for site developers
 **Date**: 2025-11-05
 
 ## Overview
@@ -43,7 +43,7 @@ npm run jpulse-<command>
 npx jpulse configure
 npx jpulse update
 npx jpulse bump-version
-npx jpulse install
+npx jpulse setup
 npx jpulse mongodb-setup
 npx jpulse validate
 ```
@@ -99,24 +99,24 @@ Use `.conf` format (JavaScript object) consistent with `app.conf`:
         {
             pattern: 'package.json',
             replacements: [
-                { 
+                {
                     from: /"version": "[\d.]+(-[a-z]+\.\d+)?"/,
-                    to: (version) => `"version": "${version}"` 
+                    to: (version) => `"version": "${version}"`
                 }
             ]
         },
         {
             pattern: 'site/webapp/app.conf',
             replacements: [
-                { 
+                {
                     from: /(version: +['"])[\d.]+(-[a-z]+\.\d+)?/,
-                    to: (version, match, p1) => `${p1}${version}`, 
-                    scope: 'version' 
+                    to: (version, match, p1) => `${p1}${version}`,
+                    scope: 'version'
                 },
-                { 
+                {
                     from: /(release: +['"])[\d-]+/,
-                    to: (release, match, p1) => `${p1}${release}`, 
-                    scope: 'release' 
+                    to: (release, match, p1) => `${p1}${release}`,
+                    scope: 'release'
                 }
             ]
         }
@@ -142,7 +142,7 @@ function findBumpConfig() {
         }
         return null; // Show instructions
     }
-    
+
     // Framework repo (has webapp/app.conf directly, not in node_modules)
     if (fs.existsSync('webapp/app.conf') && !process.cwd().includes('node_modules')) {
         const frameworkConfig = 'bin/bump-version.conf';  // Updated path
@@ -151,18 +151,18 @@ function findBumpConfig() {
         }
         return null; // Show instructions
     }
-    
+
     return null;
 }
 
 function loadBumpConfig() {
     const configPath = findBumpConfig();
-    
+
     if (!configPath) {
         showConfigInstructions();
         return null;
     }
-    
+
     try {
         const content = fs.readFileSync(configPath, 'utf8');
         return new Function(`return (${content})`)();
@@ -194,20 +194,20 @@ function detectContext() {
         fs.existsSync('node_modules/@jpulse-net/jpulse-framework')) {
         return 'site';
     }
-    
+
     // Framework repo: has webapp/app.conf directly (not in node_modules)
-    if (fs.existsSync('webapp/app.conf') && 
+    if (fs.existsSync('webapp/app.conf') &&
         !process.cwd().includes('node_modules')) {
         return 'framework';
     }
-    
+
     return 'unknown';
 }
 
 function showHelp(context) {
     console.log('jPulse Framework CLI');
     console.log('');
-    
+
     if (context === 'framework') {
         console.log('Available commands (framework development):');
         console.log('  bump-version    - Bump version numbers across framework files');
@@ -403,52 +403,52 @@ fi
         {
             pattern: 'package.json',
             replacements: [
-                { 
+                {
                     from: /"version": "[\d.]+(-[a-z]+\.\d+)?"/,
-                    to: (version) => `"version": "${version}"` 
+                    to: (version) => `"version": "${version}"`
                 }
             ]
         },
         {
             pattern: 'package-lock.json',
             replacements: [
-                { 
+                {
                     from: /("name": "\@jpulse-net\/jpulse-framework",\s+"version": ")[\d.]+(-[a-z]+\.\d+)?/g,
-                    to: (version, match, p1) => `${p1}${version}`, 
-                    scope: 'version' 
+                    to: (version, match, p1) => `${p1}${version}`,
+                    scope: 'version'
                 }
             ]
         },
         {
             pattern: 'webapp/app.conf',
             replacements: [
-                { 
+                {
                     from: /(version: +['"])[\d.]+(-[a-z]+\.\d+)?/,
-                    to: (version, match, p1) => `${p1}${version}`, 
-                    scope: 'version' 
+                    to: (version, match, p1) => `${p1}${version}`,
+                    scope: 'version'
                 },
-                { 
+                {
                     from: /(release: +['"])[\d-]+/,
-                    to: (release, match, p1) => `${p1}${release}`, 
-                    scope: 'release' 
+                    to: (release, match, p1) => `${p1}${release}`,
+                    scope: 'release'
                 }
             ]
         },
         {
             pattern: 'README.md',
             replacements: [
-                { 
+                {
                     from: /^(# jPulse Framework v)[\d.]+(-[a-z]+\.\d+)?/m,
-                    to: (version, match, p1) => `${p1}${version}` 
+                    to: (version, match, p1) => `${p1}${version}`
                 }
             ]
         },
         {
             pattern: 'docs/*.md',
             replacements: [
-                { 
+                {
                     from: /^(# jPulse Framework.* v)[\d.]+(-[a-z]+\.\d+)?/m,
-                    to: (version, match, p1) => `${p1}${version}` 
+                    to: (version, match, p1) => `${p1}${version}`
                 }
             ]
         }
@@ -474,24 +474,24 @@ fi
         {
             pattern: 'package.json',
             replacements: [
-                { 
+                {
                     from: /"version": "[\d.]+(-[a-z]+\.\d+)?"/,
-                    to: (version) => `"version": "${version}"` 
+                    to: (version) => `"version": "${version}"`
                 }
             ]
         },
         {
             pattern: 'site/webapp/app.conf',
             replacements: [
-                { 
+                {
                     from: /(version: +['"])[\d.]+(-[a-z]+\.\d+)?/,
-                    to: (version, match, p1) => `${p1}${version}`, 
-                    scope: 'version' 
+                    to: (version, match, p1) => `${p1}${version}`,
+                    scope: 'version'
                 },
-                { 
+                {
                     from: /(release: +['"])[\d-]+/,
-                    to: (release, match, p1) => `${p1}${release}`, 
-                    scope: 'release' 
+                    to: (release, match, p1) => `${p1}${release}`,
+                    scope: 'release'
                 }
             ]
         }

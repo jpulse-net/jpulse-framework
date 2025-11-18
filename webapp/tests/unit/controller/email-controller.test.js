@@ -3,7 +3,7 @@
  * @tagline         Unit tests for Email Controller
  * @description     Minimal unit tests for EmailController basic functionality
  * @file            webapp/tests/unit/controller/email-controller.test.js
- * @version         1.1.7
+ * @version         1.1.8
  * @release         2025-11-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -4,7 +4,7 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         1.1.7
+ * @version         1.1.8
  * @release         2025-11-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -581,6 +581,9 @@ function generateDeploymentFiles(config, frameworkVersion, deploymentType) {
     const upstreamName = (config.JPULSE_SITE_ID || 'jpulse').replace(/[^\w]/g, '_') + '_backend';
     config.UPSTREAM_NAME = upstreamName;
 
+    // Build complete config to ensure all computed fields (like SSL_CERT_PATH) are resolved
+    const completeConfig = buildCompleteConfig(config, deploymentType);
+
     // Copy and process deployment templates (excluding env.tmpl)
     const deployTemplatesDir = path.join(packageRoot, 'templates/deploy');
     const deployFiles = fs.readdirSync(deployTemplatesDir);
@@ -594,7 +597,7 @@ function generateDeploymentFiles(config, frameworkVersion, deploymentType) {
 
         if (fs.statSync(srcPath).isFile()) {
             const content = fs.readFileSync(srcPath, 'utf8');
-            const processedContent = expandAllVariables(content, config, deploymentType);
+            const processedContent = expandAllVariables(content, completeConfig, deploymentType);
             fs.writeFileSync(destPath, processedContent);
 
             // Make shell scripts executable
@@ -613,15 +616,18 @@ function generateDeploymentFiles(config, frameworkVersion, deploymentType) {
 function generateEnvFile(config, frameworkVersion) {
     console.log('📋 Generating .env configuration...');
 
+    // Update framework version in config
+    config.JPULSE_FRAMEWORK_VERSION = frameworkVersion;
+
+    // Build complete config to ensure all computed fields (like SSL_CERT_PATH) are resolved
+    const completeConfig = buildCompleteConfig(config, 'prod');
+
     // Read template and expand all placeholders
     const templatePath = path.join(packageRoot, 'templates/deploy/env.tmpl');
     const templateContent = fs.readFileSync(templatePath, 'utf8');
 
-    // Update framework version in config
-    config.JPULSE_FRAMEWORK_VERSION = frameworkVersion;
-
-    // Expand template with all variables
-    const expandedContent = expandAllVariables(templateContent, config, 'prod');
+    // Expand template with all variables (using completeConfig to ensure computed fields are included)
+    const expandedContent = expandAllVariables(templateContent, completeConfig, 'prod');
 
     // Remove header section (keep only the actual environment variables)
     const lines = expandedContent.split('\n');
@@ -723,10 +729,12 @@ function createSiteStructure(config = {}) {
 
     // Create symbolic link to actual log directory for convenience
     // This allows developers to access logs via ./logs while maintaining proper system logging
-    const logDir = config.LOG_DIR || process.env.LOG_DIR || '/var/log/jpulse';
+    // Only create symlink if file logging is selected (LOG_DIR is not empty)
+    const logDir = config.LOG_DIR || process.env.LOG_DIR || '';
     const logsSymlink = 'logs';
 
-    if (!fs.existsSync(logsSymlink)) {
+    // Only create symlink if LOG_DIR is explicitly set and not empty (file logging)
+    if (logDir && logDir.trim() !== '' && !fs.existsSync(logsSymlink)) {
         try {
             fs.symlinkSync(logDir, logsSymlink, 'dir');
             console.log(`📁 Created symbolic link: logs -> ${logDir}`);
@@ -1024,7 +1032,7 @@ async function setup() {
         if (config.generateDeployment && deploymentType === 'prod') {
             console.log(`${stepNum++}. Review deployment guide: cat deploy/README.md`);
             console.log(`${stepNum++}. Review environment: cat .env`);
-            console.log(`${stepNum++}. Setup system: sudo npx jpulse install`);
+            console.log(`${stepNum++}. Setup system: sudo npx jpulse setup`);
             console.log(`${stepNum++}. Setup database: npx jpulse mongodb-setup`);
             console.log(`${stepNum++}. Validate installation: npx jpulse validate`);
             console.log(`${stepNum++}. Start application: pm2 start deploy/ecosystem.prod.config.cjs`);

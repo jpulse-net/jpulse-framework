@@ -3,7 +3,7 @@
  * @tagline         Basic tests for Config Model and Controller
  * @description     Simple unit tests for Config Model validation and basic functionality
  * @file            webapp/tests/unit/config/config-basic.test.js
- * @version         1.1.7
+ * @version         1.1.8
  * @release         2025-11-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

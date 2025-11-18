@@ -1,4 +1,4 @@
-# jPulse Framework v1.1.7
+# jPulse Framework v1.1.8
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -33,7 +33,7 @@ jPulse Framework is designed for **Gen-AI development** (aka "vibe coding") - le
 ```bash
 # Create a new jPulse site
 mkdir my-jpulse-site && cd my-jpulse-site
-npm install --registry=https://npm.pkg.github.com @jpulse-net/jpulse-framework
+npx jpulse-install
 npx jpulse configure
 npm install
 npm start
@@ -161,6 +161,7 @@ npx jpulse update @jpulse-net/jpulse-framework@1.0.0-rc.1
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.1.8 - Simplified Installation & Bug Fixes**: Added `jpulse-install` npm package for one-command installation. No more manual `.npmrc` creation - just run `npx jpulse-install` and you're ready to configure your site. Eliminates the "chicken and egg" problem of installing from GitHub Packages. Fixed log symlink creation (only for file logging), SSL paths in nginx config, PORT value preservation, and log directory defaults. Renamed `npx jpulse install` → `npx jpulse setup` for clarity. Manual installation method still available in docs.
 - ✅ **Version 1.1.7 - Deployment Bug Fixes**: Fixed seven bugs affecting site deployment and configuration, improving the "don't make me think" installation experience. Simplified npm installation with `--registry` flag (no manual .npmrc creation). Fixed log directory symlinks, MongoDB setup auto-loads `.env` file, handles existing authentication for multi-site installs. Auto-configures Let's Encrypt SSL paths. Nginx uses site-specific upstream names enabling seamless multi-site installations on same server.
 - ✅ **Version 1.1.6 - Configurable Navigation Delays**: Restructured `view.pageDecoration` configuration with nested structure for better site overrides. Made site navigation menu open/close delays fully configurable via `app.conf` (openDelay, closeDelay, submenuCloseDelay). Open delay cancels if mouse leaves before menu opens, preventing accidental triggers. Site administrators can now fine-tune menu timing for their specific UX needs.
 - ✅ **Version 1.1.5 - Log IP addresses**: Fix bug where local IP address 127.0.0.1 was shown in the logs when jPulse is behind a reverse proxy.

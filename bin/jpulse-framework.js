@@ -4,7 +4,7 @@
  * @tagline         Command dispatcher for jPulse Framework tools
  * @description     Dispatches commands to appropriate shell scripts
  * @file            bin/jpulse-framework.js
- * @version         1.1.7
+ * @version         1.1.8
  * @release         2025-11-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -29,7 +29,7 @@ const commands = {
     'update': './jpulse-update.js',
     'bump-version': './bump-version.js',
     'version-bump': './bump-version.js',
-    'install': './jpulse-install.sh',
+    'setup': './jpulse-setup.sh',
     'mongodb-setup': './mongodb-setup.sh',
     'db-setup': './mongodb-setup.sh',
     'validate': './jpulse-validate.sh'
@@ -78,7 +78,7 @@ function showHelp(context) {
         console.log('  configure       - Configure jPulse site (setup/update configuration)');
         console.log('  update          - Update framework to latest and sync files');
         console.log('  bump-version    - Bump version numbers across site files');
-        console.log('  install         - Install system dependencies (run as root)');
+        console.log('  setup           - Setup system dependencies (run as root)');
         console.log('  mongodb-setup   - Setup MongoDB database');
         console.log('  validate        - Validate deployment installation');
         console.log('');
@@ -97,7 +97,7 @@ function showHelp(context) {
         console.log('  configure       - Configure jPulse site (setup/update configuration)');
         console.log('  update          - Update framework to latest and sync files');
         console.log('  bump-version    - Bump version numbers across files');
-        console.log('  install         - Install system dependencies (run as root)');
+        console.log('  setup           - Setup system dependencies (run as root)');
         console.log('  mongodb-setup   - Setup MongoDB database');
         console.log('  validate        - Validate deployment installation');
         console.log('');

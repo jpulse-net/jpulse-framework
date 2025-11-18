@@ -4,7 +4,7 @@
  * @tagline         Comprehensive CLI validation tests to catch deployment issues early
  * @description     Advanced testing for configuration, template expansion, and deployment validation
  * @file            bin/test-cli-enhanced.js
- * @version         1.1.7
+ * @version         1.1.8
  * @release         2025-11-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -384,7 +384,7 @@ DB_PASS=%DB_PASS%
 
             // Files that might reference npm commands
             const filesToCheck = [
-                path.join(originalCwd, 'bin/jpulse-install.sh'),
+                path.join(originalCwd, 'bin/jpulse-setup.sh'),
                 path.join(originalCwd, 'bin/jpulse-validate.sh'),
                 path.join(originalCwd, 'bin/mongodb-setup.sh'),
                 'README.md'

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Generative-AI Development Guide v1.1.7
+# jPulse Framework / Docs / Generative-AI Development Guide v1.1.8
 
 Complete guide for site developers building jPulse applications with Gen-AI assistance, aka vibe coding, using IDEs like Cline, Cursor, GitHub Copilot, or Windsurf.
 
@@ -39,7 +39,7 @@ Complete guide for site developers building jPulse applications with Gen-AI assi
 **Create your jPulse site**:
 ```bash
 mkdir my-jpulse-site && cd my-jpulse-site
-npm install @jpulse-net/jpulse-framework
+npx jpulse-install
 npx jpulse configure
 npm install
 npm start

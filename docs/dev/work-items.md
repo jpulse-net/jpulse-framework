@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.1.7
+# jPulse Framework / Docs / Dev / Work Items v1.1.8
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1660,7 +1660,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - npx jpulse configure       - configure jPulse site (setup/update configuration)
   - npx jpulse update          - update framework to latest and sync files (or specify version: @jpulse-net/jpulse-framework@version)
   - npx jpulse bump-version    - bump version numbers across site files
-  - npx jpulse install         - install system dependencies (run as root)
+  - npx jpulse setup           - setup system dependencies (run as root)
   - npx jpulse mongodb-setup   - setup MongoDB database
   - npx jpulse validate        - validate deployment installation
 - deliverables:
@@ -1788,22 +1788,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - replaced all hardcoded delays with config values
   - webapp/tests/unit/utils/jpulse-ui-navigation.test.js -- updated test mocks to use new pageDecoration structure
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-091, v1.1.7: deploy: bug fixes for site deployments
-- status: 🚧 IN_PROGRESS
+- status: DONE ✅
 - type: Bug
 - objective: better getting started experience
 - issues:
@@ -1826,6 +1812,43 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/README.md` - updated npm install command
   - `webapp/tests/unit/config/deployment-validation.test.js` - updated test patterns
   - `webapp/tests/integration/deployment-validation.test.js` - updated test patterns
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-092, v1.1.8: deploy: add jpulse-install package for simplified installation
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: eliminate manual .npmrc creation with one-command installer
+- prerequisites:
+  - jpulse-install package at https://github.com/jpulse-net/jpulse-install
+- deliverables:
+  - created `jpulse-install` npm package (separate repo)
+  - updated `docs/getting-started.md` - use `npx jpulse-install`
+  - updated `docs/deployment.md` - use `npx jpulse-install`
+  - updated `docs/installation.md` - show both methods (recommended + alternative)
+  - updated `README.md` - use `npx jpulse-install` in quick start
+  - updated `docs/README.md` - release highlights
+  - updated `docs/CHANGELOG.md` - v1.1.8 entry
+  - bug 2 Enhancement: Fixed log symlink to only create for file logging (not STDOUT)
+  - bug 6: Fixed SSL paths computation in nginx config (generateDeploymentFiles)
+  - bug 9: Fixed PORT value preservation in buildCompleteConfig
+  - fix 8: Log directory default now uses site ID (`/var/log/${JPULSE_SITE_ID}`)
+  - test fix: Updated test-cli.js to conditionally check for logs symlink
+  - command rename: Renamed `npx jpulse install` → `npx jpulse setup` (breaking change for clarity)
+  - updated all docs and code references from `install` to `setup`
+  - fixed legacy content in publishing.md (removed "Once repository is public" note)
 
 
 
@@ -1868,11 +1891,11 @@ next work item: W-0...
 - plan how to implement (wait for my go ahead)
 - current timestamp: 2025-10-04 17:55
 
-finishing up work item: W-087:
+release prep:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-091, v1.1.7
-- update deliverables in W-091 to document work done (don't make any other changes to this file)
+- assume release: W-092, v1.1.8
+- update deliverables in W-092 to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 
@@ -1888,12 +1911,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.1.6
+node bin/bump-version.js 1.1.8
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.1.6
+git tag v1.1.8
 git push origin main --tags
 
 === on failed package build on github ===

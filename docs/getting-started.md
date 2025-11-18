@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Getting Started with jPulse v1.1.7
+# jPulse Framework / Docs / Getting Started with jPulse v1.1.8
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the site override system.
 
@@ -19,8 +19,8 @@ Before starting, ensure you have:
 # Create a new jPulse site directory
 mkdir my-first-site && cd my-first-site
 
-# Install framework from GitHub Packages registry
-npm install --registry=https://npm.pkg.github.com @jpulse-net/jpulse-framework
+# Install framework (creates .npmrc and installs from GitHub Packages)
+npx jpulse-install
 
 # Configure your site
 npx jpulse configure

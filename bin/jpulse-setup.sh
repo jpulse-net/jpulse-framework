@@ -1,12 +1,12 @@
 #!/bin/bash
 ##
- # @name            jPulse Framework / Bin / Install System
- # @tagline         Install system dependencies for jPulse site
+ # @name            jPulse Framework / Bin / System Setup
+ # @tagline         Setup system dependencies for jPulse site
  # @description     This script will install system dependencies for jPulse site
- #                  - Run as root: sudo npx jpulse install
+ #                  - Run as root: sudo npx jpulse setup
  #                  - For Red Hat Enterprise Linux ecosystem
- # @file            bin/jpulse-install.sh
- # @version         1.1.7
+ # @file            bin/jpulse-setup.sh
+ # @version         1.1.8
  # @release         2025-11-18
  # @repository      https://github.com/jpulse-net/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,7 +20,7 @@ set -e
 # Security check - must run as root
 if [ "$EUID" -ne 0 ]; then
     echo "❌ SECURITY ERROR: This script must run as root"
-    echo "💡 Run with: sudo npx jpulse install"
+    echo "💡 Run with: sudo npx jpulse setup"
     exit 1
 fi
 
@@ -271,4 +271,4 @@ else
     echo "   5. Save PM2 configuration: pm2 save"
 fi
 
-# EOF bin/jpulse-install.sh
+# EOF bin/jpulse-setup.sh

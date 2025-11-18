@@ -4,7 +4,7 @@
  * @tagline         Runs all tests (webapp + CLI) with unified output
  * @description     "Don't make me think" test runner for complete validation
  * @file            bin/test-all.js
- * @version         1.1.7
+ * @version         1.1.8
  * @release         2025-11-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

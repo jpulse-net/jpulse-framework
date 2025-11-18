@@ -4,7 +4,7 @@
  * @tagline         Unified configuration registry for all jPulse tools
  * @description     Single source of truth for variable definitions, defaults, and template expansion
  * @file            bin/config-registry.js
- * @version         1.1.7
+ * @version         1.1.8
  * @release         2025-11-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -444,12 +444,14 @@ export const CONFIG_REGISTRY = {
             const logChoice = await question('? Choose (1-2): (1) ') || '1';
 
             if (logChoice === '2') {
-                let logDirInput = await question('? Log directory: (/var/log/jpulse) ') || '/var/log/jpulse';
+                // Use site ID for default log directory
+                const defaultLogDir = `/var/log/${config.JPULSE_SITE_ID || 'jpulse'}`;
+                let logDirInput = await question(`? Log directory: (${defaultLogDir}) `) || defaultLogDir;
 
                 // Validate log directory path
                 if (!logDirInput.startsWith('/') && logDirInput !== '') {
-                    console.log(`⚠️  Warning: '${logDirInput}' is not an absolute path. Using default: /var/log/jpulse`);
-                    logDirInput = '/var/log/jpulse';
+                    console.log(`⚠️  Warning: '${logDirInput}' is not an absolute path. Using default: ${defaultLogDir}`);
+                    logDirInput = defaultLogDir;
                 }
 
                 config.LOG_DIR = logDirInput;
@@ -542,21 +544,41 @@ export function buildCompleteConfig(userConfig = {}, deploymentType = 'prod') {
         // Skip legacy mappings - they're handled separately
         if (definition.maps_to) return;
 
-        // Skip if user already provided this value
+        // For computed fields, handle differently - recompute if empty/undefined, but preserve user values
+        if (definition.type === 'computed') {
+            // If user already provided a non-empty value, don't recompute (preserve user input like PORT)
+            if (completeConfig[varName] !== undefined && completeConfig[varName] !== '') {
+                return; // Keep user's value
+            }
+
+            // Only recompute if value is empty/undefined and default is a function
+            if (typeof definition.default === 'function') {
+                try {
+                    const computedValue = definition.default(deploymentType, completeConfig);
+                    // Set computed value (even if empty, to ensure it's computed)
+                    completeConfig[varName] = computedValue;
+                } catch (error) {
+                    console.log(`⚠️  Warning: Could not compute ${varName}: ${error.message}`);
+                    if (completeConfig[varName] === undefined) {
+                        completeConfig[varName] = '';
+                    }
+                }
+            }
+            return;
+        }
+
+        // For non-computed fields, skip if user already provided this value
         if (completeConfig[varName] !== undefined) return;
 
-        // Resolve default value
+        // Resolve default value for non-computed fields
         let defaultValue = definition.default;
 
         if (typeof defaultValue === 'function') {
-            // Computed values - call function with appropriate context
-            if (definition.type === 'computed') {
-                try {
-                    defaultValue = defaultValue(deploymentType, completeConfig);
-                } catch (error) {
-                    console.log(`⚠️  Warning: Could not compute ${varName}: ${error.message}`);
-                    defaultValue = '';
-                }
+            try {
+                defaultValue = defaultValue(deploymentType, completeConfig);
+            } catch (error) {
+                console.log(`⚠️  Warning: Could not resolve ${varName}: ${error.message}`);
+                defaultValue = '';
             }
         }
 

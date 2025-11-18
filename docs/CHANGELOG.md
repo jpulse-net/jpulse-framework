@@ -1,6 +1,117 @@
-# jPulse Framework / Docs / Version History v1.1.7
+# jPulse Framework / Docs / Version History v1.1.8
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.1.8, W-092, 2025-11-18
+
+**Commit:** `W-092, v1.1.8: install: add jpulse-install package for simplified installation`
+
+**SIMPLIFIED INSTALLATION & BUG FIXES**: Added `jpulse-install` npm package that eliminates the "chicken and egg" problem of installing jPulse Framework from GitHub Packages. One-command installation with automatic `.npmrc` configuration. Also includes additional bug fixes discovered during testing and command rename for clarity.
+
+**Objective**: Eliminate manual `.npmrc` creation with one-command installer following "don't make me think" philosophy, plus fix additional deployment bugs.
+
+**New Installer Package**:
+- **jpulse-install** (separate npm package): Lightweight installer published to public npm registry
+  - Creates `.npmrc` file with scoped registry configuration (`@jpulse-net:registry=https://npm.pkg.github.com`)
+  - Installs `@jpulse-net/jpulse-framework` from GitHub Packages
+  - Provides clear next steps for users
+  - No authentication needed for the installer itself (public npm registry)
+  - Solves the chicken-and-egg problem: installer exists before framework is installed
+
+**Usage**:
+```bash
+# Simple one-command installation
+mkdir my-jpulse-site && cd my-jpulse-site
+npx jpulse-install
+npx jpulse configure
+npm install
+```
+
+**Documentation Updates**:
+- **docs/getting-started.md**: Updated to use `npx jpulse-install` (simple, beginner-friendly)
+- **docs/deployment.md**: Updated quick start to use `npx jpulse-install`
+- **docs/installation.md**: Shows both methods - recommended (`npx jpulse-install`) and alternative (manual `.npmrc` creation)
+- **README.md**: Updated quick start section to use `npx jpulse-install`
+- **docs/README.md**: Updated release highlights
+
+**Manual Method Still Available**:
+- For air-gapped systems or users who prefer manual configuration
+- Documented in `docs/installation.md` as alternative method
+- Uses: `echo "@jpulse-net:registry=https://npm.pkg.github.com" > .npmrc`
+
+**Additional Bug Fixes**:
+- **Bug 2 Enhancement**: Fixed log symlink creation - only creates symlink for file logging, not for STDOUT
+  - **bin/configure.js**: Updated `createSiteStructure()` to check if `LOG_DIR` is set before creating symlink
+  - Prevents unnecessary symlink when STDOUT logging is selected
+- **Bug 6**: Fixed SSL certificate paths not being computed in nginx config
+  - **bin/configure.js**: Updated `generateDeploymentFiles()` to use `buildCompleteConfig()` before expanding variables
+  - Ensures `SSL_CERT_PATH` and `SSL_KEY_PATH` are computed when Let's Encrypt is selected
+- **Bug 9**: Fixed PORT value being overwritten by computed default
+  - **bin/config-registry.js**: Updated `buildCompleteConfig()` to preserve user-provided values for computed fields
+  - User-entered PORT values (like 8089) are now preserved instead of being overwritten
+- **Fix 8**: Log directory default now uses site ID
+  - **bin/config-registry.js**: Updated LOG_DIR prompt to use `/var/log/${JPULSE_SITE_ID}` as default
+  - More intuitive defaults for multi-site installations
+- **Test Fix**: Updated test to conditionally check for logs symlink
+  - **bin/test-cli.js**: Only expects logs symlink if `LOG_DIR` is set in `.env`
+  - Test now passes for both STDOUT and file logging scenarios
+- **Command Rename**: Renamed `npx jpulse install` → `npx jpulse setup` (breaking change)
+  - **bin/jpulse-framework.js**: Changed command from `install` to `setup`
+  - **bin/jpulse-install.sh** → **bin/jpulse-setup.sh**: File renamed
+  - Updated all documentation and code references
+  - Eliminates confusion with `npx jpulse-install` (framework installer)
+  - Follows common patterns (Rails, Laravel, Symfony use `setup`)
+
+**Technical Details**:
+- Installer package is separate repository: `jpulse-install`
+- Published to public npm registry (no authentication needed)
+- Minimal dependencies - just Node.js built-ins
+- Creates `.npmrc` with scoped registry configuration
+- Runs `npm install @jpulse-net/jpulse-framework` after setup
+- Provides helpful next steps output
+
+**Files Modified**:
+- bin/configure.js (log symlink fix, SSL paths fix, next steps update)
+- bin/config-registry.js (PORT preservation, log directory default, buildCompleteConfig improvements)
+- bin/jpulse-framework.js (command rename: install → setup)
+- bin/jpulse-install.sh → bin/jpulse-setup.sh (file renamed)
+- bin/test-cli.js (conditional logs symlink check)
+- docs/getting-started.md (updated to use npx jpulse-install)
+- docs/installation.md (added both recommended and alternative methods)
+- docs/deployment.md (updated quick start, command rename)
+- README.md (updated quick start and release highlights)
+- docs/README.md (updated release highlights)
+- templates/deploy/README.md (command rename)
+- templates/README.md (command rename)
+- docs/dev/publishing.md (updated legacy content, command rename)
+- docs/dev/work-items.md (completed W-092)
+- docs/CHANGELOG.md (v1.1.8 entry)
+
+**Breaking Changes**:
+- `npx jpulse install` → `npx jpulse setup` (command renamed for clarity)
+
+**Benefits**:
+- One-command installation - no manual steps
+- Eliminates confusion about when to create `.npmrc`
+- Works from clean directory - no prerequisites
+- Follows common patterns (like `create-react-app`, `vue create`)
+- Manual method still available for special cases
+- True "don't make me think" experience
+- Clear command separation: `jpulse-install` (framework) vs `jpulse setup` (system)
+- All deployment bugs fixed and tested
+
+**Developer Experience**:
+- Before: Manual `.npmrc` creation required before first install
+- After: Just run `npx jpulse-install` - everything handled automatically
+- Before: Users had to understand scoped registries and GitHub Packages
+- After: Installer handles all complexity transparently
+- Before: Installation failed if `.npmrc` not created first
+- After: Installation "just works" with one command
+- Before: Confusing: `npx jpulse-install` vs `npx jpulse install`
+- After: Clear: `npx jpulse-install` (framework) vs `npx jpulse setup` (system)
+- Before: PORT values overwritten, SSL paths empty, log symlinks created incorrectly
+- After: All values preserved correctly, SSL paths computed, symlinks only when needed
 
 ________________________________________________
 ## v1.1.7, W-091, 2025-11-18

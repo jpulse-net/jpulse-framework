@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.1.7
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.1.8
 
 **For Site Administrators & Site Developers**
 
@@ -118,7 +118,7 @@ Whether you code manually or with AI assistance, jPulse's "don't make me think" 
 ```bash
 # Create a new jPulse site
 mkdir my-jpulse-site && cd my-jpulse-site
-npm install --registry=https://npm.pkg.github.com @jpulse-net/jpulse-framework
+npx jpulse-install
 npx jpulse configure
 npm install
 npm start
@@ -179,6 +179,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.1.8 - Simplified Installation & Bug Fixes**: Added `jpulse-install` npm package for one-command installation. No more manual `.npmrc` creation - just run `npx jpulse-install` and you're ready to configure your site. Eliminates the "chicken and egg" problem of installing from GitHub Packages. Fixed log symlink creation (only for file logging), SSL paths in nginx config, PORT value preservation, and log directory defaults. Renamed `npx jpulse install` → `npx jpulse setup` for clarity. Manual installation method still available in docs for air-gapped systems.
 - ✅ **Version 1.1.7 - Deployment Bug Fixes**: Fixed seven bugs affecting site deployment and configuration, improving the "don't make me think" installation experience. Simplified npm installation with `--registry` flag (no manual .npmrc creation). Fixed log directory symlinks, MongoDB setup auto-loads `.env` file, handles existing authentication for multi-site installs. Auto-configures Let's Encrypt SSL paths. Nginx uses site-specific upstream names enabling seamless multi-site installations on same server.
 - ✅ **Version 1.1.6 - Configurable Navigation Delays**: Restructured `view.pageDecoration` configuration with nested structure for better site overrides. Made site navigation menu open/close delays fully configurable via `app.conf` (openDelay, closeDelay, submenuCloseDelay). Open delay cancels if mouse leaves before menu opens, preventing accidental triggers. Site administrators can now fine-tune menu timing for their specific UX needs.
 - ✅ **Version 1.1.5 - Log IP addresses**: Fix bug where local IP address 127.0.0.1 was shown in the logs when jPulse is behind a reverse proxy.

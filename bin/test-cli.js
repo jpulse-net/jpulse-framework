@@ -4,7 +4,7 @@
  * @tagline         Test script for CLI tools validation
  * @description     Tests setup and sync CLI tools in isolated environment
  * @file            bin/test-cli.js
- * @version         1.1.7
+ * @version         1.1.8
  * @release         2025-11-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -95,9 +95,22 @@ async function testCLI() {
             'webapp/app.js',
             'webapp/controller',
             'site/webapp',
-            'site/webapp/app.conf',
-            'logs'  // Symbolic link to log directory
+            'site/webapp/app.conf'
         ];
+
+        // Only check for logs symlink if file logging is configured (LOG_DIR is set)
+        // In dev/test mode, STDOUT is used, so no symlink should exist
+        let logDir = '';
+        try {
+            const envContent = fs.readFileSync('.env', 'utf8');
+            const logDirMatch = envContent.match(/^export LOG_DIR=(.+)$/m);
+            if (logDirMatch && logDirMatch[1] && logDirMatch[1].trim() !== '') {
+                logDir = logDirMatch[1].trim();
+                expectedFiles.push('logs');  // Only expect logs symlink if LOG_DIR is set
+            }
+        } catch (error) {
+            // .env might not exist or be readable, that's OK - no logs symlink expected
+        }
 
         for (const file of expectedFiles) {
             let exists = false;
@@ -226,7 +239,7 @@ async function testCLI() {
 
         // Test 6: Verify shell scripts don't have unexpanded template variables
         await runTest('Shell script integrity validation', () => {
-            const shellScripts = ['bin/jpulse-install.sh', 'bin/mongodb-setup.sh', 'bin/jpulse-validate.sh'];
+            const shellScripts = ['bin/jpulse-setup.sh', 'bin/mongodb-setup.sh', 'bin/jpulse-validate.sh'];
             for (const script of shellScripts) {
                 const scriptPath = path.join('..', script);
                 if (fs.existsSync(scriptPath)) {

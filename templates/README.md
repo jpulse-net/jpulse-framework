@@ -1,4 +1,4 @@
-# %SITE_NAME% - Site based on jPulse Framework v1.1.7
+# %SITE_NAME% - Site based on jPulse Framework v1.1.8
 
 A production-ready jPulse Framework site created with `npx jpulse configure`.
 
@@ -56,7 +56,7 @@ open http://localhost:8080/
 
 ### Production Deployment
 ```bash
-sudo npx jpulse install         # System setup (as root)
+sudo npx jpulse setup           # System setup (as root)
 nano .env                       # Configure environment
 npx jpulse mongodb-setup        # Database setup
 npx jpulse validate             # Validate installation

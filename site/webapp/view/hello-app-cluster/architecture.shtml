@@ -4,7 +4,7 @@
  * @tagline         App Clustering Architecture Documentation
  * @description     Comprehensive architecture overview for multi-server application clustering
  * @file            site/webapp/view/hello-app-cluster/architecture.shtml
- * @version         1.1.7
+ * @version         1.1.8
  * @release         2025-11-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

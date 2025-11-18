@@ -36201,3 +36201,36 @@ Release documentation complete and ready for version bump and commit.
 
 
 ============================================================
+2025-11-18 02:06
+
+User requested release prep for additional work done in W-092, v1.1.8:
+- Update deliverables in W-092 to document work done
+- Update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed
+- Update commit-message.txt, following the same format
+
+I updated all release documentation to include the additional bug fixes and improvements:
+- Updated W-092 deliverables in docs/dev/work-items.md (marked as DONE, added all additional fixes)
+- Updated docs/CHANGELOG.md with comprehensive v1.1.8 entry including:
+  - jpulse-install package details
+  - Bug 2 Enhancement: Log symlink only for file logging
+  - Bug 6: SSL paths in nginx config
+  - Bug 9: PORT value preservation
+  - Fix 8: Log directory default uses site ID
+  - Test fix: Conditional logs symlink check
+  - Command rename: install → setup (breaking change)
+- Updated README.md and docs/README.md release highlights with all fixes
+- Updated commit-message.txt with complete details of all work done
+- Removed duplicate sections in CHANGELOG.md
+- Fixed legacy content in publishing.md (removed "Once repository is public" note)
+
+All documentation now accurately reflects:
+- jpulse-install package for simplified installation
+- All bug fixes discovered during testing
+- Command rename for clarity (install → setup)
+- Complete file modification list
+- Breaking changes documented
+
+Release documentation complete and ready for version bump and commit.
+
+
+============================================================

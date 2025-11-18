@@ -1,4 +1,4 @@
-# jPulse Framework v1.1.7 Deployment Guide for %SITE_NAME%
+# jPulse Framework v1.1.8 Deployment Guide for %SITE_NAME%
 
 **Site Generated**: %GENERATION_DATE%
 **Deployment Type**: %DEPLOYMENT_TYPE%
@@ -18,7 +18,7 @@ ___________________________________________________________
 
 ```bash
 ## 1. System Installation (as root)
-sudo npx jpulse install
+sudo npx jpulse setup
 ## Installs: nginx, MongoDB, PM2, creates jpulse user, configures firewall
 
 ## 2. Environment Configuration (as application user)
@@ -84,7 +84,7 @@ JPULSE_DOMAIN_NAME=%DOMAIN_NAME%
 #### Custom Deployment Scenarios
 
 **Existing Reverse Proxy (e.g., Apache httpd)**:
-1. Skip nginx installation during `sudo npx jpulse install`
+1. Skip nginx installation during `sudo npx jpulse setup`
 2. Configure your proxy to forward to `http://localhost:%PORT%/`
 3. Set `trustProxy: true` in `site/webapp/app.conf`
 
@@ -270,7 +270,7 @@ All available on your running site:
 #### Deployment Scripts
 | Script | Purpose | Run As | When |
 |--------|---------|--------|------|
-| `npx jpulse install` | System dependencies | root | Initial setup |
+| `npx jpulse setup` | System dependencies | root | Initial setup |
 | `npx jpulse mongodb-setup` | Database configuration | app user | After system setup |
 | `npx jpulse validate` | Deployment validation | app user | After each change |
 

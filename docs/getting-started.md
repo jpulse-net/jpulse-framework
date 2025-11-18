@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Getting Started with jPulse v1.1.6
+# jPulse Framework / Docs / Getting Started with jPulse v1.1.7
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the site override system.
 
@@ -19,17 +19,21 @@ Before starting, ensure you have:
 # Create a new jPulse site directory
 mkdir my-first-site && cd my-first-site
 
-# Install framework locally in your site
-npm install @jpulse-net/jpulse-framework
+# Install framework from GitHub Packages registry
+npm install --registry=https://npm.pkg.github.com @jpulse-net/jpulse-framework
 
 # Configure your site
 npx jpulse configure
 ```
 
-### Install Dependencies, and Start Server
+### Install Dependencies, Setup Database, and Start Server
 ```bash
 # Install dependencies
 npm install
+
+# Setup MongoDB database (for production or if using authentication)
+npx jpulse mongodb-setup
+
 # Start the server app
 npm start
 ```

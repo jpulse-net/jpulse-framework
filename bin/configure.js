@@ -4,8 +4,8 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         1.1.6
- * @release         2025-11-14
+ * @version         1.1.7
+ * @release         2025-11-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -576,6 +576,11 @@ function generateDeploymentFiles(config, frameworkVersion, deploymentType) {
         fs.mkdirSync('deploy', { recursive: true });
     }
 
+    // Calculate upstream name from site ID (replace non-word characters with underscores)
+    // This ensures unique upstream names for multi-site installations
+    const upstreamName = (config.JPULSE_SITE_ID || 'jpulse').replace(/[^\w]/g, '_') + '_backend';
+    config.UPSTREAM_NAME = upstreamName;
+
     // Copy and process deployment templates (excluding env.tmpl)
     const deployTemplatesDir = path.join(packageRoot, 'templates/deploy');
     const deployFiles = fs.readdirSync(deployTemplatesDir);
@@ -699,7 +704,7 @@ function createNpmrc() {
 /**
  * Create site directory structure
  */
-function createSiteStructure() {
+function createSiteStructure(config = {}) {
     const siteDirs = [
         'site',
         'site/webapp',
@@ -718,7 +723,7 @@ function createSiteStructure() {
 
     // Create symbolic link to actual log directory for convenience
     // This allows developers to access logs via ./logs while maintaining proper system logging
-    const logDir = process.env.LOG_DIR || '/var/log/jpulse';
+    const logDir = config.LOG_DIR || process.env.LOG_DIR || '/var/log/jpulse';
     const logsSymlink = 'logs';
 
     if (!fs.existsSync(logsSymlink)) {
@@ -965,7 +970,7 @@ async function setup() {
 
         // Always ensure site structure exists (for both new sites and upgrades)
         console.log('🏗️  Ensuring site structure...');
-        createSiteStructure();
+        createSiteStructure(config);
 
         if (setupType === 'new-site') {
             // Copy framework webapp directory

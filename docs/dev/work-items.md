@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.1.5
+# jPulse Framework / Docs / Dev / Work Items v1.1.7
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1767,22 +1767,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - deliverables:
   - webapp/utils/common.js -- IP address based on sequence: x-forwarded-for, x-real-ip, request ip
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-090, v1.1.6: view: make site nav menu open/close delay configurable; restructure view.pageDecoration
-- status: 🚧 IN_PROGRESS
+- status: DONE ✅
 - type: Feature
 - objective: better site overrides for site nav menu
 - to-do:
@@ -1801,6 +1787,46 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - implemented openDelay with cancel-on-mouse-leave
     - replaced all hardcoded delays with config values
   - webapp/tests/unit/utils/jpulse-ui-navigation.test.js -- updated test mocks to use new pageDecoration structure
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-091, v1.1.7: deploy: bug fixes for site deployments
+- status: 🚧 IN_PROGRESS
+- type: Bug
+- objective: better getting started experience
+- issues:
+  - Bug 1: updated docs to use `npm install --registry` flag (KISS solution)
+  - Bug 2: fixed log directory symlink to use `config.LOG_DIR` during configure
+  - Bug 3: MongoDB setup now auto-loads `.env` file
+  - Bug 4: MongoDB setup handles authentication when already enabled
+  - Bug 5: added `npx jpulse mongodb-setup` step to getting started docs
+  - Bug 6: auto-set Let's Encrypt SSL certificate paths when selected
+  - Bug 7: nginx config uses site-specific upstream name from `JPULSE_SITE_ID`
+- deliverables:
+  - `bin/configure.js` - log symlink fix, upstream name calculation
+  - `bin/config-registry.js` - Let's Encrypt auto-configuration
+  - `bin/mongodb-setup.sh` - auto-load .env, handle existing auth
+  - `templates/deploy/nginx.prod.conf` - use %UPSTREAM_NAME% variable
+  - `docs/installation.md` - updated npm install command
+  - `docs/getting-started.md` - added mongodb-setup step, updated npm install
+  - `docs/deployment.md` - updated npm install command
+  - `README.md` - updated npm install command
+  - `docs/README.md` - updated npm install command
+  - `webapp/tests/unit/config/deployment-validation.test.js` - updated test patterns
+  - `webapp/tests/integration/deployment-validation.test.js` - updated test patterns
+
 
 
 
@@ -1845,8 +1871,8 @@ next work item: W-0...
 finishing up work item: W-087:
 - run tests, and fix issues
 - show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-090, v1.1.6
-- update deliverables in W-090 to document work done (don't make any other changes to this file)
+- assume release: W-091, v1.1.7
+- update deliverables in W-091 to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 

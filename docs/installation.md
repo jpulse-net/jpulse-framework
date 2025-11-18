@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Installation Guide v1.1.6
+# jPulse Framework / Docs / Site Installation Guide v1.1.7
 
 This guide covers creating and setting up jPulse sites for development and production environments.
 
@@ -72,9 +72,13 @@ sudo systemctl status mongod
 # Create your site directory first
 mkdir my-jpulse-site && cd my-jpulse-site
 
-# Install framework locally in your site directory
-npm install @jpulse-net/jpulse-framework
+# Install framework from GitHub Packages registry
+npm install --registry=https://npm.pkg.github.com @jpulse-net/jpulse-framework
+
+# Configure your site
 npx jpulse configure
+
+# Install dependencies
 npm install
 ```
 

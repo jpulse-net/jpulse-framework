@@ -5,8 +5,8 @@
  *                  validates configuration of PM2 and nginx, validates deployment context,
  *                  validates environment configuration
  * @file            webapp/tests/integration/deployment-validation.test.js
- * @version         1.1.6
- * @release         2025-11-14
+ * @version         1.1.7
+ * @release         2025-11-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -341,11 +341,12 @@ server {
             const configContent = fs.readFileSync('deploy/nginx.prod.conf', 'utf8');
 
             // Check for required directives
-            expect(configContent).toContain('upstream jpulse_backend');
+            expect(configContent).toContain('upstream');
+            expect(configContent).toMatch(/upstream \w+_backend/);
             expect(configContent).toContain('server {');
             expect(configContent).toContain('listen 443 ssl http2');
             expect(configContent).toContain('ssl_certificate');
-            expect(configContent).toContain('proxy_pass http://jpulse_backend');
+            expect(configContent).toMatch(/proxy_pass http:\/\/\w+_backend/);
             expect(configContent).toContain('limit_req_zone');
 
             // Check security headers

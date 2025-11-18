@@ -1,6 +1,90 @@
-# jPulse Framework / Docs / Version History v1.1.6
+# jPulse Framework / Docs / Version History v1.1.7
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.1.7, W-091, 2025-11-18
+
+**Commit:** `W-091, v1.1.7: deploy: bug fixes for site deployments`
+
+**DEPLOYMENT BUG FIXES**: Fixed seven bugs affecting site deployment and configuration, improving the "don't make me think" installation experience for multi-site installations.
+
+**Objective**: Better getting started experience with smoother installation and configuration process.
+
+**Bug Fixes**:
+- **Bug 1**: Updated documentation to use `npm install --registry` flag (KISS solution)
+  - No manual `.npmrc` creation required
+  - Simple one-liner: `npm install --registry=https://npm.pkg.github.com @jpulse-net/jpulse-framework`
+  - Updated in: README.md, docs/README.md, docs/installation.md, docs/getting-started.md, docs/deployment.md
+- **Bug 2**: Fixed log directory symlink to use `config.LOG_DIR` during configure
+  - **bin/configure.js**: Modified `createSiteStructure()` to accept config object
+  - Now correctly uses `config.LOG_DIR` instead of `process.env.LOG_DIR`
+  - Symlink now points to correct site-specific log directory
+- **Bug 3**: MongoDB setup now auto-loads `.env` file
+  - **bin/mongodb-setup.sh**: Added automatic `.env` sourcing at script start
+  - No need to manually run `source .env` before mongodb-setup
+  - Follows "don't make me think" philosophy
+- **Bug 4**: MongoDB setup handles authentication when already enabled
+  - **bin/mongodb-setup.sh**: Detects if MongoDB auth is already enabled
+  - Authenticates with provided admin credentials before checking/creating users
+  - Provides clear error messages if authentication fails
+  - Supports multi-site installations where MongoDB is already secured
+- **Bug 5**: Added `npx jpulse mongodb-setup` step to getting started docs
+  - **docs/getting-started.md**: Added mongodb-setup step in installation flow
+  - Clarifies when and how to run database setup
+- **Bug 6**: Auto-set Let's Encrypt SSL certificate paths when selected
+  - **bin/config-registry.js**: Auto-configures `SSL_CERT_PATH` and `SSL_KEY_PATH`
+  - Sets standard Let's Encrypt paths: `/etc/letsencrypt/live/{domain}/fullchain.pem`
+  - Provides helpful message about running certbot after configuration
+- **Bug 7**: nginx config uses site-specific upstream name from `JPULSE_SITE_ID`
+  - **bin/configure.js**: Calculates `UPSTREAM_NAME` from `JPULSE_SITE_ID`
+  - Replaces non-word characters with underscores for safe upstream names
+  - **templates/deploy/nginx.prod.conf**: Uses `%UPSTREAM_NAME%` variable
+  - Enables multi-site installations on same server without upstream conflicts
+  - Updated test patterns in deployment-validation.test.js files
+
+**Multi-Site Installation Support**:
+- All fixes enable smooth multi-site installations on the same server
+- Each site gets unique nginx upstream name based on site ID
+- MongoDB setup works correctly when authentication already exists
+- Log directories properly configured per site
+
+**Files Modified**:
+- bin/configure.js (log symlink fix, upstream name calculation)
+- bin/config-registry.js (Let's Encrypt auto-configuration)
+- bin/mongodb-setup.sh (auto-load .env, handle existing auth)
+- templates/deploy/nginx.prod.conf (use %UPSTREAM_NAME% variable)
+- docs/installation.md (updated npm install command)
+- docs/getting-started.md (added mongodb-setup step, updated npm install)
+- docs/deployment.md (updated npm install command)
+- README.md (updated npm install command)
+- docs/README.md (updated npm install command)
+- webapp/tests/unit/config/deployment-validation.test.js (updated test patterns)
+- webapp/tests/integration/deployment-validation.test.js (updated test patterns)
+- docs/dev/work-items.md (completed W-091)
+
+**Benefits**:
+- Simpler installation process - no manual .npmrc creation
+- Correct log directory symlinks for each site
+- MongoDB setup "just works" without manual environment loading
+- Multi-site installations work seamlessly on same server
+- Let's Encrypt SSL configuration is automatic
+- Better error messages guide users when issues occur
+- All fixes follow "don't make me think" philosophy
+
+**Developer Experience**:
+- Before: Manual .npmrc creation required for GitHub Packages
+- After: Simple `npm install --registry` flag
+- Before: Log symlink pointed to wrong directory
+- After: Correct site-specific log directory
+- Before: Must manually source .env before mongodb-setup
+- After: Script auto-loads .env file
+- Before: MongoDB setup fails when auth already enabled
+- After: Detects and handles existing authentication
+- Before: Nginx upstream conflicts in multi-site installs
+- After: Site-specific upstream names prevent conflicts
+- Before: Let's Encrypt paths must be manually configured
+- After: Auto-configured when Let's Encrypt selected
 
 ________________________________________________
 ## v1.1.6, W-090, 2025-11-13

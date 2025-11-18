@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Production Deployment Guide v1.1.6
+# jPulse Framework / Docs / Production Deployment Guide v1.1.7
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -9,6 +9,7 @@ The fastest way to deploy a jPulse site to production:
 ```bash
 # 1. Create site with deployment package
 mkdir my-site && cd my-site
+npm install --registry=https://npm.pkg.github.com @jpulse-net/jpulse-framework
 npx jpulse configure
 # Choose "production" when prompted
 

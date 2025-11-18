@@ -4,8 +4,8 @@
  * @tagline         Unified configuration registry for all jPulse tools
  * @description     Single source of truth for variable definitions, defaults, and template expansion
  * @file            bin/config-registry.js
- * @version         1.1.6
- * @release         2025-11-14
+ * @version         1.1.7
+ * @release         2025-11-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -361,13 +361,24 @@ export const CONFIG_REGISTRY = {
 
             const sslTypes = { '1': 'none', '2': 'letsencrypt', '3': 'custom' };
             config.JPULSE_SSL_TYPE = sslTypes[sslChoice] || 'none';
+
+            if (config.JPULSE_SSL_TYPE === 'letsencrypt') {
+                console.log('💡 Let\'s Encrypt selected. After configuration, run:');
+                console.log(`   sudo certbot certonly --webroot -w /var/www/html -d ${config.JPULSE_DOMAIN_NAME || 'your-domain.com'}`);
+                console.log('💡 Certificate paths will be auto-configured in nginx config.');
+            }
         }
     },
 
     SSL_CERT_PATH: {
         // Template expansion
-        default: '',
-        type: 'config',
+        default: (deploymentType, config) => {
+            if (config.JPULSE_SSL_TYPE === 'letsencrypt' && config.JPULSE_DOMAIN_NAME) {
+                return `/etc/letsencrypt/live/${config.JPULSE_DOMAIN_NAME}/fullchain.pem`;
+            }
+            return '';
+        },
+        type: 'computed',
         conditional: true,
         description: 'SSL certificate file path',
 
@@ -381,8 +392,13 @@ export const CONFIG_REGISTRY = {
 
     SSL_KEY_PATH: {
         // Template expansion
-        default: '',
-        type: 'config',
+        default: (deploymentType, config) => {
+            if (config.JPULSE_SSL_TYPE === 'letsencrypt' && config.JPULSE_DOMAIN_NAME) {
+                return `/etc/letsencrypt/live/${config.JPULSE_DOMAIN_NAME}/privkey.pem`;
+            }
+            return '';
+        },
+        type: 'computed',
         conditional: true,
         description: 'SSL private key file path',
 

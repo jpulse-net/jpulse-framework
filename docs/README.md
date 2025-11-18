@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.1.6
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.1.7
 
 **For Site Administrators & Site Developers**
 
@@ -118,7 +118,7 @@ Whether you code manually or with AI assistance, jPulse's "don't make me think" 
 ```bash
 # Create a new jPulse site
 mkdir my-jpulse-site && cd my-jpulse-site
-npm install @jpulse-net/jpulse-framework
+npm install --registry=https://npm.pkg.github.com @jpulse-net/jpulse-framework
 npx jpulse configure
 npm install
 npm start
@@ -179,6 +179,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.1.7 - Deployment Bug Fixes**: Fixed seven bugs affecting site deployment and configuration, improving the "don't make me think" installation experience. Simplified npm installation with `--registry` flag (no manual .npmrc creation). Fixed log directory symlinks, MongoDB setup auto-loads `.env` file, handles existing authentication for multi-site installs. Auto-configures Let's Encrypt SSL paths. Nginx uses site-specific upstream names enabling seamless multi-site installations on same server.
 - ✅ **Version 1.1.6 - Configurable Navigation Delays**: Restructured `view.pageDecoration` configuration with nested structure for better site overrides. Made site navigation menu open/close delays fully configurable via `app.conf` (openDelay, closeDelay, submenuCloseDelay). Open delay cancels if mouse leaves before menu opens, preventing accidental triggers. Site administrators can now fine-tune menu timing for their specific UX needs.
 - ✅ **Version 1.1.5 - Log IP addresses**: Fix bug where local IP address 127.0.0.1 was shown in the logs when jPulse is behind a reverse proxy.
 - ✅ **Version 1.1.4 - Email Sending Strategy**: Implemented standardized email sending capability for jPulse Framework and site applications. EmailController provides server-side utility methods (sendEmail, sendEmailFromTemplate, sendAdminNotification) and client-side API endpoint (POST /api/1/email/send). MongoDB-based configuration enables per-instance SMTP settings with support for all major providers (Gmail, SendGrid, AWS SES, Office 365, Mailgun). Features test email functionality in admin UI, health monitoring integration, Handlebars template support, and graceful fallback when email not configured. Complete documentation and comprehensive test coverage.

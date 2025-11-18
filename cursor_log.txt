@@ -36168,3 +36168,36 @@ All changes implemented according to requirements:
 
 
 ============================================================
+2025-11-17
+
+User requested: W-091, v1.1.7: deploy: bug fixes for site deployments - release prep
+
+Summary of changes:
+1. Updated commit-message.txt with comprehensive W-091 release message following W-090 format
+2. Updated docs/CHANGELOG.md:
+   - Changed header to v1.1.7
+   - Added complete v1.1.7 entry documenting all 7 bug fixes
+   - Date: 2025-11-17
+3. Updated README.md:
+   - Added v1.1.7 entry to "Latest Release Highlights" section
+4. Updated docs/README.md:
+   - Changed header version to v1.1.7
+   - Added v1.1.7 entry to "Latest Release Highlights" section
+5. Updated version headers in modified documentation files:
+   - docs/installation.md: v1.1.6 → v1.1.7
+   - docs/getting-started.md: v1.1.6 → v1.1.7
+   - docs/deployment.md: v1.1.6 → v1.1.7
+
+All 7 bug fixes documented:
+- Bug 1: npm install --registry flag (KISS solution, no manual .npmrc)
+- Bug 2: Fixed log directory symlink to use config.LOG_DIR
+- Bug 3: MongoDB setup auto-loads .env file
+- Bug 4: MongoDB setup handles existing authentication
+- Bug 5: Added mongodb-setup step to getting started docs
+- Bug 6: Auto-set Let's Encrypt SSL certificate paths
+- Bug 7: nginx config uses site-specific upstream names
+
+Release documentation complete and ready for version bump and commit.
+
+
+============================================================

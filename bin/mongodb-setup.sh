@@ -6,8 +6,8 @@
  #                  - Run with environment: source .env && ./bin/mongodb-setup.sh
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/mongodb-setup.sh
- # @version         1.1.6
- # @release         2025-11-14
+ # @version         1.1.7
+ # @release         2025-11-18
  # @repository      https://github.com/jpulse-net/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,6 +16,15 @@
 ##
 
 set -e
+
+# Load environment variables if .env exists
+if [[ -f ".env" ]]; then
+    echo "ℹ️  Loading environment from .env..."
+    source .env
+    echo "✅ Environment loaded"
+else
+    echo "⚠️  No .env file found - environment variables must be set manually"
+fi
 
 # Require environment variables to be loaded
 if [[ -z "$DB_NAME" || -z "$DB_USER" || -z "$JPULSE_SITE_ID" ]]; then
@@ -73,23 +82,59 @@ if [ -z "$DB_ADMIN_PASS" ] || [ -z "$DB_PASS" ]; then
     exit 1
 fi
 
+# Check if MongoDB authentication is enabled
+MONGODB_AUTH_ENABLED=false
+if grep -q "authorization: enabled" /etc/mongod.conf 2>/dev/null; then
+    MONGODB_AUTH_ENABLED=true
+fi
+
 # Check if admin user already exists
 echo "🔍 Checking existing MongoDB configuration..."
-if mongosh admin --eval "db.getUser('${DB_ADMIN_USER:-admin}')" --quiet 2>/dev/null | grep -q "${DB_ADMIN_USER:-admin}"; then
-    echo "✅ Admin user already exists"
-    SKIP_ADMIN=true
+if [ "$MONGODB_AUTH_ENABLED" = true ]; then
+    # MongoDB auth is enabled - try to authenticate with provided credentials
+    if mongosh admin -u "${DB_ADMIN_USER:-admin}" -p "$DB_ADMIN_PASS" --authenticationDatabase admin --eval "db.runCommand({connectionStatus: 1})" --quiet 2>/dev/null | grep -q "authenticatedUsers"; then
+        # Authentication successful - admin user exists and credentials work
+        echo "✅ Admin user already exists and credentials are valid"
+        SKIP_ADMIN=true
+    else
+        # Auth enabled but can't authenticate - this means wrong credentials
+        # (If auth is enabled, admin user MUST exist, so can't create it)
+        echo "❌ MongoDB authentication is enabled but cannot authenticate"
+        echo "💡 This means the admin credentials in .env are incorrect"
+        echo "💡 Verify DB_ADMIN_USER and DB_ADMIN_PASS in .env match the existing MongoDB admin user"
+        echo "💡 If you're setting up a second site, use the same admin credentials as the first site"
+        exit 1
+    fi
 else
-    echo "📝 Admin user needs to be created"
-    SKIP_ADMIN=false
+    # No auth enabled - check without authentication
+    if mongosh admin --eval "db.getUser('${DB_ADMIN_USER:-admin}')" --quiet 2>/dev/null | grep -q "${DB_ADMIN_USER:-admin}"; then
+        echo "✅ Admin user already exists"
+        SKIP_ADMIN=true
+    else
+        echo "📝 Admin user needs to be created"
+        SKIP_ADMIN=false
+    fi
 fi
 
 # Check if app user already exists
-if mongosh "${DB_NAME:-jp-prod}" --eval "db.getUser('$DB_USER')" --quiet 2>/dev/null | grep -q "$DB_USER"; then
-    echo "✅ App user '$DB_USER' already exists"
-    SKIP_APP=true
+if [ "$MONGODB_AUTH_ENABLED" = true ]; then
+    # Auth enabled - authenticate first
+    if mongosh "$DB_NAME" -u "${DB_ADMIN_USER:-admin}" -p "$DB_ADMIN_PASS" --authenticationDatabase admin --eval "db.getUser('$DB_USER')" --quiet 2>/dev/null | grep -q "$DB_USER"; then
+        echo "✅ App user '$DB_USER' already exists"
+        SKIP_APP=true
+    else
+        echo "📝 App user '$DB_USER' needs to be created"
+        SKIP_APP=false
+    fi
 else
-    echo "📝 App user '$DB_USER' needs to be created"
-    SKIP_APP=false
+    # No auth - check without authentication
+    if mongosh "${DB_NAME:-jp-prod}" --eval "db.getUser('$DB_USER')" --quiet 2>/dev/null | grep -q "$DB_USER"; then
+        echo "✅ App user '$DB_USER' already exists"
+        SKIP_APP=true
+    else
+        echo "📝 App user '$DB_USER' needs to be created"
+        SKIP_APP=false
+    fi
 fi
 
 if [ "$SKIP_ADMIN" = true ] && [ "$SKIP_APP" = true ]; then
@@ -110,14 +155,28 @@ fi
 # Setup admin user (if needed)
 if [ "$SKIP_ADMIN" = false ]; then
     echo "👤 Creating MongoDB admin user..."
-    mongosh admin --eval "
-        db.createUser({
-            user: '$DB_ADMIN_USER',
-            pwd: '$DB_ADMIN_PASS',
-            roles: ['userAdminAnyDatabase', 'dbAdminAnyDatabase']
-        })
-    "
-    echo "✅ Admin user created"
+    if [ "$MONGODB_AUTH_ENABLED" = true ]; then
+        echo "❌ Cannot create admin user: MongoDB authentication is already enabled"
+        echo "💡 The admin user should already exist from a previous setup."
+        echo "💡 If you're setting up a second site, use the same admin credentials."
+        echo "💡 Verify DB_ADMIN_USER and DB_ADMIN_PASS in .env match existing admin user."
+        echo ""
+        echo "💡 If admin user truly doesn't exist, you need to:"
+        echo "   1. Temporarily disable MongoDB authentication in /etc/mongod.conf"
+        echo "   2. Restart MongoDB: sudo systemctl restart mongod"
+        echo "   3. Run this script again to create admin user"
+        echo "   4. Re-enable authentication and restart MongoDB"
+        exit 1
+    else
+        mongosh admin --eval "
+            db.createUser({
+                user: '${DB_ADMIN_USER:-admin}',
+                pwd: '$DB_ADMIN_PASS',
+                roles: ['userAdminAnyDatabase', 'dbAdminAnyDatabase']
+            })
+        "
+        echo "✅ Admin user created"
+    fi
 fi
 
 # Enable MongoDB authentication BEFORE creating app user

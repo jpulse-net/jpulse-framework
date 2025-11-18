@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Architecture v1.1.6
+# jPulse Framework / Docs / Dev / Architecture v1.1.7
 
 Comprehensive overview of the jPulse Framework's system architecture, design decisions, and extensibility patterns.
 

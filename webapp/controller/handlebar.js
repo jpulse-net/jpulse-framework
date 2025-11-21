@@ -3,16 +3,18 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.2.0
+ * @version         1.2.1
  * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4.5
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
  */
 
 import path from 'path';
+import { JSDOM } from 'jsdom';
+import { readdirSync, statSync } from 'fs';
 import LogController from './log.js';
 import configModel from '../model/config.js';
 import PathResolver from '../utils/path-resolver.js';
@@ -57,7 +59,6 @@ class HandlebarController {
         // Subscribes to generic controller:config:data:changed event for clean separation of concerns
         try {
             global.RedisManager.registerBroadcastCallback('controller:config:data:changed', (channel, data, sourceInstanceId) => {
-                console.log('DEBUG: controller:config:data:changed callback received: ' + JSON.stringify(data));
                 // Only refresh if default config was changed
                 if (data && data.id === global.ConfigController.getDefaultDocName()) {
                     this.refreshGlobalConfig();
@@ -369,6 +370,10 @@ class HandlebarController {
                     return _handleFileTimestamp(parsedArgs._target);
                 case 'file.exists':
                     return _handleFileExists(parsedArgs._target);
+                case 'file.list':
+                    return _handleFileList(parsedArgs, currentContext);
+                case 'file.extract':
+                    return _handleFileExtract(parsedArgs, currentContext);
                 default:
                     // Handle property access (no spaces)
                     if (!helper.includes(' ')) {
@@ -401,7 +406,9 @@ class HandlebarController {
          */
         function _parseArguments(expression) {
             const args = {};
-            const parts = expression.trim().match(/^([^ ]+)(?: *"?([^"]*)"?(?:" (.*))?)?$/);
+            // Updated regex to handle: helper "target" param1="value1" param2="value2"
+            // or: helper "target" param1=value1 param2=value2
+            const parts = expression.trim().match(/^([^ ]+)(?: *"?([^"]*)"?(?: (.*))?)?$/);
             args._helper = parts?.[1];
             args._target = parts?.[2];
             if(parts?.[3]) {
@@ -450,9 +457,76 @@ class HandlebarController {
 
         /**
          * Handle {{#each}} blocks
+         * W-094: Support file.list with sortBy and pattern parameters
          */
         async function _handleBlockEach(params, blockContent, currentContext) {
-            const items = getNestedProperty(currentContext, params.trim());
+            let items = getNestedProperty(currentContext, params.trim());
+            let extractPattern = null;
+            let sortBy = null;
+
+            // W-094: Check if params is file.list helper call
+            if (params.trim().startsWith('file.list ')) {
+                const parsedArgs = _parseArguments(params.trim());
+                if (parsedArgs._helper === 'file.list') {
+                    // Get the file list
+                    const listResult = _handleFileList(parsedArgs, currentContext);
+                    items = JSON.parse(listResult);
+
+                    // Get sortBy parameter
+                    sortBy = parsedArgs.sortBy || null;
+
+                    // Get pattern parameter (for passing to file.extract)
+                    extractPattern = parsedArgs.pattern || null;
+
+                    // If sortBy is "extract-order", sort by extracting order from files
+                    if (sortBy === 'extract-order' && Array.isArray(items)) {
+                        const filesWithOrder = items.map(filePath => {
+                            try {
+                                const relativePath = `view/${filePath}`;
+                                const fullPath = PathResolver.resolveModule(relativePath);
+                                const content = self.includeCache.getFileSync(fullPath);
+                                if (content !== null) {
+                                    let extracted = null;
+
+                                    // If pattern is provided, try CSS selector first, then fall back to markers
+                                    if (extractPattern) {
+                                        if (extractPattern.startsWith('.') || extractPattern.startsWith('#')) {
+                                            extracted = _extractFromCSSSelector(content, extractPattern);
+                                        }
+                                    }
+
+                                    // Fall back to marker extraction if CSS selector didn't work
+                                    if (!extracted) {
+                                        extracted = _extractOrderFromMarkers(content);
+                                    }
+
+                                    const order = extracted ? extracted.order : 99999;
+                                    return {
+                                        path: filePath,
+                                        order: order
+                                    };
+                                }
+                            } catch (error) {
+                                // File not found or error - use default order
+                            }
+                            return { path: filePath, order: 99999 };
+                        });
+
+                        // Sort by order, then by filename
+                        filesWithOrder.sort((a, b) => {
+                            if (a.order !== b.order) {
+                                return a.order - b.order;
+                            }
+                            return a.path.localeCompare(b.path);
+                        });
+
+                        items = filesWithOrder.map(f => f.path);
+                    } else if (sortBy === 'filename' && Array.isArray(items)) {
+                        // Sort alphabetically by filename
+                        items.sort();
+                    }
+                }
+            }
 
             if (!items || (!Array.isArray(items) && typeof items !== 'object')) {
                 return '';
@@ -469,6 +543,11 @@ class HandlebarController {
                 iterationContext['@index'] = i;
                 iterationContext['@first'] = i === 0;
                 iterationContext['@last'] = i === itemsArray.length - 1;
+
+                // W-094: Pass extract pattern to context for file.extract to use
+                if (extractPattern) {
+                    iterationContext['@extractPattern'] = extractPattern;
+                }
 
                 if (Array.isArray(items)) {
                     // For arrays: item is the array element
@@ -626,6 +705,292 @@ class HandlebarController {
                 } else {
                     return 'false';
                 }
+            }
+        }
+
+        /**
+         * W-094: Simple glob pattern matcher (replaces fast-glob dependency)
+         * Supports: *.ext, dir/*.ext, dir/subdir/*.ext (single-level wildcards only)
+         * Does NOT support: ** recursive patterns
+         */
+        function _matchGlobPattern(filePath, pattern) {
+            // Convert pattern to regex
+            const regexPattern = pattern
+                .replace(/\./g, '\\.')  // Escape dots
+                .replace(/\*/g, '[^/]*') // * matches any chars except /
+                .replace(/\?/g, '.');   // ? matches single char
+
+            const regex = new RegExp(`^${regexPattern}$`);
+            return regex.test(filePath);
+        }
+
+        /**
+         * W-094: Recursively read directory and match files against pattern
+         */
+        function _readDirRecursive(dirPath, basePath, pattern, fileList = []) {
+            try {
+                const entries = readdirSync(dirPath, { withFileTypes: true });
+
+                for (const entry of entries) {
+                    const fullPath = path.join(dirPath, entry.name);
+                    const relativePath = path.relative(basePath, fullPath).replace(/\\/g, '/');
+
+                    // Skip hidden files and common ignore patterns
+                    if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === '.git') {
+                        continue;
+                    }
+
+                    if (entry.isDirectory()) {
+                        // Recursively search subdirectories
+                        _readDirRecursive(fullPath, basePath, pattern, fileList);
+                    } else if (entry.isFile()) {
+                        // Check if file matches pattern
+                        if (_matchGlobPattern(relativePath, pattern)) {
+                            fileList.push(relativePath);
+                        }
+                    }
+                }
+            } catch (error) {
+                // Directory might not exist or be inaccessible, skip silently
+            }
+
+            return fileList;
+        }
+
+        /**
+         * W-094: Handle file.list helper - list files matching glob pattern
+         * Supports site overrides: searches site/webapp/view first, then webapp/view
+         * Note: Only supports single-level wildcards (*), not recursive (**)
+         */
+        function _handleFileList(parsedArgs, currentContext) {
+            const globPattern = parsedArgs._target;
+            if (!globPattern) {
+                LogController.logError(req, 'handlebar.file.list', 'file.list requires a glob pattern');
+                return JSON.stringify([]);
+            }
+
+            // Security: Prohibit path traversal and absolute paths
+            if (globPattern.includes('../') || globPattern.includes('..\\') || path.isAbsolute(globPattern)) {
+                LogController.logError(req, 'handlebar.file.list', `Prohibited pattern in file.list: ${globPattern}. Use relative paths from view root only.`);
+                return JSON.stringify([]);
+            }
+
+            // Warn if pattern uses ** (not supported without fast-glob)
+            if (globPattern.includes('**')) {
+                LogController.logError(req, 'handlebar.file.list', `Recursive patterns (**) not supported. Use single-level wildcards (*) only. Pattern: ${globPattern}`);
+                return JSON.stringify([]);
+            }
+
+            try {
+                // Use PathResolver.listFiles to handle site overrides
+                const relativeFiles = PathResolver.listFiles(
+                    `view/${globPattern}`,
+                    _matchGlobPattern,
+                    _readDirRecursive
+                );
+
+                return JSON.stringify(relativeFiles);
+            } catch (error) {
+                LogController.logError(req, 'handlebar.file.list', `Error listing files with pattern ${globPattern}: ${error.message}`);
+                return JSON.stringify([]);
+            }
+        }
+
+        /**
+         * W-094: Extract order number from content using markers
+         * Returns { order: number, content: string } or null if no markers found
+         */
+        function _extractOrderFromMarkers(content) {
+            // Try HTML comments: <!-- extract:start order=N --> ... <!-- extract:end -->
+            let match = content.match(/<!--\s*extract:start\s+(?:order\s*=\s*(\d+))?\s*-->(.*?)<!--\s*extract:end\s*-->/s);
+            if (match) {
+                return {
+                    order: match[1] ? parseInt(match[1], 10) : 99999,
+                    content: match[2].trim()
+                };
+            }
+
+            // Try block comments: /* extract:start order=N */ ... /* extract:end */
+            match = content.match(/\/\*\s*extract:start\s+(?:order\s*=\s*(\d+))?\s*\*\/\s*(.*?)\s*\/\*\s*extract:end\s*\*\//s);
+            if (match) {
+                return {
+                    order: match[1] ? parseInt(match[1], 10) : 99999,
+                    content: match[2].trim()
+                };
+            }
+
+            // Try line comments (JS/Python): // extract:start order=N ... // extract:end
+            match = content.match(/\/\/\s*extract:start\s+(?:order\s*=\s*(\d+))?\s*\n(.*?)\/\/\s*extract:end/s);
+            if (match) {
+                return {
+                    order: match[1] ? parseInt(match[1], 10) : 99999,
+                    content: match[2].trim()
+                };
+            }
+
+            // Try Python-style line comments: # extract:start order=N ... # extract:end
+            match = content.match(/#\s*extract:start\s+(?:order\s*=\s*(\d+))?\s*\n(.*?)#\s*extract:end/s);
+            if (match) {
+                return {
+                    order: match[1] ? parseInt(match[1], 10) : 99999,
+                    content: match[2].trim()
+                };
+            }
+
+            return null; // No markers found
+        }
+
+        /**
+         * W-094: Extract content using regex pattern
+         */
+        function _extractFromRegex(content, pattern) {
+            // Parse /pattern/flags format
+            const regexMatch = pattern.match(/^\/(.*)\/([gimsuvy]*)$/);
+            if (!regexMatch) {
+                throw new Error('Invalid regex pattern format. Use /pattern/flags');
+            }
+
+            const [, regexPattern, flags] = regexMatch;
+
+            // Validate: must contain capture group
+            if (!regexPattern.includes('(')) {
+                throw new Error('Regex pattern must contain at least one capture group (...)');
+            }
+
+            try {
+                const regex = new RegExp(regexPattern, flags);
+                const match = content.match(regex);
+                return match ? match[1] : ''; // Return first capture group
+            } catch (error) {
+                throw new Error(`Invalid regex pattern: ${error.message}`);
+            }
+        }
+
+        /**
+         * W-094: Extract content using CSS selector (.class or #id)
+         * Returns { order: number, content: string } or null if not found
+         */
+        function _extractFromCSSSelector(content, selector) {
+            try {
+                // Parse HTML using jsdom
+                const dom = new JSDOM(content);
+                const document = dom.window.document;
+
+                // Find all elements matching the selector
+                const elements = document.querySelectorAll(selector);
+                if (elements.length === 0) {
+                    return null;
+                }
+
+                // If multiple elements found, prefer the one with data-extract-order attribute
+                let element = null;
+                if (elements.length === 1) {
+                    element = elements[0];
+                } else {
+                    // Find the element with data-extract-order attribute, or use the first one
+                    for (let i = 0; i < elements.length; i++) {
+                        if (elements[i].hasAttribute('data-extract-order')) {
+                            element = elements[i];
+                            break;
+                        }
+                    }
+                    // If none have the attribute, use the first one
+                    if (!element) {
+                        element = elements[0];
+                    }
+                }
+
+                // Extract order from data-extract-order attribute if present
+                const orderAttr = element.getAttribute('data-extract-order');
+                const order = orderAttr ? parseInt(orderAttr, 10) : 99999;
+
+                // Get element's HTML content (innerHTML)
+                const extractedContent = element.innerHTML.trim();
+
+                return {
+                    order: order,
+                    content: extractedContent
+                };
+            } catch (error) {
+                throw new Error(`CSS selector extraction failed: ${error.message}`);
+            }
+        }
+
+        /**
+         * W-094: Handle file.extract helper - extract section from file
+         */
+        function _handleFileExtract(parsedArgs, currentContext) {
+            // Handle "this" variable from #each loop context
+            let filePath = parsedArgs._target;
+
+            // If _target is the literal string "this", look it up in context
+            if (filePath === 'this') {
+                filePath = currentContext && currentContext['this'] ? currentContext['this'] : null;
+                if (!filePath) {
+                    LogController.logError(req, 'handlebar.file.extract', `file.extract: "this" not found in context. Available keys: ${currentContext ? Object.keys(currentContext).join(', ') : 'no context'}`);
+                    return '';
+                }
+            }
+
+            // If still no filePath, try to get from context directly
+            if (!filePath && currentContext && currentContext['this'] && typeof currentContext['this'] === 'string') {
+                filePath = currentContext['this'];
+            }
+
+            if (!filePath || typeof filePath !== 'string') {
+                LogController.logError(req, 'handlebar.file.extract', `file.extract requires a file path, got: ${typeof filePath} ${filePath}`);
+                return '';
+            }
+
+            // Get pattern from parsedArgs or from context (set by file.list in #each loop)
+            const pattern = parsedArgs.pattern || currentContext['@extractPattern'] || null;
+
+            // Security: Prohibit path traversal and absolute paths
+            if (filePath.includes('../') || filePath.includes('..\\') || path.isAbsolute(filePath)) {
+                LogController.logError(req, 'handlebar.file.extract', `Prohibited path in extract: ${filePath}. Use relative paths from view root only.`);
+                return '';
+            }
+
+            // Use PathResolver to support site overrides
+            let fullPath;
+            try {
+                const relativePath = `view/${filePath}`;
+                fullPath = PathResolver.resolveModule(relativePath);
+            } catch (error) {
+                LogController.logError(req, 'handlebar.file.extract', `File not found: ${filePath} (${error.message})`);
+                return '';
+            }
+
+            // Get file content using FileCache
+            const content = self.includeCache.getFileSync(fullPath);
+            if (content === null) {
+                LogController.logError(req, 'handlebar.file.extract', `File not found or deleted: ${filePath}`);
+                return '';
+            }
+
+            try {
+                // If pattern provided, determine extraction method
+                if (pattern) {
+                    // Regex pattern: starts with /
+                    if (pattern.startsWith('/')) {
+                        return _extractFromRegex(content, pattern);
+                    }
+
+                    // CSS selector: starts with . or #
+                    if (pattern.startsWith('.') || pattern.startsWith('#')) {
+                        const extracted = _extractFromCSSSelector(content, pattern);
+                        return extracted ? extracted.content : '';
+                    }
+
+                    // Unknown pattern format, fall back to markers
+                }
+
+                // Default: use marker extraction
+                const extracted = _extractOrderFromMarkers(content);
+                return extracted ? extracted.content : '';
+            } catch (error) {
+                LogController.logError(req, 'handlebar.file.extract', `Error extracting from ${filePath}: ${error.message}`);
+                return '';
             }
         }
 

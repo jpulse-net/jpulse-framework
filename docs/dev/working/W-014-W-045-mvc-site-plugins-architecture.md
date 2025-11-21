@@ -570,6 +570,35 @@ UserModel.initializeSchema();
 - **Automatic Discovery**: New enum fields automatically appear in API responses
 - **Extensible**: Deep merge allows plugins to extend nested structures
 
+## Technical Debt and Future Refactoring
+
+### Controllers with Hand-Crafted Site Override Logic
+
+The following controllers have hand-crafted site override logic that should be refactored to use `PathResolver` utilities for consistency and maintainability:
+
+**ViewController** (`webapp/controller/view.js`):
+- **Location**: `_buildViewRegistry()` method (lines 287-297)
+- **Current Implementation**: Manually scans both `siteDir/view` and `appDir/view` directories
+- **Issue**: Duplicates site override logic instead of using `PathResolver`
+- **Proposed Fix**: Refactor to use `PathResolver.listFiles()` or create a new `PathResolver.listDirectories()` method
+- **Priority**: Medium - works correctly but inconsistent with W-094 patterns
+- **Notes**: This is used for building the view route registry, so performance is critical (only runs once at startup)
+
+**HandlebarController** (`webapp/controller/handlebar.js`):
+- **Status**: ✅ Already refactored in W-094 to use `PathResolver.listFiles()` for file listing
+- **Implementation**: Uses centralized `PathResolver` for site override support in `file.list` helper
+
+### Refactoring Recommendations
+
+1. **Create `PathResolver.listDirectories()`**: Similar to `listFiles()` but returns directories
+2. **Refactor ViewController**: Update `_buildViewRegistry()` to use the new method
+3. **Audit Other Controllers**: Search for patterns like:
+   - `siteDir.*view` or `site/webapp/view`
+   - Manual `fs.existsSync()` checks for site overrides
+   - Duplicate directory scanning logic
+
+**Timeline**: Address in future work item (post W-094 release)
+
 ## Deferred Decisions:
 - **Configuration Merging**: Deep merge strategy details to be decided during W-014 implementation
 - **Plugin Security**: Sandboxing and permission system deferred to W-045b

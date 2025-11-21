@@ -4,7 +4,7 @@
  * @tagline         Admin Dashboard for jPulse Framework
  * @description     This is the admin dashboard page of jPulse Framework
  * @file            webapp/view/admin/index.shtml
- * @version         1.2.0
+ * @version         1.2.1
  * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -28,47 +28,10 @@
         </div>
 
         <div class="jp-dashboard-grid">
-
-            <a href="/admin/config.shtml" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container">
-                    <img src="/assets/admin/icons/config.svg" class="jp-icon" alt="">
-                </div>
-                <h3 class="jp-card-title">{{i18n.view.admin.index.siteConfig}}</h3>
-                <p class="jp-card-description">{{i18n.view.admin.index.siteConfigDesc}}</p>
-            </a>
-
-            <a href="/admin/users.shtml" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container">
-                    <img src="/assets/admin/icons/users.svg" class="jp-icon" alt="">
-                </div>
-                <h3 class="jp-card-title">{{i18n.view.admin.index.users}}</h3>
-                <p class="jp-card-description">{{i18n.view.admin.index.usersDesc}}</p>
-            </a>
-
-            <a href="/admin/system-status.shtml" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container">
-                    <img src="/assets/admin/icons/system-status.svg" class="jp-icon" alt="">
-                </div>
-                <h3 class="jp-card-title">{{i18n.view.admin.index.systemStatus}}</h3>
-                <p class="jp-card-description">{{i18n.view.admin.index.systemStatusDesc}}</p>
-            </a>
-
-            <a href="/admin/websocket-status.shtml" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container">
-                    <img src="/assets/admin/icons/websocket.svg" class="jp-icon" alt="">
-                </div>
-                <h3 class="jp-card-title">{{i18n.view.admin.index.websocketStatus}}</h3>
-                <p class="jp-card-description">{{i18n.view.admin.index.websocketStatusDesc}}</p>
-            </a>
-
-            <a href="/admin/logs.shtml" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container">
-                    <img src="/assets/admin/icons/logs.svg" class="jp-icon" alt="">
-                </div>
-                <h3 class="jp-card-title">{{i18n.view.admin.index.viewLogs}}</h3>
-                <p class="jp-card-description">{{i18n.view.admin.index.viewLogsDesc}}</p>
-            </a>
-
+            <!-- Automatically include cards from other admin pages that have extract markers -->
+            {{#each file.list "admin/*.shtml" sortBy="extract-order"}}
+                {{file.extract this}}
+            {{/each}}
         </div>
     </div>
 

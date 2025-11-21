@@ -1,12 +1,8 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.2.0
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.2.1
 
 **For Site Administrators & Site Developers**
 
 Welcome to the jPulse Framework documentation - your complete guide to building enterprise-grade web applications.
-
-**🎉 Version 1.2.0**: Admin user management system with flexible user identification, comprehensive validation, schema extensibility, and API consolidation. Breaking changes: unified user endpoints, removed `/api/1/user/profile` endpoints.
-
-**🎉 Version 1.0**: Production-ready Redis infrastructure for scalable multi-instance deployments, zero-configuration auto-discovery architecture, comprehensive real-time communication, and enterprise-grade clustering capabilities.
 
 ## What is jPulse?
 
@@ -181,6 +177,8 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.2.1 - File Listing & Extraction Helpers**: Generalized Handlebars helpers for automated content generation. Features `file.list` for glob pattern file discovery and `file.extract` for content extraction using three methods (comment markers, regex patterns, CSS selectors). Supports sorting by extracted order or filename, pattern parameter passing in loops, and site override via PathResolver. Security built-in with path traversal protection. Use cases include auto-populated dashboards, navigation menus, galleries, and documentation indexes. Added `PathResolver.listFiles()` method for centralized directory listing with site override support.
+- ✅ **Version 1.2.0 - Admin User Management & API Consolidation**: Complete admin user management system with flexible user identification (ObjectId, username, session), comprehensive validation (last admin protection, role safeguards), schema extension architecture for plugin support, and unified API surface. Breaking changes: removed `/api/1/user/profile` endpoints, replaced with unified `/api/1/user` and `/api/1/user/:id`. New `/api/1/user/enums` endpoint for dynamic enum retrieval. Centralized admin roles configuration via `appConfig.user.adminRoles`. Runtime schema extension via `UserModel.extendSchema()` for future plugins.
 - ✅ **Version 1.1.8 - Simplified Installation & Bug Fixes**: Added `jpulse-install` npm package for one-command installation. No more manual `.npmrc` creation - just run `npx jpulse-install` and you're ready to configure your site. Eliminates the "chicken and egg" problem of installing from GitHub Packages. Fixed log symlink creation (only for file logging), SSL paths in nginx config, PORT value preservation, and log directory defaults. Renamed `npx jpulse install` → `npx jpulse setup` for clarity. Manual installation method still available in docs for air-gapped systems.
 - ✅ **Version 1.1.7 - Deployment Bug Fixes**: Fixed seven bugs affecting site deployment and configuration, improving the "don't make me think" installation experience. Simplified npm installation with `--registry` flag (no manual .npmrc creation). Fixed log directory symlinks, MongoDB setup auto-loads `.env` file, handles existing authentication for multi-site installs. Auto-configures Let's Encrypt SSL paths. Nginx uses site-specific upstream names enabling seamless multi-site installations on same server.
 - ✅ **Version 1.1.6 - Configurable Navigation Delays**: Restructured `view.pageDecoration` configuration with nested structure for better site overrides. Made site navigation menu open/close delays fully configurable via `app.conf` (openDelay, closeDelay, submenuCloseDelay). Open delay cancels if mouse leaves before menu opens, preventing accidental triggers. Site administrators can now fine-tune menu timing for their specific UX needs.

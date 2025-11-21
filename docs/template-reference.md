@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Template Reference v1.2.0
+# jPulse Framework / Docs / Template Reference v1.2.1
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -278,12 +278,54 @@ Get file modification timestamps for cache busting or display:
 </footer>
 ```
 
+### File Listing and Extraction
+
+List files matching patterns and extract content sections:
+
+**List files:**
+```html
+<div class="jp-dashboard-grid">
+    {{#each file.list "admin/*.shtml" sortBy="extract-order"}}
+        {{file.extract this}}
+    {{/each}}
+</div>
+```
+
+**Extract with markers:**
+In each admin page (`admin/users.shtml`):
+```html
+<!-- extract:start order=10 -->
+<a href="/admin/users.shtml" class="jp-card-dashboard jp-icon-btn">
+    <div class="jp-icon-container">
+        <img src="/assets/admin/icons/users.svg" class="jp-icon" alt="">
+    </div>
+    <h3 class="jp-card-title">User Management</h3>
+    <p class="jp-card-description">Manage users and permissions</p>
+</a>
+<!-- extract:end -->
+```
+
+**Extract with regex:**
+```html
+{{#each file.list "docs/*.md" pattern="/<!-- card -->(.*?)<!-- \/card -->/s"}}
+    {{file.extract this}}
+{{/each}}
+```
+
+**Supported marker formats:**
+- `<!-- extract:start order=N -->...<!-- extract:end -->` (HTML)
+- `/* extract:start order=N */.../* extract:end */` (CSS/JS block)
+- `// extract:start order=N ... // extract:end` (JS line)
+- `# extract:start order=N ... # extract:end` (Python line)
+
 ### Performance Caching
 
 File operations leverage caching for performance:
 
 - **Template Includes**: `{{file.include}}` results are cached
 - **File Timestamps**: `{{file.timestamp}}` results are cached
+- **File Listing**: `{{file.list}}` results are cached
+- **File Extraction**: Uses existing include cache for file content
 - **Pre-loading**: Common includes are asynchronously pre-loaded at startup
 - **Configurable**: Caching behavior controlled via `appConfig.controller.view.cacheIncludes.enabled`
 

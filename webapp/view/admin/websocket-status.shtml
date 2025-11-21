@@ -4,7 +4,7 @@
  * @tagline         Real-time WebSocket server monitoring and status
  * @description     Admin-only page showing live WebSocket namespace status
  * @file            webapp/view/admin/websocket-status.shtml
- * @version         1.2.0
+ * @version         1.2.1
  * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -148,6 +148,19 @@
     </style>
 </head>
 <body>
+    <div style="display: none;">
+        <!-- This card is automatically included in the admin dashboard at admin/index.shtml -->
+        <!-- extract:start order=40 -->
+        <a href="/admin/websocket-status.shtml" class="jp-card-dashboard jp-icon-btn">
+            <div class="jp-icon-container">
+                <img src="/assets/admin/icons/websocket.svg" class="jp-icon" alt="">
+            </div>
+            <h3 class="jp-card-title">{{i18n.view.admin.index.websocketStatus}}</h3>
+            <p class="jp-card-description">{{i18n.view.admin.index.websocketStatusDesc}}</p>
+        </a>
+        <!-- extract:end -->
+    </div>
+
     <div class="jp-main">
         <div class="jp-container-1200">
           {{#if user.isAdmin}}

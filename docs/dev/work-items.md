@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.2.0
+# jPulse Framework / Docs / Dev / Work Items v1.2.1
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1836,22 +1836,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - updated all docs and code references from `install` to `setup`
   - fixed legacy content in publishing.md (removed "Once repository is public" note)
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-093, v1.2.0: users: ability for admins to manage users
-- status: 🚧 IN_PROGRESS
+- status: DONE ✅
 - type: Feature
 - objective: ability for admins to manage users
 - fields to manage by admin and root roles only:
@@ -1901,6 +1887,55 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-094, v1.2.1: handlebars: list files, extract from files
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: generalize file operations in Handlebars to enable automated content generation (e.g., auto-populate card lists in index pages)
+- working doc: docs/dev/working/W-094-handlebars-file-list-and-extract
+- features:
+  - `file.list` helper:
+    - glob pattern matching (admin/*.shtml, multi-level patterns)
+    - site override support via PathResolver.listFiles()
+    - security (path traversal protection)
+  - `file.extract` helper:
+    - three extraction methods (HTML/block/line comment markers with order=N, regex patterns /pattern/flags
+    - CSS selectors .class/#id with data-extract-order)
+    - pattern parameter passing from file.list loops
+  - sorting: sortBy="extract-order" and sortBy="filename" in #each blocks
+  - PathResolver.listFiles(): centralized directory listing with site override logic (~50 lines)
+  - HandlebarController: ~500 lines (_handleFileList, _handleFileExtract, extraction methods)
+  - admin dashboard: automated card population using new helpers (webapp/view/admin/index.shtml)
+  - extraction markers: added to 5 admin pages for testing (config, users, system-status, websocket-status, logs)
+  - documentation: docs/handlebars.md (comprehensive syntax and examples), docs/template-reference.md (usage guide)
+  - testing: 4 security tests (path traversal protection), manual verification on admin dashboard
+  - technical debt: documented ViewController._buildViewRegistry() refactoring opportunity in W-014-W-045 architecture doc
+- deliverables:
+  - webapp/controller/handlebar.js -- file listing and extraction helpers
+  - webapp/utils/path-resolver.js  -- listFiles method
+  - webapp/view/admin/*.shtml -- extraction markers for testing
+  - webapp/view/admin/index.shtml -- automated dashboard implementation
+  - webapp/tests/unit/controller/file-list-extract.test.js -- security tests
+  - docs/handlebars.md -- helper documentation
+  - docs/template-reference.md -- usage examples
+  - docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md -- technical debt notes
+  - docs/dev/working/W-094-handlebars-file-list-and-extract.md -- deliverables section
+  - docs/CHANGELOG.md -- v1.2.1 entry
+
+
+
+
+
+
+
+
+
+
 pending:
 
 
@@ -1917,7 +1952,6 @@ old pending:
 
 
 ### Potential next items:
-- W-094: handlebars: list files, extract from files
 - W-045: architecture: create plugin infrastructure
 - W-068: view: create responsive sidebar
 - W-0: view: headings with anchor links for copy & paste in browser URL bar
@@ -1934,12 +1968,12 @@ next work item: W-0...
 - review task, ask questions if unclear
 - suggest change of spec if any, goal is a good UX, good usability, onboarding, and learning experience for site admins and developers; use the don't make me think paradigm
 - plan how to implement (wait for my go ahead)
-- current timestamp: 2025-10-04 17:55
+- current timestamp: 2025-11-20 20:49
 
 release prep:
 - run tests, and fix issues
-- assume release: W-093, v1.2.0
-- update deliverables in W-093 to document work done (don't make any other changes to this file)
+- assume release: W-094, v1.2.1
+- update deliverables in W-094 work-items to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -1956,12 +1990,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.1.8
+node bin/bump-version.js 1.2.1
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.1.8
+git tag v1.2.1
 git push origin main --tags
 
 === on failed package build on github ===
@@ -1994,18 +2028,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
-
-### W-094: handlebars: list files, extract from files
-- status: 🕑 PENDING
-- type: Feature
-- objective: generalize file operations in Handlebars to enable automated content generation (e.g., auto-populate card lists in index pages)
-- working doc: docs/dev/working/W-094-handlebars-file-list-and-extract
-- features:
-  - `file.list(pattern)` - list files matching glob pattern
-  - extract:
-    - option 1: `file.extract(path, extract="pattern")` - extract section from file using regex or CSS selector
-    - option 2: enhanced `file.include` with extract parameter
-  - opt-in via HTML comment markers with ordering support
 
 ### W-080: controller: change search to cursor based paging API with limit & cursor
 - status: 🕑 PENDING

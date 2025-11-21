@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Handlebars Templating v1.2.0
+# jPulse Framework / Docs / Handlebars Templating v1.2.1
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -235,6 +235,81 @@ Check if a file exists:
     {{file.include "default-template.tmpl"}}
 {{/if}}
 ```
+
+### File Listing
+List files matching a glob pattern:
+```handlebars
+{{#each file.list "admin/*.shtml"}}
+    <p>{{this}}</p>
+{{/each}}
+```
+
+**With sorting by extract order:**
+```handlebars
+{{#each file.list "admin/*.shtml" sortBy="extract-order"}}
+    {{file.extract this}}
+{{/each}}
+```
+
+**With pattern parameter (for file.extract):**
+```handlebars
+{{#each file.list "docs/*.md" pattern="/<!-- card -->(.*?)<!-- \/card -->/s"}}
+    {{file.extract this}}
+{{/each}}
+```
+
+**With pattern and sorting:**
+```handlebars
+{{#each file.list "admin/*.shtml" pattern=".local-extract" sortBy="extract-order"}}
+    {{file.extract this}}
+{{/each}}
+```
+
+> **Note:** When using `sortBy="extract-order"`, the `pattern` parameter must be specified in the `file.list` call (not in individual `file.extract` calls). This is because sorting happens before the loop iterates, so the pattern must be known at sorting time.
+
+The `file.list` helper supports:
+- Glob patterns: `"admin/*.shtml"`, `"docs/*.md"`, `"projects/*/*.shtml"` (supports multiple wildcards in path)
+- **Note:** Recursive patterns (`**`) are not supported. Use single-level wildcards (`*`) only.
+- **Multi-level patterns:** Patterns like `projects/*/*.shtml` work by recursively searching subdirectories
+- Site overrides: Automatically searches `site/webapp/view/` first, then `webapp/view/`
+- Sorting: `sortBy="extract-order"` or `sortBy="filename"`
+- Pattern passing: `pattern="..."` parameter passed to `file.extract` in the loop
+
+### File Extraction
+Extract content from files using comment markers or regex patterns:
+
+**Using comment markers (default):**
+```handlebars
+{{file.extract "admin/users.shtml"}}
+```
+
+In the source file (`admin/users.shtml`):
+```html
+<!-- extract:start order=10 -->
+<a href="/admin/users.shtml" class="jp-card-dashboard">
+    <h3>User Management</h3>
+    <p>Manage users and permissions</p>
+</a>
+<!-- extract:end -->
+```
+
+**Using regex pattern:**
+```handlebars
+{{file.extract "admin/users.shtml" pattern="/<div class=\"card\">(.*?)<\/div>/s"}}
+```
+
+**Supported marker formats:**
+- HTML comments: `<!-- extract:start order=N -->...<!-- extract:end -->`
+- Block comments: `/* extract:start order=N */.../* extract:end */`
+- Line comments (JS): `// extract:start order=N ... // extract:end`
+- Line comments (Python): `# extract:start order=N ... # extract:end`
+
+**Features:**
+- Order extraction: `order=N` attribute for sorting (default: 99999)
+- Multiple formats: Supports HTML, CSS/JS block, and line comments
+- Regex support: Use `/pattern/flags` format with mandatory capture group `(...)`
+- Site overrides: Automatically uses site overrides when available
+- Security: Path traversal protection, errors logged server-side only
 
 ### Error Handling
 

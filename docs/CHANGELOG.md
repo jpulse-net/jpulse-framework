@@ -1,6 +1,76 @@
-# jPulse Framework / Docs / Version History v1.2.0
+# jPulse Framework / Docs / Version History v1.2.1
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.2.1, W-094, 2025-11-21
+
+**Commit:** `W-094, v1.2.1: handlebars: list files, extract from files`
+
+**FILE LISTING & EXTRACTION HELPERS**: Generalized Handlebars helpers for automated content generation, enabling dynamic file-based content assembly such as auto-populated dashboard cards, navigation menus, galleries, and documentation indexes.
+
+**Objective**: Enable automated content generation from files using flexible, opt-in Handlebars helpers that support glob patterns, content extraction, and sorting.
+
+**Major Features**:
+- **File Listing Helper** (`file.list`): Discover files using glob patterns
+  - Syntax: `{{#each file.list "admin/*.shtml"}}...{{/each}}`
+  - Supports multi-level patterns: `projects/*/*.shtml`
+  - Site override support via `PathResolver.listFiles()`
+  - Security: Path traversal protection (rejects `..` and absolute paths)
+- **Content Extraction Helper** (`file.extract`): Extract content using three methods
+  - Comment markers: `<!-- extract:start order=N -->...<!-- extract:end -->`
+  - Regex patterns: `/pattern/flags` with capture groups
+  - CSS selectors: `.class-name` and `#id-string` with `data-extract-order` attribute
+  - Supports HTML, block (`/* */`), and line (`//`, `#`) comment styles
+- **Sorting Support**: Order files by extracted metadata or filename
+  - `sortBy="extract-order"`: Sort by order attribute (default: 99999)
+  - `sortBy="filename"`: Alphabetical sorting
+- **Pattern Parameter Passing**: Global pattern in `file.list` passed to `file.extract` in loops
+  - Syntax: `{{#each file.list "docs/*.md" pattern="/regex/"}}{{file.extract this}}{{/each}}`
+- **Error Handling**: Server-side logging only (graceful template degradation)
+
+**Implementation**:
+- **HandlebarController** (`webapp/controller/handlebar.js`): ~500 lines
+  - `_handleFileList()`: Glob pattern matching with site override support
+  - `_handleFileExtract()`: Multi-method content extraction
+  - `_extractOrderFromMarkers()`: Comment marker parsing
+  - `_extractFromRegex()`: Regex-based extraction with validation
+  - `_extractFromCSSSelector()`: CSS selector-based extraction using jsdom
+- **PathResolver Enhancement** (`webapp/utils/path-resolver.js`): ~50 lines
+  - `listFiles()`: Centralized directory listing with site override logic
+  - Foundation for W-045 (plugin infrastructure)
+
+**Use Cases**:
+- Auto-populate admin dashboard cards (`/admin/index.shtml`)
+- Generate navigation menus from page metadata
+- Create gallery pages from image directories
+- Build documentation indexes from markdown files
+- Generate sitemaps from view files
+
+**Testing**:
+- Unit tests: 4 security tests (path traversal protection)
+- Manual testing: Verified on admin dashboard with markers and CSS selectors
+- Production ready
+
+**Technical Debt Identified**:
+- `ViewController._buildViewRegistry()`: Hand-crafted site override logic (documented for future refactoring)
+
+**Documentation**:
+- `docs/handlebars.md`: Comprehensive helper documentation
+- `docs/template-reference.md`: Updated file operations section
+- `docs/dev/working/W-094-handlebars-file-list-and-extract.md`: Complete implementation details
+
+**Files Modified**:
+- `webapp/controller/handlebar.js`: Added file listing and extraction helpers
+- `webapp/utils/path-resolver.js`: Added `listFiles()` method
+- `webapp/view/admin/*.shtml`: Added extraction markers for testing
+- `webapp/view/admin/index.shtml`: Implemented automated dashboard
+- `webapp/tests/unit/controller/file-list-extract.test.js`: Security tests
+- `docs/handlebars.md`: Helper documentation
+- `docs/template-reference.md`: Usage examples
+- `docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md`: Technical debt notes
+
+**Release Date**: 2025-11-21
 
 ________________________________________________
 ## v1.2.0, W-093, 2025-11-21

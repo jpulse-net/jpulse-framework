@@ -4,7 +4,7 @@
  * @tagline         Server-Side Broadcasting Pattern Demo
  * @description     Full MVC pattern with database persistence and proper validation
  * @file            site/webapp/view/hello-app-cluster/collaborative-todo.shtml
- * @version         1.2.0
+ * @version         1.2.1
  * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

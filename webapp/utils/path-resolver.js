@@ -3,7 +3,7 @@
  * @tagline         Site Override Path Resolution Utility
  * @description     Provides path resolution for site overrides (W-014)
  * @file            webapp/utils/path-resolver.js
- * @version         1.2.0
+ * @version         1.2.1
  * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -13,6 +13,7 @@
  */
 
 import fs from 'fs';
+import { statSync } from 'fs';
 import path from 'path';
 
 /**
@@ -79,6 +80,63 @@ class PathResolver {
      */
     static resolveAsset(assetPath) {
         return this.resolveModule(`static/${assetPath}`);
+    }
+
+    /**
+     * List files matching a glob pattern with site override support
+     * Searches site override directory first, then framework directory
+     * @param {string} modulePath - Relative path from webapp/ with glob pattern (e.g., 'view/admin/*.shtml')
+     * @param {Function} matchFunction - Function to match files: (filePath, pattern) => boolean
+     * @param {Function} readDirFunction - Function to recursively read directory: (dirPath, basePath, pattern) => string[]
+     * @returns {string[]} - Array of relative file paths (site overrides take precedence, duplicates removed)
+     */
+    static listFiles(modulePath, matchFunction, readDirFunction) {
+        const fileSet = new Set();
+        const appDir = global.appConfig.system.appDir;
+        const siteDir = global.appConfig.system.siteDir;
+
+        // Extract base directory and pattern from modulePath
+        // e.g., 'view/admin/*.shtml' -> baseDir: 'view', pattern: 'admin/*.shtml'
+        const pathParts = modulePath.split('/');
+        const baseDir = pathParts[0]; // 'view'
+        const pattern = pathParts.slice(1).join('/'); // 'admin/*.shtml'
+
+        // Search in site override directory first (if exists)
+        if (siteDir) {
+            const siteBaseDir = path.join(siteDir, baseDir);
+            try {
+                if (fs.existsSync(siteBaseDir) && fs.statSync(siteBaseDir).isDirectory()) {
+                    const siteFiles = readDirFunction(siteBaseDir, siteBaseDir, pattern);
+                    siteFiles.forEach(file => {
+                        const relativePath = file.replace(/\\/g, '/');
+                        if (!relativePath.includes('../') && !path.isAbsolute(relativePath) && relativePath) {
+                            fileSet.add(relativePath);
+                        }
+                    });
+                }
+            } catch (siteError) {
+                // Site directory might not exist, continue
+            }
+        }
+
+        // Search in framework directory
+        const frameworkBaseDir = path.join(appDir, baseDir);
+        try {
+            if (fs.existsSync(frameworkBaseDir) && fs.statSync(frameworkBaseDir).isDirectory()) {
+                const frameworkFiles = readDirFunction(frameworkBaseDir, frameworkBaseDir, pattern);
+                frameworkFiles.forEach(file => {
+                    const relativePath = file.replace(/\\/g, '/');
+                    // Only add if not already in set (site overrides take precedence) and is relative
+                    if (!relativePath.includes('../') && !path.isAbsolute(relativePath) && relativePath && !fileSet.has(relativePath)) {
+                        fileSet.add(relativePath);
+                    }
+                });
+            }
+        } catch (frameworkError) {
+            // Framework directory might not exist
+        }
+
+        return Array.from(fileSet).sort();
     }
 
     /**

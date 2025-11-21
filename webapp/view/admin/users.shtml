@@ -4,13 +4,13 @@
  * @tagline         Admin user management interface
  * @description     User management dashboard for site administrators
  * @file            webapp/view/admin/users.shtml
- * @version         1.1.8
- * @release         2025-11-18
+ * @version         1.2.0
+ * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
 -->
 <html lang="en">
 <head>
@@ -339,8 +339,9 @@
 
             // Actions
             const actionsCell = document.createElement('td');
+            const username = user.username || '';
             actionsCell.innerHTML = `
-                <button class="local-edit-btn" onclick="viewUser('${user.id}')">{{i18n.view.admin.users.viewProfile}}</button>
+                <button class="local-edit-btn" onclick="viewUser('${jPulse.string.escapeHtml(username)}')">{{i18n.view.admin.users.viewProfile}}</button>
             `;
             tr.appendChild(actionsCell);
 
@@ -408,27 +409,27 @@
             }
         }
 
-        function viewUser(userId) {
-            window.location.href = `/user/profile.shtml?user=${userId}`;
+        function viewUser(username) {
+            window.location.href = `/admin/user-profile.shtml?username=${encodeURIComponent(username)}`;
         }
 
         // Restore original working functions
         async function loadRoles() {
             try {
-                const response = await jPulse.api.get('/api/1/auth/roles');
-                if (response.success) {
+                const response = await jPulse.api.get('/api/1/user/enums?fields=roles');
+                if (response.success && response.data && response.data.roles) {
                     const roleSelect = document.getElementById('searchRole');
                     const currentValue = roleSelect.value; // Preserve current selection
 
                     // Clear existing options except "All Roles"
                     roleSelect.innerHTML = '<option value="">{{i18n.view.admin.users.allRoles}}</option>';
 
-                    const roles = response.data;
+                    const roles = response.data.roles;
                     if (Array.isArray(roles)) {
                         roles.forEach(role => {
                             const option = document.createElement('option');
                             option.value = role;
-                            option.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+                            option.textContent = role;
                             roleSelect.appendChild(option);
                         });
                     }
@@ -445,21 +446,35 @@
         }
 
         async function loadStatuses() {
-            // Get statuses from UserModel schema enum (original approach)
-            const statuses = ['active', 'inactive', 'pending', 'suspended'];
+            try {
+                const response = await jPulse.api.get('/api/1/user/enums?fields=status');
+                if (response.success && response.data && response.data.status) {
             const statusSelect = document.getElementById('searchStatus');
             const currentValue = statusSelect.value;
 
             statusSelect.innerHTML = '<option value="">{{i18n.view.admin.users.allStatuses}}</option>';
 
+                    const statuses = response.data.status;
+                    if (Array.isArray(statuses)) {
             statuses.forEach(status => {
                 const option = document.createElement('option');
                 option.value = status;
-                option.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                            option.textContent = status;
                 statusSelect.appendChild(option);
             });
+                    }
 
+                    // Restore selection if it was set
+                    if (currentValue) {
             statusSelect.value = currentValue;
+                    }
+                } else {
+                    jPulse.UI.toast.error('Failed to load status options: ' + (response.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Failed to load statuses:', error);
+                jPulse.UI.toast.error('Failed to load status options. Please refresh the page.');
+            }
         }
 
         function showLoading(show) {

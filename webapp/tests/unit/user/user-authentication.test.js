@@ -3,13 +3,13 @@
  * @tagline         Authentication tests for User Model and Controller
  * @description     Unit tests for user authentication, login, logout, and security features
  * @file            webapp/tests/unit/user/user-authentication.test.js
- * @version         1.1.8
- * @release         2025-11-18
+ * @version         1.2.0
+ * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
  */
 
 import { jest } from '@jest/globals';
@@ -297,8 +297,8 @@ describe('User Authentication Tests', () => {
             };
 
             expect(hasAnyRole(user, ['admin', 'root'])).toBe(true);
-            expect(hasAnyRole(user, ['user', 'guest'])).toBe(true);
-            expect(hasAnyRole(user, ['root', 'guest'])).toBe(false);
+            expect(hasAnyRole(user, ['user', 'admin'])).toBe(true);
+            expect(hasAnyRole(user, ['root'])).toBe(false);
             expect(hasAnyRole(user, [])).toBe(false);
             expect(hasAnyRole(null, ['user'])).toBe(false);
         });

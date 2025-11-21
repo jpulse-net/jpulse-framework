@@ -3,13 +3,13 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the database interface for the jPulse Framework WebApp
  * @file            webapp/database.js
- * @version         1.1.8
- * @release         2025-11-18
+ * @version         1.2.0
+ * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
  */
 
 import { MongoClient } from 'mongodb';

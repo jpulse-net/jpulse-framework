@@ -391,6 +391,185 @@ plugins/hello-world-plugin/
 - ✅ Hot-swappable components
 - ✅ Community contribution framework
 
+## Schema Extension Architecture (W-045)
+
+### Design Principles
+
+**Schema Storage**: Extended schemas are stored in the Model (single source of truth)
+- Models own data structure definitions and validation rules
+- Controllers read from Models and expose via API (MVC separation)
+- Views never access Models directly
+
+**Extension Mechanism**: Plugins extend schemas at initialization time
+- Plugins call `Model.extendSchema()` during bootstrap
+- Schema extensions are applied before models are finalized
+- Runtime schema is computed once and cached in memory
+
+### Schema Extension API
+
+#### Model Schema Structure:
+```javascript
+class UserModel {
+    // Base schema (framework definition)
+    static baseSchema = {
+        roles: { type: 'array', enum: ['user', 'admin', 'root'] },
+        status: { type: 'string', enum: ['pending', 'active', 'inactive', 'suspended'] },
+        // ... other fields
+    };
+
+    // Extended schema (base + plugin extensions) - computed at init
+    static schema = null;
+
+    // Schema extensions registry (applied in order)
+    static schemaExtensions = [];
+
+    // Initialize schema with plugin extensions
+    static initializeSchema() {
+        let schema = { ...this.baseSchema };
+
+        // Apply plugin extensions in order
+        for (const extension of this.schemaExtensions) {
+            schema = this.applySchemaExtension(schema, extension);
+        }
+
+        this.schema = schema;
+    }
+
+    // Plugin API to extend schema
+    static extendSchema(extension) {
+        this.schemaExtensions.push(extension);
+        // Recompute schema
+        this.initializeSchema();
+    }
+
+    // Deep merge extension into schema
+    static applySchemaExtension(schema, extension) {
+        // Deep merge extension into schema
+        return deepMerge(schema, extension);
+    }
+
+    // Get current schema (extended)
+    static getSchema() {
+        return this.schema || this.baseSchema;
+    }
+
+    // Get enum for specific field (supports dot notation)
+    static getEnum(fieldPath) {
+        const field = CommonUtils.getFieldSchema(this.getSchema(), fieldPath);
+        return field?.enum || null;
+    }
+
+    // Get all enum fields from schema
+    static getEnums() {
+        return extractEnums(this.getSchema());
+    }
+}
+```
+
+#### Plugin Extension Examples:
+
+**Adding new fields:**
+```javascript
+// Plugin extends user schema with address fields
+UserModel.extendSchema({
+    profile: {
+        city: { type: 'string', default: '', required: false },
+        address1: { type: 'string', default: '', required: false },
+        address2: { type: 'string', default: '', required: false },
+        zip: { type: 'string', default: '', required: false }
+    }
+});
+```
+
+**Modifying enum values:**
+```javascript
+// Plugin adds 'deleted' to status enum
+UserModel.extendSchema({
+    status: {
+        enum: ['pending', 'active', 'inactive', 'suspended', 'terminated', 'deleted']
+    }
+});
+```
+
+**Adding nested enum fields:**
+```javascript
+// Plugin adds new enum field
+UserModel.extendSchema({
+    preferences: {
+        timezone: {
+            type: 'string',
+            default: 'UTC',
+            enum: ['UTC', 'America/New_York', 'Europe/London', 'Asia/Tokyo']
+        }
+    }
+});
+```
+
+### Controller API Endpoint
+
+**Endpoint**: `GET /api/1/model/user/enums?fields=status,roles` (optional query param)
+
+**Implementation**:
+```javascript
+// UserController
+static async getEnums(req, res) {
+    // Get schema from Model (not exposing Model directly)
+    const enums = UserModel.getEnums();
+
+    // Filter by query param if provided
+    const fields = req.query.fields?.split(',').map(f => f.trim());
+    const filtered = fields ? pick(enums, fields) : enums;
+
+    res.json({ success: true, data: filtered });
+}
+```
+
+**Response Format**:
+```json
+{
+  "success": true,
+  "data": {
+    "roles": ["user", "admin", "root"],
+    "status": ["pending", "active", "inactive", "suspended", "terminated", "deleted"],
+    "theme": ["light", "dark"]
+  }
+}
+```
+
+### Initialization Order (Bootstrap)
+
+**Sequence**:
+1. Load framework models (base schemas defined)
+2. Load plugins (W-045)
+3. Plugins extend schemas via `Model.extendSchema()` during plugin initialization
+4. Models finalize schemas: `Model.initializeSchema()`
+5. Controllers can now use extended schemas via `Model.getEnums()`
+
+**Bootstrap Integration**:
+```javascript
+// In bootstrap.js
+// Step 1: Load models
+import UserModel from './model/user.js';
+
+// Step 2: Load plugins (W-045)
+await PluginManager.initialize();
+// Plugins extend schemas during initialization
+
+// Step 3: Finalize schemas
+UserModel.initializeSchema();
+// Other models finalize schemas...
+
+// Step 4: Controllers can now use extended schemas
+```
+
+### Benefits
+
+- **Single Source of Truth**: Schema lives in Model, Controller exposes it
+- **MVC Separation**: Models own schema, Controllers expose via API, Views consume API
+- **Future-Proof**: Plugins can add fields and modify enums without code changes
+- **Automatic Discovery**: New enum fields automatically appear in API responses
+- **Extensible**: Deep merge allows plugins to extend nested structures
+
 ## Deferred Decisions:
 - **Configuration Merging**: Deep merge strategy details to be decided during W-014 implementation
 - **Plugin Security**: Sandboxing and permission system deferred to W-045b

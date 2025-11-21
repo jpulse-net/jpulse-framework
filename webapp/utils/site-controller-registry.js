@@ -3,8 +3,8 @@
  * @tagline         Site Controller Registry and Auto-Discovery
  * @description     Discovers and registers site controller APIs at startup (W-014)
  * @file            webapp/utils/site-controller-registry.js
- * @version         1.1.8
- * @release         2025-11-18
+ * @version         1.2.0
+ * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -228,7 +228,19 @@ class SiteControllerRegistry {
 
             const basePath = `/api/1/${name}`;
 
-            for (const apiMethod of controller.apiMethods) {
+            // Sort API methods: specific routes (no :id) before parameterized routes
+            // This ensures /search matches before /:id matches "search"
+            const sortedMethods = [...controller.apiMethods].sort((a, b) => {
+                const aHasParam = a.pathSuffix.includes(':');
+                const bHasParam = b.pathSuffix.includes(':');
+                // If one has params and the other doesn't, put the one without params first
+                if (aHasParam && !bHasParam) return 1;
+                if (!aHasParam && bHasParam) return -1;
+                // If both have params or both don't, maintain original order
+                return 0;
+            });
+
+            for (const apiMethod of sortedMethods) {
                 const fullPath = basePath + apiMethod.pathSuffix;
                 const httpMethod = apiMethod.method.toLowerCase();
 

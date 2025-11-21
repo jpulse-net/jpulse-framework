@@ -1,6 +1,128 @@
-# jPulse Framework / Docs / Version History v1.1.8
+# jPulse Framework / Docs / Version History v1.2.0
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.2.0, W-093, 2025-11-21
+
+**Commit:** `W-093, v1.2.0: users: ability for admins to manage users`
+
+**ADMIN USER MANAGEMENT & API CONSOLIDATION**: Complete admin user management system with flexible user identification, comprehensive validation, schema extensibility, and API consolidation. Breaking changes: removed `/api/1/user/profile` endpoints, replaced with unified `/api/1/user` and `/api/1/user/:id` endpoints.
+
+**Objective**: Enable administrators to manage all users with proper validation, flexible user identification, and extensible schema architecture for future plugin support.
+
+**Major Features**:
+- **Admin User Profile Management**: Dedicated admin user profile page (`/admin/user-profile.shtml`) with view/edit toggle
+  - User ID (_id) and UUID fields (read-only)
+  - Horizontal roles grid layout
+  - Dynamic status, roles, and theme dropdowns populated from schema enums
+  - Full profile field editing (firstName, lastName, nickName, language, theme)
+  - Administrative field management (email, roles, status)
+- **Flexible User Identification**: Unified API endpoints support multiple identification methods
+  - ObjectId parameter: `/api/1/user/:id`
+  - Username query: `/api/1/user?username=jsmith`
+  - Session fallback: `/api/1/user` (current user)
+- **Comprehensive Validation**: Prevents dangerous operations
+  - Cannot remove last admin/root role
+  - Cannot remove own admin role
+  - Cannot suspend last admin
+  - Email uniqueness validation
+- **Schema Extension Architecture**: Foundation for plugin system (W-045)
+  - Runtime schema extension via `UserModel.extendSchema()`
+  - Dynamic enum retrieval via `/api/1/user/enums`
+  - Deep merge of schema extensions
+  - Plugin initialization order support
+- **API Consolidation**: Simplified and unified API surface
+  - Removed `/api/1/user/profile` endpoints (breaking change)
+  - Unified `/api/1/user` and `/api/1/user/:id` endpoints
+  - New `/api/1/user/enums` endpoint for dynamic enum retrieval
+  - Removed obsolete `/api/1/auth/roles` and `/api/1/auth/themes` endpoints
+
+**Configuration Enhancements**:
+- **Admin Roles Configuration**: Centralized admin role definition in `appConfig.user.adminRoles`
+  - Default: `['admin', 'root']`
+  - Configurable via `webapp/app.conf` or `site/webapp/app.conf`
+  - Used throughout codebase (controllers, routes, models)
+  - Backward compatible with fallback to default
+
+**Breaking Changes**:
+- **Removed Endpoints**:
+  - `GET /api/1/user/profile` → Use `GET /api/1/user` or `GET /api/1/user/:id`
+  - `PUT /api/1/user/profile` → Use `PUT /api/1/user` or `PUT /api/1/user/:id`
+  - `GET /api/1/auth/roles` → Use `GET /api/1/user/enums?fields=roles`
+  - `GET /api/1/auth/themes` → Use `GET /api/1/user/enums?fields=preferences.theme`
+- **User Model Changes**:
+  - Removed 'guest' from roles enum (not a real role, just a fallback label)
+- **Translation Key Changes**:
+  - Simplified key names (removed "Successfully" suffix)
+  - `accountCreatedSuccessfully` → `accountCreated`
+  - `changedSuccessfully` → `changed`
+  - `retrievedSuccessfully` → `retrieved`
+  - `updatedSuccessfully` → `updated`
+
+**Technical Improvements**:
+- **User Model**: Added `countAdmins()` helper, schema extension infrastructure
+  - `baseSchema`: Original schema definition
+  - `schema`: Extended schema (merged at runtime)
+  - `extendSchema(extension)`: Add schema extensions
+  - `getEnums()`: Retrieve all enum values from current schema
+  - `getEnum(fieldPath)`: Get enum for specific field path
+- **User Controller**: Renamed methods for clarity
+  - `getById()` → `get()` (with flexible identification)
+  - `updateById()` → `update()` (with flexible identification)
+  - Added `getEnums()` for schema enum retrieval
+- **Route Ordering**: Fixed route conflict resolution
+  - Specific routes (`/api/1/user/search`, `/api/1/user/enums`) before parameterized routes
+  - SiteControllerRegistry route sorting for auto-discovered controllers
+- **View Updates**: Dynamic enum population
+  - Admin user profile page uses `/api/1/user/enums` for dropdowns
+  - Admin users page uses enums API for filters
+  - User profile page uses enums API for theme dropdown
+- **Bootstrap Integration**: Schema initialization at startup
+  - Step 14: `UserModel.initializeSchema()` ensures extended schema is ready
+
+**Files Modified**:
+- webapp/model/user.js (countAdmins, schema extension, getEnums, removed 'guest' from roles)
+- webapp/controller/user.js (get, update, getEnums, validation, appConfig.user.adminRoles)
+- webapp/routes.js (new routes, removed old routes, appConfig.user.adminRoles)
+- webapp/view/admin/user-profile.shtml (new admin user profile page)
+- webapp/view/admin/users.shtml (updated link, dynamic filters)
+- webapp/view/user/profile.shtml (updated endpoint, dynamic theme)
+- webapp/view/user/index.shtml (updated endpoint)
+- webapp/translations/en.conf, de.conf (new keys, simplified names, removed obsolete)
+- webapp/utils/bootstrap.js (schema initialization)
+- webapp/controller/cache.js (appConfig.user.adminRoles)
+- webapp/controller/handlebar.js (appConfig.user.adminRoles)
+- webapp/controller/websocket.js (appConfig.user.adminRoles)
+- webapp/app.conf (user.adminRoles, fixed typo)
+- webapp/tests/unit/user/user-controller.test.js (new tests for getEnums, get, update validation)
+- docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md (schema extension architecture)
+- docs/api-reference.md (updated endpoints)
+- docs/dev/work-items.md (completed W-093)
+
+**Migration Guide**:
+1. **Update API Calls**: Replace `/api/1/user/profile` with `/api/1/user` or `/api/1/user/:id`
+2. **Update Enum Retrieval**: Replace `/api/1/auth/roles` and `/api/1/auth/themes` with `/api/1/user/enums?fields=roles,preferences.theme`
+3. **Update Translation Keys**: Rename keys with "Successfully" suffix to simplified names
+4. **Configure Admin Roles**: Optionally customize `appConfig.user.adminRoles` in `app.conf`
+
+**Benefits**:
+- Unified API surface with flexible user identification
+- Comprehensive validation prevents dangerous operations
+- Extensible schema architecture for future plugins
+- Centralized admin role configuration
+- Dynamic enum retrieval reduces hardcoded values
+- Better separation of concerns (admin vs regular user endpoints)
+
+**Developer Experience**:
+- Before: Separate endpoints for profile management, hardcoded admin roles
+- After: Unified endpoints with flexible identification, configurable admin roles
+- Before: Hardcoded enum values in views
+- After: Dynamic enum retrieval from schema
+- Before: No validation for last admin protection
+- After: Comprehensive validation with clear error messages
+- Before: Schema not extensible
+- After: Runtime schema extension ready for plugins
 
 ________________________________________________
 ## v1.1.8, W-092, 2025-11-18

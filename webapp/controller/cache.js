@@ -3,19 +3,22 @@
  * @tagline         Cache management API controller for the jPulse Framework
  * @description     Provides REST API endpoints for cache invalidation and statistics
  * @file            webapp/controller/cache.js
- * @version         1.1.8
- * @release         2025-11-18
+ * @version         1.2.0
+ * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
  */
 
 import LogController from './log.js';
 import CommonUtils from '../utils/common.js';
 import AuthController from './auth.js';
 import cacheManager from '../utils/cache-manager.js';
+
+// Get admin roles from config
+const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
 
 class CacheController {
 
@@ -34,7 +37,7 @@ class CacheController {
                 return CommonUtils.sendError(req, res, 401, message, 'NOT_AUTHENTICATED');
             }
 
-            if (!AuthController.isAuthorized(req, ['admin', 'root'])) {
+            if (!AuthController.isAuthorized(req, adminRoles)) {
                 const message = global.i18n.translate(req, 'controller.cache.notAuthorized');
                 return CommonUtils.sendError(req, res, 403, message, 'NOT_AUTHORIZED');
             }
@@ -86,7 +89,7 @@ class CacheController {
                 return CommonUtils.sendError(req, res, 401, message, 'NOT_AUTHENTICATED');
             }
 
-            if (!AuthController.isAuthorized(req, ['admin', 'root'])) {
+            if (!AuthController.isAuthorized(req, adminRoles)) {
                 const message = global.i18n.translate(req, 'controller.cache.notAuthorized');
                 return CommonUtils.sendError(req, res, 403, message, 'NOT_AUTHORIZED');
             }
@@ -132,7 +135,7 @@ class CacheController {
                 return CommonUtils.sendError(req, res, 401, message, 'NOT_AUTHENTICATED');
             }
 
-            if (!AuthController.isAuthorized(req, ['admin', 'root'])) {
+            if (!AuthController.isAuthorized(req, adminRoles)) {
                 const message = global.i18n.translate(req, 'controller.cache.notAuthorized');
                 return CommonUtils.sendError(req, res, 403, message, 'NOT_AUTHORIZED');
             }
@@ -170,7 +173,7 @@ class CacheController {
                 return CommonUtils.sendError(req, res, 401, message, 'NOT_AUTHENTICATED');
             }
 
-            if (!AuthController.isAuthorized(req, ['admin', 'root'])) {
+            if (!AuthController.isAuthorized(req, adminRoles)) {
                 const message = global.i18n.translate(req, 'controller.cache.notAuthorized');
                 return CommonUtils.sendError(req, res, 403, message, 'NOT_AUTHORIZED');
             }
@@ -208,7 +211,7 @@ class CacheController {
                 return CommonUtils.sendError(req, res, 401, message, 'NOT_AUTHENTICATED');
             }
 
-            if (!AuthController.isAuthorized(req, ['admin', 'root'])) {
+            if (!AuthController.isAuthorized(req, adminRoles)) {
                 const message = global.i18n.translate(req, 'controller.cache.notAuthorized');
                 return CommonUtils.sendError(req, res, 403, message, 'NOT_AUTHORIZED');
             }

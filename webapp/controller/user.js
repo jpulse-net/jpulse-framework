@@ -3,13 +3,13 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.1.8
- * @release         2025-11-18
+ * @version         1.2.0
+ * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
  */
 
 import UserModel from '../model/user.js';
@@ -86,7 +86,7 @@ class UserController {
             // Create user
             const newUser = await UserModel.create(userData);
 
-            const message = global.i18n.translate(req, 'controller.user.signup.accountCreatedSuccessfully');
+            const message = global.i18n.translate(req, 'controller.user.signup.accountCreated');
             res.status(201).json({
                 success: true,
                 data: {
@@ -123,130 +123,6 @@ class UserController {
             }
 
             const message = global.i18n.translate(req, 'controller.user.signup.internalError', { details: error.message });
-            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
-        }
-    }
-
-    /**
-     * Get current user profile
-     * GET /api/1/user/profile
-     * @param {object} req - Express request object
-     * @param {object} res - Express response object
-     */
-    static async get(req, res) {
-        const startTime = Date.now();
-        try {
-            LogController.logRequest(req, 'user.get', '');
-
-            // Authentication is handled by AuthController.requireAuthentication middleware
-
-            // Get fresh user data from database
-            const user = await UserModel.findById(req.session.user.id);
-
-            if (!user) {
-                LogController.logError(req, 'user.get', `error: user not found for session ID: ${req.session.user.id}`);
-                const message = global.i18n.translate(req, 'controller.user.profile.userNotFound');
-                return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
-            }
-
-            // Remove sensitive data
-            const { passwordHash, ...userProfile } = user;
-
-            const elapsed = Date.now() - startTime;
-            LogController.logInfo(req, 'user.get', `success: profile retrieved for user ${req.session.user.username} in ${elapsed}ms`);
-            const message = global.i18n.translate(req, 'controller.user.profile.retrievedSuccessfully');
-            res.json({
-                success: true,
-                data: userProfile,
-                message: message,
-                elapsed
-            });
-
-        } catch (error) {
-            LogController.logError(req, 'user.get', `error: ${error.message}`);
-            const message = global.i18n.translate(req, 'controller.user.profile.internalError', { details: error.message });
-            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
-        }
-    }
-
-    /**
-     * Update current user profile
-     * PUT /api/1/user/profile
-     * @param {object} req - Express request object
-     * @param {object} res - Express response object
-     */
-    static async update(req, res) {
-        const startTime = Date.now();
-        try {
-            LogController.logRequest(req, 'user.update', JSON.stringify(req.body));
-
-            // Authentication is handled by AuthController.requireAuthentication middleware
-
-            const updateData = { ...req.body };
-            updateData.updatedBy = req.session.user.username;
-
-            // Users can only update their own profile (non-admin fields)
-            const allowedFields = ['profile', 'preferences'];
-            const filteredData = {};
-
-            for (const field of allowedFields) {
-                if (updateData[field]) {
-                    filteredData[field] = updateData[field];
-                }
-            }
-
-            if (updateData.updatedBy) {
-                filteredData.updatedBy = updateData.updatedBy;
-            }
-
-            if (Object.keys(filteredData).length === 0) {
-                LogController.logError(req, 'user.update', 'error: no valid fields to update');
-                const message = global.i18n.translate(req, 'controller.user.profile.noValidFieldsToUpdate');
-                return global.CommonUtils.sendError(req, res, 400, message, 'NO_UPDATE_DATA');
-            }
-
-            // Get old user data for logging
-            const oldUser = await UserModel.findById(req.session.user.id);
-            if (!oldUser) {
-                LogController.logError(req, 'user.update', `error: user not found for session ID: ${req.session.user.id}`);
-                const message = global.i18n.translate(req, 'controller.user.profile.userNotFound');
-                return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
-            }
-
-            const updatedUser = await UserModel.updateById(req.session.user.id, filteredData);
-
-            if (!updatedUser) {
-                LogController.logError(req, 'user.update', `error: user not found for session ID: ${req.session.user.id}`);
-                const message = global.i18n.translate(req, 'controller.user.profile.userNotFound');
-                return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
-            }
-
-            // Log the update
-            await LogController.logChange(req, 'user', 'update', req.session.user.username, oldUser, updatedUser);
-
-            // Update session data using AuthController helper
-            AuthController.updateUserSession(req, updatedUser);
-
-            // Remove sensitive data
-            const { passwordHash, ...userProfile } = updatedUser;
-
-            const elapsed = Date.now() - startTime;
-            LogController.logInfo(req, 'user.update', `success: profile updated for user ${req.session.user.username} in ${elapsed}ms`);
-            const message = global.i18n.translate(req, 'controller.user.profile.updatedSuccessfully');
-            res.json({
-                success: true,
-                data: userProfile,
-                message: message,
-                elapsed
-            });
-
-        } catch (error) {
-            LogController.logError(req, 'user.update', `error: ${error.message}`);
-            if (error.message.includes('Validation failed')) {
-                const message = global.i18n.translate(req, 'controller.user.profile.validationFailed', { details: error.message });
-                return global.CommonUtils.sendError(req, res, 400, message, 'VALIDATION_ERROR', error.message);
-            }
-            const message = global.i18n.translate(req, 'controller.user.profile.updateInternalError', { details: error.message });
             return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
@@ -299,7 +175,7 @@ class UserController {
             const elapsed = Date.now() - startTime;
             LogController.logInfo(req, 'user.changePassword', `success: Password changed for user ${req.session.user.username} in ${elapsed}ms`);
 
-            const message = global.i18n.translate(req, 'controller.user.password.changedSuccessfully');
+            const message = global.i18n.translate(req, 'controller.user.password.changed');
             res.json({
                 success: true,
                 message: message,
@@ -345,6 +221,320 @@ class UserController {
         } catch (error) {
             LogController.logError(req, 'user.search', `error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.user.search.internalError', { details: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
+     * Get user by ID, username, or current session user
+     * GET /api/1/user/:id, GET /api/1/user?username=..., or GET /api/1/user (current user)
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async get(req, res) {
+        const startTime = Date.now();
+        try {
+            // Fallback logic: :id param → username query → session user
+            let user = null;
+            let userId = null;
+            let lookupMethod = '';
+
+            // Priority 1: Check for :id parameter (ObjectId)
+            if (req.params.id && req.params.id.trim() !== '') {
+                userId = req.params.id;
+                lookupMethod = 'id';
+                user = await UserModel.findById(userId);
+            }
+            // Priority 2: Check for username query parameter
+            else if (req.query.username && req.query.username.trim() !== '') {
+                const username = req.query.username.trim();
+                lookupMethod = 'username';
+                user = await UserModel.findByUsername(username);
+                if (user) {
+                    userId = user._id.toString();
+                }
+            }
+            // Priority 3: Fall back to session user
+            else {
+                userId = req.session.user.id;
+                lookupMethod = 'session';
+                user = await UserModel.findById(userId);
+            }
+
+            LogController.logRequest(req, 'user.get', `${lookupMethod}: ${userId || req.query.username || 'session'}`);
+
+            // Authentication is handled by AuthController.requireAuthentication middleware
+            // Authorization check is done in method
+
+            const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+            const isAdmin = AuthController.isAuthorized(req, adminRoles);
+
+            // Regular users can only get their own profile
+            if (!isAdmin && userId !== req.session.user.id) {
+                LogController.logError(req, 'user.get', `error: unauthorized access attempt for user ${userId}`);
+                const message = global.i18n.translate(req, 'controller.user.get.unauthorized');
+                return global.CommonUtils.sendError(req, res, 403, message, 'UNAUTHORIZED');
+            }
+
+            if (!user) {
+                const identifier = lookupMethod === 'username' ? req.query.username : userId;
+                LogController.logError(req, 'user.get', `error: user not found for ${lookupMethod}: ${identifier}`);
+                const message = global.i18n.translate(req, 'controller.user.get.userNotFound');
+                return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
+            }
+
+            // Remove sensitive data
+            const { passwordHash, ...userProfile } = user;
+
+            // For non-admin users, remove admin-only fields
+            if (!isAdmin) {
+                delete userProfile.uuid;
+                // Note: email, roles, status are kept for regular users to see their own data
+            }
+
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'user.get', `success: user ${userId} retrieved in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.user.get.retrieved');
+            res.json({
+                success: true,
+                data: userProfile,
+                message: message,
+                elapsed
+            });
+
+        } catch (error) {
+            LogController.logError(req, 'user.get', `error: ${error.message}`);
+            const message = global.i18n.translate(req, 'controller.user.get.internalError', { details: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
+     * Update user by ID, username, or current session user
+     * PUT /api/1/user/:id, PUT /api/1/user?username=..., or PUT /api/1/user (current user)
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async update(req, res) {
+        const startTime = Date.now();
+        try {
+            // Fallback logic: :id param → username query → session user
+            let currentUser = null;
+            let userId = null;
+            let lookupMethod = '';
+
+            // Priority 1: Check for :id parameter (ObjectId)
+            if (req.params.id && req.params.id.trim() !== '') {
+                userId = req.params.id;
+                lookupMethod = 'id';
+                currentUser = await UserModel.findById(userId);
+            }
+            // Priority 2: Check for username query parameter
+            else if (req.query.username && req.query.username.trim() !== '') {
+                const username = req.query.username.trim();
+                lookupMethod = 'username';
+                currentUser = await UserModel.findByUsername(username);
+                if (currentUser) {
+                    userId = currentUser._id.toString();
+                }
+            }
+            // Priority 3: Fall back to session user
+            else {
+                userId = req.session.user.id;
+                lookupMethod = 'session';
+                currentUser = await UserModel.findById(userId);
+            }
+
+            LogController.logRequest(req, 'user.update', `${lookupMethod}: ${userId || req.query.username || 'session'}, data: ${JSON.stringify(req.body)}`);
+
+            // Authentication is handled by AuthController.requireAuthentication middleware
+            // Authorization check is done in method
+
+            const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+            const isAdmin = AuthController.isAuthorized(req, adminRoles);
+            const isUpdatingSelf = userId === req.session.user.id;
+
+            // Regular users can only update their own profile (non-admin fields)
+            if (!isAdmin && !isUpdatingSelf) {
+                LogController.logError(req, 'user.update', `error: unauthorized update attempt for user ${userId}`);
+                const message = global.i18n.translate(req, 'controller.user.update.unauthorized');
+                return global.CommonUtils.sendError(req, res, 403, message, 'UNAUTHORIZED');
+            }
+
+            if (!currentUser) {
+                const identifier = lookupMethod === 'username' ? req.query.username : userId;
+                LogController.logError(req, 'user.update', `error: user not found for ${lookupMethod}: ${identifier}`);
+                const message = global.i18n.translate(req, 'controller.user.update.userNotFound');
+                return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
+            }
+
+            const updateData = { ...req.body };
+            updateData.updatedBy = req.session.user.username;
+
+            // Filter allowed fields based on user role
+            const filteredData = {};
+            const adminFields = ['email', 'roles', 'status'];
+            const regularFields = ['profile', 'preferences'];
+
+            if (isAdmin) {
+                // Admins can update all fields
+                if (updateData.profile) filteredData.profile = updateData.profile;
+                if (updateData.preferences) filteredData.preferences = updateData.preferences;
+                if (updateData.email !== undefined) filteredData.email = updateData.email;
+                if (updateData.roles !== undefined) filteredData.roles = updateData.roles;
+                if (updateData.status !== undefined) filteredData.status = updateData.status;
+            } else {
+                // Regular users can only update profile and preferences
+                if (updateData.profile) filteredData.profile = updateData.profile;
+                if (updateData.preferences) filteredData.preferences = updateData.preferences;
+            }
+
+            if (updateData.updatedBy) {
+                filteredData.updatedBy = updateData.updatedBy;
+            }
+
+            if (Object.keys(filteredData).length === 0) {
+                LogController.logError(req, 'user.updateById', 'error: no valid fields to update');
+                const message = global.i18n.translate(req, 'controller.user.update.noValidFieldsToUpdate');
+                return global.CommonUtils.sendError(req, res, 400, message, 'NO_UPDATE_DATA');
+            }
+
+            // Admin-only validations
+            if (isAdmin) {
+                // Check if email is being changed and validate uniqueness
+                if (filteredData.email && filteredData.email !== currentUser.email) {
+                    const existingUser = await UserModel.findByEmail(filteredData.email);
+                    if (existingUser && existingUser._id.toString() !== userId) {
+                        LogController.logError(req, 'user.update', `error: email already exists: ${filteredData.email}`);
+                        const message = global.i18n.translate(req, 'controller.user.update.emailExists');
+                        return global.CommonUtils.sendError(req, res, 409, message, 'EMAIL_EXISTS');
+                    }
+                }
+
+                // Check if roles are being changed
+                if (filteredData.roles !== undefined) {
+                    const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+                    const newRoles = Array.isArray(filteredData.roles) ? filteredData.roles : [filteredData.roles];
+                    const oldRoles = currentUser.roles || [];
+                    const hadAdminRole = adminRoles.some(role => oldRoles.includes(role));
+                    const hasAdminRole = adminRoles.some(role => newRoles.includes(role));
+
+                    // Prevent removing last admin/root
+                    if (hadAdminRole && !hasAdminRole) {
+                        const adminCount = await UserModel.countAdmins();
+                        if (adminCount <= 1) {
+                            LogController.logError(req, 'user.update', 'error: cannot remove last admin');
+                            const message = global.i18n.translate(req, 'controller.user.update.lastAdminError');
+                            return global.CommonUtils.sendError(req, res, 400, message, 'LAST_ADMIN_ERROR');
+                        }
+                    }
+
+                    // Prevent user from removing their own admin/root role
+                    if (isUpdatingSelf && hadAdminRole && !hasAdminRole) {
+                        LogController.logError(req, 'user.update', 'error: cannot remove own admin role');
+                        const message = global.i18n.translate(req, 'controller.user.update.selfRemovalError');
+                        return global.CommonUtils.sendError(req, res, 400, message, 'SELF_REMOVAL_ERROR');
+                    }
+                }
+
+                // Check if status is being changed to suspended/inactive
+                if (filteredData.status !== undefined &&
+                    (filteredData.status === 'suspended' || filteredData.status === 'inactive')) {
+                    const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+                    const oldRoles = currentUser.roles || [];
+                    const hadAdminRole = adminRoles.some(role => oldRoles.includes(role));
+
+                    if (hadAdminRole) {
+                        const adminCount = await UserModel.countAdmins();
+                        if (adminCount <= 1) {
+                            LogController.logError(req, 'user.update', 'error: cannot suspend last admin');
+                            const message = global.i18n.translate(req, 'controller.user.update.lastAdminStatusError');
+                            return global.CommonUtils.sendError(req, res, 400, message, 'LAST_ADMIN_STATUS_ERROR');
+                        }
+                    }
+                }
+            }
+
+            // Update user
+            const updatedUser = await UserModel.updateById(userId, filteredData);
+
+            if (!updatedUser) {
+                LogController.logError(req, 'user.update', `error: user not found for ID: ${userId}`);
+                const message = global.i18n.translate(req, 'controller.user.update.userNotFound');
+                return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
+            }
+
+            // Log the update
+            await LogController.logChange(req, 'user', 'update', req.session.user.username, currentUser, updatedUser);
+
+            // Update session data if updating self
+            if (isUpdatingSelf) {
+                AuthController.updateUserSession(req, updatedUser);
+            }
+
+            // Remove sensitive data
+            const { passwordHash, ...userProfile } = updatedUser;
+
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'user.update', `success: user ${userId} updated in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.user.update.updated');
+            res.json({
+                success: true,
+                data: userProfile,
+                message: message,
+                elapsed
+            });
+
+        } catch (error) {
+            LogController.logError(req, 'user.update', `error: ${error.message}`);
+            if (error.message.includes('Validation failed')) {
+                const message = global.i18n.translate(req, 'controller.user.update.validationFailed', { details: error.message });
+                return global.CommonUtils.sendError(req, res, 400, message, 'VALIDATION_ERROR', error.message);
+            }
+            const message = global.i18n.translate(req, 'controller.user.update.updateInternalError', { details: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
+     * Get enum fields from user schema
+     * GET /api/1/model/user/enums?fields=status,roles
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async getEnums(req, res) {
+        const startTime = Date.now();
+        try {
+            LogController.logRequest(req, 'user.getEnums', `fields: ${req.query.fields || 'all'}`);
+
+            // Get all enums from Model (not exposing Model directly)
+            const allEnums = UserModel.getEnums();
+
+            // Filter by query param if provided
+            let enums = allEnums;
+            if (req.query.fields) {
+                const fields = req.query.fields.split(',').map(f => f.trim()).filter(f => f);
+                enums = {};
+                for (const field of fields) {
+                    if (allEnums[field]) {
+                        enums[field] = allEnums[field];
+                    }
+                }
+            }
+
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'user.getEnums', `success: ${Object.keys(enums).length} enum fields, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.user.getEnums.retrieved');
+            res.json({
+                success: true,
+                data: enums,
+                message: message,
+                elapsed
+            });
+
+        } catch (error) {
+            LogController.logError(req, 'user.getEnums', `error: ${error.message}`);
+            const message = global.i18n.translate(req, 'controller.user.getEnums.internalError', { details: error.message });
             return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }

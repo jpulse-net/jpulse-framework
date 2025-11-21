@@ -4,13 +4,13 @@
  * @tagline         User profile view with edit capabilities
  * @description     User profile management with view and edit modes
  * @file            webapp/view/user/profile.shtml
- * @version         1.1.8
- * @release         2025-11-18
+ * @version         1.2.0
+ * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
 -->
 <html lang="en">
 <head>
@@ -322,7 +322,7 @@
 
             try {
                 // Always save profile and preferences first
-                const profileResult = await jPulse.api.put('/api/1/user/profile', profileData);
+                const profileResult = await jPulse.api.put('/api/1/user', profileData);
 
                 if (!profileResult.success) {
                     jPulse.UI.toast.error(profileResult.error || '{{i18n.view.user.profile.failedToUpdateProfile}}');
@@ -381,7 +381,7 @@
 
         async function loadProfile() {
             try {
-                const result = await jPulse.api.get('/api/1/user/profile');
+                const result = await jPulse.api.get('/api/1/user');
                 if (result.success && result.data) {
                     const user = result.data;
 
@@ -398,7 +398,7 @@
                     // Update status badge
                     const statusBadge = document.querySelector('.jp-status-badge');
                     if (statusBadge && user.status) {
-                        statusBadge.textContent = user.status.charAt(0).toUpperCase() + user.status.slice(1);
+                        statusBadge.textContent = user.status;
                         statusBadge.className = `jp-status-badge jp-status-${user.status}`;
                     }
                 } else {
@@ -444,20 +444,20 @@
 
         async function loadThemes() {
             try {
-                const response = await jPulse.api.get('/api/1/auth/themes');
+                const response = await jPulse.api.get('/api/1/user/enums?fields=preferences.theme');
 
-                if (response.success) {
+                if (response.success && response.data && response.data['preferences.theme']) {
                     const themeSelect = document.getElementById('theme');
                     const currentValue = themeSelect.value;
 
                     themeSelect.innerHTML = '';
 
-                    const themes = response.data;
+                    const themes = response.data['preferences.theme'];
                     if (Array.isArray(themes)) {
                         themes.forEach(theme => {
                             const option = document.createElement('option');
                             option.value = theme;
-                            option.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+                            option.textContent = theme;
                             themeSelect.appendChild(option);
                         });
                     } else {

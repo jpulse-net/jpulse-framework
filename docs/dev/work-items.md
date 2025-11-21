@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.1.8
+# jPulse Framework / Docs / Dev / Work Items v1.2.0
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1813,22 +1813,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/tests/unit/config/deployment-validation.test.js` - updated test patterns
   - `webapp/tests/integration/deployment-validation.test.js` - updated test patterns
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-092, v1.1.8: deploy: add jpulse-install package for simplified installation
-- status: 🚧 IN_PROGRESS
+- status: DONE ✅
 - type: Feature
 - objective: eliminate manual .npmrc creation with one-command installer
 - prerequisites:
@@ -1857,6 +1843,64 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-093, v1.2.0: users: ability for admins to manage users
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: ability for admins to manage users
+- fields to manage by admin and root roles only:
+  - _id (read-only, MongoDB ObjectId)
+  - uuid (read-only)
+  - email
+  - roles
+  - status
+  - profile fields (firstName, lastName, nickName)
+  - preferences (language, theme)
+- enhancements:
+  - create separate webapp/view/admin/user-profile.shtml user profile page for admins with view/edit toggle
+  - remove GET /api/1/user/profile and PUT /api/1/user/profile endpoints (breaking change)
+  - add GET /api/1/user and GET /api/1/user/:id endpoints (renamed from getById to get)
+  - add PUT /api/1/user and PUT /api/1/user/:id endpoints (renamed from updateById to update)
+  - flexible user identification: supports ObjectId, username query param, or session user fallback
+  - add validation to prevent removing last admin, self-removal of admin role, suspending last admin
+  - add GET /api/1/user/enums endpoint for dynamic enum retrieval from schema
+  - remove 'guest' from roles enum (not a real role, just a fallback label)
+  - remove obsolete /api/1/auth/roles endpoint (replaced by enums API)
+  - remove obsolete /api/1/auth/themes endpoint (replaced by enums API)
+  - schema extension architecture for future plugin support (W-045)
+- deliverables:
+  - webapp/model/user.js -- added countAdmins() helper, schema extension infrastructure (baseSchema, extendSchema, getEnums, extractEnums), removed 'guest' from roles enum
+  - webapp/controller/user.js -- added get() and update() methods with flexible user identification (ObjectId, username, session fallback), validation (last admin protection, self-removal prevention, suspend last admin protection), getEnums() for schema enums, updated to use appConfig.user.adminRoles
+  - webapp/routes.js -- removed old /api/1/user/profile routes, added new /api/1/user and /api/1/user/:id routes, added /api/1/user/enums route, removed obsolete /api/1/auth/roles and /api/1/auth/themes routes, updated to use appConfig.user.adminRoles
+  - webapp/view/admin/user-profile.shtml -- new user-profile page with User ID (_id) field, horizontal roles grid layout, dynamic status/roles/theme dropdowns from enums API, view/edit toggle mode
+  - webapp/view/admin/users.shtml -- updated [Profile] button link to user-profile page using username parameter, dynamic role/status filters from enums API
+  - webapp/view/user/profile.shtml -- updated to use new /api/1/user endpoint, dynamic theme dropdown from enums API
+  - webapp/view/user/index.shtml -- updated to use new /api/1/user endpoint
+  - webapp/translations/en.conf -- added i18n keys for admin user profile, simplified key names (removed "Successfully" suffix), removed obsolete auth.themes and auth.roles keys
+  - webapp/translations/de.conf -- added same German translations, simplified key names, removed obsolete keys
+  - webapp/utils/bootstrap.js -- added schema initialization step (Step 14)
+  - webapp/controller/cache.js -- updated to use appConfig.user.adminRoles
+  - webapp/controller/handlebar.js -- updated to use appConfig.user.adminRoles
+  - webapp/controller/websocket.js -- updated to use appConfig.user.adminRoles
+  - webapp/controller/health.js -- already using config with fallback
+  - webapp/app.conf -- added user.adminRoles configuration, fixed typo in controller.health.requiredRoles.metrics
+  - webapp/tests/unit/user/user-controller.test.js -- added minimal tests for getEnums(), get() with ObjectId/username/session fallback, update() validation (last admin, self-removal, suspend last admin)
+  - docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md -- added schema extension architecture section
+
+
+
+
+
+
+
+
+
 pending:
 
 
@@ -1873,6 +1917,7 @@ old pending:
 
 
 ### Potential next items:
+- W-094: handlebars: list files, extract from files
 - W-045: architecture: create plugin infrastructure
 - W-068: view: create responsive sidebar
 - W-0: view: headings with anchor links for copy & paste in browser URL bar
@@ -1893,11 +1938,11 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- show me cursor_log.txt update text I can copy & paste (current date: 2025-10-07 20:50)
-- assume release: W-092, v1.1.8
-- update deliverables in W-092 to document work done (don't make any other changes to this file)
+- assume release: W-093, v1.2.0
+- update deliverables in W-093 to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
+- update cursor_log.txt
 
 ### Misc
 
@@ -1950,7 +1995,19 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
 
-### W-080, v0.9.8: controller: change search to cursor based paging API with limit & cursor
+### W-094: handlebars: list files, extract from files
+- status: 🕑 PENDING
+- type: Feature
+- objective: generalize file operations in Handlebars to enable automated content generation (e.g., auto-populate card lists in index pages)
+- working doc: docs/dev/working/W-094-handlebars-file-list-and-extract
+- features:
+  - `file.list(pattern)` - list files matching glob pattern
+  - extract:
+    - option 1: `file.extract(path, extract="pattern")` - extract section from file using regex or CSS selector
+    - option 2: enhanced `file.include` with extract parameter
+  - opt-in via HTML comment markers with ordering support
+
+### W-080: controller: change search to cursor based paging API with limit & cursor
 - status: 🕑 PENDING
 - type: Feature
 - objective: paged queries that do not miss or duplicate docs between calls

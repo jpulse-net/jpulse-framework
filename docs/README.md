@@ -1,8 +1,10 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.1.8
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.2.0
 
 **For Site Administrators & Site Developers**
 
 Welcome to the jPulse Framework documentation - your complete guide to building enterprise-grade web applications.
+
+**🎉 Version 1.2.0**: Admin user management system with flexible user identification, comprehensive validation, schema extensibility, and API consolidation. Breaking changes: unified user endpoints, removed `/api/1/user/profile` endpoints.
 
 **🎉 Version 1.0**: Production-ready Redis infrastructure for scalable multi-instance deployments, zero-configuration auto-discovery architecture, comprehensive real-time communication, and enterprise-grade clustering capabilities.
 

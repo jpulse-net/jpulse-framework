@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / REST API Reference v1.1.8
+# jPulse Framework / Docs / REST API Reference v1.2.0
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -405,21 +405,30 @@ End user session and clear authentication.
 ### User Profile Management
 
 #### Get User Profile
-Retrieve current user's profile information.
+Retrieve user profile information. Supports flexible user identification: ObjectId, username query parameter, or current session user.
 
-**Route:** `GET /api/1/user/profile`
+**Routes:**
+- `GET /api/1/user` - Get current user (session)
+- `GET /api/1/user/:id` - Get user by ObjectId
+- `GET /api/1/user?username=jsmith` - Get user by username
+
 **Middleware:** `AuthController.requireAuthentication`
 **Authentication:** Required
+
+**Authorization:**
+- Regular users can only access their own profile
+- Admins can access any user's profile
 
 **Response (200):**
 ```json
 {
     "success": true,
-    "message": "Profile retrieved successfully",
+    "message": "User retrieved successfully",
     "data": {
-        "id": "66cb1234567890abcdef1234",
+        "_id": "66cb1234567890abcdef1234",
         "username": "jsmith",
         "email": "john@example.com",
+        "uuid": "550e8400-e29b-41d4-a716-446655440000",
         "profile": {
             "firstName": "John",
             "lastName": "Smith",
@@ -435,16 +444,29 @@ Retrieve current user's profile information.
         "lastLogin": "2025-08-25T10:30:00.000Z",
         "loginCount": 42,
         "createdAt": "2025-08-01T08:00:00.000Z"
-    }
+    },
+    "elapsed": 15
 }
 ```
 
-#### Update User Profile
-Update user's profile information and preferences.
+**Error Responses:**
+- **403**: Unauthorized (regular user trying to access another user)
+- **404**: User not found
 
-**Route:** `PUT /api/1/user/profile`
+#### Update User Profile
+Update user profile information and preferences. Supports flexible user identification.
+
+**Routes:**
+- `PUT /api/1/user` - Update current user (session)
+- `PUT /api/1/user/:id` - Update user by ObjectId
+- `PUT /api/1/user?username=jsmith` - Update user by username
+
 **Middleware:** `AuthController.requireAuthentication`
 **Authentication:** Required
+
+**Authorization:**
+- Regular users can only update their own profile (profile and preferences fields)
+- Admins can update any user and all fields (including email, roles, status)
 
 **Request Body:**
 ```json
@@ -457,7 +479,10 @@ Update user's profile information and preferences.
     "preferences": {
         "language": "de",
         "theme": "dark"
-    }
+    },
+    "email": "newemail@example.com",
+    "roles": ["user", "admin"],
+    "status": "active"
 }
 ```
 
@@ -465,13 +490,67 @@ Update user's profile information and preferences.
 ```json
 {
     "success": true,
-    "message": "Profile updated successfully",
+    "message": "User updated successfully",
     "data": {
-        "id": "66cb1234567890abcdef1234",
+        "_id": "66cb1234567890abcdef1234",
         "profile": { ... },
         "preferences": { ... },
         "updatedAt": "2025-08-25T10:35:00.000Z"
-    }
+    },
+    "elapsed": 25
+}
+```
+
+**Validation Rules (Admin Only):**
+- Cannot remove last admin role
+- Cannot remove own admin role
+- Cannot suspend last admin
+
+**Error Responses:**
+- **400**: Validation error (last admin protection, self-removal prevention)
+- **403**: Unauthorized (regular user trying to update another user)
+- **404**: User not found
+- **409**: Email already exists
+
+#### Get User Enums
+Retrieve enum values from user schema (roles, status, theme, etc.). Useful for populating dropdowns dynamically.
+
+**Route:** `GET /api/1/user/enums`
+**Query Parameters:**
+- `fields` (optional): Comma-separated list of fields to retrieve (e.g., `fields=roles,status`)
+
+**Middleware:** `AuthController.requireAuthentication`
+**Authentication:** Required
+
+**Response (200):**
+```json
+{
+    "success": true,
+    "message": "Enums retrieved successfully",
+    "data": {
+        "roles": ["user", "admin", "root"],
+        "status": ["pending", "active", "inactive", "suspended", "terminated"],
+        "preferences.theme": ["light", "dark"]
+    },
+    "elapsed": 5
+}
+```
+
+**Example with field filter:**
+```
+GET /api/1/user/enums?fields=roles,status
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "message": "Enums retrieved successfully",
+    "data": {
+        "roles": ["user", "admin", "root"],
+        "status": ["pending", "active", "inactive", "suspended", "terminated"]
+    },
+    "elapsed": 3
 }
 ```
 

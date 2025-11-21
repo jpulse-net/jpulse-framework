@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.1.8
- * @release         2025-11-18
+ * @version         1.2.0
+ * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -102,6 +102,7 @@ class HandlebarController {
         const appConfig = global.appConfig;
 
         // Create base handlebars context
+        const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
         const baseContext = {
             app: appConfig.app,
             user: {
@@ -115,7 +116,7 @@ class HandlebarController {
                 roles: req.session?.user?.roles || [],
                 preferences: req.session?.user?.preferences || {},
                 isAuthenticated: AuthController.isAuthenticated(req),
-                isAdmin: AuthController.isAuthorized(req, ['admin', 'root'])
+                isAdmin: AuthController.isAuthorized(req, adminRoles)
             },
             config: this.globalConfig?.data || {},
             appConfig: appConfig, // Full app config (will be filtered based on auth)

@@ -3,13 +3,13 @@
  * @tagline         Basic tests for User Model and Controller
  * @description     Unit tests for User Model validation and basic functionality
  * @file            webapp/tests/unit/user/user-basic.test.js
- * @version         1.1.8
- * @release         2025-11-18
+ * @version         1.2.0
+ * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
  */
 
 import { jest } from '@jest/globals';
@@ -126,15 +126,15 @@ describe('User Model Basic Tests', () => {
         });
 
         test('should validate role values correctly', () => {
-            const validRoles = ['guest', 'user', 'admin', 'root'];
-            const invalidRoles = ['superuser', 'moderator', 'owner', ''];
+            const validRoles = ['user', 'admin', 'root'];
+            const invalidRoles = ['guest', 'superuser', 'moderator', 'owner', ''];
 
             validRoles.forEach(role => {
-                expect(['guest', 'user', 'admin', 'root'].includes(role)).toBe(true);
+                expect(['user', 'admin', 'root'].includes(role)).toBe(true);
             });
 
             invalidRoles.forEach(role => {
-                expect(['guest', 'user', 'admin', 'root'].includes(role)).toBe(false);
+                expect(['user', 'admin', 'root'].includes(role)).toBe(false);
             });
         });
 
@@ -359,8 +359,8 @@ describe('User Model Basic Tests', () => {
             };
 
             expect(hasAnyRole(user, ['admin', 'root'])).toBe(true);
-            expect(hasAnyRole(user, ['guest', 'user'])).toBe(true);
-            expect(hasAnyRole(user, ['root', 'guest'])).toBe(false);
+            expect(hasAnyRole(user, ['user', 'admin'])).toBe(true);
+            expect(hasAnyRole(user, ['root'])).toBe(false);
         });
     });
 

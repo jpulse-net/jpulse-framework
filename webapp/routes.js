@@ -3,13 +3,13 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.1.8
- * @release         2025-11-18
+ * @version         1.2.0
+ * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
  */
 
 import path from 'path';
@@ -57,9 +57,7 @@ router.delete('/api/1/config/:id', ConfigController.delete);
 // Auth API routes
 router.post('/api/1/auth/login', AuthController.login);
 router.post('/api/1/auth/logout', AuthController.logout);
-router.get('/api/1/auth/roles', AuthController.getRoles);
 router.get('/api/1/auth/languages', AuthController.getLanguages);
-router.get('/api/1/auth/themes', AuthController.getThemes);
 
 // Markdown API routes
 router.get('/api/1/markdown/*', MarkdownController.api);
@@ -75,11 +73,16 @@ router.post('/api/1/cache/refresh/markdown', CacheController.refreshMarkdown);
 router.get('/api/1/cache/stats', CacheController.getStats);
 
 // User API routes (with authentication middleware where needed)
+// IMPORTANT: Specific routes must come before parameterized routes (:id)
+const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
 router.post('/api/1/user/signup', UserController.signup);
-router.get('/api/1/user/profile', AuthController.requireAuthentication, UserController.get);
-router.put('/api/1/user/profile', AuthController.requireAuthentication, UserController.update);
 router.put('/api/1/user/password', AuthController.requireAuthentication, UserController.changePassword);
-router.get('/api/1/user/search', AuthController.requireRole(['admin', 'root']), UserController.search);
+router.get('/api/1/user/search', AuthController.requireRole(adminRoles), UserController.search);
+router.get('/api/1/user/enums', AuthController.requireAuthentication, UserController.getEnums);
+router.get('/api/1/user', AuthController.requireAuthentication, UserController.get);
+router.get('/api/1/user/:id', AuthController.requireAuthentication, UserController.get);
+router.put('/api/1/user', AuthController.requireAuthentication, UserController.update);
+router.put('/api/1/user/:id', AuthController.requireAuthentication, UserController.update);
 
 // Email API routes (W-087)
 router.post('/api/1/email/send', AuthController.requireAuthentication, EmailController.apiSend);
@@ -95,7 +98,7 @@ router.post('/api/1/log/report/csp',
 router.use('/common', express.static(path.join(appConfig.system.appDir, 'static', 'common')));
 
 // Admin routes (require admin role)
-router.get(/^\/admin\/.*/, AuthController.requireAuthentication, AuthController.requireRole(['admin', 'root']));
+router.get(/^\/admin\/.*/, AuthController.requireAuthentication, AuthController.requireRole(adminRoles));
 
 // W-014: Auto-register site controller APIs (no manual registration needed!)
 const SiteControllerRegistry = (await import('./utils/site-controller-registry.js')).default;

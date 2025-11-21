@@ -3,13 +3,13 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.1.8
- * @release         2025-11-18
+ * @version         1.2.0
+ * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.0, Claude Sonnet 4
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
  */
 
 import CommonUtils from './common.js';
@@ -161,19 +161,25 @@ export async function bootstrap(options = {}) {
         global.ContextExtensions = ContextExtensionsModule.default;
         bootstrapLog('✅ ContextExtensions: Initialized with providers');
 
-        // Step 13: Initialize ConfigController
+        // Step 13: Initialize model schemas (after plugins would extend them in W-045)
+        // For now, just initialize base schemas. In W-045, plugins will extend schemas before this step.
+        const UserModelModule = await import('../model/user.js');
+        UserModelModule.default.initializeSchema();
+        bootstrapLog('✅ UserModel: Schema initialized');
+
+        // Step 14: Initialize ConfigController
         const ConfigControllerModule = await import('../controller/config.js');
         ConfigControllerModule.default.initialize();
         global.ConfigController = ConfigControllerModule.default;
         bootstrapLog(`✅ ConfigController: Initialized (defaultDocName: ${ConfigControllerModule.default.getDefaultDocName()})`);
 
-        // Step 14: Initialize HandlebarController (W-088)
+        // Step 15: Initialize HandlebarController (W-088)
         const HandlebarControllerModule = await import('../controller/handlebar.js');
         await HandlebarControllerModule.default.initialize();
         global.HandlebarController = HandlebarControllerModule.default;
         bootstrapLog('✅ HandlebarController: Initialized');
 
-        // Step 15: Initialize EmailController (W-087)
+        // Step 16: Initialize EmailController (W-087)
         const EmailControllerModule = await import('../controller/email.js');
         const emailReady = await EmailControllerModule.default.initialize();
         global.EmailController = EmailControllerModule.default;
@@ -183,7 +189,7 @@ export async function bootstrap(options = {}) {
             bootstrapLog('⚠️  EmailController: Not configured (email sending disabled)');
         }
 
-        // Step 16: Build viewRegistry for routes.js compatibility
+        // Step 17: Build viewRegistry for routes.js compatibility
         // Legacy global for routes.js to use
         global.viewRegistry = {
             viewList: global.ViewController.getViewList(),
@@ -191,7 +197,7 @@ export async function bootstrap(options = {}) {
         };
         bootstrapLog(`✅ viewRegistry: Built with ${global.viewRegistry.viewList.length} directories`);
 
-        // Step 16: Prepare WebSocketController (but don't initialize server yet)
+        // Step 18: Prepare WebSocketController (but don't initialize server yet)
         // Server initialization requires Express app and http.Server
         const WebSocketControllerModule = await import('../controller/websocket.js');
         global.WebSocketController = WebSocketControllerModule.default;

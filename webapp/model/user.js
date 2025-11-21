@@ -3,13 +3,13 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.1.8
- * @release         2025-11-18
+ * @version         1.2.0
+ * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
  */
 
 import database from '../database.js';
@@ -23,9 +23,9 @@ import CommonUtils from '../utils/common.js';
  */
 class UserModel {
     /**
-     * Schema definition for validation
+     * Base schema definition (framework)
      */
-    static schema = {
+    static baseSchema = {
         _id: { type: 'objectId', auto: true },
         username: { type: 'string', required: true, unique: true },
         uuid: { type: 'string', required: true, unique: true, auto: true },
@@ -37,12 +37,18 @@ class UserModel {
             nickName: { type: 'string', default: '' },
             avatar: { type: 'string', default: '' }
         },
-        roles: { type: 'array', default: ['user'], enum: ['guest', 'user', 'admin', 'root'] },
+        roles: { type: 'array',
+                 default: [ 'user' ],
+                 enum: [ 'user', 'admin', 'root' ] },
         preferences: {
             language: { type: 'string', default: 'en' },
-            theme: { type: 'string', default: 'light', enum: ['light', 'dark'] }
+            theme: { type: 'string',
+                     default: 'light',
+                     enum: [ 'light', 'dark' ] }
         },
-        status: { type: 'string', default: 'active', enum: ['active', 'inactive', 'pending', 'suspended'] },
+        status: { type: 'string',
+                  default: 'active',
+                  enum: [ 'pending', 'active', 'inactive', 'suspended', 'terminated' ] },
         lastLogin: { type: 'date', default: null },
         loginCount: { type: 'number', default: 0 },
         createdAt: { type: 'date', auto: true },
@@ -51,6 +57,110 @@ class UserModel {
         docVersion: { type: 'number', default: 1 },
         saveCount: { type: 'number', default: 1, autoIncrement: true }
     };
+
+    /**
+     * Extended schema (base + plugin extensions) - computed at init
+     */
+    static schema = null;
+
+    /**
+     * Schema extensions registry (applied in order)
+     */
+    static schemaExtensions = [];
+
+    /**
+     * Initialize schema with plugin extensions
+     * Called during bootstrap after plugins are loaded
+     */
+    static initializeSchema() {
+        let schema = CommonUtils.deepMerge({}, this.baseSchema);
+
+        // Apply plugin extensions in order
+        for (const extension of this.schemaExtensions) {
+            schema = this.applySchemaExtension(schema, extension);
+        }
+
+        this.schema = schema;
+    }
+
+    /**
+     * Deep merge extension into schema
+     * @param {object} schema - Current schema
+     * @param {object} extension - Extension to apply
+     * @returns {object} Merged schema
+     */
+    static applySchemaExtension(schema, extension) {
+        return CommonUtils.deepMerge(schema, extension);
+    }
+
+    /**
+     * Plugin API to extend schema
+     * @param {object} extension - Schema extension (deep merged into base schema)
+     */
+    static extendSchema(extension) {
+        this.schemaExtensions.push(extension);
+        // Recompute schema if already initialized
+        if (this.schema !== null) {
+            this.initializeSchema();
+        }
+    }
+
+    /**
+     * Get current schema (extended)
+     * Auto-initializes if not already initialized
+     * @returns {object} Current schema
+     */
+    static getSchema() {
+        if (this.schema === null) {
+            this.initializeSchema();
+        }
+        return this.schema || this.baseSchema;
+    }
+
+    /**
+     * Get enum for specific field (supports dot notation)
+     * @param {string} fieldPath - Field path (e.g., 'status', 'preferences.theme')
+     * @returns {array|null} Enum array or null if not found
+     */
+    static getEnum(fieldPath) {
+        const field = CommonUtils.getFieldSchema(this.getSchema(), fieldPath);
+        return field?.enum || null;
+    }
+
+    /**
+     * Extract all enum fields from schema recursively
+     * @param {object} schema - Schema to extract enums from
+     * @param {string} prefix - Field path prefix (for nested fields)
+     * @returns {object} Object with field paths as keys and enum arrays as values
+     */
+    static extractEnums(schema, prefix = '') {
+        const enums = {};
+
+        for (const [key, value] of Object.entries(schema)) {
+            const fieldPath = prefix ? `${prefix}.${key}` : key;
+
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+                // If it's a field definition with enum
+                if (value.type && value.enum) {
+                    enums[fieldPath] = value.enum;
+                } else if (!value.type) {
+                    // Nested object, recurse
+                    const nestedEnums = this.extractEnums(value, fieldPath);
+                    Object.assign(enums, nestedEnums);
+                }
+            }
+        }
+
+        return enums;
+    }
+
+    /**
+     * Get all enum fields from current schema
+     * @returns {object} Object with field paths as keys and enum arrays as values
+     */
+    static getEnums() {
+        return this.extractEnums(this.getSchema());
+    }
 
     /**
      * Get MongoDB collection
@@ -299,7 +409,7 @@ class UserModel {
         try {
             // Build MongoDB query from URI parameters
             const ignoreFields = ['limit', 'skip', 'sort', 'page', 'password', 'passwordHash', 'name'];
-            const query = CommonUtils.schemaBasedQuery(UserModel.schema, queryParams, ignoreFields);
+            const query = CommonUtils.schemaBasedQuery(UserModel.getSchema(), queryParams, ignoreFields);
 
             // Handle special 'name' parameter to search both firstName and lastName
             if (queryParams.name && queryParams.name.trim()) {
@@ -352,6 +462,23 @@ class UserModel {
             };
         } catch (error) {
             throw new Error(`Failed to search users: ${error.message}`);
+        }
+    }
+
+    /**
+     * Count users with admin roles (from config)
+     * @returns {Promise<number>} Count of admin users
+     */
+    static async countAdmins() {
+        try {
+            const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+            const collection = this.getCollection();
+            const count = await collection.countDocuments({
+                roles: { $in: adminRoles }
+            });
+            return count;
+        } catch (error) {
+            throw new Error(`Failed to count admins: ${error.message}`);
         }
     }
 

@@ -3,13 +3,13 @@
  * @tagline         Controller tests for User authentication and management
  * @description     Unit tests for UserController endpoints, error handling, and HTTP responses
  * @file            webapp/tests/unit/user/user-controller.test.js
- * @version         1.1.8
- * @release         2025-11-18
+ * @version         1.2.0
+ * @release         2025-11-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
  */
 
 import { jest } from '@jest/globals';
@@ -602,6 +602,431 @@ describe('User Controller Tests', () => {
             expect(mockRes.json).toHaveBeenCalledWith({
                 success: false,
                 error: 'Current password is incorrect'
+            });
+        });
+    });
+
+    describe('Get Enums Endpoint (W-093)', () => {
+        test('should return all enums when no fields specified', () => {
+            const mockReq = {
+                query: {},
+                session: { user: { isAuthenticated: true } }
+            };
+
+            const mockRes = {
+                json: jest.fn()
+            };
+
+            // Simulate getEnums logic
+            const processGetEnums = (req, res) => {
+                const allEnums = {
+                    roles: ['user', 'admin', 'root'],
+                    status: ['pending', 'active', 'inactive', 'suspended', 'terminated'],
+                    'preferences.theme': ['light', 'dark']
+                };
+
+                let enums = allEnums;
+                if (req.query.fields) {
+                    const fields = req.query.fields.split(',').map(f => f.trim()).filter(f => f);
+                    enums = {};
+                    for (const field of fields) {
+                        if (allEnums[field]) {
+                            enums[field] = allEnums[field];
+                        }
+                    }
+                }
+
+                res.json({
+                    success: true,
+                    data: enums,
+                    message: 'Enums retrieved successfully',
+                    elapsed: 5
+                });
+            };
+
+            processGetEnums(mockReq, mockRes);
+
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: true,
+                data: {
+                    roles: ['user', 'admin', 'root'],
+                    status: ['pending', 'active', 'inactive', 'suspended', 'terminated'],
+                    'preferences.theme': ['light', 'dark']
+                },
+                message: 'Enums retrieved successfully',
+                elapsed: 5
+            });
+        });
+
+        test('should filter enums by fields query parameter', () => {
+            const mockReq = {
+                query: { fields: 'roles,status' },
+                session: { user: { isAuthenticated: true } }
+            };
+
+            const mockRes = {
+                json: jest.fn()
+            };
+
+            const processGetEnums = (req, res) => {
+                const allEnums = {
+                    roles: ['user', 'admin', 'root'],
+                    status: ['pending', 'active', 'inactive', 'suspended', 'terminated'],
+                    'preferences.theme': ['light', 'dark']
+                };
+
+                let enums = allEnums;
+                if (req.query.fields) {
+                    const fields = req.query.fields.split(',').map(f => f.trim()).filter(f => f);
+                    enums = {};
+                    for (const field of fields) {
+                        if (allEnums[field]) {
+                            enums[field] = allEnums[field];
+                        }
+                    }
+                }
+
+                res.json({
+                    success: true,
+                    data: enums,
+                    message: 'Enums retrieved successfully',
+                    elapsed: 5
+                });
+            };
+
+            processGetEnums(mockReq, mockRes);
+
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: true,
+                data: {
+                    roles: ['user', 'admin', 'root'],
+                    status: ['pending', 'active', 'inactive', 'suspended', 'terminated']
+                },
+                message: 'Enums retrieved successfully',
+                elapsed: 5
+            });
+        });
+    });
+
+    describe('Get User Endpoint (W-093)', () => {
+        test('should get user by ObjectId', () => {
+            const mockReq = {
+                params: { id: '507f1f77bcf86cd799439011' },
+                session: {
+                    user: {
+                        id: '507f1f77bcf86cd799439012',
+                        isAuthenticated: true,
+                        roles: ['admin']
+                    }
+                }
+            };
+
+            const mockRes = {
+                json: jest.fn(),
+                status: jest.fn().mockReturnThis()
+            };
+
+            const mockUser = {
+                _id: '507f1f77bcf86cd799439011',
+                username: 'testuser',
+                email: 'test@example.com',
+                roles: ['user']
+            };
+
+            const processGetUser = (req, res, user, isAdmin) => {
+                if (!isAdmin && req.params.id !== req.session.user.id) {
+                    return res.status(403).json({ error: 'Unauthorized' });
+                }
+
+                if (!user) {
+                    return res.status(404).json({ error: 'User not found' });
+                }
+
+                const { passwordHash, ...userProfile } = user;
+                res.json({
+                    success: true,
+                    data: userProfile,
+                    message: 'User retrieved successfully'
+                });
+            };
+
+            processGetUser(mockReq, mockRes, mockUser, true);
+
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: true,
+                data: expect.objectContaining({
+                    username: 'testuser',
+                    email: 'test@example.com'
+                }),
+                message: 'User retrieved successfully'
+            });
+        });
+
+        test('should get user by username query parameter', () => {
+            const mockReq = {
+                query: { username: 'testuser' },
+                session: {
+                    user: {
+                        id: '507f1f77bcf86cd799439012',
+                        isAuthenticated: true,
+                        roles: ['admin']
+                    }
+                }
+            };
+
+            const mockRes = {
+                json: jest.fn()
+            };
+
+            const mockUser = {
+                _id: '507f1f77bcf86cd799439011',
+                username: 'testuser',
+                email: 'test@example.com'
+            };
+
+            const processGetUser = (req, res, user, isAdmin) => {
+                if (!isAdmin && user._id.toString() !== req.session.user.id) {
+                    return res.status(403).json({ error: 'Unauthorized' });
+                }
+
+                if (!user) {
+                    return res.status(404).json({ error: 'User not found' });
+                }
+
+                res.json({
+                    success: true,
+                    data: user,
+                    message: 'User retrieved successfully'
+                });
+            };
+
+            processGetUser(mockReq, mockRes, mockUser, true);
+
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: true,
+                data: mockUser,
+                message: 'User retrieved successfully'
+            });
+        });
+
+        test('should fallback to session user when no id or username', () => {
+            const mockReq = {
+                session: {
+                    user: {
+                        id: '507f1f77bcf86cd799439011',
+                        isAuthenticated: true,
+                        roles: ['user']
+                    }
+                }
+            };
+
+            const mockRes = {
+                json: jest.fn()
+            };
+
+            const mockUser = {
+                _id: '507f1f77bcf86cd799439011',
+                username: 'testuser',
+                email: 'test@example.com'
+            };
+
+            const processGetUser = (req, res, user) => {
+                if (!user) {
+                    return res.status(404).json({ error: 'User not found' });
+                }
+
+                res.json({
+                    success: true,
+                    data: user,
+                    message: 'User retrieved successfully'
+                });
+            };
+
+            processGetUser(mockReq, mockRes, mockUser);
+
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: true,
+                data: mockUser,
+                message: 'User retrieved successfully'
+            });
+        });
+
+        test('should deny access to regular users viewing other users', () => {
+            const mockReq = {
+                params: { id: '507f1f77bcf86cd799439011' },
+                session: {
+                    user: {
+                        id: '507f1f77bcf86cd799439012',
+                        isAuthenticated: true,
+                        roles: ['user']
+                    }
+                }
+            };
+
+            const mockRes = {
+                json: jest.fn(),
+                status: jest.fn().mockReturnThis()
+            };
+
+            const processGetUser = (req, res, isAdmin) => {
+                if (!isAdmin && req.params.id !== req.session.user.id) {
+                    return res.status(403).json({ error: 'Unauthorized' });
+                }
+            };
+
+            processGetUser(mockReq, mockRes, false);
+
+            expect(mockRes.status).toHaveBeenCalledWith(403);
+            expect(mockRes.json).toHaveBeenCalledWith({ error: 'Unauthorized' });
+        });
+    });
+
+    describe('Update User Validation (W-093)', () => {
+        test('should prevent removing last admin role', () => {
+            const mockReq = {
+                params: { id: '507f1f77bcf86cd799439011' },
+                body: { roles: ['user'] },
+                session: {
+                    user: {
+                        id: '507f1f77bcf86cd799439012',
+                        isAuthenticated: true,
+                        roles: ['admin']
+                    }
+                }
+            };
+
+            const mockRes = {
+                json: jest.fn(),
+                status: jest.fn().mockReturnThis()
+            };
+
+            const mockCurrentUser = {
+                _id: '507f1f77bcf86cd799439011',
+                roles: ['admin']
+            };
+
+            const processUpdateUser = async (req, res, currentUser, adminCount) => {
+                const adminRoles = ['admin', 'root'];
+                const newRoles = Array.isArray(req.body.roles) ? req.body.roles : [req.body.roles];
+                const oldRoles = currentUser.roles || [];
+                const hadAdminRole = adminRoles.some(role => oldRoles.includes(role));
+                const hasAdminRole = adminRoles.some(role => newRoles.includes(role));
+
+                if (hadAdminRole && !hasAdminRole) {
+                    if (adminCount <= 1) {
+                        return res.status(400).json({
+                            success: false,
+                            error: 'Cannot remove last admin',
+                            code: 'LAST_ADMIN_ERROR'
+                        });
+                    }
+                }
+            };
+
+            processUpdateUser(mockReq, mockRes, mockCurrentUser, 1);
+
+            expect(mockRes.status).toHaveBeenCalledWith(400);
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: false,
+                error: 'Cannot remove last admin',
+                code: 'LAST_ADMIN_ERROR'
+            });
+        });
+
+        test('should prevent user from removing their own admin role', () => {
+            const mockReq = {
+                body: { roles: ['user'] },
+                session: {
+                    user: {
+                        id: '507f1f77bcf86cd799439011',
+                        isAuthenticated: true,
+                        roles: ['admin']
+                    }
+                }
+            };
+
+            const mockRes = {
+                json: jest.fn(),
+                status: jest.fn().mockReturnThis()
+            };
+
+            const mockCurrentUser = {
+                _id: '507f1f77bcf86cd799439011',
+                roles: ['admin']
+            };
+
+            const processUpdateUser = (req, res, currentUser, isUpdatingSelf) => {
+                const adminRoles = ['admin', 'root'];
+                const newRoles = Array.isArray(req.body.roles) ? req.body.roles : [req.body.roles];
+                const oldRoles = currentUser.roles || [];
+                const hadAdminRole = adminRoles.some(role => oldRoles.includes(role));
+                const hasAdminRole = adminRoles.some(role => newRoles.includes(role));
+
+                if (isUpdatingSelf && hadAdminRole && !hasAdminRole) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Cannot remove own admin role',
+                        code: 'SELF_REMOVAL_ERROR'
+                    });
+                }
+            };
+
+            processUpdateUser(mockReq, mockRes, mockCurrentUser, true);
+
+            expect(mockRes.status).toHaveBeenCalledWith(400);
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: false,
+                error: 'Cannot remove own admin role',
+                code: 'SELF_REMOVAL_ERROR'
+            });
+        });
+
+        test('should prevent suspending last admin', () => {
+            const mockReq = {
+                params: { id: '507f1f77bcf86cd799439011' },
+                body: { status: 'suspended' },
+                session: {
+                    user: {
+                        id: '507f1f77bcf86cd799439012',
+                        isAuthenticated: true,
+                        roles: ['admin']
+                    }
+                }
+            };
+
+            const mockRes = {
+                json: jest.fn(),
+                status: jest.fn().mockReturnThis()
+            };
+
+            const mockCurrentUser = {
+                _id: '507f1f77bcf86cd799439011',
+                roles: ['admin']
+            };
+
+            const processUpdateUser = (req, res, currentUser, adminCount) => {
+                const adminRoles = ['admin', 'root'];
+                const oldRoles = currentUser.roles || [];
+                const hadAdminRole = adminRoles.some(role => oldRoles.includes(role));
+
+                if (req.body.status === 'suspended' || req.body.status === 'inactive') {
+                    if (hadAdminRole && adminCount <= 1) {
+                        return res.status(400).json({
+                            success: false,
+                            error: 'Cannot suspend last admin',
+                            code: 'LAST_ADMIN_ERROR'
+                        });
+                    }
+                }
+            };
+
+            processUpdateUser(mockReq, mockRes, mockCurrentUser, 1);
+
+            expect(mockRes.status).toHaveBeenCalledWith(400);
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: false,
+                error: 'Cannot suspend last admin',
+                code: 'LAST_ADMIN_ERROR'
             });
         });
     });

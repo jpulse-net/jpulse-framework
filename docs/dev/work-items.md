@@ -1913,6 +1913,19 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/dev/working/W-094-handlebars-file-list-and-extract.md -- deliverables section
   - docs/CHANGELOG.md -- v1.2.1 entry
 
+### W-095, v1.2.2: handlebars: remove jsdom dependency
+- status: DONE ✅
+- type: Feature
+- objective: leaner project with less dependencies
+- features:
+  - CSS selector extraction now uses zero external dependencies (~50 lines of code vs 15MB jsdom package)
+  - three-step approach: find opening tag, annotate HTML with nesting levels (:~0~, :~1~), match with backreference
+  - handles nested tags correctly by tracking nesting depth
+  - reduces production package size significantly (jsdom: ~15-20MB with 90+ sub-dependencies)
+- deliverables:
+  - webapp/controller/handlebar.js -- replaced jsdom with smart regex extraction using tag nesting level annotation
+  - package.json -- moved jsdom from dependencies to devDependencies (only needed for client-side JS tests)
+
 
 
 
@@ -1926,19 +1939,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
-
-### W-095, v1.2.2: handlebars: remove jsdom dependency
-- status: 🚧 IN_PROGRESS
-- type: Feature
-- objective: leaner project with less dependencies
-- features:
-  - CSS selector extraction now uses zero external dependencies (~50 lines of code vs 15MB jsdom package)
-  - three-step approach: find opening tag, annotate HTML with nesting levels (:~0~, :~1~), match with backreference
-  - handles nested tags correctly by tracking nesting depth
-  - reduces production package size significantly (jsdom: ~15-20MB with 90+ sub-dependencies)
-- deliverables:
-  - webapp/controller/handlebar.js -- replaced jsdom with smart regex extraction using tag nesting level annotation
-  - package.json -- moved jsdom from dependencies to devDependencies (only needed for client-side JS tests)
 
 
 
@@ -1970,6 +1970,8 @@ old pending:
 - W-0: view: headings with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific translations
 - W-037: view: create themes
+- W-0: handlebars: enhance {{#if}} and {{#unless}} with and, or, gt, gte, lt, lte, eq, ne
+- W-0: handlebars: new {{#set}} block handlebar
 - W-0: deployment: docker strategy
 - W-0: auth controller: authentication with OAuth2
 - W-0: auth controller: authentication with LDAP
@@ -2318,11 +2320,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - status: 🕑 PENDING
 - type: Idea
 - objective: separate admin tasks for larger orgs, such as an admin for Sales, another for Engineering, or separate by divisions
-
-### W-0: user controller & view: manage user: change status
-- status: 🕑 PENDING
-- type: Feature
-- objective: admin can change the status of users
 
 ### W-0: auth controller: signup with email confirmation
 - status: 🕑 PENDING

@@ -36594,3 +36594,22 @@ Changes accepted
 
 
 ============================================================
+2025-11-22 01:30
+
+User prompt: Document CSS selector extraction in handlebars.md
+
+AI action: Added comprehensive CSS selector documentation
+
+AI summary:
+- Added "Using CSS class selector" example with .local-extract pattern
+- Added "Using CSS ID selector" example with #userCard pattern
+- Documented data-extract-order attribute for sorting with CSS selectors
+- Updated Features section to list all three extraction methods (markers, CSS selectors, regex)
+- Added CSS selector examples to pattern parameter section
+- Highlighted zero dependencies and lightweight regex implementation
+- Noted nested tag handling capability
+
+Changes accepted
+
+
+============================================================

@@ -194,7 +194,7 @@ The jPulse Framework provides several context objects that are available in all 
 - `{{i18n.view.home.*}}` - Home page messages
 - `{{i18n.view.home.introduction}}` - Introduction message
 - `{{i18n.view.auth.*}}` - Authentication messages
-- `{{i18n.common.*}}` - Common messages across the application
+- `{{i18n.controller.*}}` - Controller messages
 - `{{i18n.*}}` - Consult the translation files at webapp/translations/ for available fields
 
 ## File Operations
@@ -251,16 +251,23 @@ List files matching a glob pattern:
 {{/each}}
 ```
 
-**With pattern parameter (for file.extract):**
+**With CSS selector pattern (for file.extract):**
+```handlebars
+{{#each file.list "admin/*.shtml" pattern=".local-extract" sortBy="extract-order"}}
+    {{file.extract this}}
+{{/each}}
+```
+
+**With regex pattern (for file.extract):**
 ```handlebars
 {{#each file.list "docs/*.md" pattern="/<!-- card -->(.*?)<!-- \/card -->/s"}}
     {{file.extract this}}
 {{/each}}
 ```
 
-**With pattern and sorting:**
+**With ID selector pattern:**
 ```handlebars
-{{#each file.list "admin/*.shtml" pattern=".local-extract" sortBy="extract-order"}}
+{{#each file.list "pages/*.shtml" pattern="#pageCard" sortBy="extract-order"}}
     {{file.extract this}}
 {{/each}}
 ```
@@ -276,7 +283,7 @@ The `file.list` helper supports:
 - Pattern passing: `pattern="..."` parameter passed to `file.extract` in the loop
 
 ### File Extraction
-Extract content from files using comment markers or regex patterns:
+Extract content from files using comment markers, CSS selectors, or regex patterns:
 
 **Using comment markers (default):**
 ```handlebars
@@ -298,6 +305,42 @@ In the source file (`admin/users.shtml`):
 {{file.extract "admin/users.shtml" pattern="/<div class=\"card\">(.*?)<\/div>/s"}}
 ```
 
+**Using CSS class selector:**
+```handlebars
+{{file.extract "admin/users.shtml" pattern=".local-extract"}}
+```
+
+In the source file (`admin/users.shtml`):
+```html
+<div class="local-extract" data-extract-order="10">
+    <a href="/admin/users.shtml" class="jp-card-dashboard">
+        <h3>User Management</h3>
+        <p>Manage users and permissions</p>
+    </a>
+</div>
+```
+
+**Using CSS ID selector:**
+```handlebars
+{{file.extract "admin/users.shtml" pattern="#userCard"}}
+```
+
+In the source file (`admin/users.shtml`):
+```html
+<div id="userCard" data-extract-order="10">
+    <a href="/admin/users.shtml" class="jp-card-dashboard">
+        <h3>User Management</h3>
+        <p>Manage users and permissions</p>
+    </a>
+</div>
+```
+
+**CSS selector features:**
+- Extracts content from matching HTML element (`.class-name` or `#id-name`)
+- Handles deeply nested tags correctly using nesting level tracking
+- Optional `data-extract-order="N"` attribute for sorting (default: 99999)
+- Works identically to comment markers for sorting and pattern passing
+
 **Supported marker formats:**
 - HTML comments: `<!-- extract:start order=N -->...<!-- extract:end -->`
 - Block comments: `/* extract:start order=N */.../* extract:end */`
@@ -305,9 +348,12 @@ In the source file (`admin/users.shtml`):
 - Line comments (Python): `# extract:start order=N ... # extract:end`
 
 **Features:**
-- Order extraction: `order=N` attribute for sorting (default: 99999)
-- Multiple formats: Supports HTML, CSS/JS block, and line comments
-- Regex support: Use `/pattern/flags` format with mandatory capture group `(...)`
+- **Three extraction methods:**
+  - Comment markers: HTML, CSS/JS block, and line comments with `order=N` attribute
+  - CSS selectors: `.class-name` or `#id-name` with `data-extract-order="N"` attribute
+  - Regex patterns: `/pattern/flags` format with mandatory capture group `(...)`
+- Order extraction: `order=N` for markers, `data-extract-order="N"` for CSS selectors (default: 99999)
+- Nested tag handling: CSS selectors correctly handle deeply nested tags
 - Site overrides: Automatically uses site overrides when available
 - Security: Path traversal protection, errors logged server-side only
 

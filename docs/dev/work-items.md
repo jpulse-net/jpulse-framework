@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.2.1
+# jPulse Framework / Docs / Dev / Work Items v1.2.2
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1879,22 +1879,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/tests/unit/user/user-controller.test.js -- added minimal tests for getEnums(), get() with ObjectId/username/session fallback, update() validation (last admin, self-removal, suspend last admin)
   - docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md -- added schema extension architecture section
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-094, v1.2.1: handlebars: list files, extract from files
-- status: 🚧 IN_PROGRESS
+- status: DONE ✅
 - type: Feature
 - objective: generalize file operations in Handlebars to enable automated content generation (e.g., auto-populate card lists in index pages)
 - working doc: docs/dev/working/W-094-handlebars-file-list-and-extract
@@ -1926,6 +1912,33 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md -- technical debt notes
   - docs/dev/working/W-094-handlebars-file-list-and-extract.md -- deliverables section
   - docs/CHANGELOG.md -- v1.2.1 entry
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-095, v1.2.2: handlebars: remove jsdom dependency
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: leaner project with less dependencies
+- features:
+  - CSS selector extraction now uses zero external dependencies (~50 lines of code vs 15MB jsdom package)
+  - three-step approach: find opening tag, annotate HTML with nesting levels (:~0~, :~1~), match with backreference
+  - handles nested tags correctly by tracking nesting depth
+  - reduces production package size significantly (jsdom: ~15-20MB with 90+ sub-dependencies)
+- deliverables:
+  - webapp/controller/handlebar.js -- replaced jsdom with smart regex extraction using tag nesting level annotation
+  - package.json -- moved jsdom from dependencies to devDependencies (only needed for client-side JS tests)
 
 
 
@@ -1972,8 +1985,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-094, v1.2.1
-- update deliverables in W-094 work-items to document work done (don't make any other changes to this file)
+- assume release: W-095, v1.2.2
+- update deliverables in W-095 work-items to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -1990,12 +2003,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.2.1
+node bin/bump-version.js 1.2.2
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.2.1
+git tag v1.2.2
 git push origin main --tags
 
 === on failed package build on github ===

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Template Reference v1.2.1
+# jPulse Framework / Docs / Template Reference v1.2.2
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 

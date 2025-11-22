@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Handlebars Templating v1.2.1
+# jPulse Framework / Docs / Handlebars Templating v1.2.2
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 

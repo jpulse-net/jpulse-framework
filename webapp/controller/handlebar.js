@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.2.1
- * @release         2025-11-21
+ * @version         1.2.2
+ * @release         2025-11-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -13,7 +13,6 @@
  */
 
 import path from 'path';
-import { JSDOM } from 'jsdom';
 import { readdirSync, statSync } from 'fs';
 import LogController from './log.js';
 import configModel from '../model/config.js';
@@ -872,47 +871,59 @@ class HandlebarController {
          */
         function _extractFromCSSSelector(content, selector) {
             try {
-                // Parse HTML using jsdom
-                const dom = new JSDOM(content);
-                const document = dom.window.document;
+                // Phase 1: Pre-scan for start of class or id, and for order number
+                const isClass = selector.startsWith('.');
+                const selectorName = selector.substring(1);
+                const attrName = isClass ? 'class' : 'id';
+                const attrPattern = isClass
+                    ? `${attrName}=["'][^"']*\\b${selectorName}\\b[^"']*`
+                    : `${attrName}=["']${selectorName}["']`;
+                let tagRegex = new RegExp(
+                    `<([a-z][a-z0-9]*)\\s+` +       // Capture tag name
+                    `(?=[^>]*\\b${attrPattern})` +  // Lookahead for attribute
+                    `(?:[^>]*\\bdata-extract-order=["'](\\d+)["'])?` +  // Capture order
+                    `[^>]*>`,                       // Match to end of tag
+                    'is'
+                );
+                let match = content.match(tagRegex);
+                if (!match) return null;
+                const tag = match[1];
+                const order = match[2] ? parseInt(match[2], 10) : 99999;
 
-                // Find all elements matching the selector
-                const elements = document.querySelectorAll(selector);
-                if (elements.length === 0) {
-                    return null;
-                }
-
-                // If multiple elements found, prefer the one with data-extract-order attribute
-                let element = null;
-                if (elements.length === 1) {
-                    element = elements[0];
-                } else {
-                    // Find the element with data-extract-order attribute, or use the first one
-                    for (let i = 0; i < elements.length; i++) {
-                        if (elements[i].hasAttribute('data-extract-order')) {
-                            element = elements[i];
-                            break;
-                        }
+                // Phase 2: Annotate nesting levels of identified tags with simple level numbering
+                let level = 0;
+                tagRegex = new RegExp(`(</?)(${tag})(?=[\\s>])`, 'gis');
+                const annotated = content.replace(tagRegex, (match, c1, c2) => {
+                    let result;
+                    if (c1 === '<') {   // start tag
+                        result = `${c1}${c2}:~${level}~`;
+                        level++;
+                    } else {            // end tag
+                        level--;
+                        result = `${c1}${c2}:~${level}~`;
                     }
-                    // If none have the attribute, use the first one
-                    if (!element) {
-                        element = elements[0];
-                    }
-                }
+                    return result;
+                });
 
-                // Extract order from data-extract-order attribute if present
-                const orderAttr = element.getAttribute('data-extract-order');
-                const order = orderAttr ? parseInt(orderAttr, 10) : 99999;
+                // Phase 3: Extract content between matching start and end tag by level
+                tagRegex = new RegExp(
+                    `<${tag}(:~\\d+~) [^>]*>` + // Match start tag with nesting level
+                    `(.*?)` +                   // Non-greedy match for content to extract
+                    `</${tag}\\1>`,             // Match end tag with same nesting level
+                    'is'
+                );
+                match = annotated.match(tagRegex);
+                if (!match) return null;
 
-                // Get element's HTML content (innerHTML)
-                const extractedContent = element.innerHTML.trim();
+                // Phase 4: Clean up nesting level annotations
+                const extracted = match[2].replace(/(<\/?[a-z][a-z0-9]*):~\d+~/g, '$1');
 
                 return {
                     order: order,
-                    content: extractedContent
+                    content: extracted.trim()
                 };
             } catch (error) {
-                throw new Error(`CSS selector extraction failed: ${error.message}`);
+                return null;
             }
         }
 

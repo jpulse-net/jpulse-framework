@@ -36551,3 +36551,46 @@ Changes accepted
 
 
 ============================================================
+2025-11-21 23:00
+
+User prompt: Release built, site install FAILED! Cannot find package 'jsdom'
+
+AI action: Fixed critical production dependency issue
+
+AI summary:
+- Problem: jsdom was in devDependencies but used in production code (handlebar.js CSS selector extraction)
+- Fix: Moved jsdom from devDependencies to dependencies in package.json
+- Impact: Site installations will now work correctly
+- Updated commit-message.txt to document the package.json change
+
+Changes accepted
+
+
+============================================================
+2025-11-21 23:15
+
+User prompt: Release prep for W-095, v1.2.2 - remove jsdom dependency
+
+AI action: Completed release preparation for W-095 v1.2.2
+
+AI summary:
+- Replaced jsdom (15-20MB, 90+ sub-dependencies) with lightweight regex-based CSS selector extraction
+- Implementation uses smart tag nesting level annotation approach:
+  - Step 1: Find opening tag with class/id using lookaheads
+  - Step 2: Annotate HTML with :~0~, :~1~ nesting markers
+  - Step 3: Use backreference regex to match exact nesting levels
+- Moved jsdom from dependencies to devDependencies (still needed for client-side JS tests)
+- ~50 lines of code replaces 15MB dependency
+- Handles nested tags correctly, extracts data-extract-order attribute
+- Zero production dependencies for CSS selector extraction
+- Updated work-items.md (W-095 completed with deliverables)
+- Updated CHANGELOG.md with v1.2.2 entry
+- Updated README.md and docs/README.md with release highlights
+- Updated commit-message.txt with implementation details
+- Significantly reduces production package size and installation time
+- No breaking changes - CSS selector extraction API identical
+
+Changes accepted
+
+
+============================================================

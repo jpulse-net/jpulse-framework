@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Generative-AI Development Guide v1.2.1
+# jPulse Framework / Docs / Generative-AI Development Guide v1.2.2
 
 Complete guide for site developers building jPulse applications with Gen-AI assistance, aka vibe coding, using IDEs like Cline, Cursor, GitHub Copilot, or Windsurf.
 

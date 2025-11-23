@@ -4,8 +4,8 @@
  * @tagline         Site Override Demo
  * @description     This is the dashboard page with site override demos
  * @file            site.webapp/view/hello/index.shtml
- * @version         1.2.2
- * @release         2025-11-22
+ * @version         1.2.3
+ * @release         2025-11-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -33,43 +33,10 @@
         </div>
 
         <div class="jp-dashboard-grid">
-
-            <a href="/hello/site-override.shtml" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container local-icon-container">👋</div>
-                <h3 class="jp-card-title">Site Override</h3>
-                <p class="jp-card-description">Learn how to override the framework views</p>
-            </a>
-
-            <a href="/hello/site-development.shtml" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container local-icon-container">🔨</div>
-                <h3 class="jp-card-title">Site Development</h3>
-                <p class="jp-card-description">Learn how to develop a site using the jPulse Framework</p>
-            </a>
-
-            <a href="/hello-todo/" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container local-icon-container">📋</div>
-                <h3 class="jp-card-title">To-Do MVC Demo</h3>
-                <p class="jp-card-description">Learn how to create a to-do application using the jPulse MVC pattern</p>
-            </a>
-
-            <a href="/hello-vue/" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container local-icon-container">🔄</div>
-                <h3 class="jp-card-title">Vue.js SPA Demo</h3>
-                <p class="jp-card-description">Learn how to create a single-page application using vue.js</p>
-            </a>
-
-            <a href="/hello-websocket/" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container local-icon-container">🔌</div>
-                <h3 class="jp-card-title">WebSocket Real-time Demo</h3>
-                <p class="jp-card-description">Learn how to create a real-time application using websockets</p>
-            </a>
-
-            <a href="/hello-app-cluster/" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container local-icon-container">🌍</div>
-                <h3 class="jp-card-title">App Cluster Demo</h3>
-                <p class="jp-card-description">Learn how to build scalable multi-server applications with Redis broadcasting</p>
-            </a>
-
+            <!-- Automatically include cards from other admin pages that have extract markers -->
+            {{#each file.list "hello*/*.shtml" sortBy="extract-order"}}
+                {{file.extract this}}
+            {{/each}}
         </div>
     </div>
 

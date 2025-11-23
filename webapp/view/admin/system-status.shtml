@@ -4,8 +4,8 @@
  * @tagline         Admin system status interface
  * @description     System monitoring and health dashboard for site administrators
  * @file            webapp/view/admin/system-status.shtml
- * @version         1.2.2
- * @release         2025-11-22
+ * @version         1.2.3
+ * @release         2025-11-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -41,7 +41,18 @@
         <!-- extract:start order=30 -->
         <a href="/admin/system-status.shtml" class="jp-card-dashboard jp-icon-btn">
             <div class="jp-icon-container">
-                <img src="/assets/admin/icons/system-status.svg" class="jp-icon" alt="">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 128 128" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Server/System representation -->
+                    <rect x="10" y="16" width="108" height="76" rx="8" ry="8" stroke-width="12" />
+                    <line x1="42" y1="112" x2="86" y2="112" />
+                    <line x1="64" y1="92" x2="64" y2="112" stroke-width="12" />
+                    <!-- Status indicators -->
+                    <circle cx="32" cy="38" r="4" fill="currentColor" />
+                    <circle cx="54" cy="38" r="4" fill="currentColor" />
+                    <circle cx="76" cy="38" r="4" fill="currentColor" />
+                    <!-- Performance graph lines -->
+                    <polyline points="26,75 42,65 64,70 86,55 102,60" stroke="currentColor" />
+                  </svg>
             </div>
             <h3 class="jp-card-title">{{i18n.view.admin.index.systemStatus}}</h3>
             <p class="jp-card-description">{{i18n.view.admin.index.systemStatusDesc}}</p>

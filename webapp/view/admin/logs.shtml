@@ -4,8 +4,8 @@
  * @tagline         Admin logs viewer interface
  * @description     Log analysis and search interface for site administrators
  * @file            webapp/view/admin/logs.shtml
- * @version         1.2.2
- * @release         2025-11-22
+ * @version         1.2.3
+ * @release         2025-11-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -245,7 +245,14 @@
         <!-- extract:start order=50 -->
         <a href="/admin/logs.shtml" class="jp-card-dashboard jp-icon-btn">
             <div class="jp-icon-container">
-                <img src="/assets/admin/icons/logs.svg" class="jp-icon" alt="">
+                <svg width="64" height="64" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="20" y="85" width="10" height="22" fill="currentColor"/>
+                    <rect x="36" y="64" width="10" height="43" fill="currentColor"/>
+                    <rect x="52" y="75" width="10" height="32" fill="currentColor"/>
+                    <rect x="68" y="43" width="10" height="64" fill="currentColor"/>
+                    <rect x="84" y="53" width="10" height="54" fill="currentColor"/>
+                    <rect x="100" y="32" width="10" height="75" fill="currentColor"/>
+                  </svg>
             </div>
             <h3 class="jp-card-title">{{i18n.view.admin.index.viewLogs}}</h3>
             <p class="jp-card-description">{{i18n.view.admin.index.viewLogsDesc}}</p>

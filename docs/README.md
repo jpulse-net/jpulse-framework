@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.2.2
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.2.3
 
 **For Site Administrators & Site Developers**
 
@@ -177,6 +177,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.2.3 - Professional SVG Icons**: Replaced Unicode emoji icons with professional SVG icons from lucide.dev across admin dashboard and hello demo pages. Improves visual consistency with enterprise-ready appearance and theme-flexible design using CSS `currentColor`. Added vertical alignment CSS (`h1-h6 svg { vertical-align: middle; }`) for proper icon positioning. Inline SVG implementation enables proper color inheritance from parent containers. Theme-ready icons respond to CSS color changes. No breaking changes - visual enhancement only.
 - ✅ **Version 1.2.2 - Removed jsdom Dependency**: Replaced 15-20MB jsdom package (90+ sub-dependencies) with lightweight regex-based CSS selector extraction (~50 lines of code). Uses smart tag nesting level annotation (`:~0~`, `:~1~`) with backreference matching to handle nested tags correctly. Moved jsdom to devDependencies (still used for client-side JS tests). Significantly reduces production package size, faster installs, same functionality. CSS selector extraction (`.class`, `#id`) works identically with zero external dependencies.
 - ✅ **Version 1.2.1 - File Listing & Extraction Helpers**: Generalized Handlebars helpers for automated content generation. Features `file.list` for glob pattern file discovery and `file.extract` for content extraction using three methods (comment markers, regex patterns, CSS selectors). Supports sorting by extracted order or filename, pattern parameter passing in loops, and site override via PathResolver. Security built-in with path traversal protection. Use cases include auto-populated dashboards, navigation menus, galleries, and documentation indexes. Added `PathResolver.listFiles()` method for centralized directory listing with site override support.
 - ✅ **Version 1.2.0 - Admin User Management & API Consolidation**: Complete admin user management system with flexible user identification (ObjectId, username, session), comprehensive validation (last admin protection, role safeguards), schema extension architecture for plugin support, and unified API surface. Breaking changes: removed `/api/1/user/profile` endpoints, replaced with unified `/api/1/user` and `/api/1/user/:id`. New `/api/1/user/enums` endpoint for dynamic enum retrieval. Centralized admin roles configuration via `appConfig.user.adminRoles`. Runtime schema extension via `UserModel.extendSchema()` for future plugins.

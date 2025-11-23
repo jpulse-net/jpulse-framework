@@ -4,8 +4,8 @@
  * @tagline         Real-Time WebSocket Communication Examples
  * @description     Interactive demos: emoji cursor tracking and collaborative todo
  * @file            site/webapp/view/hello-websocket/index.shtml
- * @version         1.2.2
- * @release         2025-11-22
+ * @version         1.2.3
+ * @release         2025-11-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -256,9 +256,20 @@
 </head>
 <body>
     <div class="jp-main">
+        <div style="display: none;">
+            <!-- This card is automatically included in the Hello World Site Demos dashboard at hello/index.shtml -->
+            <!-- extract:start order=50 -->
+            <a href="/hello-websocket/" class="jp-card-dashboard jp-icon-btn">
+                <div class="jp-icon-container local-icon-container"><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cable-icon lucide-cable"><path d="M17 19a1 1 0 0 1-1-1v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a1 1 0 0 1-1 1z"/><path d="M17 21v-2"/><path d="M19 14V6.5a1 1 0 0 0-7 0v11a1 1 0 0 1-7 0V10"/><path d="M21 21v-2"/><path d="M3 5V3"/><path d="M4 10a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2a2 2 0 0 1-2 2z"/><path d="M7 5V3"/></svg></div>
+                <h3 class="jp-card-title">WebSocket Real-time Demo</h3>
+                <p class="jp-card-description">Learn how to create a real-time application using websockets</p>
+            </a>
+            <!-- extract:end -->
+        </div>
+
         <div class="jp-container-1000">
             <div class="jp-page-header">
-                <h1>🔌 WebSocket Real-time Demo</h1>
+                <h1><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cable-icon lucide-cable"><path d="M17 19a1 1 0 0 1-1-1v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2a1 1 0 0 1-1 1z"/><path d="M17 21v-2"/><path d="M19 14V6.5a1 1 0 0 0-7 0v11a1 1 0 0 1-7 0V10"/><path d="M21 21v-2"/><path d="M3 5V3"/><path d="M4 10a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2a2 2 0 0 1-2 2z"/><path d="M7 5V3"/></svg> WebSocket Real-time Demo</h1>
             </div>
             <div class="local-ws-app" id="wsApp">
                 <!-- Vue app will mount here -->
@@ -280,3 +291,11 @@
     {{file.include "jpulse-footer.tmpl"}}
 </body>
 </html>
+<!--
+SVG icons from https://lucide.dev/icons/
+  - ISC License
+  - Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2023 as part of Feather (MIT).
+    All other copyright (c) for Lucide are held by Lucide Contributors 2025.
+-->
+
+<!-- EOF site/webapp/view/hello-websocket/index.shtml -->

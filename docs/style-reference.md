@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Style Reference v1.2.2
+# jPulse Framework / Docs / Style Reference v1.2.3
 
 Comprehensive CSS framework documentation for the jPulse `jp-*` styling system, providing consistent, responsive, and enterprise-ready components for web applications.
 
@@ -1008,6 +1008,7 @@ Standardized icon containers for dashboard cards:
     width: 128px;
     height: 128px;
     background-color: #007acc;
+    color: #ffffff;  /* Color inherited by inline SVG icons */
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -1015,18 +1016,23 @@ Standardized icon containers for dashboard cards:
     margin: 0 auto 1rem auto;
 }
 
-.jp-icon-container img {
+.jp-icon {
     width: 64px;
     height: 64px;
-    filter: brightness(0) invert(1); /* Make icons white */
 }
 ```
 
+**Inline SVG Icons (Recommended - Theme Ready)**:
 ```html
 <div class="jp-dashboard-grid">
     <div class="jp-card-dashboard">
         <div class="jp-icon-container">
-            <img src="/assets/admin/icons/users.svg" alt="Users">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="jp-icon">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
         </div>
         <h3>User Management</h3>
         <p>Manage user accounts and permissions</p>
@@ -1041,6 +1047,35 @@ Standardized icon containers for dashboard cards:
     </div>
 </div>
 ```
+
+### SVG Icons in Headings
+Professional SVG icons in page headings with proper vertical alignment:
+
+```css
+h1 svg, h2 svg, h3 svg, h4 svg, h5 svg, h6 svg {
+    vertical-align: middle;
+    margin-right: 8px;
+}
+```
+
+**Usage**:
+```html
+<h1>
+    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+    User Management
+</h1>
+```
+
+**Key Points**:
+- Use `vertical-align: middle` to align SVG icons with text baseline
+- Inline SVGs inherit `currentColor` from parent heading
+- Icons should be sized appropriately for the heading level (e.g., 26px for h1, 22px for h2)
+- Theme-ready: Icons automatically adapt to text color
 
 ## 🎨 Collapsible Components
 

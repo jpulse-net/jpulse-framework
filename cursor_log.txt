@@ -36613,3 +36613,57 @@ Changes accepted
 
 
 ============================================================
+2025-11-22 21:30
+
+User prompt: Replace Unicode icons with SVG from lucide.dev - need help with SVG icon alignment and currentColor issues
+
+AI action: Helped debug and fix SVG icon implementation issues
+
+AI summary:
+- Identified SVG vertical alignment problem in page headers (icons positioned too high)
+- Added CSS fix: h1-h6 svg { vertical-align: middle; margin-right: 8px; } in jpulse-common.css
+- Discovered currentColor not working with external SVG files loaded via <img> tags
+- Root cause: External SVGs don't access parent document CSS context
+- Solution: Inline SVG markup in HTML for proper color inheritance
+- Removed redundant color: currentColor from .jp-icon CSS (color inherits by default)
+- This allows SVG currentColor to properly resolve to parent container's color: #ffffff
+- Replaced admin dashboard icons: config.svg, users.svg, system-status.svg, websocket.svg, logs.svg
+- Replaced hello demo page icons with lucide.dev SVG icons
+- Updated test: webapp/tests/unit/site/hello-todo-structure.test.js to be icon-agnostic
+- Test now checks for page title text without requiring specific emoji prefix
+- All 14 tests passing after fix
+
+Technical notes:
+- SVG icons from lucide.dev (ISC License, open source)
+- Inline SVGs required for currentColor to work with parent CSS color inheritance
+- Admin dashboard icons now theme-ready and professional looking
+- Proper vertical alignment achieved with vertical-align: middle on svg elements
+- No code duplication issue since admin icons only used once per page
+
+Changes accepted
+
+
+============================================================
+2025-11-22 21:50
+
+User prompt: Release prep for W-096, v1.2.3
+
+AI action: Updated all release documentation files
+
+AI summary:
+- Updated docs/dev/work-items.md: W-096 marked as completed with full deliverables documented
+- Updated docs/CHANGELOG.md: Added v1.2.3 entry with comprehensive implementation details
+- Updated commit-message.txt: Full commit message following project format
+- Updated cursor_log.txt: This session log entry
+- Documented CSS enhancements, admin dashboard icons, hello demo pages, and test updates
+- Noted technical details about inline SVGs, color inheritance, and vertical alignment
+- Benefits: Professional appearance, theme-ready icons, consistent design, accessibility
+- Files modified: CSS, admin pages, hello demo pages, tests, and all documentation
+- Migration: No breaking changes - visual enhancement only
+
+Ready for version bump and release
+
+Changes accepted
+
+
+============================================================

@@ -4,8 +4,8 @@
  * @tagline         Multi-Server Application Clustering Examples
  * @description     Interactive demos: global notifications and collaborative todo with Redis broadcasting
  * @file            site/webapp/view/hello-app-cluster/index.shtml
- * @version         1.2.2
- * @release         2025-11-22
+ * @version         1.2.3
+ * @release         2025-11-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -76,9 +76,20 @@
 </head>
 <body>
     <div class="jp-main">
+        <div style="display: none;">
+            <!-- This card is automatically included in the Hello World Site Demos dashboard at hello/index.shtml -->
+            <!-- extract:start order=60 -->
+            <a href="/hello-app-cluster/" class="jp-card-dashboard jp-icon-btn">
+                <div class="jp-icon-container local-icon-container"><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-server-icon lucide-server"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg></div>
+                <h3 class="jp-card-title">App Cluster Demo</h3>
+                <p class="jp-card-description">Learn how to build scalable multi-server applications with Redis broadcasting</p>
+            </a>
+            <!-- extract:end -->
+        </div>
+
         <div class="jp-container-1200">
             <div class="jp-page-header">
-                <h1>🌍 App Cluster Demo</h1>
+                <h1><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-server-icon lucide-server"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg> App Cluster Demo</h1>
                 <span class="jp-subtitle">Learn how to build scalable multi-server applications with Redis broadcasting</span>
             </div>
 
@@ -297,3 +308,11 @@
     {{file.include "jpulse-footer.tmpl"}}
 </body>
 </html>
+<!--
+SVG icons from https://lucide.dev/icons/
+  - ISC License
+  - Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2023 as part of Feather (MIT).
+    All other copyright (c) for Lucide are held by Lucide Contributors 2025.
+-->
+
+<!-- EOF site/webapp/view/hello-app-cluster/index.shtml -->

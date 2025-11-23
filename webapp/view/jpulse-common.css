@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.2.2
- * @release         2025-11-22
+ * @version         1.2.3
+ * @release         2025-11-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1853,6 +1853,15 @@ body {
     margin-bottom: 15px;
 }
 
+.jp-page-header h1 svg,
+.jp-page-header h2 svg,
+.jp-page-header h3 svg {
+    vertical-align: text-bottom;
+    margin-right: 6px;
+    position: relative;
+    top: -5px;
+}
+
 @media (max-width: 768px) {
     .jp-page-header {
         flex-direction: column;
@@ -3001,6 +3010,7 @@ Example site customizations:
     width: 128px;
     height: 128px;
     background-color: #007acc;
+    color: #ffffff;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -3016,8 +3026,6 @@ Example site customizations:
 .jp-icon {
     width: 64px;
     height: 64px;
-    fill: white;
-    color: white;
 }
 
 .jp-card-title {

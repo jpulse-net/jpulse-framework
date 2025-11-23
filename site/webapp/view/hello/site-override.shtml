@@ -4,8 +4,8 @@
  * @tagline         Demo Site View Override
  * @description     Example of how to override framework views
  * @file            site/webapp/view/hello/index.shtml
- * @version         1.2.2
- * @release         2025-11-22
+ * @version         1.2.3
+ * @release         2025-11-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,8 +21,19 @@
 </head>
 <body>
     <div class="jp-main">
+        <div style="display: none;">
+            <!-- This card is automatically included in the Hello World Site Demos dashboard at hello/index.shtml -->
+            <!-- extract:start order=10 -->
+            <a href="/hello/site-override.shtml" class="jp-card-dashboard jp-icon-btn">
+                <div class="jp-icon-container local-icon-container"><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-align-vertical-justify-center-icon lucide-align-vertical-justify-center"><rect width="14" height="6" x="5" y="16" rx="2"/><rect width="10" height="6" x="7" y="2" rx="2"/><path d="M2 12h20"/></svg></div>
+                <h3 class="jp-card-title">Site Override</h3>
+                <p class="jp-card-description">Learn how to override the framework views</p>
+            </a>
+            <!-- extract:end -->
+        </div>
+
         <div class="jp-page-header">
-            <h1>👋 Site Override</h1>
+            <h1><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-align-vertical-justify-center-icon lucide-align-vertical-justify-center"><rect width="14" height="6" x="5" y="16" rx="2"/><rect width="10" height="6" x="7" y="2" rx="2"/><path d="M2 12h20"/></svg> Site Override</h1>
         </div>
 
         <div class="jp-info-box">
@@ -153,5 +164,11 @@
     {{file.include "jpulse-footer.tmpl"}}
 </body>
 </html>
+<!--
+SVG icons from https://lucide.dev/icons/
+  - ISC License
+  - Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2023 as part of Feather (MIT).
+    All other copyright (c) for Lucide are held by Lucide Contributors 2025.
+-->
 
 <!-- EOF site/webapp/view/hello/index.shtml -->

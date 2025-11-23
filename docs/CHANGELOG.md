@@ -1,6 +1,57 @@
-# jPulse Framework / Docs / Version History v1.2.2
+# jPulse Framework / Docs / Version History v1.2.3
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.2.3, W-096, 2025-11-23
+
+**Commit:** `W-096, v1.2.3: view: replace Unicode icons with svg images`
+
+**UI ENHANCEMENT**: Replaced Unicode emoji icons with professional SVG icons from lucide.dev across admin dashboard and hello demo pages. Improves visual consistency and provides theme-ready icons using CSS currentColor.
+
+**Objective**: Replace emoji-based icons with professional SVG icons for a more polished, enterprise-ready appearance while maintaining theme flexibility.
+
+**Implementation**:
+- **CSS Enhancements** (`webapp/view/jpulse-common.css`):
+  - Added vertical alignment for SVG icons in headings: `h1 svg, h2 svg, h3 svg { vertical-align: middle; }`
+  - Removed redundant `color: currentColor` from `.jp-icon` (color inherits by default from parent)
+  - SVG icons now properly align with text in page headers
+- **Admin Dashboard Icons** (`webapp/view/admin/*.shtml`):
+  - Replaced `<img src="*.svg">` tags with inline SVG markup
+  - Icons: Site Config (⚙️ → settings icon), Users (👥 → users icon), System Status (💻 → monitor icon), WebSocket (🔌 → outlet icon), View Logs (📊 → bar chart icon)
+  - Inline SVGs properly inherit `color: #ffffff` from `.jp-icon-container`
+  - Theme-ready: Icons respond to CSS color changes
+- **Hello Demo Pages** (`site/webapp/view/hello*/*.shtml`):
+  - Replaced emoji icons (📋, 🌐, 📡, etc.) with lucide.dev SVG icons
+  - Updated page headers and dashboard cards with inline SVG markup
+  - Maintained extract markers for dynamic dashboard generation
+- **Test Updates** (`webapp/tests/unit/site/hello-todo-structure.test.js`):
+  - Updated navigation test to be icon-agnostic (checks for text, not emoji)
+  - Test now works with any icon format (emoji, SVG, or future alternatives)
+
+**Benefits**:
+- ✅ **Professional Appearance**: SVG icons look crisp at all resolutions
+- ✅ **Theme Ready**: Icons use `currentColor` and respond to parent container colors
+- ✅ **Consistent Design**: Unified icon style across framework
+- ✅ **Open Source Icons**: lucide.dev icons (ISC License, free to use)
+- ✅ **Better Accessibility**: SVG icons with proper semantic markup
+
+**Technical Details**:
+- **Why Inline SVGs**: External SVG files loaded via `<img>` tags cannot access parent document CSS context, so `currentColor` doesn't work. Inlining SVGs allows proper color inheritance.
+- **Vertical Alignment**: SVG elements default to `vertical-align: baseline`, which positions them too high. Using `vertical-align: middle` aligns icons properly with text.
+- **Color Inheritance**: Removed redundant `color: currentColor` from `.jp-icon` since color is inherited by default. This allows SVG `currentColor` to properly resolve to parent's `color: #ffffff`.
+
+**Files Modified**:
+- `webapp/view/jpulse-common.css`: Added SVG vertical alignment styles
+- `webapp/view/admin/*.shtml`: Replaced img tags with inline SVG icons
+- `site/webapp/view/hello*/*.shtml`: Replaced emoji with inline SVG icons
+- `webapp/tests/unit/site/hello-todo-structure.test.js`: Updated icon test
+
+**Migration**: No breaking changes - visual enhancement only
+
+**SVG Source**: Icons from [lucide.dev](https://lucide.dev/) - ISC License, Copyright (c) Lucide Contributors 2025
+
+**Release Date**: 2025-11-23
 
 ________________________________________________
 ## v1.2.2, W-095, 2025-11-22

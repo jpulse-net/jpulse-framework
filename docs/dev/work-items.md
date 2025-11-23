@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.2.2
+# jPulse Framework / Docs / Dev / Work Items v1.2.3
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1940,9 +1940,31 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-
-
-
+### W-096, v1.2.3: view: replace Unicode icons with svg images
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: more professional look
+- deliverables:
+  - webapp/view/jpulse-common.css
+    - added vertical-align CSS for SVG icons in headings (h1-h6 svg)
+    - define default white color for card icons (in preparation for dark & light themes)
+  - webapp/view/admin/*.shtml
+    - replaced <img> tags with inline SVG images
+    - inline SVGs properly inherit color from .jp-icon-container (white on blue)
+    - theme-ready: currentColor in SVGs responds to parent container color
+  - site/webapp/view/hello*/*.shtml
+    - replaced Unicode emoji icons with inline SVG images from lucide.dev
+    - defined extract markers for use in dynamic Hello World Demos dashboard cards
+    - SVG icons in page headers properly aligned using vertical-align CSS
+  - site/webapp/view/hello/index.shtml
+    - replaced hard-coded card grid with dynamic grid based on extract markers
+  - webapp/tests/unit/site/hello-todo-structure.test.js
+    - updated test to check for icon-agnostic page titles (works with emoji or SVG)
+- technical notes:
+  - SVG icons from lucide.dev
+  - inline SVGs required for currentColor to work (external <img> SVGs don't inherit parent CSS color)
+  - proper vertical alignment achieved with h1-h6 svg { vertical-align: middle; }
+  - admin dashboard icons now theme-ready and professional looking
 
 
 
@@ -1987,8 +2009,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-095, v1.2.2
-- update deliverables in W-095 work-items to document work done (don't make any other changes to this file)
+- assume release: W-096, v1.2.3
+- update deliverables in W-096 work-items to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -2005,12 +2027,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.2.2
+node bin/bump-version.js 1.2.3
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.2.2
+git tag v1.2.3
 git push origin main --tags
 
 === on failed package build on github ===

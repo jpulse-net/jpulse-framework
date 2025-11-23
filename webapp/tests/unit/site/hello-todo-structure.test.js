@@ -3,8 +3,8 @@
  * @tagline         Unit tests for refactored hello-todo MPA structure
  * @description     Tests for the 4-page hello-todo MPA structure (W-075 refactor)
  * @file            webapp/tests/unit/hello-todo-structure.test.js
- * @version         1.2.2
- * @release         2025-11-22
+ * @version         1.2.3
+ * @release         2025-11-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -62,12 +62,13 @@ describe('Hello-Todo MPA Structure', () => {
     });
 
     describe('Navigation Consistency', () => {
-        test('all pages should have breadcrumb with emoji icon', () => {
+        test('all pages should have breadcrumb with icon', () => {
             const pages = ['index.shtml', 'todo-app.shtml', 'code-examples.shtml', 'architecture.shtml'];
 
             pages.forEach(page => {
                 const content = fs.readFileSync(path.join(helloTodoDir, page), 'utf-8');
-                expect(content).toContain('📋 To-Do MVC Demo');
+                // Check for page title (now uses SVG icon instead of emoji)
+                expect(content).toContain('To-Do MVC Demo');
             });
         });
 

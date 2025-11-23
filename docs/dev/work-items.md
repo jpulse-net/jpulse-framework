@@ -1926,22 +1926,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/controller/handlebar.js -- replaced jsdom with smart regex extraction using tag nesting level annotation
   - package.json -- moved jsdom from dependencies to devDependencies (only needed for client-side JS tests)
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-096, v1.2.3: view: replace Unicode icons with svg images
-- status: 🚧 IN_PROGRESS
+- status: DONE ✅
 - type: Feature
 - objective: more professional look
 - deliverables:
@@ -1965,6 +1951,30 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - inline SVGs required for currentColor to work (external <img> SVGs don't inherit parent CSS color)
   - proper vertical alignment achieved with h1-h6 svg { vertical-align: middle; }
   - admin dashboard icons now theme-ready and professional looking
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-097, v1.2.4: handebars: define and use reusable components
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: reusable components to reduce code duplication, such as with multiple inline SVG images
+- working document:
+  - docs/dev/working/W-097-handlebars-use-components.md
+- deliverables:
+  - FIXME file -- summary
+
 
 
 

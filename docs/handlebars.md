@@ -357,6 +357,158 @@ In the source file (`admin/users.shtml`):
 - Site overrides: Automatically uses site overrides when available
 - Security: Path traversal protection, errors logged server-side only
 
+## Reusable Components
+
+The jPulse Framework supports reusable Handlebars components for eliminating code duplication. Components are template fragments that can be defined once and reused multiple times with different parameters.
+
+### Component Definition
+
+Define components using the `{{#component}}` block helper:
+
+```handlebars
+{{#component "button-primary" text="Click Me" size="medium"}}
+    <button class="btn btn-primary btn-{{size}}">
+        {{text}}
+    </button>
+{{/component}}
+```
+
+**Component naming rules:**
+- Must start with a letter
+- Can contain letters, numbers, underscores, and hyphens
+- Must end with a letter or number
+- Examples: `icon-box`, `userCard`, `Button_Large`, `svg-icon-2`
+
+### Component Usage
+
+Use components with the `{{use.componentName}}` syntax:
+
+```handlebars
+<!-- Use with default parameters -->
+{{use.buttonPrimary}}
+
+<!-- Override specific parameters -->
+{{use.buttonPrimary text="Submit" size="large"}}
+```
+
+**Naming convention:**
+- Component names are converted from kebab-case to camelCase for usage
+- `logs-svg` becomes `{{use.logsSvg}}`
+- `user-card` becomes `{{use.userCard}}`
+- `icon` remains `{{use.icon}}`
+
+### Component Libraries
+
+Create reusable component libraries by defining multiple components in `.tmpl` files:
+
+**File: `webapp/view/components/svg-icons.tmpl`**
+```handlebars
+{{!-- SVG Icon Component Library --}}
+
+{{#component "logs-svg" fillColor="currentColor" size="64"}}
+    <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none">
+        <rect x="20" y="85" width="10" height="22" fill="{{fillColor}}"/>
+        <rect x="36" y="64" width="10" height="43" fill="{{fillColor}}"/>
+        <rect x="52" y="75" width="10" height="32" fill="{{fillColor}}"/>
+    </svg>
+{{/component}}
+
+{{#component "users-svg" fillColor="currentColor" size="64"}}
+    <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none">
+        <circle cx="64" cy="36" r="20" fill="{{fillColor}}"/>
+        <path d="M 25 100 Q 25 68, 64 68 T 103 100" fill="{{fillColor}}"/>
+    </svg>
+{{/component}}
+```
+
+**Import and use in your pages:**
+```handlebars
+{{file.include "components/svg-icons.tmpl"}}
+
+<div class="icon-container">
+    {{use.logsSvg size="48" fillColor="#007bff"}}
+</div>
+
+<div class="icon-container">
+    {{use.usersSvg size="32"}}
+</div>
+```
+
+### Nested Components
+
+Components can call other components:
+
+```handlebars
+{{#component "icon-with-label" icon="default" label="Item"}}
+    <div class="icon-label-wrapper">
+        {{use.{{icon}}}}
+        <span>{{label}}</span>
+    </div>
+{{/component}}
+
+{{#component "default-icon" size="24"}}
+    <svg width="{{size}}" height="{{size}}">...</svg>
+{{/component}}
+
+<!-- Usage -->
+{{use.iconWithLabel icon="defaultIcon" label="Dashboard"}}
+```
+
+**Limitations:**
+- Maximum nesting depth: 16 levels (configurable in `appConfig.controller.handlebar.maxIncludeDepth`)
+- Circular references are detected and prevented
+- Components do not inherit variables from calling context (pass parameters explicitly)
+
+### Error Handling
+
+Component errors are handled gracefully:
+
+**Development/Test Mode:**
+```handlebars
+{{use.nonexistentComponent}}
+<!-- Generates: <!-- Error: Component "nonexistentComponent" not found. Did you forget to include the component library? --> -->
+```
+
+**Production Mode:**
+- Errors are logged server-side only
+- No visible output in rendered HTML
+
+**Circular reference detection:**
+```handlebars
+{{#component "comp-a"}}
+    {{use.compB}}
+{{/component}}
+
+{{#component "comp-b"}}
+    {{use.compA}}
+{{/component}}
+
+{{use.compA}}
+<!-- Generates: <!-- Error: Circular component reference detected: compA → compB → compA --> -->
+```
+
+### Best Practices
+
+1. **Organize components in libraries:**
+   - Create themed component files: `svg-icons.tmpl`, `buttons.tmpl`, `cards.tmpl`
+   - Store in `webapp/view/components/` or `site/webapp/view/components/`
+
+2. **Use descriptive names:**
+   - Good: `icon-user`, `button-primary`, `card-dashboard`
+   - Avoid: `icon1`, `btn`, `c`
+
+3. **Provide sensible defaults:**
+   - Set default parameter values that work in most cases
+   - Override only when needed
+
+4. **Keep components focused:**
+   - Each component should do one thing well
+   - Combine simple components for complex UI elements
+
+5. **Document your components:**
+   - Add comments explaining parameters and usage
+   - Provide examples in component library files
+
 ### Error Handling
 
 The Handlebars system includes robust error handling:

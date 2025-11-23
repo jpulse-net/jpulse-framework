@@ -2631,6 +2631,12 @@ window.jPulse = {
             _renderIcon: (icon, wrapperClass = 'jp-nav-icon') => {
                 if (!icon) return '';
 
+                // Check if it's inline SVG markup (from component)
+                if (icon.trim().startsWith('<svg')) {
+                    // Wrap SVG for consistent styling (sizing, positioning, margins)
+                    return '<span class="' + wrapperClass + ' ' + wrapperClass + '-svg">' + icon + '</span>';
+                }
+
                 // Check if it's an image file (has known extension)
                 const imageExtensions = ['.jpg', '.jpeg', '.png', '.svg', '.gif'];
                 const isImageFile = imageExtensions.some(ext => icon.toLowerCase().endsWith(ext));

@@ -43,34 +43,34 @@
                 config: {
                     label:      '{{i18n.view.navigation.admin.config}}',
                     url:        '/admin/config.shtml',
-                    icon:       'assets/admin/icons/config.svg'
+                    icon:       `{{use.icons.configSvg size="24" _inline=true}}`
                 },
                 users: {
                     label:      '{{i18n.view.navigation.admin.users}}',
                     url:        '/admin/users.shtml',
-                    icon:       'assets/admin/icons/users.svg',
+                    icon:       '{{use.icons.usersSvg size="24" _inline=true}}',
                     pages: {
                         userProfile: {
                             label:      '{{i18n.view.navigation.admin.userProfile}}',
                             url:        '/admin/user-profile.shtml',
-                            icon:       'assets/admin/icons/user.svg'
+                            icon:       '{{use.icons.userSvg size="24" _inline=true}}'
                         }
                     }
                 },
                 systemStatus: {
                     label:      '{{i18n.view.navigation.admin.systemStatus}}',
                     url:        '/admin/system-status.shtml',
-                    icon:       'assets/admin/icons/system-status.svg'
+                    icon:       '{{use.icons.systemStatusSvg size="24" _inline=true}}'
                 },
                 websocket: {
                     label:      '{{i18n.view.navigation.admin.websocket._index}}',
                     url:        '/admin/websocket-status.shtml',
-                    icon:       'assets/admin/icons/websocket.svg',
+                    icon:       '{{use.icons.websocketSvg size="24" _inline=true}}',
                     pages: {
                         websocketStatus: {
                             label:    '{{i18n.view.navigation.admin.websocket.websocketStatus}}',
                             url:      '/admin/websocket-status.shtml',
-                            icon:     'assets/admin/icons/websocket.svg'
+                            icon:     '{{use.icons.websocketSvg size="24" _inline=true}}'
                         },
                         websocketTest: {
                             label:    '{{i18n.view.navigation.admin.websocket.websocketTest}}',
@@ -82,7 +82,7 @@
                 logs: {
                     label:      '{{i18n.view.navigation.admin.logs}}',
                     url:        '/admin/logs.shtml',
-                    icon:       'assets/admin/icons/logs.svg'
+                    icon:       '{{use.icons.logsSvg size="24" _inline=true}}'
                 }
             }
         },

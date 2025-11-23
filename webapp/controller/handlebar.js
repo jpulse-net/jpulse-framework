@@ -307,7 +307,36 @@ class HandlebarController {
      * @param {number} depth - Current include depth for recursion protection
      * @returns {string} Processed content
      */
+    /**
+     * Public API: Expand handlebars template with per-request component registry
+     * W-097 Phase 1: Initializes component registry on first call (depth 0)
+     * @param {object} req - Express request object
+     * @param {string} template - Template to expand
+     * @param {object} additionalContext - Additional context to merge
+     * @param {number} depth - Recursion depth (for include tracking)
+     * @returns {string} Expanded template
+     */
     static async expandHandlebars(req, template, additionalContext = {}, depth = 0) {
+        // W-097 Phase 1: Initialize per-request component registry ONCE
+        // Registry is transient - created at start of page rendering, discarded when done
+        if (depth === 0) {
+            req.componentRegistry = new Map();
+            req.componentCallStack = [];
+        }
+
+        // Delegate to internal recursive implementation
+        return await this._expandHandlebars(req, template, additionalContext, depth);
+    }
+
+    /**
+     * Internal: Recursive handlebars expansion implementation
+     * @param {object} req - Express request object
+     * @param {string} template - Template to expand
+     * @param {object} additionalContext - Additional context to merge
+     * @param {number} depth - Recursion depth
+     * @returns {string} Expanded template
+     */
+    static async _expandHandlebars(req, template, additionalContext = {}, depth = 0) {
         // Prevent infinite recursion
         const MAX_DEPTH = global.appConfig.controller.handlebar.maxIncludeDepth || 16;
         if (depth > MAX_DEPTH) {
@@ -349,6 +378,8 @@ class HandlebarController {
                     return _handleBlockUnless(params, blockContent, currentContext);
                 case 'each':
                     return await _handleBlockEach(params, blockContent, currentContext);
+                case 'component':
+                    return await _handleComponentDefinition(params, blockContent, currentContext);
                 default:
                     throw new Error(`Unknown block type: #${blockType}`);
             }
@@ -360,6 +391,17 @@ class HandlebarController {
         async function _evaluateHandlebar(expression, currentContext) {
             const parsedArgs = _parseArguments(expression);
             const helper = parsedArgs._helper;
+
+            // W-097 Phase 1: Handle use.componentName pattern
+            if (helper && helper.startsWith('use.')) {
+                const componentName = helper.substring(4); // Remove 'use.' prefix
+                // Reconstruct params string for parseHelperArgs
+                const paramsString = Object.keys(parsedArgs)
+                    .filter(k => k !== '_helper')
+                    .map(k => k === '_target' ? `"${parsedArgs[k]}"` : `${k}="${parsedArgs[k]}"`)
+                    .join(' ');
+                return await _handleComponentUse(componentName, paramsString, currentContext);
+            }
 
             // Handle helper functions first (before property access)
             switch (helper) {
@@ -624,9 +666,143 @@ class HandlebarController {
 
             LogController.logInfo(req, 'handlebar.expandHandlebars', `Include processed: ${includePath}${hasContextVars ? ' (with context vars)' : ''}`);
 
-            // Process handlebars with the include context (recursive call)
-            const processed = await self.expandHandlebars(req, cleanContent, includeContext, depth + 1);
+            // Process handlebars with the include context (recursive call to internal implementation)
+            const processed = await self._expandHandlebars(req, cleanContent, includeContext, depth + 1);
             return processed;
+        }
+
+        /**
+         * W-097 Phase 1: Handle component definition
+         * Syntax: {{#component "component-name" param="default"}}...{{/component}}
+         * Registers component in per-request registry (no output)
+         */
+        async function _handleComponentDefinition(params, blockContent, currentContext) {
+            // Parse component name and parameters
+            const parsedArgs = self._parseHelperArgs(params);
+
+            // First parameter is the component name (required)
+            const componentName = parsedArgs._target;
+            if (!componentName) {
+                throw new Error('component definition requires a name as first parameter');
+            }
+
+            // W-097 Phase 1: Validate component name format (supports optional dot-notation namespaces)
+            // Examples: config-svg, icons.config-svg, ui.buttons.primary
+            if (!/^[a-z][\w\-\.]*[a-z0-9]$/i.test(componentName)) {
+                throw new Error(
+                    `Invalid component name "${componentName}". ` +
+                    `Must start with a letter, contain only letters/numbers/underscores/hyphens/dots, ` +
+                    `and end with a letter or number.`
+                );
+            }
+
+            // W-097 Phase 1: Convert component name for usage
+            // Examples: logs-svg → logsSvg, icons.config-svg → icons.configSvg
+            const usageName = self._convertComponentName(componentName);
+
+            // Extract default parameters (excluding _helper and _target)
+            const defaultParams = {};
+            for (const [key, value] of Object.entries(parsedArgs)) {
+                if (key !== '_helper' && key !== '_target') {
+                    defaultParams[key] = value;
+                }
+            }
+
+            // Register component in per-request registry
+            req.componentRegistry.set(usageName, {
+                originalName: componentName,
+                template: blockContent,
+                defaults: defaultParams
+            });
+
+            LogController.logInfo(req, 'handlebar.component',
+                `Component registered: ${componentName} (use as: {{use.${usageName}}})`
+            );
+
+            // Component definition produces no output
+            return '';
+        }
+
+        /**
+         * W-097 Phase 1: Handle component usage
+         * Syntax: {{use.componentName param="value"}}
+         * Renders component with provided parameters
+         */
+        async function _handleComponentUse(componentName, params, currentContext) {
+            // Check if component exists in registry
+            if (!req.componentRegistry.has(componentName)) {
+                const error = `Component "${componentName}" not found. Did you forget to include the component library?`;
+                LogController.logError(req, 'handlebar.use', error);
+
+                // Return visible error except in production (safer default)
+                if (global.appConfig.env !== 'production') {
+                    return `<!-- Error: ${error} -->`;
+                }
+                return '';
+            }
+
+            // Check for circular reference
+            if (req.componentCallStack.includes(componentName)) {
+                const callChain = [...req.componentCallStack, componentName].join(' → ');
+                const error = `Circular component reference detected: ${callChain}`;
+                LogController.logError(req, 'handlebar.use', error);
+                return `<!-- Error: ${error} -->`;
+            }
+
+            // Check nesting depth
+            const MAX_DEPTH = global.appConfig.controller.handlebar.maxIncludeDepth || 16;
+            if (req.componentCallStack.length >= MAX_DEPTH) {
+                const error = `Component nesting too deep (max ${MAX_DEPTH}): ${req.componentCallStack.join(' → ')}`;
+                LogController.logError(req, 'handlebar.use', error);
+                return `<!-- Error: ${error} -->`;
+            }
+
+            // Get component definition
+            const component = req.componentRegistry.get(componentName);
+
+            // Parse parameters from usage
+            const parsedArgs = self._parseHelperArgs(params);
+
+            // W-097 Phase 1: Check for _inline directive (framework parameter)
+            const shouldInline = parsedArgs._inline === 'true' || parsedArgs._inline === true;
+
+            // W-097 Phase 1: Filter out framework parameters (those starting with _)
+            // Framework params: _helper, _target, _inline, etc.
+            const userParams = {};
+            for (const [key, value] of Object.entries(parsedArgs)) {
+                if (!key.startsWith('_')) {
+                    userParams[key] = value;
+                }
+            }
+
+            // Merge parameters: context + defaults + user params (framework params excluded)
+            const componentContext = {
+                ...currentContext,
+                ...component.defaults,
+                ...userParams
+            };
+
+            // Track call stack for circular reference detection
+            req.componentCallStack.push(componentName);
+
+            try {
+                // Recursively expand component template
+                let result = await _resolveHandlebars(component.template, componentContext);
+
+                // W-097 Phase 1: Apply _inline transformation if requested
+                // Removes newlines and extra whitespace for JavaScript string compatibility
+                if (shouldInline) {
+                    result = result
+                        .replace(/\r?\n/g, ' ')      // Replace newlines with spaces
+                        .replace(/\s+/g, ' ')        // Collapse multiple spaces
+                        .trim();                      // Remove leading/trailing whitespace
+                }
+
+                return result;
+            } finally {
+                // Always pop from call stack
+                req.componentCallStack.pop();
+            }
         }
 
         /**
@@ -1091,6 +1267,57 @@ class HandlebarController {
         result = result.replace(/\{\{([#\/][a-z]+):~\d+~(.*?)\}\}/g, '<!-- Error: Unbalanced handlebar "$1$2" removed -->');
 
         return result;
+    }
+
+    /**
+     * W-097 Phase 1: Convert component name to usage name
+     * Converts kebab-case to camelCase, preserving dot-notation namespaces
+     * Examples:
+     *   - logs-svg → logsSvg
+     *   - icons.config-svg → icons.configSvg
+     *   - ui.buttons.primary → ui.buttons.primary
+     * @param {string} componentName - Original component name
+     * @returns {string} Usage name (camelCase with optional dot namespaces)
+     */
+    static _convertComponentName(componentName) {
+        // Handle dot-notation namespaces by converting each segment separately
+        const segments = componentName.split('.');
+        const convertedSegments = segments.map(segment => {
+            // If no hyphens in segment, use as-is
+            if (!segment.includes('-')) {
+                return segment;
+            }
+            // Convert kebab-case to camelCase for this segment
+            return segment.replace(/-([a-z0-9])/gi, (match, letter) => letter.toUpperCase());
+        });
+        return convertedSegments.join('.');
+    }
+
+    /**
+     * W-097 Phase 1: Parse helper arguments
+     * Parses "name" param1="value1" param2="value2" format
+     * @param {string} argsString - Arguments string
+     * @returns {object} Parsed arguments with _target for name
+     */
+    static _parseHelperArgs(argsString) {
+        const args = { _helper: true };
+
+        // Match first quoted string as _target
+        const targetMatch = argsString.match(/^["']([^"']+)["']/);
+        if (targetMatch) {
+            args._target = targetMatch[1];
+            // Remove target from string for further parsing
+            argsString = argsString.substring(targetMatch[0].length).trim();
+        }
+
+        // Match key="value" pairs
+        const paramRegex = /(\w+)=["']([^"']*)["']/g;
+        let match;
+        while ((match = paramRegex.exec(argsString)) !== null) {
+            args[match[1]] = match[2];
+        }
+
+        return args;
     }
 
     /**

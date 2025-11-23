@@ -36667,3 +36667,135 @@ Changes accepted
 
 
 ============================================================
+2025-11-23 00:35
+
+User prompt: I can spot an issue in the handlebar code:
+- expandHandlebars() is called by the view controller -- ok
+- expandHandlebars() is called recursively by itself on file.include and at another place
+- componentRegistry is initialized at the beginning of expandHandlebars() -- issue
+- options:
+  - define outside, initialize on first call -- race condition issue?
+  - define an internal _expandHandlebars() function, do the componentRegistry init at the beginning of public expandHandlebars() -- likely cleaner
+
+AI action: Refactored HandlebarController to separate public API from internal recursive implementation (W-097 Phase 1 completion)
+
+AI summary:
+Architecture refactoring:
+- Created new public expandHandlebars() method that initializes component registry when depth === 0
+- Renamed original expandHandlebars() to _expandHandlebars() for internal recursive use
+- Component registry now initialized exactly once per request at the start of rendering
+- All recursive calls updated to use _expandHandlebars() instead of expandHandlebars()
+- Benefits: Clean separation of concerns, no conditional checks in recursive function, clear intent
+
+Component implementation (W-097 Phase 1):
+- Added _handleComponentDefinition() to parse and register components with validation
+- Added _handleComponentUse() to look up and render components with error handling
+- Added _convertComponentName() to convert kebab-case to camelCase (logs-svg → logsSvg)
+- Added circular reference detection using call stack with max depth of 16
+- Components registered in per-request transient registry (req.componentRegistry)
+- Error handling: HTML comments in dev/test, silent in production
+
+Unit testing:
+- Created handlebar-components.test.js with 13 comprehensive tests
+- Tests cover: component definition, usage, naming, parameters, nesting, circular refs, imports
+- Fixed test issues: mock request object, error message format, environment detection
+- All 13 tests passing: component name conversion, registration, rendering, error handling
+
+Documentation:
+- Updated docs/handlebars.md with new "Reusable Components" section
+- Documented component definition syntax: {{#component "name" param="default"}}...{{/component}}
+- Documented component usage syntax: {{use.componentName param="value"}}
+- Covered component libraries, nested components, error handling, and best practices
+- Added examples for SVG icon libraries and common use cases
+
+Technical details:
+- Components stored with converted names in registry (logsSvg not logs-svg)
+- Maximum nesting depth: 16 levels (configurable)
+- Circular reference detection: tracks call stack and prevents infinite loops
+- Error format: <!-- Error: message --> in development, silent in production
+- No breaking changes - backward compatible enhancement
+
+Files modified:
+- webapp/controller/handlebar.js: 100+ lines of new component functionality
+- webapp/tests/unit/controller/handlebar-components.test.js: New test file with 13 tests
+- docs/handlebars.md: Added comprehensive component documentation section
+
+Benefits:
+- Eliminates code duplication for reusable UI elements (SVG icons, buttons, cards)
+- Clean architecture with proper separation of public vs internal methods
+- Comprehensive test coverage ensures reliability
+- Well-documented for easy adoption by developers
+
+W-097 Phase 1 completed successfully!
+
+
+
+============================================================
+2025-11-23 01:01
+
+User prompt: Implement _inline parameter for components and add optional dot-notation namespaces
+
+AI action: Enhanced W-097 Phase 1 component system with _inline parameter and optional namespacing
+
+AI summary:
+_inline parameter implementation:
+- Added _inline="true" parameter to collapse multiline output to single line
+- Replaces newlines with spaces, collapses multiple spaces
+- Framework parameter (starts with _) - filtered from component context
+- Works with quoted syntax: _inline="true" (not _inline=true)
+- Useful for JavaScript strings where backticks aren't available
+- Tests: 3 tests added, all passing
+
+Dot-notation namespace support (optional):
+- Updated component name regex: /^[a-z][\w\-\.]*[a-z0-9]$/i (allows dots)
+- Enhanced _convertComponentName() to handle namespaces
+- Converts each segment: icons.config-svg → icons.configSvg
+- Registry stores full dotted name: registry.get('icons.configSvg')
+- Supports multi-level: ui.buttons.primary → ui.buttons.primary
+- Backward compatible: flat names still work (configSvg)
+- Tests: 4 namespace tests added, all passing
+
+Usage examples:
+```handlebars
+<!-- Flat (backward compatible) -->
+{{#component "config-svg" size="64"}}...{{/component}}
+{{use.configSvg size="24"}}
+
+<!-- Namespaced (new) -->
+{{#component "icons.config-svg" size="64"}}...{{/component}}
+{{use.icons.configSvg size="24" _inline="true"}}
+
+<!-- Multi-level namespace -->
+{{#component "ui.buttons.primary" text="Click"}}...{{/component}}
+{{use.ui.buttons.primary text="Submit"}}
+```
+
+Implementation details:
+- Simple regex change - no nested object awareness needed
+- Registry remains flat with dotted keys
+- Name conversion handles each dot-separated segment
+- Framework parameters (_*) automatically filtered
+- Optional feature - gradual adoption path
+
+Test results:
+- 20 tests passing (up from 13)
+- New tests for namespaces and _inline parameter
+- No linter errors
+- All existing tests still passing
+
+Benefits:
+- Scales cleanly to large component libraries
+- Self-documenting component organization
+- Prevents name collisions (icons.button vs forms.button)
+- Optional adoption - existing code unaffected
+- _inline provides flexibility for JavaScript contexts
+
+Files modified:
+- webapp/controller/handlebar.js: Enhanced component validation and name conversion
+- webapp/tests/unit/controller/handlebar-components.test.js: Added namespace tests
+
+W-097 Phase 1 enhancements completed successfully!
+
+
+============================================================
+

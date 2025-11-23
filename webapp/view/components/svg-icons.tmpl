@@ -1,0 +1,79 @@
+<!-- Start webapp/view/components/svg-icons.tmpl -->
+<!--
+ * @name            jPulse Framework / WebApp / View / Components / SVG Icon Components
+ * @tagline         SVG icon component library
+ * @description     Reusable SVG icons components for use in pages and templates - W-097 Phase 1
+ * @file            webapp/view/components/svg-icons.tmpl
+ * @version         1.2.3
+ * @release         2025-11-23
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+-->
+
+{{#component "icons.configSvg" fillColor="currentColor" size="64"}}
+    <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g transform="scale(0.50)">
+            <path d="m107.75 22.159v21.571c-8.835 2.117-17.286 5.608-25.04 10.347l-15.234-15.234-28.632 28.634 15.26 15.26c-4.7448 7.7444-8.2443 16.186-10.371 25.016h-21.573v40.493h21.571c2.1161 8.8382 5.6076 17.289 10.347 25.043l-15.234 15.234 28.632 28.634 15.262-15.262c7.7444 4.7448 16.186 8.2443 25.016 10.371v21.573h40.493v-21.571c8.8375-2.1163 17.288-5.6078 25.041-10.347l15.236 15.236 28.632-28.634-15.26-15.26c4.745-7.745 8.2445-16.187 10.371-25.018h21.573v-40.493h-21.571c-2.1163-8.8375-5.6078-17.288-10.347-25.041l15.25-15.222-28.64-28.634-15.26 15.26c-7.745-4.745-16.187-8.2445-25.018-10.371v-21.573h-40.493zm20.247 57.537a48.303 48.303 0 0 1 48.3 48.304 48.303 48.303 0 0 1 -48.3 48.3 48.303 48.303 0 0 1 -48.303 -48.3 48.303 48.303 0 0 1 48.303 -48.304z" fill-rule="evenodd" fill="{{fillColor}}"/>
+        </g>
+    </svg>
+{{/component}}
+
+{{#component "icons.logsSvg" fillColor="currentColor" size="64"}}
+    <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="85" width="10" height="22" fill="{{fillColor}}"/>
+        <rect x="36" y="64" width="10" height="43" fill="{{fillColor}}"/>
+        <rect x="52" y="75" width="10" height="32" fill="{{fillColor}}"/>
+        <rect x="68" y="43" width="10" height="64" fill="{{fillColor}}"/>
+        <rect x="84" y="53" width="10" height="54" fill="{{fillColor}}"/>
+        <rect x="100" y="32" width="10" height="75" fill="{{fillColor}}"/>
+    </svg>
+{{/component}}
+
+{{#component "icons.systemStatusSvg" fillColor="currentColor" strokeColor="currentColor" size="64"}}
+    <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="{{strokeColor}}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Server/System representation -->
+        <rect x="10" y="16" width="108" height="76" rx="8" ry="8" stroke-width="12" />
+        <line x1="42" y1="112" x2="86" y2="112" />
+        <line x1="64" y1="92" x2="64" y2="112" stroke-width="12" />
+        <!-- Status indicators -->
+        <circle cx="32" cy="38" r="4" fill="{{fillColor}}" />
+        <circle cx="54" cy="38" r="4" fill="{{fillColor}}" />
+        <circle cx="76" cy="38" r="4" fill="{{fillColor}}" />
+        <!-- Performance graph lines -->
+        <polyline points="26,75 42,65 64,70 86,55 102,60" stroke="{{strokeColor}}" />
+    </svg>
+{{/component}}
+
+{{#component "icons.userSvg" fillColor="currentColor" size="64"}}
+    <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="64" cy="42" r="20" fill="{{fillColor}}"/>
+        <path d="M32 101C32 81 46 71 64 71C82 71 96 81 96 101V107H32V101Z" fill="{{fillColor}}"/>
+    </svg>
+{{/component}}
+
+{{#component "icons.usersSvg" fillColor="currentColor" size="64"}}
+    <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="48" cy="42" r="16" fill="{{fillColor}}"/>
+        <circle cx="80" cy="42" r="16" fill="{{fillColor}}"/>
+        <path d="M16 101C16 85 32 75 48 75C64 75 80 85 80 101V107H16V101Z" fill="{{fillColor}}"/>
+        <path d="M80 101C80 92 86 84 96 80C106 84 112 92 112 101V107H80V101Z" fill="{{fillColor}}"/>
+    </svg>
+{{/component}}
+
+{{#component "icons.websocketSvg" fillColor="currentColor" strokeColor="currentColor" size="64"}}
+    <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Outlet container -->
+        <rect x="6" y="23" width="116" height="83" rx="55" stroke="{{strokeColor}}" stroke-width="12" fill="none"/>
+        <!-- Left socket (eye) -->
+        <rect x="41" y="48" width="6" height="20" rx="3" stroke="{{strokeColor}}" stroke-width="5" fill="{{fillColor}}"/>
+        <!-- Right socket (eye) -->
+        <rect x="81" y="48" width="6" height="20" rx="3" stroke="{{strokeColor}}" stroke-width="5" fill="{{fillColor}}"/>
+        <!-- Ground hole (mouth) -->
+        <circle cx="64" cy="80" r="6" stroke="{{strokeColor}}" stroke-width="5" fill="{{fillColor}}"/>
+    </svg>
+{{/component}}
+
+<!-- End webapp/view/components/svg-icons.tmpl -->

@@ -1952,20 +1952,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - proper vertical alignment achieved with h1-h6 svg { vertical-align: middle; }
   - admin dashboard icons now theme-ready and professional looking
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-097, v1.2.4: handebars: define and use reusable components
 - status: DONE ✅
 - type: Feature
@@ -2018,7 +2004,32 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-pending:
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-098, v1.2.5: view: site navigation override with deep merge
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: ability to override and use the jPulse Framework site navigation
+- working document:
+  - docs/dev/working/W-098-override-site-navigation.md
+- deliverables:
+  - FIXME file:
+    - summary
+
+
+
+
+
+
+
+
+### Pending
 
 
 old pending:
@@ -2028,10 +2039,6 @@ old pending:
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
 - add SiteControllerRegistry.getStats() to metrics api & system-status
-
-
-
-
 
 ### Potential next items:
 - W-045: architecture: create plugin infrastructure

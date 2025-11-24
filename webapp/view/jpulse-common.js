@@ -1409,7 +1409,10 @@ window.jPulse = {
                 }
 
                 const currentUrl = window.location.pathname;
-                const navConfig = jPulse.UI.breadcrumbs._navConfig || window.jPulseSiteNavigation;
+                // W-098: Use merged navigation structure with fallback for backward compatibility
+                const navConfig = jPulse.UI.breadcrumbs._navConfig
+                    || (window.jPulseNavigation && window.jPulseNavigation.site)
+                    || window.jPulseSiteNavigation;
 
                 if (!navConfig) {
                     console.warn('jPulse.UI.breadcrumbs: No navigation structure found');
@@ -4582,6 +4585,68 @@ window.jPulse = {
                     status: 'unknown'
                 };
             }
+        }
+    },
+
+    // ========================================
+    // jPulse.utils: Utility Functions
+    // ========================================
+
+    utils: {
+        /**
+         * Deep merge objects (client-side implementation)
+         * Recursively merges objects, with null acting as deletion marker
+         * Arrays are replaced, not merged
+         *
+         * @param {...object} objects - Objects to merge
+         * @returns {object} Merged object
+         *
+         * @example
+         * const base = { a: 1, b: { x: 1, y: 2 } };
+         * const override = { b: { y: 3, z: 4 }, c: 5 };
+         * const result = jPulse.utils.deepMerge(base, override);
+         * // Returns: { a: 1, b: { x: 1, y: 3, z: 4 }, c: 5 }
+         *
+         * @example
+         * // Deletion with null marker
+         * const base = { a: 1, b: 2, c: 3 };
+         * const override = { b: null };
+         * const result = jPulse.utils.deepMerge(base, override);
+         * // Returns: { a: 1, c: 3 }  (b was deleted)
+         */
+        deepMerge: (...objects) => {
+            if (objects.length === 0) return {};
+            if (objects.length === 1) return objects[0];
+
+            const _deepMergeRecursive = (target, objects, seen) => {
+                for (const obj of objects) {
+                    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+                        if (seen.has(obj)) continue;
+                        seen.add(obj);
+
+                        for (const [key, value] of Object.entries(obj)) {
+                            // null acts as deletion marker
+                            if (value === null) {
+                                delete target[key];
+                                continue;
+                            }
+
+                            if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+                                // Recursively merge nested objects
+                                target[key] = _deepMergeRecursive(target[key] || {}, [value], seen);
+                            } else {
+                                // Replace primitive values, arrays, and Date objects
+                                target[key] = value;
+                            }
+                        }
+
+                        seen.delete(obj);
+                    }
+                }
+                return target;
+            };
+
+            return _deepMergeRecursive({}, objects, new WeakSet());
         }
     }
 };

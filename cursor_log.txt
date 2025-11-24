@@ -37064,3 +37064,130 @@ Changed pattern:
 Rationale: Framework icons use `jpIcons` namespace, leaving `icons` namespace free for site-specific component libraries, reducing collision risk.
 
 Changes accepted.
+
+2025-11-24 02:45 - Design Session: W-098 Site Navigation Override
+
+Comprehensive design discussion for site navigation override with deep merge feature.
+
+Problem Identified:
+- Current pattern requires full file override of jpulse-navigation.tmpl
+- jpulse.net encountered stale navigation after framework update due to site override
+- No way to selectively add/remove/extend navigation sections
+- Doesn't follow established deep-merge pattern (app.conf, CSS)
+
+Solution Designed:
+1. Separate Framework + Site Navigation
+   - jpulse-navigation.js.tmpl (framework, Handlebars processed)
+   - site-navigation.js (site overrides, optional)
+
+2. Global Variables
+   - window.jPulseNavigation (framework, renamed from jPulseSiteNavigation)
+   - window.siteNavigation (site overrides, new)
+
+3. Client-Side Deep Merge
+   - Add jPulse.utils.deepMerge() to jpulse-common.js
+   - Supports null as deletion marker
+   - ~30 lines, no API overhead
+
+4. Inline Include Pattern
+   - {{file.include "jpulse-navigation.js"}} in header
+   - Conditional site-navigation.js include
+   - Merge in footer before navigation.init()
+
+Key Design Decisions:
+- Use .js.tmpl extension for Handlebars processing (i18n, components)
+- null as deletion marker (standard JavaScript convention)
+- Inline includes (no extra HTTP requests)
+- Breaking change in v1.2.5 (pre-customers, clean slate)
+- Client-side merge (no server API needed)
+
+Benefits:
+- Sites only specify changes (additions, modifications, deletions)
+- Automatic framework navigation updates
+- Consistent with app.conf and CSS patterns
+- Less code to maintain
+- Clear intent and ownership
+
+Documentation Created:
+- docs/dev/working/W-098-override-site-navigation.md (comprehensive design doc)
+
+Ready for implementation in v1.2.5.
+
+Changes accepted.
+
+
+============================================================
+
+2025-11-24 03:15 - W-098 Implementation Complete: Site Navigation Override with Deep Merge
+
+Successfully implemented W-098 site navigation override feature using deep merge pattern.
+
+Problem Solved:
+- Sites had to completely replace jpulse-navigation.tmpl to customize navigation
+- No way to selectively add/remove/extend navigation sections
+- Framework updates required manual merging of site overrides
+
+Solution Implemented:
+1. Restructured Navigation (Option 4 - Unified Structure)
+   - window.jPulseNavigation = { site: {...}, tabs: {...} }
+   - window.siteNavigation = { site: {...}, tabs: {...} }
+   - Clean, consistent naming with nested structure
+
+2. Client-Side Deep Merge
+   - Added jPulse.utils.deepMerge() to jpulse-common.js (~60 lines)
+   - Supports null as deletion marker
+   - Recursive merging with circular reference protection
+   - Arrays replaced, not merged
+
+3. File Structure
+   - Framework: webapp/view/jpulse-navigation.js (renamed from .tmpl)
+   - Site: site/webapp/view/site-navigation.js (optional)
+   - Both included inline in jpulse-header.tmpl
+
+4. Merge Logic
+   - Implemented in jpulse-footer.tmpl before navigation.init()
+   - Merges framework + site navigation structures
+   - Used by navigation, breadcrumbs, and tabs
+
+Files Modified:
+- webapp/view/jpulse-navigation.js (renamed, restructured with nested format)
+- webapp/view/jpulse-common.js (added utils.deepMerge function)
+- webapp/view/jpulse-header.tmpl (inline includes for navigation files)
+- webapp/view/jpulse-footer.tmpl (merge logic before init)
+- webapp/view/jpulse-examples/*.shtml (6 files, tabs references updated)
+- webapp/view/jpulse-docs/index.shtml (tabs reference updated)
+
+Files Created:
+- site/webapp/view/site-navigation.js.tmpl (comprehensive example template)
+- docs/navigation-override-guide.md (complete user documentation)
+
+Documentation Updated:
+- docs/template-reference.md (new navigation pattern documented)
+- docs/dev/working/W-098-override-site-navigation.md (design doc)
+
+Tests Status:
+- All tests passing: 776 passed, 16 skipped (792 total)
+- Test Suites: 42 passed, 1 skipped (43 total)
+- No regressions introduced
+
+Technical Details:
+- Deep merge with null deletion marker
+- Backward compatible fallback for breadcrumbs
+- Site override optional (framework works standalone)
+- i18n support via .js.tmpl extension
+- Nested structure allows future extensions
+
+Breaking Changes:
+- window.jPulseSiteNavigation → window.jPulseNavigation.site
+- window.jPulseTabsNavigation → window.jPulseNavigation.tabs
+- Sites must create site-navigation.js for customizations
+
+Migration Path:
+- Remove old site/webapp/view/jpulse-navigation.tmpl overrides
+- Create site/webapp/view/site-navigation.js with only overrides
+- Use null to delete unwanted framework sections
+- Framework updates now automatic
+
+Ready for v1.2.5 release.
+
+Changes accepted.

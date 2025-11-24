@@ -807,13 +807,13 @@ jPulse.UI.sourceCode.initAll();
             // Initialize main navigation tab row
             jPulse.UI.tabs.register(
                 'jpulse-docs-examples-tabs',
-                window.jPulseTabsNavigation.jPulseDocsExamplesTabs
+                window.jPulseNavigation.tabs.jPulseDocsExamplesTabs
             );
 
             // Initialize examples navigation tab row
             jPulse.UI.tabs.register(
                 'jpulse-examples-sub-tabs',
-                window.jPulseTabsNavigation.jPulseExamplesSubTabs
+                window.jPulseNavigation.tabs.jPulseExamplesSubTabs
             );
 
             // Initialize all tab interfaces

@@ -33,7 +33,7 @@ Templates use the `.shtml` extension and follow the MVC directory structure:
 webapp/view/                # Framework templates
 ├── jpulse-header.tmpl      # Include for common head section
 ├── jpulse-footer.tmpl      # Include for common footer (page decoration, JavaScript)
-├── jpulse-navigation.tmpl  # Include for common site navigation, breadcrumbs, tab navigation
+├── jpulse-navigation.js    # Framework navigation structure (site nav, breadcrumbs, tabs)
 ├── home/
 │   └── index.shtml         # Home page template
 ├── auth/
@@ -48,11 +48,14 @@ webapp/view/                # Framework templates
     └── index.shtml         # Error page template
 
 site/webapp/view/           # Site override templates (optional)
+├── site-navigation.js      # Site navigation overrides (W-098)
 ├── home/
 │   └── index.shtml         # Site-specific home page override
 └── custom/
     └── dashboard.shtml     # Site-specific custom page
 ```
+
+> **Navigation Customization:** See [Navigation Override Guide](navigation-override-guide.md) for complete documentation on customizing site navigation.
 
 ### URL Routing
 Templates are accessed via clean URLs:
@@ -168,25 +171,34 @@ Templates have access to a rich context object with application data, user infor
 {{i18n.controller.*}}                               <!-- all controller messages -->
 {{i18n.view.*}}                                     <!-- all view messages -->
 
-<!-- Navigation translations -->
-window.jPulseSiteNavigation = {
-    admin: {
-        label:              '{{i18n.view.navigation.admin}}',
-        url:                '/admin/',
-        role:               'admin'     // role-based visibility
-    },
-    about: {
-        label:              '{{i18n.view.navigation.about}}',
-        url:                '/home/about.shtml'
+<!-- Navigation with i18n (W-098 pattern) -->
+// Framework navigation (webapp/view/jpulse-navigation.js)
+window.jPulseNavigation = {
+    site: {
+        admin: {
+            label:  '{{i18n.view.navigation.admin._index}}',
+            url:    '/admin/',
+            role:   'admin'  // role-based visibility
+        },
+        about: {
+            label:  '{{i18n.view.navigation.about}}',
+            url:    '/about/'
+        }
     }
-    user: {
-        {{#if user.isAuthenticated}}
-        label:              '{{i18n.view.navigation.user.overview}}',
-        url:                '/user/',
-        {{else}}
-        label:      '{{i18n.view.navigation.auth.login}}',
-        url:        '/auth/login.shtml'
-        {{/if}}
+};
+
+// Site navigation override (site/webapp/view/site-navigation.js)
+window.siteNavigation = {
+    site: {
+        // Remove framework sections
+        jpulseExamples: null,
+
+        // Add custom section with i18n
+        dashboard: {
+            label:  '{{i18n.view.navigation.dashboard}}',
+            url:    '/dashboard/',
+            role:   'user'
+        }
     }
 }
 ```

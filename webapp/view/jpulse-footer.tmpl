@@ -86,13 +86,19 @@
 </style>
 <script>
 jPulse.dom.ready(() => {
+    // Deep merge framework navigation with site overrides (W-098)
+    const mergedNav = jPulse.utils.deepMerge(
+        window.jPulseNavigation || {},
+        window.siteNavigation || {}
+    );
+
     {{#if appConfig.view.pageDecoration.siteNavigation.enabled}}
     // Initialize site navigation when DOM is ready
     // Note: Handlebars values are strings, so convert to numbers
     jPulse.UI.navigation.init({
         currentUrl: '{{url.pathname}}',
         userRoles: {{user.roles}},
-        navigation: window.jPulseSiteNavigation,
+        navigation: mergedNav.site,
         openDelay: parseInt('{{appConfig.view.pageDecoration.siteNavigation.openDelay}}', 10),
         closeDelay: parseInt('{{appConfig.view.pageDecoration.siteNavigation.closeDelay}}', 10),
         submenuCloseDelay: parseInt('{{appConfig.view.pageDecoration.siteNavigation.submenuCloseDelay}}', 10)
@@ -102,7 +108,7 @@ jPulse.dom.ready(() => {
     // Initialize breadcrumbs when DOM is ready
     jPulse.UI.breadcrumbs.init({
         currentUrl: '{{url.pathname}}',
-        navigation: window.jPulseSiteNavigation,
+        navigation: mergedNav.site,
         homeLabel: '{{i18n.view.home.title}}'
     });
     {{/if}}

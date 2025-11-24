@@ -48,4 +48,14 @@
 
 {{file.include "components/svg-icons.tmpl"}}
 
+<script>
+// Framework Navigation Structure (W-098)
+{{file.include "jpulse-navigation.js"}}
+
+// Site Navigation Override (W-098)
+{{#if file.exists "site-navigation.js"}}
+{{file.include "site-navigation.js"}}
+{{/if}}
+</script>
+
 <!-- EOF webapp/view/jpulse-header.tmpl -->

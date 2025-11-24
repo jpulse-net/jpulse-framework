@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Handlebars Templating v1.2.3
+# jPulse Framework / Docs / Handlebars Templating v1.2.4
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -366,7 +366,7 @@ The jPulse Framework supports reusable Handlebars components for eliminating cod
 Define components using the `{{#component}}` block helper:
 
 ```handlebars
-{{#component "button-primary" text="Click Me" size="medium"}}
+{{#component "widgets.buttonPrimary" text="Click Me" size="medium"}}
     <button class="btn btn-primary btn-{{size}}">
         {{text}}
     </button>
@@ -375,9 +375,9 @@ Define components using the `{{#component}}` block helper:
 
 **Component naming rules:**
 - Must start with a letter
-- Can contain letters, numbers, underscores, and hyphens
+- Can contain letters, numbers, underscores, hyphens, and dots (for namespaces)
 - Must end with a letter or number
-- Examples: `icon-box`, `userCard`, `Button_Large`, `svg-icon-2`
+- Examples: `icon-box`, `userCard`, `Button_Large`, `svg-icon-2`, `jpIcons.configSvg`
 
 ### Component Usage
 
@@ -385,17 +385,75 @@ Use components with the `{{use.componentName}}` syntax:
 
 ```handlebars
 <!-- Use with default parameters -->
-{{use.buttonPrimary}}
+{{use.widgets.buttonPrimary}}
 
 <!-- Override specific parameters -->
-{{use.buttonPrimary text="Submit" size="large"}}
+{{use.widgets.buttonPrimary text="Submit" size="large"}}
 ```
 
 **Naming convention:**
+- Use namespaces for better separation of concerns, such as `jpIcons.logsSvg`
 - Component names are converted from kebab-case to camelCase for usage
 - `logs-svg` becomes `{{use.logsSvg}}`
 - `user-card` becomes `{{use.userCard}}`
 - `icon` remains `{{use.icon}}`
+- Namespaced: `jpIcons.logs-svg` becomes `{{use.jpIcons.logsSvg}}`
+
+### Component Parameters
+
+Components support both user-defined parameters and special framework parameters:
+
+**User Parameters:**
+```handlebars
+{{use.jpIcons.logsSvg size="48" fillColor="#007bff"}}
+```
+
+**Framework Parameters (prefixed with `_`):**
+
+`_inline` - Removes newlines and collapses whitespace for inline use in JavaScript:
+```handlebars
+<!-- In JavaScript object literal -->
+<script>
+const navConfig = {
+    icon: '{{use.jpIcons.configSvg size="24" _inline=true}}'
+};
+</script>
+```
+
+**Features:**
+- Framework parameters (starting with `_`) are not passed to component context
+- `_inline=true` strips newlines and collapses whitespace to single spaces
+- Useful for embedding SVG in JavaScript strings without line breaks
+
+### Namespaced Components
+
+Components support optional dot-notation namespaces for organization:
+
+```handlebars
+<!-- Define namespaced components -->
+{{#component "jpIcons.configSvg" size="64"}}
+    <svg width="{{size}}">...</svg>
+{{/component}}
+
+{{#component "icons.userSvg" size="64"}}
+    <svg width="{{size}}">...</svg>
+{{/component}}
+
+{{#component "buttons.primary" text="Click"}}
+    <button>{{text}}</button>
+{{/component}}
+
+<!-- Use namespaced components -->
+{{use.jpIcons.configSvg size="32"}}
+{{use.siteIcons.userSvg size="48"}}
+{{use.buttons.primary text="Submit"}}
+```
+
+**Benefits:**
+- Organize components by category (icons, buttons, cards, etc.)
+- Avoid naming collisions as component library grows
+- Clear component purpose from namespace
+- Optional - flat naming (`config-svg`) still works
 
 ### Component Libraries
 
@@ -403,9 +461,9 @@ Create reusable component libraries by defining multiple components in `.tmpl` f
 
 **File: `webapp/view/components/svg-icons.tmpl`**
 ```handlebars
-{{!-- SVG Icon Component Library --}}
+<!-- SVG Icon Component Library -->
 
-{{#component "logs-svg" fillColor="currentColor" size="64"}}
+{{#component "jpIcons.logsSvg" fillColor="currentColor" size="64"}}
     <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none">
         <rect x="20" y="85" width="10" height="22" fill="{{fillColor}}"/>
         <rect x="36" y="64" width="10" height="43" fill="{{fillColor}}"/>
@@ -413,7 +471,7 @@ Create reusable component libraries by defining multiple components in `.tmpl` f
     </svg>
 {{/component}}
 
-{{#component "users-svg" fillColor="currentColor" size="64"}}
+{{#component "jpIcons.usersSvg" fillColor="currentColor" size="64"}}
     <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none">
         <circle cx="64" cy="36" r="20" fill="{{fillColor}}"/>
         <path d="M 25 100 Q 25 68, 64 68 T 103 100" fill="{{fillColor}}"/>
@@ -421,16 +479,16 @@ Create reusable component libraries by defining multiple components in `.tmpl` f
 {{/component}}
 ```
 
-**Import and use in your pages:**
-```handlebars
-{{file.include "components/svg-icons.tmpl"}}
+> **Note:** The `svg-icons.tmpl` component library is already included in all pages via `jpulse-header.tmpl`, so you can use these components without any `{{file.include}}` statement.
 
+**Use in your pages:**
+```handlebars
 <div class="icon-container">
-    {{use.logsSvg size="48" fillColor="#007bff"}}
+    {{use.jpIcons.logsSvg size="48" fillColor="#007bff"}}
 </div>
 
 <div class="icon-container">
-    {{use.usersSvg size="32"}}
+    {{use.jpIcons.usersSvg size="32"}}
 </div>
 ```
 
@@ -439,19 +497,20 @@ Create reusable component libraries by defining multiple components in `.tmpl` f
 Components can call other components:
 
 ```handlebars
-{{#component "icon-with-label" icon="default" label="Item"}}
-    <div class="icon-label-wrapper">
-        {{use.{{icon}}}}
-        <span>{{label}}</span>
+<!-- Define a wrapper component that uses another component -->
+{{#component "widgets.card-with-icon" title="Dashboard" iconSize="32"}}
+    <div class="card">
+        <div class="card-icon">
+            {{use.jpIcons.configSvg size=iconSize}}
+        </div>
+        <h3>{{title}}</h3>
     </div>
 {{/component}}
 
-{{#component "default-icon" size="24"}}
-    <svg width="{{size}}" height="{{size}}">...</svg>
-{{/component}}
+<!-- The jpIcons.configSvg component is already defined in svg-icons.tmpl -->
 
 <!-- Usage -->
-{{use.iconWithLabel icon="defaultIcon" label="Dashboard"}}
+{{use.widgets.cardWithIcon title="System Status" iconSize="48"}}
 ```
 
 **Limitations:**
@@ -459,7 +518,7 @@ Components can call other components:
 - Circular references are detected and prevented
 - Components do not inherit variables from calling context (pass parameters explicitly)
 
-### Error Handling
+### Component Error Handling
 
 Component errors are handled gracefully:
 
@@ -491,10 +550,11 @@ Component errors are handled gracefully:
 
 1. **Organize components in libraries:**
    - Create themed component files: `svg-icons.tmpl`, `buttons.tmpl`, `cards.tmpl`
-   - Store in `webapp/view/components/` or `site/webapp/view/components/`
+   - Store in `site/webapp/view/components/`
+     - Don't use `webapp/view/components/`, which is jPulse Framework specific
 
 2. **Use descriptive names:**
-   - Good: `icon-user`, `button-primary`, `card-dashboard`
+   - Good: `icon-user`, `iconUser`, `button-primary`, `card-dashboard`
    - Avoid: `icon1`, `btn`, `c`
 
 3. **Provide sensible defaults:**
@@ -509,11 +569,11 @@ Component errors are handled gracefully:
    - Add comments explaining parameters and usage
    - Provide examples in component library files
 
-### Error Handling
+## Error Handling
 
-The Handlebars system includes robust error handling:
+The Handlebars system includes robust error handling for various scenarios:
 
-**Safe Iteration:**
+### Safe Iteration
 ```handlebars
 <!-- Safe handling of null/undefined -->
 {{#each possiblyUndefined}}
@@ -522,7 +582,7 @@ The Handlebars system includes robust error handling:
 <!-- If possiblyUndefined is null/undefined, no output is generated -->
 ```
 
-**Type Checking:**
+### Type Checking
 ```handlebars
 <!-- Invalid data types show error comments -->
 {{#each stringValue}}

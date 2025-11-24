@@ -36798,4 +36798,269 @@ W-097 Phase 1 enhancements completed successfully!
 
 
 ============================================================
+2025-11-23 02:11
 
+Test fixes for removed SVG files
+
+User removed SVG files from webapp/static/assets/admin/icons/ and requested test fixes.
+
+Fixed failing tests in:
+1. webapp/tests/integration/health-api.test.js
+   - Changed from checking system-status.svg file existence to verifying component in svg-icons.tmpl
+   - Now checks for "icons.systemStatusSvg" component definition
+
+2. webapp/tests/unit/controller/admin-view.test.js
+   - Updated mock template from <img> tags with SVG paths to inline SVG
+   - Changed assertions from checking SVG file paths to checking for inline SVG markup
+
+3. webapp/tests/unit/utils/jpulse-ui-navigation.test.js
+   - Replaced SVG file paths (docs.svg, config.svg, users.svg) with emojis (📚, ⚙️, 👥)
+   - Updated test to check for emoji icons instead of image icons
+
+All tests now pass (776 passed, 16 skipped, 42 test suites).
+
+Changes accepted.
+
+
+============================================================
+2025-11-23 02:15
+
+Documentation fixes for removed SVG files
+
+User requested review and fixes for style-reference.md and template-reference.md after SVG files were removed.
+
+Updated documentation files:
+1. docs/style-reference.md
+   - Line 164: Changed users.svg <img> tag to inline SVG with currentColor
+   - Line 1043: Changed config.svg <img> tag to inline SVG with currentColor
+
+2. docs/template-reference.md
+   - Line 300: Changed users.svg <img> tag to inline SVG with currentColor in extract example
+
+All examples now use inline SVG with `fill="currentColor"` for theme-ready icons, which is the recommended approach per the component-based SVG system (W-097).
+
+Changes accepted.
+
+2025-11-23 02:18 - Documentation clarity fix for SVG icon components
+
+User pointed out that showing `{{file.include "components/svg-icons.tmpl"}}` in examples was misleading because the icon components are already included globally via jpulse-header.tmpl (line 49).
+
+Updated documentation:
+1. docs/style-reference.md - Changed from "First, include the icon component library" to "Icon components are automatically available in all pages (included via jpulse-header.tmpl)"
+
+2. docs/template-reference.md - Removed the `{{file.include "components/svg-icons.tmpl"}}` line from the extraction example
+
+This makes it clear that developers don't need to manually include the icon component library - it's already available everywhere.
+
+Changes accepted.
+
+
+============================================================
+2025-11-23 02:22
+
+Handlebars documentation review and fixes
+
+User requested review of handlebars.md for completeness and accuracy.
+
+Found and fixed multiple issues:
+
+1. **Component naming rules** (line 376-380)
+   - Added: Can contain dots for namespaces
+   - Added example: `icons.config-svg`
+
+2. **Naming convention** (line 394-398)
+   - Added: Namespaced example `icons.logs-svg` → `{{use.icons.logsSvg}}`
+
+3. **Component library example** (line 404-435)
+   - Changed: `{{!-- ... --}}` to `<!-- ... -->` (unsupported syntax)
+   - Changed: `"logs-svg"` to `"icons.logs-svg"` (match actual implementation)
+   - Changed: `"users-svg"` to `"icons.users-svg"` (match actual implementation)
+   - Removed: `{{file.include "components/svg-icons.tmpl"}}` (already in header)
+   - Added: Note that svg-icons.tmpl is auto-included via jpulse-header.tmpl
+   - Updated: Usage examples to show namespaced `{{use.icons.logsSvg}}`
+
+4. **New section: Component Parameters** (after line 398)
+   - Documented `_inline` framework parameter
+   - Explained framework parameter behavior (prefixed with `_`)
+   - Showed usage in JavaScript context
+   - Documented both quoted and unquoted syntax
+
+5. **New section: Namespaced Components** (after Component Parameters)
+   - Documented dot-notation namespace syntax
+   - Provided examples of multi-level namespaces
+   - Explained benefits (organization, collision avoidance)
+   - Clarified that namespaces are optional
+
+6. **Nested components example** (line 495-513)
+   - Fixed: Removed invalid `{{use.{{icon}}}}` syntax (not supported)
+   - Replaced: With realistic example using `{{use.icons.configSvg}}` inside wrapper
+
+Documentation now accurately reflects the W-097 Phase 1 implementation.
+
+Changes accepted.
+
+2025-11-23 02:24 - Fixed duplicate Error Handling sections in handlebars.md
+
+User identified duplicate "### Error Handling" sections in the component documentation.
+
+Fixed by:
+1. Renamed first section (line 521) to "### Component Error Handling" for component-specific error handling
+2. Elevated second section (line 572) to main section "## Error Handling" for general Handlebars error handling
+3. Converted subsections to proper heading levels (### Safe Iteration, ### Type Checking)
+
+Now the structure is clear:
+- Components section has "Component Error Handling" subsection
+- Separate main "Error Handling" section for general Handlebars error handling
+
+Changes accepted.
+
+2025-11-23 02:26 - Fixed missing i18n translation for config controller
+
+User reported error when accessing /admin/config.shtml:
+ERROR: Translation not found: en.controller.config.configGetDone
+
+Found and fixed:
+- webapp/controller/config.js line 98 uses 'controller.config.configGetDone'
+- German translation (de.conf) has this key
+- English translation (en.conf) was missing this key
+
+Added missing translation to webapp/translations/en.conf:
+- configGetDone: 'Config {{id}} retrieved successfully'
+
+The translation now matches the German version and the code will work correctly.
+
+Changes accepted.
+
+2025-11-23 02:28 - Fixed breadcrumb SVG icon styling
+
+User reported that breadcrumb SVG icons need styling fixes (viewing /admin/system-status.shtml).
+
+Found issue:
+- Breadcrumb CSS had `.jp-breadcrumb-icon-image` for image files
+- Missing `.jp-breadcrumb-icon-svg` styling for inline SVG icons
+
+Added to webapp/view/jpulse-common.css after line 1946:
+```css
+.jp-breadcrumb-icon-svg {
+    width: 14px;   /* Inline SVG icons for breadcrumbs */
+    height: 14px;
+    vertical-align: middle;
+    opacity: 0.7;  /* Reduce icon opacity for better blending */
+}
+
+.jp-breadcrumb-icon-svg svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+```
+
+This provides proper sizing and vertical alignment for inline SVG icons in breadcrumbs, matching the pattern used for navigation icons.
+
+Changes accepted.
+
+2025-11-23 02:30 - Fixed German translation key mismatch
+
+User reported translation warnings:
+- missing in de.conf: controller.auth.loginSuccess
+- extra in de.conf: controller.auth.loginSuccessful
+
+Fixed in webapp/translations/de.conf (line 25):
+- Changed: `loginSuccessful` → `loginSuccess`
+- This matches the English translation key
+
+Also noted:
+- User added webapp/static/assets/jpulse-examples/icons/*.svg to svg-icons.tmpl
+- User deleted the SVG files from assets directory
+
+Changes accepted.
+
+2025-11-23 02:32 - Fixed all remaining loginSuccessful → loginSuccess references
+
+User identified 4 more places with the old key name:
+
+Fixed files:
+1. webapp/controller/auth.js
+   - Changed: 'controller.auth.loginSuccessful' → 'controller.auth.loginSuccess'
+
+2. webapp/tests/unit/controller/auth-controller.test.js
+   - Changed mock translation key to match
+
+3. webapp/tests/unit/translations/i18n-user-language.test.js
+   - Fixed 2 occurrences in English mock translations
+   - Fixed German mock translations
+
+Verified: No remaining references to 'loginSuccessful' in the codebase.
+
+All translation keys now consistently use 'loginSuccess' in English and German.
+
+Changes accepted.
+
+
+============================================================
+2025-11-23 15:05
+
+Release Prep for W-097, v1.2.4
+
+Prepared release documentation for W-097: Handlebars reusable components feature.
+
+Updated files:
+1. docs/dev/work-items.md
+   - Marked W-097 as DONE ✅
+   - Comprehensive deliverables list covering all implementation details
+   - Technical notes on component registry, naming, namespaces, _inline parameter
+
+2. docs/CHANGELOG.md
+   - Added v1.2.4 entry with complete W-097 details
+   - Updated version number from v1.2.3 to v1.2.4
+   - Documented all features, benefits, technical details, and files modified
+
+3. commit-message.txt
+   - Created commit message following standard format
+   - Comprehensive summary of W-097 implementation
+   - Lists all modified files and migration notes
+
+4. cursor_log.txt
+   - This entry documenting release prep
+
+Summary of W-097 Implementation:
+- Reusable Handlebars components: {{#component}} and {{use.componentName}}
+- 20+ SVG icons migrated to components in svg-icons.tmpl
+- Namespaced components (e.g., icons.configSvg)
+- _inline=true framework parameter for JavaScript embedding
+- Circular reference detection with max depth 16
+- Per-request transient component registry
+- 20 comprehensive unit tests
+- Complete documentation in handlebars.md
+- Navigation migrated to use {{use.icons.*}}
+- All static SVG icon files removed (migrated to components)
+
+Ready for version bump and git commit.
+
+Changes accepted.
+
+
+============================================================
+
+2025-11-23 02:38 - Namespace change: icons → jpIcons
+
+User requested namespace change from `icons` to `jpIcons` before release to reduce collision risk with site-specific components.
+
+Updated all references:
+- webapp/view/components/svg-icons.tmpl - All 20 component definitions
+- webapp/view/jpulse-navigation.tmpl - All 6 navigation icon usages
+- webapp/tests/unit/controller/handlebar-components.test.js - Test data
+- webapp/tests/integration/health-api.test.js - Test assertion
+- docs/CHANGELOG.md - Documentation examples
+- docs/dev/work-items.md - Work item documentation
+- docs/handlebars.md - All component examples
+- docs/template-reference.md - Usage examples
+- docs/style-reference.md - Usage examples
+
+Changed pattern:
+- `icons.configSvg` → `jpIcons.configSvg`
+- `{{use.icons.logsSvg}}` → `{{use.jpIcons.logsSvg}}`
+
+Rationale: Framework icons use `jpIcons` namespace, leaving `icons` namespace free for site-specific component libraries, reducing collision risk.
+
+Changes accepted.

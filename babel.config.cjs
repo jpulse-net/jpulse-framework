@@ -3,8 +3,8 @@
  * @tagline         Babel configuration for jPulse Framework
  * @description     Babel configuration for jPulse Framework
  * @file            babel.config.cjs
- * @version         1.2.3
- * @release         2025-11-23
+ * @version         1.2.4
+ * @release         2025-11-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

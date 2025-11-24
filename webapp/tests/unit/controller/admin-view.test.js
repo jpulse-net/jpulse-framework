@@ -3,8 +3,8 @@
  * @tagline         Unit tests for admin dashboard view rendering (W-013)
  * @description     Tests admin dashboard view controller functionality and template rendering
  * @file            webapp/tests/unit/controller/admin-view.test.js
- * @version         1.2.3
- * @release         2025-11-23
+ * @version         1.2.4
+ * @release         2025-11-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -238,22 +238,28 @@ describe.skip('Admin Dashboard View Rendering (W-013)', () => {
     });
 
     describe('Admin dashboard assets', () => {
-        test('should reference correct asset paths', async () => {
+        test('should render inline SVG icons via components', async () => {
             const mockTemplate = `
 <div class="jp-dashboard-grid">
     <a href="/admin/logs.shtml" class="jp-card-dashboard jp-icon-btn">
         <div class="jp-icon-container">
-            <img src="/assets/admin/icons/logs.svg" class="jp-icon" alt="">
+            <svg width="64" height="64" viewBox="0 0 128 128" class="jp-icon">
+                <rect fill="currentColor"/>
+            </svg>
         </div>
     </a>
     <a href="/admin/config.shtml" class="jp-card-dashboard jp-icon-btn">
         <div class="jp-icon-container">
-            <img src="/assets/admin/icons/config.svg" class="jp-icon" alt="">
+            <svg width="64" height="64" viewBox="0 0 128 128" class="jp-icon">
+                <path fill="currentColor"/>
+            </svg>
         </div>
     </a>
     <a href="/admin/users.shtml" class="jp-card-dashboard jp-icon-btn">
         <div class="jp-icon-container">
-            <img src="/assets/admin/icons/users.svg" class="jp-icon" alt="">
+            <svg width="64" height="64" viewBox="0 0 128 128" class="jp-icon">
+                <circle fill="currentColor"/>
+            </svg>
         </div>
     </a>
 </div>`;
@@ -266,10 +272,9 @@ describe.skip('Admin Dashboard View Rendering (W-013)', () => {
             expect(mockRes.send).toHaveBeenCalled();
             const renderedContent = mockRes.send.mock.calls[0][0];
 
-            // Check that asset paths are correct
-            expect(renderedContent).toContain('/assets/admin/icons/logs.svg');
-            expect(renderedContent).toContain('/assets/admin/icons/config.svg');
-            expect(renderedContent).toContain('/assets/admin/icons/users.svg');
+            // Check that inline SVG icons are rendered
+            expect(renderedContent).toContain('<svg');
+            expect(renderedContent).toContain('currentColor');
 
             // Check that CSS classes are present
             expect(renderedContent).toContain('jp-dashboard-grid');

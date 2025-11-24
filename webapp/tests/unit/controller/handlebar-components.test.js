@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-097 Phase 1: Reusable handlebars components
  * @description     Tests for component definition and usage functionality
  * @file            webapp/tests/unit/controller/handlebar-components.test.js
- * @version         1.2.3
- * @release         2025-11-23
+ * @version         1.2.4
+ * @release         2025-11-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -190,7 +190,7 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
         test('should import components via file.include', async () => {
             const template = `
                 {{file.include "components/svg-icons.tmpl"}}
-                <div class="icon">{{use.logsSvg size="32" fillColor="red"}}</div>
+                <div class="icon">{{use.jpIcons.logsSvg size="32" fillColor="red"}}</div>
             `;
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
@@ -204,12 +204,12 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
     describe('Namespaced Components', () => {
         test('should register and use namespaced components', async () => {
             const template = `
-                {{#component "icons.star-svg" size="24" fillColor="currentColor"}}
+                {{#component "jpIcons.star-svg" size="24" fillColor="currentColor"}}
                     <svg width="{{size}}" height="{{size}}">
                         <polygon points="12,2 15,10 23,10 17,15 19,23 12,18 5,23 7,15 1,10 9,10" fill="{{fillColor}}"/>
                     </svg>
                 {{/component}}
-                {{use.icons.starSvg size="32" fillColor="gold"}}
+                {{use.jpIcons.starSvg size="32" fillColor="gold"}}
             `;
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
@@ -217,7 +217,7 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
             // Should render namespaced component
             expect(result).toContain('<svg width="32"');
             expect(result).toContain('fill="gold"');
-            expect(mockReq.componentRegistry.has('icons.starSvg')).toBe(true);
+            expect(mockReq.componentRegistry.has('jpIcons.starSvg')).toBe(true);
         });
 
         test('should support multi-level namespaces', async () => {

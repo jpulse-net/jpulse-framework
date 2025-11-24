@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.2.3
- * @release         2025-11-23
+ * @version         1.2.4
+ * @release         2025-11-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1925,7 +1925,7 @@ body {
     justify-content: center;
     flex-shrink: 0;
     width: 16px;  /* Slightly smaller than nav icons */
-    margin-right: 6px;
+    margin-right: 2px;
 }
 
 .jp-breadcrumb-icon-emoji {
@@ -1943,6 +1943,20 @@ body {
     border-radius: 3px;
     box-sizing: content-box;
     opacity: 0.8;  /* Slightly reduced opacity for better blending */
+}
+
+.jp-breadcrumb-icon-svg {
+    width: 14px;   /* Inline SVG icons for breadcrumbs */
+    height: 14px;
+    vertical-align: middle;
+    margin-top: -2px;
+    opacity: 0.7;  /* Reduce icon opacity for better blending */
+}
+
+.jp-breadcrumb-icon-svg svg {
+    width: 100%;
+    height: 100%;
+    display: block;
 }
 
 /* Ellipsis handling for overflow */

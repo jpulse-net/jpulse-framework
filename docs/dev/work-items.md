@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.2.3
+# jPulse Framework / Docs / Dev / Work Items v1.2.4
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1967,13 +1967,50 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 ## 🚧 IN_PROGRESS Work Items
 
 ### W-097, v1.2.4: handebars: define and use reusable components
-- status: 🚧 IN_PROGRESS
+- status: DONE ✅
 - type: Feature
 - objective: reusable components to reduce code duplication, such as with multiple inline SVG images
 - working document:
   - docs/dev/working/W-097-handlebars-use-components.md
 - deliverables:
-  - FIXME file -- summary
+  - webapp/controller/handlebar.js - Enhanced to support component definition and usage
+    - Added `{{#component "name" param="default"}}...{{/component}}` syntax for definition
+    - Added `{{use.componentName param="value"}}` syntax for usage
+    - Implemented per-request transient component registry
+    - Added circular reference detection with call stack tracking
+    - Added `_convertComponentName()` for kebab-case to camelCase conversion
+    - Implemented `_inline` framework parameter for JavaScript embedding
+    - Added support for dot-notation namespaces (e.g., `jpIcons.configSvg`)
+    - Enhanced `_parseHelperArgs()` to parse unquoted boolean values
+  - webapp/view/components/svg-icons.tmpl - Created component library with 20+ SVG icons
+    - Admin icons: config, logs, users, user, system-status, websocket
+    - Example icons: layout, api, forms, handlebars, ui-widgets, override, traffic-cone, todo, refresh-dot, cable, placeholder
+    - All using namespaced naming (e.g., `jpIcons.configSvg`)
+    - Parameterized with fillColor, strokeColor, and size
+  - webapp/view/jpulse-header.tmpl - Auto-includes svg-icons.tmpl for all pages
+  - webapp/view/jpulse-navigation.tmpl - Migrated all icons to use `{{use.jpIcons.*}}` with `_inline=true`
+  - webapp/view/jpulse-common.js - Enhanced `_renderIcon()` to handle inline SVG from components
+  - webapp/view/jpulse-common.css - Added `.jp-breadcrumb-icon-svg` styling for breadcrumb icons
+  - webapp/tests/unit/controller/handlebar-components.test.js - 20 comprehensive unit tests
+    - Tests for component definition, usage, parameters, nesting, circular references
+    - Tests for library imports, namespaces, `_inline` parameter, error handling
+  - docs/handlebars.md - Complete documentation for reusable components
+    - Component definition, usage, parameters, namespaces
+    - Component libraries, nested components, error handling
+    - `_inline` framework parameter documentation
+  - docs/style-reference.md - Updated with component usage examples
+  - docs/template-reference.md - Updated with component usage examples
+  - Removed webapp/static/assets/admin/icons/*.svg - Migrated to components
+  - Removed webapp/static/assets/jpulse-examples/icons/*.svg - Migrated to components
+- technical notes:
+  - Components use per-request transient registry for isolation
+  - Maximum nesting depth: 16 levels (configurable)
+  - Framework parameters (prefixed with `_`) filtered from component context
+  - Circular reference detection prevents infinite loops
+  - Error handling: server logs + HTML comments in dev, silent in production
+  - Naming: kebab-case in definition, camelCase in usage (auto-converted)
+  - Namespaces: Optional dot-notation for organization (e.g., `jpIcons.configSvg`)
+  - `_inline=true` strips newlines for JavaScript string embedding
 
 
 
@@ -2019,7 +2056,7 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-096, v1.2.3
+- assume release: W-097, v1.2.4
 - update deliverables in W-096 work-items to document work done (don't make any other changes to this file)
 - update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -2037,12 +2074,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.2.3
+node bin/bump-version.js 1.2.4
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.2.3
+git tag v1.2.4
 git push origin main --tags
 
 === on failed package build on github ===
@@ -2298,6 +2335,18 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - {{#set key1="val1" key2=123 key3=true}} key1: {{key1}}, key2: {{key2}}, key3: {{key3}} {{/set}}
 - deliverables:
   - webapp/controller/view.js -- new {{#set}} block handlebar
+
+### W-0: handebars: block components with slots
+- status: 🕑 PENDING
+- type: Feature
+- objective: reusable components to reduce code duplication
+- working document:
+  - docs/dev/working/W-097-handlebars-use-components.md
+- example use:
+  `{{#use.card title="User Profile" class="highlight"}}`
+  `  <p>Welcome back, {{user.firstName}}!</p>`
+  `  <button>Edit Profile</button>`
+  `{{/use.card}}`
 
 ### W-0: docs: syntax highlighting for preformatted sections
 - status: 🕑 PENDING

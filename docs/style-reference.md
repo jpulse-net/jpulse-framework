@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Style Reference v1.2.3
+# jPulse Framework / Docs / Style Reference v1.2.4
 
 Comprehensive CSS framework documentation for the jPulse `jp-*` styling system, providing consistent, responsive, and enterprise-ready components for web applications.
 
@@ -161,7 +161,7 @@ Special cards for dashboard layouts:
 <div class="jp-dashboard-grid">
     <div class="jp-card-dashboard" onclick="location.href='/admin/users.shtml'">
         <div class="jp-icon-container">
-            <img src="/assets/admin/icons/users.svg" alt="Users">
+            {{use.jpIcons.usersSvg size="64"}}
         </div>
         <h3>User Management</h3>
         <p>Manage user accounts and permissions</p>
@@ -1022,17 +1022,15 @@ Standardized icon containers for dashboard cards:
 }
 ```
 
-**Inline SVG Icons (Recommended - Theme Ready)**:
+**Using SVG Icon Components (Recommended)**:
+
+Icon components are automatically available in all pages (included via `jpulse-header.tmpl`):
+
 ```html
 <div class="jp-dashboard-grid">
     <div class="jp-card-dashboard">
         <div class="jp-icon-container">
-            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="jp-icon">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
+            {{use.jpIcons.usersSvg size="64"}}
         </div>
         <h3>User Management</h3>
         <p>Manage user accounts and permissions</p>
@@ -1040,11 +1038,29 @@ Standardized icon containers for dashboard cards:
 
     <div class="jp-card-dashboard">
         <div class="jp-icon-container">
-            <img src="/assets/admin/icons/config.svg" alt="Configuration">
+            {{use.jpIcons.configSvg size="64"}}
         </div>
         <h3>Site Configuration</h3>
         <p>Configure application settings</p>
     </div>
+</div>
+```
+
+**Benefits:**
+- **Reusable**: Define once, use everywhere
+- **Theme-ready**: Icons automatically use `currentColor` to inherit parent color
+- **Maintainable**: Update icon in one place, changes reflect everywhere
+- **Clean**: Concise `{{use.jpIcons.*}}` syntax instead of verbose SVG markup
+
+**Alternative - Inline SVG** (for custom or one-off icons):
+```html
+<div class="jp-icon-container">
+    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="jp-icon">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
 </div>
 ```
 

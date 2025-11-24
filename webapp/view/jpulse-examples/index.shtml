@@ -4,8 +4,8 @@
  * @tagline         jPulse Examples overview page with navigation cards
  * @description     Overview of all available jPulse examples with navigation cards
  * @file            webapp/view/jpulse-examples/index.shtml
- * @version         1.2.3
- * @release         2025-11-23
+ * @version         1.2.4
+ * @release         2025-11-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,6 +18,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>jPulse Examples Overview - {{app.jPulse.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-dashboard-grid {
+            margin: 1.5rem 0;
+        }
+    </style>
 </head>
 <body>
     <div class="jp-main">
@@ -33,47 +38,11 @@
             <p><strong>📖 Complete Documentation:</strong> <a href="/jpulse-docs/">jPulse Documentation</a> - Comprehensive guides, API references, and detailed explanations of all framework features.</p>
         </div>
 
-        <!-- Examples Navigation Buttons -->
-        <div class="jp-dashboard-grid">
-            <a href="/jpulse-examples/api.shtml" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container">
-                    <img src="/assets/jpulse-examples/icons/api.svg" class="jp-icon" alt="">
-                </div>
-                <h3 class="jp-card-title">API Integration</h3>
-                <p class="jp-card-description">Discover API calls, data handling, and dynamic user experiences.</p>
-            </a>
-
-            <a href="/jpulse-examples/handlebars.shtml" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container">
-                    <img src="/assets/jpulse-examples/icons/handlebars.svg" class="jp-icon" alt="">
-                </div>
-                <h3 class="jp-card-title">Handlebars Templates</h3>
-                <p class="jp-card-description">Learn server-side templating with variables, conditionals, loops, and nested templates.</p>
-            </a>
-
-            <a href="/jpulse-examples/ui-widgets.shtml" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container">
-                    <img src="/assets/jpulse-examples/icons/ui-widgets.svg" class="jp-icon" alt="">
-                </div>
-                <h3 class="jp-card-title">UI Widgets</h3>
-                <p class="jp-card-description">Explore dialogs, accordions, tabs, and other interactive components.</p>
-            </a>
-
-            <a href="/jpulse-examples/layout.shtml" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container">
-                    <img src="/assets/jpulse-examples/icons/layout.svg" class="jp-icon" alt="">
-                </div>
-                <h3 class="jp-card-title">Layout</h3>
-                <p class="jp-card-description">Learn responsive design techniques and CSS patterns.</p>
-            </a>
-
-            <a href="/jpulse-examples/forms.shtml" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container">
-                    <img src="/assets/jpulse-examples/icons/forms.svg" class="jp-icon" alt="">
-                </div>
-                <h3 class="jp-card-title">Forms</h3>
-                <p class="jp-card-description">Master form validation, submission, and user experience patterns.</p>
-            </a>
+        <div class="jp-dashboard-grid local-dashboard-grid">
+            <!-- Automatically include cards from other examples pages that have extract markers -->
+            {{#each file.list "jpulse-examples/*.shtml" sortBy="extract-order"}}
+                {{file.extract this}}
+            {{/each}}
         </div>
 
         <!-- Getting Started Section -->

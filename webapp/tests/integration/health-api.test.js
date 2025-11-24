@@ -3,8 +3,8 @@
  * @tagline         Integration tests for Health API endpoints
  * @description     Integration tests for health and metrics API endpoints
  * @file            webapp/tests/integration/health-api.test.js
- * @version         1.2.3
- * @release         2025-11-23
+ * @version         1.2.4
+ * @release         2025-11-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -231,16 +231,18 @@ describe('Health API Integration Tests', () => {
             expect(content).toContain('refreshInterval');
         });
 
-        test('should have system status SVG icon', () => {
+        test('should have system status SVG component', () => {
             const fs = require('fs');
             const path = require('path');
 
-            const iconPath = path.resolve(__dirname, '../../static/assets/admin/icons/system-status.svg');
-            expect(fs.existsSync(iconPath)).toBe(true);
+            // Verify component library exists
+            const componentPath = path.resolve(__dirname, '../../view/components/svg-icons.tmpl');
+            expect(fs.existsSync(componentPath)).toBe(true);
 
-            const content = fs.readFileSync(iconPath, 'utf8');
+            // Verify system-status component is defined
+            const content = fs.readFileSync(componentPath, 'utf8');
+            expect(content).toContain('jpIcons.systemStatusSvg');
             expect(content).toContain('<svg');
-            expect(content).toContain('128');
         });
     });
 });

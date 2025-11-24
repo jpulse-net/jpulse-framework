@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         1.2.3
- * @release         2025-11-23
+ * @version         1.2.4
+ * @release         2025-11-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -72,7 +72,7 @@ describe('AuthController', () => {
                     'controller.auth.roleRequired': `Insufficient privileges. Required role(s): ${context.roles}`,
                     'controller.auth.authenticationRequired': 'Authentication required',
                     'controller.auth.invalidCredentials': 'Invalid username/email or password',
-                    'controller.auth.loginSuccessful': 'Login successful',
+                    'controller.auth.loginSuccess': 'Login successful',
                     'controller.auth.loginInternalError': `Internal server error during login: ${context.error}`,
                     'controller.auth.logoutSuccessful': 'Logout successful',
                     'controller.auth.logoutFailed': 'Failed to log out'

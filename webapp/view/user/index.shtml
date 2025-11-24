@@ -4,8 +4,8 @@
  * @tagline         Personal user dashboard
  * @description     User dashboard with profile access and activity summary
  * @file            webapp/view/user/index.shtml
- * @version         1.2.3
- * @release         2025-11-23
+ * @version         1.2.4
+ * @release         2025-11-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -47,22 +47,22 @@
             <div class="jp-dashboard-grid">
                 <a href="/user/profile.shtml" class="jp-card-dashboard jp-icon-btn">
                     <div class="jp-icon-container">
-                        <img src="/assets/admin/icons/user.svg" class="jp-icon" alt="">
+                        {{use.jpIcons.userSvg size="64" _inline=true}}
                     </div>
                     <h3 class="jp-card-title">{{i18n.view.user.index.profileSettings}}</h3>
                     <p class="jp-card-description">{{i18n.view.user.index.profileSettingsDesc}}</p>
                 </a>
 
                 <!-- Conditional Admin Dashboard (admin/root only) -->
-                <div id="adminTile" style="display: none;">
-                    <a href="/admin/" class="jp-card-dashboard jp-icon-btn">
-                        <div class="jp-icon-container">
-                            <img src="/assets/admin/icons/config.svg" class="jp-icon" alt="">
-                        </div>
-                        <h3 class="jp-card-title">{{i18n.view.user.index.adminDashboard}}</h3>
-                        <p class="jp-card-description">{{i18n.view.user.index.adminDashboardDesc}}</p>
-                    </a>
-                </div>
+                {{#if user.isAdmin}}
+                <a href="/admin/" class="jp-card-dashboard jp-icon-btn">
+                    <div class="jp-icon-container">
+                        {{use.jpIcons.configSvg size="64"}}
+                    </div>
+                    <h3 class="jp-card-title">{{i18n.view.user.index.adminDashboard}}</h3>
+                    <p class="jp-card-description">{{i18n.view.user.index.adminDashboardDesc}}</p>
+                </a>
+                {{/if}}
             </div>
         {{else}}
             <div class="jp-error-box">
@@ -110,16 +110,6 @@
                 }
             } catch (error) {
                 console.error('Failed to load user stats:', error);
-            }
-        }
-
-        function checkAdminAccess() {
-            // Get user roles from server-side data
-            const userRoles = '{{user.roles}}'.split(',').map(role => role.trim());
-            const isAdmin = userRoles.includes('admin') || userRoles.includes('root');
-
-            if (isAdmin) {
-                document.getElementById('adminTile').style.display = 'block';
             }
         }
     </script>

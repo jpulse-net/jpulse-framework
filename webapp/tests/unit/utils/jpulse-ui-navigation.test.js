@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.navigation Widget (W-069)
  * @description     Tests for client-side site navigation dropdown and mobile hamburger menu
  * @file            webapp/tests/unit/utils/jpulse-ui-navigation.test.js
- * @version         1.2.3
- * @release         2025-11-23
+ * @version         1.2.4
+ * @release         2025-11-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -69,7 +69,7 @@ global.window.appConfig = {
             jPulseDocs: {
                 label: 'Documentation',
                 url: '/jpulse-docs/',
-                icon: 'assets/admin/icons/docs.svg',
+                icon: '📚',
                 pages: {}
             }
         }
@@ -234,10 +234,10 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         });
 
         const dropdown = document.getElementById('jp-site-nav-dropdown');
-        const imageIcons = dropdown.querySelectorAll('.jp-nav-icon-image');
+        const emojiIcons = dropdown.querySelectorAll('.jp-nav-icon-emoji');
 
-        expect(imageIcons.length).toBeGreaterThan(0);
-        expect(imageIcons[0].src).toContain('assets/admin/icons/docs.svg');
+        expect(emojiIcons.length).toBeGreaterThan(0);
+        expect(emojiIcons[0].textContent).toContain('📚');
     });
 
     test('should add arrow indicator for items with submenus', () => {
@@ -861,12 +861,12 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
                     config: {
                         label: 'Configuration',
                         url: '/admin/config.shtml',
-                        icon: 'assets/admin/icons/config.svg'
+                        icon: '⚙️'
                     },
                     users: {
                         label: 'Users',
                         url: '/admin/users.shtml',
-                        icon: 'assets/admin/icons/users.svg'
+                        icon: '👥'
                     }
                 }
             },

@@ -4,8 +4,8 @@
  * @tagline         Interactive UI widget examples and demonstrations
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
- * @version         1.2.3
- * @release         2025-11-23
+ * @version         1.2.4
+ * @release         2025-11-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -37,12 +37,25 @@
     </style>
 </head>
 <body>
+    <div style="display: none;">
+        <!-- This card is automatically included in the dashboard at jpulse-examples/index.shtml -->
+        <!-- extract:start order=30 -->
+        <a href="/jpulse-examples/ui-widgets.shtml" class="jp-card-dashboard jp-icon-btn">
+            <div class="jp-icon-container">
+                {{use.jpIcons.uiWidgetsSvg size="64"}}
+            </div>
+            <h3 class="jp-card-title">UI Widgets</h3>
+            <p class="jp-card-description">Explore dialogs, accordions, tabs, and other interactive components.</p>
+        </a>
+        <!-- extract:end -->
+    </div>
+
     <div class="jp-main">
         <!-- Navigation Tabs -->
         <div id="jpulse-docs-examples-tabs" class="jp-tabs"></div>
         <div id="jpulse-examples-sub-tabs" class="jp-tabs"></div>
 
-        <h1 class="jp-title">🎨 UI Widget Examples</h1>
+        <h1 class="jp-title">{{use.jpIcons.uiWidgetsSvg size="26"}} UI Widget Examples</h1>
 
         <div class="jp-info-box">
             <p>jPulse includes a comprehensive set of UI widgets for creating interactive user interfaces. All widgets follow consistent design patterns and provide clean APIs.</p>

@@ -3,8 +3,8 @@
  * @tagline         Unit tests for i18n user language functionality (W-013)
  * @description     Tests for new translate(req, keyPath, context) method with user language detection
  * @file            webapp/tests/unit/translations/i18n-user-language.test.js
- * @version         1.2.3
- * @release         2025-11-23
+ * @version         1.2.4
+ * @release         2025-11-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -28,7 +28,7 @@ describe('I18N User Language Detection (W-013)', () => {
                     auth: {
                         authenticationRequired: 'Authentication required',
                         roleRequired: 'Insufficient privileges. Required roles: {{roles}}',
-                        loginSuccessful: 'Login successful'
+                        loginSuccess: 'Login successful'
                     }
                 },
                 view: {
@@ -48,7 +48,7 @@ describe('I18N User Language Detection (W-013)', () => {
                     auth: {
                         authenticationRequired: 'Authentifizierung erforderlich',
                         roleRequired: 'Unzureichende Berechtigung. Erforderliche Rolle(n): {{roles}}',
-                        loginSuccessful: 'Anmeldung erfolgreich'
+                        loginSuccess: 'Anmeldung erfolgreich'
                     }
                 },
                 view: {

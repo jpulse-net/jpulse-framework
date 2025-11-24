@@ -1,6 +1,112 @@
-# jPulse Framework / Docs / Version History v1.2.3
+# jPulse Framework / Docs / Version History v1.2.4
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.2.4, W-097, 2025-11-24
+
+**Commit:** `W-097, v1.2.4: handlebars: define and use reusable components`
+
+**MAJOR FEATURE**: Introduced reusable Handlebars components system to eliminate code duplication, particularly for SVG icons. Components can be defined once and reused throughout templates with parameterization, namespacing, and framework-level features like inline rendering for JavaScript embedding.
+
+**Objective**: Enable developers to create reusable template components that reduce code duplication and improve maintainability, replacing verbose inline SVG markup with clean `{{use.componentName}}` syntax.
+
+**Implementation**:
+- **Component Definition & Usage** (`webapp/controller/handlebar.js`):
+  - Added `{{#component "name" param="default"}}...{{/component}}` block syntax for defining components
+  - Added `{{use.componentName param="value"}}` syntax for using components
+  - Automatic kebab-case to camelCase conversion (`logs-svg` → `{{use.logsSvg}}`)
+  - Per-request transient component registry for isolation
+  - Circular reference detection with call stack tracking (max depth: 16)
+  - Enhanced `_parseHelperArgs()` to parse unquoted boolean values (`_inline=true`)
+- **Namespaced Components** (`webapp/controller/handlebar.js`):
+  - Optional dot-notation namespaces for organization (e.g., `jpIcons.config-svg` → `{{use.jpIcons.configSvg}}`)
+  - Prevents naming collisions as component library grows
+  - Clear component categorization (icons, buttons, cards, etc.)
+  - `_convertComponentName()` handles namespace conversion
+- **Framework Parameters** (`webapp/controller/handlebar.js`):
+  - `_inline=true` parameter strips newlines and collapses whitespace
+  - Enables embedding SVG in JavaScript strings without line breaks
+  - Framework parameters (prefixed with `_`) filtered from component context
+  - Supports both quoted (`_inline="true"`) and unquoted (`_inline=true`) syntax
+- **Component Library** (`webapp/view/components/svg-icons.tmpl`):
+  - Created centralized library with 20+ SVG icon components
+  - Admin icons: configSvg, logsSvg, usersSvg, userSvg, systemStatusSvg, websocketSvg
+  - Example icons: layoutSvg, apiSvg, formsSvg, handlebarsSvg, uiWidgetsSvg, overrideSvg, trafficConeSvg, todoSvg, refreshDotSvg, cableSvg, placeholderSvg
+  - All icons use namespaced naming (`jpIcons.configSvg`)
+  - Parameterized with `fillColor`, `strokeColor`, and `size`
+  - Auto-included in all pages via `jpulse-header.tmpl`
+- **Navigation Integration** (`webapp/view/jpulse-navigation.tmpl`):
+  - Migrated all navigation icons to component syntax
+  - Uses `{{use.jpIcons.configSvg size="24" _inline=true}}` for inline rendering
+  - Clean, maintainable icon definitions in JavaScript config
+- **Client-Side Rendering** (`webapp/view/jpulse-common.js`):
+  - Enhanced `_renderIcon()` to detect and handle inline SVG from components
+  - Wraps SVG in `<span class="jp-nav-icon jp-nav-icon-svg">` for consistent styling
+  - Removed redundant image file check (now component-based)
+- **CSS Styling** (`webapp/view/jpulse-common.css`):
+  - Added `.jp-breadcrumb-icon-svg` for inline SVG icons in breadcrumbs
+  - Proper sizing (14px), vertical alignment, and opacity for visual consistency
+- **Comprehensive Testing** (`webapp/tests/unit/controller/handlebar-components.test.js`):
+  - 20 unit tests covering all component functionality
+  - Tests: definition, usage, parameters, nesting, circular references
+  - Tests: library imports, namespaces, `_inline` parameter, error handling
+- **Documentation Updates**:
+  - `docs/handlebars.md`: Complete component system documentation
+    - Component definition, usage, parameters, namespaces
+    - Component libraries, nested components, error handling
+    - `_inline` framework parameter with examples
+  - `docs/style-reference.md`: Updated with `{{use.jpIcons.*}}` examples
+  - `docs/template-reference.md`: Updated with component usage patterns
+- **Migration to Components**:
+  - Removed `webapp/static/assets/admin/icons/*.svg` files
+  - Removed `webapp/static/assets/jpulse-examples/icons/*.svg` files
+  - All icon SVGs now live in `svg-icons.tmpl` as reusable components
+- **Translation Fixes**:
+  - Fixed `loginSuccessful` → `loginSuccess` key mismatch in German translations
+  - Updated all references in controller, tests, and translation files
+
+**Benefits**:
+- ✅ **Code Reusability**: Define once, use everywhere with `{{use.componentName}}`
+- ✅ **Parameterization**: Override defaults with `param="value"` syntax
+- ✅ **Clean Templates**: Replace verbose SVG markup with concise component calls
+- ✅ **Maintainability**: Update icon in one place, reflects everywhere
+- ✅ **Organization**: Namespaces prevent collisions and categorize components
+- ✅ **JavaScript Integration**: `_inline=true` for clean embedding in JS strings
+- ✅ **Type Safety**: Circular reference detection prevents infinite loops
+- ✅ **Developer Experience**: Intuitive syntax with auto-conversion (kebab → camel)
+
+**Technical Details**:
+- **Component Registry**: Per-request `Map` stored in `req.componentRegistry`
+- **Call Stack**: Per-request array in `req.componentCallStack` for circular detection
+- **Naming Convention**: Define in kebab-case, use in camelCase (auto-converted)
+- **Error Handling**: Server logs + HTML comments in dev, silent in production
+- **Framework Parameters**: Prefixed with `_`, not passed to component context
+- **Max Nesting**: 16 levels deep (configurable via `appConfig.controller.handlebar.maxIncludeDepth`)
+
+**Migration**:
+- **Backward Compatible**: No breaking changes for existing templates
+- **Component System**: New opt-in feature, existing code continues to work
+- **Icon Migration**: All framework icons migrated to component system
+- **Site Icons**: Sites can create own component libraries in `site/webapp/view/components/`
+
+**Files Modified**:
+- `webapp/controller/handlebar.js`: Core component implementation
+- `webapp/view/components/svg-icons.tmpl`: Component library with 20+ icons
+- `webapp/view/jpulse-header.tmpl`: Auto-includes svg-icons.tmpl
+- `webapp/view/jpulse-navigation.tmpl`: Migrated to component syntax
+- `webapp/view/jpulse-common.js`: Enhanced icon rendering
+- `webapp/view/jpulse-common.css`: Added breadcrumb SVG icon styling
+- `webapp/tests/unit/controller/handlebar-components.test.js`: 20 comprehensive tests
+- `docs/handlebars.md`: Complete component documentation
+- `docs/style-reference.md`: Updated with component examples
+- `docs/template-reference.md`: Updated with component examples
+- `webapp/translations/de.conf`: Fixed loginSuccess key
+- `webapp/controller/auth.js`: Fixed translation key reference
+- `webapp/tests/unit/controller/auth-controller.test.js`: Updated mock translations
+- `webapp/tests/unit/translations/i18n-user-language.test.js`: Updated mock translations
+
+**Release Date**: 2025-11-23
 
 ________________________________________________
 ## v1.2.3, W-096, 2025-11-23

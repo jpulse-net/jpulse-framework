@@ -4,8 +4,8 @@
  * @tagline         Overview of the To-Do MVC Demo
  * @description     Introduction to Model-View-Controller architecture with MongoDB
  * @file            site/webapp/view/hello-todo/index.shtml
- * @version         1.2.3
- * @release         2025-11-23
+ * @version         1.2.4
+ * @release         2025-11-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -22,10 +22,10 @@
 <body>
     <div class="jp-main">
         <div style="display: none;">
-            <!-- This card is automatically included in the Hello World Site Demos dashboard at hello/index.shtml -->
+            <!-- This card is automatically included in the dashboard at hello/index.shtml -->
             <!-- extract:start order=30 -->
             <a href="/hello-todo/" class="jp-card-dashboard jp-icon-btn">
-                <div class="jp-icon-container local-icon-container"><svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-todo-icon lucide-list-todo"><path d="M13 5h8"/><path d="M13 12h8"/><path d="M13 19h8"/><path d="m3 17 2 2 4-4"/><rect x="3" y="4" width="6" height="6" rx="1"/></svg></div>
+                <div class="jp-icon-container">{{use.jpIcons.todoSvg size="64"}}</div>
                 <h3 class="jp-card-title">To-Do MVC Demo</h3>
                 <p class="jp-card-description">Learn how to create a to-do application using the jPulse MVC pattern</p>
             </a>
@@ -34,7 +34,7 @@
 
         <div class="jp-container-1000">
             <div class="jp-page-header">
-                <h1><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-todo-icon lucide-list-todo"><path d="M13 5h8"/><path d="M13 12h8"/><path d="M13 19h8"/><path d="m3 17 2 2 4-4"/><rect x="3" y="4" width="6" height="6" rx="1"/></svg> To-Do MVC Demo</h1>
+                <h1>{{use.jpIcons.todoSvg size="26"}} To-Do MVC Demo</h1>
             </div>
 
             <!-- Sub-navigation -->

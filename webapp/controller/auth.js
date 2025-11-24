@@ -3,8 +3,8 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         1.2.3
- * @release         2025-11-23
+ * @version         1.2.4
+ * @release         2025-11-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -211,7 +211,7 @@ class AuthController {
 
             const elapsed = Date.now() - startTime;
             global.LogController.logInfo(req, 'auth.login', `success: User ${user.username} logged in, completed in ${elapsed}ms`);
-            const message = global.i18n.translate(req, 'controller.auth.loginSuccessful');
+            const message = global.i18n.translate(req, 'controller.auth.loginSuccess');
             res.json({
                 success: true,
                 data: {

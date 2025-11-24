@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Template Reference v1.2.3
+# jPulse Framework / Docs / Template Reference v1.2.4
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -292,18 +292,20 @@ List files matching patterns and extract content sections:
 ```
 
 **Extract with markers:**
-In each admin page (`admin/users.shtml`):
+In each admin page, such as `admin/users.shtml`:
 ```html
 <!-- extract:start order=10 -->
 <a href="/admin/users.shtml" class="jp-card-dashboard jp-icon-btn">
     <div class="jp-icon-container">
-        <img src="/assets/admin/icons/users.svg" class="jp-icon" alt="">
+        {{use.jpIcons.usersSvg size="64"}}
     </div>
     <h3 class="jp-card-title">User Management</h3>
     <p class="jp-card-description">Manage users and permissions</p>
 </a>
 <!-- extract:end -->
 ```
+
+> **Note:** Using `{{use.jpIcons.*}}` components is recommended over inline SVG for reusability and maintainability. See [Handlebars Reference](handlebars.md) for complete component documentation.
 
 **Extract with regex:**
 ```html

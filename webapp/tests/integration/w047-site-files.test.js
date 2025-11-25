@@ -1,10 +1,10 @@
 /**
  * @name            jPulse Framework / WebApp / Tests / Integration / W-047 Site Files
- * @tagline         Integration tests for W-047 site-specific file loading
- * @description     Tests site-common.css/js loading and handlebars processing
+ * @tagline         Integration tests for W-047 site-specific file loading (W-098 append mode)
+ * @description     Tests jpulse-common.css/js append mode and site-specific templates
  * @file            webapp/tests/integration/w047-site-files.test.js
- * @version         1.2.4
- * @release         2025-11-24
+ * @version         1.2.5
+ * @release         2025-11-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -35,10 +35,10 @@ describe('W-047 Site-Specific Files Integration', () => {
     });
 
     describe('Site File Creation and Management', () => {
-        test('should create site-common.css from template', () => {
+        test('should create jpulse-common.css from template (W-098 append mode)', () => {
             const siteViewDir = path.join(process.cwd(), 'site/webapp/view');
-            const templatePath = path.join(siteViewDir, 'site-common.css.tmpl');
-            const targetPath = path.join(siteViewDir, 'site-common.css');
+            const templatePath = path.join(siteViewDir, 'jpulse-common.css.tmpl');
+            const targetPath = path.join(siteViewDir, 'jpulse-common.css');
 
             // Verify template exists
             expect(fs.existsSync(templatePath)).toBe(true);
@@ -56,10 +56,10 @@ describe('W-047 Site-Specific Files Integration', () => {
             expect(content).toContain('--site-primary-color');
         });
 
-        test('should create site-common.js from template', () => {
+        test('should create jpulse-common.js from template (W-098 append mode)', () => {
             const siteViewDir = path.join(process.cwd(), 'site/webapp/view');
-            const templatePath = path.join(siteViewDir, 'site-common.js.tmpl');
-            const targetPath = path.join(siteViewDir, 'site-common.js');
+            const templatePath = path.join(siteViewDir, 'jpulse-common.js.tmpl');
+            const targetPath = path.join(siteViewDir, 'jpulse-common.js');
 
             // Verify template exists
             expect(fs.existsSync(templatePath)).toBe(true);
@@ -96,12 +96,13 @@ describe('W-047 Site-Specific Files Integration', () => {
     });
 
     describe('W-047 Route Configuration', () => {
-        test('should have site-common route pattern in routes.js', () => {
+        test('should have append mode routes in routes.js (W-098)', () => {
             const routesPath = path.join(process.cwd(), 'webapp/routes.js');
             const routesContent = fs.readFileSync(routesPath, 'utf8');
 
-            // Verify the site-common route exists
-            expect(routesContent).toContain('/\\/site-common\\.(js|css)$/');
+            // Verify append mode routes exist (W-098: .js and .css use append mode)
+            // Generic pattern matches all jpulse-*.js and jpulse-*.css files
+            expect(routesContent).toContain('/\\/jpulse-.*\\.(js|css)$/');
             expect(routesContent).toContain('ViewController.load');
         });
     });
@@ -115,8 +116,8 @@ describe('W-047 Site-Specific Files Integration', () => {
             expect(readmeContent).toContain('W-047: Site-Specific Coding & Styling Guidelines');
             expect(readmeContent).toContain('site-*');
             expect(readmeContent).toContain('jPulse.site');
-            expect(readmeContent).toContain('site-common.css');
-            expect(readmeContent).toContain('site-common.js');
+            // W-098: Files renamed to jpulse-common.* for append mode
+            expect(readmeContent).toMatch(/jpulse-common\.(css|js)|site-common\.(css|js)/);
         });
 
         test('should have W-047 marked as completed in requirements', () => {

@@ -10,21 +10,21 @@ The site override system allows you to customize the jPulse Framework without mo
 
 ```
 site/
-├── README.md                    # This file
-└── webapp/                      # Site-specific overrides
-    ├── app.conf                 # Site configuration (gitignored)
-    ├── app.conf.tmpl            # Configuration template
-    ├── controller/              # Site controller overrides
-    │   └── hello.js             # Demo controller override
-    ├── model/                   # Site model overrides
-    ├── view/                    # Site template overrides
+├── README.md                       # This file
+└── webapp/                         # Site-specific overrides
+    ├── app.conf                    # Site configuration (gitignored)
+    ├── app.conf.tmpl               # Configuration template
+    ├── controller/                 # Site controller overrides
+    │   └── hello.js                # Demo controller override
+    ├── model/                      # Site model overrides
+    ├── view/                       # Site template overrides
     │   ├── hello/
-    │   │   └── index.shtml      # Demo view override
-    │   ├── site-common.css      # Site-specific styles (W-047)
-    │   ├── site-common.css.tmpl # Site CSS template (W-047)
-    │   ├── site-common.js       # Site-specific JavaScript (W-047)
-    │   └── site-common.js.tmpl  # Site JS template (W-047)
-    └── static/                  # Site-specific assets
+    │   │   └── index.shtml         # Demo view override
+    │   ├── jpulse-common.css       # Site-specific styles (W-047)
+    │   ├── jpulse-common.css.tmpl  # Site CSS template (W-047)
+    │   ├── jpulse-common.js        # Site-specific JavaScript (W-047)
+    │   └── jpulse-common.js.tmpl   # Site JS template (W-047)
+    └── static/                     # Site-specific assets
 ```
 
 ### How It Works
@@ -114,16 +114,16 @@ This section provides comprehensive guidelines for site-specific development, fo
 
 1. **Copy the style and script templates:**
    ```bash
-   cp site/webapp/view/site-common.css.tmpl site/webapp/view/site-common.css
-   cp site/webapp/view/site-common.js.tmpl site/webapp/view/site-common.js
+   cp site/webapp/view/jpulse-common.css.tmpl site/webapp/view/jpulse-common.css
+   cp site/webapp/view/jpulse-common.js.tmpl site/webapp/view/jpulse-common.js
    ```
 
 2. **Customize your site styles and scripts:**
-   - Edit `site/webapp/view/site-common.css` for site-specific styles
-   - Edit `site/webapp/view/site-common.js` for site-specific JavaScript
+   - Edit `site/webapp/view/jpulse-common.css` for site-specific styles
+   - Edit `site/webapp/view/jpulse-common.js` for site-specific JavaScript
 
 3. **Files are automatically loaded:**
-   - Framework automatically detects and loads site-common files
+   - Framework automatically detects and loads jpulse-common files
    - No manual configuration required - follows "don't make me think" principle
 
 ### CSS Guidelines
@@ -131,7 +131,7 @@ This section provides comprehensive guidelines for site-specific development, fo
 #### **Naming Convention: `site-*` Prefix**
 
 **Why `site-*` prefix?**
-- ✅ **Clear source identification**: When you see `site-header` in HTML, you immediately know to look in `site-common.css`
+- ✅ **Clear source identification**: When you see `site-header` in HTML, you immediately know to look in `jpulse-common.css`
 - ✅ **Maintainability**: Easy to debug and modify site-specific styles
 - ✅ **No conflicts**: Completely separate from framework `jp-*` classes
 
@@ -424,12 +424,12 @@ Visit `/hello/` to see a comprehensive demo of:
 ### Troubleshooting
 
 **Site styles not loading?**
-- Check that `site-common.css` exists in `site/webapp/view/`
+- Check that `jpulse-common.css` exists in `site/webapp/view/`
 - Verify file permissions and syntax
 
 **Site JavaScript not working?**
 - Check browser console for errors
-- Ensure `site-common.js` exists and has valid syntax
+- Ensure `jpulse-common.js` exists and has valid syntax
 - Verify `jPulse.site` object is defined
 
 **Framework conflicts?**

@@ -4,8 +4,8 @@
  * @tagline         Header template for jPulse pages
  * @description     Common header included in all jPulse pages
  * @file            webapp/view/jpulse-header.tmpl
- * @version         1.2.4
- * @release         2025-11-24
+ * @version         1.2.5
+ * @release         2025-11-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -19,16 +19,14 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 
-<!-- jPulse Component Library - Framework Core -->
+<!-- jPulse Component Library - Framework Core + Site (W-098 append mode) -->
 <link rel="stylesheet" href="/jpulse-common.css?t={{file.timestamp "jpulse-common.css"}}">
+
+<!-- SVG Icon Components - available for page content -->
+{{file.include "components/svg-icons.tmpl"}}
 
 <!-- Prism.js Syntax Highlighting -->
 <link rel="stylesheet" href="/common/prism/prism.css">
-
-<!-- Site-Specific Styles (W-047) -->
-{{#if file.exists "site-common.css"}}
-<link rel="stylesheet" href="/site-common.css?t={{file.timestamp "site-common.css"}}">
-{{/if}}
 
 <!-- Prism.js Syntax Highlighting -->
 <script src="/common/prism/prism.js"></script>
@@ -38,24 +36,10 @@
 <script src="/common/prism/prism-javascript.js"></script>
 <script src="/common/prism/prism-json.js"></script>
 
-<!-- jPulse Common Utilities -->
+<!-- jPulse Common Utilities + Site (W-098 append mode) -->
 <script src="/jpulse-common.js?t={{file.timestamp "jpulse-common.js"}}"></script>
 
-<!-- Site-Specific JavaScript (W-047) -->
-{{#if file.exists "site-common.js"}}
-<script src="/site-common.js?t={{file.timestamp "site-common.js"}}"></script>
-{{/if}}
-
-{{file.include "components/svg-icons.tmpl"}}
-
-<script>
-// Framework Navigation Structure (W-098)
-{{file.include "jpulse-navigation.js"}}
-
-// Site Navigation Override (W-098)
-{{#if file.exists "site-navigation.js"}}
-{{file.include "site-navigation.js"}}
-{{/if}}
-</script>
+<!-- Navigation Structure (W-098 append mode) -->
+<script src="/jpulse-navigation.js?t={{file.timestamp "jpulse-navigation.js"}}"></script>
 
 <!-- EOF webapp/view/jpulse-header.tmpl -->

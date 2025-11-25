@@ -4,8 +4,8 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         1.2.4
- * @release         2025-11-24
+ * @version         1.2.5
+ * @release         2025-11-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -784,20 +784,20 @@ function copySiteTemplates(config, frameworkVersion, deploymentType) {
         });
     }
 
-    // Copy site-common templates
-    const siteCommonCssSrc = path.join(packageRoot, 'site/webapp/view/site-common.css.tmpl');
-    const siteCommonJsSrc = path.join(packageRoot, 'site/webapp/view/site-common.js.tmpl');
+    // Copy jpulse-common templates (W-098 append mode)
+    const siteCommonCssSrc = path.join(packageRoot, 'site/webapp/view/jpulse-common.css.tmpl');
+    const siteCommonJsSrc = path.join(packageRoot, 'site/webapp/view/jpulse-common.js.tmpl');
 
     if (fs.existsSync(siteCommonCssSrc)) {
         const templateContent = fs.readFileSync(siteCommonCssSrc, 'utf8');
         const processedContent = expandAllVariables(templateContent, config, deploymentType);
-        fs.writeFileSync('site/webapp/view/site-common.css.tmpl', processedContent);
+        fs.writeFileSync('site/webapp/view/jpulse-common.css.tmpl', processedContent);
     }
 
     if (fs.existsSync(siteCommonJsSrc)) {
         const templateContent = fs.readFileSync(siteCommonJsSrc, 'utf8');
         const processedContent = expandAllVariables(templateContent, config, deploymentType);
-        fs.writeFileSync('site/webapp/view/site-common.js.tmpl', processedContent);
+        fs.writeFileSync('site/webapp/view/jpulse-common.js.tmpl', processedContent);
     }
 
     // Copy bump-version.conf template

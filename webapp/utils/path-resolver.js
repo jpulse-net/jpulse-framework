@@ -3,8 +3,8 @@
  * @tagline         Site Override Path Resolution Utility
  * @description     Provides path resolution for site overrides (W-014)
  * @file            webapp/utils/path-resolver.js
- * @version         1.2.4
- * @release         2025-11-24
+ * @version         1.2.5
+ * @release         2025-11-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -47,6 +47,47 @@ class PathResolver {
 
         // 3. Error if neither found
         throw new Error(`Module not found: ${modulePath} (checked site override and framework paths)`);
+    }
+
+    /**
+     * Collect all matching files for append mode (W-098)
+     * Used for .js and .css files that should be concatenated instead of replaced
+     *
+     * @param {string} modulePath - Relative path from webapp/ (e.g., 'view/jpulse-common.js')
+     * @returns {string[]} - Array of absolute paths in load order (framework first, then site, then plugins)
+     *
+     * @example
+     * collectAllFiles('view/jpulse-common.js')
+     * // Returns: ['/path/to/webapp/view/jpulse-common.js', '/path/to/site/webapp/view/jpulse-common.js']
+     */
+    static collectAllFiles(modulePath) {
+        const files = [];
+        const appDir = global.appConfig.system.appDir;
+        const siteDir = global.appConfig.system.siteDir;
+
+        // 1. Framework file (always first if exists)
+        const frameworkPath = path.join(appDir, modulePath);
+        if (fs.existsSync(frameworkPath)) {
+            files.push(frameworkPath);
+        }
+
+        // 2. Site override (appended if exists)
+        if (siteDir) {
+            const sitePath = path.join(siteDir, modulePath);
+            if (fs.existsSync(sitePath)) {
+                files.push(sitePath);
+            }
+        }
+
+        // 3. Future: Plugin files (W-045)
+        // for (const plugin of getActivePlugins()) {
+        //     const pluginPath = path.join(pluginsDir, plugin.name, 'webapp', modulePath);
+        //     if (fs.existsSync(pluginPath)) {
+        //         files.push(pluginPath);
+        //     }
+        // }
+
+        return files;
     }
 
     /**

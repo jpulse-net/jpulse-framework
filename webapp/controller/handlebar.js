@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.2.4
- * @release         2025-11-24
+ * @version         1.2.5
+ * @release         2025-11-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -344,6 +344,12 @@ class HandlebarController {
             return template;
         }
 
+        // Remove Handlebars comments first (before any other processing)
+        // Supports both single-line and multi-line comments: {{!-- comment --}}
+        template = template.replace(/\{\{!--[\s\S]*?--\}\}/g, '')
+            // Remove trailing whitespace after {{/component}} because they do not produce output
+            .replace(/(\{\{\/component\}\})\s+/g, '$1');
+
         // Build internal context
         const internalContext = await this._buildInternalContext(req);
 
@@ -662,7 +668,7 @@ class HandlebarController {
             }
 
             // Remove header comments from included content
-            const cleanContent = content.replace(/(<!--|\/\*\*)\s+\* +\@name .*?(\*\/|-->)\r?\n?/gs, '');
+            const cleanContent = content.replace(/(<!--|\/\*\*|\{\{\!--)\s+\* +\@name .*?(\*\/|-->|--\}\})\r?\n?/gs, '');
 
             LogController.logInfo(req, 'handlebar.expandHandlebars', `Include processed: ${includePath}${hasContextVars ? ' (with context vars)' : ''}`);
 

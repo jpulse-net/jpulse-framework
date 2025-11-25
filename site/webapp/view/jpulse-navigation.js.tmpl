@@ -1,0 +1,113 @@
+// Start site/webapp/view/jpulse-navigation.js
+/*
+ * @name            jPulse Framework / Site / WebApp / View / Site Navigation Override
+ * @tagline         Define site-specific navigation using direct mutation
+ * @description     Customize framework navigation by directly modifying window.jPulseNavigation
+ * @convention      Append mode: This file is concatenated to framework jpulse-navigation.js (W-098)
+ * @file            site/webapp/view/jpulse-navigation.js.tmpl
+ * @version         1.2.5
+ * @release         2025-11-25
+ * @author          Site Administrator
+ * @copyright       2025 Site Administrator
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ */
+
+/*
+ * SITE NAVIGATION CUSTOMIZATION
+ * ========================================
+ * This file is appended after jpulse-navigation.js (W-098)
+ * Use direct mutation to modify the framework navigation structure
+ *
+ * Available operations:
+ * - Add new sections or pages
+ * - Modify existing properties (labels, icons, URLs)
+ * - Delete sections or pages (set to null)
+ *
+ * Pattern: Directly modify window.jPulseNavigation
+ * - window.jPulseNavigation.site.{section}
+ * - window.jPulseNavigation.tabs.{tabGroup}
+ */
+
+// ========================================
+// EXAMPLE 1: Remove framework demo sections
+// ========================================
+// Remove jPulse documentation and examples (not needed in production)
+// window.jPulseNavigation.site.jpulseDocs = null;
+// window.jPulseNavigation.site.jpulseExamples = null;
+
+// ========================================
+// EXAMPLE 2: Add custom navigation section
+// ========================================
+// window.jPulseNavigation.site.marketing = {
+//     label:      'Marketing',
+//     url:        '/marketing/',
+//     icon:       '📢',
+//     pages: {
+//         features: {
+//             label:  'Features',
+//             url:    '/features/',
+//             icon:   '✨'
+//         },
+//         pricing: {
+//             label:  'Pricing',
+//             url:    '/pricing/',
+//             icon:   '💰'
+//         },
+//         blog: {
+//             label:  'Blog',
+//             url:    '/blog/',
+//             icon:   '📝'
+//         }
+//     }
+// };
+
+// ========================================
+// EXAMPLE 3: Add pages to existing admin section
+// ========================================
+// Add site-specific admin pages
+// window.jPulseNavigation.site.admin.pages.contacts = {
+//     label:  '{{i18n.view.navigation.admin.contacts}}',
+//     url:    '/admin/contacts.shtml',
+//     icon:   '📧'
+// };
+//
+// window.jPulseNavigation.site.admin.pages.billing = {
+//     label:  'Billing',
+//     url:    '/admin/billing.shtml',
+//     icon:   '💳'
+// };
+
+// ========================================
+// EXAMPLE 4: Modify existing section properties
+// ========================================
+// Override auth section label and icon
+// window.jPulseNavigation.site.auth.label = 'Account';
+// window.jPulseNavigation.site.auth.icon = '👤';
+
+// ========================================
+// EXAMPLE 5: Remove specific pages
+// ========================================
+// Remove system status page from admin section
+// window.jPulseNavigation.site.admin.pages.systemStatus = null;
+
+// ========================================
+// EXAMPLE 6: Add custom tab navigation
+// ========================================
+// window.jPulseNavigation.tabs.myCustomTabs = {
+//     label: 'My Tabs',
+//     tabs: {
+//         overview: {
+//             label:  'Overview',
+//             url:    '/my-page/',
+//             icon:   '📊'
+//         },
+//         details: {
+//             label:  'Details',
+//             url:    '/my-page/details.shtml',
+//             icon:   '📋'
+//         }
+//     }
+// };
+
+// End site/webapp/view/jpulse-navigation.js

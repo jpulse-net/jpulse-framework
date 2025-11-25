@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Getting Started with jPulse v1.2.4
+# jPulse Framework / Docs / Getting Started with jPulse v1.2.5
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the site override system.
 
@@ -254,7 +254,7 @@ Check your server logs to see the auto-registration messages:
 
 ## Step 5: Customize Styling
 
-Create `site/webapp/static/site-common.css`:
+Create `site/webapp/static/jpulse-common.css` from scratch, or copy template from `site/webapp/static/jpulse-common.css.tmpl`:
 
 ```css
 /* Site-specific styles using site-* prefix */

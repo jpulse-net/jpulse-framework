@@ -4,8 +4,8 @@
  * @tagline         Footer template for jPulse pages
  * @description     Footer included in all jPulse pages to provide a consistent page layout
  * @file            webapp/view/jpulse-footer.tmpl
- * @version         1.2.4
- * @release         2025-11-24
+ * @version         1.2.5
+ * @release         2025-11-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -75,8 +75,7 @@
     </div>
 </footer>
 
-<!-- Site Navigation Initialization (W-069) -->
-{{file.include "jpulse-navigation.tmpl"}}
+<!-- Site Navigation Initialization (W-069, W-098) -->
 <style>
 {{#if appConfig.view.pageDecoration.siteNavigation.enabled}}
 :root {
@@ -86,19 +85,13 @@
 </style>
 <script>
 jPulse.dom.ready(() => {
-    // Deep merge framework navigation with site overrides (W-098)
-    const mergedNav = jPulse.utils.deepMerge(
-        window.jPulseNavigation || {},
-        window.siteNavigation || {}
-    );
-
     {{#if appConfig.view.pageDecoration.siteNavigation.enabled}}
     // Initialize site navigation when DOM is ready
     // Note: Handlebars values are strings, so convert to numbers
     jPulse.UI.navigation.init({
         currentUrl: '{{url.pathname}}',
         userRoles: {{user.roles}},
-        navigation: mergedNav.site,
+        navigation: window.jPulseNavigation.site,
         openDelay: parseInt('{{appConfig.view.pageDecoration.siteNavigation.openDelay}}', 10),
         closeDelay: parseInt('{{appConfig.view.pageDecoration.siteNavigation.closeDelay}}', 10),
         submenuCloseDelay: parseInt('{{appConfig.view.pageDecoration.siteNavigation.submenuCloseDelay}}', 10)
@@ -108,7 +101,7 @@ jPulse.dom.ready(() => {
     // Initialize breadcrumbs when DOM is ready
     jPulse.UI.breadcrumbs.init({
         currentUrl: '{{url.pathname}}',
-        navigation: mergedNav.site,
+        navigation: window.jPulseNavigation.site,
         homeLabel: '{{i18n.view.home.title}}'
     });
     {{/if}}

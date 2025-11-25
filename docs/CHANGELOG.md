@@ -1,6 +1,161 @@
-# jPulse Framework / Docs / Version History v1.2.4
+# jPulse Framework / Docs / Version History v1.2.5
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.2.5, W-098, 2025-11-24
+
+**Commit:** `W-098, v1.2.5: view: site navigation override with append mode and direct mutation`
+
+**MAJOR FEATURE**: Introduced flexible site navigation override system using append mode file concatenation and direct JavaScript mutation, eliminating the need for complete file duplication while maintaining framework update compatibility.
+
+**Objective**: Enable sites to selectively customize navigation (add, modify, delete sections) without duplicating entire framework navigation files, ensuring seamless framework updates.
+
+**Implementation**:
+- **Append Mode for `.js` and `.css` Files** (`webapp/controller/view.js`):
+  - Implemented automatic file concatenation for `.js` and `.css` requests
+  - Uses `PathResolver.collectAllFiles()` to gather framework + site + (future) plugin files
+  - Concatenates all matching files with newline separator in load order
+  - Removed `.js.tmpl` fallback (breaking change for cleaner pattern)
+  - Maintained `.css.tmpl` fallback for W-047 backward compatibility
+  - Logs append mode operations for debugging
+- **PathResolver Enhancement** (`webapp/utils/path-resolver.js`):
+  - Added `collectAllFiles(modulePath)` method for append mode support
+  - Returns array of all matching files in load order: framework → site → plugins
+  - Enables consistent append pattern across framework
+- **Unified Navigation Structure** (`webapp/view/jpulse-navigation.js`):
+  - Renamed from `.tmpl` to `.js` for active file convention
+  - Restructured to unified format: `window.jPulseNavigation = { site: {...}, tabs: {...} }`
+  - Framework defines structure first, sites extend via direct mutation second
+  - Includes SVG icon components via `{{file.include "components/svg-icons.tmpl"}}`
+  - Handlebars-processed for i18n support and component expansion
+- **Direct Mutation Pattern**:
+  - Sites mutate `window.jPulseNavigation` object directly in their `jpulse-navigation.js`
+  - Add: `window.jPulseNavigation.site.newSection = {...}`
+  - Modify: `window.jPulseNavigation.site.admin.icon = '⚙️'`
+  - Delete: `window.jPulseNavigation.site.jpulseExamples = null`
+  - Simple, explicit, idiomatic JavaScript - no special merge logic
+  - Zero runtime overhead compared to deep merge approach
+- **Handlebars Comment Support** (`webapp/controller/handlebar.js`):
+  - Implemented `{{!-- --}}` Handlebars comment stripping
+  - Removes comments at start of `_expandHandlebars()` before any processing
+  - Supports single-line and multi-line comments
+  - Critical for `svg-icons.tmpl` to work in both HTML and `.js` contexts
+  - Prevents JavaScript syntax errors from HTML comments in template files
+- **SVG Components in Navigation** (`webapp/view/components/svg-icons.tmpl`):
+  - Converted file header/footer from HTML comments (`<!-- -->`) to Handlebars comments (`{{!-- --}}`)
+  - Enables safe inclusion in JavaScript files without syntax errors
+  - HTML comments inside SVG markup preserved (part of SVG string)
+  - Auto-included in both page content (`jpulse-header.tmpl`) and navigation (`jpulse-navigation.js`)
+- **Simplified Header** (`webapp/view/jpulse-header.tmpl`):
+  - Single `<script src="/jpulse-navigation.js">` tag for navigation
+  - Removed separate `site-common.js`/`site-common.css` includes (now append mode)
+  - Includes `svg-icons.tmpl` for page content component availability
+  - Cleaner structure with append mode handling concatenation
+- **Simplified Footer** (`webapp/view/jpulse-footer.tmpl`):
+  - Removed `deepMerge` logic (no longer needed with direct mutation)
+  - Direct references to `window.jPulseNavigation.site` and `.tabs`
+  - Simpler initialization code
+- **File Naming Standardization**:
+  - `site-common.css.tmpl` → `jpulse-common.css.tmpl`
+  - `site-common.js.tmpl` → `jpulse-common.js.tmpl`
+  - `site-navigation.js` → `jpulse-navigation.js` (with `.js.tmpl` as reference template)
+  - Consistent `jpulse-*` naming across all framework files
+  - EOF comments updated to reflect new names
+- **Route Simplification** (`webapp/routes.js`):
+  - Removed redundant `/site-common\.(js|css)$/` route
+  - General `/jpulse-.*\.(js|css)$/` pattern covers all append mode files
+- **Comprehensive Documentation**:
+  - `docs/site-navigation.md`: Complete guide for direct mutation pattern
+    - Explains append mode convention (`.js`/`.css` append, `.shtml` replace)
+    - Common patterns: remove, add, extend, override, nested pages
+    - Real-world examples with dashboard, marketing, admin extensions
+    - Role-based visibility, icons (emoji and SVG components)
+    - Tabs navigation for multi-page features
+    - Best practices and troubleshooting
+  - `docs/handlebars.md`: Added Handlebars comments (`{{!-- --}}`) documentation
+  - `docs/template-reference.md`: Updated navigation pattern, added cross-links
+  - `docs/jpulse-ui-reference.md`: Added navigation guide link in breadcrumbs section
+  - `docs/genai-instructions.md`: Updated all site-common references to jpulse-common with append mode notes
+  - `docs/genai-development.md`: Updated references
+  - `docs/getting-started.md`: Updated references
+  - `site/README.md`: Updated all file references and examples
+  - `site/webapp/view/hello/site-development.shtml`: Updated examples with new naming
+- **Template Updates**:
+  - `site/webapp/view/jpulse-navigation.js.tmpl`: Example showing direct mutation pattern
+  - `site/webapp/view/jpulse-common.js.tmpl`: Updated header with append mode explanation
+  - `site/webapp/view/jpulse-common.css.tmpl`: Updated header with append mode explanation
+  - EOF comments reflect new file names
+- **Configuration Tool** (`bin/configure.js`):
+  - Updated to use new `jpulse-common.css.tmpl` and `jpulse-common.js.tmpl` paths
+  - Writes to correct file names during site setup
+- **Integration Testing** (`webapp/tests/integration/w047-site-files.test.js`):
+  - Updated expectations: `site-common.*` → `jpulse-common.*`
+  - Updated route pattern check to general `/\/jpulse-.*\.(js|css)$/`
+  - Test descriptions mention "W-098 append mode"
+  - All tests passing with new naming convention
+- **Cleanup**:
+  - Deleted `webapp/tests/integration/cache-api.test.js` (empty stub)
+  - Removed obsolete `site-common.*` references from 15+ files across codebase
+  - Historical context preserved in CHANGELOG and work-items.md
+
+**Benefits**:
+- ✅ **Minimal Customization**: Sites only specify changes (additions, modifications, deletions)
+- ✅ **Automatic Updates**: Framework navigation updates flow through automatically
+- ✅ **Zero Runtime Overhead**: No deep merge, just direct JavaScript mutation
+- ✅ **Clear Intent**: Explicit `window.jPulseNavigation.site.foo = bar` shows exactly what's changing
+- ✅ **Idiomatic JavaScript**: Standard mutation pattern familiar to all developers
+- ✅ **Consistent Pattern**: Align with `app.conf` deep merge and CSS append patterns
+- ✅ **Future-Proof**: Append mode supports plugin architecture (framework → site → plugins)
+- ✅ **Simple Debugging**: Easy to trace which file defines/modifies each navigation section
+- ✅ **No Duplication**: Unlike file-level override, no need to copy entire navigation structure
+
+**Breaking Changes**:
+- **Navigation File Migration Required**:
+  - Old: `site/webapp/view/jpulse-navigation.tmpl` (complete replacement)
+  - New: `site/webapp/view/jpulse-navigation.js` (append + direct mutation)
+  - Sites must convert full navigation object to selective mutations
+- **Removed `.js.tmpl` Fallback**:
+  - Old: `.js` files had `.js.tmpl` fallback in ViewController
+  - New: Only `.js` files are active, `.js.tmpl` is reference template only
+  - Cleaner pattern, but sites must copy `.js.tmpl` → `.js` for customization
+- **File Naming**:
+  - `site-common.*` → `jpulse-common.*` for consistency
+  - Sites must rename existing files (or recreate from updated templates)
+
+**Migration Path**:
+1. Remove old `site/webapp/view/jpulse-navigation.tmpl` if it exists
+2. Copy `site/webapp/view/jpulse-navigation.js.tmpl` to `.js`
+3. Convert object definitions to direct mutations:
+   - `window.siteNavigation = { site: { foo: {...} } }`
+   - → `window.jPulseNavigation.site.foo = {...}`
+4. Rename `site-common.*` → `jpulse-common.*` files if they exist
+5. Test navigation, breadcrumbs, and tabs
+6. Restart application
+
+**Technical Details**:
+- **Append Mode**: Concatenate framework + site + (future) plugin files in order
+- **Direct Mutation**: `window.jPulseNavigation.site.foo = bar` (simple assignment)
+- **Deletion Marker**: `window.jPulseNavigation.site.foo = null` (remove section)
+- **Load Order**: Framework defines, site extends (both in single HTTP response)
+- **Handlebars Processing**: Both framework and site files processed for i18n/components
+- **Component Availability**: `svg-icons.tmpl` included in both page and navigation contexts
+- **No Runtime Merge**: Zero overhead, maximum simplicity
+
+**Files Modified/Created** (50+ files):
+- Core: `webapp/controller/view.js`, `webapp/utils/path-resolver.js`, `webapp/controller/handlebar.js`
+- Views: `webapp/view/jpulse-navigation.js`, `webapp/view/jpulse-header.tmpl`, `webapp/view/jpulse-footer.tmpl`
+- Components: `webapp/view/components/svg-icons.tmpl`
+- Templates: `site/webapp/view/jpulse-*.tmpl` (3 files)
+- Routes: `webapp/routes.js`
+- Config: `bin/configure.js`
+- Tests: `webapp/tests/integration/w047-site-files.test.js`
+- Docs: `docs/site-navigation.md` (new), `docs/handlebars.md`, `docs/template-reference.md`, `docs/jpulse-ui-reference.md`, `docs/genai-instructions.md`, `docs/genai-development.md`, `docs/getting-started.md`, `site/README.md`
+- Examples: `site/webapp/view/hello/site-development.shtml`
+
+**Work Item**: W-098
+**Version**: v1.2.5
+**Release Date**: 2025-11-24
 
 ________________________________________________
 ## v1.2.4, W-097, 2025-11-24
@@ -1482,7 +1637,7 @@ ________________________________________________
 - **bin/mongodb-setup.sh**: Added `clusterMonitor` role for jpapp user (new installations)
 
 **Template Configuration Structure Alignment**:
-- **site/webapp/view/site-common.js.tmpl**: Fixed `init()` to use Handlebars `{{app.site.name}}` and `{{app.site.version}}` for server-side expansion
+- **site/webapp/view/jpulse-common.js.tmpl** (formerly site-common.js.tmpl): Fixed `init()` to use Handlebars `{{app.site.name}}` and `{{app.site.version}}` for server-side expansion
   - Corrected misconception that `window.appConfig` is available in view templates (appConfig is server-side only)
   - Templates (`.tmpl` files) are processed by `ViewController.load()` which expands Handlebars before JavaScript reaches browser
 - **templates/webapp/app.conf.dev.tmpl**: Structure aligned with `webapp/app.conf` (app.site.name/shortName nested structure)
@@ -3661,7 +3816,7 @@ Complete implementation of W-047 site-specific development guidelines with compr
 
 Major Features:
 - **Site Development Guidelines (W-047)**: Complete guidelines for site-specific coding and styling
-  - Site-common.css.tmpl and site-common.js.tmpl template files with site-* CSS prefix convention
+  - jpulse-common.css.tmpl and jpulse-common.js.tmpl template files with site-* CSS prefix convention (renamed from site-common.* in W-098)
   - JavaScript extension pattern extending jPulse.site namespace for clear source identification
   - Automatic file detection and loading following "don't make me think" principle
   - Comprehensive site/README.md with development guidelines, best practices, and examples

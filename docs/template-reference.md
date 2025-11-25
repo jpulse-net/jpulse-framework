@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Template Reference v1.2.4
+# jPulse Framework / Docs / Template Reference v1.2.5
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -48,14 +48,14 @@ webapp/view/                # Framework templates
     └── index.shtml         # Error page template
 
 site/webapp/view/           # Site override templates (optional)
-├── site-navigation.js      # Site navigation overrides (W-098)
+├── jpulse-navigation.js    # Site navigation overrides (W-098)
 ├── home/
 │   └── index.shtml         # Site-specific home page override
 └── custom/
     └── dashboard.shtml     # Site-specific custom page
 ```
 
-> **Navigation Customization:** See [Navigation Override Guide](navigation-override-guide.md) for complete documentation on customizing site navigation.
+> **Navigation Customization:** See [Site Navigation Guide](site-navigation.md) for complete documentation on customizing site navigation.
 
 ### URL Routing
 Templates are accessed via clean URLs:
@@ -187,7 +187,7 @@ window.jPulseNavigation = {
     }
 };
 
-// Site navigation override (site/webapp/view/site-navigation.js)
+// Site navigation override (site/webapp/view/jpulse-navigation.js)
 window.siteNavigation = {
     site: {
         // Remove framework sections
@@ -881,6 +881,16 @@ const result = await jPulse.api.post('/api/1/handlebar/expand', {
 2. **Context-Aware Translations**: Provide context for translators
 3. **Variable Substitution**: Use handlebars variables in translations
 4. **Fallback Languages**: Ensure graceful fallback for missing translations
+
+---
+
+## Related Documentation
+
+- [Handlebars Reference](handlebars.md) - Handlebars syntax and features
+- [Site Navigation Guide](site-navigation.md) - Customizing site navigation with direct mutation
+- [Front-End Development Guide](front-end-development.md) - Client-side development patterns
+- [Site Customization](site-customization.md) - Site override patterns
+- [Style Reference](style-reference.md) - CSS styling guide
 
 ---
 

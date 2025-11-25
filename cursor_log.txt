@@ -37041,8 +37041,9 @@ Changes accepted.
 
 
 ============================================================
+2025-11-23 02:38
 
-2025-11-23 02:38 - Namespace change: icons → jpIcons
+Namespace change: icons → jpIcons
 
 User requested namespace change from `icons` to `jpIcons` before release to reduce collision risk with site-specific components.
 
@@ -37117,8 +37118,9 @@ Changes accepted.
 
 
 ============================================================
+2025-11-24 03:15
 
-2025-11-24 03:15 - W-098 Implementation Complete: Site Navigation Override with Deep Merge
+W-098 Implementation Complete: Site Navigation Override with Deep Merge
 
 Successfully implemented W-098 site navigation override feature using deep merge pattern.
 
@@ -37189,5 +37191,303 @@ Migration Path:
 - Framework updates now automatic
 
 Ready for v1.2.5 release.
+
+Changes accepted.
+
+
+============================================================
+2025-11-24 04:30
+
+W-098 Implementation: Append Mode with Direct Mutation
+
+Successfully implemented W-098 site navigation override using append mode and direct mutation pattern.
+
+Problem Solved:
+- Sites had to completely replace jpulse-navigation.tmpl to customize navigation
+- No way to selectively add/remove/extend navigation sections without full file duplication
+- Framework updates required manual merging of site overrides
+- Deep merge added runtime overhead
+
+Solution Implemented (Option 7 - Append Mode with Direct Mutation):
+1. File Append Convention (W-098)
+   - `.js` and `.css` files use append mode (concatenation)
+   - `.shtml` files use replace mode (site overrides framework)
+   - No `.js.tmpl` fallback (only `.css.tmpl` for backward compatibility)
+   - Reference templates use `.js.tmpl` extension as "copy me" convention
+
+2. Direct Mutation Pattern
+   - Framework: `window.jPulseNavigation = { site: {...}, tabs: {...} }`
+   - Site: Directly mutate `window.jPulseNavigation.site.foo = {...}`
+   - No deep merge, no `window.siteNavigation` object
+   - Simple, explicit, JavaScript-idiomatic pattern
+
+3. ViewController Append Mode Implementation
+   - Added logic to detect `.js` and `.css` file requests
+   - Uses `PathResolver.collectAllFiles()` to gather all matching files
+   - Concatenates all files with newline separator
+   - Logs append mode operations for debugging
+   - CSS fallback to `.css.tmpl` maintained (W-047 compatibility)
+   - No `.js.tmpl` fallback (breaking change for cleaner pattern)
+
+4. PathResolver Enhancement
+   - Added `collectAllFiles(modulePath)` method
+   - Returns array of all matching files in load order:
+     * Framework file first
+     * Site override appended
+     * Future: Plugin files
+   - Supports W-098 append mode strategy
+
+5. Navigation Structure Simplification
+   - Removed `deepMerge` from jpulse-footer.tmpl
+   - Direct references to `window.jPulseNavigation.site`
+   - Navigation loaded via `<script src="/jpulse-navigation.js">` in header
+   - Handlebars processing happens at request time
+
+6. Site Template Files Updated
+   - site/webapp/view/jpulse-navigation.js.tmpl: Direct mutation examples
+   - site/webapp/view/jpulse-common.js.tmpl: Append mode convention documented
+   - site/webapp/view/jpulse-common.css.tmpl: Append mode convention documented
+
+Files Modified:
+- webapp/controller/view.js: Implemented append mode logic for .js and .css
+- webapp/utils/path-resolver.js: Added collectAllFiles() method
+- webapp/view/jpulse-header.tmpl: Simplified to single script tag
+- webapp/view/jpulse-footer.tmpl: Removed deepMerge, direct navigation references
+- site/webapp/view/jpulse-navigation.js.tmpl: Updated to direct mutation pattern
+- site/webapp/view/jpulse-common.js.tmpl: Updated header with append mode note
+- site/webapp/view/jpulse-common.css.tmpl: Updated header with append mode note
+- docs/site-navigation.md: Complete rewrite for direct mutation pattern
+- docs/dev/working/W-098-site-navigation-override.md: Updated to Option 7
+
+Technical Details:
+- Append mode: Concatenate framework + site + (future) plugin files
+- Direct mutation: `window.jPulseNavigation.site.foo = bar`
+- Deletion marker: `window.jPulseNavigation.site.foo = null`
+- No runtime overhead (no deep merge)
+- Explicit and clear (standard JavaScript)
+- Breaking change: Old site overrides must be migrated
+
+Breaking Changes:
+- Old: `site/webapp/view/jpulse-navigation.tmpl` (complete replacement)
+- New: `site/webapp/view/jpulse-navigation.js` (append + direct mutation)
+- Old: `.js.tmpl` fallback for JavaScript files
+- New: No fallback, only `.js` files are active
+- `.js.tmpl` now serves as reference template only
+
+Migration Path:
+1. Remove old `site/webapp/view/jpulse-navigation.tmpl` file
+2. Copy `site/webapp/view/jpulse-navigation.js.tmpl` to `.js`
+3. Convert object definitions to direct mutations:
+   - `window.siteNavigation = { site: { foo: {...} } }`
+   - → `window.jPulseNavigation.site.foo = {...}`
+4. Test thoroughly and restart application
+
+Benefits:
+- Simpler: No special merge logic to understand
+- Faster: No runtime merge overhead
+- Explicit: Clear what's being changed
+- Idiomatic: Standard JavaScript mutation pattern
+- Maintainable: Easy to see site customizations
+- Future-proof: Supports plugin append pattern
+
+Ready for v1.2.5 release.
+
+
+============================================================
+
+
+============================================================
+
+2025-11-24 05:40 - W-098 Final Cleanup: Handlebars Comments & Obsolete Filenames
+
+Completed final cleanup for W-098 release preparation.
+
+Work Completed:
+
+1. Fixed Handlebars Comment Syntax (Critical Bug)
+   - Problem: HTML comments in svg-icons.tmpl broke JavaScript syntax
+   - Solution: Implemented {{!-- --}} Handlebars comment stripping
+   - Files:
+     * webapp/controller/handlebar.js: Added comment removal at start of _expandHandlebars
+     * webapp/view/components/svg-icons.tmpl: Converted to {{!-- --}} for file header/footer
+   - Result: SVG icons now work correctly in both HTML and JS contexts
+
+2. Fixed SVG Component Availability in Navigation
+   - Problem: SVG icons missing in dropdown/breadcrumb
+   - Solution: Added {{file.include "components/svg-icons.tmpl"}} to jpulse-navigation.js
+   - Ensures components defined in each Handlebars processing context
+
+3. Updated W-047 Integration Tests for W-098
+   - Updated file name expectations: site-common.* → jpulse-common.*
+   - Updated route pattern check to general /\/jpulse-.*\.(js|css)$/
+   - Test descriptions now mention "W-098 append mode"
+   - Tests passing successfully
+
+4. Cleaned Up Site Navigation Documentation
+   - Removed .js.tmpl references (only reference templates now)
+   - Removed all i18n references (W-0 pending feature)
+   - Updated tabs navigation description (sites add, not override)
+   - Shortened troubleshooting section
+   - Removed migration from old patterns section
+   - Result: Clean, focused documentation for v1.2.5
+
+5. Fixed Obsolete Filenames Across Codebase
+   - Deleted: webapp/tests/integration/cache-api.test.js (empty stub)
+   - Updated all references: site-common.* → jpulse-common.*
+   - Updated all references: site-navigation.js → jpulse-navigation.js
+   - Files updated (15 files):
+     * docs/genai-instructions.md
+     * docs/genai-development.md
+     * docs/getting-started.md
+     * docs/template-reference.md
+     * docs/CHANGELOG.md (with historical context)
+     * docs/dev/work-items.md (with W-098 context)
+     * site/README.md
+     * site/webapp/view/jpulse-common.js.tmpl
+     * site/webapp/view/jpulse-common.css.tmpl
+     * site/webapp/view/hello/site-development.shtml
+     * bin/configure.js
+     * webapp/routes.js (removed redundant route)
+   - Historical docs (dev/working/*.md) intentionally NOT updated
+
+Test Status:
+- All tests passing
+- W-047 integration tests updated and passing
+- No regressions
+
+Codebase Status:
+- Consistent naming throughout
+- All docs reflect W-098 append mode
+- No obsolete references in active code/docs
+- Historical context preserved in CHANGELOG and work-items
+
+W-098 implementation complete and ready for release prep.
+
+Changes accepted.
+
+
+============================================================
+
+2025-11-24 05:50 - Docs: Handlebars Comments & Cross-Links
+
+Added missing documentation and improved cross-referencing.
+
+Changes:
+
+1. Documented Handlebars Comments ({{!-- --}})
+   - Added new "Comments" section in docs/handlebars.md
+   - Explains {{!-- --}} vs <!-- --> differences
+   - Use cases: component libraries, JS template files, developer notes
+   - Examples showing single-line and multi-line comments
+
+2. Fixed Broken Link
+   - docs/template-reference.md: navigation-override-guide.md → site-navigation.md
+   - Link was pointing to non-existent file
+
+3. Added Cross-Links to Site Navigation Guide
+   - docs/handlebars.md: Added to "Related Documentation" section
+   - docs/template-reference.md: Added new "Related Documentation" section with 5 links
+   - docs/jpulse-ui-reference.md: Added link in breadcrumbs section
+
+Result:
+- Handlebars comments feature now properly documented
+- All navigation documentation properly cross-referenced
+- Improved discoverability of site-navigation.md
+
+Ready for W-098 release.
+
+
+============================================================
+
+2025-11-24 06:00 - Release Prep: W-098, v1.2.5
+
+Completed release preparation for W-098 site navigation override feature.
+
+Updates:
+
+1. Version Bump
+   - README.md: v1.2.4 → v1.2.5
+   - docs/README.md: v1.2.4 → v1.2.5
+   - docs/CHANGELOG.md: v1.2.4 → v1.2.5
+
+2. README Updates
+   - README.md: Expanded Site Override System section
+     * File-Level Override: .shtml templates replace framework
+     * Append Mode: .js and .css concatenate site + framework
+     * Navigation Direct Mutation: Add/modify/delete without duplication
+   - docs/README.md: Added append mode and navigation mutation to Site Customization
+   - docs/README.md: Updated test count (740 → 770+)
+
+3. CHANGELOG.md: W-098 Entry Added (Comprehensive)
+   - **MAJOR FEATURE**: Site navigation override with append mode and direct mutation
+   - Complete implementation details (append mode, direct mutation, Handlebars comments)
+   - All 50+ files documented with descriptions
+   - Benefits, breaking changes, migration path clearly explained
+   - Technical details for developers
+   - Cross-referenced with W-097 for component context
+
+4. commit-message.txt: W-098 Entry Created
+   - Following established format from W-097
+   - Objective, implementation, benefits, breaking changes
+   - Technical details and file list
+   - Migration instructions
+
+5. Documentation Cross-Links Verified
+   - Handlebars comments ({{!-- --}}) now documented
+   - site-navigation.md properly linked from:
+     * template-reference.md
+     * handlebars.md
+     * jpulse-ui-reference.md
+   - All navigation documentation interconnected
+
+Release Status:
+✅ Implementation complete (W-098)
+✅ All documentation updated
+✅ README files updated with v1.2.5
+✅ CHANGELOG comprehensive entry added
+✅ commit-message.txt ready
+✅ Cross-links and references verified
+✅ Work items deliverables documented
+✅ Test suite ready (770+ tests)
+
+Ready for git commit and release tagging.
+
+Changes accepted.
+
+
+============================================================
+
+2025-11-24 06:10 - Release Prep: Added v1.2.4 & v1.2.5 Highlights
+
+Added release highlights for latest two versions to README files.
+
+Updates:
+
+1. README.md - Latest Release Highlights
+   - Added v1.2.5: Site Navigation Override with Append Mode
+     * Flexible navigation customization with direct mutation
+     * Append mode for .js and .css files
+     * Zero runtime overhead, automatic updates
+     * Breaking change note included
+   - Added v1.2.4: Reusable Handlebars Components
+     * Component definition and usage syntax
+     * Namespaces, _inline parameter, svg-icons.tmpl library
+     * No breaking changes, opt-in feature
+
+2. docs/README.md - Latest Release Highlights
+   - Added identical v1.2.5 and v1.2.4 entries
+   - Maintains consistency across both README files
+
+Format:
+- Concise, scannable summaries
+- Key features and benefits highlighted
+- Breaking change status clearly noted
+- Links to relevant documentation
+
+Release Status:
+✅ All documentation complete
+✅ Version highlights added to both READMEs
+✅ Consistent messaging across all docs
+✅ Ready for commit and release
 
 Changes accepted.

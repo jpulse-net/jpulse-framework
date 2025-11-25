@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.2.4
+# jPulse Framework / Docs / Site Administrator & Developer Documentation v1.2.5
 
 **For Site Administrators & Site Developers**
 
@@ -45,9 +45,11 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - Automatic file resolution priority (`site/webapp/` → `webapp/`)
 - Zero-configuration site controller discovery
 - Configuration merging system
+- **Append Mode** for `.js` and `.css` files (concatenate site + framework)
+- **Navigation Direct Mutation** for selective override without duplication
 
 ### 🧪 **Testing & Quality**
-- 740 comprehensive tests with 100% pass rate
+- 770+ comprehensive tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis
@@ -177,6 +179,8 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.2.5 - Site Navigation Override with Append Mode**: Introduced flexible navigation customization using append mode file concatenation and direct JavaScript mutation. Sites can selectively add, modify, or delete navigation sections without duplicating entire framework files. Features `.js` and `.css` append mode (concatenate framework + site), unified `window.jPulseNavigation` structure, direct mutation pattern (`window.jPulseNavigation.site.foo = {...}`), Handlebars comment support (`{{!-- --}}`), and file naming standardization (`site-common.*` → `jpulse-common.*`). Benefits: zero runtime overhead, automatic framework updates, idiomatic JavaScript, minimal customization code. Breaking change: navigation file migration required. Complete documentation in site-navigation.md guide.
+- ✅ **Version 1.2.4 - Reusable Handlebars Components**: Introduced reusable component system to eliminate code duplication. Define components once with `{{#component "name" param="default"}}...{{/component}}`, use everywhere with `{{use.componentName param="value"}}`. Features automatic kebab-case to camelCase conversion, per-request component registry, circular reference detection, optional dot-notation namespaces (`jpIcons.configSvg`), and `_inline=true` parameter for JavaScript embedding. Created centralized `svg-icons.tmpl` library with 20+ parameterized SVG components. Migrated all framework icons to component system. Benefits: define once use everywhere, clean templates, maintainable icons, organized namespaces. No breaking changes - new opt-in feature with comprehensive documentation.
 - ✅ **Version 1.2.3 - Professional SVG Icons**: Replaced Unicode emoji icons with professional SVG icons from lucide.dev across admin dashboard and hello demo pages. Improves visual consistency with enterprise-ready appearance and theme-flexible design using CSS `currentColor`. Added vertical alignment CSS (`h1-h6 svg { vertical-align: middle; }`) for proper icon positioning. Inline SVG implementation enables proper color inheritance from parent containers. Theme-ready icons respond to CSS color changes. No breaking changes - visual enhancement only.
 - ✅ **Version 1.2.2 - Removed jsdom Dependency**: Replaced 15-20MB jsdom package (90+ sub-dependencies) with lightweight regex-based CSS selector extraction (~50 lines of code). Uses smart tag nesting level annotation (`:~0~`, `:~1~`) with backreference matching to handle nested tags correctly. Moved jsdom to devDependencies (still used for client-side JS tests). Significantly reduces production package size, faster installs, same functionality. CSS selector extraction (`.class`, `#id`) works identically with zero external dependencies.
 - ✅ **Version 1.2.1 - File Listing & Extraction Helpers**: Generalized Handlebars helpers for automated content generation. Features `file.list` for glob pattern file discovery and `file.extract` for content extraction using three methods (comment markers, regex patterns, CSS selectors). Supports sorting by extracted order or filename, pattern parameter passing in loops, and site override via PathResolver. Security built-in with path traversal protection. Use cases include auto-populated dashboards, navigation menus, galleries, and documentation indexes. Added `PathResolver.listFiles()` method for centralized directory listing with site override support.

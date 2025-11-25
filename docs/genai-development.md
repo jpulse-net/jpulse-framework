@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Generative-AI Development Guide v1.2.4
+# jPulse Framework / Docs / Generative-AI Development Guide v1.2.5
 
 Complete guide for site developers building jPulse applications with Gen-AI assistance, aka vibe coding, using IDEs like Cline, Cursor, GitHub Copilot, or Windsurf.
 
@@ -360,7 +360,7 @@ Follow the pattern for existing fields."
 
 **Creating site-specific utilities**:
 ```
-"Create a site-wide utility in site/webapp/view/site-common.js for
+"Create a site-wide utility in site/webapp/view/jpulse-common.js for
 formatting currency values. Follow the structure of jpulse-common.js but
 use site.utils namespace instead of jPulse."
 ```

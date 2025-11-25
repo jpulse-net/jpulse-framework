@@ -4,8 +4,8 @@
  * @tagline         Comprehensive W-047 Site Development Demo
  * @description     Detailed demonstration of site-specific CSS and JavaScript features
  * @file            site/webapp/view/hello/site-demo.shtml
- * @version         1.2.4
- * @release         2025-11-24
+ * @version         1.2.5
+ * @release         2025-11-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -43,7 +43,7 @@
         <!-- Section 1: CSS Styling Demo -->
         <div class="jp-card">
             <h3>🎨 Section 1: Site-Specific CSS Styling</h3>
-            <p>These components use <code>site-*</code> prefixed CSS classes from <code>site-common.css</code>:</p>
+            <p>These components use <code>site-*</code> prefixed CSS classes from <code>jpulse-common.css</code>:</p>
 
             <div class="site-feature-grid" style="margin: 20px 0;">
                 <div class="site-feature-card">
@@ -117,7 +117,7 @@
                         📋 Click to expand site accordion
                     </div>
                     <div style="display: none; padding: 10px; background: #f9f9f9; border-radius: 4px;">
-                        <p>This accordion is powered by site-specific JavaScript from <code>site-common.js</code>.</p>
+                        <p>This accordion is powered by site-specific JavaScript from <code>jpulse-common.js</code>.</p>
                         <p>It demonstrates auto-initialization using data attributes and clean component architecture.</p>
                     </div>
                 </div>
@@ -141,17 +141,17 @@
             <div class="jp-info-box">
                 <h4>File Structure:</h4>
                 <pre style="background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto;">site/webapp/view/
-├── site-common.css      # Site-specific styles
-├── site-common.js       # Site-specific JavaScript
-├── site-common.css.tmpl # CSS template
-└── site-common.js.tmpl  # JavaScript template</pre>
+├── jpulse-common.css      # Site-specific styles
+├── jpulse-common.js       # Site-specific JavaScript
+├── jpulse-common.css.tmpl # CSS template
+└── jpulse-common.js.tmpl  # JavaScript template</pre>
             </div>
 
             <div style="margin: 20px 0;">
                 <h4>CSS Naming Convention:</h4>
                 <ul>
                     <li><code>site-*</code> prefix for all site-specific classes</li>
-                    <li>Clear source identification (when you see <code>site-header</code>, you know it's in <code>site-common.css</code>)</li>
+                    <li>Clear source identification (when you see <code>site-header</code>, you know it's in <code>jpulse-common.css</code>)</li>
                     <li>No conflicts with framework <code>jp-*</code> classes</li>
                 </ul>
             </div>

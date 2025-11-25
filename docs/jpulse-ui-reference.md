@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / jPulse.UI Widget Reference v1.2.4
+# jPulse Framework / Docs / jPulse.UI Widget Reference v1.2.5
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -516,6 +516,8 @@ Site navigation with dropdown menus, mobile hamburger menu, and role-based acces
 ### Breadcrumbs
 
 Automatic breadcrumb trail generation based on current URL and navigation structure. See [Breadcrumbs Documentation](front-end-development.md#breadcrumbs) for details.
+
+**Navigation Customization:** See [Site Navigation Guide](site-navigation.md) for customizing the navigation structure used by breadcrumbs.
 
 ---
 

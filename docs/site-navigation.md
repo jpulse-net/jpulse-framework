@@ -1,6 +1,6 @@
 # jPulse Framework / Docs / Site Navigation Guide v1.2.5
 
-Complete guide to customizing site navigation in the jPulse Framework using deep merge and override patterns.
+Complete guide to customizing site navigation in the jPulse Framework using direct mutation and append mode.
 
 ---
 
@@ -11,16 +11,14 @@ The jPulse Framework provides a flexible navigation system that separates framew
 - ✅ Keep framework navigation updated automatically
 - ✅ Add custom navigation sections
 - ✅ Extend framework sections with site-specific pages
-- ✅ Remove unwanted framework sections
+- ✅ Remove unwanted framework sections (set to `null`)
 - ✅ Override labels, icons, or URLs
 
 ## Navigation Structure
 
-The jPulse navigation system uses two global JavaScript objects:
-
 ### Framework Navigation
 ```javascript
-// Defined in: webapp/view/jpulse-navigation.js
+// Defined in: webapp/view/jpulse-navigation.js (loaded first)
 window.jPulseNavigation = {
     site: {     // Site-wide navigation (pulldown menu, breadcrumbs)
         admin: { ... },
@@ -35,47 +33,57 @@ window.jPulseNavigation = {
 };
 ```
 
-### Site Navigation Override
+### Site Navigation Customization (Optional)
 ```javascript
-// Optional: site/webapp/view/site-navigation.js
-window.siteNavigation = {
-    site: {     // Your site-specific changes
-        // additions, modifications, deletions
-    },
-    tabs: {     // Your custom tabs (optional)
-        // custom tab structures
-    }
+// Optional: site/webapp/view/jpulse-navigation.js (appended, loaded second)
+// Directly modify window.jPulseNavigation - it already exists!
+
+// Example: Remove framework sections
+window.jPulseNavigation.site.jpulseDocs = null;
+window.jPulseNavigation.site.jpulseExamples = null;
+
+// Example: Add new section
+window.jPulseNavigation.site.marketing = {
+    label: 'Marketing',
+    url: '/marketing/',
+    pages: { ... }
+};
+
+// Example: Add page to existing section
+window.jPulseNavigation.site.admin.pages.contacts = {
+    label: 'Contacts',
+    url: '/admin/contacts.shtml'
 };
 ```
 
-### Merge Process
+### Append Mode (W-098)
 
-At runtime, the framework automatically merges both navigation structures:
+The framework uses **append mode** for `.js` files:
+1. Framework `jpulse-navigation.js` is loaded first (defines `window.jPulseNavigation`)
+2. Site `jpulse-navigation.js` is automatically appended (modifies `window.jPulseNavigation`)
+3. Both files are concatenated into a single response
 
-```javascript
-// In jpulse-footer.tmpl
-const mergedNav = jPulse.utils.deepMerge(
-    window.jPulseNavigation || {},
-    window.siteNavigation || {}
-);
-```
+This pattern is:
+- **Simple**: Direct JavaScript mutation
+- **Explicit**: Clear what's being changed
+- **Efficient**: No runtime merge overhead
+- **Idiomatic**: Standard JavaScript pattern
 
 ---
 
-## Deep Merge Behavior
+## Direct Mutation Pattern
 
-The merge uses recursive object merging with these rules:
+Site customization uses **direct mutation** of the `window.jPulseNavigation` object:
 
-1. **Add**: New keys in `siteNavigation` are added
-2. **Override**: Matching keys replace framework values
-3. **Delete**: Set any key to `null` to remove it
-4. **Nested**: Works recursively for nested objects
-5. **Arrays**: Arrays are replaced, not merged
+1. **Add**: Assign new properties directly
+2. **Modify**: Reassign existing properties
+3. **Delete**: Set any property to `null`
+4. **Simple**: Standard JavaScript, no special merge logic
 
-### Example: Deep Merge in Action
+### Example: Direct Mutation in Action
 
 ```javascript
-// Framework navigation
+// Framework defines (loaded first from webapp/view/jpulse-navigation.js)
 window.jPulseNavigation = {
     site: {
         admin: {
@@ -89,36 +97,27 @@ window.jPulseNavigation = {
     }
 };
 
-// Site override
-window.siteNavigation = {
-    site: {
-        admin: {
-            // Keeps: label, config, users
-            // Adds: contacts
-            pages: {
-                contacts: { label: 'Contacts', url: '/admin/contacts.shtml' }
-            }
-        },
-        jpulseExamples: null,  // Remove this section
-        marketing: { ... }      // Add new section
-    }
+// Site customizes (loaded second from site/webapp/view/jpulse-navigation.js)
+// Directly modify the existing window.jPulseNavigation object:
+
+// Remove unwanted section
+window.jPulseNavigation.site.jpulseExamples = null;
+
+// Add new page to existing section
+window.jPulseNavigation.site.admin.pages.contacts = {
+    label: 'Contacts',
+    url: '/admin/contacts.shtml',
+    icon: '📧'
 };
 
-// Result after merge
-mergedNav = {
-    site: {
-        admin: {
-            label: 'Admin',        // Kept from framework
-            pages: {
-                config: { ... },   // Kept from framework
-                users: { ... },    // Kept from framework
-                contacts: { ... }  // Added from site
-            }
-        },
-        // jpulseExamples removed
-        marketing: { ... }         // Added from site
-    }
+// Add completely new section
+window.jPulseNavigation.site.marketing = {
+    label: 'Marketing',
+    url: '/marketing/',
+    pages: { ... }
 };
+
+// Result: window.jPulseNavigation is now customized with your changes
 ```
 
 ---
@@ -130,13 +129,9 @@ mergedNav = {
 Remove sections you don't need in production:
 
 ```javascript
-// site/webapp/view/site-navigation.js
-window.siteNavigation = {
-    site: {
-        jpulseDocs: null,      // Remove documentation section
-        jpulseExamples: null   // Remove examples section
-    }
-};
+// site/webapp/view/jpulse-navigation.js
+window.jPulseNavigation.site.jpulseDocs = null;      // Remove documentation section
+window.jPulseNavigation.site.jpulseExamples = null;   // Remove examples section
 ```
 
 **Use Case:** Production sites don't need framework demo sections.
@@ -148,29 +143,25 @@ window.siteNavigation = {
 Add your own top-level navigation section:
 
 ```javascript
-window.siteNavigation = {
-    site: {
-        marketing: {
-            label: 'Marketing',
-            url: '/marketing/',
-            icon: '📢',
-            pages: {
-                features: {
-                    label: 'Features',
-                    url: '/features/',
-                    icon: '✨'
-                },
-                pricing: {
-                    label: 'Pricing',
-                    url: '/pricing/',
-                    icon: '💰'
-                },
-                blog: {
-                    label: 'Blog',
-                    url: '/blog/',
-                    icon: '📝'
-                }
-            }
+window.jPulseNavigation.site.marketing = {
+    label: 'Marketing',
+    url: '/marketing/',
+    icon: '📢',
+    pages: {
+        features: {
+            label: 'Features',
+            url: '/features/',
+            icon: '✨'
+        },
+        pricing: {
+            label: 'Pricing',
+            url: '/pricing/',
+            icon: '💰'
+        },
+        blog: {
+            label: 'Blog',
+            url: '/blog/',
+            icon: '📝'
         }
     }
 };
@@ -185,36 +176,31 @@ window.siteNavigation = {
 Add site-specific pages to the framework admin section:
 
 ```javascript
-window.siteNavigation = {
-    site: {
-        admin: {
-            pages: {
-                contacts: {
-                    label: 'Contacts',
-                    url: '/admin/contacts.shtml',
-                    icon: '📧'
-                },
-                billing: {
-                    label: 'Billing',
-                    url: '/admin/billing.shtml',
-                    icon: '💳'
-                },
-                reports: {
-                    label: 'Reports',
-                    url: '/admin/reports.shtml',
-                    icon: '📊',
-                    pages: {  // Nested pages
-                        sales: {
-                            label: 'Sales Reports',
-                            url: '/admin/reports/sales.shtml'
-                        },
-                        analytics: {
-                            label: 'Analytics',
-                            url: '/admin/reports/analytics.shtml'
-                        }
-                    }
-                }
-            }
+// Add individual pages to existing admin section
+window.jPulseNavigation.site.admin.pages.contacts = {
+    label: 'Contacts',
+    url: '/admin/contacts.shtml',
+    icon: '📧'
+};
+
+window.jPulseNavigation.site.admin.pages.billing = {
+    label: 'Billing',
+    url: '/admin/billing.shtml',
+    icon: '💳'
+};
+
+window.jPulseNavigation.site.admin.pages.reports = {
+    label: 'Reports',
+    url: '/admin/reports.shtml',
+    icon: '📊',
+    pages: {  // Nested pages
+        sales: {
+            label: 'Sales Reports',
+            url: '/admin/reports/sales.shtml'
+        },
+        analytics: {
+            label: 'Analytics',
+            url: '/admin/reports/analytics.shtml'
         }
     }
 };
@@ -231,19 +217,13 @@ window.siteNavigation = {
 Change labels, icons, or URLs of framework sections:
 
 ```javascript
-window.siteNavigation = {
-    site: {
-        auth: {
-            label: 'Account',      // Override framework label
-            icon: '👤'             // Override framework icon
-            // url stays as framework default
-        },
-        admin: {
-            icon: '🛠️'             // Override admin icon
-            // label, url, pages stay as framework defaults
-        }
-    }
-};
+// Override individual properties
+window.jPulseNavigation.site.auth.label = 'Account';      // Override label
+window.jPulseNavigation.site.auth.icon = '👤';             // Override icon
+// url remains as framework default
+
+window.jPulseNavigation.site.admin.icon = '🛠️';           // Override admin icon
+// label, url, pages remain as framework defaults
 ```
 
 **Use Case:** Customize framework sections to match your site's branding.
@@ -255,15 +235,8 @@ window.siteNavigation = {
 Remove specific pages within a section:
 
 ```javascript
-window.siteNavigation = {
-    site: {
-        admin: {
-            pages: {
-                websocket: null    // Remove websocket admin page
-            }
-        }
-    }
-};
+// Remove specific admin page
+window.jPulseNavigation.site.admin.pages.websocket = null;
 ```
 
 **Use Case:** Hide specific admin features not relevant to your site.
@@ -275,64 +248,58 @@ window.siteNavigation = {
 Typical production site configuration:
 
 ```javascript
-// site/webapp/view/site-navigation.js
-window.siteNavigation = {
-    site: {
-        // Remove framework demo sections
-        jpulseDocs: null,
-        jpulseExamples: null,
+// site/webapp/view/jpulse-navigation.js
 
-        // Add site dashboard
-        dashboard: {
-            label: 'Dashboard',
-            url: '/dashboard/',
-            role: 'user',  // Visible to authenticated users
-            icon: '📊',
-            pages: {
-                overview: {
-                    label: 'Overview',
-                    url: '/dashboard/'
-                },
-                reports: {
-                    label: 'Reports',
-                    url: '/dashboard/reports.shtml',
-                    icon: '📈'
-                },
-                analytics: {
-                    label: 'Analytics',
-                    url: '/dashboard/analytics.shtml',
-                    icon: '📉'
-                }
-            }
+// Remove framework demo sections
+window.jPulseNavigation.site.jpulseDocs = null;
+window.jPulseNavigation.site.jpulseExamples = null;
+
+// Add site dashboard
+window.jPulseNavigation.site.dashboard = {
+    label: 'Dashboard',
+    url: '/dashboard/',
+    role: 'user',  // Visible to authenticated users
+    icon: '📊',
+    pages: {
+        overview: {
+            label: 'Overview',
+            url: '/dashboard/'
         },
-
-        // Add marketing section
-        marketing: {
-            label: 'Marketing',
-            url: '/marketing/',
-            pages: {
-                features: { label: 'Features', url: '/features/' },
-                pricing: { label: 'Pricing', url: '/pricing/' },
-                about: { label: 'About', url: '/about/' }
-            }
+        reports: {
+            label: 'Reports',
+            url: '/dashboard/reports.shtml',
+            icon: '📈'
         },
-
-        // Extend admin with site pages
-        admin: {
-            pages: {
-                contacts: {
-                    label: 'Contacts',
-                    url: '/admin/contacts.shtml',
-                    icon: '📧'
-                },
-                billing: {
-                    label: 'Billing',
-                    url: '/admin/billing.shtml',
-                    icon: '💳'
-                }
-            }
+        analytics: {
+            label: 'Analytics',
+            url: '/dashboard/analytics.shtml',
+            icon: '📉'
         }
     }
+};
+
+// Add marketing section
+window.jPulseNavigation.site.marketing = {
+    label: 'Marketing',
+    url: '/marketing/',
+    pages: {
+        features: { label: 'Features', url: '/features/' },
+        pricing: { label: 'Pricing', url: '/pricing/' },
+        about: { label: 'About', url: '/about/' }
+    }
+};
+
+// Extend admin with site pages
+window.jPulseNavigation.site.admin.pages.contacts = {
+    label: 'Contacts',
+    url: '/admin/contacts.shtml',
+    icon: '📧'
+};
+
+window.jPulseNavigation.site.admin.pages.billing = {
+    label: 'Billing',
+    url: '/admin/billing.shtml',
+    icon: '💳'
 };
 ```
 
@@ -342,73 +309,27 @@ window.siteNavigation = {
 
 ### Step 1: Create Site Navigation File
 
-Create one of these (choose based on whether you need i18n):
-
-**Option A: Plain JavaScript** (no i18n needed)
-```bash
-site/webapp/view/site-navigation.js
-```
-
-**Option B: Handlebars Template** (with i18n support)
-```bash
-site/webapp/view/site-navigation.js.tmpl
-```
-
-### Step 2: Use the Template
-
 Start with the provided template:
 
 ```bash
 # Copy the example template
-cp site/webapp/view/site-navigation.js.tmpl \
-   site/webapp/view/site-navigation.js
+cp site/webapp/view/jpulse-navigation.js.tmpl \
+   site/webapp/view/jpulse-navigation.js
 
 # Edit to add your customizations
-vi site/webapp/view/site-navigation.js
+vi site/webapp/view/jpulse-navigation.js
 ```
 
-### Step 3: Test Your Changes
+**Note:** The framework uses **append mode** - your file is automatically concatenated after the framework's `jpulse-navigation.js`. You don't need to include or merge anything.
+
+
+### Step 2: Test Your Changes
 
 1. Restart your application
 2. Check the site navigation pulldown menu
 3. Check breadcrumbs navigation
 4. Verify role-based visibility
 5. Test on mobile (hamburger menu)
-
----
-
-## Internationalization (i18n)
-
-If you need translated labels, use `.js.tmpl` extension and Handlebars i18n syntax:
-
-```javascript
-// site/webapp/view/site-navigation.js.tmpl
-window.siteNavigation = {
-    site: {
-        admin: {
-            pages: {
-                contacts: {
-                    label: '{{i18n.view.navigation.admin.contacts}}',  // i18n reference
-                    url: '/admin/contacts.shtml',
-                    icon: '📧'
-                }
-            }
-        }
-    }
-};
-```
-
-Then add translations:
-
-```ini
-# webapp/translations/en.conf
-[view.navigation.admin]
-contacts = "Contacts"
-
-# webapp/translations/de.conf
-[view.navigation.admin]
-contacts = "Kontakte"
-```
 
 ---
 
@@ -463,6 +384,7 @@ icon: '{{use.jpIcons.logsSvg size="24" _inline=true}}'
 
 // Custom site SVG components
 icon: '{{use.siteIcons.customIcon size="24" _inline=true}}'
+icon: '<svg width="24" height="24" viewBox="0 0 64 64" > ... </svg>'
 ```
 
 **Note:** Use `_inline=true` parameter for icons in navigation to ensure proper rendering in JavaScript structures.
@@ -498,44 +420,47 @@ admin: {
 
 ---
 
-## Tabs Navigation (Advanced)
+## Tabs Navigation
 
-Most sites don't need custom tabs navigation. The framework handles tabs automatically for its pages. Only override if you need custom tab structures:
+Navigation tabs are commonly used for organizing related pages within a section. The framework provides tab navigation for its pages (e.g., documentation, examples), and sites can add their own.
+
+**Pattern:** Sites add their own tabs, they don't override framework tabs.
+
+### Adding Custom Tabs
 
 ```javascript
-window.siteNavigation = {
+// site/webapp/view/jpulse-navigation.js
+window.jPulseNavigation.tabs.myFeatureTabs = {
+    label: 'My Feature',
     tabs: {
-        myCustomTabs: {
-            label: 'My Features',
-            tabs: {
-                overview: {
-                    label: 'Overview',
-                    url: '/my-feature/',
-                    icon: '📊'
-                },
-                details: {
-                    label: 'Details',
-                    url: '/my-feature/details.shtml',
-                    icon: '📋'
-                },
-                settings: {
-                    label: 'Settings',
-                    url: '/my-feature/settings.shtml',
-                    icon: '⚙️'
-                }
-            }
+        overview: {
+            label: 'Overview',
+            url: '/my-feature/',
+            icon: '📊'
+        },
+        details: {
+            label: 'Details',
+            url: '/my-feature/details.shtml',
+            icon: '📋'
+        },
+        settings: {
+            label: 'Settings',
+            url: '/my-feature/settings.shtml',
+            icon: '⚙️'
         }
     }
 };
 ```
 
-Then use in your page:
+Then use in your pages:
 
 ```handlebars
-{{#if jPulseNavigation.tabs.myCustomTabs}}
-    {{ui.renderTabs jPulseNavigation.tabs.myCustomTabs}}
+{{#if jPulseNavigation.tabs.myFeatureTabs}}
+    {{ui.renderTabs jPulseNavigation.tabs.myFeatureTabs}}
 {{/if}}
 ```
+
+**Use Case:** Multi-page features benefit from tabs for easy navigation between related pages (dashboard, reports, analytics, settings, etc.).
 
 ---
 
@@ -543,142 +468,39 @@ Then use in your page:
 
 ### Navigation Not Updating
 
-**Problem:** Site navigation doesn't show your changes.
-
-**Solutions:**
-1. Check file location: `site/webapp/view/site-navigation.js`
-2. Verify syntax: Valid JavaScript object
+1. Check file location: `site/webapp/view/jpulse-navigation.js`
+2. Verify JavaScript syntax (check browser console for errors)
 3. Restart application: `pm2 restart your-app`
-4. Clear browser cache: Hard refresh (Ctrl+Shift+R)
-
-### Merge Not Working
-
-**Problem:** Site overrides not merging correctly.
-
-**Check:**
-1. Object structure matches framework structure
-2. Using `null` for deletions (not `undefined`)
-3. No syntax errors in your file
-4. File is being included (check browser console)
+4. Hard refresh browser: Ctrl+Shift+R (Cmd+Shift+R on Mac)
 
 ### Icons Not Showing
 
-**Problem:** Icons appear as text or broken.
-
-**Check:**
-1. Emoji icons: Use standard Unicode emojis
+1. Emoji icons: Use standard Unicode emojis `icon: '📧'`
 2. SVG icons: Use `_inline=true` parameter
-3. Custom SVG components: Verify component exists
-4. Check browser console for errors
-
-### Role-Based Visibility Not Working
-
-**Problem:** Users seeing navigation they shouldn't.
-
-**Check:**
-1. Role property set correctly: `role: 'admin'`
-2. User has correct role assigned
-3. Check `{{user.roles}}` in template
-4. Verify authentication working
-
----
-
-## Migration from Old Pattern
-
-If you have an old site override file (`site/webapp/view/jpulse-navigation.tmpl`), migrate to the new pattern:
-
-### Old Pattern (Before W-098)
-```javascript
-// site/webapp/view/jpulse-navigation.tmpl
-// Complete replacement of framework navigation
-window.jPulseSiteNavigation = {
-    // Had to duplicate ALL framework sections
-    admin: { ... },
-    jpulseDocs: { ... },  // Even if not needed
-    jpulseExamples: { ... },  // Even if not wanted
-    // Plus custom sections
-    mySection: { ... }
-};
-```
-
-### New Pattern (W-098+)
-```javascript
-// site/webapp/view/site-navigation.js
-// Only specify changes from framework
-window.siteNavigation = {
-    site: {
-        jpulseDocs: null,        // Remove (wasn't needed)
-        jpulseExamples: null,    // Remove (wasn't wanted)
-        mySection: { ... }       // Add custom section
-    }
-};
-```
-
-### Migration Steps
-
-1. **Backup old file**
-   ```bash
-   mv site/webapp/view/jpulse-navigation.tmpl \
-      site/webapp/view/jpulse-navigation.tmpl.backup
-   ```
-
-2. **Create new override file**
-   ```bash
-   cp site/webapp/view/site-navigation.js.tmpl \
-      site/webapp/view/site-navigation.js
-   ```
-
-3. **Extract site-specific sections**
-   - Open backup file
-   - Identify custom sections (not in framework)
-   - Copy only custom sections to new file
-   - Add `null` deletions for unwanted framework sections
-
-4. **Test thoroughly**
-   - Restart application
-   - Verify all navigation items
-   - Check role-based visibility
-   - Test on mobile
+3. Check browser console for component errors
 
 ---
 
 ## Best Practices
 
-### 1. Minimize Overrides
-Only override what you need to change. Let framework defaults work when possible.
+### 1. Minimize Customizations
+Only modify what you need to change. Let framework defaults work when possible.
 
 **Good:**
 ```javascript
-window.siteNavigation = {
-    site: {
-        marketing: { ... }  // Only add what's needed
-    }
-};
+// Only add what's needed
+window.jPulseNavigation.site.marketing = { ... };
 ```
 
 **Bad:**
 ```javascript
-window.siteNavigation = {
-    site: {
-        admin: { ... },     // Unnecessary duplication
-        auth: { ... },      // of framework sections
-        marketing: { ... }
-    }
-};
+// Unnecessary duplication of framework sections
+window.jPulseNavigation.site.admin = { ... };  // Framework already defines this
+window.jPulseNavigation.site.auth = { ... };   // Framework already defines this
+window.jPulseNavigation.site.marketing = { ... };
 ```
 
-### 2. Use i18n for Labels
-Support internationalization from the start:
-
-```javascript
-// Good: i18n ready
-label: '{{i18n.view.navigation.mySection}}'
-
-// Bad: hardcoded
-label: 'My Section'
-```
-
-### 3. Consistent Naming
+### 2. Consistent Naming
 Follow framework naming conventions:
 
 ```javascript
@@ -691,7 +513,7 @@ My_Dashboard: { ... }
 reports1: { ... }
 ```
 
-### 4. Document Custom Sections
+### 3. Document Custom Sections
 Add comments explaining site-specific navigation:
 
 ```javascript

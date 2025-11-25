@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         1.2.4
- * @release         2025-11-24
+ * @version         1.2.5
+ * @release         2025-11-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -200,25 +200,32 @@ class ViewController {
             let fullPath;
             let isTemplateFile = false; // Track if we're serving a template file
             const originalFilePath = filePath; // Keep original for content type detection
+            let content;
 
             try {
-                // Try to resolve with site override support
                 const relativePath = `view${filePath}`;
-                fullPath = PathResolver.resolveModule(relativePath);
-            } catch (error) {
-                // Try .tmpl fallback for CSS and JS files (W-047 site-common files)
                 const fileExtension = path.extname(filePath).toLowerCase();
-                if (fileExtension === '.css' || fileExtension === '.js') {
-                    try {
-                        const templatePath = `view${filePath}.tmpl`;
-                        fullPath = PathResolver.resolveModule(templatePath);
-                        isTemplateFile = true; // Mark as template file for content type handling
-                    } catch (templateError) {
-                        // Template fallback failed, continue with original error handling
+
+                // W-098: Append mode for .js and .css files
+                if (fileExtension === '.js' || fileExtension === '.css') {
+                    const allFiles = PathResolver.collectAllFiles(relativePath);
+
+                    if (allFiles.length > 0) {
+                        // Concatenate all matching files (framework + site + plugins)
+                        const contents = allFiles.map(file => this.templateCache.getFileSync(file));
+                        content = contents.join('\n');
+                        fullPath = allFiles[0]; // Use first file for logging
+                        LogController.logInfo(req, 'view.load',
+                            `Append mode: concatenated ${allFiles.length} file(s) for ${filePath}`);
                     }
+                    // Note: No .tmpl fallback for .js or .css files (W-098)
+                    // Use .js.tmpl and .css.tmpl only as reference templates to copy
+                } else {
+                    // Regular file resolution (replace mode)
+                    fullPath = PathResolver.resolveModule(relativePath);
                 }
 
-                if (!fullPath) {
+                if (!fullPath && !content) {
                     // File not found in either site or framework
                     const originalPath = req.path;
                     res.statusCode = 404; // Set 404 status code
@@ -239,10 +246,29 @@ class ViewController {
                     };
                     // No 'return' here, let the rest of the function execute to render the error page
                 }
+            } catch (error) {
+                // Handle unexpected errors
+                const originalPath = req.path;
+                res.statusCode = 404;
+                LogController.logError(req, 'view.load', `error: File not found: ${filePath}`);
+                const message = global.i18n.translate(req, 'controller.view.pageNotFoundError', { path: originalPath });
+
+                filePath = '/error/index.shtml';
+                try {
+                    fullPath = PathResolver.resolveModule(`view${filePath}`);
+                } catch (errorPageError) {
+                    fullPath = path.join(global.appConfig.system.appDir, 'view', filePath.substring(1));
+                }
+                req.query = {
+                    code: '404',
+                    msg: message
+                };
             }
 
-            // W-079: Read template file using simplified cache
-            let content = this.templateCache.getFileSync(fullPath);
+            // W-079: Read template file using simplified cache (if not already read in append mode)
+            if (!content) {
+                content = this.templateCache.getFileSync(fullPath);
+            }
 
             // Preprocess i18n handlebars first (only {{i18n.}} expressions),
             // because it may return content with new handlebars

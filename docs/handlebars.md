@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Handlebars Templating v1.2.4
+# jPulse Framework / Docs / Handlebars Templating v1.2.5
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -94,6 +94,40 @@ Access deep object properties using dot notation:
         {{/if}}
     </div>
 {{/each}}
+```
+
+### Comments
+Use Handlebars comments for notes that should not appear in the rendered output:
+
+```handlebars
+{{!-- This is a Handlebars comment - stripped during processing --}}
+{{!--
+Multi-line comments are also supported
+and will be completely removed from output
+--}}
+
+<!-- This is an HTML comment - visible in browser source -->
+```
+
+**Key Differences:**
+- `{{!-- --}}` - Handlebars comments are **removed** during server-side processing
+- `<!-- -->` - HTML comments are **preserved** in the rendered HTML (visible in browser source)
+
+**Use Cases for Handlebars Comments:**
+- Component library documentation (won't appear in rendered pages)
+- Template notes for developers (never sent to browser)
+- Comments in JavaScript files processed as Handlebars templates
+- Temporary debugging notes during development
+
+**Example:**
+```handlebars
+{{!-- SVG Icon Component Library
+     These components are used throughout the application
+     Updated: 2025-11-24
+--}}
+{{#component "jpIcons.configSvg" fillColor="currentColor" size="64"}}
+    <svg width="{{size}}" height="{{size}}">...</svg>
+{{/component}}
 ```
 
 #### Loop Variables (Special Context Variables)
@@ -686,6 +720,7 @@ const result = await jPulse.api.post('/api/1/handlebar/expand', {
 ## Related Documentation
 
 - [Template Reference](template-reference.md) - Complete template syntax reference
+- [Site Navigation Guide](site-navigation.md) - Customizing site navigation with direct mutation
 - [Front-End Development Guide](front-end-development.md) - Client-side Handlebars expansion
 - [Site Customization](site-customization.md) - Customizing templates for your site
 - [Getting Started](getting-started.md) - Basic jPulse development guide

@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.2.4
+# jPulse Framework / Docs / Dev / Work Items v1.2.5
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -542,11 +542,11 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - objective: document how to get started with side specific coding, with guidelines; follow the don't nake me think principle
-- common JavaScript code in site/webapp/view/site-common.js extends window.jPulse object
-- common styles in site/webapp/view/site-common.css with site-* prefix for clear source identification
+- common JavaScript code in site/webapp/view/site-common.js extends window.jPulse object (renamed to jpulse-common.js in W-098)
+- common styles in site/webapp/view/site-common.css with site-* prefix for clear source identification (renamed to jpulse-common.css in W-098)
 - documented in enhanced site/README.md with comprehensive development guidelines
 - IMPLEMENTATION COMPLETED:
-  - Created site-common.css.tmpl and site-common.js.tmpl template files
+  - Created site-common.css.tmpl and site-common.js.tmpl template files (renamed to jpulse-common.css.tmpl and jpulse-common.js.tmpl in W-098)
   - Implemented site-* CSS prefix convention for clear source identification
   - JavaScript extension pattern extending jPulse.site namespace
   - Updated jpulse-header.tmpl to automatically load site-common files
@@ -1497,7 +1497,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
       - Uses PathResolver for site-first, framework-second resolution
     - webapp/routes.js -- fixed static method context binding
       - Wrapped ViewController.load in arrow functions to preserve `this` context
-      - All 5 route patterns updated (shtml/tmpl, jpulse-*, site-common, viewRouteRE, fallback)
+      - All route patterns updated (shtml/tmpl, jpulse-*, viewRouteRE, fallback)
     - webapp/app.js -- removed all hardcoded controller initialization
       - Removed HelloWebsocketController.initialize() call
       - Removed duplicate ViewController initialization
@@ -1536,7 +1536,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
       - preset buttons (Today, Yesterday, etc.) now work correctly
       - setPresetActive() also updated to use [data-preset] selector
   - Template Configuration Structure Alignment:
-    - site/webapp/view/site-common.js.tmpl -- fixed init() to use Handlebars {{app.site.name}} and {{app.site.version}} for server-side expansion
+    - site/webapp/view/site-common.js.tmpl -- fixed init() to use Handlebars {{app.site.name}} and {{app.site.version}} for server-side expansion (renamed to jpulse-common.js.tmpl in W-098)
       - Corrected misconception that window.appConfig is available in view templates (appConfig is server-side only)
       - Templates (.tmpl files) are processed by ViewController.load() which expands Handlebars before JavaScript reaches browser
     - templates/webapp/app.conf.dev.tmpl -- structure aligned with webapp/app.conf (app.site.name/shortName nested structure)
@@ -2012,19 +2012,84 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-098, v1.2.5: view: site navigation override with deep merge
-- status: 🚧 IN_PROGRESS
+### W-098, v1.2.5: view: site navigation override with append mode and direct mutation
+- status: DONE ✅
 - type: Feature
-- objective: ability to override and use the jPulse Framework site navigation
+- objective: ability to override and use the jPulse Framework site navigation using append mode and direct mutation
 - working document:
   - docs/dev/working/W-098-override-site-navigation.md
 - deliverables:
-  - FIXME file:
-    - summary
+  - webapp/controller/view.js -- implemented append mode for .js and .css files
+    - collectAllFiles() to gather framework + site + (future) plugin files
+    - concatenate with newline separator for .js and .css requests
+    - removed .js.tmpl fallback (breaking change for cleaner pattern)
+    - maintained .css.tmpl fallback for W-047 backward compatibility
+  - webapp/utils/path-resolver.js -- added collectAllFiles() method
+    - returns array of all matching files in load order (framework, site, plugins)
+    - supports W-098 append mode strategy
+  - webapp/view/jpulse-navigation.js -- renamed from .tmpl, restructured with unified format
+    - window.jPulseNavigation = { site: {...}, tabs: {...} }
+    - framework defines structure, sites extend via direct mutation
+    - includes SVG icon components via {{file.include}}
+  - webapp/view/jpulse-header.tmpl -- simplified navigation loading
+    - single <script> tag for jpulse-navigation.js
+    - removed separate site-common.js/css includes (now append mode)
+    - includes svg-icons.tmpl for page content
+  - webapp/view/jpulse-footer.tmpl -- simplified navigation initialization
+    - removed deepMerge logic (no longer needed)
+    - direct references to window.jPulseNavigation.site and .tabs
+  - webapp/view/jpulse-common.js -- removed deepMerge utility
+    - no longer needed with direct mutation pattern
+  - webapp/view/components/svg-icons.tmpl -- converted to Handlebars comments
+    - changed file header/footer from <!-- --> to {{!-- --}}
+    - prevents JavaScript syntax errors when included in .js files
+    - HTML comments inside SVG markup preserved
+  - webapp/controller/handlebar.js -- implemented Handlebars comment stripping
+    - removes {{!-- --}} comments at start of _expandHandlebars
+    - supports single-line and multi-line comments
+    - enables svg-icons.tmpl to work in both HTML and JS contexts
+  - webapp/routes.js -- removed redundant site-common route
+    - /\/jpulse-.*\.(js|css)$/ pattern covers all append mode files
+  - site/webapp/view/jpulse-navigation.js.tmpl -- direct mutation pattern example
+    - shows how to add, modify, and delete navigation sections
+    - uses window.jPulseNavigation.site.foo = {...} pattern
+    - deletion marker: window.jPulseNavigation.site.foo = null
+  - site/webapp/view/jpulse-common.js.tmpl -- append mode convention documented
+    - updated header to explain append mode pattern
+    - EOF comment updated to jpulse-common.js.tmpl
+  - site/webapp/view/jpulse-common.css.tmpl -- append mode convention documented
+    - updated header to explain append mode pattern
+    - EOF comment updated to jpulse-common.css.tmpl
+  - docs/site-navigation.md -- comprehensive guide for direct mutation pattern
+    - explains append mode convention (.js/.css append, .shtml replace)
+    - shows how to add, modify, delete navigation sections
+    - includes examples and troubleshooting
+    - removed .js.tmpl and i18n references
+  - docs/template-reference.md -- updated navigation pattern documentation
+    - site-navigation.js → jpulse-navigation.js
+  - docs/genai-instructions.md -- updated all site-common references
+    - site-common.css → jpulse-common.css with append mode notes
+    - site-common.js → jpulse-common.js with append mode notes
+  - docs/genai-development.md -- updated references
+  - docs/getting-started.md -- updated references
+  - docs/CHANGELOG.md -- updated with historical context
+  - site/README.md -- updated all references
+  - site/webapp/view/hello/site-development.shtml -- updated examples
+  - bin/configure.js -- updated file paths for jpulse-common templates
+  - webapp/tests/integration/w047-site-files.test.js -- updated for append mode
+    - site-common.* → jpulse-common.* expectations
+    - route pattern check updated to general /\/jpulse-.*\.(js|css)$/
+    - test descriptions mention "W-098 append mode"
+  - webapp/tests/integration/cache-api.test.js -- deleted empty stub
 
 
 
 
+
+
+
+
+questions:
 
 
 
@@ -2063,9 +2128,9 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-097, v1.2.4
+- assume release: W-098, v1.2.5
 - update deliverables in W-096 work-items to document work done (don't make any other changes to this file)
-- update README.md, docs/README.md, docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update README.md (highlights), docs/README.md (highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
 
@@ -2081,12 +2146,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.2.4
+node bin/bump-version.js 1.2.5
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.2.4
+git tag v1.2.5
 git push origin main --tags
 
 === on failed package build on github ===

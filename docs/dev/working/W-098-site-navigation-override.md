@@ -1,9 +1,11 @@
-# W-098: Site Navigation Override with Deep Merge
+# W-098: Site Navigation Override with Append Mode
 
-**Status:** Design Phase  
-**Version:** v1.2.5 (Breaking Change)  
-**Type:** Enhancement  
+**Status:** Implementation Phase
+**Version:** v1.2.5 (Breaking Change)
+**Type:** Enhancement
 **Priority:** High
+
+**Design Evolution:** Option 7 - Append Mode + Direct Mutation (No deepMerge)
 
 ---
 
@@ -31,117 +33,190 @@ jpulse.net encountered this problem:
 
 ---
 
+## Design Evolution
+
+### Original Approach (Rejected)
+**Problem:** Two namespaces (`jPulseNavigation` + `siteNavigation`) + explicit merge
+**Issue:** Inconsistent with existing CSS/JS patterns, added complexity
+
+### Final Solution: Option 7 - Append Mode + Direct Mutation
+
+**Key Insight:** Follow the established pattern for CSS and JS files:
+- `jpulse-common.css` + `jpulse-common.css` (site) → Concatenated/appended
+- `jpulse-common.js` + `jpulse-common.js` (site) → Concatenated/appended
+- **Same for navigation:** `jpulse-navigation.js` + `jpulse-navigation.js` (site) → Concatenated/appended
+
+### Core Principles
+
+1. **Same Filenames Everywhere**
+   - Framework: `jpulse-navigation.js`
+   - Site: `jpulse-navigation.js` (appended)
+   - Plugins: `jpulse-navigation.js` (appended) - future W-045
+
+2. **Same Namespace**
+   - Always `window.jPulseSiteNavigation`
+   - Always `window.jPulseTabsNavigation`
+   - No merge, no second namespace
+
+3. **Append by Convention**
+   - `.js` files → Append (concatenate)
+   - `.css` files → Append (concatenate)
+   - `.shtml` files → Replace (override)
+   - Convention over configuration
+
+4. **Direct Mutation Pattern**
+   - Framework defines base object
+   - Site directly mutates/augments object
+   - Natural JavaScript pattern
+
+---
+
 ## Proposed Solution
 
-### Architecture: Separate Framework + Site Navigation
-
-Follow existing patterns:
-- `jpulse-common.js` + `site-common.js`
-- `jpulse-common.css` + `site-common.css`
-- **New:** `jpulse-navigation.js` + `site-navigation.js`
-
-### Key Design Decisions
+### Architecture: Append Mode for JS/CSS Files
 
 #### 1. File Structure
 ```
 webapp/view/
-  jpulse-navigation.js.tmpl    ← Framework navigation (Handlebars processed)
-  
+  jpulse-common.css.tmpl       ← Framework styles
+  jpulse-common.js.tmpl        ← Framework JavaScript
+  jpulse-navigation.js.tmpl    ← Framework navigation
+
 site/webapp/view/
-  site-navigation.js           ← Site overrides (optional, plain JS)
-  site-navigation.js.tmpl      ← OR with Handlebars if i18n needed
+  jpulse-common.css.tmpl       ← Site styles (APPENDED)
+  jpulse-common.js.tmpl        ← Site JavaScript (APPENDED)
+  jpulse-navigation.js.tmpl    ← Site navigation (APPENDED)
 ```
 
-**Why `.js.tmpl` → `.js`?**
-- Framework already supports `.js.tmpl` fallback (W-047)
-- Handlebars processing for i18n: `{{i18n.view.navigation.admin.config}}`
-- Component support: `{{use.jpIcons.configSvg size="24" _inline=true}}`
-- Cleaner than `<script>` embedded in `.tmpl` file
+**Same filenames = clean, consistent, plugin-ready**
 
-#### 2. Global Variable Names
+#### 2. Append Mode Resolution
+
+**PathResolver Enhancement:**
 ```javascript
-// Framework
-window.jPulseNavigation = { ... };      // Renamed from jPulseSiteNavigation
+// For .js and .css files: collect ALL matching files
+static collectAllFiles(modulePath) {
+    const files = [];
 
-// Site (new)
-window.siteNavigation = { ... };        // Natural, intuitive name
+    // 1. Framework (always first)
+    const frameworkPath = path.join(appDir, modulePath);
+    if (fs.existsSync(frameworkPath)) files.push(frameworkPath);
+
+    // 2. Site override (appended if exists)
+    const sitePath = path.join(siteDir, modulePath);
+    if (fs.existsSync(sitePath)) files.push(sitePath);
+
+    // 3. Future: Plugin files (W-045)
+    // for (const plugin of activePlugins) { ... }
+
+    return files;
+}
 ```
 
-**Why rename?**
-- `jPulseSiteNavigation` is confusing (framework or site?)
-- `jPulseNavigation` = framework-provided navigation
-- `siteNavigation` = site-specific overrides
-- Clear ownership and intent
-
-#### 3. Deep Merge with Deletion Support
-
-**Client-Side Deep Merge Implementation**
-Add to `webapp/view/jpulse-common.js`:
-
+**ViewController Integration:**
 ```javascript
-jPulse.utils.deepMerge = (...objects) => {
-    // Recursively merge objects
-    // null acts as deletion marker
-    // Arrays are replaced, not merged
+const fileExt = path.extname(filePath).toLowerCase();
+
+if (['.js', '.css'].includes(fileExt)) {
+    // Append mode: concatenate all matching files
+    const files = PathResolver.collectAllFiles(relativePath);
+    let combined = '';
+    for (const file of files) {
+        combined += await fs.readFile(file, 'utf8') + '\n';
+    }
+    // Handlebars process the combined content
+    res.send(await HandlebarController.expandHandlebars(req, combined));
+} else {
+    // Replace mode: single file resolution
+    const resolved = PathResolver.resolveModule(relativePath);
+    res.sendFile(resolved);
+}
+```
+
+#### 3. Direct Mutation Pattern
+
+**Framework** (`webapp/view/jpulse-navigation.js.tmpl`):
+```javascript
+// Define base navigation structure
+window.jPulseSiteNavigation = {
+    admin: {
+        label: 'Admin',
+        pages: {
+            config: { label: 'Config', url: '/admin/config.shtml' },
+            users: { label: 'Users', url: '/admin/users.shtml' },
+            logs: { label: 'Logs', url: '/admin/logs.shtml' }
+        }
+    },
+    jpulseDocs: { label: 'Documentation', url: '/jpulse-docs/' },
+    jpulseExamples: { label: 'Examples', url: '/jpulse-examples/' }
+};
+
+window.jPulseTabsNavigation = {
+    // Tabs definitions...
 };
 ```
 
-**Why client-side?**
-- No API call overhead
-- Works offline
-- Simple, self-contained (~30 lines)
-- Server-side `CommonUtils.deepMerge()` not accessible from browser
-
-**Deletion Marker: `null`**
+**Site** (`site/webapp/view/jpulse-navigation.js.tmpl` - appended):
 ```javascript
-window.siteNavigation = {
-    jpulseExamples: null,  // ← Delete this section
-    jpulseDocs: null       // ← Delete this section
+// File is APPENDED to framework file
+// Direct mutation of existing object - explicit and clear
+
+// Add new admin page
+window.jPulseSiteNavigation.admin.pages.contacts = {
+    label: 'Contacts',
+    url: '/admin/contacts.shtml',
+    icon: '📧'
 };
+
+// Add new section
+window.jPulseSiteNavigation.marketing = {
+    label: 'Marketing',
+    url: '/marketing/',
+    pages: {
+        features: { label: 'Features', url: '/features/' },
+        pricing: { label: 'Pricing', url: '/pricing/' }
+    }
+};
+
+// Remove unwanted sections (null marker)
+window.jPulseSiteNavigation.jpulseDocs = null;
+window.jPulseSiteNavigation.jpulseExamples = null;
 ```
 
-**Why `null`?**
-- Standard JavaScript/JSON convention
-- Explicit and clear intent
-- Minimal syntax
-- Works recursively (can delete nested pages too)
+**Navigation Renderer** (handles null):
+```javascript
+// In jpulse-common.js navigation renderer
+for (const [key, item] of Object.entries(navStructure)) {
+    if (item === null) continue;  // Skip null sections
+    // Render item...
+}
+```
 
-#### 4. Include Pattern: Inline
+#### 4. Include Pattern
 
 **In `jpulse-header.tmpl`:**
 ```html
-<!-- Framework navigation -->
+<!-- Single script tag, PathResolver handles append mode -->
 <script>
 {{file.include "jpulse-navigation.js"}}
 </script>
-
-<!-- Site navigation (if exists) -->
-{{#if file.exists "site-navigation.js"}}
-<script>
-{{file.include "site-navigation.js"}}
-</script>
-{{/if}}
 ```
 
-**Why inline vs `<script src>`?**
-- ✅ No extra HTTP request
-- ✅ No cache-busting parameter needed
-- ✅ Already Handlebars-processed when included
-- ✅ Simpler syntax
+**That's it!** PathResolver automatically:
+1. Finds framework `jpulse-navigation.js.tmpl`
+2. Finds site `jpulse-navigation.js.tmpl` (if exists)
+3. Concatenates both
+4. Handlebars processes combined content
+5. Returns to browser
 
-#### 5. Merge in Footer
+#### 5. No Merge Needed
 
 **In `jpulse-footer.tmpl`:**
 ```javascript
 jPulse.dom.ready(() => {
-    // Deep merge framework + site navigation
-    const mergedNav = jPulse.utils.deepMerge(
-        window.jPulseNavigation || {},
-        window.siteNavigation || {}
-    );
-    
+    // Use navigation directly - already augmented by site code
     jPulse.UI.navigation.init({
-        navigation: mergedNav,
+        navigation: window.jPulseSiteNavigation,  // Already complete!
         // ... rest
     });
 });
@@ -186,27 +261,27 @@ jPulse.dom.ready(() => {
  * Deep merge objects (client-side implementation)
  * Recursively merges objects, with null acting as deletion marker
  * Arrays are replaced, not merged
- * 
+ *
  * @param {...object} objects - Objects to merge
  * @returns {object} Merged object
  */
 jPulse.utils.deepMerge = (...objects) => {
     if (objects.length === 0) return {};
     if (objects.length === 1) return objects[0];
-    
+
     const _deepMergeRecursive = (target, objects, seen) => {
         for (const obj of objects) {
             if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
                 if (seen.has(obj)) continue;
                 seen.add(obj);
-                
+
                 for (const [key, value] of Object.entries(obj)) {
                     // null acts as deletion marker
                     if (value === null) {
                         delete target[key];
                         continue;
                     }
-                    
+
                     if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
                         // Recursively merge nested objects
                         target[key] = _deepMergeRecursive(target[key] || {}, [value], seen);
@@ -215,13 +290,13 @@ jPulse.utils.deepMerge = (...objects) => {
                         target[key] = value;
                     }
                 }
-                
+
                 seen.delete(obj);
             }
         }
         return target;
     };
-    
+
     return _deepMergeRecursive({}, objects, new WeakSet());
 };
 ```
@@ -230,39 +305,42 @@ jPulse.utils.deepMerge = (...objects) => {
 
 ## Usage Examples
 
+All examples show **site** file (`site/webapp/view/jpulse-navigation.js.tmpl`), which is **appended** to the framework file.
+
 ### Example 1: Remove Framework Sections
 ```javascript
-// site/webapp/view/site-navigation.js
-window.siteNavigation = {
-    // Remove demo sections not needed in production
-    jpulseExamples: null,
-    jpulseDocs: null
-};
+// File: site/webapp/view/jpulse-navigation.js.tmpl (appended to framework)
+// Direct mutation - explicit and clear
+
+// Remove demo sections not needed in production
+window.jPulseSiteNavigation.jpulseExamples = null;
+window.jPulseSiteNavigation.jpulseDocs = null;
 ```
 
 ### Example 2: Add Custom Section
 ```javascript
-window.siteNavigation = {
-    marketing: {
-        label: 'Marketing',
-        url: '/marketing/',
-        icon: '📢',
-        pages: {
-            features: { 
-                label: 'Features', 
-                url: '/features/',
-                icon: '✨'
-            },
-            pricing: { 
-                label: 'Pricing', 
-                url: '/pricing/',
-                icon: '💰'
-            },
-            blog: {
-                label: 'Blog',
-                url: '/blog/',
-                icon: '📝'
-            }
+// File: site/webapp/view/jpulse-navigation.js.tmpl (appended to framework)
+
+// Add new top-level section
+window.jPulseSiteNavigation.marketing = {
+    label: 'Marketing',
+    url: '/marketing/',
+    icon: '📢',
+    pages: {
+        features: {
+            label: 'Features',
+            url: '/features/',
+            icon: '✨'
+        },
+        pricing: {
+            label: 'Pricing',
+            url: '/pricing/',
+            icon: '💰'
+        },
+        blog: {
+            label: 'Blog',
+            url: '/blog/',
+            icon: '📝'
         }
     }
 };
@@ -270,67 +348,72 @@ window.siteNavigation = {
 
 ### Example 3: Extend Admin Section
 ```javascript
-window.siteNavigation = {
-    // Keep all framework admin pages, add site-specific page
-    admin: {
-        pages: {
-            contacts: {
-                label: 'Contacts',
-                url: '/admin/contacts.shtml',
-                icon: '📧'
-            },
-            billing: {
-                label: 'Billing',
-                url: '/admin/billing.shtml',
-                icon: '💳'
-            }
-        }
-    }
+// File: site/webapp/view/jpulse-navigation.js.tmpl (appended to framework)
+
+// Add pages to existing admin section (framework pages are kept)
+window.jPulseSiteNavigation.admin.pages.contacts = {
+    label: 'Contacts',
+    url: '/admin/contacts.shtml',
+    icon: '📧'
+};
+
+window.jPulseSiteNavigation.admin.pages.billing = {
+    label: 'Billing',
+    url: '/admin/billing.shtml',
+    icon: '💳'
 };
 ```
 
 ### Example 4: Complete Real-World Site
 ```javascript
-// site/webapp/view/site-navigation.js
-window.siteNavigation = {
-    // Remove framework demo sections
-    jpulseExamples: null,
-    jpulseDocs: null,
-    
-    // Add marketing section
-    marketing: {
-        label: 'Marketing',
-        url: '/marketing/',
-        pages: {
-            features: { label: 'Features', url: '/features/' },
-            pricing: { label: 'Pricing', url: '/pricing/' }
-        }
-    },
-    
-    // Add dashboard section
-    dashboard: {
-        label: 'Dashboard',
-        url: '/dashboard/',
-        role: 'user',  // Visible to all authenticated users
-        icon: '📊',
-        pages: {
-            overview: { label: 'Overview', url: '/dashboard/' },
-            reports: { label: 'Reports', url: '/dashboard/reports.shtml' },
-            analytics: { label: 'Analytics', url: '/dashboard/analytics.shtml' }
-        }
-    },
-    
-    // Extend admin with site-specific pages
-    admin: {
-        pages: {
-            contacts: {
-                label: 'Contacts',
-                url: '/admin/contacts.shtml',
-                icon: '📧'
-            }
-        }
+// File: site/webapp/view/jpulse-navigation.js.tmpl (appended to framework)
+// Everything is explicit - you can see exactly what changes
+
+// Remove framework demo sections
+window.jPulseSiteNavigation.jpulseExamples = null;
+window.jPulseSiteNavigation.jpulseDocs = null;
+
+// Add marketing section
+window.jPulseSiteNavigation.marketing = {
+    label: 'Marketing',
+    url: '/marketing/',
+    pages: {
+        features: { label: 'Features', url: '/features/' },
+        pricing: { label: 'Pricing', url: '/pricing/' }
     }
 };
+
+// Add dashboard section
+window.jPulseSiteNavigation.dashboard = {
+    label: 'Dashboard',
+    url: '/dashboard/',
+    role: 'user',  // Visible to all authenticated users
+    icon: '📊',
+    pages: {
+        overview: { label: 'Overview', url: '/dashboard/' },
+        reports: { label: 'Reports', url: '/dashboard/reports.shtml' },
+        analytics: { label: 'Analytics', url: '/dashboard/analytics.shtml' }
+    }
+};
+
+// Extend admin with site-specific pages
+window.jPulseSiteNavigation.admin.pages.contacts = {
+    label: 'Contacts',
+    url: '/admin/contacts.shtml',
+    icon: '📧'
+};
+
+// Override admin label (optional)
+window.jPulseSiteNavigation.admin.label = 'Administration';
+```
+
+### Example 5: Using delete Operator
+```javascript
+// Alternative to null: actually remove the property
+delete window.jPulseSiteNavigation.jpulseExamples;
+delete window.jPulseSiteNavigation.jpulseDocs;
+
+// Both null and delete work - navigation renderer checks for null
 ```
 
 ---
@@ -338,26 +421,39 @@ window.siteNavigation = {
 ## Breaking Changes
 
 ### For Framework
-1. **Global Variable Renamed**
-   - Old: `window.jPulseSiteNavigation`
-   - New: `window.jPulseNavigation`
-
-2. **File Renamed**
+1. **File Renamed**
    - Old: `webapp/view/jpulse-navigation.tmpl`
    - New: `webapp/view/jpulse-navigation.js.tmpl`
 
-3. **Footer Init Changed**
-   - Old: Direct reference to `window.jPulseSiteNavigation`
-   - New: Deep merge of framework + site navigation
+2. **Global Variables** (NO CHANGE)
+   - Still: `window.jPulseSiteNavigation`
+   - Still: `window.jPulseTabsNavigation`
+
+3. **Footer Init** (NO CHANGE)
+   - Still: Direct reference to `window.jPulseSiteNavigation`
+   - No merge needed!
 
 ### For Sites
-1. **Must Create New File for Overrides**
-   - Old: Override entire `site/webapp/view/jpulse-navigation.tmpl`
-   - New: Create `site/webapp/view/site-navigation.js` with overrides only
+1. **File Naming Change**
+   - Old: `site/webapp/view/jpulse-navigation.tmpl` (override entire file)
+   - New: `site/webapp/view/jpulse-navigation.js.tmpl` (appended to framework)
 
-2. **Different Structure**
-   - Old: Full navigation tree with all framework sections
-   - New: Only specify additions, changes, and deletions
+2. **Pattern Change** (Simpler!)
+   - Old: Duplicate entire navigation structure
+   - New: Direct mutation of framework object
+
+**Example Migration:**
+```javascript
+// OLD: site/webapp/view/jpulse-navigation.tmpl (complete override)
+window.jPulseSiteNavigation = {
+    admin: { ...duplicate framework... },
+    mySection: { ...site-specific... }
+};
+
+// NEW: site/webapp/view/jpulse-navigation.js.tmpl (appended, direct mutation)
+window.jPulseSiteNavigation.mySection = { ...site-specific... };
+window.jPulseSiteNavigation.jpulseExamples = null; // Remove
+```
 
 ---
 
@@ -377,7 +473,7 @@ Since no paying customers yet, do a clean breaking change:
    # Backup old override
    mv site/webapp/view/jpulse-navigation.tmpl \
       site/webapp/view/jpulse-navigation.tmpl.backup
-   
+
    # Create new site-navigation.js with only overrides
    # Extract site-specific sections from backup
    vi site/webapp/view/site-navigation.js
@@ -442,27 +538,52 @@ window.siteNavigation = {
 
 ### For Framework Maintainers
 - ✅ Sites no longer block navigation updates
-- ✅ Clear separation of framework vs site concerns
-- ✅ Easier to add new framework navigation sections
+- ✅ Consistent with CSS/JS override pattern
+- ✅ Plugin-ready architecture (W-045)
+- ✅ Simple, understandable pattern
 
 ### For Site Developers
-- ✅ Only specify what changes from framework defaults
-- ✅ Explicit deletion of unwanted sections
-- ✅ Automatic framework navigation updates
-- ✅ Consistent with app.conf and CSS patterns
-- ✅ Less code to maintain
-- ✅ Clear intent (additions, changes, deletions)
+- ✅ **Same filenames** everywhere (jpulse-navigation.js)
+- ✅ **Direct mutation** - explicit, JavaScript-idiomatic
+- ✅ **No hidden complexity** - no merge function
+- ✅ **Automatic framework updates** - append mode
+- ✅ **Clear intent** - see exactly what changes
+- ✅ **Less code** - only specify changes
 
 ### Real-World Impact
 **Before (jpulse.net):**
-- 16KB override file with full navigation tree
-- Manual merge required on every framework update
+- 16KB override file (complete navigation tree)
+- Different filename (site override)
+- Manual merge on every framework update
 - Missed updates led to stale navigation
 
 **After:**
-- ~2KB override file with only site-specific sections
-- Automatic framework updates
-- No manual merging needed
+- ~2KB file (only site changes)
+- Same filename (jpulse-navigation.js)
+- Automatic framework updates via append
+- Direct mutation - clear and explicit
+
+### Consistency Across Framework
+**Before W-098:**
+- CSS: `jpulse-common.css` + `site-common.css` ← Different names
+- JS: `jpulse-common.js` + `site-common.js` ← Different names
+- Nav: `jpulse-navigation.tmpl` + override entire file ← Inconsistent!
+
+**After W-098:**
+- CSS: `jpulse-common.css` + `jpulse-common.css` (site) ← Same name, appended
+- JS: `jpulse-common.js` + `jpulse-common.js` (site) ← Same name, appended
+- Nav: `jpulse-navigation.js` + `jpulse-navigation.js` (site) ← **Same name, appended!**
+
+### Plugin Architecture Ready (W-045)
+```
+Framework:  webapp/view/jpulse-common.js
+Site:       site/webapp/view/jpulse-common.js (appended)
+Plugin 1:   plugins/oauth2/webapp/view/jpulse-common.js (appended)
+Plugin 2:   plugins/analytics/webapp/view/jpulse-common.js (appended)
+
+Result: All concatenated in order
+```
+**No namespace collisions!** Each file uses same global objects.
 
 ---
 
@@ -576,4 +697,3 @@ window.siteNavigation = {
 - Inline includes reduce HTTP requests
 - Clear naming improves developer experience
 - Real-world problem solved (jpulse.net case)
-

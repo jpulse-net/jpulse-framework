@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Generative-AI Instructions for AI Assistants v1.2.4
+# jPulse Framework / Docs / Generative-AI Instructions for AI Assistants v1.2.5
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
@@ -33,14 +33,14 @@ Instructions for AI assistants working with jPulse Framework site development. T
 
 5. **CSS Conventions** (CRITICAL):
    - `local-*` prefix for styles in `<style>` tags within view files (`.shtml` and `.tmpl`)
-   - `site-*` prefix for shared site styles in `site/webapp/view/site-common.css`
+   - `site-*` prefix for shared site styles in `site/webapp/view/jpulse-common.css` (appended to framework CSS)
    - Never define `jp-*` prefix (reserved for framework only in `webapp/view/jpulse-common.css`)
    - Never add custom styles to `webapp/view/jpulse-common.css` (framework-managed)
    - Use existing `jp-*` classes from framework, see [Style Reference](style-reference.md)
 
 6. **JavaScript Conventions**:
    - Use framework utilities from `webapp/view/jpulse-common.js` (read-only, use jPulse.* methods)
-   - Create site utilities in `site/webapp/view/site-common.js` if needed
+   - Create site utilities in `site/webapp/view/jpulse-common.js` if needed (appended to framework JS)
    - Never modify `webapp/view/jpulse-common.js` (framework-managed)
    - See [jPulse.UI Widget Reference](jpulse-ui-reference.md)
 
@@ -96,7 +96,7 @@ Instructions for AI assistants working with jPulse Framework site development. T
 
 ```
 webapp/view/jpulse-common.css          ← Framework styles (jp-* prefix) - READ ONLY, NEVER MODIFY
-site/webapp/view/site-common.css       ← Site-wide custom styles (site-* prefix) - USE THIS
+site/webapp/view/jpulse-common.css     ← Site-wide custom styles (site-* prefix, appended) - USE THIS
 [view-file].shtml                      ← Page-specific styles (local-* prefix in <style> tag)
 ```
 
@@ -106,8 +106,9 @@ site/webapp/view/site-common.css       ← Site-wide custom styles (site-* prefi
 - Reference: [Style Reference](style-reference.md)
 - **USE these classes**, never create new `jp-*` classes
 
-**Site CSS** (`site/webapp/view/site-common.css`):
-- Create from `site/webapp/view/site-common.css.tmpl` if missing
+**Site CSS** (`site/webapp/view/jpulse-common.css`):
+- Create from `site/webapp/view/jpulse-common.css.tmpl` if missing
+- Automatically appended to framework jpulse-common.css (W-098 append mode)
 - Use for site-wide custom styles shared across multiple pages
 - Use `site-*` prefix (e.g., .site-header, .site-feature-card)
 - Loaded after framework CSS
@@ -121,7 +122,7 @@ site/webapp/view/site-common.css       ← Site-wide custom styles (site-* prefi
 
 ```
 webapp/view/jpulse-common.js           ← Framework utilities (jPulse.*) - READ ONLY, NEVER MODIFY
-site/webapp/view/site-common.js        ← Site-wide custom utilities - USE THIS IF NEEDED
+site/webapp/view/jpulse-common.js      ← Site-wide custom utilities (appended) - USE THIS IF NEEDED
 [view-file].shtml                      ← Page-specific JavaScript in <script> tag
 ```
 
@@ -130,8 +131,9 @@ site/webapp/view/site-common.js        ← Site-wide custom utilities - USE THIS
 - Complete utility library documented in [Front-End Development Guide](front-end-development.md)
 - **USE these utilities**, never modify this file
 
-**Site JavaScript** (`site/webapp/view/site-common.js`):
-- Create from `site/webapp/view/site-common.js.tmpl` if missing
+**Site JavaScript** (`site/webapp/view/jpulse-common.js`):
+- Create from `site/webapp/view/jpulse-common.js.tmpl` if missing
+- Automatically appended to framework jpulse-common.js (W-098 append mode)
 - Optional - only create if you have site-wide custom utilities
 - Use different namespace (e.g., site.utils.*) to avoid conflicts
 - Loaded after framework JavaScript
@@ -146,8 +148,8 @@ site/
 │   ├── controller/            # Site controllers (auto-discovered)
 │   ├── model/                 # Site data models
 │   ├── view/                  # Site templates (override framework)
-│   │   ├── site-common.css    # Site-wide styles (site-* prefix)
-│   │   ├── site-common.js     # Site-wide utilities (optional)
+│   │   ├── jpulse-common.css  # Site-wide styles (site-* prefix, appended)
+│   │   ├── jpulse-common.js   # Site-wide utilities (appended, optional)
 │   │   └── [pages]/           # Page templates with local-* styles
 │   └── static/                # Site assets
 webapp/                        # FRAMEWORK CODE - Never modify

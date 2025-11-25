@@ -1,6 +1,90 @@
-# jPulse Framework / Docs / Version History v1.2.5
+# jPulse Framework / Docs / Version History v1.2.6
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.2.6, W-099, 2025-11-25
+
+**Commit:** `W-099, v1.2.6: deploy: critical bug fixes for site installation and W-098 navigation`
+
+**BUG FIX RELEASE**: Critical fixes for site installation and W-098 navigation deletion feature.
+
+**Objective**: Fix critical bugs discovered after v1.2.5 deployment affecting site installation and navigation deletion markers.
+
+**Issues Fixed**:
+1. **Incomplete Hello Example Copying** - Only 1 of 5 hello controllers copied during site installation
+2. **Missing Hello Model** - helloTodo.js not copied during site installation
+3. **Missing Subdirectories** - templates/ subdirectories in hello-vue and hello-websocket not copied
+4. **Null Navigation Crash** - Setting navigation section to `null` (documented deletion marker) caused JavaScript errors
+5. **Obsolete Function Call** - checkAdminAccess() in user dashboard caused console errors
+6. **Test Failure** - Navigation refresh test failed after sanitization refactor
+
+**Implementation**:
+- **Complete Hello Example Copying** (`bin/configure.js`):
+  - Fixed `copySiteTemplates()` to copy ALL hello examples during initial site installation
+  - Changed from single-file hardcoded paths to directory scanning with filtering
+  - Controllers: Scans `site/webapp/controller/` and copies all `hello*.js` files (5 files: hello.js, helloTodo.js, helloVue.js, helloWebsocket.js, helloClusterTodo.js)
+  - Models: Scans `site/webapp/model/` and copies all `hello*.js` files (1 file: helloTodo.js)
+  - Views: Created `copyDirRecursive()` helper function for deep directory copying
+  - Recursively copies all `hello*` directories including subdirectories (templates/ folders)
+  - Processes all files with `expandAllVariables()` for template variable replacement
+  - Total files now copied: 5 controllers + 1 model + all view directories with subdirectories
+
+- **Robust Navigation Null Handling** (`webapp/view/jpulse-common.js`):
+  - **Problem**: W-098 documented using `null` as deletion marker (`window.jPulseNavigation.site.auth = null`)
+  - **Original Fix**: Added null checks throughout navigation code (6+ locations) - fragile approach
+  - **Improved Solution**: Sanitize navigation structure once at init time
+  - Created `_sanitizeNavStructure()` helper method:
+    * Recursively walks navigation object
+    * Removes all `null` and `undefined` properties (deletion markers)
+    * Returns clean navigation structure
+    * Handles nested objects (pages, submenus) automatically
+  - Called during `init()` before any rendering: `_navConfig = _sanitizeNavStructure(navConfig)`
+  - Benefits:
+    * Single point of responsibility (one place to sanitize)
+    * Safe by default (new code can't access null properties)
+    * No fragility (nothing to forget)
+    * Cleaner codebase (no scattered defensive checks)
+    * Deletion markers still work (removed at init)
+
+- **User Dashboard Cleanup** (`webapp/view/user/index.shtml`):
+  - Removed obsolete `checkAdminAccess()` function call from page load
+  - Function no longer defined, was causing JavaScript console error
+  - Only `loadUserStats()` needed on user dashboard
+
+- **Test Fix** (`webapp/tests/unit/utils/jpulse-ui-navigation.test.js`):
+  - Fixed "should refresh navigation when requested" test
+  - After W-098 sanitization, navigation uses clean copy in `_navConfig`
+  - Test was modifying original `appConfig`, but refresh renders from `_navConfig`
+  - Changed test to modify `_navConfig` directly for proper validation
+
+**Impact**:
+- ✅ **Educational Onboarding Fixed**: All hello examples now copy correctly on site installation
+  - hello-todo (MPA example)
+  - hello-vue (SPA example)
+  - hello-websocket (Real-time example)
+  - hello-app-cluster (Multi-server example)
+  - hello (Basic example)
+- ✅ **Navigation Deletion Works**: `null` deletion markers work reliably without crashes
+- ✅ **Cleaner Codebase**: Sanitization approach is more maintainable than scattered checks
+- ✅ **No Console Errors**: User dashboard loads cleanly
+- ✅ **All Tests Pass**: 893 tests passing (776 unit, 88 integration, 29 CLI/MongoDB)
+
+**Files Modified**:
+- `bin/configure.js`: Enhanced hello example copying with recursive directory support
+- `webapp/view/jpulse-common.js`: Navigation sanitization at init
+- `webapp/view/user/index.shtml`: Removed obsolete function call
+- `webapp/tests/unit/utils/jpulse-ui-navigation.test.js`: Test fix for sanitization
+
+**Technical Details**:
+- Recursive directory copying preserves full structure including subdirectories
+- Sanitization happens once at navigation init, not on every access
+- Deletion markers (`null`) cleanly removed before any rendering
+- Template variable expansion still works on all copied files
+
+**Work Item**: W-099
+**Version**: v1.2.6
+**Release Date**: 2025-11-24
 
 ________________________________________________
 ## v1.2.5, W-098, 2025-11-24

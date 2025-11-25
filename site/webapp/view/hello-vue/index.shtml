@@ -4,7 +4,7 @@
  * @tagline         Hello Vue Single Page Application using Vue.js
  * @description     Example of Vue.js SPA with URL routing and reactive components
  * @file            site/webapp/view/hello-vue/index.shtml
- * @version         1.2.5
+ * @version         1.2.6
  * @release         2025-11-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

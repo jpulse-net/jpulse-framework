@@ -3,7 +3,7 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.2.5
+ * @version         1.2.6
  * @release         2025-11-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -2386,6 +2386,34 @@ window.jPulse = {
             _openTimeout: null,  // Timeout for open delay (can be cancelled)
 
             /**
+             * Remove null properties from navigation structure (deletion markers)
+             * Recursively sanitizes navigation to prevent null access errors
+             * @param {Object} obj - Object to sanitize
+             * @returns {Object} Sanitized object without null/undefined properties
+             */
+            _sanitizeNavStructure: (obj) => {
+                if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+                    return obj;
+                }
+
+                const sanitized = {};
+                for (const [key, value] of Object.entries(obj)) {
+                    // Skip null/undefined values (deletion markers from site override)
+                    if (value === null || value === undefined) {
+                        continue;
+                    }
+
+                    // Recursively sanitize nested objects (pages, submenus, etc.)
+                    if (typeof value === 'object' && !Array.isArray(value)) {
+                        sanitized[key] = jPulse.UI.navigation._sanitizeNavStructure(value);
+                    } else {
+                        sanitized[key] = value;
+                    }
+                }
+                return sanitized;
+            },
+
+            /**
              * Initialize site navigation from appConfig
              * @param {Object} options - Configuration
              * @param {string} options.currentUrl - Current page URL for active state
@@ -2431,7 +2459,8 @@ window.jPulse = {
                     console.warn('No navigation structure provided');
                     return null;
                 }
-                jPulse.UI.navigation._navConfig = navConfig;  // Store for use by other methods
+                // Sanitize navigation to remove null deletion markers (W-098)
+                jPulse.UI.navigation._navConfig = jPulse.UI.navigation._sanitizeNavStructure(navConfig);
 
                 // Create navigation dropdown element
                 jPulse.UI.navigation._createDropdown();

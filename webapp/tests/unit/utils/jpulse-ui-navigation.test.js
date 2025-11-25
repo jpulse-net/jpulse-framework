@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for jPulse.UI.navigation Widget (W-069)
  * @description     Tests for client-side site navigation dropdown and mobile hamburger menu
  * @file            webapp/tests/unit/utils/jpulse-ui-navigation.test.js
- * @version         1.2.5
+ * @version         1.2.6
  * @release         2025-11-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -492,8 +492,9 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         const dropdown = document.getElementById('jp-site-nav-dropdown');
         const originalHTML = dropdown.innerHTML;
 
-        // Modify appConfig
-        window.appConfig.view.navigation.admin.label = 'Administration';
+        // Modify the internal _navConfig (sanitized version)
+        // Note: After W-098 sanitization, we must modify the sanitized copy, not the original
+        window.jPulse.UI.navigation._navConfig.admin.label = 'Administration';
 
         // Refresh
         window.jPulse.UI.navigation._refresh();

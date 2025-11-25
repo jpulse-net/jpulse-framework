@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Dev / Work Items v1.2.5
+# jPulse Framework / Docs / Dev / Work Items v1.2.6
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1998,20 +1998,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - Namespaces: Optional dot-notation for organization (e.g., `jpIcons.configSvg`)
   - `_inline=true` strips newlines for JavaScript string embedding
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-098, v1.2.5: view: site navigation override with append mode and direct mutation
 - status: DONE ✅
 - type: Feature
@@ -2089,6 +2075,49 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-099, v1.2.6: deploy: critical bug fixes for site installation and W-098 navigation
+- status: 🚧 IN_PROGRESS
+- type: Bug
+- objective: fix critical bugs discovered after v1.2.5 deployment affecting site installation and navigation deletion markers
+- issues:
+  - bug 1: site/webapp/model/helloTodo.js missing in initial site install
+  - bug 2: site/webapp/controller/*.js missing in initial site install
+  - bug 3: some site/webapp/view/hello*/* missing in initial site install
+  - bug 4: webapp/view/jpulse-common.js crashes in several places when a site navigation property is set to null (as documented)
+  - bug 5: webapp/view/user/index.shtml has runtime JavScript error calling checkAdminAccess()
+- deliverables:
+  - bin/configure.js
+    - enhanced copySiteTemplates() function with recursive directory copying
+    - copy all site/webapp/controller/hello*.js files (5 files)
+    - copy all site/webapp/model/hello*.js files (1 file)
+    - recursively copy all site/webapp/view/hello*/ directories with subdirectories
+    - added copyDirRecursive() helper function for deep directory copying
+  - webapp/view/jpulse-common.js
+    - added _sanitizeNavStructure() method to remove null deletion markers
+    - navigation sanitization at init time instead of scattered null checks
+    - prevents "Cannot read properties of null" errors throughout navigation code
+    - cleaner, more maintainable approach (single point of sanitization)
+  - webapp/view/user/index.shtml
+    - removed obsolete checkAdminAccess() function call
+    - fixed JavaScript console error on user dashboard page
+  - webapp/tests/unit/utils/jpulse-ui-navigation.test.js
+    - fixed "should refresh navigation" test after sanitization refactor
+    - test now modifies _navConfig instead of appConfig
+
+
+
+
+
+
+
+
 questions:
 
 
@@ -2128,7 +2157,7 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-098, v1.2.5
+- assume release: W-099, v1.2.6
 - update deliverables in W-096 work-items to document work done (don't make any other changes to this file)
 - update README.md (highlights), docs/README.md (highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -2146,12 +2175,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.2.5
+node bin/bump-version.js 1.2.6
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.2.5
+git tag v1.2.6
 git push origin main --tags
 
 === on failed package build on github ===

@@ -4,7 +4,7 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         1.2.5
+ * @version         1.2.6
  * @release         2025-11-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -758,29 +758,79 @@ function copySiteTemplates(config, frameworkVersion, deploymentType) {
         fs.writeFileSync('README.md', processedContent);
     }
 
-    // Copy hello controller example
-    const helloControllerSrc = path.join(packageRoot, 'site/webapp/controller/hello.js');
-    const helloControllerDest = 'site/webapp/controller/hello.js';
-    if (fs.existsSync(helloControllerSrc)) {
-        const templateContent = fs.readFileSync(helloControllerSrc, 'utf8');
+    // Copy hello controller examples (all hello*.js files)
+    const helloControllerDir = path.join(packageRoot, 'site/webapp/controller');
+    if (fs.existsSync(helloControllerDir)) {
+        // Ensure destination directory exists
+        fs.mkdirSync('site/webapp/controller', { recursive: true });
+
+        // Copy all hello*.js controller files
+        const controllerFiles = fs.readdirSync(helloControllerDir).filter(file =>
+            file.startsWith('hello') && file.endsWith('.js')
+        );
+        controllerFiles.forEach(file => {
+            const srcPath = path.join(helloControllerDir, file);
+            const destPath = path.join('site/webapp/controller', file);
+            const templateContent = fs.readFileSync(srcPath, 'utf8');
         const processedContent = expandAllVariables(templateContent, config, deploymentType);
-        fs.writeFileSync(helloControllerDest, processedContent);
+            fs.writeFileSync(destPath, processedContent);
+        });
     }
 
-    // Copy hello view examples
-    const helloViewDir = path.join(packageRoot, 'site/webapp/view/hello');
-    if (fs.existsSync(helloViewDir)) {
+    // Copy hello model examples (all hello*.js files)
+    const helloModelDir = path.join(packageRoot, 'site/webapp/model');
+    if (fs.existsSync(helloModelDir)) {
         // Ensure destination directory exists
-        fs.mkdirSync('site/webapp/view/hello', { recursive: true });
+        fs.mkdirSync('site/webapp/model', { recursive: true });
 
-        // Copy all hello view files
-        const viewFiles = fs.readdirSync(helloViewDir);
-        viewFiles.forEach(file => {
-            const srcPath = path.join(helloViewDir, file);
-            const destPath = path.join('site/webapp/view/hello', file);
+        // Copy all hello*.js model files
+        const modelFiles = fs.readdirSync(helloModelDir).filter(file =>
+            file.startsWith('hello') && file.endsWith('.js')
+        );
+        modelFiles.forEach(file => {
+            const srcPath = path.join(helloModelDir, file);
+            const destPath = path.join('site/webapp/model', file);
             const templateContent = fs.readFileSync(srcPath, 'utf8');
             const processedContent = expandAllVariables(templateContent, config, deploymentType);
             fs.writeFileSync(destPath, processedContent);
+        });
+    }
+
+    // Helper function to recursively copy directory with template processing
+    function copyDirRecursive(srcDir, destDir) {
+        // Ensure destination directory exists
+        fs.mkdirSync(destDir, { recursive: true });
+
+        const entries = fs.readdirSync(srcDir, { withFileTypes: true });
+        entries.forEach(entry => {
+            const srcPath = path.join(srcDir, entry.name);
+            const destPath = path.join(destDir, entry.name);
+
+            if (entry.isDirectory()) {
+                // Recursively copy subdirectories
+                copyDirRecursive(srcPath, destPath);
+            } else {
+                // Copy and process files
+                const templateContent = fs.readFileSync(srcPath, 'utf8');
+                const processedContent = expandAllVariables(templateContent, config, deploymentType);
+                fs.writeFileSync(destPath, processedContent);
+            }
+        });
+    }
+
+    // Copy hello view examples (all hello* directories, recursively)
+    const viewBaseDir = path.join(packageRoot, 'site/webapp/view');
+    if (fs.existsSync(viewBaseDir)) {
+        // Find all hello* directories
+        const viewDirs = fs.readdirSync(viewBaseDir, { withFileTypes: true })
+            .filter(dirent => dirent.isDirectory() && dirent.name.startsWith('hello'))
+            .map(dirent => dirent.name);
+
+        // Copy each hello* directory recursively
+        viewDirs.forEach(dirName => {
+            const srcDir = path.join(viewBaseDir, dirName);
+            const destDir = path.join('site/webapp/view', dirName);
+            copyDirRecursive(srcDir, destDir);
         });
     }
 

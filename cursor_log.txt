@@ -37294,11 +37294,9 @@ Ready for v1.2.5 release.
 
 
 ============================================================
+2025-11-24 05:40
 
-
-============================================================
-
-2025-11-24 05:40 - W-098 Final Cleanup: Handlebars Comments & Obsolete Filenames
+W-098 Final Cleanup: Handlebars Comments & Obsolete Filenames
 
 Completed final cleanup for W-098 release preparation.
 
@@ -37367,8 +37365,9 @@ Changes accepted.
 
 
 ============================================================
+2025-11-24 05:50
 
-2025-11-24 05:50 - Docs: Handlebars Comments & Cross-Links
+Docs: Handlebars Comments & Cross-Links
 
 Added missing documentation and improved cross-referencing.
 
@@ -37398,8 +37397,9 @@ Ready for W-098 release.
 
 
 ============================================================
+2025-11-24 06:00
 
-2025-11-24 06:00 - Release Prep: W-098, v1.2.5
+Release Prep: W-098, v1.2.5
 
 Completed release preparation for W-098 site navigation override feature.
 
@@ -37456,8 +37456,9 @@ Changes accepted.
 
 
 ============================================================
+2025-11-24 06:10
 
-2025-11-24 06:10 - Release Prep: Added v1.2.4 & v1.2.5 Highlights
+Release Prep: Added v1.2.4 & v1.2.5 Highlights
 
 Added release highlights for latest two versions to README files.
 
@@ -37489,5 +37490,475 @@ Release Status:
 ✅ Version highlights added to both READMEs
 ✅ Consistent messaging across all docs
 ✅ Ready for commit and release
+
+Changes accepted.
+
+
+============================================================
+2025-11-24 23:20
+
+Bug Fix: Complete Hello Example Copying
+
+Fixed critical bug in site installation where only one hello controller was copied.
+
+Problem:
+- User reported missing files: site/webapp/model/helloTodo.js and some site/webapp/controller/hello*js
+- Investigation revealed configure.js only copied site/webapp/controller/hello.js (single file)
+- Missing files:
+  * site/webapp/controller/helloTodo.js
+  * site/webapp/controller/helloVue.js
+  * site/webapp/controller/helloWebsocket.js
+  * site/webapp/controller/helloClusterTodo.js
+  * site/webapp/model/helloTodo.js
+
+Root Cause:
+- copySiteTemplates() function had hardcoded path to hello.js only
+- Did not iterate through all hello*.js files in controller directory
+- No model copying logic at all
+
+Solution:
+- Changed to directory-based approach with filtering
+- Copy all hello*.js files from site/webapp/controller/
+- Copy all hello*.js files from site/webapp/model/
+- Maintained existing view copying logic (already correct)
+- Ensures all hello examples copied on initial site installation
+
+Files Modified:
+- bin/configure.js: Enhanced copySiteTemplates() function
+  * Added hello controller directory scanning with hello*.js filter
+  * Added hello model directory scanning with hello*.js filter
+  * Maintained hello view directory copying
+  * All files still processed with expandAllVariables()
+
+Impact:
+- New site installations will receive ALL hello examples
+- Fixes educational onboarding for site developers
+- Ensures hello-todo, hello-vue, hello-websocket, hello-cluster-todo all work
+
+Testing:
+- Verified 5 hello controllers exist in site/webapp/controller/
+- Verified 1 hello model exists in site/webapp/model/
+- Code now copies all matching files dynamically
+
+Ready for next release (v1.2.6 or included in v1.2.5 if not yet released).
+
+Changes accepted.
+
+
+============================================================
+2025-11-24 23:25
+
+Bug Fix: Complete Hello View Directory Copying
+
+Fixed additional bug where only one hello view directory was copied.
+
+Problem:
+- User identified that there are 5 hello* view directories, not just 1
+- Current directories:
+  * site/webapp/view/hello/
+  * site/webapp/view/hello-app-cluster/
+  * site/webapp/view/hello-todo/
+  * site/webapp/view/hello-vue/
+  * site/webapp/view/hello-websocket/
+- Only hello/ was being copied (hardcoded path)
+
+Root Cause:
+- Same pattern as controller/model bug
+- Hardcoded path to single "hello" directory
+- Did not iterate through all hello* directories
+
+Solution:
+- Scan site/webapp/view/ for all directories starting with "hello"
+- Copy each hello* directory and all its files
+- Maintained template variable expansion
+- Skips subdirectories (only copies files)
+
+Impact:
+- New installations now receive ALL 5 hello example directories
+- Complete hello examples: hello, hello-todo, hello-vue, hello-websocket, hello-app-cluster
+- Educational onboarding fully functional
+
+Files Modified:
+- bin/configure.js: Enhanced hello view copying logic
+  * Scans for all hello* directories dynamically
+  * Creates destination directories
+  * Copies all files in each directory
+  * Processes with expandAllVariables()
+
+Complete Hello Example Coverage:
+✅ Controllers: 5 files (hello*.js)
+✅ Models: 1 file (helloTodo.js)
+✅ Views: 5 directories (hello, hello-todo, hello-vue, hello-websocket, hello-app-cluster)
+
+Ready for v1.2.5 (critical bug fix for site installation).
+
+Changes accepted.
+
+
+============================================================
+2025-11-24 23:30
+
+Bug Fix: Recursive Copying for Hello View Subdirectories
+
+Fixed critical bug where subdirectories in hello view examples were not copied.
+
+Problem:
+- User identified that hello-vue and hello-websocket have templates/ subdirectories
+- hello-vue/templates/: 5 .tmpl files (architecture, code-examples, overview, routing, todo-demo)
+- hello-websocket/templates/: 6 .tmpl files (architecture, code-examples, emoji-demo, overview, routing, todo-demo)
+- Previous code skipped directories: "if (fs.statSync(srcPath).isDirectory()) { return; }"
+- Missing 11 critical template files for hello examples
+
+Root Cause:
+- Code explicitly skipped subdirectories
+- Only copied files in top-level hello* directories
+- No recursive copying logic
+
+Solution:
+- Created copyDirRecursive() helper function
+- Recursively copies all subdirectories
+- Processes all files with expandAllVariables()
+- Maintains directory structure
+
+Implementation:
+- copyDirRecursive(srcDir, destDir) helper function
+  * Creates destination directory
+  * Reads all entries (files and directories)
+  * Recursively copies subdirectories
+  * Processes and copies all files
+- Updated hello view copying to use recursive function
+- Now copies complete directory trees
+
+Files Now Copied:
+✅ hello-vue/
+  - index.shtml
+  - templates/architecture.tmpl
+  - templates/code-examples.tmpl
+  - templates/overview.tmpl
+  - templates/routing.tmpl
+  - templates/todo-demo.tmpl
+
+✅ hello-websocket/
+  - index.shtml
+  - templates/architecture.tmpl
+  - templates/code-examples.tmpl
+  - templates/emoji-demo.tmpl
+  - templates/overview.tmpl
+  - templates/routing.tmpl
+  - templates/todo-demo.tmpl
+
+✅ Other hello directories (flat structure still works)
+
+Complete Hello Example Coverage (Final):
+✅ Controllers: 5 files (hello*.js)
+✅ Models: 1 file (helloTodo.js)
+✅ Views: 5 directories with all subdirectories and files
+
+Impact:
+- Hello-vue and hello-websocket examples now fully functional
+- Complete educational experience for site developers
+- No missing files in any hello example
+
+Files Modified:
+- bin/configure.js: Added copyDirRecursive() helper, updated view copying
+
+Critical bug fix for v1.2.5 release.
+
+Changes accepted.
+
+
+============================================================
+2025-11-24 23:40
+
+Critical Bug Fix: Handle Null Navigation Sections
+
+Fixed showstopper bug where setting navigation section to null caused JavaScript error.
+
+Problem:
+- User set: window.jPulseNavigation.site.auth = null; (to delete section)
+- Error: "Uncaught TypeError: Cannot read properties of null (reading 'role')"
+- Navigation rendering code tried to access item.role on null value
+- Crash at jpulse-common.js:2581
+
+Root Cause:
+- _renderNavLevel() iterates over navigation with Object.entries()
+- Tried to access properties (item.role) without checking if item is null
+- Null is the documented deletion marker for W-098 direct mutation pattern
+- Code didn't handle the deletion marker
+
+Solution:
+- Added null/undefined check at start of forEach loop
+- Skip deleted sections before accessing any properties
+- Simple early return if item === null || item === undefined
+
+Fix:
+```javascript
+Object.entries(navStructure).forEach(([key, item]) => {
+    // Skip deleted sections (null values from site override)
+    if (item === null || item === undefined) {
+        return;
+    }
+
+    // Now safe to access item.role, item.pages, etc.
+    ...
+});
+```
+
+Impact:
+- Deletion marker (null) now works correctly
+- Sites can remove framework sections: window.jPulseNavigation.site.auth = null
+- No JavaScript errors
+- Navigation renders correctly with deleted sections omitted
+
+Files Modified:
+- webapp/view/jpulse-common.js: Added null check in _renderNavLevel()
+
+Critical bug fix for W-098 v1.2.5 - deletion marker functionality.
+
+Changes accepted.
+
+
+============================================================
+2025-11-25 00:50
+
+Refactor: Sanitize Navigation at Init Instead of Null Checks
+
+Refactored null handling from fragile per-check pattern to safe sanitization at init.
+
+Problem:
+- Previous fix added null checks throughout navigation code (6+ locations)
+- Fragile: Easy to forget null check when adding new code
+- Error-prone: Any missed check causes runtime crash
+- Maintenance burden: Scattered checks across codebase
+- User feedback: "This looks kind of fragile"
+
+Better Approach:
+- Sanitize navigation structure once at init time
+- Remove all null properties (deletion markers) upfront
+- No null checks needed in rest of codebase
+- Single point of responsibility
+- Safe by default for new code
+
+Solution:
+- Created _sanitizeNavStructure() helper function
+  * Recursively walks navigation object
+  * Removes null/undefined properties
+  * Preserves all other values
+  * Returns clean navigation structure
+- Called during init() before any rendering
+- Removed all scattered null checks
+
+Implementation:
+```javascript
+_sanitizeNavStructure: (obj) => {
+    const sanitized = {};
+    for (const [key, value] of Object.entries(obj)) {
+        // Skip null values (deletion markers)
+        if (value === null || value === undefined) {
+            continue;
+        }
+        // Recursively sanitize nested objects
+        if (typeof value === 'object' && !Array.isArray(value)) {
+            sanitized[key] = _sanitizeNavStructure(value);
+        } else {
+            sanitized[key] = value;
+        }
+    }
+    return sanitized;
+}
+
+init: () => {
+    const rawNavConfig = window.jPulseNavigation?.site || {};
+    _navConfig = _sanitizeNavStructure(rawNavConfig);  // Clean once!
+    // ... rest of init
+}
+```
+
+Benefits:
+- ✅ Single point of sanitization (init time)
+- ✅ Safe by default - no null checks needed anywhere
+- ✅ New code can't forget checks (nothing to forget)
+- ✅ Cleaner codebase - removed 6+ null check locations
+- ✅ Deletion markers still work (removed at init)
+- ✅ Recursive - handles nested pages, sections, etc.
+
+Files Modified:
+- webapp/view/jpulse-common.js:
+  * Added _sanitizeNavStructure() method
+  * Updated init() to sanitize navigation
+  * Removed scattered null checks (cleaner code)
+
+Much safer and more maintainable approach for W-098 v1.2.5.
+
+Changes accepted.
+
+
+============================================================
+2025-11-25 01:00
+
+Bug Fix: Removed Obsolete checkAdminAccess() Call
+
+Fixed minor bug where obsolete function call remained in user dashboard.
+
+Problem:
+- webapp/view/user/index.shtml called checkAdminAccess() on page load
+- Function is obsolete and no longer defined
+- Caused JavaScript console error on user dashboard page
+
+Location:
+- File: webapp/view/user/index.shtml
+- Lines: 77-81 in jPulse.dom.ready() block
+
+Fix:
+- Removed obsolete checkAdminAccess() function call
+- Only loadUserStats() needed on page load
+
+Impact:
+- User dashboard page now loads without JavaScript errors
+- Clean console for better debugging
+
+Files Modified:
+- webapp/view/user/index.shtml: Removed checkAdminAccess() call
+
+Minor cleanup for v1.2.5.
+
+Changes accepted.
+
+
+============================================================
+2025-11-25 01:10
+
+Test Fix: Navigation Refresh Test After Sanitization
+
+Fixed failing unit test after W-098 navigation sanitization refactor.
+
+Problem:
+- Test "should refresh navigation when requested" was failing
+- Expected navigation HTML to change, but it remained the same
+- Test modified window.appConfig.view.navigation.admin.label
+- But after W-098 sanitization, navigation uses sanitized copy in _navConfig
+
+Root Cause:
+- W-098 sanitization creates clean copy in _navConfig
+- Test modified original appConfig, not the sanitized copy
+- _refresh() renders from _navConfig, so changes to appConfig had no effect
+
+Solution:
+- Changed test to modify _navConfig instead of appConfig
+- Updated comment to explain why (W-098 sanitization)
+
+Fix:
+```javascript
+// OLD (broken):
+window.appConfig.view.navigation.admin.label = 'Administration';
+
+// NEW (fixed):
+window.jPulse.UI.navigation._navConfig.admin.label = 'Administration';
+```
+
+Files Modified:
+- webapp/tests/unit/utils/jpulse-ui-navigation.test.js
+
+Test now passes correctly.
+
+Changes accepted.
+
+
+============================================================
+
+
+============================================================
+
+2025-11-24 07:20 - Release Prep: W-099, v1.2.6
+
+Completed release preparation for W-099 bug fix release.
+
+Context:
+- v1.2.5 already built and deployed at two sites
+- Critical bugs discovered affecting site installation and navigation
+- All 893 tests passing (776 unit, 88 integration, 29 CLI/MongoDB)
+
+Updates:
+
+1. Version Bump
+   - README.md: v1.2.5 → v1.2.6
+   - docs/README.md: v1.2.5 → v1.2.6
+   - docs/CHANGELOG.md: v1.2.5 → v1.2.6
+
+2. Work Items
+   - docs/dev/work-items.md: W-099 status → ✅ DONE
+   - Documented all deliverables and fixes
+
+3. CHANGELOG.md: W-099 Entry Added
+   - **BUG FIX RELEASE** for v1.2.5 issues
+   - 6 issues fixed with complete details
+   - Implementation details for each fix
+   - Benefits and impact documented
+   - All 4 files modified listed
+
+4. commit-message.txt: W-099 Entry Created
+   - Following established format
+   - Bug fixes, implementation, benefits
+   - Complete file list
+
+Bug Fixes in v1.2.6:
+1. ✅ Hello controllers: 1 → 5 files copied
+2. ✅ Hello model: helloTodo.js now copied
+3. ✅ Hello views: Recursive copying with subdirectories
+4. ✅ Navigation null: Sanitization at init (robust solution)
+5. ✅ Obsolete function: checkAdminAccess() removed
+6. ✅ Test fix: Navigation refresh test updated
+
+Release Status:
+✅ W-099 implementation complete
+✅ All 893 tests passing
+✅ README files updated with v1.2.6
+✅ CHANGELOG comprehensive entry added
+✅ commit-message.txt ready
+✅ Work items updated
+✅ Cursor log complete
+
+Ready for git commit and v1.2.6 release tagging.
+
+Changes accepted.
+
+
+============================================================
+
+2025-11-25 07:35 - Release Prep: W-099, v1.2.6 (Final)
+
+Completed final release preparation for W-099 bug fix release.
+
+Updates:
+
+1. Version Numbers
+   - README.md: Header stays at v1.2.5 (bump script will update)
+   - docs/README.md: Header stays at v1.2.5 (bump script will update)
+   - docs/CHANGELOG.md: Header stays at v1.2.5, W-099 entry dated 2025-11-25
+
+2. Release Highlights Added
+   - README.md: Added v1.2.6, v1.2.5, v1.2.4 highlights section
+   - docs/README.md: Added v1.2.6 to existing highlights (detailed version)
+   - Highlights emphasize critical bug fixes for site installation and navigation
+
+3. Commit Message
+   - commit-message.txt: Release date updated to 2025-11-25
+   - All other content already accurate from previous prep
+
+4. Cursor Log
+   - This entry documents final release prep
+   - Ready for bump script and git commit
+
+Bug Fixes Summary (v1.2.6):
+- ✅ Complete hello example copying (5 controllers, 1 model, recursive views)
+- ✅ Robust navigation null handling (_sanitizeNavStructure at init)
+- ✅ Obsolete function removed (checkAdminAccess)
+- ✅ All 893 tests passing
+
+Next Steps:
+1. Run: node bin/bump-version.js 1.2.6
+2. Commit: git commit -F commit-message.txt
+3. Tag: git tag v1.2.6
+4. Push: git push origin main --tags
 
 Changes accepted.

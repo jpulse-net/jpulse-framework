@@ -38,15 +38,28 @@ class SiteControllerRegistry {
      */
     static async initialize() {
         try {
+            // Scan site controllers (W-014)
             const siteControllerDir = path.join(global.appConfig.system.siteDir, 'controller');
             this.registry.scanPath = siteControllerDir;
 
-            if (!fs.existsSync(siteControllerDir)) {
+            if (fs.existsSync(siteControllerDir)) {
+                await this._scanControllers(siteControllerDir, 'site');
+            } else {
                 LogController.logInfo(null, 'site-controller-registry', 'Site controller directory not found - no site overrides to register');
-                return { controllers: 0, apis: 0, initialized: 0 };
             }
 
-            await this._scanControllers();
+            // W-045: Scan plugin controllers (if PluginManager is available)
+            if (global.PluginManager && global.PluginManager.initialized) {
+                const activePlugins = global.PluginManager.getActivePlugins();
+                for (const plugin of activePlugins) {
+                    const pluginControllerDir = path.join(plugin.path, 'webapp', 'controller');
+                    if (fs.existsSync(pluginControllerDir)) {
+                        await this._scanControllers(pluginControllerDir, `plugin:${plugin.name}`);
+                    }
+                }
+            }
+
+            // Initialize all discovered controllers
             const initializedCount = await this._initializeControllers();
 
             const controllerCount = this.registry.controllers.size;
@@ -69,34 +82,55 @@ class SiteControllerRegistry {
     }
 
     /**
-     * Scan site controllers directory and analyze their API methods
+     * Scan a single controller file and analyze its API methods
+     * @param {string} controllerPath - Full path to controller file
+     * @param {string} controllerName - Name of the controller
+     * @param {string} source - Source identifier (e.g., 'framework', 'site', 'plugin:hello-world')
      */
-    static async _scanControllers() {
-        const controllerDir = this.registry.scanPath;
+    static async _scanController(controllerPath, controllerName, source = 'site') {
+        try {
+            const content = fs.readFileSync(controllerPath, 'utf8');
+            const apiMethods = this._detectApiMethods(content);
+            const hasInitialize = /\bstatic\s+(?:async\s+)?initialize\(/.test(content);
+
+            // W-045: Use unique key for plugins to avoid collisions, but keep framework/site controllers simple
+            const registryKey = source.startsWith('plugin:')
+                ? `${source.split(':')[1]}:${controllerName}`
+                : controllerName;
+
+            this.registry.controllers.set(registryKey, {
+                name: controllerName,
+                path: controllerPath,
+                apiMethods,
+                hasInitialize,
+                relativePath: `controller/${path.basename(controllerPath)}`,
+                source,  // W-045: Track source (framework, site, or plugin)
+                registeredAt: new Date().toISOString()
+            });
+
+            if (source !== 'site') {
+                LogController.logInfo(null, 'site-controller-registry',
+                    `Registered ${source} controller: ${controllerName} with ${apiMethods.length} API methods`);
+            }
+
+        } catch (error) {
+            LogController.logError(null, 'site-controller-registry', `Failed to analyze controller ${controllerName} from ${source}: ${error.message}`);
+        }
+    }
+
+    /**
+     * Scan controllers directory and analyze their API methods
+     * @param {string} controllerDir - Path to controller directory
+     * @param {string} source - Source identifier (e.g., 'site', 'plugin:hello-world')
+     */
+    static async _scanControllers(controllerDir, source = 'site') {
         const files = fs.readdirSync(controllerDir)
             .filter(file => file.endsWith('.js'));
 
         for (const file of files) {
             const controllerName = path.basename(file, '.js');
             const controllerPath = path.join(controllerDir, file);
-
-            try {
-                const content = fs.readFileSync(controllerPath, 'utf8');
-                const apiMethods = this._detectApiMethods(content);
-                const hasInitialize = /\bstatic\s+(?:async\s+)?initialize\(/.test(content);
-
-                this.registry.controllers.set(controllerName, {
-                    name: controllerName,
-                    path: controllerPath,
-                    apiMethods,
-                    hasInitialize,
-                    relativePath: `controller/${file}`,
-                    registeredAt: new Date().toISOString()
-                });
-
-            } catch (error) {
-                LogController.logError(null, 'site-controller-registry', `Failed to analyze controller ${file}: ${error.message}`);
-            }
+            await this._scanController(controllerPath, controllerName, source);
         }
 
         this.registry.lastScan = new Date().toISOString();
@@ -223,10 +257,12 @@ class SiteControllerRegistry {
     static registerApiRoutes(router) {
         let routeCount = 0;
 
-        for (const [name, controller] of this.registry.controllers) {
+        for (const [registryKey, controller] of this.registry.controllers) {
             if (controller.apiMethods.length === 0) continue;
 
-            const basePath = `/api/1/${name}`;
+            // W-045: Use actual controller name for URL, not the registry key
+            // Registry key might be 'hello-world:helloPlugin', but URL should be '/api/1/helloPlugin'
+            const basePath = `/api/1/${controller.name}`;
 
             // Sort API methods: specific routes (no :id) before parameterized routes
             // This ensures /search matches before /:id matches "search"
@@ -247,10 +283,10 @@ class SiteControllerRegistry {
                 // Register the route
                 router[httpMethod](fullPath, async (req, res) => {
                     try {
-                        const ControllerClass = await this._loadController(name);
+                        const ControllerClass = await this._loadController(registryKey);
                         await ControllerClass[apiMethod.name](req, res);
                     } catch (error) {
-                        LogController.logError(req, `site-api.${name}.${apiMethod.name}`, error.message);
+                        LogController.logError(req, `site-api.${controller.name}.${apiMethod.name}`, error.message);
                         const CommonUtils = global.CommonUtils;
                         if (CommonUtils?.sendError) {
                             return CommonUtils.sendError(req, res, 500, 'Site API error', 'SITE_API_ERROR', error.message);
@@ -261,7 +297,7 @@ class SiteControllerRegistry {
 
                 routeCount++;
                 LogController.logInfo(null, 'site-controller-registry',
-                    `Registered: ${httpMethod.toUpperCase()} ${fullPath} → ${name}.${apiMethod.name}`);
+                    `Registered: ${httpMethod.toUpperCase()} ${fullPath} → ${controller.source}:${controller.name}.${apiMethod.name}`);
             }
         }
 

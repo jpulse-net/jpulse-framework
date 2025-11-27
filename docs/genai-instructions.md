@@ -19,12 +19,16 @@ Instructions for AI assistants working with jPulse Framework site development. T
    - Server-side only renders initial page structure
    - See [API Reference](api-reference.md) for complete endpoint documentation
 
-3. **Client-Side Heavy (Application Pages)**: For CRUD interfaces and dashboards, more view logic in JavaScript, less server-side rendering
-   - Load data client-side via jPulse.api methods
-   - Use server-side for models (database interaction) and controllers (handle API endpoints)
-   - Note: Simple content pages may use minimal or no JavaScript
+3. **Client-Side Heavy (Application Pages)**: For CRUD interfaces and dashboards, the **V in MVC resides in the browser**
+   - **Views**: Client-side JavaScript loads and renders data dynamically
+   - **Controllers**: Server-side handles API endpoints, returns JSON data (not rendered HTML)
+   - **Models**: Server-side handles database operations
+   - Load data client-side via jPulse.api methods (GET, POST, PUT, DELETE)
+   - Views use JavaScript to call API endpoints and render results in the DOM
+   - Server-side renders initial page structure only (skeleton HTML)
+   - Note: Simple content pages (marketing, documentation) may use minimal JavaScript and server-side template rendering
    - See [Front-End Development Guide](front-end-development.md)
-   - See [Handlebars Templating](handlebars.md) for server side template handling
+   - See [Handlebars Templating](handlebars.md) for server-side template handling
 
 4. **Auto-Discovery**: Controllers auto-register via `static async api*()` methods
    - Never manually register routes in routes.js

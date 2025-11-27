@@ -11,6 +11,22 @@ site/webapp/app.conf
 # But keep template files for reference
 !site/webapp/app.conf.tmpl
 
+# Plugins (W-045)
+# Default: Ignore all plugins (developers' local plugins)
+plugins/*
+# Exception: Include the hello-world demo plugin (ships with framework)
+!plugins/hello-world/
+
+# Plugin runtime symlinks (created by PluginManager at startup)
+webapp/static/plugins/*
+!webapp/static/plugins/.gitkeep
+
+docs/installed-plugins/*
+!docs/installed-plugins/README.md
+
+# Temporary test fixture files
+webapp/tests/fixtures/temp-*.conf
+
 # Dependencies
 node_modules/
 npm-debug.log*
@@ -26,9 +42,6 @@ pids
 # Coverage directory used by tools like istanbul
 coverage/
 *.lcov
-
-# Test temporary files
-webapp/tests/fixtures/temp-*.conf
 
 # nyc test coverage
 .nyc_output

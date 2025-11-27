@@ -530,7 +530,7 @@ class HandlebarController {
                         const filesWithOrder = items.map(filePath => {
                             try {
                                 const relativePath = `view/${filePath}`;
-                                const fullPath = PathResolver.resolveModule(relativePath);
+                                const fullPath = PathResolver.resolveModuleWithPlugins(relativePath);
                                 const content = self.includeCache.getFileSync(fullPath);
                                 if (content !== null) {
                                     let extracted = null;
@@ -1144,11 +1144,11 @@ class HandlebarController {
                 return '';
             }
 
-            // Use PathResolver to support site overrides
+            // Use PathResolver to support site overrides and plugins (W-045)
             let fullPath;
             try {
                 const relativePath = `view/${filePath}`;
-                fullPath = PathResolver.resolveModule(relativePath);
+                fullPath = PathResolver.resolveModuleWithPlugins(relativePath);
             } catch (error) {
                 LogController.logError(req, 'handlebar.file.extract', `File not found: ${filePath} (${error.message})`);
                 return '';

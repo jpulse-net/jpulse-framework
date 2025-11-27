@@ -222,7 +222,8 @@ class ViewController {
                     // Use .js.tmpl and .css.tmpl only as reference templates to copy
                 } else {
                     // Regular file resolution (replace mode)
-                    fullPath = PathResolver.resolveModule(relativePath);
+                    // W-045: Use plugin-aware resolver (site > plugins > framework)
+                    fullPath = PathResolver.resolveModuleWithPlugins(relativePath);
                 }
 
                 if (!fullPath && !content) {
@@ -232,12 +233,13 @@ class ViewController {
                     LogController.logError(req, 'view.load', `error: File not found: ${filePath}`);
                     const message = global.i18n.translate(req, 'controller.view.pageNotFoundError', { path: originalPath });
 
-                    // Override filePath to error page and try to resolve it
+                    // Override filePath to error page and resolve with plugin support
                     filePath = '/error/index.shtml';
                     try {
-                        fullPath = PathResolver.resolveModule(`view${filePath}`);
+                        // W-045: Use plugin-aware resolver (site > plugins > framework)
+                        fullPath = PathResolver.resolveModuleWithPlugins(`view${filePath}`);
                     } catch (errorPageError) {
-                        // Fallback to framework error page if site override doesn't exist
+                        // This should never fail as framework provides error page
                         fullPath = path.join(global.appConfig.system.appDir, 'view', filePath.substring(1));
                     }
                     req.query = { // Create a new query object for the context
@@ -255,8 +257,10 @@ class ViewController {
 
                 filePath = '/error/index.shtml';
                 try {
-                    fullPath = PathResolver.resolveModule(`view${filePath}`);
+                    // W-045: Use plugin-aware resolver (site > plugins > framework)
+                    fullPath = PathResolver.resolveModuleWithPlugins(`view${filePath}`);
                 } catch (errorPageError) {
+                    // This should never fail as framework provides error page
                     fullPath = path.join(global.appConfig.system.appDir, 'view', filePath.substring(1));
                 }
                 req.query = {
@@ -309,27 +313,10 @@ class ViewController {
         }
     }
 
-
     static _buildViewRegistry() {
-        const frameworkViewPath = path.join(global.appConfig.system.appDir, 'view');
-        const siteViewPath = path.join(global.appConfig.system.siteDir, 'view');
-
-        const frameworkDirs = this._scanViewDir(frameworkViewPath);
-        const siteDirs = this._scanViewDir(siteViewPath);
-
-        const viewSet = new Set([...siteDirs, ...frameworkDirs]);
-        this.viewDirectories = Array.from(viewSet).sort();
+        // W-045: Use PathResolver for all directory discovery (separation of concerns)
+        this.viewDirectories = PathResolver.getAllViewDirectories();
         this.viewRouteRE = new RegExp('^/(' + this.viewDirectories.join('|') + ')/'); // no $ at end
-    }
-
-    static _scanViewDir(dirPath) {
-        try {
-            return fs.readdirSync(dirPath, { withFileTypes: true })
-                .filter(entry => entry.isDirectory())
-                .map(entry => entry.name);
-        } catch {
-            return [];
-        }
     }
 
 }

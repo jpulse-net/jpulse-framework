@@ -79,14 +79,33 @@ export async function bootstrap(options = {}) {
             bootstrapLog('⏭️  Database: Skipped');
         }
 
-        // Step 5: ViewController (depends on LogController, i18n, database)
+        // Step 5: Initialize PluginManager (W-045 - moved up for cleaner dependency flow)
+        // Discovers and validates plugins BEFORE views and controllers
+        const PluginManagerModule = await import('./plugin-manager.js');
+        global.PluginManager = PluginManagerModule.default;
+        bootstrapLog('PluginManager: Module loaded, ready for initialization');
+
+        const pluginStats = await PluginManagerModule.default.initialize();
+        bootstrapLog(`✅ PluginManager: Discovered ${pluginStats.discovered} plugins (${pluginStats.enabled} enabled, ${pluginStats.disabled} disabled)`);
+
+        // Step 5.1: Load Plugin Model (W-045)
+        const PluginModelModule = await import('../model/plugin.js');
+        await PluginModelModule.default.ensureIndexes();
+        bootstrapLog('✅ PluginModel: Indexes ensured');
+
+        // Step 5.2: Get active plugins for logging
+        const activePlugins = PluginManagerModule.default.getActivePlugins();
+        bootstrapLog(`PluginManager: ${activePlugins.length} active plugins in load order: ${activePlugins.map(p => p.name).join(', ') || 'none'}`);
+
+        // Step 6: ViewController (depends on LogController, i18n, database, PluginManager)
+        // Now builds view registry WITH plugin directories automatically (no rebuild needed!)
         const ViewControllerModule = await import('../controller/view.js');
         bootstrapLog('ViewController: Module loaded, ready for initialization');
         await ViewControllerModule.default.initialize();
         global.ViewController = ViewControllerModule.default;
         bootstrapLog('✅ ViewController: Initialized');
 
-        // Step 6: Initialize Redis Manager (W-076 - depends on LogController)
+        // Step 7: Initialize Redis Manager (W-076 - depends on LogController)
         let redisManager = null;
         let sessionStore = null;
 
@@ -97,7 +116,7 @@ export async function bootstrap(options = {}) {
             global.RedisManager = RedisManagerModule.default;
             bootstrapLog(`✅ RedisManager: Initialized - Instance: ${RedisManagerModule.default.getInstanceId()}, Available: ${RedisManagerModule.default.isRedisAvailable()}`);
 
-            // Step 6.1: Configure session store with Redis fallback (W-076)
+            // Step 7.1: Configure session store with Redis fallback (W-076)
             sessionStore = await RedisManagerModule.default.configureSessionStore(database);
             bootstrapLog('✅ SessionStore: Configured with Redis/fallback');
 
@@ -118,12 +137,12 @@ export async function bootstrap(options = {}) {
             bootstrapLog('✅ SessionStore: Configured with MemoryStore for tests');
         }
 
-        // Step 7: Initialize broadcast controller (W-076)
+        // Step 8: Initialize broadcast controller (W-076)
         const BroadcastControllerModule = await import('../controller/broadcast.js');
         BroadcastControllerModule.default.initialize();
         bootstrapLog('✅ BroadcastController: Initialized with framework subscriptions');
 
-        // Step 8: Initialize app cluster controller (W-076)
+        // Step 9: Initialize app cluster controller (W-076)
         try {
             const AppClusterControllerModule = await import('../controller/appCluster.js');
             AppClusterControllerModule.default.initialize();
@@ -133,18 +152,19 @@ export async function bootstrap(options = {}) {
             bootstrapLog(`Error details: ${error.stack || error}`, 'error');
         }
 
-        // Step 9: Initialize health controller clustering (W-076)
+        // Step 10: Initialize health controller clustering (W-076)
         const HealthControllerModule = await import('../controller/health.js');
         await HealthControllerModule.default.initialize();
         global.HealthController = HealthControllerModule.default;
         bootstrapLog('✅ HealthController: Initialized with Redis clustering and registered globally');
 
-        // Step 10: Set up CommonUtils globally
+        // Step 11: Set up CommonUtils globally
         global.CommonUtils = CommonUtils;
         bootstrapLog('✅ CommonUtils: Available globally');
 
-        // Step 11: Initialize site controller registry (W-014)
+        // Step 12: Initialize site controller registry (W-014, W-045)
         // Discovers site controllers and their API methods
+        // W-045: Can now also discover plugin controllers since PluginManager is initialized
         let siteControllerRegistry = null;
         if (!isTest) {  // Only for app, not tests
             const SiteControllerRegistryModule = await import('./site-controller-registry.js');
@@ -154,32 +174,31 @@ export async function bootstrap(options = {}) {
             bootstrapLog(`✅ SiteControllerRegistry: ${registryStats.controllers} controllers, ${registryStats.apis} APIs`);
         }
 
-        // Step 12: Initialize context extensions (W-014)
+        // Step 13: Initialize context extensions (W-014)
         // Extends template context with site-specific data
         const ContextExtensionsModule = await import('./context-extensions.js');
         await ContextExtensionsModule.default.initialize();
         global.ContextExtensions = ContextExtensionsModule.default;
         bootstrapLog('✅ ContextExtensions: Initialized with providers');
 
-        // Step 13: Initialize model schemas (after plugins would extend them in W-045)
-        // For now, just initialize base schemas. In W-045, plugins will extend schemas before this step.
+        // Step 14: Initialize model schemas (W-045 - after plugins loaded, so they can extend schemas)
         const UserModelModule = await import('../model/user.js');
         UserModelModule.default.initializeSchema();
-        bootstrapLog('✅ UserModel: Schema initialized');
+        bootstrapLog('✅ UserModel: Schema initialized with plugin extensions');
 
-        // Step 14: Initialize ConfigController
+        // Step 15: Initialize ConfigController
         const ConfigControllerModule = await import('../controller/config.js');
         ConfigControllerModule.default.initialize();
         global.ConfigController = ConfigControllerModule.default;
         bootstrapLog(`✅ ConfigController: Initialized (defaultDocName: ${ConfigControllerModule.default.getDefaultDocName()})`);
 
-        // Step 15: Initialize HandlebarController (W-088)
+        // Step 16: Initialize HandlebarController (W-088)
         const HandlebarControllerModule = await import('../controller/handlebar.js');
         await HandlebarControllerModule.default.initialize();
         global.HandlebarController = HandlebarControllerModule.default;
         bootstrapLog('✅ HandlebarController: Initialized');
 
-        // Step 16: Initialize EmailController (W-087)
+        // Step 17: Initialize EmailController (W-087)
         const EmailControllerModule = await import('../controller/email.js');
         const emailReady = await EmailControllerModule.default.initialize();
         global.EmailController = EmailControllerModule.default;
@@ -189,7 +208,7 @@ export async function bootstrap(options = {}) {
             bootstrapLog('⚠️  EmailController: Not configured (email sending disabled)');
         }
 
-        // Step 17: Build viewRegistry for routes.js compatibility
+        // Step 18: Build viewRegistry for routes.js compatibility
         // Legacy global for routes.js to use
         global.viewRegistry = {
             viewList: global.ViewController.getViewList(),
@@ -197,7 +216,7 @@ export async function bootstrap(options = {}) {
         };
         bootstrapLog(`✅ viewRegistry: Built with ${global.viewRegistry.viewList.length} directories`);
 
-        // Step 18: Prepare WebSocketController (but don't initialize server yet)
+        // Step 19: Prepare WebSocketController (but don't initialize server yet)
         // Server initialization requires Express app and http.Server
         const WebSocketControllerModule = await import('../controller/websocket.js');
         global.WebSocketController = WebSocketControllerModule.default;

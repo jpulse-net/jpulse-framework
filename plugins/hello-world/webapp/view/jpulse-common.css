@@ -1,0 +1,34 @@
+/* Hello World Plugin Styles (W-098 Append Mode) */
+/* This file is automatically appended to the framework's jpulse-common.css */
+/* Uses jp-* framework classes where possible; custom styles only when needed */
+
+/* Plugin status badges (used in /plugins/ detail pages) */
+.plg-status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.plg-status-active {
+    background-color: var(--jp-color-success, #28a745);
+    color: white;
+}
+
+.plg-status-disabled {
+    background-color: var(--jp-color-secondary, #6c757d);
+    color: white;
+}
+
+.plg-status-error {
+    background-color: var(--jp-color-danger, #dc3545);
+    color: white;
+}
+
+/* Plugin dashboard icon sizing (W-045) */
+.jp-card-dashboard .jp-icon-container {
+    font-size: 64px;
+}
+
+/* EOF plugins/hello-world/webapp/view/jpulse-common.css */

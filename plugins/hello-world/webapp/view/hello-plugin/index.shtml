@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / Plugins / Hello World / WebApp / View / Hello Plugin / Index
+ * @tagline         Hello Plugin application page for jPulse Framework
+ * @description     Hello Plugin application page for jPulse Framework
+ * @file            plugins/hello-world/webapp/view/hello-plugin/index.shtml
+ * @version         1.2.6
+ * @release         2025-11-25
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello World Plugin - {{app.site.shortName}}</title>
+{{file.include "jpulse-header.tmpl"}}
+    <style>
+    /* Plugin-specific styles (minimal - use jp-* classes where possible) */
+    .local-features-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .local-features-list li {
+        padding: 10px 0;
+        border-bottom: 1px solid var(--jp-color-border);
+    }
+
+    .local-features-list li:before {
+        content: "✓ ";
+        color: var(--jp-color-success);
+        font-weight: bold;
+        margin-right: 8px;
+    }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-page-header">
+            <h1>Hello World Plugin</h1>
+            <span class="jp-subtitle">Welcome to the jPulse Framework Plugin System</span>
+        </div>
+
+        <div class="jp-info-box">
+            <h2>ℹ️ About This Plugin:</h2>
+            <p>This is a demo plugin that showcases the jPulse plugin architecture with
+                API endpoints, views, and configuration management.</p>
+            <ul>
+                <li><a href="/jpulse-docs/plugins/README" target="_blank">Plugin Development Guide</a></li>
+                <li><a href="/jpulse-docs/installed-plugins/hello-world/README" target="_blank">Hello World Plugin Documentation</a></li>
+                <li><a href="/plugins/hello-world.shtml">Configure this Plugin</a></li>
+                <li><a href="/plugins/">All Installed Plugins Dashboard</a></li>
+            </ul>
+        </div>
+
+        <div class="jp-stats-grid" id="statsGrid">
+            <div class="jp-stat-card">
+                <div class="jp-stat-number" id="statPluginName">-</div>
+                <div class="jp-stat-label">Plugin Name</div>
+            </div>
+            <div class="jp-stat-card">
+                <div class="jp-stat-number" id="statVersion">-</div>
+                <div class="jp-stat-label">Version</div>
+            </div>
+            <div class="jp-stat-card">
+                <div class="jp-stat-number" id="statStatus">-</div>
+                <div class="jp-stat-label">Status</div>
+            </div>
+        </div>
+
+        <!-- Help & Navigation Section -->
+        <div class="jp-alert jp-alert-info" style="margin-bottom: 20px;">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="/plugins/" class="jp-btn jp-btn-sm jp-btn-secondary">
+                    ← Plugins Dashboard
+                </a>
+                <a href="/plugins/hello-world.shtml" class="jp-btn jp-btn-sm jp-btn-primary">
+                    ⚙️ Configure Plugin
+                </a>
+                <a href="/jpulse-docs/installed-plugins/hello-world/README" class="jp-btn jp-btn-sm jp-btn-secondary" target="_blank">
+                    📖 Documentation
+                </a>
+            </div>
+        </div>
+
+        <div id="configMessage" class="jp-alert jp-alert-success" style="display:none;">
+            <strong>📝 Custom Message:</strong>
+            <span id="configMessageText"></span>
+        </div>
+
+        <div class="jp-card" style="margin-bottom: 30px;">
+            <h2>Plugin Features</h2>
+            <ul class="local-features-list" id="featuresList">
+                <li>Loading features...</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+    // Hello World Plugin page initialization
+    // Note: window.jPulse.plugins.helloWorld is defined in jpulse-common.js (W-098 append mode)
+
+    /**
+     * Initialize the hello world plugin page
+     */
+    async function initializeHelloWorldPage() {
+        try {
+            // Load plugin data using plugin utility function
+            const response = await jPulse.api.get('/api/1/helloPlugin');
+
+            if (response.success) {
+                const data = response.data;
+
+                // Show config message if enabled
+                if (data.config && data.config.enabled && data.config.message) {
+                    document.getElementById('configMessage').style.display = 'block';
+                    document.getElementById('configMessageText').textContent = data.config.message;
+                }
+
+                // Display features
+                if (data.sampleData && data.sampleData.features) {
+                    const featuresList = document.getElementById('featuresList');
+                    featuresList.innerHTML = '';
+                    data.sampleData.features.forEach(feature => {
+                        const li = document.createElement('li');
+                        li.textContent = feature;
+                        featuresList.appendChild(li);
+                    });
+                }
+
+                // Display stats
+                document.getElementById('statPluginName').textContent = data.plugin || '-';
+                document.getElementById('statVersion').textContent = data.version || '-';
+                document.getElementById('statStatus').textContent = 'Active';
+
+                // Log using plugin utility
+                jPulse.plugins.helloWorld.utils.log('Page initialized successfully');
+
+            } else {
+                jPulse.UI.toast.error('Failed to load plugin data');
+            }
+
+        } catch (error) {
+            console.error('Error initializing Hello World plugin page:', error);
+            jPulse.UI.toast.error('Error loading plugin: ' + error.message);
+        }
+    }
+
+    // Initialize when DOM is ready
+    jPulse.dom.ready(() => {
+        initializeHelloWorldPage();
+    });
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

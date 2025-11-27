@@ -26,12 +26,14 @@ import HealthController from './controller/health.js';
 import MarkdownController from './controller/markdown.js';
 import UserController from './controller/user.js';
 import ConfigController from './controller/config.js';
+import PluginController from './controller/plugin.js';  // W-045
 import WebSocketController from './controller/websocket.js';
 import logController from './controller/log.js';
 import ViewController from './controller/view.js';
 import HandlebarController from './controller/handlebar.js';
 import EmailController from './controller/email.js';
 import CommonUtils from './utils/common.js';
+import PathResolver from './utils/path-resolver.js';
 
 // API routes (must come before catch-all route)
 
@@ -53,6 +55,19 @@ router.put('/api/1/config/_default', ConfigController.upsert);  // Default confi
 router.put('/api/1/config/:id', ConfigController.update);
 router.put('/api/1/config/:id/upsert', ConfigController.upsert);
 router.delete('/api/1/config/:id', ConfigController.delete);
+
+// Plugin API routes of the framework controller (plugins are auto-discovered)
+router.get('/api/1/plugin', PluginController.list);
+router.get('/api/1/plugin/:name', PluginController.get);
+router.get('/api/1/plugin/:name/status', PluginController.getStatus);
+router.post('/api/1/plugin/:name/enable', PluginController.enable);
+router.post('/api/1/plugin/:name/disable', PluginController.disable);
+router.get('/api/1/plugin/:name/config', PluginController.getConfig);
+router.put('/api/1/plugin/:name/config', PluginController.updateConfig);
+router.get('/api/1/plugin/:name/dependencies', PluginController.getDependencies);
+router.get('/api/1/plugin/:name/plugin-dependencies', PluginController.getPluginDependencies);
+router.post('/api/1/plugin/scan', PluginController.scan);
+router.post('/api/1/plugin/:name/install-dependencies', PluginController.installDependencies);
 
 // Auth API routes
 router.post('/api/1/auth/login', AuthController.login);
@@ -120,21 +135,24 @@ router.get('/', (req, res) => {
 // Anything else will fall through to Express static middleware (.txt, .ico, .png, .json, etc.)
 // This is handled by nginx if the app is running behind a reverse proxy
 // In development, we need to check site overrides first (mimics nginx try_files behavior)
+// W-045: Extended to support plugin static assets
 router.use('/', (req, res, next) => {
-    const siteStaticPath = path.join(appConfig.system.siteDir, 'static', req.path);
-    const frameworkStaticPath = path.join(appConfig.system.appDir, 'static', req.path);
-
-    // Try site override first
-    if (fs.existsSync(siteStaticPath) && fs.statSync(siteStaticPath).isFile()) {
-        return res.sendFile(siteStaticPath);
+    // Skip API routes and already processed routes
+    if (req.path.startsWith('/api/') || req.path.match(/\.(shtml|tmpl)$/) || req.path.startsWith('/jpulse-')) {
+        return next();
     }
 
-    // Fall back to framework static
-    if (fs.existsSync(frameworkStaticPath) && fs.statSync(frameworkStaticPath).isFile()) {
-        return res.sendFile(frameworkStaticPath);
+    try {
+        // W-045: Use PathResolver for consistent priority (site > plugins > framework)
+        const modulePath = `static${req.path}`;
+        const resolvedPath = PathResolver.resolveModuleWithPlugins(modulePath);
+        if (fs.statSync(resolvedPath).isFile()) {
+            return res.sendFile(resolvedPath);
+        }
+    } catch (error) {
+        // File not found in any location, continue to 404
     }
 
-    // Not a static file, continue to 404 handler
     next();
 });
 

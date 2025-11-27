@@ -17,6 +17,7 @@ import path from 'path';
 import LogController from './log.js';
 import CommonUtils from '../utils/common.js';
 import cacheManager from '../utils/cache-manager.js';
+import PathResolver from '../utils/path-resolver.js';
 
 // W-079: File-based cache with automatic refresh
 let markdownCache = null;
@@ -113,23 +114,12 @@ class MarkdownController {
 
     /**
      * Get namespace directory following site override pattern
+     * W-045: Extended to support plugin markdown directories
      */
     static async _getNamespaceDirectory(namespace) {
-        // Try site directory first (site override pattern)
-        const siteDir = path.join(global.appConfig.system.siteDir, 'static', 'assets', namespace);
-        try {
-            await fs.access(siteDir);
-            return siteDir;
-        } catch {
-            // Fall back to framework directory
-            const frameworkDir = path.join(global.appConfig.system.appDir, 'static', 'assets', namespace);
-            try {
-                await fs.access(frameworkDir);
-                return frameworkDir;
-            } catch {
-                return null;
-            }
-        }
+        // W-045: Use PathResolver for consistent priority (site > plugins > framework)
+        const resolvedPath = PathResolver.resolveDirectory(`static/assets/${namespace}`);
+        return resolvedPath; // Returns null if not found
     }
 
     /**
@@ -213,11 +203,23 @@ class MarkdownController {
                     }
                 }
 
-                // Process directories
-                const dirEntries = entries
-                    .filter(entry => entry.isDirectory())
-                    .map(entry => entry.name)
-                    .sort((a, b) => a.localeCompare(b));
+                // Process directories (including symlinks to directories - W-045)
+                // Use await fs.stat() which automatically follows symlinks
+                const dirEntries = [];
+                for (const entry of entries) {
+                    if (entry.isFile()) continue; // Skip files
+
+                    try {
+                        const fullPath = path.join(dir, entry.name);
+                        const stats = await fs.stat(fullPath);
+                        if (stats.isDirectory()) {
+                            dirEntries.push(entry.name);
+                        }
+                    } catch (error) {
+                        // Broken symlink or access error - skip
+                    }
+                }
+                dirEntries.sort((a, b) => a.localeCompare(b));
 
                 for (const dirName of dirEntries) {
                     // Check if directory should be ignored
@@ -292,11 +294,23 @@ class MarkdownController {
             }
         }
 
-        // Process directories
-        const dirEntries = entries
-            .filter(entry => entry.isDirectory())
-            .map(entry => entry.name)
-            .sort((a, b) => a.localeCompare(b));
+        // Process directories (including symlinks to directories - W-045)
+        // Use await fs.stat() which automatically follows symlinks
+        const dirEntries = [];
+        for (const entry of entries) {
+            if (entry.isFile()) continue; // Skip files
+
+            try {
+                const fullPath = path.join(dir, entry.name);
+                const stats = await fs.stat(fullPath);
+                if (stats.isDirectory()) {
+                    dirEntries.push(entry.name);
+                }
+            } catch (error) {
+                // Broken symlink or access error - skip
+            }
+        }
+        dirEntries.sort((a, b) => a.localeCompare(b));
 
         for (const dirName of dirEntries) {
             const relPath = path.join(relativePath, dirName);

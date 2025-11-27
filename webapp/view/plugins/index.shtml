@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / Plugins / Index
+ * @tagline         Plugins Dashboard for jPulse Framework
+ * @description     This is the plugins dashboard page showing all installed plugins
+ * @file            webapp/view/plugins/index.shtml
+ * @version         1.2.7
+ * @release         2025-11-26
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plugins - {{app.site.shortName}}</title>
+    {{file.include "jpulse-header.tmpl"}}
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-page-header">
+            <h1>Plugins</h1>
+            <span class="jp-subtitle">Installed plugins and extensions</span>
+        </div>
+
+        <!--div class="jp-dashboard-grid plg-plugin-dashboard"-->
+        <div class="jp-dashboard-grid">
+            <!-- Automatically include cards from all plugin pages that have extract markers -->
+            {{#each file.list "plugins/*.shtml" sortBy="extract-order"}}
+                {{file.extract this}}
+            {{/each}}
+        </div>
+    </div>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>
+
+<!-- EOF webapp/view/plugins/index.shtml -->

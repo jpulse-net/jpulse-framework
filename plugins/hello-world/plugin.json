@@ -1,0 +1,34 @@
+{
+    "name": "hello-world",
+    "npmPackage": "@jpulse-net/plugin-hello-world",
+    "version": "1.0.0",
+    "description": "Hello World demo plugin for jPulse Framework",
+    "author": "jPulse Team <team@jpulse.net>",
+    "jpulseVersion": ">=1.2.7",
+    "autoEnable": true,
+    "dependencies": {
+        "npm": {},
+        "plugins": {}
+    },
+    "config": {
+        "schema": [
+            {
+                "id": "message",
+                "label": "Welcome Message",
+                "type": "text",
+                "default": "Hello from the plugin system!",
+                "placeholder": "Enter a custom welcome message",
+                "required": false,
+                "help": "This message will be displayed on the Hello World page"
+            },
+            {
+                "id": "enabled",
+                "label": "Show Welcome Message",
+                "type": "boolean",
+                "default": true,
+                "help": "Toggle to show or hide the welcome message"
+            }
+        ]
+    }
+}
+

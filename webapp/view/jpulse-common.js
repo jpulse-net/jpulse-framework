@@ -537,6 +537,12 @@ window.jPulse = {
     },
 
     // ============================================================
+    // jPulse.plugins: Plugin namespace (W-045: Plugin Infrastructure)
+    // ============================================================
+    // Plugins add their code here, e.g., window.jPulse.plugins.helloWorld = { ... }
+    plugins: {},
+
+    // ============================================================
     // jPulse.UI: UI Widgets
     // ============================================================
 

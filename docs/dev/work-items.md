@@ -2068,22 +2068,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - test descriptions mention "W-098 append mode"
   - webapp/tests/integration/cache-api.test.js -- deleted empty stub
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-099, v1.2.6: deploy: critical bug fixes for site installation and W-098 navigation
-- status: 🚧 IN_PROGRESS
+- status: DONE ✅
 - type: Bug
 - objective: fix critical bugs discovered after v1.2.5 deployment affecting site installation and navigation deletion markers
 - issues:
@@ -2118,7 +2104,43 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-045, v1.3.0: architecture: add plugin infrastructure with auto-discovery
+- status: 🕑 PENDING
+- type: Feature
+- objective: extensible framework that is easy to understand & easy to maintain
+- author: 3rd party developers & jPulse team
+- audience: site administrator
+- working doc: docs/dev/W-014-W-045-mvc-site-plugins-architecture.md
+- strategy: drop a plugin in specific directory, with auto discovery
+- provide infrastructure for plugins for:
+  - additional models
+  - additional controllers
+  - additional views
+  - augment user model & controller
+  - augment auth model & controller
+  - wrapper for additional view packages
+  - themes
+- create a hello-world demo plugin, ship with jpulse-framework
+
+
+
+
+
+
+
+
+
+
 questions:
+- rethink plugin admin
+- markdown docs: a way to declare sequence
 
 
 
@@ -2135,7 +2157,6 @@ old pending:
 - add SiteControllerRegistry.getStats() to metrics api & system-status
 
 ### Potential next items:
-- W-045: architecture: create plugin infrastructure
 - W-068: view: create responsive sidebar
 - W-0: view: headings with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific translations
@@ -2151,7 +2172,7 @@ old pending:
 
 next work item: W-0...
 - review task, ask questions if unclear
-- suggest change of spec if any, goal is a good UX, good usability, onboarding, and learning experience for site admins and developers; use the don't make me think paradigm
+- suggest change of spec if any, goal is a good UX, good usability, good onboarding & learning experience for site admins and developers; use the don't make me think paradigm
 - plan how to implement (wait for my go ahead)
 - current timestamp: 2025-11-20 20:49
 
@@ -2259,22 +2280,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - alerting rules for critical system events
   - dashboard configuration for operations teams
 - benefits: proactive production system monitoring and issue detection
-
-### W-045: architecture: create plugin infrastructure
-- status: 🕑 PENDING
-- type: Feature
-- objective: extensible framework that is easy to understand & easy to maintain
-- author: 3rd party developers
-- audience: site administrator
-- working doc: docs/dev/W-014-W-045-mvc-site-plugins-architecture.md
-- strategy: drop a plugin in specific directory, with auto discovery
-- plugins for:
-  - additional models
-  - additional controllers
-  - additional views
-  - wrapper for additional view packages
-  - themes
-- create a hello-world-plugin, ship with jpulse-framework
 
 ### W-037: view: create themes
 - status: 🕑 PENDING

@@ -1,3 +1,17 @@
+/*
+ * @name            jPulse Framework / Plugins / Hello-World / WebApp / View / jPulse Navigation
+ * @tagline         Navigation of the Hello World Plugin
+ * @description     Navigation for the Hello World Plugin, appended to the framework navigation
+ * @file            plugins/hello-world/webapp/view/jpulse-navigation.js
+ * @version         1.2.6
+ * @release         2025-11-25
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ */
+
 /**
  * Hello World Plugin - Navigation Integration
  * This file is appended to framework navigation (W-098 append mode)

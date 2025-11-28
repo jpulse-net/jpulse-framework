@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / Admin / Plugins
+ * @tagline         Plugin Management Dashboard
+ * @description     Admin interface for managing installed plugins
+ * @file            webapp/view/admin/plugins.shtml
+ * @version         1.2.6
+ * @release         2025-11-27
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           70%, Cursor 2.0, Claude Sonnet 4.5
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plugin Management - {{app.site.shortName}}</title>
+{{file.include "jpulse-header.tmpl"}}
+    <style>
+    /* Plugin table styling */
+    .local-plugins-table th.local-col-icon {
+        width: 50px;
+    }
+
+    .local-plugins-table th.local-col-version {
+        width: 100px;
+    }
+
+    .local-plugins-table th.local-col-status {
+        width: 120px;
+    }
+
+    .local-plugins-table th.local-col-actions {
+        width: 200px;
+    }
+
+    .local-plugin-icon-cell {
+        text-align: center;
+    }
+
+    .local-plugin-icon-emoji {
+        font-size: 24px;
+    }
+
+    .local-plugin-summary {
+        color: var(--jp-color-text-secondary);
+        font-size: 0.9em;
+    }
+
+    .local-plugin-author {
+        color: var(--jp-color-text-tertiary);
+        font-size: 0.85em;
+    }
+
+    .local-plugin-actions {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .local-plugin-actions .jp-btn {
+        margin-right: 5px;
+    }
+
+    .local-plugin-actions .jp-btn:last-child {
+        margin-right: 0;
+    }
+
+    .local-empty-state {
+        text-align: center;
+        padding: 40px;
+        color: var(--jp-color-text-secondary);
+    }
+    </style>
+</head>
+<body>
+    <div style="display: none;">
+        <!-- extract:start order=15 -->
+        <div class="jp-card jp-card-dashboard jp-icon-btn" onclick="window.location.href='/admin/plugins.shtml'">
+            <div class="jp-icon-container">
+                {{use.jpIcons.pluginSvg size="48" fillColor="#6366f1"}}
+            </div>
+            <div class="jp-card-content">
+                <h3 class="jp-card-title">Plugin Management</h3>
+                <p class="jp-card-description">Manage and configure installed plugins</p>
+            </div>
+        </div>
+        <!-- extract:end -->
+    </div>
+
+    <div class="jp-main">
+        <div class="jp-container-1200">
+          {{#if user.isAdmin}}
+          <div class="jp-page-header">
+              <h1>{{use.jpIcons.pluginsSvg size="26"}} {{i18n.view.admin.plugins.title}}</h1>
+              <span class="jp-subtitle">{{i18n.view.admin.plugins.subtitle}}</span>
+          </div>
+
+            <!-- Quick Actions -->
+            <div class="jp-alert jp-alert-info" style="margin-bottom: 30px;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button id="btnRescan" class="jp-btn jp-btn-sm jp-btn-secondary">
+                        🔄 Rescan for Plugins
+                    </button>
+                    <a href="/jpulse-docs/plugins/README" class="jp-btn jp-btn-sm jp-btn-secondary" target="_blank">
+                        📖 Plugin Development Guide
+                    </a>
+                    <a href="/jpulse-docs/installed-plugins/README" class="jp-btn jp-btn-sm jp-btn-secondary" target="_blank">
+                        📚 Installed Plugins Documentation
+                    </a>
+                </div>
+            </div>
+
+            <!-- Plugin Statistics -->
+            <div class="jp-stats-grid" id="statsGrid">
+                <div class="jp-stat-card">
+                    <div class="jp-stat-number" id="statTotalPlugins">-</div>
+                    <div class="jp-stat-label">Total Plugins</div>
+                </div>
+                <div class="jp-stat-card">
+                    <div class="jp-stat-number" id="statEnabledPlugins">-</div>
+                    <div class="jp-stat-label">Enabled</div>
+                </div>
+                <div class="jp-stat-card">
+                    <div class="jp-stat-number" id="statDisabledPlugins">-</div>
+                    <div class="jp-stat-label">Disabled</div>
+                </div>
+            </div>
+
+            <!-- Plugins List -->
+            <div class="jp-card" style="margin-top: 30px;">
+                <h2>Installed Plugins</h2>
+                <div id="pluginsList">
+                    <p class="local-empty-state">Loading plugins...</p>
+                </div>
+            </div>
+
+          {{else}}
+            <div class="jp-alert jp-alert-error">
+                <strong>Access Denied</strong>
+                <p>You must be an administrator to access this page.</p>
+            </div>
+          {{/if}}
+        </div>
+    </div>
+
+    <script>
+    /**
+     * Admin Plugin Management Interface
+     * Displays all plugins with enable/disable controls and configuration links
+     */
+
+    {{#if user.isAdmin}}
+
+    let allPlugins = [];
+
+    /**
+     * Initialize the plugin management page
+     */
+    async function initializePluginManagement() {
+        await loadPlugins();
+
+        // Attach event listeners
+        document.getElementById('btnRescan').addEventListener('click', rescanPlugins);
+    }
+
+    /**
+     * Load all plugins from API
+     */
+    async function loadPlugins() {
+        try {
+            const response = await jPulse.api.get('/api/1/plugin');
+
+            if (response.success) {
+                allPlugins = response.data;
+                updateStatistics();
+                renderPluginsList();
+            } else {
+                jPulse.UI.toast.error('Failed to load plugins');
+            }
+        } catch (error) {
+            console.error('Error loading plugins:', error);
+            jPulse.UI.toast.error('Error loading plugins: ' + error.message);
+        }
+    }
+
+    /**
+     * Update statistics display
+     */
+    function updateStatistics() {
+        const total = allPlugins.length;
+        const enabled = allPlugins.filter(p => p.enabled).length;
+        const disabled = total - enabled;
+
+        document.getElementById('statTotalPlugins').textContent = total;
+        document.getElementById('statEnabledPlugins').textContent = enabled;
+        document.getElementById('statDisabledPlugins').textContent = disabled;
+    }
+
+    /**
+     * Render the plugins list
+     */
+    function renderPluginsList() {
+        const container = document.getElementById('pluginsList');
+
+        if (allPlugins.length === 0) {
+            container.innerHTML = '<p class="local-empty-state">No plugins found.</p>';
+            return;
+        }
+
+        let html = '<table class="jp-table local-plugins-table">';
+        html += '<thead><tr>';
+        html += '<th class="local-col-icon"></th>';
+        html += '<th>Plugin</th>';
+        html += '<th class="local-col-version">Version</th>';
+        html += '<th class="local-col-status">Status</th>';
+        html += '<th class="local-col-actions">Actions</th>';
+        html += '</tr></thead><tbody>';
+
+        allPlugins.forEach(plugin => {
+            const status = plugin.enabled ? 'active' : 'disabled';
+            const statusText = plugin.enabled ? 'Active' : 'Disabled';
+            const toggleText = plugin.enabled ? 'Disable' : 'Enable';
+            const toggleClass = plugin.enabled ? 'jp-btn-danger' : 'jp-btn-success';
+
+            html += '<tr>';
+
+            // Icon
+            const icon = plugin.icon || '🔌'; // Default to plug icon
+            const iconHtml = icon.startsWith('<svg')
+                ? icon // SVG icon as-is
+                : `<span class="local-plugin-icon-emoji">${jPulse.string.escapeHtml(icon)}</span>`; // Unicode emoji
+            html += `<td class="local-plugin-icon-cell">${iconHtml}</td>`;
+
+            // Plugin info
+            html += '<td>';
+            html += `<strong>${jPulse.string.escapeHtml(plugin.name)}</strong>`;
+            // Use summary (text only) for list display
+            if (plugin.summary) {
+                html += `<br><span class="local-plugin-summary">${jPulse.string.escapeHtml(plugin.summary)}</span>`;
+            } else if (plugin.description) {
+                // Fallback: strip HTML tags from description
+                const textOnly = plugin.description.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                html += `<br><span class="local-plugin-summary">${jPulse.string.escapeHtml(textOnly)}</span>`;
+            }
+            if (plugin.author) {
+                html += `<br><span class="local-plugin-author">by ${jPulse.string.escapeHtml(plugin.author)}</span>`;
+            }
+            html += '</td>';
+
+            // Version
+            html += `<td>${jPulse.string.escapeHtml(plugin.version || '-')}</td>`;
+
+            // Status
+            html += `<td><span class="jp-status-badge jp-status-${status}">${statusText}</span></td>`;
+
+            // Actions
+            html += '<td class="local-plugin-actions">';
+            html += `<button class="jp-btn jp-btn-sm ${toggleClass}" onclick="togglePlugin('${plugin.name}', ${!plugin.enabled})">${toggleText}</button>`;
+            html += `<a href="/admin/plugin-config.shtml?plugin=${encodeURIComponent(plugin.name)}" class="jp-btn jp-btn-sm jp-btn-primary">⚙️ Configure</a>`;
+            html += '</td>';
+
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    /**
+     * Toggle plugin enabled/disabled state
+     */
+    async function togglePlugin(pluginName, enable) {
+        try {
+            const endpoint = enable ? 'enable' : 'disable';
+            const response = await jPulse.api.post(`/api/1/plugin/${pluginName}/${endpoint}`);
+
+            if (response.success) {
+                jPulse.UI.toast.success(`Plugin ${enable ? 'enabled' : 'disabled'} successfully`);
+                await loadPlugins();
+            } else {
+                jPulse.UI.toast.error(response.error || 'Failed to toggle plugin');
+            }
+        } catch (error) {
+            console.error('Error toggling plugin:', error);
+            jPulse.UI.toast.error('Error: ' + error.message);
+        }
+    }
+
+    /**
+     * Rescan for new plugins
+     */
+    async function rescanPlugins() {
+        try {
+            const btn = document.getElementById('btnRescan');
+            btn.disabled = true;
+            btn.textContent = '🔄 Scanning...';
+
+            const response = await jPulse.api.post('/api/1/plugin/scan');
+
+            if (response.success) {
+                jPulse.UI.toast.success(`Scan complete: ${response.data.discovered || 0} plugins found`);
+                await loadPlugins();
+            } else {
+                jPulse.UI.toast.error('Scan failed');
+            }
+        } catch (error) {
+            console.error('Error rescanning plugins:', error);
+            jPulse.UI.toast.error('Scan error: ' + error.message);
+        } finally {
+            const btn = document.getElementById('btnRescan');
+            btn.disabled = false;
+            btn.textContent = '🔄 Rescan for Plugins';
+        }
+    }
+
+    // Initialize when DOM is ready
+    jPulse.dom.ready(() => {
+        initializePluginManagement();
+    });
+
+    {{/if}}
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

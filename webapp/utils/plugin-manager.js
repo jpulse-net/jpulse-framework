@@ -243,8 +243,22 @@ class PluginManager {
                 errors.push('config.schema must be an array');
             } else {
                 for (const field of pluginJson.config.schema) {
-                    if (!field.id || !field.label || !field.type) {
-                        errors.push(`Invalid config.schema field: missing id, label, or type`);
+                    // All fields must have a type
+                    if (!field.type) {
+                        errors.push(`Invalid config.schema field: missing type`);
+                        continue;
+                    }
+
+                    // Non-input types (help, separator, etc.) don't need id or label
+                    const nonInputTypes = ['help', 'separator', 'hidden'];
+                    if (!nonInputTypes.includes(field.type)) {
+                        // Input fields require id and label
+                        if (!field.id) {
+                            errors.push(`Invalid config.schema field of type "${field.type}": missing id`);
+                        }
+                        if (!field.label && field.type !== 'hidden') {
+                            errors.push(`Invalid config.schema field of type "${field.type}": missing label`);
+                        }
                     }
                 }
             }

@@ -57,7 +57,7 @@
                             value=""
                             class="jp-form-input"
                             placeholder="Enter a custom welcome message"
-                            style="width: 100%;">
+                            style="width: 100%;" />
                         <span class="jp-form-help">
                             This message will be displayed on the Hello World page
                         </span>
@@ -65,7 +65,7 @@
 
                     <div class="jp-form-group">
                         <label class="jp-checkbox-label">
-                            <input type="checkbox" id="enabled" name="enabled">
+                            <input type="checkbox" id="enabled" name="enabled" />
                             Show welcome message
                         </label>
                     </div>
@@ -105,8 +105,10 @@
                         Total API calls to /api/1/helloPlugin endpoints since last restart
                     </div>
                 </div>
+            </div>
 
-                <!-- Quick Links -->
+            <!-- Quick Links -->
+            <div>
                 <div class="jp-card">
                     <h2 class="jp-card-dialog-heading">Quick Links</h2>
                     <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px;">
@@ -116,8 +118,7 @@
                         <a href="/hello-plugin/" class="jp-btn jp-btn-primary" style="width: 100%; text-align: center;">
                             Open Plugin Page →
                         </a>
-                        <a href="/jpulse-docs/installed-plugins/hello-world/README" class="jp-btn jp-btn-secondary" target="_blank"
-                           style="width: 100%; text-align: center;">
+                        <a href="/jpulse-docs/installed-plugins/hello-world/README" class="jp-btn jp-btn-secondary" target="_blank" style="width: 100%; text-align: center;">
                             📖 Documentation
                         </a>
                     </div>
@@ -127,74 +128,73 @@
     </div>
 
     <script>
-    // Load detailed stats and configuration (only on detail page)
-    if (window.location.pathname === '/plugins/hello-world.shtml') {
-        jPulse.dom.ready(async () => {
-            try {
-                // Load plugin metadata
-                const pluginResponse = await jPulse.api.get('/api/1/plugin/hello-world');
-                if (pluginResponse.success && pluginResponse.data) {
-                    const plugin = pluginResponse.data;
-                    document.getElementById('plugin-version').textContent = `Version ${plugin.version}`;
-                    document.getElementById('plugin-status').textContent =
-                        plugin.enabled ? 'Active' : 'Disabled';
-                    document.getElementById('plugin-status').className =
-                        plugin.enabled ? 'plg-status-badge plg-status-active' : 'plg-status-badge plg-status-disabled';
-                }
-
-                // Load current configuration
-                const configResponse = await jPulse.api.get('/api/1/plugin/hello-world/config');
-                if (configResponse.success && configResponse.data) {
-                    document.getElementById('message').value =
-                        configResponse.data.values?.message || 'Hello from the plugin system!';
-                    document.getElementById('enabled').checked =
-                        configResponse.data.values?.enabled !== false;
-                }
-
-                // Load detailed stats
-                const statsResponse = await jPulse.api.get('/api/1/helloPlugin/stats');
-                if (statsResponse.success) {
-                    document.getElementById('detail-api-status').textContent = 'Connected';
-                    document.getElementById('detail-last-request').textContent =
-                        jPulse.date.formatLocalDateAndTime(new Date());
-                    document.getElementById('detail-total-requests').textContent =
-                        statsResponse.data.requestCount || '0';
-                }
-
-                // Setup form submission - manual handling to ensure correct data types
-                const form = document.getElementById('pluginConfigForm');
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-
-                    try {
-                        // Build config with correct data types
-                        const payload = {
-                            config: {
-                                message: document.getElementById('message').value,
-                                enabled: document.getElementById('enabled').checked // Boolean!
-                            }
-                        };
-
-                        const response = await jPulse.api.put('/api/1/plugin/hello-world/config', payload);
-
-                        if (response.success) {
-                            jPulse.UI.toast.success('Configuration saved successfully');
-                        } else {
-                            jPulse.UI.toast.error(response.message || 'Failed to save configuration');
-                        }
-                    } catch (error) {
-                        console.error('Error saving configuration:', error);
-                        jPulse.UI.toast.error('Failed to save configuration');
+        // Load detailed stats and configuration (only on detail page)
+        if (window.location.pathname === '/plugins/hello-world.shtml') {
+            jPulse.dom.ready(async () => {
+                try {
+                    // Load plugin metadata
+                    const pluginResponse = await jPulse.api.get('/api/1/plugin/hello-world');
+                    if (pluginResponse.success && pluginResponse.data) {
+                        const plugin = pluginResponse.data;
+                        document.getElementById('plugin-version').textContent = `Version ${plugin.version}`;
+                        document.getElementById('plugin-status').textContent =
+                            plugin.enabled ? 'Active' : 'Disabled';
+                        document.getElementById('plugin-status').className =
+                            plugin.enabled ? 'plg-status-badge plg-status-active' : 'plg-status-badge plg-status-disabled';
                     }
-                });
-            } catch (error) {
-                console.error('Error loading Hello World plugin detail:', error);
-                jPulse.UI.toast.error('Failed to load plugin details');
-            }
-        });
-    }
-    </script>
 
+                    // Load current configuration
+                    const configResponse = await jPulse.api.get('/api/1/plugin/hello-world/config');
+                    if (configResponse.success && configResponse.data) {
+                        document.getElementById('message').value =
+                            configResponse.data.values?.message || 'Hello from the plugin system!';
+                        document.getElementById('enabled').checked =
+                            configResponse.data.values?.enabled !== false;
+                    }
+
+                    // Load detailed stats
+                    const statsResponse = await jPulse.api.get('/api/1/helloPlugin/stats');
+                    if (statsResponse.success) {
+                        document.getElementById('detail-api-status').textContent = 'Connected';
+                        document.getElementById('detail-last-request').textContent =
+                                jPulse.date.formatLocalDateAndTime(new Date());
+                        document.getElementById('detail-total-requests').textContent =
+                            statsResponse.data.requestCount || '0';
+                    }
+
+                    // Setup form submission - manual handling to ensure correct data types
+                    const form = document.getElementById('pluginConfigForm');
+                    form.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+
+                        try {
+                            // Build config with correct data types
+                            const payload = {
+                                config: {
+                                    message: document.getElementById('message').value,
+                                    enabled: document.getElementById('enabled').checked // Boolean!
+                                }
+                            };
+
+                            const response = await jPulse.api.put('/api/1/plugin/hello-world/config', payload);
+
+                            if (response.success) {
+                                jPulse.UI.toast.success('Configuration saved successfully');
+                            } else {
+                                jPulse.UI.toast.error(response.message || 'Failed to save configuration');
+                            }
+                        } catch (error) {
+                            console.error('Error saving configuration:', error);
+                            jPulse.UI.toast.error('Failed to save configuration');
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error loading Hello World plugin detail:', error);
+                    jPulse.UI.toast.error('Failed to load plugin details');
+                }
+            });
+        }
+    </script>
 {{file.include "jpulse-footer.tmpl"}}
 </body>
 </html>

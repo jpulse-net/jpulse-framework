@@ -42,6 +42,8 @@ class PluginController {
                 pluginList.push({
                     name: plugin.name,
                     version: plugin.metadata.version,
+                    icon: plugin.metadata.icon,
+                    summary: plugin.metadata.summary,
                     description: plugin.metadata.description,
                     author: plugin.metadata.author,
                     enabled: registryEntry.enabled,
@@ -89,6 +91,8 @@ class PluginController {
             const response = {
                 name: plugin.name,
                 version: plugin.metadata.version,
+                icon: plugin.metadata.icon,
+                summary: plugin.metadata.summary,
                 description: plugin.metadata.description,
                 author: plugin.metadata.author,
                 jpulseVersion: plugin.metadata.jpulseVersion,
@@ -174,7 +178,7 @@ class PluginController {
             // Log the action
             const user = req.session?.user;
             const username = user ? (user.username || user.loginId || user.id) : 'system';
-            await LogController.logChange(req, 'plugin', 'enable', name, null, { enabled: true, by: username });
+            await LogController.logChange(req, 'plugin', 'update', name, { enabled: false }, { enabled: true, by: username });
 
             LogController.logInfo(req, 'plugin.enable', `success: plugin enabled: ${name}`);
             res.json({
@@ -209,7 +213,7 @@ class PluginController {
             // Log the action
             const user = req.session?.user;
             const username = user ? (user.username || user.loginId || user.id) : 'system';
-            await LogController.logChange(req, 'plugin', 'disable', name, { enabled: true }, { enabled: false, by: username });
+            await LogController.logChange(req, 'plugin', 'update', name, { enabled: true }, { enabled: false, by: username });
 
             LogController.logInfo(req, 'plugin.disable', `success: plugin disabled: ${name}`);
             res.json({

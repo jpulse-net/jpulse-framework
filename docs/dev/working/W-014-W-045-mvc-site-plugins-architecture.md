@@ -241,8 +241,8 @@ URI Mapping Examples:
     "autoEnable": false,                    // Default: true. Set false if requires configuration
     "dependencies": {
         "npm": {
-            "ldapjs": "^2.3.0"
-        },
+        "ldapjs": "^2.3.0"
+    },
         "plugins": {
             "user-profile": "^1.0.0"        // Other jPulse plugins
         }

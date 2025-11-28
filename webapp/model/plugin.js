@@ -98,8 +98,12 @@ class PluginModel {
                     break;
 
                 case 'select':
-                    if (field.options && !field.options.includes(value)) {
-                        errors.push(`${field.label} must be one of: ${field.options.join(', ')}`);
+                    if (field.options) {
+                        const validValues = field.options.map(opt => typeof opt === 'string' ? opt : opt.value);
+                        if (!validValues.includes(value)) {
+                            const labels = field.options.map(opt => typeof opt === 'string' ? opt : opt.label || opt.value);
+                            errors.push(`${field.label} must be one of: ${labels.join(', ')}`);
+                        }
                     }
                     break;
             }

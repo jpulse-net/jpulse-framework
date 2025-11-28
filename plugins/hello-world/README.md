@@ -1,10 +1,10 @@
-# Hello World Plugin
+# jPulse Framework / Plugins / Hello-World / README v.1.2.6
 
-A simple demo plugin for the jPulse Framework that demonstrates the plugin infrastructure.
+A reference implementation plugin for the jPulse Framework that demonstrates the plugin infrastructure.
 
-## Developer Documentation
+## Overview
 
-This plugin serves as a reference implementation showing how to create plugins for jPulse Framework.
+This plugin serves as a complete example showing how to create plugins for jPulse Framework.
 
 ### Features Demonstrated
 
@@ -26,20 +26,21 @@ plugins/hello-world/
 ├── README.md                # This file (developer docs)
 ├── docs/
 │   └── README.md            # Site admin/user documentation
-├── webapp/
-│   ├── controller/
-│   │   └── helloPlugin.js   # API controller
-│   ├── model/
-│   │   └── helloPlugin.js   # Data model
-│   └── view/
-│       ├── jpulse-common.css        # Plugin CSS (W-098 append mode)
-│       ├── jpulse-common.js         # Plugin JavaScript (W-098 append mode)
-│       ├── jpulse-navigation.js     # Navigation integration (W-098 append mode)
-│       ├── plugins/
-│       │   └── hello-world.shtml    # Dashboard card + detail page (extract pattern)
-│       └── hello-plugin/
-│           └── index.shtml          # Example plugin page
-└── package.json             # npm dependencies (if needed)
+└── webapp/
+    ├── controller/
+    │   └── helloPlugin.js   # API controller
+    ├── model/
+    │   └── helloPlugin.js   # Data model
+    ├── static/
+    │   └── .gitkeep         # For standalone assets (if needed)
+    └── view/
+        ├── jpulse-common.css        # Plugin CSS (W-098 append mode)
+        ├── jpulse-common.js         # Plugin JavaScript (W-098 append mode)
+        ├── jpulse-navigation.js     # Navigation integration (W-098 append mode)
+        ├── plugins/
+        │   └── hello-world.shtml    # Dashboard card + detail page (extract pattern)
+        └── hello-plugin/
+            └── index.shtml          # Example plugin page
 ```
 
 ### W-098 Append Mode
@@ -62,7 +63,7 @@ This plugin demonstrates the **W-098 append mode** feature, where plugin files a
 
 This plugin demonstrates the **extract pattern** for plugin dashboard integration:
 
-**Dashboard Card**: Shown on `/plugins/` dashboard
+**Dashboard Card**: Shown on `/jpulse-plugins/` dashboard
 - Extracted from `webapp/view/plugins/hello-world.shtml`
 - Uses `<!-- extract: order=10 -->` markers
 - Shows quick overview, status, and action buttons
@@ -98,14 +99,13 @@ This means sites can override any plugin file by placing their version in the si
 - ✅ Directory: `plugins/hello-world/`
 - ✅ plugin.json: `"name": "hello-world"`
 
-**npm Package**: WITH `plugin-` prefix (clarity in npm registry)
-- ✅ npm: `@jpulse-net/plugin-hello-world`
-- ✅ plugin.json: `"npmPackage": "@jpulse-net/plugin-hello-world"`
+**GitHub Repository**: WITH `plugin-` prefix (clarity in repository listing)
+- ✅ GitHub: `@jpulse-net/plugin-hello-world` (on GitHub, via .npmrc)
 
 **Rationale**:
 - In `plugins/` directory, suffix is redundant
-- In npm registry, prefix follows industry standard (Babel, ESLint)
-- Best of both worlds: clean local structure + clear npm discovery
+- In GitHub/package repository, prefix provides clear identification
+- Best of both worlds: clean local structure + clear repository discovery
 
 ### Auto-Enable
 

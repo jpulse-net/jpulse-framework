@@ -1,0 +1,6 @@
+# This directory is for standalone static assets that shouldn't be appended
+# Most plugins should use W-098 append mode instead:
+#   - webapp/view/jpulse-common.css
+#   - webapp/view/jpulse-common.js
+#   - webapp/view/jpulse-navigation.js
+

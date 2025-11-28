@@ -1,4 +1,4 @@
-# Hello World Plugin
+# jPulse Framework / Docs / Installed Plugins / Hello World Plugin v1.2.6
 
 Welcome to the Hello World plugin! This is a demonstration plugin that showcases the jPulse Framework's plugin architecture.
 
@@ -16,12 +16,12 @@ The Hello World plugin provides:
 ### Viewing the Plugin
 
 1. Navigate to [/hello-plugin/](/hello-plugin/) to see the plugin page
-2. Check the [Plugins Dashboard](/plugins/) to see all installed plugins
-3. Visit the [Plugin Configuration](/plugins/hello-world.shtml) page to customize settings
+2. Check the [Plugins Dashboard](/jpulse-plugins/) to see all installed plugins
+3. Visit the [Hello-World Plugin Configuration](/jpulse-plugins/hello-world.shtml) page to customize settings
 
 ### Configuring the Plugin
 
-1. Go to [/plugins/hello-world.shtml](/plugins/hello-world.shtml)
+1. Go to [/jpulse-plugins/hello-world.shtml](/jpulse-plugins/hello-world.shtml)
 2. Modify the welcome message
 3. Toggle the "Show Welcome Message" option
 4. Click "Save Configuration"
@@ -41,7 +41,7 @@ The plugin stores its configuration in the `pluginConfigs` MongoDB collection:
 - **Enable/Disable**: Toggle whether the custom message is displayed
 
 Configuration can be modified via:
-- The admin UI at [/plugins/hello-world.shtml](/plugins/hello-world.shtml)
+- The admin UI at [/jpulse-plugins/hello-world.shtml](/jpulse-plugins/hello-world.shtml)
 - The Plugin REST API endpoints programmatically
 
 ### API Integration
@@ -70,15 +70,17 @@ For those interested in how the plugin is organized:
 
 ```
 plugins/hello-world/
-├── plugin.json                      # Plugin metadata and config schema
-├── README.md                        # Developer documentation
+├── plugin.json              # Plugin metadata and config schema
+├── README.md                # Developer documentation
 ├── docs/
-│   └── README.md                    # This file (user documentation)
+│   └── README.md            # This file (user documentation)
 └── webapp/
     ├── controller/
-    │   └── helloPlugin.js           # API controller
+    │   └── helloPlugin.js   # API controller
     ├── model/
-    │   └── helloPlugin.js           # Data model
+    │   └── helloPlugin.js   # Data model
+    ├── static/
+    │   └── .gitkeep         # For standalone assets (if needed)
     └── view/
         ├── jpulse-common.css        # Plugin CSS (W-098 append mode)
         ├── jpulse-common.js         # Plugin JavaScript (W-098 append mode)
@@ -112,7 +114,7 @@ For developers who want to understand how this plugin works or use it as a templ
 If you encounter any issues or have questions:
 
 1. Check the [Plugin Development Guide](/jpulse-docs/plugins/README) for common solutions
-2. Review the [Plugins Dashboard](/plugins/) to verify the plugin is active
+2. Review the [Plugins Dashboard](/jpulse-plugins/) to verify the plugin is active
 3. Contact your system administrator for site-specific support
 
 ---
@@ -122,8 +124,4 @@ If you encounter any issues or have questions:
 - **Version**: 1.0.0
 - **Status**: Active
 - **Auto-Enable**: Yes
-- **npm Package**: `@jpulse-net/plugin-hello-world`
-
----
-
-**Last Updated**: November 2025
+- **npm Package**: `@jpulse-net/plugin-hello-world` (on GitHub, via .npmrc)

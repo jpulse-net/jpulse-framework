@@ -1302,7 +1302,8 @@ body {
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.jp-form-input:focus {
+.jp-form-input:focus,
+.jp-form-input:hover {
     outline: none;
     border-color: #007acc;
     box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
@@ -1334,6 +1335,13 @@ body {
     background: white;
 }
 
+.jp-form-select:focus,
+.jp-form-select:hover {
+    outline: none;
+    border-color: #007acc;
+    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
 .jp-form-textarea {
     width: 100%;
     padding: 8px 12px;
@@ -1342,6 +1350,13 @@ body {
     font-size: 14px;
     resize: vertical;
     min-height: 80px;
+}
+
+.jp-form-textarea:focus,
+.jp-form-textarea:hover {
+    outline: none;
+    border-color: #007acc;
+    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
 }
 
 .jp-form-grid {
@@ -1557,6 +1572,11 @@ body {
 .jp-status-suspended {
     background: #f5c6cb;
     color: #721c24;
+}
+
+.jp-status-disabled {
+    background: #e2e3e5;
+    color: #383d41;
 }
 
 /* Role Badge Components */

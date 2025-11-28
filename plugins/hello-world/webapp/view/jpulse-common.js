@@ -1,3 +1,17 @@
+/*
+ * @name            jPulse Framework / Plugins / Hello-World / WebApp / View / jPulse Common JavaScript
+ * @tagline         Common JavaScript of the Hello World Plugin
+ * @description     Common JavaScript of the Hello World Plugin, appended to the framework common JavaScript
+ * @file            plugins/hello-world/webapp/view/jpulse-common.js
+ * @version         1.2.6
+ * @release         2025-11-25
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ */
+
 /**
  * Hello World Plugin JavaScript (W-098 Append Mode)
  * This file is automatically appended to the framework's jpulse-common.js

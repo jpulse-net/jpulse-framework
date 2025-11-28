@@ -53,6 +53,18 @@ window.jPulseNavigation = {
                     url:        '/admin/config.shtml',
                     icon:       '{{use.jpIcons.configSvg size="24" _inline=true}}'
                 },
+                plugins: {
+                    label:      '{{i18n.view.navigation.admin.plugins}}',
+                    url:        '/admin/plugins.shtml',
+                    icon:       '{{use.jpIcons.pluginSvg size="24" _inline=true}}',
+                    pages: {
+                        pluginConfig: {
+                            label:      '{{i18n.view.navigation.admin.pluginConfig}}',
+                            url:        '/admin/plugin-config.shtml',
+                            icon:       '{{use.jpIcons.configSvg size="24" _inline=true}}'
+                        }
+                    }
+                },
                 users: {
                     label:      '{{i18n.view.navigation.admin.users}}',
                     url:        '/admin/users.shtml',

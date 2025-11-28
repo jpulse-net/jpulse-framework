@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / Admin / Plugin Config
+ * @tagline         Dynamic Plugin Configuration Interface
+ * @description     Schema-driven dynamic form generator for plugin configuration
+ * @file            webapp/view/admin/plugin-config.shtml
+ * @version         1.2.6
+ * @release         2025-11-27
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plugin Configuration - {{app.site.shortName}}</title>
+{{file.include "jpulse-header.tmpl"}}
+    <style>
+    #pluginDescriptionCard {
+        padding-top: 3px;
+        padding-bottom: 3px;
+    }
+
+        /* Two-column table layout with framework input styles */
+    .local-config-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+    .local-config-table tr {
+        border-top: 1px solid #e9ecef;
+    }
+
+    .local-config-table tr:first-child {
+        border-top: none;
+    }
+
+    .local-config-label {
+        width: 200px;
+        padding: 12px 20px 12px 0;
+        vertical-align: top;
+        font-weight: 500;
+        color: var(--jp-color-text);
+    }
+
+    .local-config-input {
+        padding: 12px 0;
+        vertical-align: top;
+    }
+
+    .local-config-input .local-form-input {
+        padding: 6px 8px;
+        font-size: 16px;
+    }
+
+    .local-config-input .local-form-textarea {
+        padding: 6px 8px;
+        font-size: 16px;
+    }
+
+    /* Reasonable widths for specific input types */
+    .local-config-input input[type="number"] {
+        width: 200px;
+        max-width: 100%;
+    }
+
+    .local-config-input select {
+        max-width: 100%;
+        width: auto;
+    }
+
+    .local-config-help {
+        margin-top: 6px;
+        font-size: 13px;
+        color: var(--jp-color-text-secondary);
+        line-height: 1.5;
+    }
+
+    .local-config-help-row {
+        padding: 12px 0;
+    }
+
+    .local-config-help-row .jp-alert {
+        margin: 0;
+        position: static !important;
+        transform: none !important;
+        width: auto !important;
+        max-width: none !important;
+        box-shadow: none;
+    }
+
+    .local-checkbox-inline {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .local-checkbox-inline input[type="checkbox"] {
+        width: auto;
+        margin: 0;
+    }
+
+    .local-checkbox-inline label {
+        margin: 0;
+        font-weight: normal;
+    }
+
+    /* Status badge in subtitle - align properly with text */
+    .jp-subtitle .jp-status-badge {
+        display: inline-block;
+        vertical-align: baseline;
+        transform: translateY(-2px);
+        margin-left: 4px;
+    }
+
+    #formActions {
+        display: none;
+        padding-top: 10px;
+    }
+
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-container-1000">
+          {{#if user.isAdmin}}
+            <div class="jp-page-header">
+                <h1 id="pageTitle">Plugin Configuration</h1>
+                <span class="jp-subtitle" id="pageSubtitle">Loading...</span>
+            </div>
+
+            <!-- Navigation -->
+            <div class="jp-alert jp-alert-info" style="margin-bottom: 20px;">
+                <a href="/admin/plugins.shtml" class="jp-btn jp-btn-sm jp-btn-secondary">
+                    ← Back to Plugin Management
+                </a>
+            </div>
+
+            <!-- Plugin Description (if provided) -->
+            <div class="jp-card" id="pluginDescriptionCard" style="display: none; margin-bottom: 20px;">
+                <div id="pluginDescription"></div>
+            </div>
+
+            <!-- Configuration Form -->
+            <div class="jp-card">
+                <h2>Configuration</h2>
+
+                <div id="formContainer">
+                    <p style="text-align: center; padding: 40px;">Loading configuration...</p>
+                </div>
+
+                <div id="formActions">
+                    <button type="button" id="btnSave" class="jp-btn jp-btn-primary">
+                        💾 Save Configuration
+                    </button>
+                    <button type="button" id="btnReset" class="jp-btn jp-btn-secondary" style="margin-left: 10px;">
+                        🔄 Reset to Defaults
+                    </button>
+                </div>
+            </div>
+
+          {{else}}
+            <div class="jp-alert jp-alert-error">
+                <strong>Access Denied</strong>
+                <p>You must be an administrator to access this page.</p>
+            </div>
+          {{/if}}
+        </div>
+    </div>
+
+    <script>
+    /**
+     * Dynamic Plugin Configuration Interface
+     * Schema-driven form generator based on plugin.json
+     */
+
+    {{#if user.isAdmin}}
+
+    let pluginName = '';
+    let pluginInfo = null;
+    let currentConfig = null;
+    let configSchema = [];
+    let tabsInstance = null;
+
+    /**
+     * Initialize the configuration page
+     */
+    async function initializePluginConfig() {
+        // Get plugin name from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        pluginName = urlParams.get('plugin');
+
+        if (!pluginName) {
+            jPulse.UI.toast.error('No plugin specified');
+            setTimeout(() => window.location.href = '/admin/plugins.shtml', 2000);
+            return;
+        }
+
+        await loadPluginInfo();
+        await loadCurrentConfig();
+        renderConfigForm();
+
+        // Attach event listeners
+        document.getElementById('btnSave').addEventListener('click', saveConfiguration);
+        document.getElementById('btnReset').addEventListener('click', resetToDefaults);
+    }
+
+    /**
+     * Load plugin information
+     */
+    async function loadPluginInfo() {
+        try {
+            const response = await jPulse.api.get(`/api/1/plugin/${pluginName}`);
+
+            if (response.success) {
+                pluginInfo = response.data;
+                configSchema = pluginInfo.configSchema || [];
+
+                // Update page header with icon
+                const icon = pluginInfo.icon || '🔌'; // Default to plug icon
+                const iconHtml = icon.startsWith('<svg')
+                    ? icon // SVG icon as-is
+                    : jPulse.string.escapeHtml(icon); // Unicode emoji
+                document.getElementById('pageTitle').innerHTML = `${iconHtml} Configure ${jPulse.string.escapeHtml(pluginInfo.name)}`;
+
+                // Build subtitle with version and status inline
+                const summaryText = pluginInfo.summary || pluginInfo.description || 'Plugin Configuration';
+                const version = pluginInfo.version || '-';
+                const statusBadge = pluginInfo.enabled
+                    ? '<span class="jp-status-badge jp-status-active">Active</span>'
+                    : '<span class="jp-status-badge jp-status-disabled">Disabled</span>';
+
+                document.getElementById('pageSubtitle').innerHTML =
+                    `${jPulse.string.escapeHtml(summaryText)} <span style="color: var(--jp-color-text-tertiary);">•</span> <span style="color: var(--jp-color-text-secondary);">v${jPulse.string.escapeHtml(version)}</span> ${statusBadge}`;
+
+                // Show description card if description exists and differs from summary
+                if (pluginInfo.description && pluginInfo.description !== pluginInfo.summary) {
+                    document.getElementById('pluginDescription').innerHTML = pluginInfo.description;
+                    document.getElementById('pluginDescriptionCard').style.display = 'block';
+                }
+            } else {
+                jPulse.UI.toast.error('Failed to load plugin information');
+            }
+        } catch (error) {
+            console.error('Error loading plugin info:', error);
+            jPulse.UI.toast.error('Error: ' + error.message);
+        }
+    }
+
+    /**
+     * Load current configuration
+     */
+    async function loadCurrentConfig() {
+        try {
+            const response = await jPulse.api.get(`/api/1/plugin/${pluginName}/config`);
+
+            if (response.success) {
+                currentConfig = response.data.values || {};
+            } else {
+                currentConfig = {};
+            }
+        } catch (error) {
+            console.error('Error loading config:', error);
+            currentConfig = {};
+        }
+    }
+
+    /**
+     * Render the configuration form based on schema
+     */
+    function renderConfigForm() {
+        const container = document.getElementById('formContainer');
+
+        if (!configSchema || configSchema.length === 0) {
+            container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--jp-color-text-secondary);">This plugin has no configurable options.</p>';
+            return;
+        }
+
+        // Check if tabs are needed
+        const tabs = [...new Set(configSchema.filter(f => f.tab).map(f => f.tab))];
+        const useTabs = tabs.length > 0;
+
+        if (useTabs) {
+            renderWithTabs(tabs);
+        } else {
+            renderSimpleForm();
+        }
+
+        document.getElementById('formActions').style.display = 'block';
+    }
+
+    /**
+     * Render form with tabs
+     */
+    function renderWithTabs(tabs) {
+        const container = document.getElementById('formContainer');
+
+        // Group fields by tab
+        const tabFields = {};
+        tabs.forEach(tab => {
+            tabFields[tab] = configSchema.filter(f => f.tab === tab);
+        });
+
+        // Add fields without tab to first tab or create "General" tab
+        const noTabFields = configSchema.filter(f => !f.tab);
+        if (noTabFields.length > 0) {
+            if (!tabFields['General']) {
+                tabs.unshift('General');
+            }
+            tabFields['General'] = noTabFields;
+        }
+
+        // Create tab container - EXACTLY like ui-widgets.shtml (lines 86-122, 885-896)
+        let tabsHtml = '<div id="configTabs" class="jp-tabs"></div>';
+
+        const tabConfig = [];
+        tabs.forEach((tab, index) => {
+            const tabId = `config-tab-${index}`;
+            const panelId = `config-panel-${index}`;
+
+            tabConfig.push({
+                id: tabId,
+                label: tab,
+                panelId: panelId
+            });
+
+            tabsHtml += `<div id="${panelId}" class="jp-panel">${renderFieldTable(tabFields[tab])}</div>`;
+        });
+
+        container.innerHTML = tabsHtml;
+
+        // Initialize jPulse tabs - EXACTLY like reference (line 145-156)
+        tabsInstance = jPulse.UI.tabs.register('configTabs', {
+            tabs: tabConfig,
+            slideAnimation: true
+        }, tabConfig[0].id);  // Initialize with first tab active
+    }
+
+    /**
+     * Render simple form without tabs
+     */
+    function renderSimpleForm() {
+        const container = document.getElementById('formContainer');
+        container.innerHTML = renderFieldTable(configSchema);
+    }
+
+    /**
+     * Render fields in two-column table with framework input styles
+     */
+    function renderFieldTable(fields) {
+        let html = '<table class="local-config-table">';
+
+        fields.forEach(field => {
+            if (field.type === 'hidden') {
+                return;
+            }
+
+            if (field.type === 'help') {
+                html += '<tr><td colspan="2" class="local-config-help-row">';
+                html += `<div class="jp-alert jp-alert-info">${field.content}</div>`;
+                html += '</td></tr>';
+                return;
+            }
+
+            if (field.type === 'separator') {
+                html += '<tr><td colspan="2" style="padding: 20px 0;">';
+                html += '<div class="jp-divider"><span>' + (field.label || '') + '</span></div>';
+                html += '</td></tr>';
+                return;
+            }
+
+            html += '<tr>';
+
+            // Label column
+            html += '<td class="local-config-label">';
+            if (field.label) {
+                html += `<label for="field-${field.id}">${jPulse.string.escapeHtml(field.label)}`;
+                if (field.required) {
+                    html += ' <span style="color: var(--jp-color-danger);">*</span>';
+                }
+                html += '</label>';
+            }
+            html += '</td>';
+
+            // Input column
+            html += '<td class="local-config-input">';
+            html += renderField(field);
+            if (field.help) {
+                html += `<div class="local-config-help">${jPulse.string.escapeHtml(field.help)}</div>`;
+            }
+            html += '</td>';
+
+            html += '</tr>';
+        });
+
+        html += '</table>';
+        return html;
+    }
+
+    /**
+     * Render an individual field based on type
+     */
+    function renderField(field) {
+        const value = currentConfig[field.id] ?? field.default ?? '';
+        const id = `field-${field.id}`;
+        const name = field.id;
+        const required = field.required ? 'required' : '';
+        const disabled = field.disabled ? 'disabled' : '';
+        const readonly = field.readonly ? 'readonly' : '';
+
+        switch (field.type) {
+            case 'text':
+            case 'password':
+            case 'email':
+            case 'url':
+            case 'tel':
+                return renderTextInput(field, id, name, value, required, disabled, readonly);
+
+            case 'number':
+                return renderNumberInput(field, id, name, value, required, disabled, readonly);
+
+            case 'textarea':
+                return renderTextarea(field, id, name, value, required, disabled, readonly);
+
+            case 'boolean':
+            case 'checkbox':
+                return renderCheckbox(field, id, name, value, disabled);
+
+            case 'select':
+                return renderSelect(field, id, name, value, required, disabled);
+
+            case 'radio':
+                return renderRadio(field, name, value, disabled);
+
+            case 'checkbox-group':
+                return renderCheckboxGroup(field, name, value, disabled);
+
+            default:
+                return `<p style="color: var(--jp-color-danger);">Unknown field type: ${field.type}</p>`;
+        }
+    }
+
+    /**
+     * Render text input field
+     */
+    function renderTextInput(field, id, name, value, required, disabled, readonly) {
+        const placeholder = field.placeholder ? `placeholder="${jPulse.string.escapeHtml(field.placeholder)}"` : '';
+        const pattern = field.validation ? `pattern="${jPulse.string.escapeHtml(field.validation)}"` : '';
+        const minlength = field.minLength ? `minlength="${field.minLength}"` : '';
+        const maxlength = field.maxLength ? `maxlength="${field.maxLength}"` : '';
+
+        return `<input type="${field.type}" id="${id}" name="${name}" value="${jPulse.string.escapeHtml(value)}"
+                class="jp-form-input local-form-input" ${placeholder} ${pattern} ${minlength} ${maxlength} ${required} ${disabled} ${readonly}>`;
+    }
+
+    /**
+     * Render number input field
+     */
+    function renderNumberInput(field, id, name, value, required, disabled, readonly) {
+        const min = field.min !== undefined ? `min="${field.min}"` : '';
+        const max = field.max !== undefined ? `max="${field.max}"` : '';
+        const step = field.step !== undefined ? `step="${field.step}"` : '';
+
+        return `<input type="number" id="${id}" name="${name}" value="${value}"
+                class="jp-form-input local-form-input" ${min} ${max} ${step} ${required} ${disabled} ${readonly}>`;
+    }
+
+    /**
+     * Render textarea field
+     */
+    function renderTextarea(field, id, name, value, required, disabled, readonly) {
+        const rows = field.rows || 3;
+        const placeholder = field.placeholder ? `placeholder="${jPulse.string.escapeHtml(field.placeholder)}"` : '';
+
+        return `<textarea id="${id}" name="${name}" rows="${rows}"
+                class="jp-form-textarea local-form-textarea" ${placeholder} ${required} ${disabled} ${readonly}>${jPulse.string.escapeHtml(value)}</textarea>`;
+    }
+
+    /**
+     * Render checkbox field
+     */
+    function renderCheckbox(field, id, name, value, disabled) {
+        const checked = value ? 'checked' : '';
+        const label = field.label || field.id;
+
+        return `<div class="local-checkbox-inline">
+                    <input type="checkbox" id="${id}" name="${name}" ${checked} ${disabled}>
+                    <label for="${id}">${jPulse.string.escapeHtml(label)}</label>
+                </div>`;
+    }
+
+    /**
+     * Render select dropdown
+     */
+    function renderSelect(field, id, name, value, required, disabled) {
+        let html = `<select id="${id}" name="${name}" class="jp-form-input local-form-input" ${required} ${disabled}>`;
+
+        field.options.forEach(option => {
+            const optValue = typeof option === 'string' ? option : option.value;
+            const optLabel = typeof option === 'string' ? option : (option.label || option.value);
+            const selected = value === optValue ? 'selected' : '';
+            const optDisabled = (typeof option === 'object' && option.disabled) ? 'disabled' : '';
+
+            html += `<option value="${jPulse.string.escapeHtml(optValue)}" ${selected} ${optDisabled}>`;
+            html += jPulse.string.escapeHtml(optLabel);
+            html += '</option>';
+        });
+
+        html += '</select>';
+        return html;
+    }
+
+    /**
+     * Render radio button group
+     */
+    function renderRadio(field, name, value, disabled) {
+        const className = field.class || '';
+        let html = `<div class="local-config-radio-group ${className}">`;
+
+        field.options.forEach((option, index) => {
+            const id = `${name}-${index}`;
+            const checked = value === option.value ? 'checked' : '';
+            const optDisabled = option.disabled ? 'disabled' : '';
+
+            html += `<label for="${id}">`;
+            html += `<input type="radio" id="${id}" name="${name}" value="${jPulse.string.escapeHtml(option.value)}" ${checked} ${disabled} ${optDisabled}>`;
+            html += `<span>${jPulse.string.escapeHtml(option.label)}</span>`;
+            html += '</label>';
+        });
+
+        html += '</div>';
+        return html;
+    }
+
+    /**
+     * Render checkbox group
+     */
+    function renderCheckboxGroup(field, name, value, disabled) {
+        const className = field.class || '';
+        const values = Array.isArray(value) ? value : (value ? [value] : []);
+        let html = `<div class="local-config-checkbox-group ${className}">`;
+
+        field.options.forEach((option, index) => {
+            const id = `${name}-${index}`;
+            const checked = values.includes(option.value) ? 'checked' : '';
+            const optDisabled = option.disabled ? 'disabled' : '';
+
+            html += `<label for="${id}">`;
+            html += `<input type="checkbox" id="${id}" name="${name}[]" value="${jPulse.string.escapeHtml(option.value)}" ${checked} ${disabled} ${optDisabled}>`;
+            html += `<span>${jPulse.string.escapeHtml(option.label)}</span>`;
+            html += '</label>';
+        });
+
+        html += '</div>';
+        return html;
+    }
+
+    /**
+     * Collect form values
+     */
+    function collectFormValues() {
+        const values = {};
+
+        configSchema.forEach(field => {
+            if (field.type === 'help') return;
+
+            const id = field.id;
+
+            if (field.type === 'boolean' || field.type === 'checkbox') {
+                const elem = document.getElementById(`field-${id}`);
+                values[id] = elem ? elem.checked : false;
+            } else if (field.type === 'checkbox-group') {
+                const checkboxes = document.querySelectorAll(`input[name="${id}[]"]:checked`);
+                values[id] = Array.from(checkboxes).map(cb => cb.value);
+            } else if (field.type === 'number') {
+                const elem = document.getElementById(`field-${id}`);
+                values[id] = elem ? (elem.value ? Number(elem.value) : null) : null;
+            } else {
+                const elem = document.getElementById(`field-${id}`);
+                values[id] = elem ? elem.value : '';
+            }
+        });
+
+        return values;
+    }
+
+    /**
+     * Save configuration
+     */
+    async function saveConfiguration() {
+        try {
+            const values = collectFormValues();
+
+            const response = await jPulse.api.put(`/api/1/plugin/${pluginName}/config`, {
+                config: values
+            });
+
+            if (response.success) {
+                jPulse.UI.toast.success('Configuration saved successfully');
+                currentConfig = values;
+            } else {
+                jPulse.UI.toast.error(response.error || 'Failed to save configuration');
+            }
+        } catch (error) {
+            console.error('Error saving configuration:', error);
+            jPulse.UI.toast.error('Error: ' + error.message);
+        }
+    }
+
+    /**
+     * Reset form to defaults
+     */
+    async function resetToDefaults() {
+        const result = await jPulse.UI.confirmDialog({
+            title: 'Reset Configuration',
+            message: 'Are you sure you want to reset all fields to their default values? This will not save automatically.',
+            buttons: ['Cancel', 'Reset to Defaults']
+        });
+
+        if (result.button === 'Reset to Defaults') {
+            currentConfig = {};
+            configSchema.forEach(field => {
+                if (field.default !== undefined) {
+                    currentConfig[field.id] = field.default;
+                }
+            });
+            renderConfigForm();
+            jPulse.UI.toast.info('All values have been reset to defaults. Don\'t forget to save!', { duration: 5000 });
+        }
+    }
+
+    // Initialize when DOM is ready
+    jPulse.dom.ready(() => {
+        initializePluginConfig();
+    });
+
+    {{/if}}
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

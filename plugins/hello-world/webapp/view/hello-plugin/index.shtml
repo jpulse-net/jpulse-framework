@@ -19,7 +19,7 @@
     <title>Hello World Plugin - {{app.site.shortName}}</title>
 {{file.include "jpulse-header.tmpl"}}
     <style>
-    /* Plugin-specific styles (minimal - use jp-* classes where possible) */
+        /* Plugin-specific styles (minimal - use jp-* classes where possible) */
     .local-features-list {
         list-style: none;
         padding: 0;
@@ -101,61 +101,60 @@
     </div>
 
     <script>
-    // Hello World Plugin page initialization
-    // Note: window.jPulse.plugins.helloWorld is defined in jpulse-common.js (W-098 append mode)
+        // Hello World Plugin page initialization
+        // Note: window.jPulse.plugins.helloWorld is defined in jpulse-common.js (W-098 append mode)
 
-    /**
-     * Initialize the hello world plugin page
-     */
-    async function initializeHelloWorldPage() {
-        try {
-            // Load plugin data using plugin utility function
-            const response = await jPulse.api.get('/api/1/helloPlugin');
+        /**
+         * Initialize the hello world plugin page
+         */
+        async function initializeHelloWorldPage() {
+            try {
+                // Load plugin data using plugin utility function
+                const response = await jPulse.api.get('/api/1/helloPlugin');
 
-            if (response.success) {
-                const data = response.data;
+                if (response.success) {
+                    const data = response.data;
 
-                // Show config message if enabled
-                if (data.config && data.config.enabled && data.config.message) {
-                    document.getElementById('configMessage').style.display = 'block';
-                    document.getElementById('configMessageText').textContent = data.config.message;
+                    // Show config message if enabled
+                    if (data.config && data.config.enabled && data.config.message) {
+                        document.getElementById('configMessage').style.display = 'block';
+                        document.getElementById('configMessageText').textContent = data.config.message;
+                    }
+
+                    // Display features
+                    if (data.sampleData && data.sampleData.features) {
+                        const featuresList = document.getElementById('featuresList');
+                        featuresList.innerHTML = '';
+                        data.sampleData.features.forEach(feature => {
+                            const li = document.createElement('li');
+                            li.textContent = feature;
+                            featuresList.appendChild(li);
+                        });
+                    }
+
+                    // Display stats
+                    document.getElementById('statPluginName').textContent = data.plugin || '-';
+                    document.getElementById('statVersion').textContent = data.version || '-';
+                    document.getElementById('statStatus').textContent = 'Active';
+
+                    // Log using plugin utility
+                    jPulse.plugins.helloWorld.utils.log('Page initialized successfully');
+
+                } else {
+                    jPulse.UI.toast.error('Failed to load plugin data');
                 }
 
-                // Display features
-                if (data.sampleData && data.sampleData.features) {
-                    const featuresList = document.getElementById('featuresList');
-                    featuresList.innerHTML = '';
-                    data.sampleData.features.forEach(feature => {
-                        const li = document.createElement('li');
-                        li.textContent = feature;
-                        featuresList.appendChild(li);
-                    });
-                }
-
-                // Display stats
-                document.getElementById('statPluginName').textContent = data.plugin || '-';
-                document.getElementById('statVersion').textContent = data.version || '-';
-                document.getElementById('statStatus').textContent = 'Active';
-
-                // Log using plugin utility
-                jPulse.plugins.helloWorld.utils.log('Page initialized successfully');
-
-            } else {
-                jPulse.UI.toast.error('Failed to load plugin data');
+            } catch (error) {
+                console.error('Error initializing Hello World plugin page:', error);
+                jPulse.UI.toast.error('Error loading plugin: ' + error.message);
             }
-
-        } catch (error) {
-            console.error('Error initializing Hello World plugin page:', error);
-            jPulse.UI.toast.error('Error loading plugin: ' + error.message);
         }
-    }
 
-    // Initialize when DOM is ready
-    jPulse.dom.ready(() => {
-        initializeHelloWorldPage();
-    });
+        // Initialize when DOM is ready
+        jPulse.dom.ready(() => {
+                initializeHelloWorldPage();
+        });
     </script>
-
-    {{file.include "jpulse-footer.tmpl"}}
+{{file.include "jpulse-footer.tmpl"}}
 </body>
 </html>

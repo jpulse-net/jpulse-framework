@@ -2,9 +2,11 @@
     "name": "hello-world",
     "npmPackage": "@jpulse-net/plugin-hello-world",
     "version": "1.0.0",
-    "description": "Hello World demo plugin for jPulse Framework",
+    "icon": "🔌",
+    "summary": "Hello World demo plugin for jPulse Framework",
+    "description": "<p>This demo plugin showcases the jPulse Framework plugin system with:</p><ul><li><strong>Dynamic Configuration:</strong> Tab-based settings with various field types</li><li><strong>MVC Components:</strong> Controller, Model, and View integration</li><li><strong>W-098 Append Mode:</strong> Extending framework CSS and JavaScript</li></ul><p>Use this as a reference when creating your own plugins.</p>",
     "author": "jPulse Team <team@jpulse.net>",
-    "jpulseVersion": ">=1.2.7",
+    "jpulseVersion": ">=1.2.5",
     "autoEnable": true,
     "dependencies": {
         "npm": {},
@@ -13,20 +15,82 @@
     "config": {
         "schema": [
             {
+                "type": "help",
+                "content": "<strong>Welcome!</strong> This is a demo plugin showcasing the dynamic configuration system. Fields are grouped into tabs based on the 'tab' attribute.",
+                "tab": "General"
+            },
+            {
+                "id": "enabled",
+                "label": "Enable Plugin",
+                "type": "boolean",
+                "default": true,
+                "help": "Toggle to enable or disable the Hello World plugin",
+                "tab": "General"
+            },
+            {
                 "id": "message",
                 "label": "Welcome Message",
                 "type": "text",
                 "default": "Hello from the plugin system!",
                 "placeholder": "Enter a custom welcome message",
                 "required": false,
-                "help": "This message will be displayed on the Hello World page"
+                "help": "This message will be displayed on the Hello World page",
+                "tab": "General"
             },
             {
-                "id": "enabled",
-                "label": "Show Welcome Message",
+                "id": "showStats",
+                "label": "Show Statistics",
                 "type": "boolean",
                 "default": true,
-                "help": "Toggle to show or hide the welcome message"
+                "help": "Display plugin statistics on the page",
+                "tab": "General"
+            },
+            {
+                "type": "help",
+                "content": "<strong>⚙️ Advanced Settings:</strong> These settings control technical aspects of the plugin.",
+                "tab": "Advanced"
+            },
+            {
+                "id": "cacheEnabled",
+                "label": "Enable Caching",
+                "type": "boolean",
+                "default": false,
+                "help": "Cache plugin data for better performance",
+                "tab": "Advanced"
+            },
+            {
+                "id": "cacheTimeout",
+                "label": "Cache Timeout (seconds)",
+                "type": "number",
+                "default": 3600,
+                "min": 60,
+                "max": 86400,
+                "step": 60,
+                "help": "How long to cache data in seconds",
+                "tab": "Advanced"
+            },
+            {
+                "id": "logLevel",
+                "label": "Log Level",
+                "type": "select",
+                "default": "info",
+                "options": [
+                    { "value": "error", "label": "Error (minimal logging)" },
+                    { "value": "warn", "label": "Warning" },
+                    { "value": "info", "label": "Info (recommended)" },
+                    { "value": "debug", "label": "Debug (verbose)" }
+                ],
+                "help": "Controls the verbosity of plugin logging",
+                "tab": "Advanced"
+            },
+            {
+                "id": "description",
+                "label": "Custom Description",
+                "type": "textarea",
+                "rows": 5,
+                "placeholder": "Enter a custom description for this plugin...",
+                "help": "Optional custom description (supports multiline text)",
+                "tab": "Advanced"
             }
         ]
     }

@@ -41823,7 +41823,6 @@ Status: Complete rewrite to match admin/config.shtml pattern. Browser refresh re
 
 
 ============================================================
-
 2025-11-27 14:45
 
 Two-Column Table Layout with Framework Input Styles
@@ -41842,7 +41841,6 @@ AND:
 - default for type 'select': not sure, maybe browser default, e.g. whatever the max width is, up to max 100%?"
 
 Changes Applied:
-
 
 1. CSS: Two-Column Table Layout (lines 21-95)
    - Restored .local-config-table with border-collapse
@@ -41895,7 +41893,6 @@ Status: Two-column table layout restored with framework input classes. Browser r
 
 
 ============================================================
-
 2025-11-27 14:50
 
 Global Hover Highlighting for Input Elements
@@ -41963,7 +41960,6 @@ Status: Global hover highlighting added to all jp-form-* input elements. Browser
 
 
 ============================================================
-
 2025-11-27 14:55
 
 Style Plugin Status Like User Status
@@ -42048,7 +42044,6 @@ Status: Plugin status styling updated to match user status badges. Browser refre
 
 
 ============================================================
-
 2025-11-27 15:00
 
 Separate Subtitle and Description Fields
@@ -42165,7 +42160,6 @@ Status: Subtitle/description separation implemented. Browser refresh required.
 
 
 ============================================================
-
 2025-11-27 15:05
 
 Rename "subtitle" to "summary"
@@ -42220,7 +42214,6 @@ Status: Field renamed to "summary". Browser refresh required.
 
 
 ============================================================
-
 2025-11-27 15:10
 
 Fix Summary Display in Plugins List and Config Page
@@ -42318,7 +42311,6 @@ Status: Summary field added to API responses. SERVER RESTART REQUIRED.
 
 
 ============================================================
-
 2025-11-27 15:15
 
 Fix Version and Status Vertical Alignment
@@ -42401,7 +42393,6 @@ Status: Version and status moved inline with subtitle. Browser refresh required.
 
 
 ============================================================
-
 2025-11-27 15:20
 
 Fix Status Badge Baseline Alignment
@@ -42455,7 +42446,6 @@ Status: Status badge vertical alignment fixed. Browser refresh required.
 
 
 ============================================================
-
 2025-11-27 15:25
 
 Use Proper CSS for Status Badge Alignment (Not Inline Styles)
@@ -42516,7 +42506,6 @@ Status: Proper CSS styling applied to status badge. Browser refresh required.
 
 
 ============================================================
-
 2025-11-27 15:30
 
 Adjust Status Badge Vertical Position (Raise It Up)
@@ -42568,7 +42557,6 @@ Status: Status badge raised by 2px. Browser refresh required. May need further a
 
 
 ============================================================
-
 2025-11-27 15:35
 
 Add Icon Support to Plugins
@@ -42660,7 +42648,6 @@ Status: Icon support added to plugins. SERVER RESTART REQUIRED.
 
 
 ============================================================
-
 2025-11-27 15:40
 
 Clean Up Inline Styles in plugins.shtml
@@ -42745,7 +42732,6 @@ Status: All inline styles moved to CSS classes. Browser refresh required.
 
 
 ============================================================
-
 2025-11-27 15:45
 
 Clean Up Plugin Static Directory and Fix README Inaccuracies
@@ -42827,6 +42813,755 @@ Rationale:
 - File structures now accurately reflect actual implementation
 
 Status: README files updated with accurate information. Changes are documentation only.
+
+
+============================================================
+2025-11-28 01:00
+
+Implement Two User-Facing Plugin Pages
+
+User Request:
+
+"for hello-world plugin we should create two user-facing pages for educational purpose
+- one under /hello-world/ (like the other hello examples)
+- one under /jpulse-plugins/
+implement content"
+
+Note: /jpulse-plugins/hello-world.shtml is NOT a config page (that's at /admin/plugin-config.shtml)
+
+Implementation:
+
+1. /jpulse-plugins/hello-world.shtml - Plugin Overview Page
+
+Purpose: Plugin detail/overview for end users
+Audience: Site users/administrators
+Content:
+- Extract card for /jpulse-plugins/ dashboard (order=1)
+- About section with plugin description
+- Stats grid (version, status, auto-enable)
+- Quick Actions section:
+  * View Demo Page → /hello-plugin/
+  * Configure Plugin → /admin/plugin-config.shtml?plugin=hello-world
+  * User Documentation → /jpulse-docs/installed-plugins/hello-world/
+  * Developer Guide → /jpulse-docs/plugins/README
+- Features Demonstrated (6 cards showing what plugin teaches)
+- What You Can Do (bulleted list of actions)
+- Technical Information table
+
+File: plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml
+
+2. /hello-plugin/index.shtml - Interactive Tutorial Page
+
+Purpose: Educational demonstration of plugin development
+Audience: Developers learning to build plugins
+Content:
+- Extract card for /hello/ dashboard (order=60)
+- Section 1: Plugin-Specific CSS Styling
+  * Demo cards showing plg-hello-world-* classes
+  * Expandable code examples
+- Section 2: Plugin JavaScript Extensions
+  * Interactive button to test plugin utilities
+  * Shows jPulse.plugins.helloWorld namespace
+- Section 3: Plugin REST API
+  * Button to call /api/1/helloPlugin endpoint
+  * Shows controller code with auto-discovery
+- Section 4: Plugin Configuration Management
+  * Button to load current config
+  * Shows plugin.json schema
+  * Link to config UI
+- Section 5: W-098 Append Mode
+  * Explanation of how it works (5-step list)
+  * List of files that use append mode
+- Learn More section with links to all resources
+
+File: plugins/hello-world/webapp/view/hello-plugin/index.shtml
+
+3. CSS Additions for Demo Page
+
+Added to plugins/hello-world/webapp/view/jpulse-common.css:
+- .plg-hello-world-demo-grid (3-column grid)
+- .plg-hello-world-demo-card (styled cards with hover effect)
+- .plg-hello-world-icon (icon sizing)
+- Card heading and paragraph styles
+
+Files Modified:
+
+1. plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml
+   - NEW FILE: Plugin overview/detail page for end users
+   - Extract card + full page content
+
+2. plugins/hello-world/webapp/view/hello-plugin/index.shtml
+   - NEW FILE: Interactive tutorial page for developers
+   - 5 educational sections with working demos
+
+3. plugins/hello-world/webapp/view/jpulse-common.css
+   - Added demo page CSS classes (plg-hello-world-demo-*)
+
+Key Differences:
+
+/hello-plugin/ vs /jpulse-plugins/hello-world.shtml:
+
+| Aspect | /hello-plugin/ | /jpulse-plugins/hello-world.shtml |
+|--------|---------------|-----------------------------------|
+| Audience | Developers | End users |
+| Purpose | Tutorial | Overview/management |
+| Content | Code examples | Quick links |
+| Tone | "How it works" | "How to use it" |
+| Dashboard | /hello/ (order=60) | /jpulse-plugins/ (order=1) |
+| Interactive | Yes (buttons) | No (static links) |
+
+Status: Two user-facing pages implemented with distinct purposes. Browser refresh required to view.
+
+
+============================================================
+2025-11-22 12:05
+
+Create /jpulse-plugins/ Dashboard
+
+Additional Implementation:
+
+Created the main plugin dashboard that auto-discovers plugin cards using file.list helper.
+
+File: webapp/view/jpulse-plugins/index.shtml
+
+Content:
+- Page header with plugins icon
+- Info alert explaining dashboard purpose (links to /admin/plugins.shtml)
+- Auto-discovery section using Handlebars:
+  {{#each (file.list "jpulse-plugins/*.shtml") sortBy="extract-order"}}
+      {{file.extract this}}
+  {{/each}}
+- Empty state message if no plugins found
+
+How It Works:
+
+1. file.list finds all jpulse-plugins/*.shtml files (including from plugins)
+2. Files are sorted by extract-order attribute
+3. file.extract pulls out the <!-- extract:start --> sections
+4. Plugin cards appear automatically on the dashboard
+
+Plugin Opt-In Pattern:
+
+Plugins create: webapp/view/jpulse-plugins/{name}.shtml
+
+Required for dashboard:
+- <!-- extract:start order=N --> ... <!-- extract:end -->
+- Card content (icon, title, description, link)
+
+Optional in same file:
+- Full detail page content after extract section
+
+Files Created:
+
+1. webapp/view/jpulse-plugins/index.shtml - Main dashboard
+2. plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml - Plugin overview
+3. plugins/hello-world/webapp/view/hello-plugin/index.shtml - Interactive tutorial
+4. plugins/hello-world/webapp/view/jpulse-common.css - Added demo CSS
+
+Summary: Complete plugin user interface implemented with auto-discovery pattern.
+
+
+============================================================
+2025-11-28 12:10
+
+Move Demo CSS from Global to Local Styles
+
+User Feedback:
+
+"is @jpulse-common.css (43-81) needed?
+- it means it available on all pages in the whole site
+- if used only in one page, better to declare there as local-* styles"
+
+Analysis:
+
+User is correct! The demo CSS classes were only used in /hello-plugin/index.shtml,
+so they should be local to that page, not globally appended via W-098 mode.
+
+Best Practice:
+- jpulse-common.css (W-098) = styles used across multiple pages
+- Local <style> = styles used only on one page
+
+Changes Applied:
+
+1. Removed from plugins/hello-world/webapp/view/jpulse-common.css (lines 44-80)
+   DELETED:
+   - .plg-hello-world-demo-grid
+   - .plg-hello-world-demo-card
+   - .plg-hello-world-demo-card:hover
+   - .plg-hello-world-icon
+   - .plg-hello-world-demo-card h4
+   - .plg-hello-world-demo-card p
+
+2. Added to plugins/hello-world/webapp/view/hello-plugin/index.shtml
+   Added <style> section with local classes:
+   - .local-demo-grid (was .plg-hello-world-demo-grid)
+   - .local-demo-card (was .plg-hello-world-demo-card)
+   - .local-demo-icon (was .plg-hello-world-icon)
+   - Nested h4 and p styles
+
+3. Updated HTML to use new class names (line 73):
+   - class="plg-hello-world-demo-grid" → class="local-demo-grid"
+   - class="plg-hello-world-demo-card" → class="local-demo-card"
+   - class="plg-hello-world-icon" → class="local-demo-icon"
+
+4. Updated code example to reflect best practice:
+   - Shows local styles are in the page itself
+   - Explains when to use jpulse-common.css vs local styles
+   - Educational for developers
+
+Files Modified:
+
+1. plugins/hello-world/webapp/view/jpulse-common.css
+   - Removed demo CSS classes (now only has status badges)
+
+2. plugins/hello-world/webapp/view/hello-plugin/index.shtml
+   - Added <style> section with local demo classes
+   - Updated HTML class references
+   - Updated code example to explain pattern
+
+Benefits:
+
+- CSS only loaded on pages that need it
+- Follows local-* convention for page-specific styles
+- Doesn't bloat global CSS
+- Educational example of when to use local vs global
+
+Status: Demo CSS moved from global to local. Browser refresh required.
+
+
+============================================================
+2025-11-28 12:15
+
+Fix Multiple Issues in Plugin Pages
+
+User Issues:
+
+1. CSS statement inaccurate (now using local styles, not global)
+2. JavaScript error: greet is not a function (missing from jpulse-common.js)
+3. Missing admin-only note for config button
+4. /jpulse-plugins/ blank page (wrong Handlebars syntax)
+5. Remove W-098 references from user-facing pages
+
+Changes Applied:
+
+1. Fixed CSS description in /hello-plugin/index.shtml (line 78)
+   BEFORE: "This plugin's CSS is in webapp/view/jpulse-common.css and uses W-098 append mode"
+   AFTER: "This demo uses local-* prefixed styles. For global plugin styles, use plg-{plugin-name}-* in jpulse-common.css"
+
+2. Added missing functions to plugins/hello-world/webapp/view/jpulse-common.js
+   Added at top level of window.jPulse.plugins.helloWorld:
+   - greet(name) - Returns greeting message
+   - getTimestamp() - Returns ISO timestamp
+   - calculateSum(a, b) - Returns sum
+   (These were referenced in demo but not implemented)
+
+3. Added admin-only note to /hello-plugin/index.shtml (Section 4)
+   Added {{#if user.isAdmin}} wrapper with note:
+   "(only available to administrators)"
+
+4. Fixed Handlebars syntax in webapp/view/jpulse-plugins/index.shtml (line 37)
+   BEFORE: {{#each (file.list "jpulse-plugins/*.shtml") sortBy="extract-order"}}
+   AFTER:  {{#each file.list "jpulse-plugins/*.shtml" sortBy="extract-order"}}
+   (Removed parentheses - incorrect syntax)
+
+5. Removed W-098 references from user-facing pages:
+
+   a) plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml
+      - Line 49: "W-098 append mode integration" → "automatic CSS/JavaScript integration"
+      - Line 106: "W-098 Append Mode" feature title → "Asset Integration"
+      - Line 108: "Auto-appending" → "Automatic CSS and JavaScript loading"
+      - Added admin-only note for non-admin users
+
+   b) plugins/hello-world/docs/README.md (user documentation)
+      - Line 85-87: Comment changes "W-098 append mode" → "automatically loaded"
+      - Lines 94-100: Section title "W-098 Append Mode" → "Automatic Asset Loading"
+      - Rewrote content to focus on benefits, not implementation details
+
+6. Added admin-only note to jpulse-plugins/hello-world.shtml
+   Shows message for non-admins: "Plugin configuration is only available to administrators"
+
+Files Modified:
+
+1. plugins/hello-world/webapp/view/jpulse-common.js
+   - Added greet(), getTimestamp(), calculateSum() functions
+
+2. plugins/hello-world/webapp/view/hello-plugin/index.shtml
+   - Fixed CSS description
+   - Added admin-only note to Section 4
+
+3. webapp/view/jpulse-plugins/index.shtml
+   - Fixed file.list syntax (removed parentheses)
+
+4. plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml
+   - Removed W-098 references
+   - Added admin-only conditional and note
+
+5. plugins/hello-world/docs/README.md
+   - Removed W-098 technical references
+   - Rewrote as user-friendly "Automatic Asset Loading"
+
+Expected Results After Server Restart:
+
+- Test Plugin Utilities button works (functions now exist)
+- /jpulse-plugins/ shows hello-world plugin card
+- W-098 references removed from all user-facing pages
+- Admin-only notes visible to non-admin users
+- Configure buttons only visible to admins
+
+Status: All issues fixed. SERVER RESTART REQUIRED for JavaScript changes.
+
+
+============================================================
+2025-11-28 12:35
+
+Refactor /hello-plugin/ for Best Practices
+
+User Requirements:
+
+1. Verify npm package name (@jpulse-net/plugin-hello-world)
+2. Use existing jp-* classes where feasible (teaching moment)
+3. Replace <details> with jPulse.UI.collapsible widget (teaching moment)
+4. Avoid inline styles, use <style> or jp-* classes (teaching moment)
+
+Changes Applied:
+
+1. NPM Package Name Verified ✓
+   - Confirmed: @jpulse-net/plugin-hello-world (matches plugin.json line 3)
+   - User's change is correct
+
+2. Enhanced <style> Section
+   - Added comprehensive page-specific classes using framework CSS variables
+   - Uses var(--jp-color-*) for colors, var(--jp-border-radius), var(--jp-shadow-md), etc.
+   - Added classes:
+     * .local-section-content (replaces style="margin: 20px 0")
+     * .local-demo-box (replaces inline background/padding styles)
+     * .local-output (for output boxes)
+     * .local-output-success / .local-output-error (for state styling)
+     * .local-action-grid (for button grids)
+     * .local-list-spaced (for list spacing)
+     * .local-admin-note (for admin-only notes)
+     * .local-config-actions (for config button section)
+
+3. Replaced <details> with jPulse.UI.collapsible (4 instances)
+   Before:
+   <details style="margin-top: 15px;">
+       <summary style="cursor: pointer; font-weight: 600;">View CSS Code</summary>
+       <pre style="...">code</pre>
+   </details>
+
+   After:
+   <div id="css-code-collapsible" class="jp-collapsible">
+       <h3>💻 View CSS Code</h3>
+       <div class="jp-collapsible-content">
+           <pre class="jp-source-code"><code>code</code></pre>
+       </div>
+   </div>
+
+   Updated sections:
+   - Section 1: #css-code-collapsible
+   - Section 2: #js-code-collapsible
+   - Section 3: #api-code-collapsible
+   - Section 4: #config-schema-collapsible
+
+4. Removed All Inline Styles (36 instances)
+   - Replaced with CSS classes from <style> or framework jp-* classes
+   - Used CSS class toggling in JavaScript instead of inline styles
+   - Examples:
+     * style="margin: 20px 0" → class="local-section-content"
+     * style="background: #f8f9fa; padding: 15px" → class="local-demo-box"
+     * style="margin-top: 15px; font-family: monospace" → class="local-output"
+     * Inline success/error styles → classList.add('local-output-success/error')
+
+5. Updated JavaScript for Best Practices
+   - Added collapsible initialization in jPulse.dom.ready()
+   - Changed from inline style manipulation to CSS class toggling:
+     * output.classList.add('local-output-success')
+     * output.classList.add('local-output-error')
+   - Teaching moment: Use framework widgets and CSS classes
+
+6. Removed W-098 References from Tutorial
+   - "W-098 mode merges" → "Automatically loaded"
+   - "W-098 Append Mode" section → "Automatic Asset Loading"
+   - Kept technical accuracy while using user-friendly language
+
+Teaching Moments:
+
+✓ Local page styles vs global plugin styles (when to use each)
+✓ Using framework CSS variables for consistency
+✓ jPulse.UI.collapsible widget instead of native <details>
+✓ CSS classes over inline styles for maintainability
+✓ Using jp-source-code class for code blocks
+✓ CSS class toggling in JavaScript for state changes
+
+Files Modified:
+
+1. plugins/hello-world/webapp/view/hello-plugin/index.shtml
+   - Enhanced <style> section (27 → 97 lines)
+   - Converted 4 <details> to collapsibles
+   - Removed all 36 inline styles
+   - Added collapsible initialization
+   - Updated JavaScript to use CSS classes
+
+Benefits:
+
+- More maintainable (CSS in one place)
+- More consistent (uses framework patterns)
+- Better teaching example (shows best practices)
+- Easier to theme (uses CSS variables)
+- Interactive collapsibles (better UX than <details>)
+
+Status: /hello-plugin/ refactored to follow best practices. SERVER RESTART REQUIRED.
+
+
+============================================================
+2025-11-28 12:45
+
+Simplify Local Styles - Use jp-* Classes
+
+User Feedback:
+
+"hmm, why adding even more local styles when most can be handled by existing jp- styles?
+please review and fix"
+
+"also has style attributes, where jp-* styles could be used instead"
+
+Analysis:
+
+User is correct - I over-engineered by adding too many local classes when the framework
+already has jp-* classes that do the job. Teaching moment: Use framework classes first,
+only add local styles when truly unique to the page.
+
+Changes Applied:
+
+1. plugins/hello-world/webapp/view/hello-plugin/index.shtml
+
+   REMOVED unnecessary local classes (9 classes → 3 classes):
+   - .local-section-content (just margin wrapper - removed)
+   - .local-demo-box (replaced with .jp-info-box)
+   - .local-output (replaced with .jp-info-box)
+   - .local-action-grid (replaced with inline grid)
+   - .local-list-spaced (replaced with inline style)
+   - .local-admin-note (replaced with inline style)
+   - .local-config-actions (replaced with <p> wrapper)
+
+   KEPT truly unique styles (3 classes):
+   - .local-demo-grid (specific to tutorial demo cards)
+   - .local-demo-card (custom hover effects for demo)
+   - .local-demo-icon (demo-specific sizing)
+   - .jp-info-box.local-output-success (extends jp-info-box)
+   - .jp-info-box.local-output-error (extends jp-info-box)
+
+   Updated HTML to use jp-* classes:
+   - .local-demo-box → .jp-info-box
+   - .local-output → .jp-info-box (with state classes)
+   - Removed unnecessary wrapper divs
+   - Kept minimal inline styles where appropriate (margins, grid)
+
+2. plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml
+
+   ADDED minimal <style> section (3 classes):
+   - .local-feature-grid (page-specific feature layout)
+   - .local-feature-item h3 (typography)
+   - .local-feature-item p (typography)
+   - .local-btn-grid (button layout)
+
+   Updated HTML:
+   - Feature cards: removed inline styles → .local-feature-grid
+   - Button grid: removed inline styles → .local-btn-grid
+   - Reordered inline styles for consistency (margin-top before other props)
+
+Teaching Moment:
+
+✓ Use existing jp-* framework classes (jp-info-box, jp-card, jp-btn, etc.)
+✓ Only add local-* styles for page-specific unique designs
+✓ Simple inline styles (margins, specific layouts) are okay
+✓ Don't over-engineer with unnecessary wrapper classes
+
+Before vs After (hello-plugin/index.shtml):
+
+<style>: 97 lines → 51 lines (46% reduction!)
+Classes: 12 local-* → 5 local-* (58% fewer)
+Framework: Better use of existing jp-* classes
+
+Files Modified:
+
+1. plugins/hello-world/webapp/view/hello-plugin/index.shtml
+   - Simplified <style> from 97 lines to 51 lines
+   - Removed 7 unnecessary local classes
+   - Updated HTML to use jp-info-box
+   - Added minimal inline styles where appropriate
+
+2. plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml
+   - Added minimal <style> section (21 lines)
+   - Removed inline styles from feature cards
+   - Replaced with 4 local classes for layout/typography
+
+Benefits:
+
+- Less CSS to maintain
+- Better alignment with framework patterns
+- Cleaner, more readable code
+- Easier for developers to learn from
+
+Status: Local styles minimized, jp-* classes maximized. Ready for review.
+
+
+2025-11-27 16:55
+
+Verify CSS Variables & Clean Up Inline Styles
+
+User Feedback:
+
+1. /hello-plugin/
+   "non of the referenced var(--jp-*) exist, so I specified them directly"
+   "I did additional tweaks"
+   "verify"
+
+2. /jpulse-plugins/hello-world.shtml
+   "has many inline styles"
+   "please clean up"
+
+Investigation:
+
+Checked jpulse-common.css for CSS variable definitions:
+- NO :root definitions found
+- CSS variables ARE used but ONLY with fallback values:
+  var(--jp-color-primary, #007acc)
+  var(--jp-border-radius, 8px)
+- These are NOT defined, so the fallback values are always used
+- User is CORRECT: The variables don't exist, should use direct values
+
+Changes Applied:
+
+1. plugins/hello-world/webapp/view/hello-plugin/index.shtml
+
+   User's changes VERIFIED and CORRECT:
+   - Replaced var(--jp-color-border) with rgb(226, 232, 240)
+   - Replaced var(--jp-border-radius) with 8px
+   - Replaced var(--jp-color-card-bg) with white
+   - Replaced var(--jp-shadow-md) with rgba(0, 0, 0, 0.08) 0px 1px 3px
+   - Removed var(--jp-color-text-secondary)
+   - Fixed path reference: "webapp/view/jpulse-common.css" → "plugins/hello-world/webapp/view/jpulse-common.css"
+   - Fixed indentation (4 spaces consistently)
+   - Changed code blocks from <pre><code> to <div class="jp-source-code" data-lang="...">
+   - Added "File: ..." labels before code blocks
+   - Removed nested jp-info-box wrappers (buttons now direct siblings)
+   - Cleaned up spacing and comments
+
+2. plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml
+
+   CLEANED UP all inline styles:
+
+   Added to <style> section:
+   - .local-stats-grid { margin-top: 20px; }
+   - .local-admin-note { margin-top: 10px; font-size: 0.9em; }
+   - .local-action-list { line-height: 1.8; }
+   - .local-tech-table td:first-child { width: 200px; }
+   - .local-feature-item p { color: #666; } (added)
+
+   Updated HTML:
+   - Line 76: style="margin-top: 20px" → class="local-stats-grid"
+   - Line 112: style="margin-top: 10px; font-size: 0.9em" → class="local-admin-note"
+   - Line 152: style="line-height: 1.8" → class="local-action-list"
+   - Line 167: style="width: 200px" → CSS selector .local-tech-table td:first-child
+
+Summary of Inline Styles:
+
+BEFORE: 4 inline style attributes
+AFTER: 0 inline style attributes (all moved to <style>)
+
+Key Learnings:
+
+✓ CSS variables (var(--jp-*)) don't exist in framework - only used with fallbacks
+✓ Direct color/size values are appropriate when no CSS variables defined
+✓ All inline styles should be in <style> section or framework classes
+✓ User's refactoring was correct and improved code quality
+
+Files Modified:
+
+1. plugins/hello-world/webapp/view/hello-plugin/index.shtml
+   - User made corrections (CSS variables → direct values)
+   - User improved code structure and formatting
+
+2. plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml
+   - Added 4 new CSS classes to <style>
+   - Removed all 4 inline style attributes
+   - All styling now in CSS classes
+
+Status: CSS variables verified (don't exist), inline styles cleaned up. Ready for review.
+
+
+============================================================
+2025-11-28 13:00
+
+Minimize Inline Styles in hello-plugin/index.shtml
+
+User Feedback:
+
+"hello-plugin/index.shtml	
+- still has many inline style=""
+- try to minimize the number"
+
+Analysis:
+
+Found 12 inline style attributes:
+- 3x margin-top: 15px (output boxes)
+- 2x line-height: 1.8 (lists)
+- 1x margin-top: 20px (heading)
+- 1x margin-top: 10px (config actions)
+- 1x font-size + margin-left (admin note)
+- 1x display grid (button grid)
+- 2x margin: 0 (in JavaScript - API output <pre>)
+- 1x display: none (extract card - OK to keep)
+
+Changes Applied:
+
+Added 8 new CSS classes to <style> section:
+
+.local-output-box {
+    margin-top: 15px;
+}
+
+.local-config-actions {
+    margin-top: 10px;
+}
+
+.local-admin-note {
+    font-size: 0.9em;
+    margin-left: 10px;
+}
+
+.local-spaced-list {
+    line-height: 1.8;
+}
+
+.local-section-heading {
+    margin-top: 20px;
+}
+
+.local-btn-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.local-api-pre {
+    margin: 0;
+}
+
+Updated HTML to use classes:
+
+1. Line 202: pluginUtilsOutput - added .local-output-box
+2. Line 242: apiOutput - added .local-output-box
+3. Line 281: configOutput - added .local-output-box
+4. Line 285: <p> wrapper - changed to .local-config-actions
+5. Line 289: <span> admin note - changed to .local-admin-note
+6. Line 333: <ol> list - added .local-spaced-list
+7. Line 341: <h3> heading - added .local-section-heading
+8. Line 342: <ul> list - added .local-spaced-list
+9. Line 357: button grid - changed to .local-btn-grid
+
+Updated JavaScript:
+
+10. Line 417: testPluginAPI() - changed inline style to .local-api-pre (2 instances)
+
+Results:
+
+BEFORE: 12 inline style attributes
+AFTER: 1 inline style attribute (display: none - acceptable for extract card)
+
+Reduction: 91.7% (11 out of 12 removed)
+
+The remaining `style="display: none;"` is a common pattern for hidden extract cards
+and is acceptable to keep as inline style.
+
+Files Modified:
+
+1. plugins/hello-world/webapp/view/hello-plugin/index.shtml
+   - Added 8 new CSS classes to <style> section
+   - Removed 11 inline style attributes
+   - All replaced with semantic class names
+
+Status: Inline styles minimized from 12 to 1. Only extract card remains (acceptable).
+
+
+============================================================
+2025-11-28 13:05
+
+Drastically Simplify Local Styles - Use Framework Classes
+
+User Feedback:
+
+"but why are there so many local styles needed? 80 lines?
+- why not rely more on existing jp-* styles?"
+
+Analysis:
+
+User is absolutely right! I over-engineered the local styles:
+
+BEFORE (80 lines, 15 classes):
+- .local-demo-grid (unique - keep)
+- .local-demo-card (unique - keep)
+- .local-demo-card:hover (unique - keep)
+- .local-demo-icon (unique - keep)
+- .local-demo-card h4 (unique - keep)
+- .local-demo-card p (unique - keep)
+- .jp-info-box.local-output-success (semantic - keep)
+- .jp-info-box.local-output-error (semantic - keep)
+- .local-output-box (just margin-top: 15px - REMOVE, use inline)
+- .local-config-actions (just margin-top: 10px - REMOVE, use inline)
+- .local-admin-note (just font-size + margin - REMOVE, use inline)
+- .local-spaced-list (just line-height: 1.8 - REMOVE, use inline)
+- .local-section-heading (just margin-top: 20px - REMOVE, use inline)
+- .local-btn-grid (complex grid - REMOVE, use inline)
+- .local-api-pre (just margin: 0 - REMOVE, use inline)
+
+Problem: Created too many single-property utility classes instead of:
+1. Using existing jp-* framework classes
+2. Using simple inline styles for one-off spacing
+
+Changes Applied:
+
+Removed 7 unnecessary utility classes:
+- .local-output-box → inline style="margin-top: 15px;"
+- .local-config-actions → inline style="margin-top: 10px;"
+- .local-admin-note → inline style="font-size: 0.9em; margin-left: 10px;"
+- .local-spaced-list → inline style="line-height: 1.8;"
+- .local-section-heading → inline style="margin-top: 20px;"
+- .local-btn-grid → inline grid style
+- .local-api-pre → inline style="margin: 0;"
+
+Kept only truly unique/semantic styles:
+✓ .local-demo-grid (complex tutorial-specific layout)
+✓ .local-demo-card + variants (unique card design with hover)
+✓ .local-demo-icon (demo icon sizing)
+✓ .jp-info-box.local-output-success (semantic state)
+✓ .jp-info-box.local-output-error (semantic state)
+
+Results:
+
+BEFORE: 80 lines of CSS, 15 classes
+AFTER: 47 lines of CSS, 8 classes
+
+Reduction: 41% fewer lines, 47% fewer classes
+
+Philosophy:
+
+✓ Use existing jp-* framework classes (jp-info-box, jp-card, jp-btn, etc.)
+✓ Keep ONLY unique page-specific designs in local styles
+✓ Keep ONLY semantic state classes (success/error)
+✓ Use inline styles for simple one-off spacing/sizing
+✓ Don't create utility classes for single properties
+
+Files Modified:
+
+1. plugins/hello-world/webapp/view/hello-plugin/index.shtml
+   - Reduced <style> from 80 lines to 47 lines
+   - Removed 7 utility classes
+   - Replaced with inline styles where appropriate
+   - Kept only unique demo card styling and semantic states
+
+Status: Simplified from 80 lines to 47 lines. Better balance of framework, local, and inline.
 
 
 ============================================================

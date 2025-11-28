@@ -31,6 +31,33 @@ if (!window.jPulse.plugins) {
  */
 window.jPulse.plugins.helloWorld = {
     /**
+     * Greet a user
+     * @param {string} name - Name to greet
+     * @returns {string} Greeting message
+     */
+    greet: function(name) {
+        return `Hello, ${name}! 🔌`;
+    },
+
+    /**
+     * Get current timestamp
+     * @returns {string} ISO timestamp
+     */
+    getTimestamp: function() {
+        return new Date().toISOString();
+    },
+
+    /**
+     * Calculate sum of two numbers
+     * @param {number} a - First number
+     * @param {number} b - Second number
+     * @returns {number} Sum
+     */
+    calculateSum: function(a, b) {
+        return a + b;
+    },
+
+    /**
      * Plugin utility functions
      */
     utils: {

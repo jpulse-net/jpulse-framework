@@ -18,15 +18,23 @@
  */
 
 // Add Hello World Plugin to Examples section
-if (window.jPulseNavigation && window.jPulseNavigation.site && window.jPulseNavigation.site.examples) {
+if (window.jPulseNavigation?.site?.siteHelloExamples) {
     // Add plugin page to examples menu
-    if (!window.jPulseNavigation.site.examples.pages.helloPlugin) {
-        window.jPulseNavigation.site.examples.pages.helloPlugin = {
-            label: 'Hello World Plugin',
-            url: '/hello-plugin/',
-            icon: '🔌'
-        };
-    }
+    window.jPulseNavigation.site.siteHelloExamples.pages.helloPlugin = {
+        label: 'Hello World Plugin',
+        url: '/hello-plugin/',
+        icon: '🔌'
+    };
+}
+
+// Add Hello World Plugin to jPulse Plugins section
+if (window.jPulseNavigation?.site?.jPulsePlugins) {
+    // Add plugin page to jPulse Plugins menu
+    window.jPulseNavigation.site.jPulsePlugins.pages.helloPlugin = {
+        label: 'Hello World Plugin',
+        url: '/jpulse-plugins/hello-world.shtml',
+        icon: '🔌'
+    };
 }
 
 // Alternative: Create a new top-level section for plugins (commented out)

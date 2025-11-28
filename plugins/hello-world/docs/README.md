@@ -82,24 +82,25 @@ plugins/hello-world/
     ├── static/
     │   └── .gitkeep         # For standalone assets (if needed)
     └── view/
-        ├── jpulse-common.css        # Plugin CSS (W-098 append mode)
-        ├── jpulse-common.js         # Plugin JavaScript (W-098 append mode)
-        ├── jpulse-navigation.js     # Navigation integration (W-098 append mode)
+        ├── jpulse-common.css        # Plugin CSS (automatically loaded)
+        ├── jpulse-common.js         # Plugin JavaScript (automatically loaded)
+        ├── jpulse-navigation.js     # Navigation integration (automatically loaded)
         ├── plugins/
         │   └── hello-world.shtml    # Dashboard card + detail page
         └── hello-plugin/
             └── index.shtml          # Plugin application page
 ```
 
-### W-098 Append Mode
+### Automatic Asset Loading
 
-This plugin uses the **W-098 append mode** feature, where specific files are automatically appended to the framework's files:
+This plugin's CSS and JavaScript are automatically loaded with the framework - no manual configuration needed!
 
-- `jpulse-common.css` → Appended to framework CSS
-- `jpulse-common.js` → Appended to framework JavaScript
-- `jpulse-navigation.js` → Appended to site navigation
+The plugin integrates seamlessly by providing:
+- Custom CSS styles (automatically appended to framework CSS)
+- JavaScript utilities (automatically appended to framework JavaScript)
+- Navigation menu entries (automatically added to site navigation)
 
-**Benefits**: No manual asset inclusion needed, guaranteed load order, better performance.
+**Benefits**: Works out of the box, no manual setup required.
 
 ## Technical Details
 

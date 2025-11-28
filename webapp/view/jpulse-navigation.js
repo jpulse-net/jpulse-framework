@@ -202,6 +202,18 @@ window.jPulseNavigation = {
                 },
             }
         },
+        jPulsePlugins: {
+            label:              '{{i18n.view.navigation.jPulsePlugins._index}}',
+            url:                '/jpulse-plugins/',
+            icon:               '{{use.jpIcons.pluginSvg size="24" _inline=true}}',
+            pages: {
+                overview: {
+                    label:      '{{i18n.view.navigation.jPulsePlugins.overview}}',
+                    url:        '/jpulse-plugins/',
+                    icon:       '{{use.jpIcons.pluginSvg size="24" _inline=true}}'
+                }
+            }
+        },
         {{#if file.exists "hello/index.shtml"}}
         siteHelloExamples: {
             label:              'Hello World Site Demos',

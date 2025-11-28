@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <!--
  * @name            jPulse Framework / Plugins / Hello World / WebApp / View / Hello Plugin / Index
- * @tagline         Hello Plugin application page for jPulse Framework
- * @description     Hello Plugin application page for jPulse Framework
+ * @tagline         Interactive Plugin Development Tutorial
+ * @description     Educational demo showing how plugins work in jPulse Framework
  * @file            plugins/hello-world/webapp/view/hello-plugin/index.shtml
  * @version         1.2.6
- * @release         2025-11-25
+ * @release         2025-11-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,145 +16,411 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello World Plugin - {{app.site.shortName}}</title>
+    <title>Hello World Plugin Tutorial - {{app.site.shortName}}</title>
 {{file.include "jpulse-header.tmpl"}}
     <style>
-        /* Plugin-specific styles (minimal - use jp-* classes where possible) */
-    .local-features-list {
-        list-style: none;
-        padding: 0;
+    /* Demo card grid (unique to this tutorial page) */
+    .local-demo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
     }
 
-    .local-features-list li {
-        padding: 10px 0;
-        border-bottom: 1px solid var(--jp-color-border);
+    .local-demo-card {
+        padding: 20px;
+        border: 2px solid rgb(226, 232, 240);
+        border-radius: 8px;
+        text-align: center;
+        transition: transform 0.2s, box-shadow 0.2s;
+        background: white;
     }
 
-    .local-features-list li:before {
-        content: "✓ ";
-        color: var(--jp-color-success);
-        font-weight: bold;
-        margin-right: 8px;
+    .local-demo-card:hover {
+        transform: translateY(-2px);
+        box-shadow: rgba(0, 0, 0, 0.08) 0px 1px 3px;
+    }
+
+    .local-demo-icon {
+        font-size: 2em;
+        margin-bottom: 10px;
+    }
+
+    .local-demo-card h4 {
+        margin: 10px 0 5px 0;
+        font-size: 1.1em;
+    }
+
+    .local-demo-card p {
+        margin: 0;
+        font-size: 0.9em;
+    }
+
+    /* Output state colors (extends jp-info-box) */
+    .jp-info-box.local-output-success {
+        background: #e8f5e9;
+        border-left-color: #4caf50;
+    }
+
+    .jp-info-box.local-output-error {
+        background: #ffebee;
+        border-left-color: #f44336;
     }
     </style>
 </head>
 <body>
+    <div style="display: none;">
+        <!-- This card is automatically included in the dashboard at hello/index.shtml -->
+        <!-- extract:start order=60 -->
+        <a href="/hello-plugin/" class="jp-card-dashboard jp-icon-btn">
+            <div class="jp-icon-container">🔌</div>
+            <h3 class="jp-card-title">Hello World Plugin</h3>
+            <p class="jp-card-description">
+                Learn plugin development with this interactive tutorial
+            </p>
+        </a>
+        <!-- extract:end -->
+    </div>
+
     <div class="jp-main">
         <div class="jp-page-header">
-            <h1>Hello World Plugin</h1>
-            <span class="jp-subtitle">Welcome to the jPulse Framework Plugin System</span>
+            <h1>🔌 Hello World Plugin Tutorial</h1>
+            <span class="jp-subtitle">Interactive demonstration of the jPulse plugin system</span>
         </div>
 
-        <div class="jp-info-box">
-            <h2>ℹ️ About This Plugin:</h2>
-            <p>This is a demo plugin that showcases the jPulse plugin architecture with
-                API endpoints, views, and configuration management.</p>
-            <ul>
-                <li><a href="/jpulse-docs/plugins/README" target="_blank">Plugin Development Guide</a></li>
-                <li><a href="/jpulse-docs/installed-plugins/hello-world/README" target="_blank">Hello World Plugin Documentation</a></li>
-                <li><a href="/plugins/hello-world.shtml">Configure this Plugin</a></li>
-                <li><a href="/plugins/">All Installed Plugins Dashboard</a></li>
+        <div class="jp-alert jp-alert-info">
+            <strong>🎓 Learning Objective:</strong> This page demonstrates how plugins extend the jPulse Framework.
+            Each section shows a different aspect of plugin development with working code examples.
+        </div>
+
+        <!-- Section 1: Plugin CSS -->
+        <div class="jp-card">
+            <h2>🎨 Section 1: Plugin-Specific CSS Styling</h2>
+            <p>
+                This demo uses <code>local-*</code> prefixed styles (defined in this page's &lt;style&gt; section).
+                For global plugin styles used across multiple pages, use <code>plg-{plugin-name}-*</code> prefix
+                in <code>plugins/hello-world/webapp/view/jpulse-common.css</code> (automatically appended to framework CSS).
+            </p>
+
+            <h3>Custom Plugin Styles:</h3>
+            <div class="local-demo-grid">
+                <div class="local-demo-card">
+                    <div class="local-demo-icon">🎯</div>
+                    <h4>Namespaced CSS</h4>
+                    <p>Uses <code>.plg-hello-world-*</code> prefix</p>
+                </div>
+                <div class="local-demo-card">
+                    <div class="local-demo-icon">📦</div>
+                    <h4>Auto-Appended</h4>
+                    <p>Automatically loaded with framework CSS</p>
+                </div>
+                <div class="local-demo-card">
+                    <div class="local-demo-icon">✨</div>
+                    <h4>No Conflicts</h4>
+                    <p>Plugin prefix prevents name collisions</p>
+                </div>
+            </div>
+
+            <div id="css-code-collapsible" class="jp-collapsible">
+                <h3>💻 View CSS Code</h3>
+                <div class="jp-collapsible-content">
+                    <p>File: <code>plugins/hello-world/webapp/view/hello-plugin/index.shtml</code></p>
+                    <div class="jp-source-code" data-lang="css">
+/* This page uses local styles (not global) */
+
+.local-demo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.local-demo-card {
+    padding: 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.local-demo-icon {
+    font-size: 2em;
+    margin-bottom: 10px;
+}
+
+/* For global styles, use: plugins/hello-world/webapp/view/jpulse-common.css */
+/* Prefix: .plg-hello-world-* (available site-wide, automatically loaded) */</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Plugin JavaScript -->
+        <div class="jp-card">
+            <h2>⚡ Section 2: Plugin JavaScript Extensions</h2>
+            <p>
+                Plugin JavaScript lives under <code>window.jPulse.plugins.{pluginName}</code> namespace.
+                This prevents global namespace pollution and allows plugins to coexist.
+            </p>
+
+            <h3>Plugin Utility Functions:</h3>
+            <button class="jp-btn jp-btn-primary" onclick="testPluginUtils()">
+                Test Plugin Utilities
+            </button>
+
+            <div id="pluginUtilsOutput" class="jp-info-box" style="margin-top: 15px;">
+                Click the button to test plugin JavaScript functions...
+            </div>
+
+            <div id="js-code-collapsible" class="jp-collapsible">
+                <h3>💻 View JavaScript Code</h3>
+                <div class="jp-collapsible-content">
+                    <p>File: <code>plugins/hello-world/webapp/view/jpulse-common.js</code></p>
+                    <div class="jp-source-code" data-lang="js">
+// Ensure plugin namespace exists
+window.jPulse.plugins.helloWorld = {
+    greet: function(name) {
+        return `Hello, ${name}! 🔌`;
+    },
+
+    getTimestamp: function() {
+        return new Date().toISOString();
+    },
+
+    calculateSum: function(a, b) {
+        return a + b;
+    }
+};</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Plugin API Integration -->
+        <div class="jp-card">
+            <h2>📡 Section 3: Plugin REST API</h2>
+            <p>
+                Plugins can provide their own REST API endpoints following jPulse conventions.
+                Controllers use <code>static async api*()</code> methods for auto-discovery.
+            </p>
+
+            <h3>Test Plugin API:</h3>
+            <button class="jp-btn jp-btn-primary" onclick="testPluginAPI()">
+                GET /api/1/helloPlugin
+            </button>
+
+            <div id="apiOutput" class="jp-info-box" style="margin-top: 15px;">
+                Click the button to call the plugin's API endpoint...
+            </div>
+
+            <div id="api-code-collapsible" class="jp-collapsible">
+                <h3>💻 View Controller Code</h3>
+                <div class="jp-collapsible-content">
+                    <p>File: <code>plugins/hello-world/webapp/controller/helloPlugin.js</code></p>
+                    <div class="jp-source-code" data-lang="js">
+export default class HelloPluginController {
+    static async apiGet(req, res) {
+        // Auto-discovered and registered at /api/1/helloPlugin
+        return res.json({
+            success: true,
+            data: {
+                message: 'Hello from plugin!',
+                timestamp: new Date().toISOString(),
+                version: '1.0.0'
+            }
+        });
+    }
+}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Plugin Configuration -->
+        <div class="jp-card">
+            <h2>⚙️ Section 4: Plugin Configuration Management</h2>
+            <p>
+                Plugins can define configuration schemas in <code>plugin.json</code>.
+                The framework automatically generates admin UI and stores config in MongoDB.
+            </p>
+
+            <h3>Current Configuration:</h3>
+            <button class="jp-btn jp-btn-primary" onclick="loadPluginConfig()">
+                Load Configuration
+            </button>
+
+            <div id="configOutput" class="jp-info-box" style="margin-top: 15px;">
+                Click the button to load the plugin's current configuration...
+            </div>
+
+            <p style="margin-top: 10px;">
+                <a href="/admin/plugin-config.shtml?plugin=hello-world" class="jp-btn jp-btn-secondary">
+                    Configure Plugin
+                </a>
+                <span style="font-size: 0.9em; margin-left: 10px;">
+                    (only available to administrators)
+                </span>
+            </p>
+
+            <div id="config-schema-collapsible" class="jp-collapsible">
+                <h3>💻 View Configuration Schema</h3>
+                <div class="jp-collapsible-content">
+                    <p>File: <code>plugins/hello-world/plugin.json</code></p>
+                    <div class="jp-source-code" data-lang="json">
+{
+    "config": {
+        "schema": [
+            {
+                "id": "message",
+                "label": "Welcome Message",
+                "type": "text",
+                "default": "Hello from the plugin system!",
+                "help": "This message will be displayed",
+                "tab": "General"
+            },
+            {
+                "id": "showStats",
+                "label": "Show Statistics",
+                "type": "boolean",
+                "default": true,
+                "tab": "General"
+            }
+        ]
+    }
+}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5: Automatic Asset Loading -->
+        <div class="jp-card">
+            <h2>📦 Section 5: Automatic Asset Loading</h2>
+            <p>
+                Plugin CSS and JavaScript files are automatically loaded with the framework.
+                This provides better performance (fewer HTTP requests) and guaranteed load order.
+            </p>
+
+            <h3>How It Works:</h3>
+            <ol style="line-height: 1.8;">
+                <li><strong>Framework processes requests</strong> for <code>/common/jpulse-common.css</code> and <code>/common/jpulse-common.js</code></li>
+                <li><strong>PathResolver collects all matching files</strong> from framework → site → plugins</li>
+                <li><strong>Files are concatenated</strong> in load order with proper separation</li>
+                <li><strong>Result is cached</strong> for performance (with cache busting via query params)</li>
+                <li><strong>Browser receives single file</strong> containing framework + site + all plugin code</li>
+            </ol>
+
+            <h3 style="margin-top: 20px;">Files That Are Auto-Loaded:</h3>
+            <ul style="line-height: 1.8;">
+                <li><code>webapp/view/jpulse-common.css</code> → Plugin CSS styles</li>
+                <li><code>webapp/view/jpulse-common.js</code> → Plugin JavaScript utilities</li>
+                <li><code>webapp/view/jpulse-navigation.js</code> → Navigation menu entries</li>
             </ul>
-        </div>
 
-        <div class="jp-stats-grid" id="statsGrid">
-            <div class="jp-stat-card">
-                <div class="jp-stat-number" id="statPluginName">-</div>
-                <div class="jp-stat-label">Plugin Name</div>
-            </div>
-            <div class="jp-stat-card">
-                <div class="jp-stat-number" id="statVersion">-</div>
-                <div class="jp-stat-label">Version</div>
-            </div>
-            <div class="jp-stat-card">
-                <div class="jp-stat-number" id="statStatus">-</div>
-                <div class="jp-stat-label">Status</div>
+            <div class="jp-alert jp-alert-info">
+                <strong>💡 Tip:</strong> Plugins can still use <code>webapp/static/</code> for standalone assets
+                that shouldn't be appended (like images, large libraries, or dynamically loaded scripts).
             </div>
         </div>
 
-        <!-- Help & Navigation Section -->
-        <div class="jp-alert jp-alert-info" style="margin-bottom: 20px;">
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <a href="/plugins/" class="jp-btn jp-btn-sm jp-btn-secondary">
-                    ← Plugins Dashboard
+        <!-- Navigation Links -->
+        <div class="jp-card">
+            <h2>📚 Learn More</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <a href="/jpulse-plugins/hello-world.shtml" class="jp-btn jp-btn-primary">
+                    Plugin Overview
                 </a>
-                <a href="/plugins/hello-world.shtml" class="jp-btn jp-btn-sm jp-btn-primary">
-                    ⚙️ Configure Plugin
+                {{#if user.isAdmin}}
+                <a href="/admin/plugin-config.shtml?plugin=hello-world" class="jp-btn jp-btn-secondary">
+                    Configure Plugin
                 </a>
-                <a href="/jpulse-docs/installed-plugins/hello-world/README" class="jp-btn jp-btn-sm jp-btn-secondary" target="_blank">
-                    📖 Documentation
+                {{/if}}
+                <a href="/jpulse-docs/installed-plugins/hello-world/README" class="jp-btn jp-btn-secondary" target="_blank">
+                    Plugin Docs
+                </a>
+                <a href="/jpulse-docs/plugins/README" class="jp-btn jp-btn-secondary" target="_blank">
+                    Developer Guide
                 </a>
             </div>
         </div>
 
-        <div id="configMessage" class="jp-alert jp-alert-success" style="display:none;">
-            <strong>📝 Custom Message:</strong>
-            <span id="configMessageText"></span>
-        </div>
-
-        <div class="jp-card" style="margin-bottom: 30px;">
-            <h2>Plugin Features</h2>
-            <ul class="local-features-list" id="featuresList">
-                <li>Loading features...</li>
-            </ul>
-        </div>
     </div>
 
     <script>
-        // Hello World Plugin page initialization
-        // Note: window.jPulse.plugins.helloWorld is defined in jpulse-common.js (W-098 append mode)
+    /**
+     * Interactive demo functions for testing plugin features
+     */
 
-        /**
-         * Initialize the hello world plugin page
-         */
-        async function initializeHelloWorldPage() {
-            try {
-                // Load plugin data using plugin utility function
-                const response = await jPulse.api.get('/api/1/helloPlugin');
+    // Initialize collapsibles
+    jPulse.dom.ready(() => {
+        jPulse.UI.collapsible.register('css-code-collapsible', { initOpen: false });
+        jPulse.UI.collapsible.register('js-code-collapsible', { initOpen: false });
+        jPulse.UI.collapsible.register('api-code-collapsible', { initOpen: false });
+        jPulse.UI.collapsible.register('config-schema-collapsible', { initOpen: false });
+    });
 
-                if (response.success) {
-                    const data = response.data;
+    // Test plugin JavaScript utilities
+    function testPluginUtils() {
+        const output = document.getElementById('pluginUtilsOutput');
+        output.classList.remove('local-output-success', 'local-output-error');
 
-                    // Show config message if enabled
-                    if (data.config && data.config.enabled && data.config.message) {
-                        document.getElementById('configMessage').style.display = 'block';
-                        document.getElementById('configMessageText').textContent = data.config.message;
-                    }
+        try {
+            const greeting = window.jPulse.plugins.helloWorld.greet('Developer');
+            const timestamp = window.jPulse.plugins.helloWorld.getTimestamp();
+            const sum = window.jPulse.plugins.helloWorld.calculateSum(42, 8);
 
-                    // Display features
-                    if (data.sampleData && data.sampleData.features) {
-                        const featuresList = document.getElementById('featuresList');
-                        featuresList.innerHTML = '';
-                        data.sampleData.features.forEach(feature => {
-                            const li = document.createElement('li');
-                            li.textContent = feature;
-                            featuresList.appendChild(li);
-                        });
-                    }
-
-                    // Display stats
-                    document.getElementById('statPluginName').textContent = data.plugin || '-';
-                    document.getElementById('statVersion').textContent = data.version || '-';
-                    document.getElementById('statStatus').textContent = 'Active';
-
-                    // Log using plugin utility
-                    jPulse.plugins.helloWorld.utils.log('Page initialized successfully');
-
-                } else {
-                    jPulse.UI.toast.error('Failed to load plugin data');
-                }
-
-            } catch (error) {
-                console.error('Error initializing Hello World plugin page:', error);
-                jPulse.UI.toast.error('Error loading plugin: ' + error.message);
-            }
+            output.classList.add('local-output-success');
+            output.innerHTML = `
+                <strong>✓ Success!</strong> Plugin utilities are working:<br><br>
+                <strong>greet('Developer'):</strong> ${greeting}<br>
+                <strong>getTimestamp():</strong> ${timestamp}<br>
+                <strong>calculateSum(42, 8):</strong> ${sum}
+            `;
+        } catch (error) {
+            output.classList.add('local-output-error');
+            output.innerHTML = `<strong>✗ Error:</strong> ${error.message}`;
         }
+    }
 
-        // Initialize when DOM is ready
-        jPulse.dom.ready(() => {
-                initializeHelloWorldPage();
-        });
+    // Test plugin API endpoint
+    async function testPluginAPI() {
+        const output = document.getElementById('apiOutput');
+        output.classList.remove('local-output-success', 'local-output-error');
+        output.innerHTML = '<pre style="margin: 0;">Loading...</pre>';
+
+        try {
+            const response = await jPulse.api.get('/api/1/helloPlugin');
+            output.classList.add('local-output-success');
+            output.innerHTML = `<pre style="margin: 0;">${JSON.stringify(response, null, 2)}</pre>`;
+        } catch (error) {
+            output.classList.add('local-output-error');
+            output.innerHTML = `<strong>Error:</strong> ${error.message}`;
+        }
+    }
+
+    // Load plugin configuration
+    async function loadPluginConfig() {
+        const output = document.getElementById('configOutput');
+        output.classList.remove('local-output-success', 'local-output-error');
+        output.innerHTML = '<em>Loading...</em>';
+
+        try {
+            const response = await jPulse.api.get('/api/1/plugin/hello-world/config');
+
+            if (response.success) {
+                const config = response.data.values || {};
+                output.classList.add('local-output-success');
+                output.innerHTML = `
+                    <strong>Current Configuration:</strong><br><br>
+                    <strong>Message:</strong> ${jPulse.string.escapeHtml(config.message || 'Not set')}<br>
+                    <strong>Show Stats:</strong> ${config.showStats ? 'Yes ✓' : 'No ✗'}<br>
+                    <strong>Enable Caching:</strong> ${config.enableCaching ? 'Yes ✓' : 'No ✗'}
+                `;
+            } else {
+                output.classList.add('local-output-error');
+                output.innerHTML = `<em>Error: ${response.error || 'Failed to load configuration'}</em>`;
+            }
+        } catch (error) {
+            output.classList.add('local-output-error');
+            output.innerHTML = `<em>Error: ${error.message}</em>`;
+        }
+    }
     </script>
-{{file.include "jpulse-footer.tmpl"}}
+
+    {{file.include "jpulse-footer.tmpl"}}
 </body>
 </html>

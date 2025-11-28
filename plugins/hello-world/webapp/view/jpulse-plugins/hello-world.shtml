@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / Plugins / Hello World / WebApp / View / jPulse Plugins / Hello World
+ * @tagline         Hello World Plugin overview page
+ * @description     Overview and quick access for Hello World reference plugin
+ * @file            plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml
+ * @version         1.2.6
+ * @release         2025-11-27
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello World Plugin - {{app.site.shortName}}</title>
+{{file.include "jpulse-header.tmpl"}}
+    <style>
+    /* Page-specific styles */
+    .local-feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-top: 15px;
+    }
+
+    .local-feature-item h3 {
+        font-size: 1.1em;
+        margin-bottom: 8px;
+    }
+
+    .local-feature-item p {
+        font-size: 0.95em;
+        color: #666;
+    }
+
+    .local-btn-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+
+    .local-stats-grid {
+        margin-top: 20px;
+    }
+
+    .local-admin-note {
+        margin-top: 10px;
+        font-size: 0.9em;
+    }
+
+    .local-action-list {
+        line-height: 1.8;
+    }
+
+    .local-tech-table td:first-child {
+        width: 200px;
+    }
+    </style>
+</head>
+<body>
+    <div style="display: none;">
+        <!-- This card is automatically included in the dashboard at jpulse-plugins/index.shtml -->
+        <!-- extract:start order=1 -->
+        <a href="/jpulse-plugins/hello-world.shtml" class="jp-card-dashboard jp-icon-btn">
+            <div class="jp-icon-container">🔌</div>
+            <h3 class="jp-card-title">Hello World Plugin</h3>
+            <p class="jp-card-description">
+                Reference plugin demonstrating the jPulse plugin architecture
+            </p>
+        </a>
+        <!-- extract:end -->
+    </div>
+
+    <div class="jp-main">
+        <div class="jp-container-1000">
+            <div class="jp-page-header">
+                <h1>🔌 Hello World Plugin</h1>
+                <span class="jp-subtitle">Reference implementation for jPulse Framework plugins</span>
+            </div>
+
+            <!-- Plugin Overview -->
+            <div class="jp-card">
+                <h2>About This Plugin</h2>
+                <p>
+                    The Hello World plugin serves as a complete reference implementation demonstrating
+                    the jPulse Framework's plugin architecture. It showcases MVC components, API endpoints,
+                    configuration management, and automatic CSS/JavaScript integration.
+                </p>
+
+                <div class="jp-stats-grid local-stats-grid">
+                    <div class="jp-stat-card">
+                        <div class="jp-stat-label">Version</div>
+                        <div class="jp-stat-number">1.0.0</div>
+                    </div>
+                    <div class="jp-stat-card">
+                        <div class="jp-stat-label">Status</div>
+                        <div class="jp-stat-number"><span class="jp-status-badge jp-status-active">Active</span></div>
+                    </div>
+                    <div class="jp-stat-card">
+                        <div class="jp-stat-label">Auto-Enable</div>
+                        <div class="jp-stat-number">✓ Yes</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="jp-card">
+                <h2>Quick Actions</h2>
+                <div class="local-btn-grid">
+                    <a href="/hello-plugin/" class="jp-btn jp-btn-primary">
+                        👋 View Demo Page
+                    </a>
+                    {{#if user.isAdmin}}
+                    <a href="/admin/plugin-config.shtml?plugin=hello-world" class="jp-btn jp-btn-secondary">
+                        ⚙️ Configure Plugin
+                    </a>
+                    {{/if}}
+                    <a href="/jpulse-docs/installed-plugins/hello-world/README" class="jp-btn jp-btn-secondary" target="_blank">
+                        📚 Plugin Docs
+                    </a>
+                    <a href="/jpulse-docs/plugins/README" class="jp-btn jp-btn-secondary" target="_blank">
+                        🔧 Developer Guide
+                    </a>
+                </div>
+                {{#unless user.isAdmin}}
+                <p class="local-admin-note">
+                    <em>Note: Plugin configuration is only available to administrators</em>
+                </p>
+                {{/unless}}
+            </div>
+
+            <!-- Features -->
+            <div class="jp-card">
+                <h2>Features Demonstrated</h2>
+                <div class="local-feature-grid">
+                    <div class="local-feature-item">
+                        <h3>🎯 MVC Architecture</h3>
+                        <p>Complete Model-View-Controller implementation with API endpoints</p>
+                    </div>
+                    <div class="local-feature-item">
+                        <h3>⚙️ Configuration</h3>
+                        <p>Dynamic configuration schema with tab-based settings</p>
+                    </div>
+                    <div class="local-feature-item">
+                        <h3>📦 Asset Integration</h3>
+                        <p>Automatic CSS and JavaScript loading with the framework</p>
+                    </div>
+                    <div class="local-feature-item">
+                        <h3>🔄 Auto-Discovery</h3>
+                        <p>Automatic plugin detection and registration at startup</p>
+                    </div>
+                    <div class="local-feature-item">
+                        <h3>🎨 CSS Namespacing</h3>
+                        <p>Proper naming conventions with <code>plg-hello-world-*</code> prefix</p>
+                    </div>
+                    <div class="local-feature-item">
+                        <h3>📡 API Integration</h3>
+                        <p>RESTful API endpoints following jPulse conventions</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- What You Can Do -->
+            <div class="jp-card">
+                <h2>What You Can Do</h2>
+                <ul class="local-action-list">
+                    <li><strong>Explore the Demo:</strong> Visit <a href="/hello-plugin/">/hello-plugin/</a> to see interactive examples of plugin features</li>
+                    <li><strong>Configure Settings:</strong> Customize the plugin behavior through the <a href="/admin/plugin-config.shtml?plugin=hello-world">configuration interface</a> (for administrators only)</li>
+                    <li><strong>Learn Plugin Development:</strong> Use this as a template for creating your own plugins</li>
+                    <li><strong>Test API Endpoints:</strong> Try the plugin's REST API at <code>/api/1/helloPlugin</code></li>
+                    <li><strong>Read Documentation:</strong> Learn more in the <a href="/jpulse-docs/installed-plugins/hello-world/" target="_blank">user guide</a> and <a href="/jpulse-docs/plugins/README" target="_blank">developer documentation</a></li>
+                </ul>
+            </div>
+
+            <!-- Technical Info -->
+            <div class="jp-card">
+                <h2>Technical Information</h2>
+                <table class="jp-table local-tech-table">
+                    <tbody>
+                        <tr>
+                            <td><strong>Plugin Name</strong></td>
+                            <td><code>hello-world</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Repository</strong></td>
+                            <td><code>@jpulse-net/plugin-hello-world</code> (on GitHub, via .npmrc)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Framework Version</strong></td>
+                            <td>≥1.2.6</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Author</strong></td>
+                            <td>jPulse Team &lt;team@jpulse.net&gt;</td>
+                        </tr>
+                        <tr>
+                            <td><strong>License</strong></td>
+                            <td>BSL 1.1</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

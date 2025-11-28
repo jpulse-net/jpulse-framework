@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / jPulse Plugins / Dashboard
+ * @tagline         Plugin Dashboard
+ * @description     Dashboard showing all installed plugins
+ * @file            webapp/view/jpulse-plugins/index.shtml
+ * @version         1.2.6
+ * @release         2025-11-27
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>jPulse Plugins - {{app.site.shortName}}</title>
+{{file.include "jpulse-header.tmpl"}}
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-container-1200">
+            <div class="jp-page-header">
+                <h1>{{use.jpIcons.pluginsSvg size="26"}} jPulse Plugins</h1>
+                <span class="jp-subtitle">Installed plugins with user-facing features</span>
+            </div>
+
+            <div class="jp-alert jp-alert-info">
+                <strong>ℹ️ About This Dashboard:</strong> This page shows plugins that provide user-facing features.
+                For administrative plugin management, visit <a href="/admin/plugins.shtml">Plugin Management</a>.
+            </div>
+
+            <!-- Auto-discovered plugin cards -->
+            <div class="jp-card-grid">
+            {{#each file.list "jpulse-plugins/*.shtml" sortBy="extract-order"}}
+                {{file.extract this}}
+            {{/each}}
+            </div>
+
+            <!-- If no plugins found -->
+            <div id="noPluginsMessage" style="display: none;">
+                <div class="jp-card">
+                    <div style="text-align: center; padding: 40px; color: var(--jp-color-text-secondary);">
+                        <p style="font-size: 1.2em; margin-bottom: 10px;">No plugin pages found</p>
+                        <p>Plugins can opt-in to this dashboard by creating a view file at:</p>
+                        <code>webapp/view/jpulse-plugins/{plugin-name}.shtml</code>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

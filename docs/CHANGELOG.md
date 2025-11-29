@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Version History v1.2.6
+# jPulse Docs / Version History v1.2.6
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
 

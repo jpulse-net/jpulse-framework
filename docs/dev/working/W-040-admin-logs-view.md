@@ -1,4 +1,4 @@
-# W-040 Admin Logs View - Implementation Summary
+# W-040: Admin Logs View - Implementation Summary
 
 ## Task Overview
 **W-040, v0.9.5: view: create view logs page for site admins**

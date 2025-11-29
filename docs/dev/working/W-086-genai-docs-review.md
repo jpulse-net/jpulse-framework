@@ -1,4 +1,4 @@
-# Gen-AI Documentation Review - Based on T-001 Experience
+# W-086: Gen-AI Documentation Review - Based on T-001 Experience
 
 **Date:** 2025-11-03
 **Context:** Review of genai-development.md and genai-instructions.md after completing T-001 (marketing site creation)

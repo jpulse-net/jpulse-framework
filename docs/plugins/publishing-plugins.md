@@ -1,4 +1,4 @@
-# jPulse Framework / Docs / Plugins / Publishing Plugins v1.2.6
+# jPulse Docs / Plugins / Publishing Plugins v1.2.6
 
 Guide to packaging and publishing jPulse plugins for distribution.
 
@@ -6,14 +6,14 @@ Guide to packaging and publishing jPulse plugins for distribution.
 
 Before publishing your plugin, ensure:
 
-✅ **plugin.json is complete** - All required fields filled
-✅ **Documentation is written** - README.md and docs/README.md
-✅ **Code is tested** - Enable/disable, configuration works
-✅ **Naming conventions followed** - CSS classes, JavaScript namespaces
-✅ **Dependencies declared** - All npm packages and plugin dependencies
-✅ **Version number set** - Semantic versioning (e.g., 1.0.0)
-✅ **Example configuration provided** - Sample values in docs
-✅ **No hardcoded paths** - Use PathResolver for all file access
+- **plugin.json is complete** - All required fields filled
+- **Documentation is written** - README.md and docs/README.md
+- **Code is tested** - Enable/disable, configuration works
+- **Naming conventions followed** - CSS classes, JavaScript namespaces
+- **Dependencies declared** - All npm packages and plugin dependencies
+- **Version number set** - Semantic versioning (e.g., 1.0.0)
+- **Example configuration provided** - Sample values in docs
+- **No hardcoded paths** - Use PathResolver for all file access
 
 ## GitHub Repository Setup
 
@@ -333,16 +333,16 @@ mv plugin-your-plugin-1.0.0 your-plugin
 
 ## Best Practices
 
-✅ **Use semantic versioning** consistently
-✅ **Maintain a CHANGELOG.md** for all releases
-✅ **Test before publishing** every release
-✅ **Document breaking changes** clearly
-✅ **Provide migration guides** for major versions
-✅ **Keep dependencies minimal** and up-to-date
-✅ **Follow naming conventions** strictly
-✅ **Include examples** in documentation
-✅ **Respond to issues** and pull requests
-✅ **Keep README up-to-date** with latest features
+- **Use semantic versioning** consistently
+- **Maintain a CHANGELOG.md** for all releases
+- **Test before publishing** every release
+- **Document breaking changes** clearly
+- **Provide migration guides** for major versions
+- **Keep dependencies minimal** and up-to-date
+- **Follow naming conventions** strictly
+- **Include examples** in documentation
+- **Respond to issues** and pull requests
+- **Keep README up-to-date** with latest features
 
 ## See Also
 

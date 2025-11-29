@@ -4,6 +4,14 @@ This guide covers setting up the jPulse Framework for core development and contr
 
 > **Site Development**: See [Site Installation Guide](../installation.md) for building sites with jPulse.
 
+DEBUG:
+- [../installation.md](../installation.md)
+- [installation.md](installation.md)
+- [/installation.md](/installation.md)
+- [./installation.md](./installation.md)
+- [./../installation.md](./../installation.md)
+
+
 ## Prerequisites
 
 ### Required

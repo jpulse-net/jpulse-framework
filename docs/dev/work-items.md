@@ -2139,10 +2139,9 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 questions:
-- rethink plugin admin
 - markdown docs: a way to declare sequence
 - replace extract.start/end with {{component}}
-- i18n
+- i18n of plugins core
 
 
 

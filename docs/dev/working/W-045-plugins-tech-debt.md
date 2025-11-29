@@ -172,13 +172,48 @@ For the main architectural specification, see: [`W-014-W-045-mvc-site-plugins-ar
 
 ---
 
+## W-045-TD-14: Automated npm Plugin Installation
+
+- **Description**: Implement automated plugin installation from npm packages
+- **Current Limitation**: Plugins must be manually copied to `plugins/` directory
+- **Proposed Implementation**:
+  1. **Installation Command**: `npm install @org/plugin-name` or custom `jpulse plugin install`
+  2. **Copy Process**: Copy package from `node_modules/` to `plugins/{plugin-name}/`
+  3. **Auto-Discovery**: Plugin automatically discovered on next restart
+  4. **Auto-Enable**: Enabled automatically if `plugin.json` has `autoEnable: true`
+  5. **Dependencies**: Plugin's npm dependencies auto-installed
+- **Implementation Details**:
+  - **Static Assets**: Symlink `webapp/static/plugins/{name}` → `plugins/{name}/webapp/static/`
+  - **Documentation**: Framework dev: symlink `docs/installed-plugins/{name}` → `plugins/{name}/docs/`
+  - **Documentation**: Site install: copy or symlink to `webapp/static/assets/jpulse-docs/installed-plugins/{name}/`
+  - **Registry**: Update `.jpulse/plugins.json` registry
+  - **npm Dependencies**: Run `npm install` in plugin directory if `package.json` exists
+- **CLI Integration** (optional):
+  ```bash
+  jpulse plugin install @org/plugin-name
+  jpulse plugin uninstall plugin-name
+  jpulse plugin list
+  jpulse plugin enable plugin-name
+  jpulse plugin disable plugin-name
+  ```
+- **Benefits**:
+  - Simplified installation process for site admins
+  - Consistent plugin deployment
+  - Easier to distribute and update plugins
+  - Preparation for future plugin marketplace
+- **Priority**: Medium - improves UX but manual installation works
+- **Blockers**: None - can be implemented incrementally
+- **Discovered During**: W-045 Phase 1 documentation review
+
+---
+
 ## Summary
 
-**Total Technical Debt Items**: 13
+**Total Technical Debt Items**: 14
 
 **Priority Breakdown**:
 - **High** (2): TD-5 (SQL migrations), TD-7 (sandboxing)
-- **Medium** (5): TD-1 (handlebars), TD-2 (i18n), TD-6 (testing), TD-10 (hooks), TD-12 (form transforms)
+- **Medium** (6): TD-1 (handlebars), TD-2 (i18n), TD-6 (testing), TD-10 (hooks), TD-12 (form transforms), TD-14 (npm install)
 - **Low** (6): TD-3 (email), TD-4 (context), TD-8 (dev mode), TD-9 (marketplace), TD-11 (communication), TD-13 (docs)
 
 **Blockers**:
@@ -186,8 +221,9 @@ For the main architectural specification, see: [`W-014-W-045-mvc-site-plugins-ar
 
 **Immediate Next Steps** (if prioritized):
 1. TD-12: Form transformation (relatively simple, high impact on DX)
-2. TD-2: i18n support (enables international plugins)
-3. TD-1: Handlebars helper discovery (enables advanced template functionality)
+2. TD-14: npm plugin installation (improves deployment UX)
+3. TD-2: i18n support (enables international plugins)
+4. TD-1: Handlebars helper discovery (enables advanced template functionality)
 
 ---
 

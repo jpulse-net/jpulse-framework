@@ -141,27 +141,9 @@
             }
 
             renderMarkdown(content) {
-                let fixedContent = content;
-
-                // Fix relative image paths
-                fixedContent = fixedContent.replace(
-                    /!\[([^\]]*)\]\(\.\/images\/([^)]+)\)/g,
-                    `![$1](/assets/${this.namespace}/images/$2)`
-                );
-
-                // Fix internal .md links to clean URLs
-                fixedContent = fixedContent.replace(
-                    /\[([^\]]+)\]\(([^)]+)\.md\)/g,
-                    `[$1](/${this.namespace}/$2)`
-                );
-
-                // Fix relative .md links (starting with ./)
-                fixedContent = fixedContent.replace(
-                    /\[([^\]]+)\]\(\.\/([^)]+)\.md\)/g,
-                    `[$1](/${this.namespace}/$2)`
-                );
-
-                const html = marked.parse(fixedContent);
+                // Content is already transformed by the server (links and images)
+                // Just parse markdown to HTML
+                const html = marked.parse(content);
                 document.getElementById('markdown-content').innerHTML = html;
             }
 

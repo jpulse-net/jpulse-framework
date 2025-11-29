@@ -88,7 +88,4 @@ window.jPulse.plugins.helloWorld = {
     }
 };
 
-// Auto-initialize logging
-console.log('[Hello World Plugin] JavaScript loaded via W-098 append mode');
-
 // EOF plugins/hello-world/webapp/view/jpulse-common.js

@@ -169,7 +169,59 @@ class MarkdownController {
             throw error;
         }
 
-        return content;
+        // Transform markdown links and images for SPA navigation
+        const transformed = MarkdownController._transformMarkdownLinks(content, namespace, filePath);
+
+        return transformed;
+    }
+
+    /**
+     * Transform relative markdown links and images to absolute URLs
+     * @param {string} content - Raw markdown content
+     * @param {string} namespace - Documentation namespace (e.g., 'jpulse-docs')
+     * @param {string} currentPath - Current file path relative to namespace root
+     * @returns {string} Transformed markdown content
+     */
+    static _transformMarkdownLinks(content, namespace, currentPath) {
+        let transformed = content;
+
+        // Transform relative image paths
+        transformed = transformed.replace(
+            /!\[([^\]]*)\]\(\.\/images\/([^)]+)\)/g,
+            `![$1](/assets/${namespace}/images/$2)`
+        );
+
+        // Transform ALL .md links (handles ./, ../, ../../, and plain paths)
+        transformed = transformed.replace(
+            /\[([^\]]+)\]\((?:\.\/)?((?:\.\.\/)*)([^)]+)\.md\)/g,
+            (match, linkText, doubleDotSlashes, targetPath) => {
+                // Skip absolute URLs and anchors
+                if (targetPath.startsWith('http://') || targetPath.startsWith('https://') || targetPath.startsWith('#')) {
+                    return match;
+                }
+
+                // Count how many "../" levels to go up
+                const upLevels = doubleDotSlashes.length;
+
+                let resolvedPath;
+                if (upLevels > 0) {
+                    // Need to go up directories
+                    const currentPathParts = currentPath.split('/').slice(0, -1);
+                    const resolvedParts = currentPathParts.slice(0, -upLevels);
+                    resolvedPath = resolvedParts.length > 0
+                        ? `${resolvedParts.join('/')}/${targetPath}`
+                        : targetPath;
+                } else {
+                    // Plain path - assume relative to current directory
+                    const currentDir = currentPath.split('/').slice(0, -1).join('/');
+                    resolvedPath = currentDir ? `${currentDir}/${targetPath}` : targetPath;
+                }
+
+                return `[${linkText}](/${namespace}/${resolvedPath})`;
+            }
+        );
+
+        return transformed;
     }
 
     /**

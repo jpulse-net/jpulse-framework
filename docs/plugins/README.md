@@ -1,33 +1,70 @@
 # jPulse Framework / Docs / Plugins / Plugin Development Guide v1.2.6
 
-jPulse Framework provides a powerful and flexible plugin system that allows you to extend the framework's functionality.
+Welcome to jPulse Framework's plugin development guide! This documentation will help you create, publish, and manage plugins for the jPulse Framework.
 
 ## Quick Start
 
 1. **[Creating Plugins](creating-plugins.md)** - Step-by-step guide to building your first plugin
-2. **[Plugin Architecture](plugin-architecture.md)** - Understanding the plugin system architecture
-3. **[API Reference](plugin-api-reference.md)** - Complete API documentation for plugin developers
-4. **[Publishing Plugins](publishing-plugins.md)** - How to package and publish your plugins
-5. **[Managing Plugins](managing-plugins.md)** - Installing, configuring, and managing plugins
+2. **[Plugin Architecture](plugin-architecture.md)** - Understanding how the plugin system works
+3. **[API Reference](plugin-api-reference.md)** - Complete API documentation
+4. **[Publishing Plugins](publishing-plugins.md)** - Package and publish your plugins
+5. **[Managing Plugins](managing-plugins.md)** - Install, configure, and manage plugins
 
 ## Overview
 
-The jPulse plugin system follows a simple yet powerful architecture:
+The jPulse plugin system is designed to be simple yet powerful:
 
-- **Auto-discovery**: Plugins are automatically discovered from the `plugins/` directory
-- **MVC Integration**: Plugins can provide models, views, controllers, and static assets
-- **Configuration Management**: Built-in support for plugin-specific configuration
-- **Database Support**: Plugins can extend existing models or create new ones
-- **API Endpoints**: Plugins can register their own REST API endpoints
-- **Client-Side Code**: Support for JavaScript, CSS, and view templates
-- **Documentation**: Plugin documentation is automatically integrated into the site
+### Key Features
+
+- **🔍 Auto-Discovery**: Drop a plugin in `plugins/` and it's automatically detected
+- **🧩 MVC Integration**: Full support for Models, Views, and Controllers
+- **⚙️ Configuration**: Dynamic admin UI generated from JSON schema
+- **💾 Database**: Extend existing models or create new collections
+- **📡 API Endpoints**: Register REST endpoints with auto-discovery
+- **🎨 Assets**: CSS and JavaScript automatically loaded with the framework
+- **📚 Documentation**: Integrated into the site's documentation system
+- **🔗 Navigation**: Add menu items to the site navigation
+
+### Path Resolution Priority
+
+When the framework looks for files, it checks in this order:
+1. **Site** (`site/webapp/`)
+2. **Plugins** (`plugins/*/webapp/`) - in dependency order
+3. **Framework** (`webapp/`)
+
+This allows sites to override plugin defaults, and plugins to override framework defaults.
 
 ## Hello World Example
 
-See the [Hello World plugin](../installed-plugins/hello-world/README.md) for a complete reference implementation that demonstrates all plugin capabilities.
+The [Hello-World plugin](../installed-plugins/hello-world/README.md) is a complete reference implementation that demonstrates:
+
+- MVC component structure
+- Configuration schema with tabs
+- API endpoint registration
+- CSS/JavaScript integration
+- Navigation menu integration
+- User-facing pages (dashboard + tutorial)
+- Documentation structure
+
+**Live Demos of Hello-World Plugin:**
+- [Plugin Dashboard](/jpulse-plugins/) - User-facing listing of installed plugins
+- [Hello World Tutorial](/hello-plugin/) - Interactive demo
+- [Plugin Overview](/jpulse-plugins/hello-world.shtml) - Plugin details
+- [Admin Management](/admin/plugins.shtml) - Enable/disable plugins (for administrators only)
+- [Admin Configuration](/admin/plugin-config.shtml?plugin=hello-world) - Configure settings (for administrators only)
+
+## Naming Conventions
+
+To prevent conflicts, plugins must follow these naming conventions:
+
+- **CSS Classes**: `plg-{plugin-name}-*` (e.g., `.plg-auth-ldap-login-form`)
+- **JavaScript**: `window.jPulse.plugins.{camelCaseName}` (e.g., `window.jPulse.plugins.authLdap`)
+- **Controllers**: `{PluginName}Controller.js` (e.g., `AuthLdapController.js`)
+- **Models**: `{PluginName}Model.js` (e.g., `AuthLdapModel.js`)
+- **Views**: `{plugin-name}/` directory (e.g., `auth-ldap/index.shtml`)
+- **Database Collections**: `{pluginName}_{collection}` (e.g., `authLdap_sessions`)
 
 ## Need Help?
 
-- Browse [installed plugins](../installed-plugins/README.md) for examples
-- Check the [architecture documentation](../../dev/working/W-014-W-045-mvc-site-plugins-architecture.md) for technical details
-- Review the [plugin API reference](plugin-api-reference.md) for complete API documentation
+- **Examples**: Browse the [installed plugins](/jpulse-plugins/) for working examples
+- **API Reference**: Review the [complete API reference](plugin-api-reference.md) for all available methods

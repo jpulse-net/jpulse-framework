@@ -3,4 +3,13 @@
 #   - webapp/view/jpulse-common.css
 #   - webapp/view/jpulse-common.js
 #   - webapp/view/jpulse-navigation.js
+#
+# Recommended subdirectory structure (optional):
+#   css/       - Plugin-specific stylesheets
+#   js/        - Plugin-specific scripts
+#   images/    - Images, icons, logos
+#   fonts/     - Custom fonts
+#   lib/       - Third-party libraries
+#
+# Accessible at: /static/plugins/hello-world/{subdirectory}/{file}
 

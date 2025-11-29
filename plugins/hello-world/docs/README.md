@@ -15,17 +15,17 @@ The Hello World plugin provides:
 
 ### Viewing the Plugin
 
-1. Navigate to [/hello-plugin/](/hello-plugin/) to see the plugin page
-2. Check the [Plugins Dashboard](/jpulse-plugins/) to see all installed plugins
-3. Visit the [Hello-World Plugin Configuration](/jpulse-plugins/hello-world.shtml) page to customize settings
+1. Visit the [Hello-World Plugin](/jpulse-plugins/hello-world.shtml) page for a plugin overview
+2. Navigate to [/hello-plugin/](/hello-plugin/) to see the plugin page
+3. Check the [Plugins Dashboard](/jpulse-plugins/) to see all installed plugins
 
 ### Configuring the Plugin
 
-1. Go to [/jpulse-plugins/hello-world.shtml](/jpulse-plugins/hello-world.shtml)
-2. Modify the welcome message
-3. Toggle the "Show Welcome Message" option
+1. Go to [/admin/plugin-config.shtml?plugin=hello-world](/admin/plugin-config.shtml?plugin=hello-world) (for adinistrators only)
+2. Modify the Welcome Message
+3. Toggle the "Show Statistics" option
 4. Click "Save Configuration"
-5. Visit [/hello-plugin/](/hello-plugin/) to see your changes
+5. Visit [/hello-plugin/](/hello-plugin/) to see the configuration changes
 
 ## Features
 
@@ -41,7 +41,7 @@ The plugin stores its configuration in the `pluginConfigs` MongoDB collection:
 - **Enable/Disable**: Toggle whether the custom message is displayed
 
 Configuration can be modified via:
-- The admin UI at [/jpulse-plugins/hello-world.shtml](/jpulse-plugins/hello-world.shtml)
+- The admin UI at [/admin/plugin-config.shtml?plugin=hello-world](/admin/plugin-config.shtml?plugin=hello-world) (for adinistrators only)
 - The Plugin REST API endpoints programmatically
 
 ### API Integration
@@ -106,15 +106,14 @@ The plugin integrates seamlessly by providing:
 
 For developers who want to understand how this plugin works or use it as a template for creating their own plugins:
 
-- **Developer Documentation**: See the [plugin's developer README](../README.md) for technical implementation details
-- **Plugin Development Guide**: Learn how to create plugins in the [Plugin Development Guide](/jpulse-docs/plugins/README)
-- **Source Code**: Browse the [plugin source code](https://github.com/jpulse-net/jpulse-framework/tree/main/plugins/hello-world)
+- Learn how to create plugins in the [Plugin Development Guide](../plugins/README.md)
+- Browse the [plugin source code](https://github.com/jpulse-net/jpulse-framework/tree/main/plugins/hello-world)
 
 ## Support
 
 If you encounter any issues or have questions:
 
-1. Check the [Plugin Development Guide](/jpulse-docs/plugins/README) for common solutions
+1. Check the [Plugin Development Guide](../plugins/README.md) for common solutions
 2. Review the [Plugins Dashboard](/jpulse-plugins/) to verify the plugin is active
 3. Contact your system administrator for site-specific support
 

@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-045 PluginController
  * @description     Tests plugin API endpoints including new public getInfo()
  * @file            webapp/tests/unit/controller/plugin-controller.test.js
- * @version         1.3.0
+ * @version         1.3.1
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -115,7 +115,7 @@ describe('PluginController (W-045)', () => {
                     summary: 'Test plugin summary',
                     description: '<p>Test plugin description</p>',
                     author: 'Test Author <test@test.com>',
-                    jpulseVersion: '>=1.2.6'
+                    jpulseVersion: '>=1.3.0'
                 },
                 registryEntry: {
                     enabled: true,
@@ -140,7 +140,7 @@ describe('PluginController (W-045)', () => {
                         summary: 'Test plugin summary',
                         description: '<p>Test plugin description</p>',
                         author: 'Test Author <test@test.com>',
-                        jpulseVersion: '>=1.2.6',
+                        jpulseVersion: '>=1.3.0',
                         enabled: true,
                         autoEnable: true,
                         status: 'loaded'

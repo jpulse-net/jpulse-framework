@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.2.6
+# jPulse Docs / Plugins / Plugins API Reference v1.3.1
 
 Complete API reference for jPulse plugin developers.
 
@@ -45,7 +45,7 @@ Response: { success: true, data: {...} }
 {
     "name": "plugin-name",
     "version": "1.0.0",
-    "jpulseVersion": ">=1.2.6"
+    "jpulseVersion": ">=1.3.0"
 }
 ```
 
@@ -60,7 +60,7 @@ Response: { success: true, data: {...} }
     "summary": "One-line description",  // Optional: For lists
     "description": "<p>HTML...</p>",    // Optional: Rich description
     "author": "Name <email>",           // Optional: Author info
-    "jpulseVersion": ">=1.2.6",         // Required: Min framework version
+    "jpulseVersion": ">=1.3.0",         // Required: Min framework version
     "autoEnable": true,                 // Optional: Auto-enable on discovery (default: true)
     "dependencies": {
         "npm": {                        // Optional: npm packages

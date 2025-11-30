@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.2.6
+# jPulse Docs / Plugins / Creating Plugins v1.3.1
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -47,7 +47,7 @@ This is the only required file for a minimal plugin.
     "summary": "Short one-line description",
     "description": "<p>Detailed HTML description...</p>",
     "author": "Your Name <you@example.com>",
-    "jpulseVersion": ">=1.2.6",
+    "jpulseVersion": ">=1.3.0",
     "autoEnable": true,
     "dependencies": {
         "npm": {},
@@ -62,7 +62,7 @@ This is the only required file for a minimal plugin.
 ### Required Fields:
 - `name` - Lowercase with hyphens (e.g., `auth-ldap`)
 - `version` - Semantic version (e.g., `1.0.0`)
-- `jpulseVersion` - Minimum framework version (e.g., `>=1.2.6`)
+- `jpulseVersion` - Minimum framework version (e.g., `>=1.3.0`)
 
 ### Optional Fields:
 - `npmPackage` - npm package name (e.g., `@jpulse-net/plugin-auth-ldap`)

@@ -3,7 +3,7 @@
  * @name            jPulse Framework / WebApp / View / Navigation Template
  * @tagline         Site navigation and multi-level navigation tabs definition
  * @file            webapp/view/jpulse-navigation.js
- * @version         1.3.0
+ * @version         1.3.1
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -38,71 +38,71 @@ window.jPulseNavigation = {
     // =======================================================
     site: {
         admin: {
-            label:              '{{i18n.view.navigation.admin._index}}',
+            label:              `{{i18n.view.navigation.admin._index}}`,
             url:                '/admin/',
             role:               'admin',  // role-based visibility
             icon:               '⚙️',
             pages: {
                 dashboard: {
-                    label:      '{{i18n.view.navigation.admin.dashboard}}',
+                    label:      `{{i18n.view.navigation.admin.dashboard}}`,
                     url:        '/admin/',
                     icon:       '⚙️'
                 },
                 config: {
-                    label:      '{{i18n.view.navigation.admin.config}}',
+                    label:      `{{i18n.view.navigation.admin.config}}`,
                     url:        '/admin/config.shtml',
-                    icon:       '{{use.jpIcons.configSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.configSvg size="24" _inline=true}}`
                 },
                 plugins: {
-                    label:      '{{i18n.view.navigation.admin.plugins}}',
+                    label:      `{{i18n.view.navigation.admin.plugins}}`,
                     url:        '/admin/plugins.shtml',
-                    icon:       '{{use.jpIcons.pluginSvg size="24" _inline=true}}',
+                    icon:       `{{use.jpIcons.pluginSvg size="24" _inline=true}}`,
                     pages: {
                         pluginConfig: {
-                            label:      '{{i18n.view.navigation.admin.pluginConfig}}',
+                            label:      `{{i18n.view.navigation.admin.pluginConfig}}`,
                             url:        '/admin/plugin-config.shtml',
-                            icon:       '{{use.jpIcons.configSvg size="24" _inline=true}}'
+                            icon:       `{{use.jpIcons.configSvg size="24" _inline=true}}`
                         }
                     }
                 },
                 users: {
-                    label:      '{{i18n.view.navigation.admin.users}}',
+                    label:      `{{i18n.view.navigation.admin.users}}`,
                     url:        '/admin/users.shtml',
-                    icon:       '{{use.jpIcons.usersSvg size="24" _inline=true}}',
+                    icon:       `{{use.jpIcons.usersSvg size="24" _inline=true}}`,
                     pages: {
                         userProfile: {
-                            label:      '{{i18n.view.navigation.admin.userProfile}}',
+                            label:      `{{i18n.view.navigation.admin.userProfile}}`,
                             url:        '/admin/user-profile.shtml',
-                            icon:       '{{use.jpIcons.userSvg size="24" _inline=true}}'
+                            icon:       `{{use.jpIcons.userSvg size="24" _inline=true}}`
                         }
                     }
                 },
                 systemStatus: {
-                    label:      '{{i18n.view.navigation.admin.systemStatus}}',
+                    label:      `{{i18n.view.navigation.admin.systemStatus}}`,
                     url:        '/admin/system-status.shtml',
-                    icon:       '{{use.jpIcons.systemStatusSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.systemStatusSvg size="24" _inline=true}}`
                 },
                 websocket: {
-                    label:      '{{i18n.view.navigation.admin.websocket._index}}',
+                    label:      `{{i18n.view.navigation.admin.websocket._index}}`,
                     url:        '/admin/websocket-status.shtml',
-                    icon:       '{{use.jpIcons.websocketSvg size="24" _inline=true}}',
+                    icon:       `{{use.jpIcons.websocketSvg size="24" _inline=true}}`,
                     pages: {
                         websocketStatus: {
-                            label:    '{{i18n.view.navigation.admin.websocket.websocketStatus}}',
+                            label:    `{{i18n.view.navigation.admin.websocket.websocketStatus}}`,
                             url:      '/admin/websocket-status.shtml',
-                            icon:     '{{use.jpIcons.websocketSvg size="24" _inline=true}}'
+                            icon:     `{{use.jpIcons.websocketSvg size="24" _inline=true}}`
                         },
                         websocketTest: {
-                            label:    '{{i18n.view.navigation.admin.websocket.websocketTest}}',
+                            label:    `{{i18n.view.navigation.admin.websocket.websocketTest}}`,
                             url:      '/admin/websocket-test.shtml',
                             icon:     '🧪'
                         }
                     }
                 },
                 logs: {
-                    label:      '{{i18n.view.navigation.admin.logs}}',
+                    label:      `{{i18n.view.navigation.admin.logs}}`,
                     url:        '/admin/logs.shtml',
-                    icon:       '{{use.jpIcons.logsSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.logsSvg size="24" _inline=true}}`
                 }
             }
         },
@@ -110,24 +110,24 @@ window.jPulseNavigation = {
             {{#if appConfig.view.auth.hideLogin}}
                 {{#unless appConfig.view.auth.hideSignup}}
         auth: {
-            label:              '{{i18n.view.navigation.auth.signup}}',
+            label:              `{{i18n.view.navigation.auth.signup}}`,
             url:                '/auth/signup.shtml',
             icon:               '🔑',
         },
                 {{/unless}}
             {{else}}
         auth: {
-            label:              '{{i18n.view.navigation.auth._index}}',
+            label:              `{{i18n.view.navigation.auth._index}}`,
             url:                '/auth/login.shtml',
             icon:               '🔑',
             pages: {
                 login: {
-                    label:      '{{i18n.view.navigation.auth.login}}',
+                    label:      `{{i18n.view.navigation.auth.login}}`,
                     url:        '/auth/login.shtml'
                 },
                 {{#unless appConfig.view.auth.hideSignup}}
                 signup: {
-                    label:      '{{i18n.view.navigation.auth.signup}}',
+                    label:      `{{i18n.view.navigation.auth.signup}}`,
                     url:        '/auth/signup.shtml'
                 },
                 {{/unless}}
@@ -137,20 +137,20 @@ window.jPulseNavigation = {
         {{/unless}}
         {{#if user.isAuthenticated}}
         user: {
-            label:              '{{i18n.view.navigation.user._index}}',
+            label:              `{{i18n.view.navigation.user._index}}`,
             url:                '/user/',
             icon:               '👤',
             pages: {
                 overview: {
-                    label:      '{{i18n.view.navigation.user.overview}}',
+                    label:      `{{i18n.view.navigation.user.overview}}`,
                     url:        '/user/'
                 },
                 profile: {
-                    label:      '{{i18n.view.navigation.user.profile}}',
+                    label:      `{{i18n.view.navigation.user.profile}}`,
                     url:        '/user/profile.shtml'
                 },
                 auth: {
-                    label:      '{{i18n.view.navigation.auth.logout}}',
+                    label:      `{{i18n.view.navigation.auth.logout}}`,
                     url:        '/auth/logout.shtml',
                     icon:       '🔑',
                 },
@@ -158,7 +158,7 @@ window.jPulseNavigation = {
         },
         {{/if}}
         jPulseDocs: {
-            label:              '{{i18n.view.navigation.jPulseDocs}}',
+            label:              `{{i18n.view.navigation.jPulseDocs}}`,
             url:                '/jpulse-docs/',
             icon:               '📖',
             pages: {
@@ -166,51 +166,51 @@ window.jPulseNavigation = {
             }
         },
         jPulseExamples: {
-            label:              '{{i18n.view.navigation.jPulseExamples._index}}',
+            label:              `{{i18n.view.navigation.jPulseExamples._index}}`,
             url:                '/jpulse-examples/',
             icon:               '🚀',
             pages: {
                 overview: {
-                    label:      '{{i18n.view.navigation.jPulseExamples.overview}}',
+                    label:      `{{i18n.view.navigation.jPulseExamples.overview}}`,
                     url:        '/jpulse-examples/',
                     icon:       '🚀'
                 },
                 api: {
-                    label:      '{{i18n.view.navigation.jPulseExamples.api}}',
+                    label:      `{{i18n.view.navigation.jPulseExamples.api}}`,
                     url:        '/jpulse-examples/api.shtml',
-                    icon:       '{{use.jpIcons.apiSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.apiSvg size="24" _inline=true}}`
                 },
                 handlebars: {
-                    label:      '{{i18n.view.navigation.jPulseExamples.handlebars}}',
+                    label:      `{{i18n.view.navigation.jPulseExamples.handlebars}}`,
                     url:        '/jpulse-examples/handlebars.shtml',
-                    icon:       '{{use.jpIcons.handlebarsSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.handlebarsSvg size="24" _inline=true}}`
                 },
                 uiWidgets: {
-                    label:      '{{i18n.view.navigation.jPulseExamples.uiWidgets}}',
+                    label:      `{{i18n.view.navigation.jPulseExamples.uiWidgets}}`,
                     url:        '/jpulse-examples/ui-widgets.shtml',
-                    icon:       '{{use.jpIcons.uiWidgetsSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.uiWidgetsSvg size="24" _inline=true}}`
                 },
                 layout: {
-                    label:      '{{i18n.view.navigation.jPulseExamples.layout}}',
+                    label:      `{{i18n.view.navigation.jPulseExamples.layout}}`,
                     url:        '/jpulse-examples/layout.shtml',
-                    icon:       '{{use.jpIcons.layoutSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.layoutSvg size="24" _inline=true}}`
                 },
                 forms: {
-                    label:      '{{i18n.view.navigation.jPulseExamples.forms}}',
+                    label:      `{{i18n.view.navigation.jPulseExamples.forms}}`,
                     url:        '/jpulse-examples/forms.shtml',
-                    icon:       '{{use.jpIcons.formsSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.formsSvg size="24" _inline=true}}`
                 },
             }
         },
         jPulsePlugins: {
-            label:              '{{i18n.view.navigation.jPulsePlugins._index}}',
+            label:              `{{i18n.view.navigation.jPulsePlugins._index}}`,
             url:                '/jpulse-plugins/',
-            icon:               '{{use.jpIcons.pluginSvg size="24" _inline=true}}',
+            icon:               `{{use.jpIcons.pluginSvg size="24" _inline=true}}`,
             pages: {
                 overview: {
-                    label:      '{{i18n.view.navigation.jPulsePlugins.overview}}',
+                    label:      `{{i18n.view.navigation.jPulsePlugins.overview}}`,
                     url:        '/jpulse-plugins/',
-                    icon:       '{{use.jpIcons.pluginSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.pluginSvg size="24" _inline=true}}`
                 }
             }
         },
@@ -229,42 +229,42 @@ window.jPulseNavigation = {
                 siteOverride: {
                     label:      'Site Override Example',
                     url:        '/hello/site-override.shtml',
-                    icon:       '{{use.jpIcons.overrideSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.overrideSvg size="24" _inline=true}}`
                 },
                 {{/if}}
                 {{#if file.exists "hello/site-development.shtml"}}
                 siteDevelopment: {
                     label:      'Site Development Example',
                     url:        '/hello/site-development.shtml',
-                    icon:       '{{use.jpIcons.trafficConeSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.trafficConeSvg size="24" _inline=true}}`
                 },
                 {{/if}}
                 {{#if file.exists "hello-todo/index.shtml"}}
                 helloTodo: {
                     label:      'To-Do MVC Demo',
                     url:        '/hello-todo/',
-                    icon:       '{{use.jpIcons.todoSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.todoSvg size="24" _inline=true}}`
                 },
                 {{/if}}
                 {{#if file.exists "hello-vue/index.shtml"}}
                 helloVue: {
                     label:      'Vue.js SPA Demo',
                     url:        '/hello-vue/',
-                    icon:       '{{use.jpIcons.refreshDotSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.refreshDotSvg size="24" _inline=true}}`
                 },
                 {{/if}}
                 {{#if file.exists "hello-websocket/index.shtml"}}
                 helloWebsocket: {
                     label:      'WebSocket Real-time Demo',
                     url:        '/hello-websocket/',
-                    icon:       '{{use.jpIcons.websocketSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.websocketSvg size="24" _inline=true}}`
                 },
                 {{/if}}
                 {{#if file.exists "hello-app-cluster/index.shtml"}}
                 helloAppCluster: {
                     label:      'App Cluster Demo',
                     url:        '/hello-app-cluster/',
-                    icon:       '{{use.jpIcons.serversSvg size="24" _inline=true}}'
+                    icon:       `{{use.jpIcons.serversSvg size="24" _inline=true}}`
                 },
                 {{/if}}
             }

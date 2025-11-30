@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.3.0
+# jPulse Docs / Handlebars Templating v1.3.1
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -449,7 +449,7 @@ Components support both user-defined parameters and special framework parameters
 <!-- In JavaScript object literal -->
 <script>
 const navConfig = {
-    icon: '{{use.jpIcons.configSvg size="24" _inline=true}}'
+    icon: `{{use.jpIcons.configSvg size="24" _inline=true}}`
 };
 </script>
 ```

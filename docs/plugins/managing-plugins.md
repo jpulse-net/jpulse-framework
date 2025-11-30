@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Managing Plugins v1.2.6
+# jPulse Docs / Plugins / Managing Plugins v1.3.1
 
 Guide for site administrators to install, configure, and manage jPulse plugins.
 
@@ -142,7 +142,7 @@ db.pluginConfigs.deleteOne({ pluginName: 'your-plugin' });
 ## Plugin Dependencies
 
 Plugins can depend on:
-- **Framework version**: `jpulseVersion: ">=1.2.6"`
+- **Framework version**: `jpulseVersion: ">=1.3.0"`
 - **npm packages**: Auto-installed when plugin is enabled
 - **Other plugins**: Must be enabled first
 

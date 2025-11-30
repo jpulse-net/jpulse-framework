@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Publishing Plugins v1.2.6
+# jPulse Docs / Plugins / Publishing Plugins v1.3.1
 
 Guide to packaging and publishing jPulse plugins for distribution.
 
@@ -98,7 +98,7 @@ License information.
     },
     "homepage": "https://github.com/your-org/plugin-your-plugin#readme",
     "peerDependencies": {
-        "jpulse-framework": ">=1.2.6"
+        "jpulse-framework": ">=1.3.0"
     },
     "dependencies": {
         // Your plugin's npm dependencies
@@ -163,9 +163,9 @@ Specify minimum framework version:
 
 ```json
 {
-    "jpulseVersion": ">=1.2.6",  // Minimum version
-    "jpulseVersion": "^1.2.0",   // Compatible with 1.x
-    "jpulseVersion": "~1.2.6"    // Compatible with 1.2.x
+    "jpulseVersion": ">=1.3.0",  // Minimum version
+    "jpulseVersion": "^1.3.0",   // Compatible with 1.x
+    "jpulseVersion": "~1.3.2"    // Compatible with 1.3.x
 }
 ```
 

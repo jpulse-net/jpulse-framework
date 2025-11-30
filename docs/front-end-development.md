@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.3.0
+# jPulse Docs / Front-End Development Guide v1.3.1
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -226,9 +226,9 @@ async function previewEmailTemplate(templateText, recipientData) {
 // Generate personalized notification messages
 async function showNotification(notificationType, data) {
     const templates = {
-        orderShipped: 'Great news, {{user.firstName}}! Your order {{order.id}} has been shipped.',
-        newMessage: 'You have a new message from {{sender.name}}.',
-        friendRequest: '{{sender.firstName}} wants to connect with you.'
+        orderShipped: `Great news, {{user.firstName}}! Your order {{order.id}} has been shipped.`,
+        newMessage: `You have a new message from {{sender.name}}.`,
+        friendRequest: `{{sender.firstName}} wants to connect with you.`
     };
 
     const result = await jPulse.api.post('/api/1/handlebar/expand', {

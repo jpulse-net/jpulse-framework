@@ -4,7 +4,7 @@
  * @tagline         User logout confirmation and processing page
  * @description     Logout confirmation with automatic session termination
  * @file            webapp/view/auth/logout.shtml
- * @version         1.3.0
+ * @version         1.3.1
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -115,7 +115,7 @@
             // Show loading state
             logoutButton.disabled = true;
             logoutButton.classList.add('loading');
-            logoutButton.textContent = '{{i18n.view.auth.logout.loggingOut}}';
+            logoutButton.textContent = `{{i18n.view.auth.logout.loggingOut}}`;
 
             try {
                 const response = await fetch('/api/1/auth/logout', {
@@ -131,25 +131,25 @@
                     showLogoutSuccess();
                     // Don't reset button - we're redirecting anyway
                 } else {
-                    showError(result.error || '{{i18n.view.auth.logout.logoutFailed}}');
+                    showError(result.error || `{{i18n.view.auth.logout.logoutFailed}}`);
                     // Only reset button on error
                     logoutButton.disabled = false;
                     logoutButton.classList.remove('loading');
-                    logoutButton.textContent = '{{i18n.view.auth.logout.confirmLogout}}';
+                    logoutButton.textContent = `{{i18n.view.auth.logout.confirmLogout}}`;
                 }
             } catch (error) {
-                showError('{{i18n.view.auth.logout.networkError}}');
+                showError(`{{i18n.view.auth.logout.networkError}}`);
                 console.error('Logout error:', error);
                 // Only reset button on error
                 logoutButton.disabled = false;
                 logoutButton.classList.remove('loading');
-                logoutButton.textContent = '{{i18n.view.auth.logout.confirmLogout}}';
+                logoutButton.textContent = `{{i18n.view.auth.logout.confirmLogout}}`;
             }
         }
 
         function showLogoutSuccess() {
             // Show single success message
-            jPulse.UI.toast.success('{{i18n.view.auth.logout.logoutSuccess}}');
+            jPulse.UI.toast.success(`{{i18n.view.auth.logout.logoutSuccess}}`);
 
             // Simple redirect after delay (like signin page)
             setTimeout(() => {

@@ -3,7 +3,7 @@
  * @tagline         Plugin Discovery and Lifecycle Management
  * @description     Manages plugin discovery, validation, dependencies, and lifecycle
  * @file            webapp/utils/plugin-manager.js
- * @version         1.3.0
+ * @version         1.3.1
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -4,7 +4,7 @@
  * @tagline         Admin system status interface
  * @description     System monitoring and health dashboard for site administrators
  * @file            webapp/view/admin/system-status.shtml
- * @version         1.3.0
+ * @version         1.3.1
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -197,14 +197,14 @@
                 const stats = this.data.statistics || {};
 
                 const cards = [
-                    { label: '{{i18n.view.admin.systemStatus.clusterHealth.totalServers}}', value: this.data.servers?.length || 0 },
-                    { label: '{{i18n.view.admin.systemStatus.clusterHealth.totalInstances}}', value: stats.totalInstances || 0 },
-                    { label: '{{i18n.view.admin.systemStatus.clusterHealth.running}}', value: stats.runningProcesses || 0 },
-                    { label: '{{i18n.view.admin.systemStatus.clusterHealth.stopped}}', value: stats.stoppedProcesses || 0 },
-                    { label: '{{i18n.view.admin.systemStatus.clusterHealth.errored}}', value: stats.erroredProcesses || 0 },
-                    { label: '{{i18n.view.admin.systemStatus.clusterHealth.wsConnections}}', value: stats.totalWebSocketConnections || 0 },
-                    { label: '{{i18n.view.admin.systemStatus.clusterHealth.wsMessages}}', value: stats.totalWebSocketMessages || 0 },
-                    { label: '{{i18n.view.admin.systemStatus.clusterHealth.wsNamespaces}}', value: stats.totalWebSocketNamespaces || 0 }
+                    { label: `{{i18n.view.admin.systemStatus.clusterHealth.totalServers}}`, value: this.data.servers?.length || 0 },
+                    { label: `{{i18n.view.admin.systemStatus.clusterHealth.totalInstances}}`, value: stats.totalInstances || 0 },
+                    { label: `{{i18n.view.admin.systemStatus.clusterHealth.running}}`, value: stats.runningProcesses || 0 },
+                    { label: `{{i18n.view.admin.systemStatus.clusterHealth.stopped}}`, value: stats.stoppedProcesses || 0 },
+                    { label: `{{i18n.view.admin.systemStatus.clusterHealth.errored}}`, value: stats.erroredProcesses || 0 },
+                    { label: `{{i18n.view.admin.systemStatus.clusterHealth.wsConnections}}`, value: stats.totalWebSocketConnections || 0 },
+                    { label: `{{i18n.view.admin.systemStatus.clusterHealth.wsMessages}}`, value: stats.totalWebSocketMessages || 0 },
+                    { label: `{{i18n.view.admin.systemStatus.clusterHealth.wsNamespaces}}`, value: stats.totalWebSocketNamespaces || 0 }
                 ];
 
                 this.elements.clusterHealthGrid.innerHTML = cards.map(card => `
@@ -239,13 +239,13 @@
                     const memPercentage = server.totalMemory ? Math.round(((server.totalMemory - server.freeMemory) / server.totalMemory) * 100) : 0;
 
                     const rows = [
-                        ['{{i18n.view.admin.systemStatus.serverSummaries.serverName}}', server.serverName],
-                        ['{{i18n.view.admin.systemStatus.serverSummaries.ipAddress}}', server.ip],
-                        ['{{i18n.view.admin.systemStatus.serverSummaries.cpus}}', server.cpus],
-                        ['{{i18n.view.admin.systemStatus.serverSummaries.instances}}', server.instances?.length || 0],
-                        ['{{i18n.view.admin.systemStatus.serverSummaries.loadAverage}}', loadAvg.toFixed(2)],
-                        ['{{i18n.view.admin.systemStatus.serverSummaries.memoryPercentage}}', `${memPercentage}%`],
-                        ['{{i18n.view.admin.systemStatus.serverSummaries.systemUptime}}', server.uptimeFormatted || '{{i18n.view.admin.systemStatus.unknown}}'],
+                        [`{{i18n.view.admin.systemStatus.serverSummaries.serverName}}`, server.serverName],
+                        [`{{i18n.view.admin.systemStatus.serverSummaries.ipAddress}}`, server.ip],
+                        [`{{i18n.view.admin.systemStatus.serverSummaries.cpus}}`, server.cpus],
+                        [`{{i18n.view.admin.systemStatus.serverSummaries.instances}}`, server.instances?.length || 0],
+                        [`{{i18n.view.admin.systemStatus.serverSummaries.loadAverage}}`, loadAvg.toFixed(2)],
+                        [`{{i18n.view.admin.systemStatus.serverSummaries.memoryPercentage}}`, `${memPercentage}%`],
+                        [`{{i18n.view.admin.systemStatus.serverSummaries.systemUptime}}`, server.uptimeFormatted || `{{i18n.view.admin.systemStatus.unknown}}`],
                     ];
                     document.getElementById(`${serverId}-metrics`).innerHTML = this.generateMetricRows(rows);
 
@@ -269,7 +269,7 @@
                     const serverId = server.serverId || index;
                     tabsConfig.push({
                         id: `server-nav-${serverId}`,
-                        label: '{{i18n.view.admin.systemStatus.serverTabContent.tabLabel}}'.replace('%SERVERID%', serverId),
+                        label: `{{i18n.view.admin.systemStatus.serverTabContent.tabLabel}}`.replace('%SERVERID%', serverId),
                         panelId: `server-panel-${serverId}`
                     });
 
@@ -277,8 +277,8 @@
                     const panel = document.createElement('div');
                     panel.id = `server-panel-${serverId}`;
                     panel.className = 'jp-tab-panel';
-                    const unknown = '{{i18n.view.admin.systemStatus.unknown}}';
-                    const notApplicable = '{{i18n.view.admin.systemStatus.notApplicable}}';
+                    const unknown = `{{i18n.view.admin.systemStatus.unknown}}`;
+                    const notApplicable = `{{i18n.view.admin.systemStatus.notApplicable}}`;
 
                     const pm2InstanceDetails = (server.instances || []).sort((a, b) => {
                         return a.instanceId.localeCompare(b.instanceId);
@@ -306,39 +306,39 @@
                             <div class="jp-card">
                                 <h4 class="jp-status-title">{{i18n.view.admin.systemStatus.serverTabContent.systemInfo}}</h4>
                                 ${this.generateMetricRows([
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.serverName}}', server.serverName],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.ipAddress}}', server.ip || unknown],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.platform}}', `${server.platform} (${server.arch})`],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.cpus}}', server.cpus],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.nodeVersion}}', server.nodeVersion],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.serverName}}`, server.serverName],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.ipAddress}}`, server.ip || unknown],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.platform}}`, `${server.platform} (${server.arch})`],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.cpus}}`, server.cpus],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.nodeVersion}}`, server.nodeVersion],
                                 ])}
                             </div>
                             <div class="jp-card">
                                 <h4 class="jp-status-title">{{i18n.view.admin.systemStatus.serverTabContent.performance}}</h4>
                                 ${this.generateMetricRows([
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.oneMinute}}', server.loadAverage?.[0]?.toFixed(2) || unknown],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.fiveMinutes}}', server.loadAverage?.[1]?.toFixed(2) || unknown],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.fifteenMinutes}}', server.loadAverage?.[2]?.toFixed(2) || unknown],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.freeMemory}}', this.formatBytes((server.freeMemory || 0) * 1024 * 1024)],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.totalMemory}}', this.formatBytes((server.totalMemory || 0) * 1024 * 1024)],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.oneMinute}}`, server.loadAverage?.[0]?.toFixed(2) || unknown],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.fiveMinutes}}`, server.loadAverage?.[1]?.toFixed(2) || unknown],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.fifteenMinutes}}`, server.loadAverage?.[2]?.toFixed(2) || unknown],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.freeMemory}}`, this.formatBytes((server.freeMemory || 0) * 1024 * 1024)],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.totalMemory}}`, this.formatBytes((server.totalMemory || 0) * 1024 * 1024)],
                                 ])}
                             </div>
                             <div class="jp-card">
                                 <h4 class="jp-status-title">{{i18n.view.admin.systemStatus.serverTabContent.database}}</h4>
                                 ${this.generateMetricRows([
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.databaseType}}', server.database?.type || unknown],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.status}}', server.database?.status || unknown],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.version}}', server.database?.version || unknown],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.connections}}', `${server.database?.connections?.current || 0} / ${server.database?.connections?.available || 0}`],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.hostname}}', server.database?.hostname || unknown],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.databaseType}}`, server.database?.type || unknown],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.status}}`, server.database?.status || unknown],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.version}}`, server.database?.version || unknown],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.connections}}`, `${server.database?.connections?.current || 0} / ${server.database?.connections?.available || 0}`],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.hostname}}`, server.database?.hostname || unknown],
                                 ])}
                             </div>
                             <div class="jp-card">
                                 <h4 class="jp-status-title">{{i18n.view.admin.systemStatus.serverTabContent.webSockets}}</h4>
                                 ${this.generateMetricRows([
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.uptime}}', server.uptimeFormatted || unknown],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.connections}}', wsStats.localConnections],
-                                    ['{{i18n.view.admin.systemStatus.serverTabContent.messages}}', wsStats.localMessages],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.uptime}}`, server.uptimeFormatted || unknown],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.connections}}`, wsStats.localConnections],
+                                    [`{{i18n.view.admin.systemStatus.serverTabContent.messages}}`, wsStats.localMessages],
                                 ])}
                             </div>
                         </div>
@@ -349,14 +349,14 @@
                                 return a.instanceId.localeCompare(b.instanceId);
                             }).map(inst => `
                                 <div class="jp-card">
-                                    <h4 class="jp-status-title">${ '{{i18n.view.admin.systemStatus.instanceDetails.title}}'.replace('%INSTANCEID%', inst.instanceId).replace('%PID%', inst.pid) }</h4>
+                                    <h4 class="jp-status-title">${ `{{i18n.view.admin.systemStatus.instanceDetails.title}}`.replace('%INSTANCEID%', inst.instanceId).replace('%PID%', inst.pid) }</h4>
                                     ${this.generateMetricRows([
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.jPulseVersion}}', inst?.jPulse?.version || unknown],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.siteVersion}}', inst?.site?.version || unknown],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.environment}}', inst.environment || unknown],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.dbStatus}}', inst.database?.status || unknown],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.dbName}}', inst.database?.name || unknown],
-                                        ['{{i18n.view.admin.systemStatus.instanceDetails.port}}', inst.port || unknown],
+                                        [`{{i18n.view.admin.systemStatus.instanceDetails.jPulseVersion}}`, inst?.jPulse?.version || unknown],
+                                        [`{{i18n.view.admin.systemStatus.instanceDetails.siteVersion}}`, inst?.site?.version || unknown],
+                                        [`{{i18n.view.admin.systemStatus.instanceDetails.environment}}`, inst.environment || unknown],
+                                        [`{{i18n.view.admin.systemStatus.instanceDetails.dbStatus}}`, inst.database?.status || unknown],
+                                        [`{{i18n.view.admin.systemStatus.instanceDetails.dbName}}`, inst.database?.name || unknown],
+                                        [`{{i18n.view.admin.systemStatus.instanceDetails.port}}`, inst.port || unknown],
                                         ['CPU Usage', inst.cpu ? `${inst.cpu}%` : unknown],
                                         ['Memory Usage', inst.memory?.percentage ? `${inst.memory.percentage}% (${inst.memory.used} MB)` : `${inst.memory?.used || unknown} MB`],
                                         ['Requests/min', inst.metrics?.requestsPerMin !== undefined ? inst.metrics.requestsPerMin : unknown],
@@ -419,7 +419,7 @@
             },
 
             formatDateTime(isoString) {
-                if (!isoString) return '{{i18n.view.admin.systemStatus.unknown}}';
+                if (!isoString) return `{{i18n.view.admin.systemStatus.unknown}}`;
                 return new Date(isoString).toLocaleString();
             },
 

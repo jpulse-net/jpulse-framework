@@ -4,7 +4,7 @@
  * @tagline         Dynamic Plugin Configuration Interface
  * @description     Schema-driven dynamic form generator for plugin configuration
  * @file            webapp/view/admin/plugin-config.shtml
- * @version         1.3.0
+ * @version         1.3.1
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -195,7 +195,7 @@
         pluginName = urlParams.get('plugin');
 
         if (!pluginName) {
-            jPulse.UI.toast.error('{{i18n.view.admin.pluginConfig.noPlugin}}');
+            jPulse.UI.toast.error(`{{i18n.view.admin.pluginConfig.noPlugin}}`);
             setTimeout(() => window.location.href = '/admin/plugins.shtml', 2000);
             return;
         }
@@ -228,7 +228,7 @@
                 document.getElementById('pageTitle').innerHTML = `${iconHtml} Configure ${jPulse.string.escapeHtml(pluginInfo.name)}`;
 
                 // Build subtitle with version and status inline
-                const summaryText = pluginInfo.summary || pluginInfo.description || '{{i18n.view.admin.pluginConfig.subtitle}}';
+                const summaryText = pluginInfo.summary || pluginInfo.description || `{{i18n.view.admin.pluginConfig.subtitle}}`;
                 const version = pluginInfo.version || '-';
                 const statusBadge = pluginInfo.enabled
                     ? '<span class="jp-status-badge jp-status-active">{{i18n.view.admin.plugins.statusActive}}</span>'
@@ -243,11 +243,11 @@
                     document.getElementById('pluginDescriptionCard').style.display = 'block';
                 }
             } else {
-                jPulse.UI.toast.error(response.error || '{{i18n.view.admin.pluginConfig.loadFailed}}');
+                jPulse.UI.toast.error(response.error || `{{i18n.view.admin.pluginConfig.loadFailed}}`);
             }
         } catch (error) {
             console.error('Error loading plugin info:', error);
-            jPulse.UI.toast.error('{{i18n.view.admin.pluginConfig.loadError}}' + ': ' + error.message);
+            jPulse.UI.toast.error(`{{i18n.view.admin.pluginConfig.loadError}}` + ': ' + error.message);
         }
     }
 
@@ -600,14 +600,14 @@
             });
 
             if (response.success) {
-                jPulse.UI.toast.success(response.message || '{{i18n.view.admin.pluginConfig.saveSuccess}}');
+                jPulse.UI.toast.success(response.message || `{{i18n.view.admin.pluginConfig.saveSuccess}}`);
                 currentConfig = values;
             } else {
-                jPulse.UI.toast.error(response.error || '{{i18n.view.admin.pluginConfig.saveFailed}}');
+                jPulse.UI.toast.error(response.error || `{{i18n.view.admin.pluginConfig.saveFailed}}`);
             }
         } catch (error) {
             console.error('Error saving configuration:', error);
-            jPulse.UI.toast.error('{{i18n.view.admin.pluginConfig.saveError}}' + ': ' + error.message);
+            jPulse.UI.toast.error(`{{i18n.view.admin.pluginConfig.saveError}}` + ': ' + error.message);
         }
     }
 
@@ -616,12 +616,12 @@
      */
     async function resetToDefaults() {
         const result = await jPulse.UI.confirmDialog({
-            title: '{{i18n.view.admin.pluginConfig.resetTitle}}',
-            message: '{{i18n.view.admin.pluginConfig.resetMessage}}',
-            buttons: ['{{i18n.view.admin.pluginConfig.resetButtonCancel}}', '{{i18n.view.admin.pluginConfig.resetButton}}']
+            title: `{{i18n.view.admin.pluginConfig.resetTitle}}`,
+            message: `{{i18n.view.admin.pluginConfig.resetMessage}}`,
+            buttons: [`{{i18n.view.admin.pluginConfig.resetButtonCancel}}`, `{{i18n.view.admin.pluginConfig.resetButton}}`]
         });
 
-        if (result.button === '{{i18n.view.admin.pluginConfig.resetButton}}') {
+        if (result.button === `{{i18n.view.admin.pluginConfig.resetButton}}`) {
             currentConfig = {};
             configSchema.forEach(field => {
                 if (field.default !== undefined) {
@@ -629,7 +629,7 @@
                 }
             });
             renderConfigForm();
-            jPulse.UI.toast.info('{{i18n.view.admin.pluginConfig.resetSuccess}}', { duration: 5000 });
+            jPulse.UI.toast.info(`{{i18n.view.admin.pluginConfig.resetSuccess}}`, { duration: 5000 });
         }
     }
 

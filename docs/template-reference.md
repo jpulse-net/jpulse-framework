@@ -1,4 +1,4 @@
-# jPulse Docs / Template Reference v1.3.0
+# jPulse Docs / Template Reference v1.3.1
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -176,12 +176,12 @@ Templates have access to a rich context object with application data, user infor
 window.jPulseNavigation = {
     site: {
         admin: {
-            label:  '{{i18n.view.navigation.admin._index}}',
+            label:  `{{i18n.view.navigation.admin._index}}`,
             url:    '/admin/',
             role:   'admin'  // role-based visibility
         },
         about: {
-            label:  '{{i18n.view.navigation.about}}',
+            label:  `{{i18n.view.navigation.about}}`,
             url:    '/about/'
         }
     }
@@ -195,7 +195,7 @@ window.siteNavigation = {
 
         // Add custom section with i18n
         dashboard: {
-            label:  '{{i18n.view.navigation.dashboard}}',
+            label:  `{{i18n.view.navigation.dashboard}}`,
             url:    '/dashboard/',
             role:   'user'
         }
@@ -240,6 +240,87 @@ The i18n system supports handlebars-style variable substitution within translati
 
 <!-- Application context -->
 {{app.jPulse.version}}, {{app.jPulse.release}}
+```
+
+### Using i18n in JavaScript Context
+
+When embedding `{{i18n.*}}` strings inside `<script>` tags, **always use template literals (backticks)** to avoid syntax errors from apostrophes and quotes:
+
+```html
+<script>
+// ❌ WRONG - Breaks with apostrophes (Don't, can't, won't):
+jPulse.UI.toast.error('{{i18n.view.error.message}}');
+jPulse.UI.confirmDialog({
+    title: '{{i18n.view.dialog.confirmTitle}}',  // Breaks if title has apostrophe
+    message: '{{i18n.view.dialog.confirmMessage}}'
+});
+
+// ✅ CORRECT - Use backticks (template literals):
+jPulse.UI.toast.error(`{{i18n.view.error.message}}`);
+jPulse.UI.confirmDialog({
+    title: `{{i18n.view.dialog.confirmTitle}}`,
+    message: `{{i18n.view.dialog.confirmMessage}}`
+});
+</script>
+```
+
+**Why backticks are required:**
+- ✅ Handles apostrophes naturally (Don't, can't, won't)
+- ✅ Handles single and double quotes
+- ✅ Handles newlines in messages
+- ✅ Modern JavaScript standard (ES6+)
+
+**For dynamic messages with runtime variables**, use the `%TOKEN%` pattern in translations:
+
+```html
+<!-- Translation file (en.conf): -->
+networkError: 'Network error: %ERROR%'
+validationFailed: 'Validation failed: %DETAILS%'
+
+<!-- JavaScript usage: -->
+<script>
+try {
+    // ... code that might fail ...
+} catch (error) {
+    // Use backticks + .replace() to inject runtime values
+    jPulse.UI.toast.error(
+        `{{i18n.view.error.networkError}}`.replace('%ERROR%', error.message)
+    );
+}
+
+// Example with multiple tokens:
+const details = 'Username already exists';
+jPulse.UI.toast.error(
+    `{{i18n.view.error.validationFailed}}`
+        .replace('%DETAILS%', details)
+);
+</script>
+```
+
+**Token naming convention:**
+- Use uppercase with underscores: `%ERROR%`, `%USER_NAME%`, `%COUNT%`
+- Descriptive names for clarity: `%DETAILS%`, `%REASON%`, `%ITEM_NAME%`
+- Consistent across all translations
+
+**Common patterns:**
+
+```html
+<script>
+// Error messages with context
+catch (error) {
+    jPulse.UI.toast.error(`{{i18n.controller.error.saveFailed}}`.replace('%ERROR%', error.message));
+}
+
+// Confirmation dialogs
+const result = await jPulse.UI.confirmDialog({
+    title: `{{i18n.view.dialog.deleteTitle}}`,
+    message: `{{i18n.view.dialog.deleteMessage}}`.replace('%ITEM%', itemName),
+    buttons: [`{{i18n.common.cancel}}`, `{{i18n.common.delete}}`]
+});
+
+// Toast notifications
+jPulse.UI.toast.success(`{{i18n.view.success.itemSaved}}`.replace('%NAME%', name));
+</script>
 ```
 
 ## 🔗 File Operations
@@ -574,7 +655,7 @@ jPulse.dom.ready(() => {
     // Enhanced form submission with API
     jPulse.form.bindSubmission(form, '/api/1/user/profile', {
         method: 'PUT',
-        successMessage: '{{i18n.messages.profileUpdated}}',
+        successMessage: `{{i18n.messages.profileUpdated}}`,
         redirectUrl: '/profile/',
         redirectDelay: 1500,
         onSuccess: (data) => {

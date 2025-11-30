@@ -45331,3 +45331,311 @@ at bootstrap (webapp/utils/bootstrap.js:93:41)
 
 
 ============================================================
+2025-11-29 20:00
+
+**Session Summary: W-045 v1.3.0 Bug Fixes**
+
+### Issues Fixed
+
+#### 1. ✅ GitHub Actions Test Failure
+**Problem**: `PluginModel.ensureIndexes()` crashed when database unavailable in test environment
+**Solution**: Added `isTest` parameter - gracefully skips in test mode, fails hard in production
+**Files Modified**:
+- `webapp/model/plugin.js` - Added `ensureIndexes(isTest = false)` with conditional logic
+- `webapp/utils/bootstrap.js` - Pass `isTest` flag to ensureIndexes()
+**Status**: ✅ Committed, pushed, GitHub Actions passing
+
+#### 2. 🔜 npm Package Missing plugins/ Directory
+**Problem**: `plugins/hello-world/` not included in published npm package
+**Root Cause**: `.gitignore` has `plugins/*` pattern, npm doesn't handle `!plugins/hello-world/` negation
+**Solution**: Added explicit `files` field to package.json:
+```json
+"files": [
+    "bin/",
+    "docs/",
+    "plugins/hello-world/",  // ← Specific plugin, not "plugins/"
+    "site/",
+    "templates/",            // ← Also added (was missing)
+    "webapp/",
+    "babel.config.cjs",
+    "jest.config.cjs",
+    "LICENSE",
+    "README.md"
+]
+```
+**Files Modified**:
+- `package.json` - Added `files` field
+**Status**: 🔜 Deferred to W-100 (left in place, will be part of W-100 commit)
+
+### Test Results (Final)
+```
+✅ CLI Tools: 8 passed
+✅ Enhanced CLI: 11 passed
+✅ MongoDB Validation: 10 passed
+✅ Unit Tests: 797 passed, 16 skipped
+✅ Integration Tests: 100 passed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⏩ Grand Total: 926 passed, 0 failed, 16 skipped (942 total)
+🎉 All tests passed!
+```
+
+### Decision
+User chose to defer `package.json` changes to W-100 work item, which is already in progress in another chat. Changes left in place for inclusion in W-100 commit.
+
+
+============================================================
+2025-11-29 20:10
+
+**BUG FIX: JavaScript Syntax Error in Plugin Config Page**
+
+### Issue Reported
+- **Location**: `/admin/plugin-config.shtml?plugin=hello-world`
+- **Error**: `Uncaught SyntaxError: missing ) after argument list (at line 660:34)`
+- **Environment**: Production test on bubblemap.net
+
+### Root Cause
+Translation string with apostrophe breaking JavaScript syntax:
+
+**File**: `webapp/translations/en.conf` Line 391
+```
+resetSuccess: 'All values have been reset to defaults. Don\'t forget to save!',
+```
+
+**Used in**: `webapp/view/admin/plugin-config.shtml` Line 632
+```javascript
+jPulse.UI.toast.info('{{i18n.view.admin.pluginConfig.resetSuccess}}', { duration: 5000 });
+```
+
+**Rendered as** (BROKEN):
+```javascript
+jPulse.UI.toast.info('All values have been reset to defaults. Don't forget to save!', { duration: 5000 });
+//                                                              ^ Syntax error - unescaped apostrophe
+```
+
+### The Problem
+- `.conf` file escapes: `Don\'t` (works in config)
+- Handlebars renders: `Don't` (breaks JavaScript string literal)
+- Single-quoted JS string sees apostrophe as end-of-string
+- Result: Syntax error
+
+### Fix Applied
+Changed apostrophe to full words:
+```
+resetSuccess: 'All values have been reset to defaults. Do not forget to save!',
+```
+
+**Files Modified**:
+- `webapp/translations/en.conf` - Changed "Don't" to "Do not"
+- German translation (`de.conf`) - No change needed (no apostrophes)
+
+### Prevention
+For future i18n strings used in JavaScript contexts:
+1. **Avoid apostrophes** in strings that will be inserted into JS
+2. **Use "do not"** instead of "don't"
+3. **Alternative**: Use template literals (backticks) in JS instead of single quotes
+
+### Status
+✅ Fixed - Ready to include in next release (W-100)
+
+
+============================================================
+2025-11-29 20:25
+
+**Documentation: i18n in JavaScript Context Best Practices**
+
+### Issue Context
+User made mass changes converting all `'{{i18n.*}}'` to backticks (`{{i18n.*}}`) to properly handle apostrophes in translations. This prevents JavaScript syntax errors when translations contain contractions like "Don't", "can't", "won't".
+
+### Documentation Added
+
+**File**: `docs/template-reference.md`
+**Location**: After "Available Context in Translations" section (line 244)
+**Section**: "Using i18n in JavaScript Context"
+
+### Content Covers:
+
+1. **Why backticks are required**:
+   - Handles apostrophes (Don't, can't, won't)
+   - Handles quotes (single and double)
+   - Handles newlines
+   - Modern JavaScript standard
+
+2. **Correct vs Incorrect usage**:
+   - Shows broken examples with single quotes
+   - Shows correct examples with backticks
+
+3. **%TOKEN% pattern for dynamic messages**:
+   - Use uppercase tokens: %ERROR%, %DETAILS%, %ITEM_NAME%
+   - Examples with `.replace()` for runtime values
+   - Single and multiple token replacements
+
+4. **Common patterns**:
+   - Error messages with context
+   - Confirmation dialogs
+   - Toast notifications
+
+### Example Code Snippets:
+
+```javascript
+// Simple usage
+jPulse.UI.toast.error(`{{i18n.view.error.message}}`);
+
+// With runtime error details
+catch (error) {
+    jPulse.UI.toast.error(
+        `{{i18n.view.error.networkError}}`.replace('%ERROR%', error.message)
+    );
+}
+
+// Confirmation dialogs
+const result = await jPulse.UI.confirmDialog({
+    title: `{{i18n.view.dialog.deleteTitle}}`,
+    message: `{{i18n.view.dialog.deleteMessage}}`.replace('%ITEM%', itemName)
+});
+```
+
+### Status
+✅ Documentation complete
+✅ Best practices clearly explained
+✅ Examples show correct patterns
+✅ Ready for W-100 commit
+
+
+============================================================
+2025-11-29 20:30
+
+**W-100 Working Document: Post-1.3.0 Fixes Summary Added**
+
+### Purpose
+Added comprehensive section to W-100 working document summarizing all post-1.3.0 critical fixes. This aids in composing the W-100 commit message.
+
+### Section Added
+
+**Location**: `docs/dev/working/W-100-replace-extract-with-component-handlebar.md`
+**Section**: "Post-1.3.0 Critical Fixes (Included in W-100)"
+
+### Content Summarized:
+
+1. **GitHub Actions Test Failure Fix**
+   - Issue: Database unavailable in CI
+   - Solution: `isTest` parameter in `PluginModel.ensureIndexes()`
+   - Files: `webapp/model/plugin.js`, `webapp/utils/bootstrap.js`
+
+2. **npm Package Missing plugins/ Directory**
+   - Issue: `.gitignore` patterns excluded hello-world plugin
+   - Solution: Explicit `files` field in `package.json`
+   - Included: bin, docs, plugins/hello-world, site, templates, webapp, config files
+
+3. **i18n Strings in JavaScript Context**
+   - Issue: Apostrophes breaking JavaScript syntax
+   - Discovery: Language-dependent failure (worked in German, failed in English)
+   - Solution: Mass conversion to template literals (backticks)
+   - Pattern: `%TOKEN%` for dynamic messages with `.replace()`
+   - Files: 15 views, 1 translation, 1 documentation
+   - Documentation: Added best practices section to template-reference.md
+
+### Summary Statistics
+- **Test Results**: 926 passed, 0 failed (942 total, 16 skipped)
+- **Files Modified**: 19 files
+- **Conversions**: 160+ i18n instances to backticks
+
+### Use Case
+This section provides:
+- Quick reference for commit message composition
+- Context for why these fixes are bundled with W-100
+- Complete technical details for each fix
+- Impact analysis for each change
+
+### Status
+✅ W-100 working document updated
+✅ All fixes documented
+✅ Ready for commit message composition
+
+
+============================================================
+2025-11-29 21:20
+
+**W-100, v1.3.1 RELEASE PREPARATION COMPLETE**
+
+### Release Summary
+- **Work Item**: W-100
+- **Version**: v1.3.1 (Patch Release)
+- **Type**: Critical Bug Fixes
+- **Date**: 2025-11-30
+- **Test Results**: 926 passed, 0 failed (942 total, 16 skipped)
+
+### Critical Bugs Fixed
+
+**1. npm Package Missing plugins/hello-world/ Directory**
+- **Impact**: Users received incomplete npm package
+- **Solution**: Added explicit `files` field to `package.json`
+- **Files**: 1 (package.json)
+
+**2. GitHub Actions CI Test Failure**
+- **Impact**: Automated testing broken in CI environment
+- **Solution**: Added `isTest` parameter to `PluginModel.ensureIndexes()`
+- **Files**: 2 (plugin.js model, bootstrap.js)
+
+**3. JavaScript Syntax Errors with i18n Apostrophes**
+- **Impact**: Production JavaScript crashes with English translations
+- **Solution**: Converted 160+ i18n instances to template literals (backticks)
+- **Pattern**: Established `%TOKEN%` for dynamic error messages
+- **Documentation**: Added comprehensive best practices section
+- **Files**: 17 (15 views, 1 translation, 1 documentation)
+
+### Files Updated for Release Prep
+
+**1. Removed Post-1.3.0 Fixes Section**
+- `docs/dev/working/W-101-replace-extract-with-component-handlebar.md`
+- Cleaned up temporary documentation (W-101 renamed from W-100)
+
+**2. Updated Work Items Documentation**
+- `docs/dev/work-items.md`
+- Updated W-100 status to ✅ DONE
+- Documented all 3 bugs and deliverables
+- Added test results and file counts
+
+**3. Updated Framework Documentation**
+- `README.md`: Added "Latest Release" highlight
+- `docs/README.md`: Added "Latest Release" highlight  
+- `docs/CHANGELOG.md`: Added comprehensive v1.3.1 entry with:
+  * All 3 bug descriptions
+  * Root causes and solutions
+  * Code examples
+  * Impact analysis
+  * Files modified counts
+
+**4. Updated Commit Message**
+- `commit-message.txt`: Complete W-100 v1.3.1 commit message
+- Follows established format from v1.3.0
+- Documents all bugs, solutions, and impacts
+
+### Statistics
+- **Total Files Modified**: 19 files
+  * 2 core utilities (model, bootstrap)
+  * 15 view files (i18n conversions)
+  * 1 translation file
+  * 1 documentation file
+  * 1 package manifest
+
+### Release Readiness Checklist
+✅ All bugs fixed and tested
+✅ Test suite passing (926/926)
+✅ Work items documentation updated
+✅ CHANGELOG.md updated
+✅ README files updated with release highlights
+✅ Commit message prepared
+✅ Version numbers ready for bump (bump-version.js will update)
+
+### Next Steps
+1. Run `node bin/bump-version.js 1.3.1` to update all version numbers
+2. Review and commit changes
+3. Tag release: `git tag v1.3.1`
+4. Push to GitHub
+5. Publish to npm: `npm publish`
+
+### Status
+🎉 W-100 v1.3.1 release preparation complete and ready for version bump!
+
+
+============================================================

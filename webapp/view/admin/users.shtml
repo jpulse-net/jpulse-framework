@@ -4,7 +4,7 @@
  * @tagline         Admin user management interface
  * @description     User management dashboard for site administrators
  * @file            webapp/view/admin/users.shtml
- * @version         1.3.0
+ * @version         1.3.1
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -274,10 +274,10 @@
                     displayUsers(userData);
                     setupPagination(result.pagination);
                 } else {
-                    jPulse.UI.toast.error(result.error || '{{i18n.view.admin.users.failedToLoadUsers}}');
+                    jPulse.UI.toast.error(result.error || `{{i18n.view.admin.users.failedToLoadUsers}}`);
                 }
             } catch (error) {
-                jPulse.UI.toast.error('{{i18n.view.admin.users.networkError}}');
+                jPulse.UI.toast.error(`{{i18n.view.admin.users.networkError}}`);
             } finally {
                 showLoading(false);
             }
@@ -312,7 +312,7 @@
             const userCell = document.createElement('td');
             userCell.innerHTML = `
                 <div class="jp-user-info">
-                    <div class="jp-user-avatar">${ '{{user.initials}}' || '?'}</div>
+                    <div class="jp-user-avatar">${ `{{user.initials}}` || '?'}</div>
                     <div>
                         <div class="jp-user-name">${jPulse.string.escapeHtml(user.profile?.firstName || '')} ${jPulse.string.escapeHtml(user.profile?.lastName || '')}</div>
                         <div class="jp-user-login">@${jPulse.string.escapeHtml(user.username || '')}</div>

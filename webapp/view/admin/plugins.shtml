@@ -4,7 +4,7 @@
  * @tagline         Plugin Management Dashboard
  * @description     Admin interface for managing installed plugins
  * @file            webapp/view/admin/plugins.shtml
- * @version         1.3.0
+ * @version         1.3.1
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -220,8 +220,8 @@
 
         allPlugins.forEach(plugin => {
             const status = plugin.enabled ? 'active' : 'disabled';
-            const statusText = plugin.enabled ? '{{i18n.view.admin.plugins.statusActive}}' : '{{i18n.view.admin.plugins.statusDisabled}}';
-            const toggleText = plugin.enabled ? '{{i18n.view.admin.plugins.disable}}' : '{{i18n.view.admin.plugins.enable}}';
+            const statusText = plugin.enabled ? `{{i18n.view.admin.plugins.statusActive}}` : `{{i18n.view.admin.plugins.statusDisabled}}`;
+            const toggleText = plugin.enabled ? `{{i18n.view.admin.plugins.disable}}` : `{{i18n.view.admin.plugins.enable}}`;
             const toggleClass = plugin.enabled ? 'jp-btn-danger' : 'jp-btn-success';
 
             html += '<tr>';
@@ -277,12 +277,12 @@
             const response = await jPulse.api.post(`/api/1/plugin/${pluginName}/${endpoint}`);
 
             if (response.success) {
-                const message = enable ? '{{i18n.view.admin.plugins.enableSuccess}}' : '{{i18n.view.admin.plugins.disableSuccess}}';
-                jPulse.UI.toast.success(message.replace('{{name}}', pluginName));
+                const message = enable ? `{{i18n.view.admin.plugins.enableSuccess}}` : `{{i18n.view.admin.plugins.disableSuccess}}`;
+                jPulse.UI.toast.success(message.replace(`{{name}}`, pluginName));
                 await loadPlugins();
             } else {
-                const message = enable ? '{{i18n.view.admin.plugins.enableFailed}}' : '{{i18n.view.admin.plugins.disableFailed}}';
-                jPulse.UI.toast.error(response.error || message.replace('{{message}}', response.error || ''));
+                const message = enable ? `{{i18n.view.admin.plugins.enableFailed}}` : `{{i18n.view.admin.plugins.disableFailed}}`;
+                jPulse.UI.toast.error(response.error || message.replace(`{{message}}`, response.error || ''));
             }
         } catch (error) {
             console.error('Error toggling plugin:', error);

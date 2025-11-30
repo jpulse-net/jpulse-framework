@@ -4,7 +4,7 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         1.3.0
+ * @version         1.3.1
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

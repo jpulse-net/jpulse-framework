@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.0
+# jPulse Docs / Dev / Work Items v1.3.1
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1233,7 +1233,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
       - fix responsive style issue with user icon position (released without fix!)
 
 ### W-040, v0.9.5: view: create view logs page for site admins
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objectives: admin can analyze usage
 - create search logs page for admins
@@ -1338,7 +1338,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/app.conf - cache configuration with periodic refresh intervals
 
 ### W-076, v1.0.0: framework: redis infrastrucure for a scaleable jPulse Framework
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objective: support multiple node instances (pm2 cluster) on an app server, support a pool of app servers in a load-balanced configuration
 - architecture & spec discussion:
@@ -1610,7 +1610,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
       - Updated all documentation with new repository URLs
 
 ### W-076, v1.0.1, v1.0.2, v1.0.3: framework: comparison document
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - patch release with deliverables:
   - bin/configure.js -- automated .npmrc creation for GitHub Packages
@@ -1631,7 +1631,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - this is handled by work item T-001 in the jpulse.net project
 
 ### W-083, v1.0.4: minor v1.0 enhancements & bug fixes
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objectives: stabilize release
 - deliverables:
@@ -1649,7 +1649,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/translations/en.conf & de.conf: Added successDialog i18n translations
 
 ### W-085, v1.1.0: tools: npx strategy; make bump-version.js script available to site developers
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objective: more intuitive tools env for site developers
 - prerequisites:
@@ -1685,7 +1685,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/dev/README.md -- updated CLI tools description
 
 ### W-086, v1.1.1: gen-ai: review developer facing doc and AI agent facing doc
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objective: more effective vibe coding
 - prerequisites:
@@ -1712,7 +1712,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - Fixed markdown rendering issues (escaped HTML tags in documentation)
 
 ### W-088, v1.1.3: controller: extract Handlebars processing to dedicated controller
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objectives: better separation of concerns, reusable template processing API
 - depends on: none
@@ -1740,7 +1740,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 	- webapp/view/admin/config.shtml -- fix API endpoint to /api/1/config/_default
 
 ### W-087, v1.1.4: email: strategy for sending email from jPulse Framework
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objective: provide standardized email sending capability for jPulse Framework and site applications
 - prerequisites:
@@ -1761,14 +1761,14 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/api-reference.md -- document new email endpoint
 
 ### W-089, v1.1.5: log: log proper external IP address when jPulse is behind a reverse proxy
-- status: DONE ✅
+- status: ✅ DONE
 - type: Bug
 - objective: log proper IP address behind a reverse proxy
 - deliverables:
   - webapp/utils/common.js -- IP address based on sequence: x-forwarded-for, x-real-ip, request ip
 
 ### W-090, v1.1.6: view: make site nav menu open/close delay configurable; restructure view.pageDecoration
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objective: better site overrides for site nav menu
 - to-do:
@@ -1789,7 +1789,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/tests/unit/utils/jpulse-ui-navigation.test.js -- updated test mocks to use new pageDecoration structure
 
 ### W-091, v1.1.7: deploy: bug fixes for site deployments
-- status: DONE ✅
+- status: ✅ DONE
 - type: Bug
 - objective: better getting started experience
 - issues:
@@ -1814,7 +1814,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/tests/integration/deployment-validation.test.js` - updated test patterns
 
 ### W-092, v1.1.8: deploy: add jpulse-install package for simplified installation
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objective: eliminate manual .npmrc creation with one-command installer
 - prerequisites:
@@ -1837,7 +1837,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - fixed legacy content in publishing.md (removed "Once repository is public" note)
 
 ### W-093, v1.2.0: users: ability for admins to manage users
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objective: ability for admins to manage users
 - fields to manage by admin and root roles only:
@@ -1880,7 +1880,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md -- added schema extension architecture section
 
 ### W-094, v1.2.1: handlebars: list files, extract from files
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objective: generalize file operations in Handlebars to enable automated content generation (e.g., auto-populate card lists in index pages)
 - working doc: docs/dev/working/W-094-handlebars-file-list-and-extract
@@ -1914,7 +1914,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/CHANGELOG.md -- v1.2.1 entry
 
 ### W-095, v1.2.2: handlebars: remove jsdom dependency
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objective: leaner project with less dependencies
 - features:
@@ -1927,7 +1927,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - package.json -- moved jsdom from dependencies to devDependencies (only needed for client-side JS tests)
 
 ### W-096, v1.2.3: view: replace Unicode icons with svg images
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objective: more professional look
 - deliverables:
@@ -1953,7 +1953,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - admin dashboard icons now theme-ready and professional looking
 
 ### W-097, v1.2.4: handebars: define and use reusable components
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objective: reusable components to reduce code duplication, such as with multiple inline SVG images
 - working document:
@@ -1999,7 +1999,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `_inline=true` strips newlines for JavaScript string embedding
 
 ### W-098, v1.2.5: view: site navigation override with append mode and direct mutation
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objective: ability to override and use the jPulse Framework site navigation using append mode and direct mutation
 - working document:
@@ -2069,7 +2069,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/tests/integration/cache-api.test.js -- deleted empty stub
 
 ### W-099, v1.2.6: deploy: critical bug fixes for site installation and W-098 navigation
-- status: DONE ✅
+- status: ✅ DONE
 - type: Bug
 - objective: fix critical bugs discovered after v1.2.5 deployment affecting site installation and navigation deletion markers
 - issues:
@@ -2098,7 +2098,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - test now modifies _navConfig instead of appConfig
 
 ### W-045, v1.3.0: architecture: add plugin infrastructure with auto-discovery
-- status: DONE ✅
+- status: ✅ DONE
 - type: Feature
 - objective: extensible framework that is easy to understand & easy to maintain
 - author: 3rd party developers & jPulse team
@@ -2159,7 +2159,30 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-
+### W-100, v1.3.1: architecture: critical bug fixes for W-045 add plugin infrastructure
+- status: ✅ DONE
+- type: Bug Fix (Patch Release)
+- objective: fix critical bugs discovered after v1.3.0 deployment affecting npm package, CI/CD, and production sites
+- issues:
+  - bug 1: npm package missing plugins/hello-world/ directory - package incomplete
+  - bug 2: GitHub Actions CI tests crash with "Database connection not available"
+  - bug 3: JavaScript syntax errors in production when i18n strings contain apostrophes (Don't, can't, won't)
+- deliverables:
+  - package.json:
+    - added explicit "files" field to properly include plugins/hello-world/, templates/, and other essential directories
+  - webapp/model/plugin.js:
+    - added isTest parameter to ensureIndexes() to gracefully handle missing database in test environments
+  - webapp/utils/bootstrap.js:
+    - pass isTest flag to PluginModel.ensureIndexes() for proper test handling
+  - 15 view files (admin, user, jpulse-docs, jpulse-examples, jpulse-plugins):
+    - converted 160+ instances of '{{i18n.*}}' to backticks for JavaScript safety
+  - webapp/translations/en.conf:
+    - reverted resetSuccess to natural English with apostrophe ("Don't" instead of "Do not")
+    - established %TOKEN% pattern for dynamic error messages
+  - docs/template-reference.md:
+    - added comprehensive "Using i18n in JavaScript Context" section with best practices
+- test results: 926 passed, 0 failed (942 total with 16 skipped)
+- files modified: 19 files total
 
 
 
@@ -2184,7 +2207,7 @@ old pending:
 - add SiteControllerRegistry.getStats() to metrics api & system-status
 
 ### Potential next items:
-- W-100: handlebars: replace extract:start & end with component handlebar
+- W-101: handlebars: replace extract:start & end with component handlebar
 - W-068: view: create responsive sidebar
 - W-0: view: headings with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific translations
@@ -2207,8 +2230,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-045, v1.3.0
-- update deliverables in W-045 work-items to document work done (don't make any other changes to this file)
+- assume release: W-100, v1.3.1
+- update deliverables in W-100 work-items to document work done (don't make any other changes to this file)
 - update README.md (latest release highlights), docs/README.md (latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -2225,12 +2248,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.0
+node bin/bump-version.js 1.3.1
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.0
+git tag v1.3.1
 git push origin main --tags
 
 === on failed package build on github ===
@@ -2264,7 +2287,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
 
-### W-100: handlebars: replace extract:start & end with component handlebar
+### W-101: handlebars: replace extract:start & end with component handlebar
 - status: 🕑 PENDING
 - type: Feature
 - objective: more intuitive framework

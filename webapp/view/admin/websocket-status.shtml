@@ -4,7 +4,7 @@
  * @tagline         Real-time WebSocket server monitoring and status
  * @description     Admin-only page showing live WebSocket namespace status
  * @file            webapp/view/admin/websocket-status.shtml
- * @version         1.3.0
+ * @version         1.3.1
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -227,12 +227,12 @@
 
         // i18n strings
         const i18n = {
-            clients: '{{i18n.view.admin.websocketStatus.clients}}',
-            activeUsers: '{{i18n.view.admin.websocketStatus.activeUsers}}',
-            messagesPerMin: '{{i18n.view.admin.websocketStatus.messagesPerMin}}',
-            totalMessages: '{{i18n.view.admin.websocketStatus.totalMessagesLabel}}',
-            lastActivity: '{{i18n.view.admin.websocketStatus.lastActivity}}',
-            noActiveNamespaces: '{{i18n.view.admin.websocketStatus.noActiveNamespaces}}'
+            clients: `{{i18n.view.admin.websocketStatus.clients}}`,
+            activeUsers: `{{i18n.view.admin.websocketStatus.activeUsers}}`,
+            messagesPerMin: `{{i18n.view.admin.websocketStatus.messagesPerMin}}`,
+            totalMessages: `{{i18n.view.admin.websocketStatus.totalMessagesLabel}}`,
+            lastActivity: `{{i18n.view.admin.websocketStatus.lastActivity}}`,
+            noActiveNamespaces: `{{i18n.view.admin.websocketStatus.noActiveNamespaces}}`
         };
 
         // Format uptime
@@ -404,16 +404,16 @@
 
             switch(status) {
                 case 'connected':
-                    statusEl.textContent = '{{i18n.view.admin.websocketStatus.connected}}';
+                    statusEl.textContent = `{{i18n.view.admin.websocketStatus.connected}}`;
                     break;
                 case 'connecting':
-                    statusEl.textContent = '{{i18n.view.admin.websocketStatus.connecting}}';
+                    statusEl.textContent = `{{i18n.view.admin.websocketStatus.connecting}}`;
                     break;
                 case 'reconnecting':
-                    statusEl.textContent = '{{i18n.view.admin.websocketStatus.reconnecting}}';
+                    statusEl.textContent = `{{i18n.view.admin.websocketStatus.reconnecting}}`;
                     break;
                 case 'disconnected':
-                    statusEl.textContent = '{{i18n.view.admin.websocketStatus.disconnected}}';
+                    statusEl.textContent = `{{i18n.view.admin.websocketStatus.disconnected}}`;
                     break;
             }
         }

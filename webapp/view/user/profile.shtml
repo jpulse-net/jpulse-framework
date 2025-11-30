@@ -4,7 +4,7 @@
  * @tagline         User profile view with edit capabilities
  * @description     User profile management with view and edit modes
  * @file            webapp/view/user/profile.shtml
- * @version         1.3.0
+ * @version         1.3.1
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -325,7 +325,7 @@
                 const profileResult = await jPulse.api.put('/api/1/user', profileData);
 
                 if (!profileResult.success) {
-                    jPulse.UI.toast.error(profileResult.error || '{{i18n.view.user.profile.failedToUpdateProfile}}');
+                    jPulse.UI.toast.error(profileResult.error || `{{i18n.view.user.profile.failedToUpdateProfile}}`);
                     return;
                 }
 
@@ -334,17 +334,17 @@
 
                     // Validate password fields
                     if (!currentPassword || !newPassword || !confirmPassword) {
-                        jPulse.UI.toast.error('{{i18n.view.user.profile.allPasswordFieldsRequired}}');
+                        jPulse.UI.toast.error(`{{i18n.view.user.profile.allPasswordFieldsRequired}}`);
                         return;
                     }
 
                     if (newPassword !== confirmPassword) {
-                        jPulse.UI.toast.error('{{i18n.view.user.profile.passwordsDoNotMatch}}');
+                        jPulse.UI.toast.error(`{{i18n.view.user.profile.passwordsDoNotMatch}}`);
                         return;
                     }
 
                     if (newPassword.length < 8) {
-                        jPulse.UI.toast.error('{{i18n.view.user.profile.passwordTooShort}}');
+                        jPulse.UI.toast.error(`{{i18n.view.user.profile.passwordTooShort}}`);
                         return;
                     }
 
@@ -357,15 +357,15 @@
                     const passwordResult = await jPulse.api.put('/api/1/user/password', passwordData);
 
                     if (!passwordResult.success) {
-                        jPulse.UI.toast.error(passwordResult.error || '{{i18n.view.user.profile.failedToUpdatePassword}}');
+                        jPulse.UI.toast.error(passwordResult.error || `{{i18n.view.user.profile.failedToUpdatePassword}}`);
                         return;
                     }
                 }
 
                 // Success - show appropriate message
                 const successMessage = isChangingPassword
-                    ? '{{i18n.view.user.profile.profileAndPasswordUpdatedSuccess}}'
-                    : '{{i18n.view.user.profile.profileUpdatedSuccess}}';
+                    ? `{{i18n.view.user.profile.profileAndPasswordUpdatedSuccess}}`
+                    : `{{i18n.view.user.profile.profileUpdatedSuccess}}`;
 
                 jPulse.UI.toast.success(successMessage);
 
@@ -375,7 +375,7 @@
                 await loadProfile();
 
             } catch (error) {
-                jPulse.UI.toast.error('{{i18n.view.user.profile.networkError}}: ' + error.message);
+                jPulse.UI.toast.error(`{{i18n.view.user.profile.networkError}}`.replace('%ERROR%', error.message));
             }
         }
 
@@ -392,7 +392,7 @@
                     document.getElementById('email').value = user.email || '';
 
                     // Update preferences
-                    document.getElementById('language').value = user.preferences?.language || '{{appConfig.utils.i18n.default}}' || 'en';
+                    document.getElementById('language').value = user.preferences?.language || `{{appConfig.utils.i18n.default}}` || 'en';
                     document.getElementById('theme').value = user.preferences?.theme || 'light';
 
                     // Update status badge
@@ -402,10 +402,10 @@
                         statusBadge.className = `jp-status-badge jp-status-${user.status}`;
                     }
                 } else {
-                    jPulse.UI.toast.error(result.error || '{{i18n.view.user.profile.failedToLoadProfile}}');
+                    jPulse.UI.toast.error(result.error || `{{i18n.view.user.profile.failedToLoadProfile}}`);
                 }
             } catch (error) {
-                jPulse.UI.toast.error('{{i18n.view.user.profile.networkErrorLoadingProfile}}: ' + error.message);
+                jPulse.UI.toast.error(`{{i18n.view.user.profile.networkErrorLoadingProfile}}`.replace('%ERROR%', error.message));
             }
         }
 

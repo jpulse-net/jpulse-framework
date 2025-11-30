@@ -1,6 +1,63 @@
-# jPulse Docs / Version History v1.3.0
+# jPulse Docs / Version History v1.3.1
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.1, W-100, 2025-11-30
+
+**Commit:** `W-100, v1.3.1: architecture: critical bug fixes for W-045 plugin infrastructure`
+
+**PATCH RELEASE**: Critical bug fixes discovered after v1.3.0 deployment affecting npm package distribution, CI/CD testing, and production JavaScript execution.
+
+**Objective**: Fix three critical bugs preventing proper framework installation, automated testing, and production use with internationalized content.
+
+**Implementation**:
+
+**1. npm Package Missing plugins/ Directory (Bug Fix)**:
+- **Issue**: `plugins/hello-world/` directory not included in published npm package
+- **Root Cause**: `.gitignore` pattern `plugins/*` overrides npm defaults; negation pattern `!plugins/hello-world/` not working
+- **Solution**: Added explicit `files` field to `package.json`:
+  ```json
+  "files": [
+      "bin/", "docs/", "plugins/hello-world/", "site/", "templates/",
+      "webapp/", "babel.config.cjs", "jest.config.cjs", "LICENSE", "README.md"
+  ]
+  ```
+- **Impact**: hello-world reference plugin now ships with framework; npm installs are complete
+
+**2. GitHub Actions Test Failure (Bug Fix)**:
+- **Issue**: CI tests crash with "Database connection not available" error
+- **Root Cause**: `PluginModel.ensureIndexes()` throws error when database unavailable in CI environment
+- **Solution**: Added `isTest` parameter to gracefully skip index creation in test mode:
+  * `webapp/model/plugin.js`: `ensureIndexes(isTest = false)` with conditional logic
+  * `webapp/utils/bootstrap.js`: Pass `isTest` flag from test environment
+- **Impact**: GitHub Actions CI now passes; production still fails fast on missing database (correct behavior)
+
+**3. i18n JavaScript Syntax Errors (Bug Fix)**:
+- **Issue**: JavaScript syntax errors when i18n strings contain apostrophes (Don't, can't, won't)
+- **Root Cause**: Single-quoted strings in JavaScript break when Handlebars expands i18n with apostrophes
+- **Discovery**: Worked locally (German browser) but failed in production (English browser) - language-dependent bug
+- **Example**:
+  ```javascript
+  // Broken - apostrophe terminates string:
+  jPulse.UI.toast.info('Don't forget to save!');
+  //                         ^ Syntax Error
+
+  // Fixed - template literals handle apostrophes:
+  jPulse.UI.toast.info(`Don't forget to save!`);
+  ```
+- **Solution**:
+  * Converted 160+ instances from `'{{i18n.*}}'` to backticks across 15 view files
+  * Reverted translations to natural English with apostrophes
+  * Established `%TOKEN%` pattern for dynamic error messages with `.replace()`
+  * Added comprehensive "Using i18n in JavaScript Context" section to `docs/template-reference.md`
+- **Impact**:
+  * Translations can use natural language with apostrophes
+  * Consistent pattern for dynamic error messages
+  * Best practices documented for future development
+
+**Files Modified**: 19 files (2 core utils, 1 model, 15 views, 1 translation, 1 documentation)
+**Test Results**: 926 passed, 0 failed (942 total with 16 skipped)
 
 ________________________________________________
 ## v1.3.0, W-045, 2025-11-30

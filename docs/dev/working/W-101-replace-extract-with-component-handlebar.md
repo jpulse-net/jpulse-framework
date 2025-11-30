@@ -1,6 +1,6 @@
-# W-100: Replace extract:start/end with Component Handlebar
+# W-101: Replace extract:start/end with Component Handlebar
 
-**Work Item:** W-100
+**Work Item:** W-101
 **Status:** 🕑 PENDING
 **Type:** Feature Enhancement
 **Objective:** Improve framework consistency and usability

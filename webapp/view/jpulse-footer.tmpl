@@ -4,7 +4,7 @@
  * @tagline         Footer template for jPulse pages
  * @description     Footer included in all jPulse pages to provide a consistent page layout
  * @file            webapp/view/jpulse-footer.tmpl
- * @version         1.3.0
+ * @version         1.3.1
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -89,20 +89,20 @@ jPulse.dom.ready(() => {
     // Initialize site navigation when DOM is ready
     // Note: Handlebars values are strings, so convert to numbers
     jPulse.UI.navigation.init({
-        currentUrl: '{{url.pathname}}',
+        currentUrl: `{{url.pathname}}`,
         userRoles: {{user.roles}},
         navigation: window.jPulseNavigation.site,
-        openDelay: parseInt('{{appConfig.view.pageDecoration.siteNavigation.openDelay}}', 10),
-        closeDelay: parseInt('{{appConfig.view.pageDecoration.siteNavigation.closeDelay}}', 10),
-        submenuCloseDelay: parseInt('{{appConfig.view.pageDecoration.siteNavigation.submenuCloseDelay}}', 10)
+        openDelay: parseInt(`{{appConfig.view.pageDecoration.siteNavigation.openDelay}}`, 10),
+        closeDelay: parseInt(`{{appConfig.view.pageDecoration.siteNavigation.closeDelay}}`, 10),
+        submenuCloseDelay: parseInt(`{{appConfig.view.pageDecoration.siteNavigation.submenuCloseDelay}}`, 10)
     });
     {{/if}}
     {{#if appConfig.view.pageDecoration.breadcrumbs.enabled}}
     // Initialize breadcrumbs when DOM is ready
     jPulse.UI.breadcrumbs.init({
-        currentUrl: '{{url.pathname}}',
+        currentUrl: `{{url.pathname}}`,
         navigation: window.jPulseNavigation.site,
-        homeLabel: '{{i18n.view.home.title}}'
+        homeLabel: `{{i18n.view.home.title}}`
     });
     {{/if}}
 

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Navigation Guide v1.3.0
+# jPulse Docs / Site Navigation Guide v1.3.1
 
 Complete guide to customizing site navigation in the jPulse Framework using direct mutation and append mode.
 
@@ -371,20 +371,20 @@ You can use emojis or SVG components for icons:
 
 ### Emoji Icons
 ```javascript
-icon: '📊'    // Simple emoji
-icon: '🔥'    // Unicode emoji
+icon: '📊',    // Simple emoji
+icon: '🔥',    // Unicode emoji
 ```
 
 ### SVG Component Icons
 ```javascript
 // Framework SVG components (from webapp/view/components/svg-icons.tmpl)
-icon: '{{use.jpIcons.configSvg size="24" _inline=true}}'
-icon: '{{use.jpIcons.usersSvg size="24" _inline=true}}'
-icon: '{{use.jpIcons.logsSvg size="24" _inline=true}}'
+icon: `{{use.jpIcons.configSvg size="24" _inline=true}}`,
+icon: `{{use.jpIcons.usersSvg size="24" _inline=true}}`,
+icon: `{{use.jpIcons.logsSvg size="24" _inline=true}}`,
 
 // Custom site SVG components
-icon: '{{use.siteIcons.customIcon size="24" _inline=true}}'
-icon: '<svg width="24" height="24" viewBox="0 0 64 64" > ... </svg>'
+icon: `{{use.siteIcons.customIcon size="24" _inline=true}}`,
+icon: '<svg width="24" height="24" viewBox="0 0 64 64" > ... </svg>',
 ```
 
 **Note:** Use `_inline=true` parameter for icons in navigation to ensure proper rendering in JavaScript structures.

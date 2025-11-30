@@ -3,8 +3,8 @@
  * @tagline         Email Controller for jPulse Framework
  * @description     Provides email sending capability and API endpoint for jPulse Framework
  * @file            webapp/controller/email.js
- * @version         1.2.6
- * @release         2025-11-25
+ * @version         1.3.0
+ * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -76,7 +76,7 @@ class EmailController {
             const useTls = emailConfig.useTls === true;
             const isPort465 = port === 465;
             const isPort587 = port === 587;
-            
+
             const transporterConfig = {
                 host: emailConfig.smtpServer || 'localhost',
                 port: port,
@@ -86,7 +86,7 @@ class EmailController {
                     pass: emailConfig.smtpPass
                 } : undefined
             };
-            
+
             // Configure TLS/STARTTLS
             if (useTls) {
                 if (isPort587) {
@@ -217,13 +217,18 @@ class EmailController {
             const fromName = options.from?.name || this.config.adminName || 'jPulse';
             const from = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
 
+            // W-045-TD-18: Sanitize HTML content to prevent XSS attacks in emails
+            const sanitizedHtml = options.html
+                ? CommonUtils.sanitizeHtml(options.html)
+                : options.text.replace(/\n/g, '<br/>');
+
             // Build mail options
             const mailOptions = {
                 from: from,
                 to: options.to,
                 subject: options.subject,
                 text: options.text,
-                html: options.html || options.text.replace(/\n/g, '<br>'),
+                html: sanitizedHtml,
                 replyTo: options.replyTo || fromEmail
             };
 
@@ -344,7 +349,7 @@ class EmailController {
      * Send email (API endpoint)
      * POST /api/1/email/send
      * Requires authentication
-     * 
+     *
      * Request body:
      * {
      *   to: string (required),
@@ -353,7 +358,7 @@ class EmailController {
      *   html: string (optional),
      *   emailConfig: object (optional) - Override saved config for testing
      * }
-     * 
+     *
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
@@ -403,7 +408,7 @@ class EmailController {
                 const useTls = emailConfig.useTls === true;
                 const isPort465 = port === 465;
                 const isPort587 = port === 587;
-                
+
                 const testConfig = {
                     host: emailConfig.smtpServer,
                     port: port,
@@ -413,7 +418,7 @@ class EmailController {
                         pass: emailConfig.smtpPass
                     } : undefined
                 };
-                
+
                 // Configure TLS/STARTTLS
                 if (useTls) {
                     if (isPort587) {
@@ -473,12 +478,17 @@ class EmailController {
                 const fromName = configToUse.adminName || 'jPulse';
                 const from = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
 
+                // W-045-TD-18: Sanitize HTML content to prevent XSS attacks in emails
+                const sanitizedHtml = html
+                    ? CommonUtils.sanitizeHtml(html)
+                    : message.replace(/\n/g, '<br>');
+
                 const mailOptions = {
                     from: from,
                     to: to,
                     subject: subject,
                     text: message,
-                    html: html || message.replace(/\n/g, '<br>'),
+                    html: sanitizedHtml,
                     replyTo: fromEmail
                 };
 
@@ -489,7 +499,7 @@ class EmailController {
                 LogController.logInfo(req, 'email.apiSend',
                     `${logPrefix} sent to ${to} by ${req.session.user.username}: ${subject} (${info.messageId})`);
 
-                const successMessage = isTestMode 
+                const successMessage = isTestMode
                     ? global.i18n.translate(req, 'controller.email.testSuccess', { email: to })
                     : global.i18n.translate(req, 'controller.email.sendSuccess');
 

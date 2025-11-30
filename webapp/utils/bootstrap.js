@@ -3,8 +3,8 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.2.6
- * @release         2025-11-25
+ * @version         1.3.0
+ * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -90,7 +90,7 @@ export async function bootstrap(options = {}) {
 
         // Step 5.1: Load Plugin Model (W-045)
         const PluginModelModule = await import('../model/plugin.js');
-        await PluginModelModule.default.ensureIndexes();
+        await PluginModelModule.default.ensureIndexes(isTest);
         bootstrapLog('✅ PluginModel: Indexes ensured');
 
         // Step 5.2: Get active plugins for logging

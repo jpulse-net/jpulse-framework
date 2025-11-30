@@ -3,8 +3,8 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.2.6
- * @release         2025-11-25
+ * @version         1.3.0
+ * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -35,6 +35,9 @@ import EmailController from './controller/email.js';
 import CommonUtils from './utils/common.js';
 import PathResolver from './utils/path-resolver.js';
 
+// Define admin roles early (used by multiple route groups)
+const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+
 // API routes (must come before catch-all route)
 
 // Health and metrics endpoints
@@ -56,18 +59,21 @@ router.put('/api/1/config/:id', ConfigController.update);
 router.put('/api/1/config/:id/upsert', ConfigController.upsert);
 router.delete('/api/1/config/:id', ConfigController.delete);
 
-// Plugin API routes of the framework controller (plugins are auto-discovered)
-router.get('/api/1/plugin', PluginController.list);
-router.get('/api/1/plugin/:name', PluginController.get);
-router.get('/api/1/plugin/:name/status', PluginController.getStatus);
-router.post('/api/1/plugin/:name/enable', PluginController.enable);
-router.post('/api/1/plugin/:name/disable', PluginController.disable);
-router.get('/api/1/plugin/:name/config', PluginController.getConfig);
-router.put('/api/1/plugin/:name/config', PluginController.updateConfig);
-router.get('/api/1/plugin/:name/dependencies', PluginController.getDependencies);
-router.get('/api/1/plugin/:name/plugin-dependencies', PluginController.getPluginDependencies);
-router.post('/api/1/plugin/scan', PluginController.scan);
-router.post('/api/1/plugin/:name/install-dependencies', PluginController.installDependencies);
+// Plugin API routes (W-045)
+// Public endpoint (no auth required) - must come before authenticated :name route
+router.get('/api/1/plugin/:name/info', PluginController.getInfo);
+// All other plugin routes require admin role
+router.get('/api/1/plugin', AuthController.requireRole(adminRoles), PluginController.list);
+router.get('/api/1/plugin/:name', AuthController.requireRole(adminRoles), PluginController.get);
+router.get('/api/1/plugin/:name/status', AuthController.requireRole(adminRoles), PluginController.getStatus);
+router.post('/api/1/plugin/:name/enable', AuthController.requireRole(adminRoles), PluginController.enable);
+router.post('/api/1/plugin/:name/disable', AuthController.requireRole(adminRoles), PluginController.disable);
+router.get('/api/1/plugin/:name/config', AuthController.requireRole(adminRoles), PluginController.getConfig);
+router.put('/api/1/plugin/:name/config', AuthController.requireRole(adminRoles), PluginController.updateConfig);
+router.get('/api/1/plugin/dependencies', AuthController.requireRole(adminRoles), PluginController.getDependencies);
+router.get('/api/1/plugin/:name/dependencies', AuthController.requireRole(adminRoles), PluginController.getPluginDependencies);
+router.post('/api/1/plugin/scan', AuthController.requireRole(adminRoles), PluginController.scan);
+router.post('/api/1/plugin/:name/install-dependencies', AuthController.requireRole(adminRoles), PluginController.installDependencies);
 
 // Auth API routes
 router.post('/api/1/auth/login', AuthController.login);
@@ -89,7 +95,6 @@ router.get('/api/1/cache/stats', CacheController.getStats);
 
 // User API routes (with authentication middleware where needed)
 // IMPORTANT: Specific routes must come before parameterized routes (:id)
-const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
 router.post('/api/1/user/signup', UserController.signup);
 router.put('/api/1/user/password', AuthController.requireAuthentication, UserController.changePassword);
 router.get('/api/1/user/search', AuthController.requireRole(adminRoles), UserController.search);

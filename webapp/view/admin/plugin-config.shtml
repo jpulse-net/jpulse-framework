@@ -4,8 +4,8 @@
  * @tagline         Dynamic Plugin Configuration Interface
  * @description     Schema-driven dynamic form generator for plugin configuration
  * @file            webapp/view/admin/plugin-config.shtml
- * @version         1.2.6
- * @release         2025-11-27
+ * @version         1.3.0
+ * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -147,25 +147,25 @@
 
             <!-- Configuration Form -->
             <div class="jp-card">
-                <h2>Configuration</h2>
+                <h2>{{i18n.view.admin.pluginConfig.configuration}}</h2>
 
                 <div id="formContainer">
-                    <p style="text-align: center; padding: 40px;">Loading configuration...</p>
+                    <p style="text-align: center; padding: 40px;">{{i18n.view.admin.pluginConfig.loadingConfig}}</p>
                 </div>
 
                 <div id="formActions">
                     <button type="button" id="btnSave" class="jp-btn jp-btn-primary">
-                        💾 Save Configuration
+                        💾 {{i18n.view.admin.pluginConfig.saveChanges}}
                     </button>
                     <button type="button" id="btnReset" class="jp-btn jp-btn-secondary" style="margin-left: 10px;">
-                        🔄 Reset to Defaults
+                        🔄 {{i18n.view.admin.pluginConfig.resetDefaults}}
                     </button>
                 </div>
             </div>
 
           {{else}}
             <div class="jp-alert jp-alert-error">
-                <strong>Access Denied</strong>
+                <strong>{{i18n.view.admin.accessDenied}}</strong>
                 <p>You must be an administrator to access this page.</p>
             </div>
           {{/if}}
@@ -195,7 +195,7 @@
         pluginName = urlParams.get('plugin');
 
         if (!pluginName) {
-            jPulse.UI.toast.error('No plugin specified');
+            jPulse.UI.toast.error('{{i18n.view.admin.pluginConfig.noPlugin}}');
             setTimeout(() => window.location.href = '/admin/plugins.shtml', 2000);
             return;
         }
@@ -228,11 +228,11 @@
                 document.getElementById('pageTitle').innerHTML = `${iconHtml} Configure ${jPulse.string.escapeHtml(pluginInfo.name)}`;
 
                 // Build subtitle with version and status inline
-                const summaryText = pluginInfo.summary || pluginInfo.description || 'Plugin Configuration';
+                const summaryText = pluginInfo.summary || pluginInfo.description || '{{i18n.view.admin.pluginConfig.subtitle}}';
                 const version = pluginInfo.version || '-';
                 const statusBadge = pluginInfo.enabled
-                    ? '<span class="jp-status-badge jp-status-active">Active</span>'
-                    : '<span class="jp-status-badge jp-status-disabled">Disabled</span>';
+                    ? '<span class="jp-status-badge jp-status-active">{{i18n.view.admin.plugins.statusActive}}</span>'
+                    : '<span class="jp-status-badge jp-status-disabled">{{i18n.view.admin.plugins.statusDisabled}}</span>';
 
                 document.getElementById('pageSubtitle').innerHTML =
                     `${jPulse.string.escapeHtml(summaryText)} <span style="color: var(--jp-color-text-tertiary);">•</span> <span style="color: var(--jp-color-text-secondary);">v${jPulse.string.escapeHtml(version)}</span> ${statusBadge}`;
@@ -243,11 +243,11 @@
                     document.getElementById('pluginDescriptionCard').style.display = 'block';
                 }
             } else {
-                jPulse.UI.toast.error('Failed to load plugin information');
+                jPulse.UI.toast.error(response.error || '{{i18n.view.admin.pluginConfig.loadFailed}}');
             }
         } catch (error) {
             console.error('Error loading plugin info:', error);
-            jPulse.UI.toast.error('Error: ' + error.message);
+            jPulse.UI.toast.error('{{i18n.view.admin.pluginConfig.loadError}}' + ': ' + error.message);
         }
     }
 
@@ -276,7 +276,7 @@
         const container = document.getElementById('formContainer');
 
         if (!configSchema || configSchema.length === 0) {
-            container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--jp-color-text-secondary);">This plugin has no configurable options.</p>';
+            container.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--jp-color-text-secondary);">{{i18n.view.admin.pluginConfig.noConfigSchema}}</p>';
             return;
         }
 
@@ -600,14 +600,14 @@
             });
 
             if (response.success) {
-                jPulse.UI.toast.success('Configuration saved successfully');
+                jPulse.UI.toast.success(response.message || '{{i18n.view.admin.pluginConfig.saveSuccess}}');
                 currentConfig = values;
             } else {
-                jPulse.UI.toast.error(response.error || 'Failed to save configuration');
+                jPulse.UI.toast.error(response.error || '{{i18n.view.admin.pluginConfig.saveFailed}}');
             }
         } catch (error) {
             console.error('Error saving configuration:', error);
-            jPulse.UI.toast.error('Error: ' + error.message);
+            jPulse.UI.toast.error('{{i18n.view.admin.pluginConfig.saveError}}' + ': ' + error.message);
         }
     }
 
@@ -616,12 +616,12 @@
      */
     async function resetToDefaults() {
         const result = await jPulse.UI.confirmDialog({
-            title: 'Reset Configuration',
-            message: 'Are you sure you want to reset all fields to their default values? This will not save automatically.',
-            buttons: ['Cancel', 'Reset to Defaults']
+            title: '{{i18n.view.admin.pluginConfig.resetTitle}}',
+            message: '{{i18n.view.admin.pluginConfig.resetMessage}}',
+            buttons: ['{{i18n.view.admin.pluginConfig.resetButtonCancel}}', '{{i18n.view.admin.pluginConfig.resetButton}}']
         });
 
-        if (result.button === 'Reset to Defaults') {
+        if (result.button === '{{i18n.view.admin.pluginConfig.resetButton}}') {
             currentConfig = {};
             configSchema.forEach(field => {
                 if (field.default !== undefined) {
@@ -629,7 +629,7 @@
                 }
             });
             renderConfigForm();
-            jPulse.UI.toast.info('All values have been reset to defaults. Don\'t forget to save!', { duration: 5000 });
+            jPulse.UI.toast.info('{{i18n.view.admin.pluginConfig.resetSuccess}}', { duration: 5000 });
         }
     }
 

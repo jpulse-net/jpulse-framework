@@ -3,8 +3,8 @@
  * @tagline         Plugin Discovery and Lifecycle Management
  * @description     Manages plugin discovery, validation, dependencies, and lifecycle
  * @file            webapp/utils/plugin-manager.js
- * @version         1.2.7
- * @release         2025-11-26
+ * @version         1.3.0
+ * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,6 +16,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import SymlinkManager from './symlink-manager.js';
+import CommonUtils from './common.js';
 
 /**
  * Plugin Manager - handles plugin discovery, validation, and lifecycle
@@ -132,6 +133,14 @@ class PluginManager {
                 if (!validation.valid) {
                     console.error(`Plugin ${pluginName} validation failed:`, validation.errors);
                     continue;
+                }
+
+                // W-045-TD-18: Sanitize HTML in plugin descriptions to prevent XSS attacks
+                if (pluginJson.description) {
+                    pluginJson.description = CommonUtils.sanitizeHtml(pluginJson.description);
+                }
+                if (pluginJson.summary) {
+                    pluginJson.summary = CommonUtils.sanitizeHtml(pluginJson.summary);
                 }
 
                 // Check if plugin already in registry

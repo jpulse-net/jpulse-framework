@@ -3,13 +3,15 @@
  * @tagline         Hello Plugin Controller
  * @description     Simple API controller demonstrating plugin structure
  * @file            plugins/hello-world/webapp/controller/helloPlugin.js
- * @version         1.0.0
+ * @version         1.3.0
  * @author          jPulse Team, https://jpulse.net
  * @license         BSL 1.1
  * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
  */
 
 import HelloPluginModel from '../model/helloPlugin.js';
+import PluginModel from '../../../../webapp/model/plugin.js';
+import LogController from '../../../../webapp/controller/log.js';
 
 /**
  * Hello Plugin Controller - demonstrates plugin API endpoints
@@ -24,9 +26,11 @@ class HelloPluginController {
      * @param {object} res - Express response object
      */
     static async api(req, res) {
+        const startTime = Date.now();
         try {
+            LogController.logRequest(req, 'helloPlugin.api', '');
+
             // Get plugin configuration
-            const PluginModel = (await import('../../../../webapp/model/plugin.js')).default;
             const pluginConfig = await PluginModel.getByName('hello-world');
 
             const config = pluginConfig?.config || {
@@ -37,6 +41,9 @@ class HelloPluginController {
             // Get sample data from model
             const data = await HelloPluginModel.getData();
 
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'helloPlugin.api', `success: completed in ${elapsed}ms`);
+
             res.json({
                 success: true,
                 data: {
@@ -44,15 +51,14 @@ class HelloPluginController {
                     version: '1.0.0',
                     config: config,
                     sampleData: data
-                }
+                },
+                message: 'Hello plugin data retrieved successfully',
+                elapsed
             });
 
         } catch (error) {
-            console.error('Hello Plugin API error:', error);
-            res.status(500).json({
-                success: false,
-                error: error.message
-            });
+            LogController.logError(req, 'helloPlugin.api', `error: ${error.message}`);
+            return global.CommonUtils.sendError(req, res, 500, 'Failed to retrieve hello plugin data', 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -63,20 +69,25 @@ class HelloPluginController {
      * @param {object} res - Express response object
      */
     static async apiStats(req, res) {
+        const startTime = Date.now();
         try {
+            LogController.logRequest(req, 'helloPlugin.stats', '');
+
             const stats = await HelloPluginModel.getStats();
+
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'helloPlugin.stats', `success: completed in ${elapsed}ms`);
 
             res.json({
                 success: true,
-                data: stats
+                data: stats,
+                message: 'Hello plugin statistics retrieved successfully',
+                elapsed
             });
 
         } catch (error) {
-            console.error('Hello Plugin stats error:', error);
-            res.status(500).json({
-                success: false,
-                error: error.message
-            });
+            LogController.logError(req, 'helloPlugin.stats', `error: ${error.message}`);
+            return global.CommonUtils.sendError(req, res, 500, 'Failed to retrieve hello plugin statistics', 'INTERNAL_ERROR', error.message);
         }
     }
 }

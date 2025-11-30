@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         1.2.6
- * @release         2025-11-25
+ * @version         1.3.0
+ * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -231,6 +231,16 @@ async function startApp() {
 
     // Create Express application
     const app = express();
+
+    // Disable JSON escaping of HTML entities (< > & etc.)
+    // By default, Express escapes <, >, and & for XSS protection when embedding JSON in HTML
+    // Since we use proper Content-Type: application/json and CSP headers, this is safe
+    // Patch Express's response prototype to use standard JSON.stringify without escaping
+    express.response.json = function(obj) {
+        const body = JSON.stringify(obj, null, appConfig.deployment.mode === 'development' ? 2 : 0);
+        this.set('Content-Type', 'application/json');
+        return this.send(body);
+    };
 
     // Configure middleware
     app.use(cors(appConfig.middleware.cors));

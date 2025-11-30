@@ -1,6 +1,186 @@
-# jPulse Docs / Version History v1.2.6
+# jPulse Docs / Version History v1.3.0
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.0, W-045, 2025-11-30
+
+**Commit:** `W-045, v1.3.0: architecture: add plugin infrastructure with auto-discovery`
+
+**MAJOR FEATURE**: Comprehensive plugin infrastructure enabling third-party extensions with zero-configuration auto-discovery, dynamic configuration management, and seamless integration into the framework's MVC architecture.
+
+**Objective**: Enable developers to extend jPulse Framework functionality through plugins without modifying core framework code, maintaining the "don't make me think" philosophy with automatic discovery, registration, and integration.
+
+**Implementation**:
+
+**1. Core Plugin Infrastructure**:
+- **PluginManager** (`webapp/utils/plugin-manager.js`):
+  * Auto-discovery from `plugins/` directory
+  * Plugin metadata validation from `plugin.json`
+  * Dependency resolution and load order determination
+  * Enable/disable lifecycle management
+  * Registry persistence in `.jpulse/plugins.json`
+  * Health status integration
+- **PathResolver Enhancement** (`webapp/utils/path-resolver.js`):
+  * Plugin-aware path resolution with priority: site > plugins > framework
+  * Cache integration for performance
+  * Support for controllers, models, views, static assets
+- **SymlinkManager** (`webapp/utils/symlink-manager.js`):
+  * Automatic symlink creation for plugin static assets
+  * Documentation symlink management
+  * Created at plugin enable time, removed at disable time
+- **Bootstrap Integration** (`webapp/utils/bootstrap.js`):
+  * Plugin discovery at Step 5 (after database, before views/controllers)
+  * Ensures plugins load before components that depend on them
+
+**2. Plugin Configuration Management**:
+- **PluginModel** (`webapp/model/plugin.js`):
+  * MongoDB storage for plugin configurations
+  * JSON schema validation (types, required, min/max, enums, patterns)
+  * Dynamic validation against plugin-defined schemas
+  * DB operation result validation (TD-19)
+  * Unique index on plugin name
+- **PluginController** (`webapp/controller/plugin.js`):
+  * RESTful API endpoints for plugin management
+  * 11 endpoints: list, get, getInfo (public), getStatus, enable, disable, getConfig, updateConfig, getDependencies, getPluginDependencies, scan, installDependencies
+  * Authentication/authorization on all admin endpoints
+  * Path traversal validation (TD-18 security fix)
+  * Request timing and standardized responses
+  * Complete i18n (English & German)
+
+**3. Admin User Interface**:
+- **Plugin Management** (`webapp/view/admin/plugins.shtml`):
+  * List all plugins with status (Active/Disabled)
+  * Enable/disable plugins with restart notification
+  * Plugin statistics (total, enabled, disabled)
+  * Rescan for new plugins
+  * Links to development guides and installed plugin docs
+  * Complete i18n support
+- **Plugin Configuration** (`webapp/view/admin/plugin-config.shtml`):
+  * Dynamic form generation from plugin JSON schema
+  * Support for text, number, boolean, select, textarea field types
+  * Field validation (required, min/max, pattern, enum)
+  * Reset to defaults functionality
+  * Real-time configuration save with validation
+  * Complete i18n support
+
+**4. Plugin Component Auto-Discovery**:
+- **Controllers**: Discovered by SiteControllerRegistry with `plugin:name` source
+- **Models**: Loadable via PathResolver with plugin priority
+- **Views**: Discovered by ViewController from `plugins/*/webapp/view/`
+- **Static Assets**: Symlinked to `webapp/static/plugins/{name}/`
+- **Documentation**: Symlinked to `docs/installed-plugins/{name}/`
+- **Navigation**: Append mode for `jpulse-navigation.js` (W-098 integration)
+- **Common Files**: Append mode for `jpulse-common.js` and `jpulse-common.css`
+
+**5. hello-world Demo Plugin** (`plugins/hello-world/`):
+- **Purpose**: Reference implementation demonstrating all plugin capabilities
+- **Components**:
+  * `plugin.json`: Metadata, dependencies, configuration schema
+  * Controller (`helloPlugin.js`): REST API endpoints with proper logging/error handling
+  * Model (`helloPlugin.js`): Data access with error handling
+  * Views: Tutorial page (`/hello-plugin/`), overview page (`/jpulse-plugins/hello-world.shtml`)
+  * Navigation: Adds "Hello Plugin" section to main navigation
+  * Static assets: CSS and JavaScript examples
+  * Documentation: Complete README with usage examples
+- **Configuration Schema**: Demonstrates text, number, boolean, select, textarea field types
+- **Ships with framework**: Always available as working example
+
+**6. Developer Documentation** (`docs/plugins/`):
+- **Plugin Architecture** (`plugin-architecture.md`): System design, auto-discovery, lifecycle
+- **Creating Plugins** (`creating-plugins.md`): Step-by-step development guide
+- **Managing Plugins** (`managing-plugins.md`): Installation, configuration, troubleshooting
+- **Publishing Plugins** (`publishing-plugins.md`): Distribution, versioning, npm publishing
+- **Plugin API Reference** (`plugin-api-reference.md`): Complete API documentation
+- **Technical Debt** (`W-045-plugins-tech-debt.md`): 19 documented future enhancements
+
+**7. Security Enhancements**:
+- **Path Traversal Protection**: Plugin name validation with regex `^[a-z0-9][a-z0-9-]*$`
+- **HTML Sanitization**:
+  * Added `CommonUtils.sanitizeHtml()` with configurable allowed tags/attributes
+  * Applied to plugin descriptions/summaries at discovery time
+  * Applied to email HTML content in EmailController
+  * Configurable via `app.conf: utils.common.sanitizeHtml`
+- **Authentication**: All plugin admin endpoints require admin role
+- **Authorization**: Role-based access control on all plugin operations
+- **Input Validation**: Comprehensive schema validation for plugin configurations
+
+**8. Quality & Testing**:
+- **Unit Tests**: PluginController (11 tests), PluginModel validation (10 tests)
+- **Integration Tests**: Plugin API authentication and authorization (12 tests)
+- **Test Coverage**: All tests passing (813 unit + 100 integration = 913 total)
+- **Code Review**: Aligned with UserController/UserModel patterns
+- **Error Handling**: Proper error propagation, no console.error() in production code
+- **Logging**: Request timing, comprehensive LogController integration
+
+**Impact**:
+- ✅ **Extensibility**: Third-party developers can extend framework without core modifications
+- ✅ **Zero Configuration**: Drop plugin in directory, it auto-discovers and integrates
+- ✅ **Admin-Friendly**: GUI for managing plugins and configurations
+- ✅ **Developer-Friendly**: Complete documentation and working examples
+- ✅ **Production-Ready**: Authentication, validation, error handling, HTML sanitization
+- ✅ **Maintainable**: 19 technical debt items documented for future enhancements
+- ✅ **Secure**: Path traversal protection, HTML sanitization, role-based access control
+
+**Files Created/Modified**:
+- **Core Infrastructure** (6 files):
+  * `webapp/utils/plugin-manager.js` (new)
+  * `webapp/utils/symlink-manager.js` (new)
+  * `webapp/utils/path-resolver.js` (enhanced for plugins)
+  * `webapp/utils/bootstrap.js` (added Step 5 for plugins)
+  * `webapp/utils/site-controller-registry.js` (added plugin controller discovery)
+  * `webapp/controller/view.js` (added plugin view discovery)
+- **Plugin Management** (4 files):
+  * `webapp/model/plugin.js` (new)
+  * `webapp/controller/plugin.js` (new)
+  * `webapp/view/admin/plugins.shtml` (new)
+  * `webapp/view/admin/plugin-config.shtml` (new)
+- **hello-world Plugin** (9 files):
+  * `plugins/hello-world/plugin.json` (new)
+  * `plugins/hello-world/README.md` (new)
+  * `plugins/hello-world/docs/README.md` (new)
+  * `plugins/hello-world/webapp/controller/helloPlugin.js` (new)
+  * `plugins/hello-world/webapp/model/helloPlugin.js` (new)
+  * `plugins/hello-world/webapp/view/hello-plugin/index.shtml` (new)
+  * `plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml` (new)
+  * `plugins/hello-world/webapp/view/jpulse-navigation.js` (new)
+  * `plugins/hello-world/webapp/static/.gitkeep` (new)
+- **Documentation** (6 files):
+  * `docs/plugins/plugin-architecture.md` (new)
+  * `docs/plugins/creating-plugins.md` (new)
+  * `docs/plugins/managing-plugins.md` (new)
+  * `docs/plugins/publishing-plugins.md` (new)
+  * `docs/plugins/plugin-api-reference.md` (new)
+  * `docs/dev/working/W-045-plugins-tech-debt.md` (new)
+- **Routes & Config** (4 files):
+  * `webapp/routes.js` (added 12 plugin API routes)
+  * `webapp/app.conf` (added utils.common.sanitizeHtml config)
+  * `webapp/translations/en.conf` (added plugin i18n keys)
+  * `webapp/translations/de.conf` (added German plugin i18n keys)
+- **Security** (2 files):
+  * `webapp/utils/common.js` (added sanitizeHtml function)
+  * `webapp/controller/email.js` (added HTML sanitization)
+- **Tests** (3 files):
+  * `webapp/tests/unit/controller/plugin-controller.test.js` (new)
+  * `webapp/tests/unit/model/plugin.test.js` (new)
+  * `webapp/tests/integration/plugin-api.test.js` (new)
+- **User-Facing Views** (2 files):
+  * `webapp/view/jpulse-plugins/index.shtml` (new - plugin dashboard)
+  * `docs/installed-plugins/README.md` (new - plugin docs index)
+- **Gitignore** (1 file):
+  * `.gitignore` (updated for plugin symlinks and registry)
+
+**Technical Details**:
+- Plugins discovered at bootstrap, before views/controllers load
+- Path resolution priority ensures site can override plugin files
+- Symlinks created/removed automatically on enable/disable
+- Configuration schema supports complex validation rules
+- All plugin operations logged with proper context
+- Restart required for plugin enable/disable (hot-reload is TD-17)
+
+**Work Item**: W-045
+**Version**: v1.3.0
+**Release Date**: 2025-11-30
 
 ________________________________________________
 ## v1.2.6, W-099, 2025-11-25

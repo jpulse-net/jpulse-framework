@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v1.2.6
+# jPulse Docs / Site Customization Guide v1.3.0
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -20,19 +20,29 @@ ________________________________________________
 jPulse automatically resolves files in this order:
 
 1. **Site files first**: `site/webapp/[path]`
-2. **Framework fallback**: `webapp/[path]`
+2. **Plugin files**: `plugins/[plugin-name]/webapp/[path]` (v1.3.0+)
+3. **Framework fallback**: `webapp/[path]`
 
-This means you only override what you need to customize.
+This means you only override what you need to customize. Plugins provide a middle layer between your site customizations and the framework core.
 
 ### Directory Structure
 ```
 my-jpulse-site/
-├── webapp/                   # Framework files (managed by jpulse-update)
+├── webapp/                   # Framework files (managed by jpulse update)
 │   ├── controller/           # Base controllers
 │   ├── model/                # Data models
 │   ├── view/                 # Base templates
 │   ├── static/               # Framework assets
 │   └── utils/                # Framework utilities
+├── plugins/                  # Plugins (v1.3.0+)
+│   └── hello-world/          # Example plugin
+│       ├── plugin.json       # Plugin metadata & config schema
+│       ├── docs/             # Plugin documentation
+│       └── webapp/           # Plugin components
+│           ├── controller/   # Plugin controllers
+│           ├── model/        # Plugin models
+│           ├── view/         # Plugin views
+│           └── static/       # Plugin assets (auto-symlinked)
 └── site/                     # Site customizations (update-safe)
     └── webapp/               # Site-specific overrides
         ├── app.conf          # Site configuration

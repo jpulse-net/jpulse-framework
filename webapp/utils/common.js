@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.2.6
- * @release         2025-11-25
+ * @version         1.3.0
+ * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -348,6 +348,111 @@ class CommonUtils {
     }
 
     /**
+     * Sanitize HTML content by allowing only safe tags and attributes.
+     * Prevents XSS attacks while preserving basic formatting.
+     *
+     * Configuration defaults from app.conf: utils.common.sanitizeHtml
+     *
+     * @param {string} html - HTML string to sanitize
+     * @param {object} options - Sanitization options (overrides config defaults)
+     * @param {string[]} options.allowedTags - Array of allowed tag names
+     * @param {object} options.allowedAttributes - Object mapping tag names to allowed attributes
+     * @returns {string} Sanitized HTML string
+     *
+     * @example
+     * CommonUtils.sanitizeHtml('<p>Hello <script>alert("xss")</script></p>');
+     * // Returns: '<p>Hello </p>'
+     *
+     * CommonUtils.sanitizeHtml('<a href="http://evil.com" onclick="steal()">Link</a>');
+     * // Returns: '<a href="http://evil.com">Link</a>'
+     */
+    static sanitizeHtml(html, options = {}) {
+        if (typeof html !== 'string') return '';
+
+        // Get defaults from config (app.conf: utils.common.sanitizeHtml)
+        const configDefaults = global.appConfig?.utils?.common?.sanitizeHtml || {};
+
+        const allowedTags = options.allowedTags || configDefaults.allowedTags || [
+            'p', 'br', 'strong', 'em', 'b', 'i', 'u',
+            'ul', 'ol', 'li',
+            'a', 'code', 'pre',
+            'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'blockquote', 'hr'
+        ];
+
+        const allowedAttributes = options.allowedAttributes || configDefaults.allowedAttributes || {
+            'a': ['href', 'title', 'target'],
+            'img': ['src', 'alt', 'title']
+        };
+
+        // Step 1: Remove all HTML comments (can hide malicious code)
+        html = html.replace(/<!--[\s\S]*?-->/g, '');
+
+        // Step 2: Remove all script and style tags with content
+        html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+        html = html.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+
+        // Step 3: Remove all event handler attributes (onclick, onerror, etc.)
+        html = html.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
+        html = html.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '');
+
+        // Step 4: Remove javascript: protocol from href/src
+        html = html.replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"');
+        html = html.replace(/src\s*=\s*["']javascript:[^"']*["']/gi, 'src=""');
+
+        // Step 5: Remove data: protocol (can contain base64 encoded javascript)
+        html = html.replace(/href\s*=\s*["']data:[^"']*["']/gi, 'href="#"');
+        html = html.replace(/src\s*=\s*["']data:[^"']*["']/gi, 'src=""');
+
+        // Step 6: Parse and rebuild with only allowed tags and attributes
+        const tagPattern = /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi;
+        html = html.replace(tagPattern, (match, tagName) => {
+            tagName = tagName.toLowerCase();
+
+            // If tag is not allowed, remove it entirely
+            if (!allowedTags.includes(tagName)) {
+                return '';
+            }
+
+            // If it's a closing tag, allow it
+            if (match.startsWith('</')) {
+                return `</${tagName}>`;
+            }
+
+            // For opening tags, filter attributes
+            const allowedAttrs = allowedAttributes[tagName] || [];
+            if (allowedAttrs.length === 0) {
+                // Self-closing tag or tag with no allowed attributes
+                return match.endsWith('/>') ? `<${tagName}/>` : `<${tagName}>`;
+            }
+
+            // Extract and filter attributes
+            const attrPattern = /(\w+)\s*=\s*["']([^"']*)["']/g;
+            let filteredAttrs = '';
+            let attrMatch;
+
+            while ((attrMatch = attrPattern.exec(match)) !== null) {
+                const attrName = attrMatch[1].toLowerCase();
+                const attrValue = attrMatch[2];
+
+                if (allowedAttrs.includes(attrName)) {
+                    // Additional validation for href/src
+                    if ((attrName === 'href' || attrName === 'src') &&
+                        (attrValue.toLowerCase().startsWith('javascript:') ||
+                         attrValue.toLowerCase().startsWith('data:'))) {
+                        continue; // Skip dangerous URLs
+                    }
+                    filteredAttrs += ` ${attrName}="${attrValue}"`;
+                }
+            }
+
+            return match.endsWith('/>') ? `<${tagName}${filteredAttrs}/>` : `<${tagName}${filteredAttrs}>`;
+        });
+
+        return html.trim();
+    }
+
+    /**
      * Send error response with appropriate format based on request type
      * @param {object} req - Express request object
      * @param {object} res - Express response object
@@ -481,6 +586,7 @@ export const {
     generateUuid,
     isValidEmail,
     sanitizeString,
+    sanitizeHtml,
     sendError,
     getLogContext,
     formatTimestamp,

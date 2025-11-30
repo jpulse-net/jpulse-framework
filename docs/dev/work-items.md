@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.2.6
+# jPulse Docs / Dev / Work Items v1.3.0
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -2097,6 +2097,54 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - fixed "should refresh navigation" test after sanitization refactor
     - test now modifies _navConfig instead of appConfig
 
+### W-045, v1.3.0: architecture: add plugin infrastructure with auto-discovery
+- status: DONE ✅
+- type: Feature
+- objective: extensible framework that is easy to understand & easy to maintain
+- author: 3rd party developers & jPulse team
+- audience: site administrator
+- working doc: docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md
+- strategy: drop a plugin in specific directory, with auto discovery
+- provide infrastructure for plugins to:
+  - add models, controllers, views
+  - replace models, controllers, views
+  - augment user model & controller
+  - augment auth model & controller
+  - add themes
+- create a hello-world demo plugin, ship with jpulse-framework
+- deliverables:
+  - **Core Plugin Infrastructure**:
+    * PluginManager for discovery, validation, dependency resolution, lifecycle management
+    * Auto-discovery from plugins/ directory with plugin.json metadata
+    * PathResolver integration for site > plugins > framework priority
+    * Symlink management for static assets and documentation
+    * Bootstrap sequence integration (Step 5)
+  - **Plugin Configuration Management**:
+    * PluginModel with JSON schema validation (MongoDB storage)
+    * Dynamic form generation from schema in admin UI
+    * Per-plugin config with types, validation, defaults, enums
+    * Admin UI: /admin/plugins.shtml (list/enable/disable), /admin/plugin-config.shtml (configure)
+  - **Plugin Components**:
+    * Auto-discovery: controllers, models, views, static assets, documentation
+    * SiteControllerRegistry integration for plugin API endpoints
+    * ViewController integration for plugin views
+    * Handlebars file.list/file.include helpers support plugins
+    * W-098 append mode for jpulse-common.js/css, jpulse-navigation.js
+  - **hello-world Demo Plugin** (ships with framework):
+    * Demonstrates MVC pattern, configuration schema, navigation integration
+    * Controller: /api/1/hello-plugin/* endpoints
+    * Model: plugin data & statistics
+    * Views: /hello-plugin/ (tutorial), /jpulse-plugins/hello-world.shtml (overview)
+    * Documentation: auto-symlinked to /jpulse-docs/installed-plugins/hello-world/
+    * Full example with all plugin features
+  - **Developer Documentation** (docs/plugins/):
+    * Plugin Architecture Overview (plugin-architecture.md)
+    * Creating Plugins Guide (creating-plugins.md)
+    * Managing Plugins Guide (managing-plugins.md)
+    * Publishing Plugins Guide (publishing-plugins.md)
+    * Plugin API Reference (plugin-api-reference.md)
+    * Technical Debt Tracking (W-045-plugins-tech-debt.md - 19 items)
+
 
 
 
@@ -2111,23 +2159,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-045, v1.3.0: architecture: add plugin infrastructure with auto-discovery
-- status: 🕑 PENDING
-- type: Feature
-- objective: extensible framework that is easy to understand & easy to maintain
-- author: 3rd party developers & jPulse team
-- audience: site administrator
-- working doc: docs/dev/W-014-W-045-mvc-site-plugins-architecture.md
-- strategy: drop a plugin in specific directory, with auto discovery
-- provide infrastructure for plugins for:
-  - additional models
-  - additional controllers
-  - additional views
-  - augment user model & controller
-  - augment auth model & controller
-  - wrapper for additional view packages
-  - themes
-- create a hello-world demo plugin, ship with jpulse-framework
 
 
 
@@ -2136,16 +2167,12 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-
-
-questions:
-- markdown docs: a way to declare sequence
-- replace extract.start/end with {{component}}
-- i18n of plugins core
 
 
 
 ### Pending
+
+pending:
 
 
 old pending:
@@ -2157,10 +2184,12 @@ old pending:
 - add SiteControllerRegistry.getStats() to metrics api & system-status
 
 ### Potential next items:
+- W-100: handlebars: replace extract:start & end with component handlebar
 - W-068: view: create responsive sidebar
 - W-0: view: headings with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific translations
 - W-037: view: create themes
+- W-0: markdown docs: a way to define the sequence of docs
 - W-0: handlebars: enhance {{#if}} and {{#unless}} with and, or, gt, gte, lt, lte, eq, ne
 - W-0: handlebars: new {{#set}} block handlebar
 - W-0: deployment: docker strategy
@@ -2178,9 +2207,9 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-099, v1.2.6
-- update deliverables in W-096 work-items to document work done (don't make any other changes to this file)
-- update README.md (highlights), docs/README.md (highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- assume release: W-045, v1.3.0
+- update deliverables in W-045 work-items to document work done (don't make any other changes to this file)
+- update README.md (latest release highlights), docs/README.md (latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
 
@@ -2196,22 +2225,22 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.2.6
+node bin/bump-version.js 1.3.0
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.2.6
+git tag v1.3.0
 git push origin main --tags
 
 === on failed package build on github ===
 git add .
 git commit --amend --no-edit
-git tag -d v1.1.2
-git push origin :refs/tags/v1.1.2
-git tag v1.1.2
+git tag -d v1.3.0
+git push origin :refs/tags/v1.3.0
+git tag v1.3.0
 git push origin main --force-with-lease
-git push origin v1.1.2
+git push origin v1.3.0
 
 === amend commit message ===
 git commit --amend -F commit-message.txt
@@ -2234,6 +2263,47 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
+
+### W-100: handlebars: replace extract:start & end with component handlebar
+- status: 🕑 PENDING
+- type: Feature
+- objective: more intuitive framework
+- background: the current way if declaring a card with extract:start and extract:end section, and auto-populating a dashboard with {{file.extract this}} works, but is not so intuitive
+- idea:
+  - replace:
+    <!-- extract:start order=10 --> ... <!-- extract:end -->
+    - with:
+    {{#component "adminCards.config" order=10}} ... {{/component}}
+  - replace:
+    {{#each file.list "admin/*.shtml" sortBy="extract-order"}}
+        {{file.extract this}}
+    {{/each}}
+    - with:
+    {{#each file.list "admin/*.shtml" sortBy="extract-order"}}
+        {{use this}}
+    {{/each}}
+  - add new sort order for plugins:
+    {{#each file.list "jpulse-plugins/*.shtml" sortBy="extract-order"}}
+  - old:
+    <div style="display: none;">
+        <!-- This card is automatically included in the admin dashboard at admin/index.shtml -->
+        <!-- extract:start order=10 -->
+        <a href="/admin/config.shtml" class="jp-card-dashboard jp-icon-btn">
+            <div class="jp-icon-container">{{use.jpIcons.configSvg size="64"}}</div>
+            <h3 class="jp-card-title">{{i18n.view.admin.index.siteConfig}}</h3>
+            <p class="jp-card-description">{{i18n.view.admin.index.siteConfigDesc}}</p>
+        </a>
+        <!-- extract:end -->
+    </div>
+  - new:
+    {{#component "adminCards.config" order=10}}
+        {{!-- This card is automatically included in the admin dashboard at admin/index.shtml --}}
+        <a href="/admin/config.shtml" class="jp-card-dashboard jp-icon-btn">
+            <div class="jp-icon-container">{{use.jpIcons.configSvg size="64"}}</div>
+            <h3 class="jp-card-title">{{i18n.view.admin.index.siteConfig}}</h3>
+            <p class="jp-card-description">{{i18n.view.admin.index.siteConfigDesc}}</p>
+        </a>
+    {{/component}}
 
 ### W-080: controller: change search to cursor based paging API with limit & cursor
 - status: 🕑 PENDING
@@ -2340,6 +2410,11 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - deliverables:
   - webapp/view/jpulse-common.js, webapp/view/jpulse-footer.tmpl:
     - add logic for hover, copy to clipboard, URI change with anchor
+
+### W-0: markdown docs: a way to define the sequence of docs
+- status: 🕑 PENDING
+- type: Feature
+- objective: more logical flow for doc pages (instead of alphabetical)
 
 ### W-0: view: broadcast message
 - status: 🕑 PENDING

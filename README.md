@@ -1,4 +1,4 @@
-# jPulse Framework v1.2.6
+# jPulse Framework v1.3.0
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -71,10 +71,17 @@ npm start
   - Add `static async apiCreate()` → automatically registered at `POST /api/1/product`
   - Add `view/my-app/index.shtml` with Vue Router → automatically detects SPA, supports page reloads on all sub-routes
   - Just create files following naming conventions - framework handles discovery, registration, and routing!
+- **Plugin Infrastructure**: Extend framework functionality with zero configuration
+  - Drop plugins in `plugins/` directory → automatically discovered and integrated
+  - Plugin-aware path resolution: site > plugins > framework priority
+  - Admin UI for enabling/disabling plugins and managing configurations
+  - Dynamic form generation from JSON schema for plugin settings
+  - Complete MVC support: controllers, models, views, static assets, documentation
+  - Ships with `hello-world` demo plugin showcasing all capabilities
 - **Health Metrics**: Aggregated across instances on all app servers
-- **Enterprise Security**: Built-in authentication, session management, and security headers
+- **Enterprise Security**: Built-in authentication, session management, security headers, and HTML sanitization
 - **Internationalization**: Complete i18n support with dynamic translation loading
-- **Testing Framework**: 800+ tests with automated cleanup and isolation
+- **Testing Framework**: 900+ tests with automated cleanup and isolation
 - **Production Ready**: nginx integration, PM2 clustering, MongoDB replica sets
 
 ## Deployment Requirements
@@ -162,6 +169,7 @@ npx jpulse update @jpulse-net/jpulse-framework@1.0.0-rc.1
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.3.0 - Plugin Infrastructure with Auto-Discovery**: Comprehensive plugin system enabling third-party extensions with zero-configuration auto-discovery. Features complete MVC support (controllers, models, views, static assets, documentation), dynamic configuration management with JSON schema validation, admin UI for plugin management, plugin-aware path resolution (site > plugins > framework), automatic symlink management, and ships with `hello-world` demo plugin. Includes robust security (path traversal protection, HTML sanitization for plugin descriptions and email content, DB operation validation), complete i18n (English & German), request timing, and comprehensive testing (913 tests passing). Five comprehensive documentation guides for plugin development. Technical debt documented with 19 items for future enhancements. No breaking changes.
 - ✅ **Version 1.2.6 - Bug Fixes for Site Installation and Navigation**: Critical bug fix release addressing issues discovered after v1.2.5 deployment. Fixed incomplete hello example copying during site installation (now copies all 5 controllers, 1 model, and recursive view directories with templates). Implemented robust navigation null handling with `_sanitizeNavStructure()` method to safely remove deletion markers at init time, preventing "Cannot read properties of null" errors. Removed obsolete `checkAdminAccess()` call. All 893 tests passing.
 - ✅ **Version 1.2.5 - Site Navigation Override with Append Mode**: Introduced flexible navigation customization using append mode file concatenation and direct JavaScript mutation. Sites can selectively add, modify, or delete navigation sections without duplicating entire framework files. Features `.js` and `.css` append mode (concatenate framework + site), unified `window.jPulseNavigation` structure, direct mutation pattern (`window.jPulseNavigation.site.foo = {...}`), Handlebars comment support (`{{!-- --}}`), and file naming standardization (`site-common.*` → `jpulse-common.*`). Benefits: zero runtime overhead, automatic framework updates, idiomatic JavaScript, minimal customization code. Breaking change: navigation file migration required. Complete documentation in site-navigation.md guide.
 - ✅ **Version 1.2.4 - Reusable Handlebars Components**: Introduced reusable component system to eliminate code duplication. Define components once with `{{#component "name" param="default"}}...{{/component}}`, use everywhere with `{{use.componentName param="value"}}`. Features automatic kebab-case to camelCase conversion, per-request component registry, circular reference detection, optional dot-notation namespaces (`jpIcons.configSvg`), and `_inline=true` parameter for JavaScript embedding. Created centralized `svg-icons.tmpl` library with 20+ parameterized SVG components. Migrated all framework icons to component system. Benefits: define once use everywhere, clean templates, maintainable icons, organized namespaces. No breaking changes - new opt-in feature with comprehensive documentation.

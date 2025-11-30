@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-014 SiteControllerRegistry auto-discovery utility
  * @description     Tests site controller auto-discovery and API registration functionality
  * @file            webapp/tests/unit/utils/site-controller-registry.test.js
- * @version         1.2.6
- * @release         2025-11-25
+ * @version         1.3.0
+ * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -46,6 +46,12 @@ describe('SiteControllerRegistry (W-014)', () => {
             }
         };
 
+        // Mock global.PluginManager to return no active plugins (W-045)
+        global.PluginManager = {
+            initialized: false,
+            getActivePlugins: () => []
+        };
+
         // Import the modules - they will use the mocked fs
         const { default: SiteControllerRegistryModule } = await import('../../../utils/site-controller-registry.js');
         SiteControllerRegistry = SiteControllerRegistryModule;
@@ -59,6 +65,8 @@ describe('SiteControllerRegistry (W-014)', () => {
 
     afterEach(() => {
         jest.restoreAllMocks();
+        // Clean up global.PluginManager
+        delete global.PluginManager;
     });
 
     describe('Controller Discovery', () => {
@@ -188,7 +196,7 @@ describe('SiteControllerRegistry (W-014)', () => {
             expect(LogController.logError).toHaveBeenCalledWith(
                 null,
                 'site-controller-registry',
-                expect.stringContaining('Failed to analyze controller broken.js')
+                expect.stringContaining('Failed to analyze controller broken from')
             );
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
@@ -216,7 +224,8 @@ describe('SiteControllerRegistry (W-014)', () => {
                 ],
                 hasInitialize: false,
                 path: '/mock/path/hello.js',
-                relativePath: 'controller/hello.js'
+                relativePath: 'controller/hello.js',
+                source: 'site'
             });
             SiteControllerRegistry.registry.controllers.set('helloTodo', {
                 name: 'helloTodo',
@@ -230,7 +239,8 @@ describe('SiteControllerRegistry (W-014)', () => {
                 ],
                 hasInitialize: false,
                 path: '/mock/path/helloTodo.js',
-                relativePath: 'controller/helloTodo.js'
+                relativePath: 'controller/helloTodo.js',
+                source: 'site'
             });
             SiteControllerRegistry.registry.controllers.set('admin', {
                 name: 'admin',
@@ -240,7 +250,8 @@ describe('SiteControllerRegistry (W-014)', () => {
                 ],
                 hasInitialize: false,
                 path: '/mock/path/admin.js',
-                relativePath: 'controller/admin.js'
+                relativePath: 'controller/admin.js',
+                source: 'site'
             });
 
             SiteControllerRegistry.registerApiRoutes(mockRouter);
@@ -255,12 +266,12 @@ describe('SiteControllerRegistry (W-014)', () => {
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
                 'site-controller-registry',
-                'Registered: GET /api/1/hello → hello.api'
+                'Registered: GET /api/1/hello → site:hello.api'
             );
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
                 'site-controller-registry',
-                'Registered: GET /api/1/admin → admin.api'
+                'Registered: GET /api/1/admin → site:admin.api'
             );
         });
 

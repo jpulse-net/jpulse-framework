@@ -3,8 +3,8 @@
  * @tagline         Plugin Controller for jPulse Framework WebApp
  * @description     Plugin management controller for the jPulse Framework WebApp
  * @file            webapp/controller/plugin.js
- * @version         1.2.7
- * @release         2025-11-26
+ * @version         1.3.0
+ * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -24,12 +24,37 @@ import CommonUtils from '../utils/common.js';
 class PluginController {
 
     /**
+     * Validate plugin name to prevent path traversal attacks
+     * @param {string} name - Plugin name from request parameters
+     * @param {object} req - Express request object (for i18n)
+     * @returns {string} Validated plugin name
+     * @throws {Error} If plugin name is invalid
+     * @private
+     */
+    static _validatePluginName(name, req) {
+        if (!name || typeof name !== 'string') {
+            const message = global.i18n.translate(req, 'controller.plugin.validation.nameRequired');
+            throw new Error(message);
+        }
+
+        // Security: Only allow lowercase alphanumeric + hyphens, must start with alphanumeric
+        // This prevents path traversal attacks like '../../../etc/passwd'
+        if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) {
+            const message = global.i18n.translate(req, 'controller.plugin.validation.nameInvalid', { name });
+            throw new Error(message);
+        }
+
+        return name;
+    }
+
+    /**
      * List all plugins
      * GET /api/1/plugin/list
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
     static async list(req, res) {
+        const startTime = Date.now();
         LogController.logRequest(req, 'plugin.list', '');
         try {
             const plugins = PluginManager.getAllPlugins();
@@ -57,33 +82,95 @@ class PluginController {
                 });
             }
 
-            LogController.logInfo(req, 'plugin.list', `success: ${pluginList.length} plugins listed`);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'plugin.list', `success: ${pluginList.length} plugins listed, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.plugin.list.success', { count: pluginList.length });
             res.json({
                 success: true,
-                data: pluginList
+                data: pluginList,
+                message: message,
+                elapsed
             });
 
         } catch (error) {
             LogController.logError(req, 'plugin.list', `error: ${error.message}`);
-            return CommonUtils.sendError(req, res, 500, 'Failed to list plugins', 'INTERNAL_ERROR', error.message);
+            const message = global.i18n.translate(req, 'controller.plugin.list.failed');
+            return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
     /**
-     * Get plugin details
+     * Get public plugin info (no authentication required)
+     * GET /api/1/plugin/:name/info
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async getInfo(req, res) {
+        const startTime = Date.now();
+        try {
+            const name = PluginController._validatePluginName(req.params.name, req);
+            LogController.logRequest(req, 'plugin.getInfo', name);
+            const plugin = PluginManager.getPlugin(name);
+
+            if (!plugin) {
+                LogController.logError(req, 'plugin.getInfo', `error: plugin not found: ${name}`);
+                const message = global.i18n.translate(req, 'controller.plugin.get.notFound', { name });
+                return CommonUtils.sendError(req, res, 404, message, 'PLUGIN_NOT_FOUND');
+            }
+
+            // Return only public, safe information
+            const response = {
+                name: plugin.name,
+                version: plugin.metadata.version,
+                icon: plugin.metadata.icon,
+                summary: plugin.metadata.summary,
+                description: plugin.metadata.description,
+                author: plugin.metadata.author,
+                jpulseVersion: plugin.metadata.jpulseVersion,
+                enabled: plugin.registryEntry.enabled,
+                autoEnable: plugin.registryEntry.autoEnable,
+                status: plugin.registryEntry.status
+            };
+
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'plugin.getInfo', `success: public info retrieved for ${name}, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.plugin.getInfo.success');
+            res.json({
+                success: true,
+                data: response,
+                message: message,
+                elapsed
+            });
+
+        } catch (error) {
+            LogController.logError(req, 'plugin.getInfo', `error: ${error.message}`);
+            // Validation errors should return 400, not 500
+            const isValidationError = error.message.includes('Invalid plugin name') || error.message.includes('required');
+            if (isValidationError) {
+                return CommonUtils.sendError(req, res, 400, error.message, 'INVALID_PLUGIN_NAME');
+            }
+            const message = global.i18n.translate(req, 'controller.plugin.getInfo.failed');
+            return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
+     * Get plugin details (admin only - includes sensitive data)
      * GET /api/1/plugin/:name
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
     static async get(req, res) {
-        const name = req.params.name;
-        LogController.logRequest(req, 'plugin.get', name);
+        const startTime = Date.now();
         try {
+            const name = PluginController._validatePluginName(req.params.name, req);
+            LogController.logRequest(req, 'plugin.get', name);
             const plugin = PluginManager.getPlugin(name);
 
             if (!plugin) {
                 LogController.logError(req, 'plugin.get', `error: plugin not found: ${name}`);
-                return CommonUtils.sendError(req, res, 404, `Plugin not found: ${name}`, 'PLUGIN_NOT_FOUND');
+                const message = global.i18n.translate(req, 'controller.plugin.get.notFound', { name });
+                return CommonUtils.sendError(req, res, 404, message, 'PLUGIN_NOT_FOUND');
             }
 
             const dbConfig = await PluginModel.getByName(name);
@@ -108,15 +195,24 @@ class PluginController {
                 path: plugin.path
             };
 
-            LogController.logInfo(req, 'plugin.get', `success: plugin details retrieved for ${name}`);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'plugin.get', `success: plugin details retrieved for ${name}, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.plugin.get.success');
             res.json({
                 success: true,
-                data: response
+                data: response,
+                message: message,
+                elapsed
             });
 
         } catch (error) {
             LogController.logError(req, 'plugin.get', `error: ${error.message}`);
-            return CommonUtils.sendError(req, res, 500, 'Failed to get plugin details', 'INTERNAL_ERROR', error.message);
+            const isValidationError = error.message.includes('Invalid plugin name') || error.message.includes('required');
+            if (isValidationError) {
+                return CommonUtils.sendError(req, res, 400, error.message, 'INVALID_PLUGIN_NAME');
+            }
+            const message = global.i18n.translate(req, 'controller.plugin.get.failed');
+            return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -127,14 +223,16 @@ class PluginController {
      * @param {object} res - Express response object
      */
     static async getStatus(req, res) {
-        const name = req.params.name;
-        LogController.logRequest(req, 'plugin.getStatus', name);
+        const startTime = Date.now();
         try {
+            const name = PluginController._validatePluginName(req.params.name, req);
+            LogController.logRequest(req, 'plugin.getStatus', name);
             const plugin = PluginManager.getPlugin(name);
 
             if (!plugin) {
                 LogController.logError(req, 'plugin.getStatus', `error: plugin not found: ${name}`);
-                return CommonUtils.sendError(req, res, 404, `Plugin not found: ${name}`, 'PLUGIN_NOT_FOUND');
+                const message = global.i18n.translate(req, 'controller.plugin.getStatus.notFound', { name });
+                return CommonUtils.sendError(req, res, 404, message, 'PLUGIN_NOT_FOUND');
             }
 
             const status = {
@@ -146,15 +244,24 @@ class PluginController {
                 dependencies: plugin.metadata.dependencies || {}
             };
 
-            LogController.logInfo(req, 'plugin.getStatus', `success: status retrieved for ${name}`);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'plugin.getStatus', `success: status retrieved for ${name}, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.plugin.getStatus.success');
             res.json({
                 success: true,
-                data: status
+                data: status,
+                message: message,
+                elapsed
             });
 
         } catch (error) {
             LogController.logError(req, 'plugin.getStatus', `error: ${error.message}`);
-            return CommonUtils.sendError(req, res, 500, 'Failed to get plugin status', 'INTERNAL_ERROR', error.message);
+            const isValidationError = error.message.includes('Invalid plugin name') || error.message.includes('required');
+            if (isValidationError) {
+                return CommonUtils.sendError(req, res, 400, error.message, 'INVALID_PLUGIN_NAME');
+            }
+            const message = global.i18n.translate(req, 'plugin.getStatus.failed');
+            return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -165,14 +272,16 @@ class PluginController {
      * @param {object} res - Express response object
      */
     static async enable(req, res) {
-        const name = req.params.name;
-        LogController.logRequest(req, 'plugin.enable', name);
+        const startTime = Date.now();
         try {
+            const name = PluginController._validatePluginName(req.params.name, req);
+            LogController.logRequest(req, 'plugin.enable', name);
             const result = await PluginManager.enablePlugin(name);
 
             if (!result.success) {
                 LogController.logError(req, 'plugin.enable', `error: ${result.message}`);
-                return CommonUtils.sendError(req, res, 400, result.message, 'ENABLE_FAILED');
+                const message = global.i18n.translate(req, 'controller.plugin.enable.failed', { message: result.message });
+                return CommonUtils.sendError(req, res, 400, message, 'ENABLE_FAILED');
             }
 
             // Log the action
@@ -180,16 +289,24 @@ class PluginController {
             const username = user ? (user.username || user.loginId || user.id) : 'system';
             await LogController.logChange(req, 'plugin', 'update', name, { enabled: false }, { enabled: true, by: username });
 
-            LogController.logInfo(req, 'plugin.enable', `success: plugin enabled: ${name}`);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'plugin.enable', `success: plugin enabled: ${name}, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.plugin.enable.success', { name });
             res.json({
                 success: true,
-                message: result.message,
-                restartRequired: true
+                message: message,
+                restartRequired: true,
+                elapsed
             });
 
         } catch (error) {
             LogController.logError(req, 'plugin.enable', `error: ${error.message}`);
-            return CommonUtils.sendError(req, res, 500, 'Failed to enable plugin', 'INTERNAL_ERROR', error.message);
+            const isValidationError = error.message.includes('Invalid plugin name') || error.message.includes('required');
+            if (isValidationError) {
+                return CommonUtils.sendError(req, res, 400, error.message, 'INVALID_PLUGIN_NAME');
+            }
+            const message = global.i18n.translate(req, 'controller.plugin.enable.internalError');
+            return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -200,14 +317,16 @@ class PluginController {
      * @param {object} res - Express response object
      */
     static async disable(req, res) {
-        const name = req.params.name;
-        LogController.logRequest(req, 'plugin.disable', name);
+        const startTime = Date.now();
         try {
+            const name = PluginController._validatePluginName(req.params.name, req);
+            LogController.logRequest(req, 'plugin.disable', name);
             const result = await PluginManager.disablePlugin(name);
 
             if (!result.success) {
                 LogController.logError(req, 'plugin.disable', `error: ${result.message}`);
-                return CommonUtils.sendError(req, res, 400, result.message, 'DISABLE_FAILED');
+                const message = global.i18n.translate(req, 'controller.plugin.disable.failed', { message: result.message });
+                return CommonUtils.sendError(req, res, 400, message, 'DISABLE_FAILED');
             }
 
             // Log the action
@@ -215,16 +334,24 @@ class PluginController {
             const username = user ? (user.username || user.loginId || user.id) : 'system';
             await LogController.logChange(req, 'plugin', 'update', name, { enabled: true }, { enabled: false, by: username });
 
-            LogController.logInfo(req, 'plugin.disable', `success: plugin disabled: ${name}`);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'plugin.disable', `success: plugin disabled: ${name}, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.plugin.disable.success', { name });
             res.json({
                 success: true,
-                message: result.message,
-                restartRequired: true
+                message: message,
+                restartRequired: true,
+                elapsed
             });
 
         } catch (error) {
             LogController.logError(req, 'plugin.disable', `error: ${error.message}`);
-            return CommonUtils.sendError(req, res, 500, 'Failed to disable plugin', 'INTERNAL_ERROR', error.message);
+            const isValidationError = error.message.includes('Invalid plugin name') || error.message.includes('required');
+            if (isValidationError) {
+                return CommonUtils.sendError(req, res, 400, error.message, 'INVALID_PLUGIN_NAME');
+            }
+            const message = global.i18n.translate(req, 'controller.plugin.disable.internalError');
+            return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -235,14 +362,16 @@ class PluginController {
      * @param {object} res - Express response object
      */
     static async getConfig(req, res) {
-        const name = req.params.name;
-        LogController.logRequest(req, 'plugin.getConfig', name);
+        const startTime = Date.now();
         try {
+            const name = PluginController._validatePluginName(req.params.name, req);
+            LogController.logRequest(req, 'plugin.getConfig', name);
             const plugin = PluginManager.getPlugin(name);
 
             if (!plugin) {
                 LogController.logError(req, 'plugin.getConfig', `error: plugin not found: ${name}`);
-                return CommonUtils.sendError(req, res, 404, `Plugin not found: ${name}`, 'PLUGIN_NOT_FOUND');
+                const message = global.i18n.translate(req, 'controller.plugin.getConfig.notFound', { name });
+                return CommonUtils.sendError(req, res, 404, message, 'PLUGIN_NOT_FOUND');
             }
 
             const configSchema = plugin.metadata.config?.schema || [];
@@ -254,15 +383,24 @@ class PluginController {
                 values: configValues
             };
 
-            LogController.logInfo(req, 'plugin.getConfig', `success: config retrieved for ${name}`);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'plugin.getConfig', `success: config retrieved for ${name}, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.plugin.getConfig.success');
             res.json({
                 success: true,
-                data: response
+                data: response,
+                message: message,
+                elapsed
             });
 
         } catch (error) {
             LogController.logError(req, 'plugin.getConfig', `error: ${error.message}`);
-            return CommonUtils.sendError(req, res, 500, 'Failed to get plugin config', 'INTERNAL_ERROR', error.message);
+            const isValidationError = error.message.includes('Invalid plugin name') || error.message.includes('required');
+            if (isValidationError) {
+                return CommonUtils.sendError(req, res, 400, error.message, 'INVALID_PLUGIN_NAME');
+            }
+            const message = global.i18n.translate(req, 'controller.plugin.getConfig.failed');
+            return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -273,15 +411,17 @@ class PluginController {
      * @param {object} res - Express response object
      */
     static async updateConfig(req, res) {
-        const name = req.params.name;
-        const configData = req.body.config || req.body;
-        LogController.logRequest(req, 'plugin.updateConfig', name);
+        const startTime = Date.now();
         try {
+            const name = PluginController._validatePluginName(req.params.name, req);
+            const configData = req.body.config || req.body;
+            LogController.logRequest(req, 'plugin.updateConfig', name);
             const plugin = PluginManager.getPlugin(name);
 
             if (!plugin) {
                 LogController.logError(req, 'plugin.updateConfig', `error: plugin not found: ${name}`);
-                return CommonUtils.sendError(req, res, 404, `Plugin not found: ${name}`, 'PLUGIN_NOT_FOUND');
+                const message = global.i18n.translate(req, 'controller.plugin.updateConfig.notFound', { name });
+                return CommonUtils.sendError(req, res, 404, message, 'PLUGIN_NOT_FOUND');
             }
 
             // Validate config against schema
@@ -290,7 +430,8 @@ class PluginController {
                 const validation = PluginModel.validateConfig(name, configData, configSchema);
                 if (!validation.valid) {
                     LogController.logError(req, 'plugin.updateConfig', `error: validation failed: ${validation.errors.join(', ')}`);
-                    return CommonUtils.sendError(req, res, 400, `Validation failed: ${validation.errors.join(', ')}`, 'VALIDATION_ERROR');
+                    const message = global.i18n.translate(req, 'controller.plugin.updateConfig.validationFailed', { errors: validation.errors.join(', ') });
+                    return CommonUtils.sendError(req, res, 400, message, 'VALIDATION_ERROR');
                 }
             }
 
@@ -305,16 +446,24 @@ class PluginController {
             // Log the change
             await LogController.logChange(req, 'plugin', 'update', name, oldConfig?.config, configData);
 
-            LogController.logInfo(req, 'plugin.updateConfig', `success: config updated for ${name}`);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'plugin.updateConfig', `success: config updated for ${name}, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.plugin.updateConfig.success');
             res.json({
                 success: true,
-                message: 'Configuration updated successfully',
-                restartRequired: false
+                message: message,
+                restartRequired: false,
+                elapsed
             });
 
         } catch (error) {
             LogController.logError(req, 'plugin.updateConfig', `error: ${error.message}`);
-            return CommonUtils.sendError(req, res, 500, 'Failed to update plugin config', 'INTERNAL_ERROR', error.message);
+            const isValidationError = error.message.includes('Invalid plugin name') || error.message.includes('required');
+            if (isValidationError) {
+                return CommonUtils.sendError(req, res, 400, error.message, 'INVALID_PLUGIN_NAME');
+            }
+            const message = global.i18n.translate(req, 'controller.plugin.updateConfig.failed');
+            return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -325,6 +474,7 @@ class PluginController {
      * @param {object} res - Express response object
      */
     static async getDependencies(req, res) {
+        const startTime = Date.now();
         LogController.logRequest(req, 'plugin.getDependencies', '');
         try {
             const plugins = PluginManager.getAllPlugins();
@@ -349,15 +499,20 @@ class PluginController {
                 }
             }
 
-            LogController.logInfo(req, 'plugin.getDependencies', `success: dependency graph generated`);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'plugin.getDependencies', `success: dependency graph generated, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.plugin.getDependencies.success');
             res.json({
                 success: true,
-                data: graph
+                data: graph,
+                message: message,
+                elapsed
             });
 
         } catch (error) {
             LogController.logError(req, 'plugin.getDependencies', `error: ${error.message}`);
-            return CommonUtils.sendError(req, res, 500, 'Failed to get dependencies', 'INTERNAL_ERROR', error.message);
+            const message = global.i18n.translate(req, 'controller.plugin.getDependencies.failed');
+            return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -368,14 +523,16 @@ class PluginController {
      * @param {object} res - Express response object
      */
     static async getPluginDependencies(req, res) {
-        const name = req.params.name;
-        LogController.logRequest(req, 'plugin.getPluginDependencies', name);
+        const startTime = Date.now();
         try {
+            const name = PluginController._validatePluginName(req.params.name, req);
+            LogController.logRequest(req, 'plugin.getPluginDependencies', name);
             const plugin = PluginManager.getPlugin(name);
 
             if (!plugin) {
                 LogController.logError(req, 'plugin.getPluginDependencies', `error: plugin not found: ${name}`);
-                return CommonUtils.sendError(req, res, 404, `Plugin not found: ${name}`, 'PLUGIN_NOT_FOUND');
+                const message = global.i18n.translate(req, 'controller.plugin.getPluginDependencies.notFound', { name });
+                return CommonUtils.sendError(req, res, 404, message, 'PLUGIN_NOT_FOUND');
             }
 
             const requires = plugin.metadata.dependencies?.plugins || {};
@@ -403,15 +560,24 @@ class PluginController {
                 requiredBy: requiredBy
             };
 
-            LogController.logInfo(req, 'plugin.getPluginDependencies', `success: dependencies retrieved for ${name}`);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'plugin.getPluginDependencies', `success: dependencies retrieved for ${name}, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.plugin.getPluginDependencies.success');
             res.json({
                 success: true,
-                data: response
+                data: response,
+                message: message,
+                elapsed
             });
 
         } catch (error) {
             LogController.logError(req, 'plugin.getPluginDependencies', `error: ${error.message}`);
-            return CommonUtils.sendError(req, res, 500, 'Failed to get plugin dependencies', 'INTERNAL_ERROR', error.message);
+            const isValidationError = error.message.includes('Invalid plugin name') || error.message.includes('required');
+            if (isValidationError) {
+                return CommonUtils.sendError(req, res, 400, error.message, 'INVALID_PLUGIN_NAME');
+            }
+            const message = global.i18n.translate(req, 'plugin.getPluginDependencies.failed');
+            return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -422,20 +588,25 @@ class PluginController {
      * @param {object} res - Express response object
      */
     static async scan(req, res) {
+        const startTime = Date.now();
         LogController.logRequest(req, 'plugin.scan', '');
         try {
             const result = await PluginManager.rescan();
 
-            LogController.logInfo(req, 'plugin.scan', `success: ${result.message}`);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'plugin.scan', `success: ${result.message}, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.plugin.scan.success');
             res.json({
                 success: true,
                 data: result,
-                message: result.message
+                message: message,
+                elapsed
             });
 
         } catch (error) {
             LogController.logError(req, 'plugin.scan', `error: ${error.message}`);
-            return CommonUtils.sendError(req, res, 500, 'Failed to scan for plugins', 'INTERNAL_ERROR', error.message);
+            const message = global.i18n.translate(req, 'controller.plugin.scan.failed');
+            return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 
@@ -446,29 +617,39 @@ class PluginController {
      * @param {object} res - Express response object
      */
     static async installDependencies(req, res) {
-        const name = req.params.name;
-        LogController.logRequest(req, 'plugin.installDependencies', name);
+        const startTime = Date.now();
         try {
+            const name = PluginController._validatePluginName(req.params.name, req);
+            LogController.logRequest(req, 'plugin.installDependencies', name);
             const plugin = PluginManager.getPlugin(name);
 
             if (!plugin) {
                 LogController.logError(req, 'plugin.installDependencies', `error: plugin not found: ${name}`);
-                return CommonUtils.sendError(req, res, 404, `Plugin not found: ${name}`, 'PLUGIN_NOT_FOUND');
+                const message = global.i18n.translate(req, 'controller.plugin.installDependencies.notFound', { name });
+                return CommonUtils.sendError(req, res, 404, message, 'PLUGIN_NOT_FOUND');
             }
 
             // TODO: Implement npm install for plugin dependencies
             // This requires executing child process npm install in plugin directory
-            // Deferred to future enhancement
+            // Deferred to future enhancement (W-045-TD-14)
 
-            LogController.logInfo(req, 'plugin.installDependencies', `success: dependencies installation initiated for ${name}`);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'plugin.installDependencies', `success: dependencies installation initiated for ${name}, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.plugin.installDependencies.notImplemented');
             res.json({
                 success: true,
-                message: 'Dependency installation not yet implemented'
+                message: message,
+                elapsed
             });
 
         } catch (error) {
             LogController.logError(req, 'plugin.installDependencies', `error: ${error.message}`);
-            return CommonUtils.sendError(req, res, 500, 'Failed to install dependencies', 'INTERNAL_ERROR', error.message);
+            const isValidationError = error.message.includes('Invalid plugin name') || error.message.includes('required');
+            if (isValidationError) {
+                return CommonUtils.sendError(req, res, 400, error.message, 'INVALID_PLUGIN_NAME');
+            }
+            const message = global.i18n.translate(req, 'controller.plugin.installDependencies.failed');
+            return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
 

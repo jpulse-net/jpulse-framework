@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.2.6
+# jPulse Docs / Site Administrator & Developer Documentation v1.3.0
 
 **For Site Administrators & Site Developers**
 
@@ -42,14 +42,22 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 
 ### 🔧 **Site Customization**
 - Seamless framework updates with site preservation
-- Automatic file resolution priority (`site/webapp/` → `webapp/`)
+- Automatic file resolution priority (`site/webapp/` → `plugins/` → `webapp/`)
 - Zero-configuration site controller discovery
 - Configuration merging system
 - **Append Mode** for `.js` and `.css` files (concatenate site + framework)
 - **Navigation Direct Mutation** for selective override without duplication
 
+### 🔌 **Plugin Infrastructure**
+- Drop plugins in `plugins/` directory - auto-discovery and integration
+- Complete MVC support: controllers, models, views, static assets, documentation
+- Dynamic configuration with JSON schema validation and admin UI
+- Path resolution with proper priority (site > plugins > framework)
+- Automatic symlink management for assets and docs
+- Ships with `hello-world` demo plugin
+
 ### 🧪 **Testing & Quality**
-- 770+ comprehensive tests with 100% pass rate
+- 900+ comprehensive tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis
@@ -98,6 +106,13 @@ Whether you code manually or with AI assistance, jPulse's "don't make me think" 
 - **[Handlebars Reference](handlebars.md)** - Complete Handlebars syntax guide (variables, conditionals, loops)
 - **[Template Reference](template-reference.md)** - Template development guide (file structure, security, patterns)
 - **[Style Reference](style-reference.md)** - Complete `jp-*` CSS framework and components
+
+### 🔌 **Plugin Development**
+- **[Plugin Architecture](plugins/plugin-architecture.md)** - Plugin system overview and design principles
+- **[Creating Plugins](plugins/creating-plugins.md)** - Step-by-step guide to building plugins
+- **[Managing Plugins](plugins/managing-plugins.md)** - Installing, configuring, and maintaining plugins
+- **[Publishing Plugins](plugins/publishing-plugins.md)** - Distribution and versioning best practices
+- **[Plugin API Reference](plugins/plugin-api-reference.md)** - Complete plugin development API
 
 ### 🚀 **Deployment**
 - **[Deployment Guide](deployment.md)** - Production deployment strategies and best practices
@@ -179,6 +194,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.3.0 - Plugin Infrastructure with Auto-Discovery**: Comprehensive plugin system enabling third-party extensions with zero-configuration auto-discovery. Features complete MVC support (controllers, models, views, static assets, documentation), dynamic configuration management with JSON schema validation, admin UI for plugin management, plugin-aware path resolution (site > plugins > framework), automatic symlink management, and ships with `hello-world` demo plugin. Includes robust security (path traversal protection, HTML sanitization for plugin descriptions and email content, DB operation validation), complete i18n (English & German), request timing, and comprehensive testing (913 tests passing: 813 unit + 100 integration). Five comprehensive documentation guides for plugin development. Technical debt documented with 19 items for future enhancements. No breaking changes - new opt-in feature for extending framework functionality.
 - ✅ **Version 1.2.6 - Bug Fixes for Site Installation and Navigation**: Critical bug fix release addressing issues discovered after v1.2.5 deployment. Fixed incomplete hello example copying during site installation - now copies all 5 controllers (`hello*.js`), 1 model (`helloTodo.js`), and recursively copies view directories including `templates/` subdirectories in `hello-vue` and `hello-websocket`. Implemented robust navigation null handling with `_sanitizeNavStructure()` method that recursively removes `null` deletion markers at init time, preventing "Cannot read properties of null" errors throughout navigation code. Removed obsolete `checkAdminAccess()` function call from user dashboard. Enhanced `bin/configure.js` with `copyDirRecursive()` helper for deep directory copying. Single point of sanitization makes navigation code cleaner and more maintainable. All 893 tests passing (776 unit, 88 integration, 29 CLI/MongoDB). No breaking changes.
 - ✅ **Version 1.2.5 - Site Navigation Override with Append Mode**: Introduced flexible navigation customization using append mode file concatenation and direct JavaScript mutation. Sites can selectively add, modify, or delete navigation sections without duplicating entire framework files. Features `.js` and `.css` append mode (concatenate framework + site), unified `window.jPulseNavigation` structure, direct mutation pattern (`window.jPulseNavigation.site.foo = {...}`), Handlebars comment support (`{{!-- --}}`), and file naming standardization (`site-common.*` → `jpulse-common.*`). Benefits: zero runtime overhead, automatic framework updates, idiomatic JavaScript, minimal customization code. Breaking change: navigation file migration required. Complete documentation in site-navigation.md guide.
 - ✅ **Version 1.2.4 - Reusable Handlebars Components**: Introduced reusable component system to eliminate code duplication. Define components once with `{{#component "name" param="default"}}...{{/component}}`, use everywhere with `{{use.componentName param="value"}}`. Features automatic kebab-case to camelCase conversion, per-request component registry, circular reference detection, optional dot-notation namespaces (`jpIcons.configSvg`), and `_inline=true` parameter for JavaScript embedding. Created centralized `svg-icons.tmpl` library with 20+ parameterized SVG components. Migrated all framework icons to component system. Benefits: define once use everywhere, clean templates, maintainable icons, organized namespaces. No breaking changes - new opt-in feature with comprehensive documentation.

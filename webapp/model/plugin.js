@@ -3,8 +3,8 @@
  * @tagline         Plugin Model for jPulse Framework WebApp
  * @description     Plugin configuration model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/plugin.js
- * @version         1.2.7
- * @release         2025-11-26
+ * @version         1.3.0
+ * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -116,7 +116,8 @@ class PluginModel {
                         errors.push(`${field.label} format is invalid`);
                     }
                 } catch (e) {
-                    console.error(`Invalid regex pattern in plugin ${pluginName} field ${field.id}:`, e);
+                    // Invalid regex in plugin.json - skip validation but don't fail
+                    errors.push(`${field.label} has invalid validation pattern in plugin configuration`);
                 }
             }
         }
@@ -138,8 +139,7 @@ class PluginModel {
             const doc = await collection.findOne({ name: name });
             return doc;
         } catch (error) {
-            console.error(`Error getting plugin config for ${name}:`, error);
-            throw error;
+            throw new Error(`Failed to get plugin config for ${name}: ${error.message}`);
         }
     }
 
@@ -153,8 +153,7 @@ class PluginModel {
             const docs = await collection.find({}).toArray();
             return docs;
         } catch (error) {
-            console.error('Error getting all plugin configs:', error);
-            throw error;
+            throw new Error(`Failed to get all plugin configs: ${error.message}`);
         }
     }
 
@@ -192,6 +191,15 @@ class PluginModel {
                     updateDoc
                 );
 
+                // W-045-TD-19: Validate database operation result
+                if (!result.acknowledged) {
+                    throw new Error(`Database operation not acknowledged for plugin '${name}'`);
+                }
+
+                if (result.matchedCount === 0) {
+                    throw new Error(`Plugin config '${name}' not found for update`);
+                }
+
                 return {
                     _id: existing._id,
                     name: name,
@@ -213,6 +221,15 @@ class PluginModel {
 
                 const result = await collection.insertOne(newDoc);
 
+                // W-045-TD-19: Validate database operation result
+                if (!result.acknowledged) {
+                    throw new Error(`Database operation not acknowledged for plugin '${name}'`);
+                }
+
+                if (!result.insertedId) {
+                    throw new Error(`Failed to insert plugin config for '${name}' - no insertedId returned`);
+                }
+
                 return {
                     _id: result.insertedId,
                     name: name,
@@ -220,8 +237,7 @@ class PluginModel {
                 };
             }
         } catch (error) {
-            console.error(`Error upserting plugin config for ${name}:`, error);
-            throw error;
+            throw new Error(`Failed to upsert plugin config for ${name}: ${error.message}`);
         }
     }
 
@@ -246,8 +262,7 @@ class PluginModel {
 
             return result.modifiedCount > 0;
         } catch (error) {
-            console.error(`Error setting enabled status for ${name}:`, error);
-            throw error;
+            throw new Error(`Failed to set enabled status for ${name}: ${error.message}`);
         }
     }
 
@@ -260,23 +275,45 @@ class PluginModel {
         try {
             const collection = this.getCollection();
             const result = await collection.deleteOne({ name: name });
+
+            // W-045-TD-19: Validate database operation result
+            if (!result.acknowledged) {
+                throw new Error(`Database operation not acknowledged for plugin '${name}'`);
+            }
+
+            if (result.deletedCount === 0) {
+                throw new Error(`Plugin config '${name}' not found for deletion`);
+            }
+
             return result.deletedCount > 0;
         } catch (error) {
-            console.error(`Error deleting plugin config for ${name}:`, error);
-            throw error;
+            throw new Error(`Failed to delete plugin config for ${name}: ${error.message}`);
         }
     }
 
     /**
+     * Ensure indexes exist on the pluginConfigs collection
      * Create unique index on name field
      * Called during application initialization
+     * @param {boolean} isTest - Whether this is a test environment (allows graceful skip if DB unavailable)
      */
-    static async ensureIndexes() {
+    static async ensureIndexes(isTest = false) {
         try {
-            const collection = this.getCollection();
+            // Check if database is available
+            const db = database.getDb();
+            if (!db) {
+                if (isTest) {
+                    // In test mode, gracefully skip if database is not available
+                    return;
+                }
+                // In production, database is required
+                throw new Error('Database connection not available');
+            }
+
+            const collection = db.collection('pluginConfigs');
             await collection.createIndex({ name: 1 }, { unique: true });
         } catch (error) {
-            console.error('Error creating plugin config indexes:', error);
+            throw new Error(`Failed to create plugin config indexes: ${error.message}`);
         }
     }
 }

@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.3.1
+# jPulse Docs / Plugins / Creating Plugins v1.3.2
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -86,14 +86,6 @@ Configuration fields are automatically turned into an admin UI:
             {
                 "type": "help",
                 "content": "<strong>Welcome!</strong> Configure your plugin below.",
-                "tab": "General"
-            },
-            {
-                "id": "enabled",
-                "label": "Enable Plugin",
-                "type": "boolean",
-                "default": true,
-                "help": "Toggle to enable or disable the plugin",
                 "tab": "General"
             },
             {

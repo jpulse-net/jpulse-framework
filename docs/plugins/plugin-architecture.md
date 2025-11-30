@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Architecture v1.3.1
+# jPulse Docs / Plugins / Plugin Architecture v1.3.2
 
 Understanding how the jPulse plugin system works under the hood.
 
@@ -157,18 +157,23 @@ jpulse-navigation.js:
 
 ### Static Assets
 
-**Symlink Strategy:**
+**Symlink Strategy (Context-Aware):**
 
 ```
 Plugin enabled:
     ↓
 Create: webapp/static/plugins/{name} → ../../../plugins/{name}/webapp/static
-Create: docs/installed-plugins/{name} → ../../plugins/{name}/docs
+
+Documentation symlink (context-dependent):
+  Framework repo: docs/installed-plugins/{name} → ../../plugins/{name}/docs
+  Site install:   webapp/static/assets/jpulse-docs/installed-plugins/{name} → ../../../../plugins/{name}/docs
     ↓
 Assets accessible at:
     /plugins/{name}/file.png
     /jpulse-docs/installed-plugins/{name}/README
 ```
+
+**Context Detection:** SymlinkManager automatically detects if running in framework repository (has `docs/plugins/`) or site installation (has `webapp/static/assets/jpulse-docs/plugins/`).
 
 **Symlink removal** happens automatically when plugin is disabled.
 

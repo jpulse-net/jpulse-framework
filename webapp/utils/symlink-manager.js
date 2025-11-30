@@ -3,7 +3,7 @@
  * @tagline         Symlink Management for Plugin Static Assets
  * @description     Manages symlinks for plugin static assets
  * @file            webapp/utils/symlink-manager.js
- * @version         1.3.1
+ * @version         1.3.2
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,6 +20,30 @@ import path from 'path';
  * Implements W-045 Static Asset Strategy
  */
 class SymlinkManager {
+
+    /**
+     * Detect if running in framework repo or site installation
+     *
+     * @returns {string} 'framework' or 'site'
+     */
+    static detectContext() {
+        const projectRoot = global.appConfig.system.projectRoot;
+
+        // Framework repo has docs/ at root level
+        const frameworkDocsPath = path.join(projectRoot, 'docs', 'plugins');
+        if (fs.existsSync(frameworkDocsPath)) {
+            return 'framework';
+        }
+
+        // Site has docs copied to webapp/static/assets/jpulse-docs/
+        const siteDocsPath = path.join(projectRoot, 'webapp', 'static', 'assets', 'jpulse-docs', 'plugins');
+        if (fs.existsSync(siteDocsPath)) {
+            return 'site';
+        }
+
+        // Default to framework if uncertain
+        return 'framework';
+    }
 
     /**
      * Create symlink for plugin static assets
@@ -179,7 +203,8 @@ class SymlinkManager {
 
     /**
      * Create symlink for plugin documentation
-     * Creates: docs/installed-plugins/{pluginName} → ../../plugins/{pluginName}/docs
+     * Framework: docs/installed-plugins/{pluginName} → ../../plugins/{pluginName}/docs
+     * Site: webapp/static/assets/jpulse-docs/installed-plugins/{pluginName} → ../../../../plugins/{pluginName}/docs
      *
      * @param {string} pluginName - Plugin name
      * @param {string} pluginPath - Absolute path to plugin directory
@@ -188,11 +213,22 @@ class SymlinkManager {
     static createPluginDocsSymlink(pluginName, pluginPath) {
         try {
             const projectRoot = global.appConfig.system.projectRoot;
-            const docsPluginsDir = path.join(projectRoot, 'docs', 'installed-plugins');
+            const context = this.detectContext();
+
+            // Determine docs directory based on context
+            let docsPluginsDir;
+            if (context === 'site') {
+                // Site installation: docs are in webapp/static/assets/jpulse-docs/
+                docsPluginsDir = path.join(projectRoot, 'webapp', 'static', 'assets', 'jpulse-docs', 'installed-plugins');
+            } else {
+                // Framework repo: docs are in docs/
+                docsPluginsDir = path.join(projectRoot, 'docs', 'installed-plugins');
+            }
+
             const symlinkPath = path.join(docsPluginsDir, pluginName);
             const targetPath = path.join(pluginPath, 'docs');
 
-            // Ensure docs/installed-plugins directory exists
+            // Ensure installed-plugins directory exists
             if (!fs.existsSync(docsPluginsDir)) {
                 fs.mkdirSync(docsPluginsDir, { recursive: true });
             }
@@ -226,9 +262,7 @@ class SymlinkManager {
                 return { success: false, message: `Plugin docs directory not found: ${targetPath}` };
             }
 
-            // Create relative symlink
-            // From: docs/installed-plugins/{pluginName}
-            // To:   ../../plugins/{pluginName}/docs
+            // Create relative symlink (context-dependent path)
             const relativeTarget = path.relative(docsPluginsDir, targetPath);
             fs.symlinkSync(relativeTarget, symlinkPath, 'dir');
 
@@ -248,7 +282,15 @@ class SymlinkManager {
     static removePluginDocsSymlink(pluginName) {
         try {
             const projectRoot = global.appConfig.system.projectRoot;
-            const symlinkPath = path.join(projectRoot, 'docs', 'installed-plugins', pluginName);
+            const context = this.detectContext();
+
+            // Determine symlink path based on context
+            let symlinkPath;
+            if (context === 'site') {
+                symlinkPath = path.join(projectRoot, 'webapp', 'static', 'assets', 'jpulse-docs', 'installed-plugins', pluginName);
+            } else {
+                symlinkPath = path.join(projectRoot, 'docs', 'installed-plugins', pluginName);
+            }
 
             // Check if symlink exists
             if (!fs.existsSync(symlinkPath)) {

@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Managing Plugins v1.3.1
+# jPulse Docs / Plugins / Managing Plugins v1.3.2
 
 Guide for site administrators to install, configure, and manage jPulse plugins.
 
@@ -174,10 +174,16 @@ Plugins can depend on:
 ### Plugin Pages Not Loading
 
 - Verify plugin is enabled
-- Check symlinks exist:
+- Check symlinks exist (location depends on environment):
   ```bash
+  # Static assets (same for framework and site)
   ls -la webapp/static/plugins/your-plugin
+
+  # Documentation (context-dependent)
+  # Framework repo:
   ls -la docs/installed-plugins/your-plugin
+  # Site installation:
+  ls -la webapp/static/assets/jpulse-docs/installed-plugins/your-plugin
   ```
 - Restart server after enabling plugin
 - Check browser console for JavaScript errors

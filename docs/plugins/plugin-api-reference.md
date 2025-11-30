@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.3.1
+# jPulse Docs / Plugins / Plugins API Reference v1.3.2
 
 Complete API reference for jPulse plugin developers.
 
@@ -344,10 +344,12 @@ Plugin static files are symlinked when enabled:
 
 ### Documentation
 
-Plugin docs are symlinked when enabled:
+Plugin docs are symlinked when enabled (context-aware):
 - Plugin: `plugins/your-plugin/docs/`
-- Symlink: `docs/installed-plugins/your-plugin/`
-- URL: `/jpulse-docs/installed-plugins/your-plugin/README`
+- Symlink:
+  * Framework repo: `docs/installed-plugins/your-plugin/`
+  * Site install: `webapp/static/assets/jpulse-docs/installed-plugins/your-plugin/`
+- URL: `/jpulse-docs/installed-plugins/your-plugin/README` (same for both)
 
 ## CSS and JavaScript Loading
 

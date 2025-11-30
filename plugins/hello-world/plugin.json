@@ -1,7 +1,7 @@
 {
     "name": "hello-world",
     "npmPackage": "@jpulse-net/plugin-hello-world",
-    "version": "1.3.1",
+    "version": "1.3.2",
     "icon": "🔌",
     "summary": "Hello World demo plugin for jPulse Framework",
     "description": "<p>This demo plugin showcases the jPulse Framework plugin system with:</p><ul><li><strong>Dynamic Configuration:</strong> Tab-based settings with various field types</li><li><strong>MVC Components:</strong> Controller, Model, and View integration</li><li><strong>Append Mode:</strong> Extending framework CSS and JavaScript</li></ul><p>Use this as a reference when creating your own plugins.</p>",
@@ -17,14 +17,6 @@
             {
                 "type": "help",
                 "content": "<strong>Welcome!</strong> This is a demo plugin showcasing the dynamic configuration system. Fields are grouped into tabs based on the 'tab' attribute.",
-                "tab": "General"
-            },
-            {
-                "id": "enabled",
-                "label": "Enable Plugin",
-                "type": "boolean",
-                "default": true,
-                "help": "Toggle to enable or disable the Hello World plugin",
                 "tab": "General"
             },
             {

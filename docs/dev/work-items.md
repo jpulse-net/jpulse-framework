@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.1
+# jPulse Docs / Dev / Work Items v1.3.2
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -2145,23 +2145,9 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     * Plugin API Reference (plugin-api-reference.md)
     * Technical Debt Tracking (W-045-plugins-tech-debt.md - 19 items)
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-100, v1.3.1: architecture: critical bug fixes for W-045 add plugin infrastructure
 - status: ✅ DONE
-- type: Bug Fix (Patch Release)
+- type: Bug Fix
 - objective: fix critical bugs discovered after v1.3.0 deployment affecting npm package, CI/CD, and production sites
 - issues:
   - bug 1: npm package missing plugins/hello-world/ directory - package incomplete
@@ -2193,6 +2179,49 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-101, v1.3.2: architecture: additional bug fixes for W-045 add plugin infrastructure
+- status: ✅ DONE
+- type: Bug Fix (Patch Release)
+- objective: fix four critical bugs discovered after v1.3.1 deployment affecting plugin updates, configuration UX, documentation access, and admin UI state
+- issues:
+  - bug 1: jpulse-update.js missing plugin sync - production sites had stale plugins after framework update
+  - bug 2: confusing "enabled" config field - users expected it to enable/disable plugin but only saved to database
+  - bug 3: wrong documentation symlink location - hardcoded to docs/ instead of context-aware (framework vs site)
+  - bug 4: stale plugin state in admin UI - enable/disable didn't update UI until app restart
+- deliverables:
+  - bin/jpulse-update.js:
+    - added plugin sync section to copy plugins/hello-world/ from framework package to site
+  - plugins/hello-world/plugin.json:
+    - removed confusing "enabled" config field that created false expectations
+  - docs/plugins/creating-plugins.md:
+    - removed "enabled" field from example config schema
+  - webapp/utils/symlink-manager.js:
+    - added detectContext() method to distinguish framework repo vs site installation
+    - updated createPluginDocsSymlink() to use context-aware paths
+    - updated removePluginDocsSymlink() to use context-aware paths
+  - webapp/utils/plugin-manager.js:
+    - fixed getAllPlugins() to merge registry state with discovered metadata (shows correct enabled/disabled status)
+  - docs/plugins/plugin-architecture.md:
+    - documented context-aware symlink behavior
+  - docs/plugins/plugin-api-reference.md:
+    - clarified framework vs site documentation paths
+  - docs/plugins/managing-plugins.md:
+    - updated troubleshooting with context-dependent paths
+- test results: 926 passed, 0 failed (942 total with 16 skipped)
+- files modified: 8 files (4 code, 4 documentation)
+
+
+
+
+
+
+
+
 ### Pending
 
 pending:
@@ -2207,7 +2236,7 @@ old pending:
 - add SiteControllerRegistry.getStats() to metrics api & system-status
 
 ### Potential next items:
-- W-101: handlebars: replace extract:start & end with component handlebar
+- W-102: handlebars: replace extract:start & end with component handlebar
 - W-068: view: create responsive sidebar
 - W-0: view: headings with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific translations
@@ -2230,9 +2259,9 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-100, v1.3.1
-- update deliverables in W-100 work-items to document work done (don't make any other changes to this file)
-- update README.md (latest release highlights), docs/README.md (latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- assume release: W-101, v1.3.2
+- update deliverables in W-101 work-items to document work done (don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
 
@@ -2248,12 +2277,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.1
+node bin/bump-version.js 1.3.2
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.1
+git tag v1.3.2
 git push origin main --tags
 
 === on failed package build on github ===
@@ -2287,7 +2316,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
 
-### W-101: handlebars: replace extract:start & end with component handlebar
+### W-102: handlebars: replace extract:start & end with component handlebar
 - status: 🕑 PENDING
 - type: Feature
 - objective: more intuitive framework

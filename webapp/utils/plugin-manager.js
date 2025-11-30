@@ -3,7 +3,7 @@
  * @tagline         Plugin Discovery and Lifecycle Management
  * @description     Manages plugin discovery, validation, dependencies, and lifecycle
  * @file            webapp/utils/plugin-manager.js
- * @version         1.3.1
+ * @version         1.3.2
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -540,11 +540,21 @@ class PluginManager {
     }
 
     /**
-     * Get all plugins
-     * @returns {array} Array of all plugin data
+     * Get all plugins (discovered plugins with metadata merged with registry state)
+     * @returns {array} Array of plugin objects with current enabled/disabled state
      */
     static getAllPlugins() {
-        return Array.from(this.discovered.values());
+        // Merge discovered plugins with registry state (enabled/disabled)
+        return this.registry.plugins.map(registryEntry => {
+            const discovered = this.discovered.get(registryEntry.name);
+            if (discovered) {
+                return {
+                    ...discovered,
+                    registryEntry: registryEntry  // Includes enabled, status, enabledAt, etc.
+                };
+            }
+            return null;
+        }).filter(p => p !== null);
     }
 
     /**

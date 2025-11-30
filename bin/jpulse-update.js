@@ -4,7 +4,7 @@
  * @tagline         Framework update synchronization CLI tool
  * @description     Updates local framework files from installed package
  * @file            bin/jpulse-update.js
- * @version         1.3.1
+ * @version         1.3.2
  * @release         2025-11-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -257,6 +257,27 @@ function sync() {
                 console.log('✅ Documentation copied successfully');
             } else {
                 console.warn('⚠️  Documentation source not found');
+            }
+
+            // Sync hello-world plugin
+            console.log('🔌 Updating hello-world plugin...');
+            const pluginSource = path.join(frameworkPath, 'plugins', 'hello-world');
+            const pluginDestination = path.join('plugins', 'hello-world');
+
+            if (fs.existsSync(pluginSource)) {
+                // Ensure plugins directory exists
+                fs.mkdirSync('plugins', { recursive: true });
+
+                // Remove existing plugin and copy fresh
+                if (fs.existsSync(pluginDestination)) {
+                    fs.rmSync(pluginDestination, { recursive: true, force: true });
+                }
+
+                // Sync plugin directory
+                syncDirectory(pluginSource, pluginDestination);
+                console.log('✅ hello-world plugin updated successfully');
+            } else {
+                console.warn('⚠️  hello-world plugin not found in framework package');
             }
 
             // Remove backup on success

@@ -1,6 +1,108 @@
-# jPulse Docs / Version History v1.3.1
+# jPulse Docs / Version History v1.3.2
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.2, W-101, 2025-11-30
+
+**Commit:** `W-101, v1.3.2: architecture: additional bug fixes for W-045 plugin infrastructure`
+
+**PATCH RELEASE**: Four critical bug fixes discovered during v1.3.1 production deployment on bubblemap.net.
+
+**Objective**: Fix plugin update synchronization, eliminate UX confusion, enable context-aware symlink management, and provide accurate real-time plugin state in admin UI.
+
+**Implementation**:
+
+**Bug #1: Update Script Missing Plugin Sync**:
+- **Issue**: `npx jpulse update` synced `webapp/` and `docs/` but not `plugins/hello-world/`
+- **Impact**: Production sites showed stale plugin versions after framework updates (v1.2.6 instead of v1.3.1)
+- **Discovery**: bubblemap.net production site had outdated plugin after v1.3.1 update
+- **Root Cause**: Update script forgot to sync plugin directory from framework package
+
+**Solution**:
+- Added plugin sync section to `bin/jpulse-update.js` after documentation sync (line 262)
+- Ensures `plugins/` directory exists
+- Removes existing `plugins/hello-world/` directory
+- Copies fresh plugin from `node_modules/@jpulse-net/jpulse-framework/plugins/hello-world/`
+- Logs success/warning messages
+
+**Bug #2: Confusing "enabled" Config Field**:
+- **Issue**: "Enable Plugin" checkbox in `/admin/plugin-config.shtml` didn't actually enable/disable plugin
+- **Impact**: User confusion - two different "enable" mechanisms (framework-level vs config-level)
+- **Root Cause**: hello-world plugin had redundant `enabled` config field that only saved to database
+
+**Solution**:
+- Removed confusing `enabled` field from `plugins/hello-world/plugin.json` (lines 22-28)
+- Removed from documentation example in `docs/plugins/creating-plugins.md`
+- Config now starts with "Welcome Message" (clearer purpose)
+- Framework-level enable/disable is the single source of truth
+
+**Bug #3: Wrong Documentation Symlink Location**:
+- **Issue**: Symlinks created in `docs/installed-plugins/` instead of `webapp/static/assets/jpulse-docs/installed-plugins/`
+- **Impact**: Plugin documentation not accessible on production sites
+- **Discovery**: bubblemap.net showed `docs/installed-plugins/` directory (wrong) with symlink to plugin docs
+- **Root Cause**: SymlinkManager hardcoded paths without detecting context (framework repo vs site installation)
+
+**Solution**:
+- Added `detectContext()` method to SymlinkManager:
+  * Checks for `docs/plugins/` → returns 'framework'
+  * Checks for `webapp/static/assets/jpulse-docs/plugins/` → returns 'site'
+- Updated `createPluginDocsSymlink()` with context-aware paths:
+  * Framework: `docs/installed-plugins/{name} → ../../plugins/{name}/docs`
+  * Site: `webapp/static/assets/jpulse-docs/installed-plugins/{name} → ../../../../plugins/{name}/docs`
+- Updated `removePluginDocsSymlink()` with context-aware paths
+- Automatic detection - no manual configuration required
+
+**Bug #4: Stale Plugin State After Enable/Disable**:
+- **Issue**: Plugin enable/disable didn't update admin UI until app restart
+- **Flow**: Disable plugin → Shows "DISABLED" → Reload page → Shows "ACTIVE" (wrong) → Restart app → Shows "DISABLED"
+- **Root Cause**: `PluginManager.getAllPlugins()` returned stale data
+  * `enablePlugin()`/`disablePlugin()` updated `this.registry.plugins[].enabled`
+  * `getAllPlugins()` returned `this.discovered.values()` (never updated with enable/disable state)
+  * Two separate data structures out of sync
+
+**Solution**:
+- Fixed `getAllPlugins()` in `webapp/utils/plugin-manager.js` to merge registry state with discovered metadata:
+  ```javascript
+  static getAllPlugins() {
+      return this.registry.plugins.map(registryEntry => {
+          const discovered = this.discovered.get(registryEntry.name);
+          if (discovered) {
+              return {
+                  ...discovered,
+                  registryEntry: registryEntry  // Includes enabled, status, enabledAt
+              };
+          }
+          return null;
+      }).filter(p => p !== null);
+  }
+  ```
+- Admin UI now shows correct plugin state immediately after enable/disable
+
+**Documentation Updates**:
+- Updated `docs/plugins/plugin-architecture.md` with context-aware symlink explanation
+- Updated `docs/plugins/plugin-api-reference.md` to clarify framework vs site paths
+- Updated `docs/plugins/managing-plugins.md` troubleshooting with both context paths
+
+**Files Modified**: 8 files
+- 4 code fixes:
+  * `bin/jpulse-update.js` (plugin sync)
+  * `plugins/hello-world/plugin.json` (removed confusing field)
+  * `webapp/utils/symlink-manager.js` (context-aware symlinks)
+  * `webapp/utils/plugin-manager.js` (fixed stale state)
+- 4 documentation updates:
+  * `docs/plugins/creating-plugins.md` (removed confusing field from example)
+  * `docs/plugins/plugin-architecture.md` (context-aware behavior)
+  * `docs/plugins/plugin-api-reference.md` (framework vs site paths)
+  * `docs/plugins/managing-plugins.md` (troubleshooting paths)
+
+**Test Results**: 926 passed, 0 failed (942 total with 16 skipped)
+
+**Impact**:
+- Plugin updates now work correctly - sites receive updated plugins with `npx jpulse update`
+- Eliminated UX confusion - single enable/disable mechanism
+- Documentation accessible in both framework development and site installations
+- Admin UI shows accurate real-time plugin state without restart
 
 ________________________________________________
 ## v1.3.1, W-100, 2025-11-30

@@ -86,6 +86,58 @@ jPulse Framework is designed for **Gen-AI development** (aka "vibe coding") - le
 
 Whether you code manually or with AI assistance, jPulse's "don't make me think" philosophy ensures productive, maintainable development.
 
+## Site Architecture
+
+Your jPulse site has a three-tier stack for update-safe custom site code:
+```
+┌─────────────────────────────────┐
+│                                 │
+│            Site code            │   Location: my-jpulse-site/site/
+│                                 │
+└────────────────┬────────────────┘
+                 │
+┌────────────────┴────────────────┐
+│                                 │   Install:
+│          Plugins code           │     npm install @jpulse-net/plugin-[name]
+│                                 │   Location: my-jpulse-site/plugins/
+└────────────────┬────────────────┘
+                 │
+┌────────────────┴────────────────┐
+│                                 │   Install:  npx jpulse-install
+│      jPulse Framework code      │   Update:   npx jpulse update
+│                                 │   Location: my-jpulse-site/webapp/
+└─────────────────────────────────┘
+```
+
+The framework follows a MVC pattern with clean separation of concerns:
+
+```
+my-jpulse-site/
+├── site/                   # Your custom code (highest priority, update-safe)
+│   └── webapp/             # Site MVC components (overrides)
+│       ├── app.conf        # Site configuration
+│       ├── controller/     # Custom controllers
+│       ├── model/          # Custom models
+│       ├── view/           # Custom views
+│       └── static/         # Custom assets
+├── plugins/                # Installed plugins (middle priority, drop-in extensions)
+│   └── [plugin-name]/      # Each plugin in its own directory
+│       ├── plugin.json     # Plugin metadata and dependencies
+│       ├── webapp/         # Plugin MVC components
+│       └── docs/           # Plugin documentation
+├── webapp/                 # Framework MVC components (lowest priority)
+│   ├── controller/         # Base controllers
+│   ├── model/              # Data models
+│   ├── view/               # Base views (pages and templates)
+│   └── static/             # Framework assets
+├── logs -> /var/log/...    # Symbolic link to system log directory
+├── package.json            # Dependencies (@jpulse-net/jpulse-framework)
+└── .jpulse/                # Framework metadata (automatically updated)
+    ├── app.json            # Consolidated runtime configuration
+    ├── config-sources.json # Source file tracking
+    └── plugins.json        # Plugins runtime configuration
+```
+
 ## 📚 Documentation Guide
 
 ### 🚀 **Getting Started**
@@ -143,32 +195,6 @@ npm start
 📖 **Complete Installation Guide**: See [Installation Documentation](installation.md) for detailed setup instructions, production deployment, and troubleshooting.
 
 > **Framework Development**: See [Framework Development Guide](dev/README.md) for contributing to jPulse itself.
-
-## Site Architecture
-
-Your jPulse site follows a clean MVC pattern with update-safe customizations:
-
-```
-my-jpulse-site/
-├── webapp/                 # Framework files (managed by jpulse-update)
-│   ├── app.js              # Framework bootstrap
-│   ├── app.conf            # Framework configuration defaults
-│   ├── controller/         # Base controllers
-│   ├── model/              # Data models
-│   ├── view/               # Base pages and templates
-│   └── static/             # Framework assets
-├── site/webapp/            # Your customizations (update-safe)
-│   ├── app.conf            # Site configuration
-│   ├── controller/         # Site controllers
-│   ├── model/              # Site data models
-│   ├── view/               # Site pages and templates
-│   └── static/             # Site-specific assets
-├── logs -> /var/log/...    # Symbolic link to system log directory
-├── package.json            # Dependencies (@jpulse-net/jpulse-framework)
-└── .jpulse/                # Framework metadata
-    ├── app.json            # Consolidated runtime configuration
-    └── config-sources.json # Source file tracking
-```
 
 ## Target Audience
 

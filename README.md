@@ -113,6 +113,28 @@ npm start
 
 ## Architecture Overview
 
+### Update-Safe Three-Tier Stack
+
+```
+┌─────────────────────────────────┐
+│                                 │
+│            Site code            │   Location: my-jpulse-site/site/
+│                                 │
+└────────────────┬────────────────┘
+                 │
+┌────────────────┴────────────────┐
+│                                 │   Install:
+│          Plugins code           │     npm install @jpulse-net/plugin-[name]
+│                                 │   Location: my-jpulse-site/plugins/
+└────────────────┬────────────────┘
+                 │
+┌────────────────┴────────────────┐
+│                                 │   Install:  npx jpulse-install
+│      jPulse Framework code      │   Update:   npx jpulse update
+│                                 │   Location: my-jpulse-site/webapp/
+└─────────────────────────────────┘
+```
+
 ### Site Structure (After `npx jpulse configure`)
 
 ```
@@ -122,17 +144,17 @@ my-jpulse-site/
 │       ├── app.conf      # Site configuration
 │       ├── controller/   # Custom controllers
 │       ├── model/        # Custom models
-│       ├── view/         # Custom views
+│       ├── view/         # Custom views (pages and templates)
 │       └── static/       # Custom assets
 ├── plugins/              # Installed plugins (middle priority, drop-in extensions)
 │   └── [plugin-name]/    # Each plugin in its own directory
 │       ├── plugin.json   # Plugin metadata and dependencies
 │       ├── webapp/       # Plugin MVC components
 │       └── docs/         # Plugin documentation
-├── webapp/               # Framework files (lowest priority, managed by jpulse-update)
+├── webapp/               # Framework files (lowest priority)
 │   ├── controller/       # Base controllers
 │   ├── model/            # Data models
-│   ├── view/             # Base templates
+│   ├── view/             # Base views (pages and templates)
 │   └── static/           # Framework assets
 ├── logs -> /var/log/...  # Symbolic link to system log directory
 └── package.json          # Dependencies (@jpulse-net/jpulse-framework)
@@ -141,7 +163,7 @@ my-jpulse-site/
 **File Resolution Priority:**
 1. `site/webapp/[path]` (your custom code, highest priority)
 2. `plugins/[plugin-name]/webapp/[path]` (plugin files, in dependency order)
-3. `webapp/[path]` (framework defaults)
+3. `webapp/[path]` (framework defaults, managed by jpulse update)
 
 **Framework Updates:**
 ```bash

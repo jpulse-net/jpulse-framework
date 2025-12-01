@@ -29,7 +29,7 @@ This means you only override what you need to customize. Plugins provide a middl
 ```
 my-jpulse-site/
 ├── site/                     # Site custom code (highest priority, update-safe)
-│   └── webapp/               # Site-specific MVC compontents (overrides)
+│   └── webapp/               # Site-specific MVC components (overrides)
 │       ├── app.conf          # Site configuration
 │       ├── controller/       # Custom controllers
 │       ├── model/            # Custom models

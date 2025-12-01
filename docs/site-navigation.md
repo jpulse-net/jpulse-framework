@@ -1,4 +1,4 @@
-# jPulse Docs / Site Navigation Guide v1.3.2
+# jPulse Docs / Site Navigation Guide v1.3.3
 
 Complete guide to customizing site navigation in the jPulse Framework using direct mutation and append mode.
 
@@ -378,12 +378,12 @@ icon: '🔥',    // Unicode emoji
 ### SVG Component Icons
 ```javascript
 // Framework SVG components (from webapp/view/components/svg-icons.tmpl)
-icon: `{{use.jpIcons.configSvg size="24" _inline=true}}`,
-icon: `{{use.jpIcons.usersSvg size="24" _inline=true}}`,
-icon: `{{use.jpIcons.logsSvg size="24" _inline=true}}`,
+icon: `{{components.jpIcons.configSvg size="24" _inline=true}}`,
+icon: `{{components.jpIcons.usersSvg size="24" _inline=true}}`,
+icon: `{{components.jpIcons.logsSvg size="24" _inline=true}}`,
 
 // Custom site SVG components
-icon: `{{use.siteIcons.customIcon size="24" _inline=true}}`,
+icon: `{{components.siteIcons.customIcon size="24" _inline=true}}`,
 icon: '<svg width="24" height="24" viewBox="0 0 64 64" > ... </svg>',
 ```
 

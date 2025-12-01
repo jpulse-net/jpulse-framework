@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-097 Phase 1: Reusable handlebars components
  * @description     Tests for component definition and usage functionality
  * @file            webapp/tests/unit/controller/handlebar-components.test.js
- * @version         1.3.2
- * @release         2025-11-30
+ * @version         1.3.3
+ * @release         2025-12-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -103,7 +103,7 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
                 {{#component "simple-icon" size="32"}}
                     <svg width="{{size}}"></svg>
                 {{/component}}
-                {{use.simpleIcon}}
+                {{components.simpleIcon}}
             `;
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
@@ -116,7 +116,7 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
                 {{#component "box" width="100" height="100"}}
                     <div style="width:{{width}}px; height:{{height}}px;"></div>
                 {{/component}}
-                {{use.box width="200" height="150"}}
+                {{components.box width="200" height="150"}}
             `;
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
@@ -126,7 +126,7 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
         });
 
         test('should error when component not found', async () => {
-            const template = `{{use.nonexistentComponent}}`;
+            const template = `{{components.nonexistentComponent}}`;
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
 
@@ -142,9 +142,9 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
                     <span>{{text}}</span>
                 {{/component}}
                 {{#component "outer"}}
-                    <div>{{use.inner text="World"}}</div>
+                    <div>{{components.inner text="World"}}</div>
                 {{/component}}
-                {{use.outer}}
+                {{components.outer}}
             `;
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
@@ -156,12 +156,12 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
         test('should detect circular references', async () => {
             const template = `
                 {{#component "comp-a"}}
-                    {{use.compB}}
+                    {{components.compB}}
                 {{/component}}
                 {{#component "comp-b"}}
-                    {{use.compA}}
+                    {{components.compA}}
                 {{/component}}
-                {{use.compA}}
+                {{components.compA}}
             `;
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
@@ -174,9 +174,9 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
             // Create deeply nested component
             const template = `
                 {{#component "recursive" depth="0"}}
-                    {{use.recursive depth="1"}}
+                    {{components.recursive depth="1"}}
                 {{/component}}
-                {{use.recursive}}
+                {{components.recursive}}
             `;
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
@@ -190,7 +190,7 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
         test('should import components via file.include', async () => {
             const template = `
                 {{file.include "components/svg-icons.tmpl"}}
-                <div class="icon">{{use.jpIcons.logsSvg size="32" fillColor="red"}}</div>
+                <div class="icon">{{components.jpIcons.logsSvg size="32" fillColor="red"}}</div>
             `;
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
@@ -209,7 +209,7 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
                         <polygon points="12,2 15,10 23,10 17,15 19,23 12,18 5,23 7,15 1,10 9,10" fill="{{fillColor}}"/>
                     </svg>
                 {{/component}}
-                {{use.jpIcons.starSvg size="32" fillColor="gold"}}
+                {{components.jpIcons.starSvg size="32" fillColor="gold"}}
             `;
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
@@ -225,7 +225,7 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
                 {{#component "ui.buttons.primary" text="Click" color="blue"}}
                     <button style="color:{{color}}">{{text}}</button>
                 {{/component}}
-                {{use.ui.buttons.primary text="Submit" color="green"}}
+                {{components.ui.buttons.primary text="Submit" color="green"}}
             `;
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
@@ -242,8 +242,8 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
                 {{#component "ui.button" text="Namespaced"}}
                     <button class="ui">{{text}}</button>
                 {{/component}}
-                {{use.button}}
-                {{use.ui.button}}
+                {{components.button}}
+                {{components.ui.button}}
             `;
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
@@ -267,7 +267,7 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
         test('should remove newlines with _inline="true"', async () => {
             const template = `{{#component "inline-svg" size="24"}}<svg width="{{size}}">
 <rect x="0"/>
-</svg>{{/component}}{{use.inlineSvg _inline="true"}}`;
+</svg>{{/component}}{{components.inlineSvg _inline="true"}}`;
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
 
@@ -277,7 +277,7 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
         });
 
         test('should not pass _inline to component context', async () => {
-            const template = `{{#component "param-test" _inline="should-not-appear"}}<div>_inline={{_inline}}</div>{{/component}}{{use.paramTest _inline="true"}}`;
+            const template = `{{#component "param-test" _inline="should-not-appear"}}<div>_inline={{_inline}}</div>{{/component}}{{components.paramTest _inline="true"}}`;
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
 

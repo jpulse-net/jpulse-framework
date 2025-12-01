@@ -1,4 +1,4 @@
-# jPulse Docs / Template Reference v1.3.2
+# jPulse Docs / Template Reference v1.3.3
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -371,47 +371,47 @@ Get file modification timestamps for cache busting or display:
 </footer>
 ```
 
-### File Listing and Extraction
+### File Listing and Component Inclusion
 
-List files matching patterns and extract content sections:
+List files matching patterns and include components from multiple files:
 
-**List files:**
+**Dashboard with Component Cards:**
 ```html
 <div class="jp-dashboard-grid">
-    {{#each file.list "admin/*.shtml" sortBy="extract-order"}}
-        {{file.extract this}}
+    {{file.includeComponents "admin/*.shtml" component="adminCards.*"}}
+    {{#each components.adminCards}}
+        {{this}}
     {{/each}}
 </div>
 ```
 
-**Extract with markers:**
+**Define component cards in source pages:**
 In each admin page, such as `admin/users.shtml`:
 ```html
-<!-- extract:start order=10 -->
-<a href="/admin/users.shtml" class="jp-card-dashboard jp-icon-btn">
-    <div class="jp-icon-container">
-        {{use.jpIcons.usersSvg size="64"}}
-    </div>
-    <h3 class="jp-card-title">User Management</h3>
-    <p class="jp-card-description">Manage users and permissions</p>
-</a>
-<!-- extract:end -->
+{{#component "adminCards.users" order=10}}
+    <a href="/admin/users.shtml" class="jp-card-dashboard jp-icon-btn">
+        <div class="jp-icon-container">
+            {{components.jpIcons.usersSvg size="64"}}
+        </div>
+        <h3 class="jp-card-title">{{i18n.view.admin.users.title}}</h3>
+        <p class="jp-card-description">{{i18n.view.admin.users.subtitle}}</p>
+    </a>
+{{/component}}
 ```
 
-> **Note:** Using `{{use.jpIcons.*}}` components is recommended over inline SVG for reusability and maintainability. See [Handlebars Reference](handlebars.md) for complete component documentation.
+> **Note:** Components are fully expanded (including nested components and i18n) before registration, making them perfect for dashboard cards. See [Handlebars Reference](handlebars.md) for complete component documentation.
 
-**Extract with regex:**
+**Sorting Options:**
 ```html
-{{#each file.list "docs/*.md" pattern="/<!-- card -->(.*?)<!-- \/card -->/s"}}
-    {{file.extract this}}
-{{/each}}
-```
+<!-- Sort by component order (default) -->
+{{file.includeComponents "admin/*.shtml" component="adminCards.*" sortBy="component-order"}}
 
-**Supported marker formats:**
-- `<!-- extract:start order=N -->...<!-- extract:end -->` (HTML)
-- `/* extract:start order=N */.../* extract:end */` (CSS/JS block)
-- `// extract:start order=N ... // extract:end` (JS line)
-- `# extract:start order=N ... # extract:end` (Python line)
+<!-- Sort by plugin dependency order (for plugin dashboards) -->
+{{file.includeComponents "jpulse-plugins/*.shtml" component="pluginCards.*" sortBy="plugin-order"}}
+
+<!-- Sort alphabetically by filename -->
+{{file.includeComponents "pages/*.shtml" component="pageCards.*" sortBy="filename"}}
+```
 
 ### Performance Caching
 
@@ -420,7 +420,7 @@ File operations leverage caching for performance:
 - **Template Includes**: `{{file.include}}` results are cached
 - **File Timestamps**: `{{file.timestamp}}` results are cached
 - **File Listing**: `{{file.list}}` results are cached
-- **File Extraction**: Uses existing include cache for file content
+- **Component Inclusion**: `{{file.includeComponents}}` uses include cache for file content
 - **Pre-loading**: Common includes are asynchronously pre-loaded at startup
 - **Configurable**: Caching behavior controlled via `appConfig.controller.view.cacheIncludes.enabled`
 

@@ -1,6 +1,111 @@
-# jPulse Docs / Version History v1.3.2
+# jPulse Docs / Version History v1.3.3
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.3, W-102, 2025-12-01
+
+**Commit:** `W-102, v1.3.3: handlebars: unified component system for reusable content blocks`
+
+**FEATURE RELEASE**: Replaced extract:start/end markers with intuitive `{{#component}}` syntax, unified component system with context variables, and comprehensive dashboard migration.
+
+**Objective**: Replace unintuitive extract:start/end markers with clean Handlebars component syntax for better developer experience and framework consistency.
+
+**Implementation**:
+
+**New Component System**:
+- **file.includeComponents helper**: `{{file.includeComponents "glob" component="namespace.*" sortBy="method"}}`
+  * Silently registers components from multiple files
+  * Pattern filtering: `component="adminCards.*"` loads specific namespace
+  * Flexible sorting: component-order (default), plugin-order, filename, filesystem
+  * Memory-efficient: only loads filtered components
+- **Components as context variables**: `{{components.namespace.name}}`
+  * Accessed like `{{user.*}}` or `{{config.*}}`
+  * Follows "don't make me think" philosophy
+  * Available in `{{#each components.namespace}}` loops
+- **Enhanced component calls**: `{{components.jpIcons.configSvg size="64"}}`
+  * Parameter expansion with default + provided values
+  * Circular reference detection
+  * Error messages: `<!-- Error: Component "name" not found -->`
+  * `_inline` parameter for JavaScript embedding
+
+**Code Changes**:
+- `webapp/controller/handlebar.js`:
+  * Added `_handleFileIncludeComponents()` function (90 lines)
+  * Added `_handleComponentCall()` with error handling, circular detection, _inline support
+  * Added helpers: `_parseComponentBlocks()`, `_matchesComponentPattern()`, `_sortComponents()`, `_extractPluginName()`, `_getPluginLoadOrder()`, `_setNestedProperty()`
+  * Fixed component expansion to always use `_handleComponentCall()` for `{{components.*}}`
+  * Added immediate context registration in `_handleComponentDefinition()`
+  * Removed deprecated extract code (~210 lines): `_handleFileExtract()`, `_extractOrderFromMarkers()`, `_extractFromRegex()`, `_extractFromCSSSelector()`
+  * Simplified `_handleBlockEach()` - removed extract-order sorting logic
+
+**View Migrations (24 files)**:
+- Framework admin dashboards (8 files): admin/index.shtml + 7 admin cards
+- Framework example dashboards (5 files): jpulse-examples/index.shtml + 4 example cards
+- Framework plugin dashboard (3 files): jpulse-plugins/index.shtml + 2 plugin files
+- Site hello demos (7 files): site/webapp/view/hello/*.shtml
+- Plugin views (1 file): plugins/hello-world/webapp/view/hello-plugin/index.shtml
+
+**Migration Pattern**:
+```handlebars
+<!-- Old syntax -->
+<div style="display: none;">
+    <!-- extract:start order=10 -->
+    <a href="/admin/config.shtml" class="jp-card-dashboard">
+        <h3>Configuration</h3>
+    </a>
+    <!-- extract:end -->
+</div>
+{{#each file.list "admin/*.shtml" sortBy="extract-order"}}
+    {{file.extract this}}
+{{/each}}
+
+<!-- New syntax -->
+{{#component "adminCards.config" order=10}}
+    {{!-- This card is automatically included in the admin dashboard --}}
+    <a href="/admin/config.shtml" class="jp-card-dashboard">
+        <h3>Configuration</h3>
+    </a>
+{{/component}}
+{{file.includeComponents "admin/*.shtml" component="adminCards.*"}}
+{{#each components.adminCards}}
+    {{this}}
+{{/each}}
+```
+
+**Documentation Updates (4 files)**:
+- `docs/handlebars.md`:
+  * Removed "File Extraction" section (~75 lines)
+  * Added "Include Components from Files" section
+  * Documented all parameters, sort methods, pattern filtering
+- `docs/template-reference.md`:
+  * Replaced "File Listing and Extraction" with "File Listing and Component Inclusion"
+  * Updated caching section references
+- `docs/plugins/creating-plugins.md`:
+  * Updated plugin dashboard card example to use `{{#component}}` syntax
+- `docs/genai-instructions.md`:
+  * Added comprehensive plugin system documentation
+  * Updated directory layout, file resolution priority
+  * Added plugin development guidelines
+
+**Test Results**: 919 passed, 0 failed, 16 skipped (942 total)
+- 813 unit tests (including 7 component system tests)
+- 100 integration tests
+- CLI validation tests
+- MongoDB cross-platform tests
+
+**Benefits**:
+- "Don't make me think" syntax matching framework patterns (`{{components.*}}` like `{{user.*}}`)
+- Clean Handlebars with proper editor highlighting
+- No more `<div style="display: none;">` wrappers
+- Explicit sorting control (plugin-order, component-order, filename)
+- Memory-efficient pattern filtering
+- Better error messages and debugging
+- Framework consistency across all component usage
+
+**Files Modified**: 32 files (1 controller, 24 views, 4 documentation, 3 work items)
+
+**Breaking Changes**: None - extract system fully removed after complete migration. New system is the only way forward.
 
 ________________________________________________
 ## v1.3.2, W-101, 2025-11-30

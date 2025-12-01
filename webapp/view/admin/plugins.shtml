@@ -4,8 +4,8 @@
  * @tagline         Plugin Management Dashboard
  * @description     Admin interface for managing installed plugins
  * @file            webapp/view/admin/plugins.shtml
- * @version         1.3.2
- * @release         2025-11-30
+ * @version         1.3.3
+ * @release         2025-12-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -75,25 +75,20 @@
     </style>
 </head>
 <body>
-    <div style="display: none;">
-        <!-- extract:start order=15 -->
-        <div class="jp-card jp-card-dashboard jp-icon-btn" onclick="window.location.href='/admin/plugins.shtml'">
-            <div class="jp-icon-container">
-                {{use.jpIcons.pluginSvg size="48" fillColor="#6366f1"}}
-            </div>
-            <div class="jp-card-content">
-                <h3 class="jp-card-title">{{i18n.view.admin.plugins.title}}</h3>
-                <p class="jp-card-description">{{i18n.view.admin.plugins.subtitle}}</p>
-            </div>
-        </div>
-        <!-- extract:end -->
-    </div>
+    {{#component "adminCards.plugins" order=20}}
+        {{!-- This card is automatically included in the admin dashboard at admin/index.shtml --}}
+        <a href="/admin/plugins.shtml" class="jp-card-dashboard jp-icon-btn">
+            <div class="jp-icon-container">{{components.jpIcons.pluginSvg size="64"}}</div>
+            <h3 class="jp-card-title">{{i18n.view.admin.plugins.title}}</h3>
+            <p class="jp-card-description">{{i18n.view.admin.plugins.subtitle}}</p>
+        </a>
+    {{/component}}
 
     <div class="jp-main">
         <div class="jp-container-1200">
           {{#if user.isAdmin}}
           <div class="jp-page-header">
-              <h1>{{use.jpIcons.pluginsSvg size="26"}} {{i18n.view.admin.plugins.title}}</h1>
+              <h1>{{components.jpIcons.pluginSvg size="26"}} {{i18n.view.admin.plugins.title}}</h1>
               <span class="jp-subtitle">{{i18n.view.admin.plugins.subtitle}}</span>
           </div>
 

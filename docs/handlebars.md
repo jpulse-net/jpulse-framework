@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.3.2
+# jPulse Docs / Handlebars Templating v1.3.3
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -278,118 +278,74 @@ List files matching a glob pattern:
 {{/each}}
 ```
 
-**With sorting by extract order:**
+**With filename sorting:**
 ```handlebars
-{{#each file.list "admin/*.shtml" sortBy="extract-order"}}
-    {{file.extract this}}
+{{#each file.list "admin/*.shtml" sortBy="filename"}}
+    <li>{{this}}</li>
 {{/each}}
 ```
-
-**With CSS selector pattern (for file.extract):**
-```handlebars
-{{#each file.list "admin/*.shtml" pattern=".local-extract" sortBy="extract-order"}}
-    {{file.extract this}}
-{{/each}}
-```
-
-**With regex pattern (for file.extract):**
-```handlebars
-{{#each file.list "docs/*.md" pattern="/<!-- card -->(.*?)<!-- \/card -->/s"}}
-    {{file.extract this}}
-{{/each}}
-```
-
-**With ID selector pattern:**
-```handlebars
-{{#each file.list "pages/*.shtml" pattern="#pageCard" sortBy="extract-order"}}
-    {{file.extract this}}
-{{/each}}
-```
-
-> **Note:** When using `sortBy="extract-order"`, the `pattern` parameter must be specified in the `file.list` call (not in individual `file.extract` calls). This is because sorting happens before the loop iterates, so the pattern must be known at sorting time.
 
 The `file.list` helper supports:
 - Glob patterns: `"admin/*.shtml"`, `"docs/*.md"`, `"projects/*/*.shtml"` (supports multiple wildcards in path)
 - **Note:** Recursive patterns (`**`) are not supported. Use single-level wildcards (`*`) only.
 - **Multi-level patterns:** Patterns like `projects/*/*.shtml` work by recursively searching subdirectories
 - Site overrides: Automatically searches `site/webapp/view/` first, then `webapp/view/`
-- Sorting: `sortBy="extract-order"` or `sortBy="filename"`
-- Pattern passing: `pattern="..."` parameter passed to `file.extract` in the loop
+- Sorting: `sortBy="filename"` (alphabetical)
 
-### File Extraction
-Extract content from files using comment markers, CSS selectors, or regex patterns:
+### Include Components from Files
 
-**Using comment markers (default):**
+Use `file.includeComponents` to register components from multiple files and make them available in the `components` context. This is particularly useful for dashboard pages that aggregate cards from multiple source files:
+
 ```handlebars
-{{file.extract "admin/users.shtml"}}
+<!-- Register all admin dashboard cards -->
+{{file.includeComponents "admin/*.shtml" component="adminCards.*"}}
+
+<!-- Render all registered cards -->
+{{#each components.adminCards}}
+    {{this}}
+{{/each}}
 ```
 
-In the source file (`admin/users.shtml`):
-```html
-<!-- extract:start order=10 -->
-<a href="/admin/users.shtml" class="jp-card-dashboard">
-    <h3>User Management</h3>
-    <p>Manage users and permissions</p>
-</a>
-<!-- extract:end -->
-```
-
-**Using regex pattern:**
+**Define components in source files** (e.g., `admin/config.shtml`):
 ```handlebars
-{{file.extract "admin/users.shtml" pattern="/<div class=\"card\">(.*?)<\/div>/s"}}
-```
-
-**Using CSS class selector:**
-```handlebars
-{{file.extract "admin/users.shtml" pattern=".local-extract"}}
-```
-
-In the source file (`admin/users.shtml`):
-```html
-<div class="local-extract" data-extract-order="10">
-    <a href="/admin/users.shtml" class="jp-card-dashboard">
-        <h3>User Management</h3>
-        <p>Manage users and permissions</p>
+{{#component "adminCards.config" order=10}}
+    <a href="/admin/config.shtml" class="jp-card-dashboard jp-icon-btn">
+        <div class="jp-icon-container">{{components.jpIcons.configSvg size="64"}}</div>
+        <h3 class="jp-card-title">Configuration</h3>
+        <p class="jp-card-description">Manage site configuration</p>
     </a>
-</div>
+{{/component}}
 ```
 
-**Using CSS ID selector:**
+**Parameters:**
+- `glob-pattern` (required): File pattern to search (e.g., `"admin/*.shtml"`)
+- `component="namespace.*"` (optional): Filter components by namespace pattern
+- `sortBy="method"` (optional): Sort method - `"component-order"` (default), `"plugin-order"`, `"filename"`, `"filesystem"`
+
+**Sort Methods:**
+- `component-order` (default): Sort by the `order=N` parameter in component definitions
+- `plugin-order`: Sort by plugin dependency resolution order (for plugin dashboards)
+- `filename`: Alphabetical sorting by filename
+- `filesystem`: Natural filesystem order (no sorting)
+
+**Example - Plugin Dashboard:**
 ```handlebars
-{{file.extract "admin/users.shtml" pattern="#userCard"}}
+<!-- Register plugin cards sorted by dependency order -->
+{{file.includeComponents "jpulse-plugins/*.shtml" component="pluginCards.*" sortBy="plugin-order"}}
+
+<!-- Render plugin cards -->
+{{#each components.pluginCards}}
+    {{this}}
+{{/each}}
 ```
-
-In the source file (`admin/users.shtml`):
-```html
-<div id="userCard" data-extract-order="10">
-    <a href="/admin/users.shtml" class="jp-card-dashboard">
-        <h3>User Management</h3>
-        <p>Manage users and permissions</p>
-    </a>
-</div>
-```
-
-**CSS selector features:**
-- Extracts content from matching HTML element (`.class-name` or `#id-name`)
-- Handles deeply nested tags correctly using nesting level tracking
-- Optional `data-extract-order="N"` attribute for sorting (default: 99999)
-- Works identically to comment markers for sorting and pattern passing
-
-**Supported marker formats:**
-- HTML comments: `<!-- extract:start order=N -->...<!-- extract:end -->`
-- Block comments: `/* extract:start order=N */.../* extract:end */`
-- Line comments (JS): `// extract:start order=N ... // extract:end`
-- Line comments (Python): `# extract:start order=N ... # extract:end`
 
 **Features:**
-- **Three extraction methods:**
-  - Comment markers: HTML, CSS/JS block, and line comments with `order=N` attribute
-  - CSS selectors: `.class-name` or `#id-name` with `data-extract-order="N"` attribute
-  - Regex patterns: `/pattern/flags` format with mandatory capture group `(...)`
-- Order extraction: `order=N` for markers, `data-extract-order="N"` for CSS selectors (default: 99999)
-- Nested tag handling: CSS selectors correctly handle deeply nested tags
-- Site overrides: Automatically uses site overrides when available
-- Security: Path traversal protection, errors logged server-side only
+- **Silent registration:** Components are registered without output, then rendered via `{{#each}}`
+- **Pattern filtering:** Use `component="namespace.*"` to register only specific namespaced components
+- **Flexible sorting:** Choose sort method based on dashboard requirements
+- **Component expansion:** Components are fully expanded (including nested components and i18n) before registration
+- **Site overrides:** Automatically uses site overrides when available
+- **Security:** Path traversal protection, errors logged server-side only
 
 ## Reusable Components
 
@@ -415,23 +371,23 @@ Define components using the `{{#component}}` block helper:
 
 ### Component Usage
 
-Use components with the `{{use.componentName}}` syntax:
+Use components with the `{{components.componentName}}` syntax:
 
 ```handlebars
 <!-- Use with default parameters -->
-{{use.widgets.buttonPrimary}}
+{{components.widgets.buttonPrimary}}
 
 <!-- Override specific parameters -->
-{{use.widgets.buttonPrimary text="Submit" size="large"}}
+{{components.widgets.buttonPrimary text="Submit" size="large"}}
 ```
 
 **Naming convention:**
 - Use namespaces for better separation of concerns, such as `jpIcons.logsSvg`
 - Component names are converted from kebab-case to camelCase for usage
-- `logs-svg` becomes `{{use.logsSvg}}`
-- `user-card` becomes `{{use.userCard}}`
-- `icon` remains `{{use.icon}}`
-- Namespaced: `jpIcons.logs-svg` becomes `{{use.jpIcons.logsSvg}}`
+- `logs-svg` becomes `{{components.logsSvg}}`
+- `user-card` becomes `{{components.userCard}}`
+- `icon` remains `{{components.icon}}`
+- Namespaced: `jpIcons.logs-svg` becomes `{{components.jpIcons.logsSvg}}`
 
 ### Component Parameters
 
@@ -439,7 +395,7 @@ Components support both user-defined parameters and special framework parameters
 
 **User Parameters:**
 ```handlebars
-{{use.jpIcons.logsSvg size="48" fillColor="#007bff"}}
+{{components.jpIcons.logsSvg size="48" fillColor="#007bff"}}
 ```
 
 **Framework Parameters (prefixed with `_`):**
@@ -449,7 +405,7 @@ Components support both user-defined parameters and special framework parameters
 <!-- In JavaScript object literal -->
 <script>
 const navConfig = {
-    icon: `{{use.jpIcons.configSvg size="24" _inline=true}}`
+    icon: `{{components.jpIcons.configSvg size="24" _inline=true}}`
 };
 </script>
 ```
@@ -478,9 +434,9 @@ Components support optional dot-notation namespaces for organization:
 {{/component}}
 
 <!-- Use namespaced components -->
-{{use.jpIcons.configSvg size="32"}}
-{{use.siteIcons.userSvg size="48"}}
-{{use.buttons.primary text="Submit"}}
+{{components.jpIcons.configSvg size="32"}}
+{{components.siteIcons.userSvg size="48"}}
+{{components.buttons.primary text="Submit"}}
 ```
 
 **Benefits:**
@@ -518,11 +474,11 @@ Create reusable component libraries by defining multiple components in `.tmpl` f
 **Use in your pages:**
 ```handlebars
 <div class="icon-container">
-    {{use.jpIcons.logsSvg size="48" fillColor="#007bff"}}
+    {{components.jpIcons.logsSvg size="48" fillColor="#007bff"}}
 </div>
 
 <div class="icon-container">
-    {{use.jpIcons.usersSvg size="32"}}
+    {{components.jpIcons.usersSvg size="32"}}
 </div>
 ```
 
@@ -535,7 +491,7 @@ Components can call other components:
 {{#component "widgets.card-with-icon" title="Dashboard" iconSize="32"}}
     <div class="card">
         <div class="card-icon">
-            {{use.jpIcons.configSvg size=iconSize}}
+            {{components.jpIcons.configSvg size=iconSize}}
         </div>
         <h3>{{title}}</h3>
     </div>
@@ -544,7 +500,7 @@ Components can call other components:
 <!-- The jpIcons.configSvg component is already defined in svg-icons.tmpl -->
 
 <!-- Usage -->
-{{use.widgets.cardWithIcon title="System Status" iconSize="48"}}
+{{components.widgets.cardWithIcon title="System Status" iconSize="48"}}
 ```
 
 **Limitations:**
@@ -558,9 +514,10 @@ Component errors are handled gracefully:
 
 **Development/Test Mode:**
 ```handlebars
-{{use.nonexistentComponent}}
-<!-- Generates: <!-- Error: Component "nonexistentComponent" not found. Did you forget to include the component library? --> -->
+{{components.nonexistentComponent}}
 ```
+This generates output:<br/>
+`<!-- Error: Component "nonexistentComponent" not found. Did you forget to include the component library? -->`
 
 **Production Mode:**
 - Errors are logged server-side only
@@ -569,16 +526,17 @@ Component errors are handled gracefully:
 **Circular reference detection:**
 ```handlebars
 {{#component "comp-a"}}
-    {{use.compB}}
+    {{components.compB}}
 {{/component}}
 
 {{#component "comp-b"}}
-    {{use.compA}}
+    {{components.compA}}
 {{/component}}
 
-{{use.compA}}
-<!-- Generates: <!-- Error: Circular component reference detected: compA → compB → compA --> -->
+{{components.compA}}
 ```
+This generates output:<br/>
+`<!-- Error: Circular component reference detected: compA → compB → compA -->`
 
 ### Best Practices
 
@@ -622,9 +580,9 @@ The Handlebars system includes robust error handling for various scenarios:
 {{#each stringValue}}
     <p>{{this}}</p>
 {{/each}}
-<!-- If stringValue is a string (not array/object), generates:
-     <!-- Error: Cannot iterate over non-iterable value: string --> -->
 ```
+If stringValue is a string (not array/object), it generates output:<br/>
+`<!-- Error: Cannot iterate over non-iterable value: string -->`
 
 ## Best Practices
 

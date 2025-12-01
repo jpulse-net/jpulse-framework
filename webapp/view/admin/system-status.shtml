@@ -4,8 +4,8 @@
  * @tagline         Admin system status interface
  * @description     System monitoring and health dashboard for site administrators
  * @file            webapp/view/admin/system-status.shtml
- * @version         1.3.2
- * @release         2025-11-30
+ * @version         1.3.3
+ * @release         2025-12-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -36,22 +36,20 @@
     </style>
 </head>
 <body>
-    <div style="display: none;">
-        <!-- This card is automatically included in the admin dashboard at admin/index.shtml -->
-        <!-- extract:start order=30 -->
+    {{#component "adminCards.systemStatus" order=40}}
+        {{!-- This card is automatically included in the admin dashboard at admin/index.shtml --}}
         <a href="/admin/system-status.shtml" class="jp-card-dashboard jp-icon-btn">
-            <div class="jp-icon-container">{{use.jpIcons.systemStatusSvg size="64"}}</div>
+            <div class="jp-icon-container">{{components.jpIcons.systemStatusSvg size="64"}}</div>
             <h3 class="jp-card-title">{{i18n.view.admin.index.systemStatus}}</h3>
             <p class="jp-card-description">{{i18n.view.admin.index.systemStatusDesc}}</p>
         </a>
-        <!-- extract:end -->
-    </div>
+    {{/component}}
 
     <div class="jp-main">
         <div class="jp-container-1200">
           {{#if user.isAdmin}}
             <div class="jp-page-header">
-                <h1>{{use.jpIcons.systemStatusSvg size="26"}} {{i18n.view.admin.systemStatus.title}}</h1>
+                <h1>{{components.jpIcons.systemStatusSvg size="26"}} {{i18n.view.admin.systemStatus.title}}</h1>
                 <span class="jp-subtitle">{{i18n.view.admin.systemStatus.subtitle}}</span>
             </div>
 

@@ -4,8 +4,8 @@
  * @tagline         Site Override Demo
  * @description     This is the dashboard page with site override demos
  * @file            site.webapp/view/hello/index.shtml
- * @version         1.3.2
- * @release         2025-11-30
+ * @version         1.3.3
+ * @release         2025-12-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -33,9 +33,10 @@
         </div>
 
         <div class="jp-dashboard-grid">
-            <!-- Automatically include cards from other admin pages that have extract markers -->
-            {{#each file.list "hello*/*.shtml" sortBy="extract-order"}}
-                {{file.extract this}}
+            {{!-- Automatically include cards from other hello pages using component system --}}
+            {{file.includeComponents "hello*/*.shtml" component="helloCards.*"}}
+            {{#each components.helloCards}}
+                {{this}}
             {{/each}}
         </div>
     </div>

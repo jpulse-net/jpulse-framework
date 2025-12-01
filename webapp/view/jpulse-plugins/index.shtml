@@ -4,8 +4,8 @@
  * @tagline         Plugin Dashboard
  * @description     Dashboard showing all installed plugins
  * @file            webapp/view/jpulse-plugins/index.shtml
- * @version         1.3.2
- * @release         2025-11-30
+ * @version         1.3.3
+ * @release         2025-12-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -23,7 +23,7 @@
     <div class="jp-main">
         <div class="jp-container-1200">
             <div class="jp-page-header">
-                <h1>{{use.jpIcons.pluginsSvg size="26"}} jPulse Plugins</h1>
+                <h1>{{components.jpIcons.pluginSvg size="26"}} jPulse Plugins</h1>
                 <span class="jp-subtitle">Installed plugins with user-facing features</span>
             </div>
 
@@ -33,9 +33,10 @@
             </div>
 
             <!-- Auto-discovered plugin cards -->
+            {{file.includeComponents "jpulse-plugins/*.shtml" component="pluginCards.*" sortBy="plugin-order"}}
             <div class="jp-card-grid">
-            {{#each file.list "jpulse-plugins/*.shtml" sortBy="extract-order"}}
-                {{file.extract this}}
+            {{#each components.pluginCards}}
+                {{this}}
             {{/each}}
             </div>
 

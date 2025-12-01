@@ -1,4 +1,4 @@
-# jPulse Docs / Generative-AI Instructions for AI Assistants v1.3.2
+# jPulse Docs / Generative-AI Instructions for AI Assistants v1.3.3
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
@@ -94,14 +94,44 @@ Instructions for AI assistants working with jPulse Framework site development. T
 8. ❌ Never add custom styles to `webapp/view/jpulse-common.css`
 9. ❌ Never modify `webapp/view/jpulse-common.js`
 
+### Plugin Development Guidelines
+
+When working with plugins:
+
+1. **Plugin Structure**: All plugin code goes in `plugins/[plugin-name]/webapp/`
+   - Follows same structure as site (controller/, model/, view/, static/)
+   - Auto-discovered and loaded based on plugin.json
+
+2. **Plugin Dependencies**: Defined in `plugin.json`
+   - Use `dependencies.plugins` to declare plugin dependencies
+   - Framework loads plugins in dependency order
+   - Circular dependencies are detected and prevented
+
+3. **Plugin Dashboard Cards**: Use component system
+   - Create components in `plugins/[plugin-name]/webapp/view/jpulse-plugins/[plugin-name].shtml`
+   - Use `{{#component "pluginCards.name" order=N}}` syntax
+   - Auto-discovered and shown in `/jpulse-plugins/` dashboard
+
+4. **Plugin CSS/JS**: Automatically appended to framework
+   - `plugins/[plugin-name]/webapp/view/jpulse-common.css` appended after framework CSS
+   - `plugins/[plugin-name]/webapp/view/jpulse-common.js` appended after framework JS
+   - Use plugin-specific prefixes to avoid conflicts
+
+5. **Plugin Documentation**:
+   - Complete guides in [docs/plugins/](plugins/)
+   - Reference: [Plugin Architecture](plugins/plugin-architecture.md)
+   - Reference: [Creating Plugins](plugins/creating-plugins.md)
+   - Reference: [Plugin API Reference](plugins/plugin-api-reference.md)
+
 ## 🗂️ Framework vs Site Files
 
 ### Common CSS Files
 
 ```
-webapp/view/jpulse-common.css          ← Framework styles (jp-* prefix) - READ ONLY, NEVER MODIFY
-site/webapp/view/jpulse-common.css     ← Site-wide custom styles (site-* prefix, appended) - USE THIS
-[view-file].shtml                      ← Page-specific styles (local-* prefix in <style> tag)
+webapp/view/jpulse-common.css                   ← Framework styles (jp-* prefix) - READ ONLY
+plugins/[name]/webapp/view/jpulse-common.css    ← Plugin styles (appended)
+site/webapp/view/jpulse-common.css              ← Site styles (site-* prefix, appended) - USE THIS
+[view-file].shtml                               ← Page-specific styles (local-* prefix)
 ```
 
 **Framework CSS** (`webapp/view/jpulse-common.css`):
@@ -110,12 +140,18 @@ site/webapp/view/jpulse-common.css     ← Site-wide custom styles (site-* prefi
 - Reference: [Style Reference](style-reference.md)
 - **USE these classes**, never create new `jp-*` classes
 
+**Plugin CSS** (`plugins/[name]/webapp/view/jpulse-common.css`):
+- Automatically appended to framework CSS (W-098 append mode)
+- Loaded in plugin dependency order
+- Use plugin-specific prefixes to avoid conflicts
+- Read-only unless you're developing the plugin
+
 **Site CSS** (`site/webapp/view/jpulse-common.css`):
 - Create from `site/webapp/view/jpulse-common.css.tmpl` if missing
-- Automatically appended to framework jpulse-common.css (W-098 append mode)
+- Automatically appended after framework and plugin CSS (W-098 append mode)
 - Use for site-wide custom styles shared across multiple pages
 - Use `site-*` prefix (e.g., .site-header, .site-feature-card)
-- Loaded after framework CSS
+- Loaded last, can override framework and plugin styles
 
 **Page CSS** (in view file's `<style>` tag):
 - Use for page-specific styles used only on one page
@@ -125,9 +161,10 @@ site/webapp/view/jpulse-common.css     ← Site-wide custom styles (site-* prefi
 ### Common JavaScript Files
 
 ```
-webapp/view/jpulse-common.js           ← Framework utilities (jPulse.*) - READ ONLY, NEVER MODIFY
-site/webapp/view/jpulse-common.js      ← Site-wide custom utilities (appended) - USE THIS IF NEEDED
-[view-file].shtml                      ← Page-specific JavaScript in <script> tag
+webapp/view/jpulse-common.js                    ← Framework utilities (jPulse.*) - READ ONLY
+plugins/[name]/webapp/view/jpulse-common.js     ← Plugin utilities (appended)
+site/webapp/view/jpulse-common.js               ← Site utilities (appended) - USE THIS IF NEEDED
+[view-file].shtml                               ← Page-specific JavaScript in <script> tag
 ```
 
 **Framework JavaScript** (`webapp/view/jpulse-common.js`):
@@ -135,12 +172,18 @@ site/webapp/view/jpulse-common.js      ← Site-wide custom utilities (appended)
 - Complete utility library documented in [Front-End Development Guide](front-end-development.md)
 - **USE these utilities**, never modify this file
 
+**Plugin JavaScript** (`plugins/[name]/webapp/view/jpulse-common.js`):
+- Automatically appended to framework JavaScript (W-098 append mode)
+- Loaded in plugin dependency order
+- Use plugin-specific namespaces to avoid conflicts
+- Read-only unless you're developing the plugin
+
 **Site JavaScript** (`site/webapp/view/jpulse-common.js`):
 - Create from `site/webapp/view/jpulse-common.js.tmpl` if missing
-- Automatically appended to framework jpulse-common.js (W-098 append mode)
+- Automatically appended after framework and plugin JavaScript (W-098 append mode)
 - Optional - only create if you have site-wide custom utilities
 - Use different namespace (e.g., site.utils.*) to avoid conflicts
-- Loaded after framework JavaScript
+- Loaded last, can extend framework and plugin utilities
 
 ## 🏗️ Project Structure Understanding
 
@@ -156,7 +199,20 @@ site/
 │   │   ├── jpulse-common.js   # Site-wide utilities (appended, optional)
 │   │   └── [pages]/           # Page templates with local-* styles
 │   └── static/                # Site assets
-webapp/                        # FRAMEWORK CODE - Never modify
+├── plugins/                   # PLUGINS - Installed third-party extensions
+│   └── [plugin-name]/         # Each plugin in its own directory
+│       ├── plugin.json        # Plugin metadata and dependencies
+│       ├── webapp/            # Plugin web components (auto-loaded)
+│       │   ├── controller/    # Plugin controllers (auto-discovered)
+│       │   ├── model/         # Plugin models
+│       │   ├── view/          # Plugin templates (mergeable)
+│       │   │   ├── jpulse-common.css  # Plugin styles (appended)
+│       │   │   ├── jpulse-common.js   # Plugin utilities (appended)
+│       │   │   ├── jpulse-plugins/    # Plugin dashboard cards
+│       │   │   └── [pages]/           # Plugin-specific pages
+│       │   └── static/        # Plugin assets
+│       └── docs/              # Plugin documentation
+└── webapp/                    # FRAMEWORK CODE - Never modify
     ├── app.conf               # Framework defaults
     ├── controller/            # Base controllers
     ├── model/                 # Framework models
@@ -170,16 +226,21 @@ webapp/                        # FRAMEWORK CODE - Never modify
 
 ### File Resolution Priority
 
-The framework automatically resolves files with site priority:
-1. **First**: `site/webapp/[path]`
-2. **Fallback**: `webapp/[path]`
+The framework automatically resolves files with priority order:
+1. **First**: `site/webapp/[path]` (site overrides)
+2. **Then**: `plugins/[plugin-name]/webapp/[path]` (plugin files, in load order)
+3. **Fallback**: `webapp/[path]` (framework defaults)
 
 This means:
-- Site files override framework files automatically
+- Site files override plugin and framework files automatically
+- Plugins can override framework files (but not site files)
+- Plugin load order determined by dependencies in plugin.json
 - No configuration needed
 - You can selectively override only what you need
 
-Complete details: [Site Customization Guide](site-customization.md)
+Complete details:
+- [Site Customization Guide](site-customization.md)
+- [Plugin Architecture](plugins/plugin-architecture.md)
 
 ## 📚 Reference Implementations - Your Primary Learning Resources
 
@@ -224,6 +285,16 @@ Complete details: [Site Customization Guide](site-customization.md)
 - Advanced jPulse.* utility usage
 - What to learn: Complex UIs, data management, admin patterns
 
+### Plugin Example
+
+**Hello World Plugin**: `plugins/hello-world/`
+- Complete plugin structure and organization
+- Plugin metadata and dependencies (plugin.json)
+- Plugin dashboard card with component system
+- Plugin-specific pages and routes
+- What to learn: Plugin architecture, plugin development patterns
+- Reference: [Creating Plugins Guide](plugins/creating-plugins.md)
+
 ### Framework Controllers (Pattern Reference Only - Don't Modify)
 
 **Authentication**: `webapp/controller/auth.js`
@@ -243,6 +314,12 @@ Complete details: [Site Customization Guide](site-customization.md)
 - System monitoring
 - Status reporting
 - What to learn: Health check patterns, metrics collection
+
+**Plugin Management**: `webapp/controller/plugin.js`
+- Plugin lifecycle management
+- Dependency resolution
+- Plugin registry and load order
+- What to learn: Plugin system internals
 
 ## 📖 Documentation Reference Guide
 
@@ -285,6 +362,13 @@ Complete details: [Site Customization Guide](site-customization.md)
 - Available classes and patterns
 - Responsive design
 - When to use: "What CSS classes...", "How do I style..."
+
+**Plugin Documentation**: [docs/plugins/](plugins/)
+- Plugin architecture and system design
+- Creating and publishing plugins
+- Plugin API reference
+- Managing installed plugins
+- When to use: "How do I create a plugin...", "How do plugins work..."
 
 ## 🔧 Implementation Guidance
 
@@ -365,6 +449,47 @@ Complete details: [Site Customization Guide](site-customization.md)
 - Explain the schema structure as you provide the code
 
 **Reference file**: `site/webapp/model/helloTodo.js`
+
+### Creating a Plugin
+
+**Pattern to Follow**:
+1. Study `plugins/hello-world/` to understand complete plugin structure
+2. Create directory in `plugins/[plugin-name]/`
+3. Create `plugin.json` with metadata (name, version, dependencies)
+4. Create `webapp/` subdirectory with same structure as site
+5. Add plugin dashboard card in `webapp/view/jpulse-plugins/[plugin-name].shtml`
+6. Use component system for dashboard card: `{{#component "pluginCards.name" order=N}}`
+7. Plugin CSS/JS in `webapp/view/jpulse-common.css` and `jpulse-common.js`
+
+**Plugin Structure**:
+```
+plugins/[plugin-name]/
+├── plugin.json                          # Metadata and dependencies
+├── webapp/
+│   ├── controller/                      # Plugin controllers (auto-discovered)
+│   ├── model/                           # Plugin models
+│   ├── view/
+│   │   ├── jpulse-common.css            # Plugin styles (appended)
+│   │   ├── jpulse-common.js             # Plugin utilities (appended)
+│   │   ├── jpulse-plugins/              # Dashboard card
+│   │   │   └── [plugin-name].shtml
+│   │   └── [plugin-pages]/              # Plugin pages
+│   └── static/                          # Plugin assets
+└── docs/                                # Plugin documentation
+    └── README.md
+```
+
+**When user asks you to create a plugin**:
+- Generate complete plugin structure based on hello-world pattern
+- Include plugin.json with proper metadata
+- Create dashboard card with component system
+- Add necessary controllers, models, views
+- Explain plugin system and load order
+- Reference: [Creating Plugins Guide](plugins/creating-plugins.md)
+
+**Reference files**:
+- `plugins/hello-world/plugin.json`
+- `plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml`
 
 ### When You DON'T Need Controllers/Models
 
@@ -458,6 +583,12 @@ Organize your response guidance by user question type:
 **"How do I use Handlebars?"**
 → [Template Reference](template-reference.md) for syntax
 → Examples in any .shtml file
+
+**"How do I create/use plugins?"**
+→ [Plugin Architecture](plugins/plugin-architecture.md) for system overview
+→ [Creating Plugins](plugins/creating-plugins.md) for step-by-step guide
+→ [Plugin API Reference](plugins/plugin-api-reference.md) for API details
+→ Reference: `plugins/hello-world/` for complete example
 
 ## 📋 Code Quality Checklist
 

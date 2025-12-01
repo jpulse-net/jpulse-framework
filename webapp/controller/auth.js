@@ -3,8 +3,8 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         1.3.2
- * @release         2025-11-30
+ * @version         1.3.3
+ * @release         2025-12-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

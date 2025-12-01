@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.3.2
- * @release         2025-11-30
+ * @version         1.3.3
+ * @release         2025-12-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -134,7 +134,9 @@ class HandlebarController {
                 param: req.query || {}
             },
             // Add i18n object to context for dot notation access
-            i18n: global.i18n.getLang(AuthController.getUserLanguage(req))
+            i18n: global.i18n.getLang(AuthController.getUserLanguage(req)),
+            // W-102: Components context (populated by file.includeComponents)
+            components: {}
         };
 
         // W-014: Extend context with site/plugin extensions
@@ -398,29 +400,24 @@ class HandlebarController {
             const parsedArgs = _parseArguments(expression);
             const helper = parsedArgs._helper;
 
-            // W-097 Phase 1: Handle use.componentName pattern
-            if (helper && helper.startsWith('use.')) {
-                const componentName = helper.substring(4); // Remove 'use.' prefix
-                // Reconstruct params string for parseHelperArgs
-                const paramsString = Object.keys(parsedArgs)
-                    .filter(k => k !== '_helper')
-                    .map(k => k === '_target' ? `"${parsedArgs[k]}"` : `${k}="${parsedArgs[k]}"`)
-                    .join(' ');
-                return await _handleComponentUse(componentName, paramsString, currentContext);
+            // W-102: Handle components.* pattern (with or without parameters)
+            // Example: {{components.jpIcons.configSvg size="64"}} or {{components.jpIcons.configSvg}}
+            if (helper.startsWith('components.')) {
+                return await _handleComponentCall(parsedArgs, currentContext);
             }
 
             // Handle helper functions first (before property access)
             switch (helper) {
                 case 'file.include':
                     return await _handleFileInclude(parsedArgs, currentContext);
+                case 'file.includeComponents':
+                    return await _handleFileIncludeComponents(parsedArgs, currentContext);
                 case 'file.timestamp':
                     return _handleFileTimestamp(parsedArgs._target);
                 case 'file.exists':
                     return _handleFileExists(parsedArgs._target);
                 case 'file.list':
                     return _handleFileList(parsedArgs, currentContext);
-                case 'file.extract':
-                    return _handleFileExtract(parsedArgs, currentContext);
                 default:
                     // Handle property access (no spaces)
                     if (!helper.includes(' ')) {
@@ -504,11 +501,10 @@ class HandlebarController {
 
         /**
          * Handle {{#each}} blocks
-         * W-094: Support file.list with sortBy and pattern parameters
+         * W-094: Support file.list with sortBy parameter
          */
         async function _handleBlockEach(params, blockContent, currentContext) {
             let items = getNestedProperty(currentContext, params.trim());
-            let extractPattern = null;
             let sortBy = null;
 
             // W-094: Check if params is file.list helper call
@@ -522,54 +518,8 @@ class HandlebarController {
                     // Get sortBy parameter
                     sortBy = parsedArgs.sortBy || null;
 
-                    // Get pattern parameter (for passing to file.extract)
-                    extractPattern = parsedArgs.pattern || null;
-
-                    // If sortBy is "extract-order", sort by extracting order from files
-                    if (sortBy === 'extract-order' && Array.isArray(items)) {
-                        const filesWithOrder = items.map(filePath => {
-                            try {
-                                const relativePath = `view/${filePath}`;
-                                const fullPath = PathResolver.resolveModuleWithPlugins(relativePath);
-                                const content = self.includeCache.getFileSync(fullPath);
-                                if (content !== null) {
-                                    let extracted = null;
-
-                                    // If pattern is provided, try CSS selector first, then fall back to markers
-                                    if (extractPattern) {
-                                        if (extractPattern.startsWith('.') || extractPattern.startsWith('#')) {
-                                            extracted = _extractFromCSSSelector(content, extractPattern);
-                                        }
-                                    }
-
-                                    // Fall back to marker extraction if CSS selector didn't work
-                                    if (!extracted) {
-                                        extracted = _extractOrderFromMarkers(content);
-                                    }
-
-                                    const order = extracted ? extracted.order : 99999;
-                                    return {
-                                        path: filePath,
-                                        order: order
-                                    };
-                                }
-                            } catch (error) {
-                                // File not found or error - use default order
-                            }
-                            return { path: filePath, order: 99999 };
-                        });
-
-                        // Sort by order, then by filename
-                        filesWithOrder.sort((a, b) => {
-                            if (a.order !== b.order) {
-                                return a.order - b.order;
-                            }
-                            return a.path.localeCompare(b.path);
-                        });
-
-                        items = filesWithOrder.map(f => f.path);
-                    } else if (sortBy === 'filename' && Array.isArray(items)) {
-                        // Sort alphabetically by filename
+                    // Sort by filename if requested
+                    if (sortBy === 'filename' && Array.isArray(items)) {
                         items.sort();
                     }
                 }
@@ -591,11 +541,6 @@ class HandlebarController {
                 iterationContext['@first'] = i === 0;
                 iterationContext['@last'] = i === itemsArray.length - 1;
 
-                // W-094: Pass extract pattern to context for file.extract to use
-                if (extractPattern) {
-                    iterationContext['@extractPattern'] = extractPattern;
-                }
-
                 if (Array.isArray(items)) {
                     // For arrays: item is the array element
                     iterationContext['this'] = item;
@@ -606,11 +551,6 @@ class HandlebarController {
                 }
 
                 // Process handlebars in block content with iteration context
-                // Use _resolveHandlebars with local context for efficiency (no re-annotation)
-                // Note: This is called from _evaluateBlockHandlebar which is called from async _resolveHandlebars
-                // So we need to await here, but _handleBlockEach is not async, so we'll handle it differently
-                // Actually, _handleBlockEach is called from _evaluateBlockHandlebar which is called from async _resolveHandlebars
-                // So we can make _handleBlockEach async
                 let processedContent = await _resolveHandlebars(blockContent, iterationContext);
 
                 result += processedContent;
@@ -721,8 +661,16 @@ class HandlebarController {
                 defaults: defaultParams
             });
 
+            // W-102: Also add to currentContext.components immediately
+            // This ensures components registered via {{file.include}} are available
+            // for subsequent component expansions (e.g., admin cards can use jpIcons)
+            if (!currentContext.components) {
+                currentContext.components = {};
+            }
+            _setNestedProperty(currentContext.components, usageName, blockContent);
+
             LogController.logInfo(req, 'handlebar.component',
-                `Component registered: ${componentName} (use as: {{use.${usageName}}})`
+                `Component registered: ${componentName} (use as: {{components.${usageName}}})`
             );
 
             // Component definition produces no output
@@ -730,83 +678,66 @@ class HandlebarController {
         }
 
         /**
-         * W-097 Phase 1: Handle component usage
-         * Syntax: {{use.componentName param="value"}}
-         * Renders component with provided parameters
+         * W-102: Handle component call with parameters
+         * Example: {{components.jpIcons.configSvg size="64" fillColor="red"}}
          */
-        async function _handleComponentUse(componentName, params, currentContext) {
-            // Check if component exists in registry
-            if (!req.componentRegistry.has(componentName)) {
-                const error = `Component "${componentName}" not found. Did you forget to include the component library?`;
-                LogController.logError(req, 'handlebar.use', error);
+        async function _handleComponentCall(parsedArgs, currentContext) {
+            const fullName = parsedArgs._helper; // e.g., "components.jpIcons.configSvg"
 
-                // Return visible error except in production (safer default)
-                if (global.appConfig.env !== 'production') {
-                    return `<!-- Error: ${error} -->`;
-                }
-                return '';
+            // Remove "components." prefix to get component name
+            const componentName = fullName.replace(/^components\./, ''); // "jpIcons.configSvg"
+
+            // Convert to usage name (already in correct format)
+            const usageName = componentName;
+
+            // Look up component in registry
+            const component = req.componentRegistry.get(usageName);
+            if (!component) {
+                const errorMsg = `Component "${componentName}" not found. Did you forget to include the component library?`;
+                LogController.logWarning(req, 'handlebar.componentCall', errorMsg);
+                return `<!-- Error: ${errorMsg} -->`;
             }
 
-            // Check for circular reference
-            if (req.componentCallStack.includes(componentName)) {
-                const callChain = [...req.componentCallStack, componentName].join(' → ');
-                const error = `Circular component reference detected: ${callChain}`;
-                LogController.logError(req, 'handlebar.use', error);
-                return `<!-- Error: ${error} -->`;
+            // Check for circular references
+            if (req.componentCallStack.includes(usageName)) {
+                const callChain = [...req.componentCallStack, usageName].join(' → ');
+                const errorMsg = `Circular component reference detected: ${callChain}`;
+                LogController.logError(req, 'handlebar.componentCall', errorMsg);
+                return `<!-- Error: ${errorMsg} -->`;
             }
 
-            // Check nesting depth
-            const MAX_DEPTH = global.appConfig.controller.handlebar.maxIncludeDepth || 16;
-            if (req.componentCallStack.length >= MAX_DEPTH) {
-                const error = `Component nesting too deep (max ${MAX_DEPTH}): ${req.componentCallStack.join(' → ')}`;
-                LogController.logError(req, 'handlebar.use', error);
-                return `<!-- Error: ${error} -->`;
-            }
-
-            // Get component definition
-            const component = req.componentRegistry.get(componentName);
-
-            // Parse parameters from usage
-            const parsedArgs = self._parseHelperArgs(params);
-
-            // W-097 Phase 1: Check for _inline directive (framework parameter)
-            const shouldInline = parsedArgs._inline === 'true' || parsedArgs._inline === true;
-
-            // W-097 Phase 1: Filter out framework parameters (those starting with _)
-            // Framework params: _helper, _target, _inline, etc.
-            const userParams = {};
-            for (const [key, value] of Object.entries(parsedArgs)) {
-                if (!key.startsWith('_')) {
-                    userParams[key] = value;
-                }
-            }
-
-            // Merge parameters: context + defaults + user params (framework params excluded)
-            const componentContext = {
-                ...currentContext,
-                ...component.defaults,
-                ...userParams
-            };
-
-            // Track call stack for circular reference detection
-            req.componentCallStack.push(componentName);
+            // Add to call stack for circular reference detection
+            req.componentCallStack.push(usageName);
 
             try {
-                // Recursively expand component template
-                let result = await _resolveHandlebars(component.template, componentContext);
-
-                // W-097 Phase 1: Apply _inline transformation if requested
-                // Removes newlines and extra whitespace for JavaScript string compatibility
-                if (shouldInline) {
-                    result = result
-                        .replace(/\r?\n/g, ' ')      // Replace newlines with spaces
-                        .replace(/\s+/g, ' ')        // Collapse multiple spaces
-                        .trim();                      // Remove leading/trailing whitespace
+                // Separate framework parameters (starting with _) from user parameters
+                const params = { ...component.defaults };
+                const frameworkParams = {};
+                for (const [key, value] of Object.entries(parsedArgs)) {
+                    if (key !== '_helper' && key !== '_target') {
+                        if (key.startsWith('_')) {
+                            frameworkParams[key] = value;
+                        } else {
+                            params[key] = value;
+                        }
+                    }
                 }
 
-                return result;
+                // Create context with parameters for template expansion
+                const paramContext = { ...currentContext, ...params };
+
+                // Expand component template with parameters
+                let expanded = await self._expandHandlebars(req, component.template, paramContext, depth + 1);
+
+                // Handle _inline framework parameter
+                if (frameworkParams._inline === true || frameworkParams._inline === 'true') {
+                    // Remove newlines and collapse multiple spaces to single space
+                    expanded = expanded.replace(/\n/g, ' ').replace(/\s+/g, ' ');
+                }
+
+                return expanded;
             } finally {
-                // Always pop from call stack
+                // Remove from call stack
                 req.componentCallStack.pop();
             }
         }
@@ -978,213 +909,248 @@ class HandlebarController {
         }
 
         /**
-         * W-094: Extract order number from content using markers
-         * Returns { order: number, content: string } or null if no markers found
+         * W-102: Handle file.includeComponents - register components from multiple files
+         * Syntax: {{file.includeComponents "glob-pattern" component="namespace.*" sortBy="method"}}
+         * Registers components and populates context.components
          */
-        function _extractOrderFromMarkers(content) {
-            // Try HTML comments: <!-- extract:start order=N --> ... <!-- extract:end -->
-            let match = content.match(/<!--\s*extract:start\s+(?:order\s*=\s*(\d+))?\s*-->(.*?)<!--\s*extract:end\s*-->/s);
-            if (match) {
-                return {
-                    order: match[1] ? parseInt(match[1], 10) : 99999,
-                    content: match[2].trim()
-                };
-            }
+        async function _handleFileIncludeComponents(parsedArgs, currentContext) {
+            const globPattern = parsedArgs._target;
+            const componentFilter = parsedArgs.component; // e.g., "adminCards.*"
+            const sortBy = parsedArgs.sortBy || 'component-order';
 
-            // Try block comments: /* extract:start order=N */ ... /* extract:end */
-            match = content.match(/\/\*\s*extract:start\s+(?:order\s*=\s*(\d+))?\s*\*\/\s*(.*?)\s*\/\*\s*extract:end\s*\*\//s);
-            if (match) {
-                return {
-                    order: match[1] ? parseInt(match[1], 10) : 99999,
-                    content: match[2].trim()
-                };
-            }
-
-            // Try line comments (JS/Python): // extract:start order=N ... // extract:end
-            match = content.match(/\/\/\s*extract:start\s+(?:order\s*=\s*(\d+))?\s*\n(.*?)\/\/\s*extract:end/s);
-            if (match) {
-                return {
-                    order: match[1] ? parseInt(match[1], 10) : 99999,
-                    content: match[2].trim()
-                };
-            }
-
-            // Try Python-style line comments: # extract:start order=N ... # extract:end
-            match = content.match(/#\s*extract:start\s+(?:order\s*=\s*(\d+))?\s*\n(.*?)#\s*extract:end/s);
-            if (match) {
-                return {
-                    order: match[1] ? parseInt(match[1], 10) : 99999,
-                    content: match[2].trim()
-                };
-            }
-
-            return null; // No markers found
-        }
-
-        /**
-         * W-094: Extract content using regex pattern
-         */
-        function _extractFromRegex(content, pattern) {
-            // Parse /pattern/flags format
-            const regexMatch = pattern.match(/^\/(.*)\/([gimsuvy]*)$/);
-            if (!regexMatch) {
-                throw new Error('Invalid regex pattern format. Use /pattern/flags');
-            }
-
-            const [, regexPattern, flags] = regexMatch;
-
-            // Validate: must contain capture group
-            if (!regexPattern.includes('(')) {
-                throw new Error('Regex pattern must contain at least one capture group (...)');
-            }
-
-            try {
-                const regex = new RegExp(regexPattern, flags);
-                const match = content.match(regex);
-                return match ? match[1] : ''; // Return first capture group
-            } catch (error) {
-                throw new Error(`Invalid regex pattern: ${error.message}`);
-            }
-        }
-
-        /**
-         * W-094: Extract content using CSS selector (.class or #id)
-         * Returns { order: number, content: string } or null if not found
-         */
-        function _extractFromCSSSelector(content, selector) {
-            try {
-                // Phase 1: Pre-scan for start of class or id, and for order number
-                const isClass = selector.startsWith('.');
-                const selectorName = selector.substring(1);
-                const attrName = isClass ? 'class' : 'id';
-                const attrPattern = isClass
-                    ? `${attrName}=["'][^"']*\\b${selectorName}\\b[^"']*`
-                    : `${attrName}=["']${selectorName}["']`;
-                let tagRegex = new RegExp(
-                    `<([a-z][a-z0-9]*)\\s+` +       // Capture tag name
-                    `(?=[^>]*\\b${attrPattern})` +  // Lookahead for attribute
-                    `(?:[^>]*\\bdata-extract-order=["'](\\d+)["'])?` +  // Capture order
-                    `[^>]*>`,                       // Match to end of tag
-                    'is'
-                );
-                let match = content.match(tagRegex);
-                if (!match) return null;
-                const tag = match[1];
-                const order = match[2] ? parseInt(match[2], 10) : 99999;
-
-                // Phase 2: Annotate nesting levels of identified tags with simple level numbering
-                let level = 0;
-                tagRegex = new RegExp(`(</?)(${tag})(?=[\\s>])`, 'gis');
-                const annotated = content.replace(tagRegex, (match, c1, c2) => {
-                    let result;
-                    if (c1 === '<') {   // start tag
-                        result = `${c1}${c2}:~${level}~`;
-                        level++;
-                    } else {            // end tag
-                        level--;
-                        result = `${c1}${c2}:~${level}~`;
-                    }
-                    return result;
-                });
-
-                // Phase 3: Extract content between matching start and end tag by level
-                tagRegex = new RegExp(
-                    `<${tag}(:~\\d+~) [^>]*>` + // Match start tag with nesting level
-                    `(.*?)` +                   // Non-greedy match for content to extract
-                    `</${tag}\\1>`,             // Match end tag with same nesting level
-                    'is'
-                );
-                match = annotated.match(tagRegex);
-                if (!match) return null;
-
-                // Phase 4: Clean up nesting level annotations
-                const extracted = match[2].replace(/(<\/?[a-z][a-z0-9]*):~\d+~/g, '$1');
-
-                return {
-                    order: order,
-                    content: extracted.trim()
-                };
-            } catch (error) {
-                return null;
-            }
-        }
-
-        /**
-         * W-094: Handle file.extract helper - extract section from file
-         */
-        function _handleFileExtract(parsedArgs, currentContext) {
-            // Handle "this" variable from #each loop context
-            let filePath = parsedArgs._target;
-
-            // If _target is the literal string "this", look it up in context
-            if (filePath === 'this') {
-                filePath = currentContext && currentContext['this'] ? currentContext['this'] : null;
-                if (!filePath) {
-                    LogController.logError(req, 'handlebar.file.extract', `file.extract: "this" not found in context. Available keys: ${currentContext ? Object.keys(currentContext).join(', ') : 'no context'}`);
-                    return '';
-                }
-            }
-
-            // If still no filePath, try to get from context directly
-            if (!filePath && currentContext && currentContext['this'] && typeof currentContext['this'] === 'string') {
-                filePath = currentContext['this'];
-            }
-
-            if (!filePath || typeof filePath !== 'string') {
-                LogController.logError(req, 'handlebar.file.extract', `file.extract requires a file path, got: ${typeof filePath} ${filePath}`);
+            if (!globPattern) {
+                LogController.logError(req, 'handlebar.file.includeComponents', 'file.includeComponents requires a glob pattern');
                 return '';
             }
-
-            // Get pattern from parsedArgs or from context (set by file.list in #each loop)
-            const pattern = parsedArgs.pattern || currentContext['@extractPattern'] || null;
 
             // Security: Prohibit path traversal and absolute paths
-            if (filePath.includes('../') || filePath.includes('..\\') || path.isAbsolute(filePath)) {
-                LogController.logError(req, 'handlebar.file.extract', `Prohibited path in extract: ${filePath}. Use relative paths from view root only.`);
+            if (globPattern.includes('../') || globPattern.includes('..\\') || path.isAbsolute(globPattern)) {
+                LogController.logError(req, 'handlebar.file.includeComponents', `Prohibited pattern: ${globPattern}. Use relative paths from view root only.`);
                 return '';
             }
 
-            // Use PathResolver to support site overrides and plugins (W-045)
-            let fullPath;
-            try {
-                const relativePath = `view/${filePath}`;
-                fullPath = PathResolver.resolveModuleWithPlugins(relativePath);
-            } catch (error) {
-                LogController.logError(req, 'handlebar.file.extract', `File not found: ${filePath} (${error.message})`);
-                return '';
-            }
-
-            // Get file content using FileCache
-            const content = self.includeCache.getFileSync(fullPath);
-            if (content === null) {
-                LogController.logError(req, 'handlebar.file.extract', `File not found or deleted: ${filePath}`);
+            // Warn if pattern uses ** (not supported)
+            if (globPattern.includes('**')) {
+                LogController.logError(req, 'handlebar.file.includeComponents', `Recursive patterns (**) not supported. Use single-level wildcards (*) only. Pattern: ${globPattern}`);
                 return '';
             }
 
             try {
-                // If pattern provided, determine extraction method
-                if (pattern) {
-                    // Regex pattern: starts with /
-                    if (pattern.startsWith('/')) {
-                        return _extractFromRegex(content, pattern);
+                // 1. Find matching files
+                const relativeFiles = PathResolver.listFiles(
+                    `view/${globPattern}`,
+                    _matchGlobPattern,
+                    _readDirRecursive
+                );
+
+                // 2. Parse each file for {{#component}} blocks
+                const components = [];
+                for (const relativeFile of relativeFiles) {
+                    // Resolve file path with site overrides and plugins
+                    let fullPath;
+                    try {
+                        const relativePath = `view/${relativeFile}`;
+                        fullPath = PathResolver.resolveModuleWithPlugins(relativePath);
+                    } catch (error) {
+                        LogController.logWarning(req, 'handlebar.file.includeComponents',
+                            `File not found: ${relativeFile}, skipping`);
+                        continue;
                     }
 
-                    // CSS selector: starts with . or #
-                    if (pattern.startsWith('.') || pattern.startsWith('#')) {
-                        const extracted = _extractFromCSSSelector(content, pattern);
-                        return extracted ? extracted.content : '';
+                    // Read file content using cache
+                    const content = self.includeCache.getFileSync(fullPath);
+                    if (content === null) {
+                        LogController.logWarning(req, 'handlebar.file.includeComponents',
+                            `File not found or deleted: ${relativeFile}, skipping`);
+                        continue;
                     }
 
-                    // Unknown pattern format, fall back to markers
+                    // Parse component blocks from file
+                    const matches = _parseComponentBlocks(content);
+
+                    for (const match of matches) {
+                        // Filter by component pattern if specified
+                        if (componentFilter && !_matchesComponentPattern(match.name, componentFilter)) {
+                            continue;
+                        }
+
+                        // Expand component content with handlebars
+                        // Pass empty context so it gets fresh internalContext with i18n, user, etc.
+                        const expandedContent = await self._expandHandlebars(req, match.content, {}, depth + 1);
+
+                        components.push({
+                            name: match.name,
+                            content: expandedContent,
+                            order: match.order || 99999,
+                            file: relativeFile
+                        });
+                    }
                 }
 
-                // Default: use marker extraction
-                const extracted = _extractOrderFromMarkers(content);
-                return extracted ? extracted.content : '';
+                // 3. Sort components
+                _sortComponents(components, sortBy);
+
+                // 4. Ensure context.components exists
+                if (!currentContext.components) {
+                    currentContext.components = {};
+                }
+
+                // 5. Register components in registry and update context
+                for (const comp of components) {
+                    // Convert component name (adminCards.config -> adminCards.config)
+                    const usageName = self._convertComponentName(comp.name);
+
+                    // Register in component registry
+                    req.componentRegistry.set(usageName, {
+                        originalName: comp.name,
+                        template: comp.content, // Already expanded
+                        defaults: {},
+                        order: comp.order
+                    });
+
+                    // Add to context.components
+                    _setNestedProperty(currentContext.components, usageName, comp.content);
+
+                    LogController.logInfo(req, 'handlebar.file.includeComponents',
+                        `Component registered: ${comp.name} (order: ${comp.order}, file: ${comp.file})`
+                    );
+                }
+
+                LogController.logInfo(req, 'handlebar.file.includeComponents',
+                    `Registered ${components.length} component(s) from ${relativeFiles.length} file(s) with pattern: ${globPattern}`
+                );
+
+                return ''; // No output, just registration
             } catch (error) {
-                LogController.logError(req, 'handlebar.file.extract', `Error extracting from ${filePath}: ${error.message}`);
+                LogController.logError(req, 'handlebar.file.includeComponents', `Error including components with pattern ${globPattern}: ${error.message}`);
                 return '';
             }
+        }
+
+        /**
+         * W-102: Parse {{#component}} blocks from content
+         * Returns array of { name, content, order }
+         */
+        function _parseComponentBlocks(content) {
+            const components = [];
+            // Regex to match {{#component "name" order=N}} ... {{/component}}
+            const regex = /\{\{#component\s+"([^"]+)"(?:\s+order=(\d+))?\s*\}\}(.*?)\{\{\/component\}\}/gs;
+
+            let match;
+            while ((match = regex.exec(content)) !== null) {
+                components.push({
+                    name: match[1],
+                    order: match[2] ? parseInt(match[2], 10) : 99999,
+                    content: match[3].trim()
+                });
+            }
+
+            return components;
+        }
+
+        /**
+         * W-102: Check if component name matches pattern
+         * Supports: "namespace.*" (wildcard), "namespace.name" (exact), comma-separated
+         */
+        function _matchesComponentPattern(componentName, pattern) {
+            if (!pattern) return true;
+
+            const patterns = pattern.split(',').map(p => p.trim());
+
+            return patterns.some(pat => {
+                if (pat.endsWith('.*')) {
+                    // Namespace match: "adminCards.*"
+                    const namespace = pat.slice(0, -2);
+                    return componentName.startsWith(namespace + '.');
+                } else {
+                    // Exact match: "adminCards.config"
+                    return componentName === pat;
+                }
+            });
+        }
+
+        /**
+         * W-102: Sort components by specified method
+         */
+        function _sortComponents(components, sortBy) {
+            switch (sortBy) {
+                case 'component-order':
+                    components.sort((a, b) => a.order - b.order);
+                    break;
+
+                case 'plugin-order':
+                    components.sort((a, b) => {
+                        const pluginA = _extractPluginName(a.file);
+                        const pluginB = _extractPluginName(b.file);
+                        const orderA = _getPluginLoadOrder(pluginA);
+                        const orderB = _getPluginLoadOrder(pluginB);
+                        return orderA - orderB;
+                    });
+                    break;
+
+                case 'filename':
+                    components.sort((a, b) => a.file.localeCompare(b.file));
+                    break;
+
+                case 'filesystem':
+                    // No sorting - keep filesystem order
+                    break;
+
+                default:
+                    LogController.logWarning(req, 'handlebar.file.includeComponents',
+                        `Unknown sortBy method: ${sortBy}, using component-order`
+                    );
+                    components.sort((a, b) => a.order - b.order);
+            }
+        }
+
+        /**
+         * W-102: Extract plugin name from file path
+         * Example: "jpulse-plugins/hello-world.shtml" -> "hello-world"
+         */
+        function _extractPluginName(filePath) {
+            const match = filePath.match(/jpulse-plugins\/([^/.]+)/);
+            return match ? match[1] : null;
+        }
+
+        /**
+         * W-102: Get plugin load order from PluginManager
+         * Returns index in load order, or 99999 if not found
+         */
+        function _getPluginLoadOrder(pluginName) {
+            if (!pluginName) return 99999;
+
+            // Access global PluginManager if available
+            if (!global.PluginManager || !global.PluginManager.registry) {
+                LogController.logWarning(req, 'handlebar.file.includeComponents',
+                    `PluginManager not available, using fallback order for plugin: ${pluginName}`
+                );
+                return 99999;
+            }
+
+            const loadOrder = global.PluginManager.registry.loadOrder || [];
+            const index = loadOrder.indexOf(pluginName);
+            return index >= 0 ? index : 99999;
+        }
+
+        /**
+         * W-102: Set nested property in object
+         * Example: setNestedProperty(obj, "admin.cards.config", value)
+         * Creates intermediate objects as needed
+         */
+        function _setNestedProperty(obj, path, value) {
+            const parts = path.split('.');
+            let current = obj;
+
+            for (let i = 0; i < parts.length - 1; i++) {
+                const part = parts[i];
+                if (!current[part] || typeof current[part] !== 'object') {
+                    current[part] = {};
+                }
+                current = current[part];
+            }
+
+            current[parts[parts.length - 1]] = value;
         }
 
         /**

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.2
+# jPulse Docs / Dev / Work Items v1.3.3
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -1961,7 +1961,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - deliverables:
   - webapp/controller/handlebar.js - Enhanced to support component definition and usage
     - Added `{{#component "name" param="default"}}...{{/component}}` syntax for definition
-    - Added `{{use.componentName param="value"}}` syntax for usage
+    - Added `{{components.componentName param="value"}}` syntax for usage
     - Implemented per-request transient component registry
     - Added circular reference detection with call stack tracking
     - Added `_convertComponentName()` for kebab-case to camelCase conversion
@@ -2170,20 +2170,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - test results: 926 passed, 0 failed (942 total with 16 skipped)
 - files modified: 19 files total
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-101, v1.3.2: architecture: additional bug fixes for W-045 add plugin infrastructure
 - status: ✅ DONE
 - type: Bug Fix (Patch Release)
@@ -2222,6 +2208,100 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-102, v1.3.3: handlebars: replace extract:start & end with component handlebar
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: more intuitive framework
+- background: the current way of declaring a card with extract:start and extract:end section, and auto-populating a dashboard with {{file.extract this}} works, but is not intuitive
+- solution:
+  - unified component system - components available as context variables ({{components.*}})
+  - new helper: {{file.includeComponents "glob" component="namespace.*" sortBy="method"}}
+  - access pattern: {{components.namespace.name}} or {{#each components.namespace}} {{this}} {{/each}}
+  - sorting: component-order (default), plugin-order (explicit), filename
+  - pattern filtering: component="adminCards.*" to load specific namespace
+- old syntax:
+    <div style="display: none;">
+        <!-- extract:start order=10 -->
+        <a href="/admin/config.shtml" class="jp-card-dashboard jp-icon-btn">
+            <div class="jp-icon-container">{{use.jpIcons.configSvg size="64"}}</div>
+            <h3 class="jp-card-title">{{i18n.view.admin.index.siteConfig}}</h3>
+            <p class="jp-card-description">{{i18n.view.admin.index.siteConfigDesc}}</p>
+        </a>
+        <!-- extract:end -->
+    </div>
+    {{#each file.list "admin/*.shtml" sortBy="extract-order"}}
+        {{file.extract this}}
+    {{/each}}
+- new syntax:
+    {{#component "adminCards.config" order=10}}
+        {{!-- This card is automatically included in the admin dashboard --}}
+        <a href="/admin/config.shtml" class="jp-card-dashboard jp-icon-btn">
+            <div class="jp-icon-container">{{components.jpIcons.configSvg size="64"}}</div>
+            <h3 class="jp-card-title">{{i18n.view.admin.index.siteConfig}}</h3>
+            <p class="jp-card-description">{{i18n.view.admin.index.siteConfigDesc}}</p>
+        </a>
+    {{/component}}
+    {{file.includeComponents "admin/*.shtml" component="adminCards.*"}}
+    <div class="jp-dashboard-grid">
+        {{#each components.adminCards}}
+            {{this}}
+        {{/each}}
+    </div>
+- benefits:
+  - "don't make me think" - components accessed like {{user.*}} or {{config.*}}
+  - no more <div style="display: none;"> wrappers
+  - clean Handlebars syntax with proper highlighting
+  - pattern filtering for memory efficiency
+  - explicit sorting control (plugin-order, component-order, filename)
+- deliverables:
+  - webapp/controller/handlebar.js:
+    - added _handleFileIncludeComponents() function to register components from files
+    - added _handleComponentCall() function with error handling, circular reference detection, _inline parameter
+    - added helper functions: _parseComponentBlocks(), _matchesComponentPattern(), _sortComponents(), _extractPluginName(), _getPluginLoadOrder(), _setNestedProperty()
+    - removed deprecated extract code: _handleFileExtract(), _extractOrderFromMarkers(), _extractFromRegex(), _extractFromCSSSelector() (~210 lines)
+    - simplified _handleBlockEach() to remove extract-order sorting logic
+    - fixed component expansion to always use _handleComponentCall() for {{components.*}}
+    - added immediate context registration in _handleComponentDefinition()
+  - webapp/view/admin/*.shtml (8 files):
+    - migrated from extract:start/end to {{#component}} syntax
+    - updated admin/index.shtml dashboard to use file.includeComponents
+  - webapp/view/jpulse-examples/*.shtml (5 files):
+    - migrated from extract:start/end to {{#component}} syntax
+    - updated jpulse-examples/index.shtml dashboard to use file.includeComponents
+  - webapp/view/jpulse-plugins/index.shtml:
+    - updated to use file.includeComponents with sortBy="plugin-order"
+  - site/webapp/view/hello/*.shtml (7 files):
+    - migrated site hello demo views to {{#component}} syntax
+    - updated site/webapp/view/hello/index.shtml dashboard
+  - plugins/hello-world/webapp/view/hello-plugin/index.shtml:
+    - migrated plugin view to {{#component}} syntax
+  - docs/handlebars.md:
+    - removed "File Extraction" section (~75 lines)
+    - added "Include Components from Files" section with complete documentation
+  - docs/template-reference.md:
+    - replaced "File Listing and Extraction" with "File Listing and Component Inclusion"
+    - updated caching section references
+  - docs/plugins/creating-plugins.md:
+    - updated plugin dashboard card example to use {{#component}} syntax
+  - docs/genai-instructions.md:
+    - added comprehensive plugin system documentation throughout
+    - updated directory layout, file resolution priority, CSS/JS layers
+    - added plugin development guidelines and reference implementations
+
+
+
+
+
+
+
+
 ### Pending
 
 pending:
@@ -2236,7 +2316,6 @@ old pending:
 - add SiteControllerRegistry.getStats() to metrics api & system-status
 
 ### Potential next items:
-- W-102: handlebars: replace extract:start & end with component handlebar
 - W-068: view: create responsive sidebar
 - W-0: view: headings with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific translations
@@ -2255,12 +2334,12 @@ next work item: W-0...
 - review task, ask questions if unclear
 - suggest change of spec if any, goal is a good UX, good usability, good onboarding & learning experience for site admins and developers; use the don't make me think paradigm
 - plan how to implement (wait for my go ahead)
-- current timestamp: 2025-11-20 20:49
+- current timestamp: 2025-11-29 23:35
 
 release prep:
 - run tests, and fix issues
-- assume release: W-101, v1.3.2
-- update deliverables in W-101 work-items to document work done (don't make any other changes to this file)
+- assume release: W-102, v1.3.3
+- update deliverables in W-102 work-items to document work done (don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -2277,12 +2356,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.2
+node bin/bump-version.js 1.3.3
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.2
+git tag v1.3.3
 git push origin main --tags
 
 === on failed package build on github ===
@@ -2315,47 +2394,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
-
-### W-102: handlebars: replace extract:start & end with component handlebar
-- status: 🕑 PENDING
-- type: Feature
-- objective: more intuitive framework
-- background: the current way if declaring a card with extract:start and extract:end section, and auto-populating a dashboard with {{file.extract this}} works, but is not so intuitive
-- idea:
-  - replace:
-    <!-- extract:start order=10 --> ... <!-- extract:end -->
-    - with:
-    {{#component "adminCards.config" order=10}} ... {{/component}}
-  - replace:
-    {{#each file.list "admin/*.shtml" sortBy="extract-order"}}
-        {{file.extract this}}
-    {{/each}}
-    - with:
-    {{#each file.list "admin/*.shtml" sortBy="extract-order"}}
-        {{use this}}
-    {{/each}}
-  - add new sort order for plugins:
-    {{#each file.list "jpulse-plugins/*.shtml" sortBy="extract-order"}}
-  - old:
-    <div style="display: none;">
-        <!-- This card is automatically included in the admin dashboard at admin/index.shtml -->
-        <!-- extract:start order=10 -->
-        <a href="/admin/config.shtml" class="jp-card-dashboard jp-icon-btn">
-            <div class="jp-icon-container">{{use.jpIcons.configSvg size="64"}}</div>
-            <h3 class="jp-card-title">{{i18n.view.admin.index.siteConfig}}</h3>
-            <p class="jp-card-description">{{i18n.view.admin.index.siteConfigDesc}}</p>
-        </a>
-        <!-- extract:end -->
-    </div>
-  - new:
-    {{#component "adminCards.config" order=10}}
-        {{!-- This card is automatically included in the admin dashboard at admin/index.shtml --}}
-        <a href="/admin/config.shtml" class="jp-card-dashboard jp-icon-btn">
-            <div class="jp-icon-container">{{use.jpIcons.configSvg size="64"}}</div>
-            <h3 class="jp-card-title">{{i18n.view.admin.index.siteConfig}}</h3>
-            <p class="jp-card-description">{{i18n.view.admin.index.siteConfigDesc}}</p>
-        </a>
-    {{/component}}
 
 ### W-080: controller: change search to cursor based paging API with limit & cursor
 - status: 🕑 PENDING

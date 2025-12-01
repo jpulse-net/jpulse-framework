@@ -1,4 +1,4 @@
-# jPulse Docs / Style Reference v1.3.2
+# jPulse Docs / Style Reference v1.3.3
 
 Comprehensive CSS framework documentation for the jPulse `jp-*` styling system, providing consistent, responsive, and enterprise-ready components for web applications.
 
@@ -161,7 +161,7 @@ Special cards for dashboard layouts:
 <div class="jp-dashboard-grid">
     <div class="jp-card-dashboard" onclick="location.href='/admin/users.shtml'">
         <div class="jp-icon-container">
-            {{use.jpIcons.usersSvg size="64"}}
+            {{components.jpIcons.usersSvg size="64"}}
         </div>
         <h3>User Management</h3>
         <p>Manage user accounts and permissions</p>
@@ -1030,7 +1030,7 @@ Icon components are automatically available in all pages (included via `jpulse-h
 <div class="jp-dashboard-grid">
     <div class="jp-card-dashboard">
         <div class="jp-icon-container">
-            {{use.jpIcons.usersSvg size="64"}}
+            {{components.jpIcons.usersSvg size="64"}}
         </div>
         <h3>User Management</h3>
         <p>Manage user accounts and permissions</p>
@@ -1038,7 +1038,7 @@ Icon components are automatically available in all pages (included via `jpulse-h
 
     <div class="jp-card-dashboard">
         <div class="jp-icon-container">
-            {{use.jpIcons.configSvg size="64"}}
+            {{components.jpIcons.configSvg size="64"}}
         </div>
         <h3>Site Configuration</h3>
         <p>Configure application settings</p>
@@ -1050,7 +1050,7 @@ Icon components are automatically available in all pages (included via `jpulse-h
 - **Reusable**: Define once, use everywhere
 - **Theme-ready**: Icons automatically use `currentColor` to inherit parent color
 - **Maintainable**: Update icon in one place, changes reflect everywhere
-- **Clean**: Concise `{{use.jpIcons.*}}` syntax instead of verbose SVG markup
+- **Clean**: Concise `{{components.jpIcons.*}}` syntax instead of verbose SVG markup
 
 **Alternative - Inline SVG** (for custom or one-off icons):
 ```html

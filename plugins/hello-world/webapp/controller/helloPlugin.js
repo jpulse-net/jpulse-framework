@@ -3,7 +3,7 @@
  * @tagline         Hello Plugin Controller
  * @description     Simple API controller demonstrating plugin structure
  * @file            plugins/hello-world/webapp/controller/helloPlugin.js
- * @version         1.3.2
+ * @version         1.3.3
  * @author          jPulse Team, https://jpulse.net
  * @license         BSL 1.1
  * @genai           80%, Cursor 2.0, Claude Sonnet 4.5

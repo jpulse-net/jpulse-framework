@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.3.2
+# jPulse Docs / Plugins / Creating Plugins v1.3.3
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -338,16 +338,14 @@ export default class YourPluginModel {
 {{file.include "jpulse-header.tmpl"}}
 </head>
 <body>
-    <!-- Dashboard card (auto-discovered) -->
-    <div style="display: none;">
-        <!-- extract:start order=10 -->
+    {{#component "pluginCards.yourPlugin" order=10}}
+        {{!-- This card is automatically included in the plugins dashboard --}}
         <a href="/jpulse-plugins/your-plugin.shtml" class="jp-card-dashboard jp-icon-btn">
             <div class="jp-icon-container">🔌</div>
             <h3 class="jp-card-title">Your Plugin</h3>
             <p class="jp-card-description">Plugin description</p>
         </a>
-        <!-- extract:end -->
-    </div>
+    {{/component}}
 
     <div class="jp-main">
         <div class="jp-container-1000">

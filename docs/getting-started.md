@@ -46,17 +46,19 @@ jPulse uses a clean separation between framework code and site customizations:
 
 ```
 my-first-site/
-├── webapp/               # Framework files (managed by jpulse-update)
-│   ├── controller/       # Base controllers
-│   ├── model/            # Data models
-│   ├── view/             # Base templates
-│   └── static/           # Framework assets
-├── site/webapp/          # Your customizations (update-safe)
+├── site/webapp/          # Your custom code (update-safe)
 │   ├── app.conf          # Site configuration
 │   ├── controller/       # Custom controllers
 │   ├── model/            # Custom models
 │   ├── view/             # Custom templates
 │   └── static/           # Site assets
+├── plugins/              # Plugins - Installed third-party extensions
+│   └── [plugin-name]/    # Each plugin in its own directory
+├── webapp/               # Framework files (managed by jpulse-update)
+│   ├── controller/       # Base controllers
+│   ├── model/            # Data models
+│   ├── view/             # Base templates
+│   └── static/           # Framework assets
 └── package.json          # Dependencies (@jpulse-net/jpulse-framework)
 ```
 

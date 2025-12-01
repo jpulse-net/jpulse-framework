@@ -5,20 +5,36 @@ Comprehensive overview of the jPulse Framework's system architecture, design dec
 ## Core Architecture Principles
 
 ### 1. MVC Pattern Implementation
-jPulse follows a clean Model-View-Controller architecture:
+jPulse follows a clean Model-View-Controller architecture with 3-tier file resolution:
 
 ```
-webapp/
-├── controller/        # Business logic and request handling
-├── model/            # Data access and business rules
-├── view/             # Presentation layer in browser (pages and templates)
-└── utils/            # Shared utilities and services
+my-jpulse-site/
+├── site/webapp/          # Site customizations (highest priority)
+│   ├── controller/       # Site controllers (auto-discovered)
+│   ├── model/            # Site data models
+│   ├── view/             # Site templates
+│   └── static/           # Site assets
+├── plugins/              # Plugin extensions (middle priority, v1.3.0+)
+│   └── [plugin-name]/
+│       └── webapp/       # Plugin MVC structure
+│           ├── controller/   # Plugin controllers (auto-discovered)
+│           ├── model/        # Plugin models
+│           ├── view/         # Plugin templates
+│           └── static/       # Plugin assets
+└── webapp/               # Framework core (lowest priority)
+    ├── controller/       # Base controllers
+    ├── model/            # Data models
+    ├── view/             # Base templates
+    ├── static/           # Framework assets
+    └── utils/            # Framework utilities
 ```
 
 **Controllers** handle HTTP requests, coordinate with models, and render views
 **Models** manage data persistence, validation, and business logic
 **Views** primarily client-side JavaScript with API calls, with minimal server-side Handlebars for initial page structure
 **Utils** offer shared functionality across the application
+
+**File Resolution**: Site overrides plugins, plugins override framework - automatic priority handling
 
 ### 2. Site Override Architecture
 The framework implements a powerful override system enabling:
@@ -30,8 +46,9 @@ The framework implements a powerful override system enabling:
 
 #### File Resolution Priority
 ```
-1. site/webapp/[path]     # Site-specific files (highest priority)
-2. webapp/[path]          # Framework defaults (fallback)
+1. site/webapp/[path]                   # Site-specific files (highest priority)
+2. plugins/[plugin-name]/webapp/[path]  # Plugin files, in dependency order
+3. webapp/[path]                        # Framework defaults (fallback)
 ```
 
 #### Override Examples
@@ -39,11 +56,17 @@ The framework implements a powerful override system enabling:
 # Framework provides:
 webapp/view/home/index.shtml
 
-# Site can override:
-site/webapp/view/home/index.shtml  # ← This takes precedence
+# Plugin can override:
+plugins/custom-theme/webapp/view/home/index.shtml  # ← Overrides framework
+
+# Site can override all:
+site/webapp/view/home/index.shtml  # ← Highest priority
 
 # Framework provides:
 webapp/controller/user.js
+
+# Plugin can extend:
+plugins/user-analytics/webapp/controller/analytics.js  # ← New controller
 
 # Site can extend:
 site/webapp/controller/dashboard.js  # ← New controller, auto-discovered
@@ -53,13 +76,16 @@ site/webapp/controller/dashboard.js  # ← New controller, auto-discovered
 Hierarchical configuration merging:
 
 ```
-Final Config = Framework Defaults + Site Overrides + Environment Variables
+Final Config = Framework Defaults + Plugin Configs + Site Overrides + Environment Variables
 ```
 
 **Configuration Sources (in order):**
 1. `webapp/app.conf` - Framework defaults
-2. `site/webapp/app.conf` - Site-specific overrides
-3. Environment variables - Runtime overrides
+2. `plugins/[plugin-name]/webapp/app.conf` - Plugin configurations (in load order)
+3. `site/webapp/app.conf` - Site-specific overrides
+4. Environment variables - Runtime overrides
+
+**Note**: Plugins can define default configurations, but site settings always take precedence.
 
 ## Component Architecture
 
@@ -257,16 +283,24 @@ class SiteRegistry {
 
 ### Path Resolution System
 ```javascript
-// Intelligent file resolution
+// Intelligent file resolution with 3-tier priority
 class PathResolver {
     static resolveView(viewPath) {
-        // Try site override first
+        // 1. Try site override first (highest priority)
         const sitePath = path.join(appConfig.app.dirName, 'site/webapp/view', viewPath);
         if (fs.existsSync(sitePath)) {
             return sitePath;
         }
 
-        // Fallback to framework
+        // 2. Try plugins (in dependency load order)
+        for (const plugin of PluginManager.getLoadOrder()) {
+            const pluginPath = path.join(appConfig.app.dirName, `plugins/${plugin}/webapp/view`, viewPath);
+            if (fs.existsSync(pluginPath)) {
+                return pluginPath;
+            }
+        }
+
+        // 3. Fallback to framework (lowest priority)
         const frameworkPath = path.join(appConfig.app.dirName, 'webapp/view', viewPath);
         if (fs.existsSync(frameworkPath)) {
             return frameworkPath;
@@ -391,18 +425,34 @@ afterEach(async () => {
 - **Staging**: Replica set, PM2 single instance, SSL
 - **Production**: Replica set, PM2 cluster, nginx, monitoring
 
-## Future Architecture Considerations
+## Plugin Architecture
 
-### Plugin System (W-045)
+### Plugin System (v1.3.0+)
+The framework implements a comprehensive plugin system with zero-configuration auto-discovery:
+
 ```
 jpulse-framework/
 ├── webapp/             # Framework core
-├── site/               # Site customizations
-└── plugins/            # Plugin system
-    ├── auth-ldap/
-    ├── dashboard-analytics/
-    └── document-management/
+├── plugins/            # Plugin extensions (auto-discovered)
+│   ├── hello-world/    # Demo plugin (ships with framework)
+│   └── [plugin-name]/  # Installed plugins
+│       ├── plugin.json # Metadata & dependencies
+│       ├── webapp/     # MVC structure
+│       └── docs/       # Documentation
+└── site/               # Site customizations
 ```
+
+**Key Features:**
+- **Auto-discovery**: Drop plugin in `plugins/` directory → automatically loaded
+- **Dependency resolution**: Plugins loaded in correct order based on `plugin.json` dependencies
+- **Complete MVC support**: Controllers, models, views, static assets, documentation
+- **Admin UI**: Enable/disable plugins, manage configurations, view documentation
+- **Path resolution**: Site > Plugins > Framework priority
+- **Dynamic configuration**: JSON schema-based plugin settings with admin UI
+
+**Documentation**: See `docs/plugins/` for complete plugin development guides.
+
+## Future Architecture Considerations
 
 ### Microservices Evolution
 - **Service decomposition** for large deployments

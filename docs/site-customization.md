@@ -28,28 +28,28 @@ This means you only override what you need to customize. Plugins provide a middl
 ### Directory Structure
 ```
 my-jpulse-site/
-├── webapp/                   # Framework files (managed by jpulse update)
-│   ├── controller/           # Base controllers
-│   ├── model/                # Data models
-│   ├── view/                 # Base templates
-│   ├── static/               # Framework assets
-│   └── utils/                # Framework utilities
-├── plugins/                  # Plugins (v1.3.0+)
+├── site/                     # Site custom code (highest priority, update-safe)
+│   └── webapp/               # Site-specific MVC compontents (overrides)
+│       ├── app.conf          # Site configuration
+│       ├── controller/       # Custom controllers
+│       ├── model/            # Custom models
+│       ├── view/             # Custom templates
+│       └── static/           # Site assets
+├── plugins/                  # Plugins (middle priority, v1.3.0+)
 │   └── hello-world/          # Example plugin
 │       ├── plugin.json       # Plugin metadata & config schema
 │       ├── docs/             # Plugin documentation
-│       └── webapp/           # Plugin components
+│       └── webapp/           # Plugin MVC components
 │           ├── controller/   # Plugin controllers
 │           ├── model/        # Plugin models
 │           ├── view/         # Plugin views
 │           └── static/       # Plugin assets (auto-symlinked)
-└── site/                     # Site customizations (update-safe)
-    └── webapp/               # Site-specific overrides
-        ├── app.conf          # Site configuration
-        ├── controller/       # Custom controllers
-        ├── model/            # Custom models
-        ├── view/             # Custom templates
-        └── static/           # Site assets
+└── webapp/                   # Framework files (lowest priority, managed by jpulse update)
+    ├── controller/           # Base controllers
+    ├── model/                # Data models
+    ├── view/                 # Base templates
+    ├── static/               # Framework assets
+    └── utils/                # Framework utilities
 ```
 
 ________________________________________________
@@ -100,10 +100,13 @@ Create `site/webapp/app.conf` to override framework defaults:
 ```
 
 ### Configuration Merging
-jPulse automatically merges configurations:
+jPulse automatically merges configurations in priority order:
 1. Framework defaults (`webapp/app.conf`)
-2. Site overrides (`site/webapp/app.conf`)
-3. Environment variables
+2. Plugin configurations (`plugins/[plugin-name]/webapp/app.conf`, in dependency order)
+3. Site overrides (`site/webapp/app.conf`)
+4. Environment variables
+
+**Note**: Site settings always have highest priority, allowing you to override both framework and plugin defaults.
 
 ________________________________________________
 ## Controller Customization

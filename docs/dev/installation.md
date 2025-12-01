@@ -4,14 +4,6 @@ This guide covers setting up the jPulse Framework for core development and contr
 
 > **Site Development**: See [Site Installation Guide](../installation.md) for building sites with jPulse.
 
-DEBUG:
-- [../installation.md](../installation.md)
-- [installation.md](installation.md)
-- [/installation.md](/installation.md)
-- [./installation.md](./installation.md)
-- [./../installation.md](./../installation.md)
-
-
 ## Prerequisites
 
 ### Required
@@ -124,22 +116,35 @@ Tests use isolated databases that are automatically cleaned up:
 ### Directory Structure
 ```
 jpulse-framework/
+├── bin/                    # CLI tools
+├── docs/                   # Documentation
+│   └── plugins/            # Plugin development guides
+├── plugins/                # Plugin system (v1.3.0+)
+│   └── hello-world/        # Demo plugin (ships with framework)
+│       ├── plugin.json     # Plugin metadata
+│       ├── webapp/         # Plugin MVC structure
+│       └── docs/           # Plugin documentation
+├── site/                   # Demo site (to test overrides)
+│   └── webapp/             # Site MVC structure
+│       ├── app.conf        # Site overrride configuration
+│       ├── model/          # Site data models
+│       ├── controller/     # Site controllers
+│       └── view/           # Site templates
+├── templates/              # Site templates (for site installation & upgrade)
 ├── webapp/                 # Framework core
+│   ├── app.conf            # Application configuration
 │   ├── app.js              # Main application
-│   ├── controller/         # Base controllers
 │   ├── model/              # Data models
+│   ├── controller/         # Base controllers
 │   ├── view/               # Base templates
 │   ├── utils/              # Framework utilities
 │   └── tests/              # Test suites
-├── site/                   # Demo site (for testing overrides)
-├── bin/                    # CLI tools
-├── templates/              # Site templates
-├── .github/                # GitHub workflows
-└── docs/                   # Documentation
+└── .github/                # GitHub workflows
 ```
 
 ### Key Components
-- **PathResolver**: Site override system
+- **PathResolver**: 3-tier file resolution (site → plugins → framework)
+- **PluginManager**: Plugin auto-discovery and dependency resolution
 - **CommonUtils**: Data processing and schema queries
 - **SiteRegistry**: Auto-discovery of site controllers
 - **Bootstrap**: Application initialization

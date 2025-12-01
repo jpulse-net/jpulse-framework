@@ -189,29 +189,30 @@ site/webapp/view/jpulse-common.js               ← Site utilities (appended) - 
 
 ### Directory Layout
 ```
-site/
-├── webapp/                    # SITE CODE - Safe to modify
-│   ├── app.conf               # Site configuration (merges with framework)
-│   ├── controller/            # Site controllers (auto-discovered)
-│   ├── model/                 # Site data models
-│   ├── view/                  # Site templates (override framework)
-│   │   ├── jpulse-common.css  # Site-wide styles (site-* prefix, appended)
-│   │   ├── jpulse-common.js   # Site-wide utilities (appended, optional)
-│   │   └── [pages]/           # Page templates with local-* styles
-│   └── static/                # Site assets
+my-jpulse-site/
+├── site/                      # SITE CODE - Safe to modify
+│   └── webapp/                # Site MVC components (overrides)
+│       ├── app.conf           # Site configuration (merges with framework)
+│       ├── controller/        # Site controllers (auto-discovered)
+│       ├── model/             # Site data models
+│       ├── view/              # Site templates (override framework)
+│       │   ├── jpulse-common.css  # Site-wide styles (site-* prefix, appended)
+│       │   ├── jpulse-common.js   # Site-wide utilities (appended, optional)
+│       │   └── [pages]/           # Page templates with local-* styles
+│       └── static/                # Site assets
 ├── plugins/                   # PLUGINS - Installed third-party extensions
 │   └── [plugin-name]/         # Each plugin in its own directory
 │       ├── plugin.json        # Plugin metadata and dependencies
-│       ├── webapp/            # Plugin web components (auto-loaded)
-│       │   ├── controller/    # Plugin controllers (auto-discovered)
-│       │   ├── model/         # Plugin models
-│       │   ├── view/          # Plugin templates (mergeable)
-│       │   │   ├── jpulse-common.css  # Plugin styles (appended)
-│       │   │   ├── jpulse-common.js   # Plugin utilities (appended)
-│       │   │   ├── jpulse-plugins/    # Plugin dashboard cards
-│       │   │   └── [pages]/           # Plugin-specific pages
-│       │   └── static/        # Plugin assets
-│       └── docs/              # Plugin documentation
+│       ├── docs/              # Plugin documentation
+│       └── webapp/            # Plugin MVC components (auto-loaded)
+│           ├── controller/    # Plugin controllers (auto-discovered)
+│           ├── model/         # Plugin models
+│           ├── view/          # Plugin templates (mergeable)
+│           │   ├── jpulse-common.css  # Plugin styles (appended)
+│           │   ├── jpulse-common.js   # Plugin utilities (appended)
+│           │   ├── jpulse-plugins/    # Plugin dashboard cards
+│           │   └── [pages]/           # Plugin-specific pages
+│           └── static/                # Plugin assets
 └── webapp/                    # FRAMEWORK CODE - Never modify
     ├── app.conf               # Framework defaults
     ├── controller/            # Base controllers
@@ -227,9 +228,9 @@ site/
 ### File Resolution Priority
 
 The framework automatically resolves files with priority order:
-1. **First**: `site/webapp/[path]` (site overrides)
-2. **Then**: `plugins/[plugin-name]/webapp/[path]` (plugin files, in load order)
-3. **Fallback**: `webapp/[path]` (framework defaults)
+1. `site/webapp/[path]` (site overrides, highest priority)
+2. `plugins/[plugin-name]/webapp/[path]` (plugin files, in dependency order)
+3. `webapp/[path]` (framework defaults)
 
 This means:
 - Site files override plugin and framework files automatically

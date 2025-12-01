@@ -117,24 +117,31 @@ npm start
 
 ```
 my-jpulse-site/
-├── webapp/               # Framework files (managed by jpulse-update)
+├── site/                 # Your custom code (highest priority, update-safe)
+│   └── webapp/           # Site MVC components (overrides)
+│       ├── app.conf      # Site configuration
+│       ├── controller/   # Custom controllers
+│       ├── model/        # Custom models
+│       ├── view/         # Custom views
+│       └── static/       # Custom assets
+├── plugins/              # Installed plugins (middle priority, drop-in extensions)
+│   └── [plugin-name]/    # Each plugin in its own directory
+│       ├── plugin.json   # Plugin metadata and dependencies
+│       ├── webapp/       # Plugin MVC components
+│       └── docs/         # Plugin documentation
+├── webapp/               # Framework files (lowest priority, managed by jpulse-update)
 │   ├── controller/       # Base controllers
 │   ├── model/            # Data models
 │   ├── view/             # Base templates
 │   └── static/           # Framework assets
-├── site/webapp/          # Your customizations (update-safe)
-│   ├── app.conf          # Site configuration
-│   ├── controller/       # Custom controllers
-│   ├── model/            # Custom models
-│   ├── view/             # Custom views
-│   └── static/           # Custom assets
 ├── logs -> /var/log/...  # Symbolic link to system log directory
 └── package.json          # Dependencies (@jpulse-net/jpulse-framework)
 ```
 
 **File Resolution Priority:**
-1. `site/webapp/[path]` (your customizations)
-2. `webapp/[path]` (framework defaults)
+1. `site/webapp/[path]` (your custom code, highest priority)
+2. `plugins/[plugin-name]/webapp/[path]` (plugin files, in dependency order)
+3. `webapp/[path]` (framework defaults)
 
 **Framework Updates:**
 ```bash

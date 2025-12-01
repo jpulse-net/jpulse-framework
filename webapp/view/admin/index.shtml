@@ -28,7 +28,7 @@
         </div>
 
         <div class="jp-dashboard-grid">
-            <!-- Automatically include cards from other admin pages that have extract markers -->
+            <!-- Automatically include cards from other admin pages that have adminCards components -->
             {{file.includeComponents "admin/*.shtml" component="adminCards.*"}}
             {{#each components.adminCards}}
                 {{this}}

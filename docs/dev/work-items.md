@@ -2201,22 +2201,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - test results: 926 passed, 0 failed (942 total with 16 skipped)
 - files modified: 8 files (4 code, 4 documentation)
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-102, v1.3.3: handlebars: replace extract:start & end with component handlebar
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: more intuitive framework
 - background: the current way of declaring a card with extract:start and extract:end section, and auto-populating a dashboard with {{file.extract this}} works, but is not intuitive
@@ -2302,6 +2288,23 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
+
+
+
+
+
+
+
+
+
 ### Pending
 
 pending:
@@ -2318,11 +2321,11 @@ old pending:
 ### Potential next items:
 - W-068: view: create responsive sidebar
 - W-0: view: headings with anchor links for copy & paste in browser URL bar
-- W-0: i18n: site specific translations
+- W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-037: view: create themes
 - W-0: markdown docs: a way to define the sequence of docs
 - W-0: handlebars: enhance {{#if}} and {{#unless}} with and, or, gt, gte, lt, lte, eq, ne
-- W-0: handlebars: new {{#set}} block handlebar
+- W-0: handlebars: new {{set}} and {{#set}} handlebars to define custom context
 - W-0: deployment: docker strategy
 - W-0: auth controller: authentication with OAuth2
 - W-0: auth controller: authentication with LDAP
@@ -2598,26 +2601,46 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - deliverables:
   - webapp/controller/handlebar.js -- enhanced `{{#if}}` and `{{#unless}}` block handlebars
 
-### W-0: handlebars: new {{#set}} block handlebar
+### W-0: handlebars: new {{set}} and {{#set}} handlebars to define custom context
 - status: 🕑 PENDING
 - type: Feature
 - objective: more flexible handlebars
-- syntax:
-  - {{#set key1="val1" key2=123 key3=true}} key1: {{key1}}, key2: {{key2}}, key3: {{key3}} {{/set}}
+- feature:
+  - set custom context variables, either in global scope, or in block scope
+  - global scope:
+    {{set key1="val1" key2=123 key3=true custom.namespace.key="custom"}}
+    key1: {{key1}}, key2: {{key2}}, key3: {{key3}}, custom.namespace.key: {{custom.namespace.key}}
+  - block scope:
+    {{#set key1="val1" key2=123 key3=true custom.namespace.key="custom"}}
+      key1: {{key1}}, key2: {{key2}}, key3: {{key3}}, custom.namespace.key: {{custom.namespace.key}}
+    {{/set}}
+  - not all context variables can be overridden, such as user, config, appConfig, url
+    - possibly better to define an opt-in list (in app.conf)
 - deliverables:
   - webapp/controller/view.js -- new {{#set}} block handlebar
 
-### W-0: handebars: block components with slots
+### W-0: handlebars: block components with content slots
 - status: 🕑 PENDING
 - type: Feature
-- objective: reusable components to reduce code duplication
+- objective: block-level components with inner content (Phase 2 of W-097, deferred after W-102)
+- background: W-102 completed Phase 1 (inline components with parameters), but did not implement Phase 2 (block components with slots for wrapping arbitrary content)
 - working document:
-  - docs/dev/working/W-097-handlebars-use-components.md
-- example use:
-  `{{#use.card title="User Profile" class="highlight"}}`
-  `  <p>Welcome back, {{user.firstName}}!</p>`
-  `  <button>Edit Profile</button>`
-  `{{/use.card}}`
+  - docs/dev/working/W-097-handlebars-use-components.md (see Phase 2 section)
+- current limitation: components are inline-only ({{components.card title="Hello"}}), cannot wrap content
+- proposed enhancement:
+  - define:
+    {{#component "card" title="Default"}}
+      <div class="card-body">{{@content}}</div>
+    {{/component}}
+  - use:
+    {{#components.card title="User Profile"}}
+      <p>Welcome {{user.firstName}}!</p>
+    {{/components.card}}`
+- benefits:
+  - wrap arbitrary content in reusable containers
+  - reduce duplication of wrapper HTML (cards, modals, panels)
+  - similar to Vue.js slots or Web Components
+- note: syntax updated from {{#use.*}} (removed in W-102) to {{#components.*}} (current standard)
 
 ### W-0: docs: syntax highlighting for preformatted sections
 - status: 🕑 PENDING
@@ -2662,10 +2685,10 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - when a new language file is added to webapp/translations, the app sould pick it up dynamically, or by an admin requesting a web-based resources reload
 - when a language file has been updated, the app should pick up the changes dynamically, or by an admin requesting a web-based resources reload
 
-### W-0: i18n: site specific translations & vue.js SPA support
+### W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - status: 🕑 PENDING
 - type: Feature
-- objective: allow site admins/developers define site-specific translations for MPA and SPA
+- objective: allow site admins/developers define site-specific and plugin specific translations for MPA and SPA
 - how: deep merge of site/webapp/translations/* files into webapp/translations/
 
 ### W-0: config controller: nested site config

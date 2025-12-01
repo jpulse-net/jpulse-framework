@@ -1341,7 +1341,7 @@ window.jPulse = {
 
                 // Store config in internal variables
                 jPulse.UI.breadcrumbs._homeLabel = options.homeLabel || 'Home';
-                jPulse.UI.breadcrumbs._navConfig = options.navigation;
+                jPulse.UI.breadcrumbs._navConfig = jPulse.UI.navigation._sanitizeNavStructure(options.navigation);
 
                 if (!jPulse.UI.breadcrumbs._navConfig) {
                     console.warn('jPulse.UI.breadcrumbs: No navigation structure provided');

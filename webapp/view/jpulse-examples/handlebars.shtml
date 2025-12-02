@@ -20,7 +20,8 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         .local-form-textarea {
-            width: 100%
+            width: 100%;
+            height: 12rem;
         }
         .local-handlebar-result {
             background: #f8f9fa;
@@ -54,10 +55,10 @@
             <p><strong>📖 Documentation:</strong> <a href="/jpulse-docs/handlebars">Complete Handlebars Guide</a> - Comprehensive documentation with syntax reference and best practices.</p>
         </div>
 
-        <!-- Interactive Handlebar Example -->
+        <!-- Interactive Handlebar Form -->
         <div class="jp-card">
-            <h2 class="jp-card-dialog-heading">Interactive Example &bullet; Try Handlebars</h2>
-            <!-- Tab interface for example/source -->
+            <h2 class="jp-card-dialog-heading">Interactive Form &bullet; Try Handlebars</h2>
+            <!-- Tab interface for form/source -->
             <div id="interactive-tabs" class="jp-tabs"></div>
             <div id="interactive-example-panel" class="jp-panel">
                 <div class="jp-info-box">
@@ -823,13 +824,13 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                 window.jPulseNavigation.tabs.jPulseExamplesSubTabs
             );
 
-            // Interactive examples tabs
+            // Interactive form tabs
             jPulse.UI.tabs.register('interactive-tabs', {
                 tabs: [
-                    { id: 'interactive-example-tab', label: 'Example', panelId: 'interactive-example-panel' },
+                    { id: 'interactive-example-tab', label: 'Interactive Form', panelId: 'interactive-example-panel' },
                     { id: 'interactive-source-tab', label: 'Source Code', panelId: 'interactive-source-panel' }
                 ],
-                //panelHeight: '15rem',
+                panelHeight: '23rem',
                 slideAnimation: true
             }, 'interactive-example-tab');
 
@@ -849,6 +850,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'conditionals-example-tab', label: 'Example', panelId: 'conditionals-example-panel' },
                     { id: 'conditionals-source-tab', label: 'Source Code', panelId: 'conditionals-source-panel' }
                 ],
+                panelHeight: '16rem',
                 slideAnimation: true
             }, 'conditionals-example-tab');
 
@@ -858,6 +860,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'i18n-example', label: 'Example', panelId: 'i18n-example-panel' },
                     { id: 'i18n-source', label: 'Source Code', panelId: 'i18n-source-panel' }
                 ],
+                panelHeight: '9.5rem',
                 slideAnimation: true
             }, 'i18n-example');
 
@@ -867,6 +870,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'includes-example', label: 'Example', panelId: 'includes-example-panel' },
                     { id: 'includes-source', label: 'Source Code', panelId: 'includes-source-panel' }
                 ],
+                panelHeight: '18.5rem',
                 slideAnimation: true
             }, 'includes-example');
 
@@ -876,6 +880,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'nested-example', label: 'Example', panelId: 'nested-example-panel' },
                     { id: 'nested-source', label: 'Source Code', panelId: 'nested-source-panel' }
                 ],
+                panelHeight: '22rem',
                 slideAnimation: true
             }, 'nested-example');
 

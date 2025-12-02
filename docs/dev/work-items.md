@@ -2289,22 +2289,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - updated directory layout, file resolution priority, CSS/JS layers
     - added plugin development guidelines and reference implementations
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-103, v1.3.4: handlebars: custom variables with `{{let}}`, `{{#let}}`, and `{{#with}}`
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: enable template authors to define custom variables safely without polluting the main context
 - working document: docs/dev/working/W-103-handlebars-let-with-variables.md
@@ -2358,12 +2344,23 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
+
+
+
+
+
+
+
+
+
 ### Pending
 
 pending:
-- docs: {{#each file.list "admin/*.shtml" sortBy="filename"}}
-  - document all sortBy
-- document {{let}}, {{#with}}...{{/with}}
 
 
 old pending:
@@ -2381,7 +2378,6 @@ old pending:
 - W-037: view: create themes
 - W-0: markdown docs: a way to define the sequence of docs
 - W-0: handlebars: enhance `{{#if}}` and `{{#unless}}` with and, or, gt, gte, lt, lte, eq, ne
-- W-103: handlebars: new `{{let}}` and `{{#with}}` handlebars to define variables
 - W-0: deployment: docker strategy
 - W-0: auth controller: authentication with OAuth2
 - W-0: auth controller: authentication with LDAP

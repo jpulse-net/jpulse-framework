@@ -4,8 +4,8 @@
  * @tagline         Comprehensive Handlebars templating examples
  * @description     Interactive examples and source code for Handlebars templating in jPulse
  * @file            webapp/view/jpulse-examples/handlebars.shtml
- * @version         1.3.3
- * @release         2025-12-01
+ * @version         1.3.4
+ * @release         2025-12-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,6 +18,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Handlebars Examples - {{app.jPulse.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-form-textarea {
+            width: 100%
+        }
+        .local-handlebar-result {
+            background: #f8f9fa;
+            margin-top: 0.7rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.85em;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+    </style>
 </head>
 <body>
     {{#component "exampleCards.handlebars" order=20}}
@@ -41,12 +54,53 @@
             <p><strong>📖 Documentation:</strong> <a href="/jpulse-docs/handlebars">Complete Handlebars Guide</a> - Comprehensive documentation with syntax reference and best practices.</p>
         </div>
 
+        <!-- Interactive Handlebar Example -->
+        <div class="jp-card">
+            <h2 class="jp-card-dialog-heading">Interactive Example &bullet; Try Handlebars</h2>
+            <!-- Tab interface for example/source -->
+            <div id="interactive-tabs" class="jp-tabs"></div>
+            <div id="interactive-example-panel" class="jp-panel">
+                <div class="jp-info-box">
+                    Enter some text with handlebars, and press the button to see the result.
+                </div>
+                <textarea id="handlebarTextarea" class="jp-form-textarea local-form-textarea">App Name &amp; version: &#123;&#123;app.site.name&#125;&#125; v&#123;&#123;app.site.version&#125;&#125;</textarea>
+                <button id="handlebarButton" class="jp-btn jp-btn-primary">Expand Handlebars</button>
+                <div id="handlebarResult" class="local-handlebar-result">
+                    (Text with expanded handlebars will show up here)
+                </div>
+            </div>
+            <div id="interactive-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
+&lt;textarea id="handlebarTextarea"&gt;App Name &amp; version: &#123;&#123;app.site.name&#125;&#125; v&#123;&#123;app.site.version&#125;&#125;&lt;/textarea&gt;
+&lt;button id="handlebarButton"&gt;Expand Handlebars&lt;/button&gt;
+&lt;div id="handlebarResult"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+document.getElementById('handlebarButton').addEventListener('click', async () => {
+    const text = document.getElementById('handlebarTextarea').value;
+    const response = await jPulse.api.post('/api/1/handlebar/expand', { text });
+    if (response.success) {
+        document.getElementById('handlebarResult').textContent = response.text;
+    } else {
+        jPulse.UI.toast.error('Error: ' + response.error);
+    }
+});
+&lt;/script&gt;
+                </div>
+            </div>
+        </div>
+
         <!-- Basic Variables Example -->
         <div class="jp-card">
             <h2 class="jp-card-dialog-heading">Basic Variables</h2>
             <!-- Tab interface for example/source -->
             <div id="variables-tabs" class="jp-tabs"></div>
             <div id="variables-example-panel" class="jp-panel">
+                {{#unless user.isAuthenticated}}
+                <div class="jp-info-box">
+                    <p><em>💡 Tip: <a href="/auth/login.shtml">Log in</a> to see your user information in the example below.</em></p>
+                </div>
+                {{/unless}}
                 <div class="jp-info-box">
                     <ul>
                         <li><strong>App Name:</strong> {{app.site.name}}</li>
@@ -76,6 +130,11 @@
             <!-- Tab interface for example/source -->
             <div id="conditionals-tabs" class="jp-tabs"></div>
             <div id="conditionals-example-panel" class="jp-panel">
+                {{#unless user.isAuthenticated}}
+                <div class="jp-info-box">
+                    <p><em>💡 Note: <a href="/auth/login.shtml">Log in</a> to see the authenticated user example below.</em></p>
+                </div>
+                {{/unless}}
                 <div class="jp-warning-box">
                     <h4>Authentication Status</h4>
                     {{#if user.isAuthenticated}}
@@ -166,10 +225,15 @@
 
         <!-- Nested Handlebars Example (v0.7.20+) -->
         <div class="jp-card">
-            <h2 class="jp-card-dialog-heading">Nested Handlebars (v0.7.20+)</h2>
+            <h2 class="jp-card-dialog-heading">Nested Handlebars</h2>
             <!-- Tab interface for example/source -->
             <div id="nested-tabs" class="jp-tabs"></div>
             <div id="nested-example-panel" class="jp-panel">
+                {{#unless user.isAuthenticated}}
+                <div class="jp-info-box">
+                    <p><em>💡 Note: <a href="/auth/login.shtml">Log in</a> to see nested conditionals with user data.</em></p>
+                </div>
+                {{/unless}}
                 <div class="jp-warning-box">
                     <h4>Multi-level Conditional Example</h4>
                     {{#if user.isAuthenticated}}
@@ -221,6 +285,11 @@
             <!-- Tab interface for example/source -->
             <div id="loops-tabs" class="jp-tabs"></div>
             <div id="loops-example-panel" class="jp-panel">
+                {{#unless user.isAuthenticated}}
+                <div class="jp-info-box">
+                    <p><em>💡 Note: <a href="/auth/login.shtml">Log in</a> to see loops with your user roles and data.</em></p>
+                </div>
+                {{/unless}}
                 <div class="jp-info-box">
                     <h4>Array of Strings (User Roles)</h4>
                     <p>Current user roles:
@@ -283,6 +352,190 @@
 &#123;&#123;#each user&#125;&#125;
     &lt;div&gt;&lt;strong&gt;&#123;&#123;@key&#125;&#125;:&lt;/strong&gt; &#123;&#123;this&#125;&#125;&lt;/div&gt;
 &#123;&#123;/each&#125;&#125;
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Variables with {{let}} (v1.3.3+) -->
+        <div class="jp-card">
+            <h2 class="jp-card-dialog-heading">Custom Variables with &#123;&#123;let&#125;&#125;</h2>
+            <!-- Tab interface for example/source -->
+            <div id="let-tabs" class="jp-tabs"></div>
+            <div id="let-example-panel" class="jp-panel">
+                <div class="jp-info-box">
+                    <h4>Basic Variable Assignment</h4>
+                    {{let pageTitle="Handlebars Examples" maxItems=5 showFooter=true}}
+                    <p><strong>Page Title:</strong> {{vars.pageTitle}}</p>
+                    <p><strong>Max Items:</strong> {{vars.maxItems}}</p>
+                    <p><strong>Show Footer:</strong> {{vars.showFooter}}</p>
+                </div>
+
+                <div class="jp-warning-box">
+                    <h4>Nested Properties</h4>
+                    {{let config.theme="dark" config.timeout=5000 api.v2.endpoint="/api/v2"}}
+                    <p><strong>Theme:</strong> {{vars.config.theme}}</p>
+                    <p><strong>Timeout:</strong> {{vars.config.timeout}}ms</p>
+                    <p><strong>API Endpoint:</strong> {{vars.api.v2.endpoint}}</p>
+                </div>
+
+                <div class="jp-info-box">
+                    <h4>Conditional Variable Assignment</h4>
+                    {{#if user.isAuthenticated}}
+                        {{let greeting="Welcome back" showProfile=true}}
+                    {{else}}
+                        {{let greeting="Hello guest" showProfile=false}}
+                    {{/if}}
+                    <p><strong>Greeting:</strong> {{vars.greeting}}</p>
+                    <p><strong>Show Profile:</strong> {{vars.showProfile}}</p>
+                </div>
+            </div>
+
+            <div id="let-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
+&lt;!-- Basic Variable Assignment --&gt;
+&#123;&#123;let pageTitle="Handlebars Examples" maxItems=5 showFooter=true&#125;&#125;
+&lt;p&gt;&lt;strong&gt;Page Title:&lt;/strong&gt; &#123;&#123;vars.pageTitle&#125;&#125;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Max Items:&lt;/strong&gt; &#123;&#123;vars.maxItems&#125;&#125;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Show Footer:&lt;/strong&gt; &#123;&#123;vars.showFooter&#125;&#125;&lt;/p&gt;
+
+&lt;!-- Nested Properties --&gt;
+&#123;&#123;let config.theme="dark" config.timeout=5000 api.v2.endpoint="/api/v2"&#125;&#125;
+&lt;p&gt;&lt;strong&gt;Theme:&lt;/strong&gt; &#123;&#123;vars.config.theme&#125;&#125;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Timeout:&lt;/strong&gt; &#123;&#123;vars.config.timeout&#125;&#125;ms&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;API Endpoint:&lt;/strong&gt; &#123;&#123;vars.api.v2.endpoint&#125;&#125;&lt;/p&gt;
+
+&lt;!-- Conditional Variable Assignment --&gt;
+&#123;&#123;#if user.isAuthenticated&#125;&#125;
+    &#123;&#123;let greeting="Welcome back" showProfile=true&#125;&#125;
+&#123;&#123;else&#125;&#125;
+    &#123;&#123;let greeting="Hello guest" showProfile=false&#125;&#125;
+&#123;&#123;/if&#125;&#125;
+&lt;p&gt;&lt;strong&gt;Greeting:&lt;/strong&gt; &#123;&#123;vars.greeting&#125;&#125;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Show Profile:&lt;/strong&gt; &#123;&#123;vars.showProfile&#125;&#125;&lt;/p&gt;
+                </div>
+            </div>
+        </div>
+
+        <!-- Context Switching with #with handlebars (v1.3.3+) -->
+        <div class="jp-card">
+            <h2 class="jp-card-dialog-heading">Context Switching with &#123;&#123;#with&#125;&#125;</h2>
+            <!-- Tab interface for example/source -->
+            <div id="with-tabs" class="jp-tabs"></div>
+            <div id="with-example-panel" class="jp-panel">
+                {{#unless user.isAuthenticated}}
+                <div class="jp-info-box">
+                    <p><em>💡 Note: <a href="/auth/login.shtml">Log in</a> to see context switching with user data.</em></p>
+                </div>
+                {{/unless}}
+                <div class="jp-info-box">
+                    <h4>Basic Context Switching</h4>
+                    {{#with user}}
+                        <p><strong>Name:</strong> {{firstName}} {{lastName}}</p>
+                        <p><strong>Email:</strong> {{email}}</p>
+                        <p><strong>Roles:</strong> {{roles}}</p>
+                    {{/with}}
+                </div>
+
+                <div class="jp-warning-box">
+                    <h4>Combining Variables and Context Switching</h4>
+                    {{let prefix="User"}}
+                    {{#with user}}
+                        <p><strong>{{vars.prefix}}:</strong> {{firstName}} {{lastName}}</p>
+                        <p><strong>Status:</strong> {{#if isAuthenticated}}Active{{else}}Inactive{{/if}}</p>
+                    {{/with}}
+                </div>
+            </div>
+
+            <div id="with-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
+&lt;!-- Basic Context Switching --&gt;
+&#123;&#123;#with user&#125;&#125;
+    &lt;p&gt;&lt;strong&gt;Name:&lt;/strong&gt; &#123;&#123;firstName&#125;&#125; &#123;&#123;lastName&#125;&#125;&lt;/p&gt;
+    &lt;p&gt;&lt;strong&gt;Email:&lt;/strong&gt; &#123;&#123;email&#125;&#125;&lt;/p&gt;
+    &lt;p&gt;&lt;strong&gt;Roles:&lt;/strong&gt; &#123;&#123;roles&#125;&#125;&lt;/p&gt;
+&#123;&#123;/with&#125;&#125;
+
+&lt;!-- Combining Variables and Context Switching --&gt;
+&#123;&#123;let prefix="User"&#125;&#125;
+&#123;&#123;#with user&#125;&#125;
+    &lt;p&gt;&lt;strong&gt;&#123;&#123;vars.prefix&#125;&#125;:&lt;/strong&gt; &#123;&#123;firstName&#125;&#125; &#123;&#123;lastName&#125;&#125;&lt;/p&gt;
+    &lt;p&gt;&lt;strong&gt;Status:&lt;/strong&gt; &#123;&#123;#if isAuthenticated&#125;&#125;Active&#123;&#123;else&#125;&#125;Inactive&#123;&#123;/if&#125;&#125;&lt;/p&gt;
+&#123;&#123;/with&#125;&#125;
+                </div>
+            </div>
+        </div>
+
+        <!-- Block-Scoped Variables with #let handlebars -->
+        <div class="jp-card">
+            <h2 class="jp-card-dialog-heading">Block-Scoped Variables with &#123;&#123;#let&#125;&#125;</h2>
+            <!-- Tab interface for example/source -->
+            <div id="let-block-tabs" class="jp-tabs"></div>
+            <div id="let-block-example-panel" class="jp-panel">
+                <div class="jp-info-box">
+                    <p><strong>What you learn:</strong> How to use <code>&#123;&#123;#let&#125;&#125;</code> to create block-scoped variables that don't persist after the block closes.</p>
+                    <p><strong>Use Case:</strong> Prevent variable pollution in loops and conditional blocks.</p>
+                </div>
+
+                <div class="jp-info-box">
+                    <h4>Basic Block Scope</h4>
+                    {{let outer="outer"}}
+                    {{#let inner="inner"}}
+                        <p>Inside block: outer={{vars.outer}}, inner={{vars.inner}}</p>
+                    {{/let}}
+                    <p>After block: outer={{vars.outer}}, inner={{vars.inner}}</p>
+                </div>
+
+                <div class="jp-warning-box">
+                    <h4>Preventing Loop Pollution</h4>
+                    {{#each user.roles}}
+                        {{#let index=@index itemClass="active"}}
+                            <p>Item {{vars.index}}: {{this}} (class: {{vars.itemClass}})</p>
+                        {{/let}}
+                    {{/each}}
+                    <p>After loop, itemClass is gone: "{{vars.itemClass}}"</p>
+                </div>
+
+                <div class="jp-info-box">
+                    <h4>Nested Block Scopes</h4>
+                    {{let level="L0"}}
+                    {{#let level="L1"}}
+                        <p>Level 1: {{vars.level}}</p>
+                        {{#let level="L2"}}
+                            <p>Level 2: {{vars.level}}</p>
+                        {{/let}}
+                        <p>Back to Level 1: {{vars.level}}</p>
+                    {{/let}}
+                    <p>Back to Level 0: {{vars.level}}</p>
+                </div>
+            </div>
+
+            <div id="let-block-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
+&lt;!-- Basic Block Scope --&gt;
+&#123;&#123;let outer="outer"&#125;&#125;
+&#123;&#123;#let inner="inner"&#125;&#125;
+    &lt;p&gt;Inside: outer=&#123;&#123;vars.outer&#125;&#125;, inner=&#123;&#123;vars.inner&#125;&#125;&lt;/p&gt;
+&#123;&#123;/let&#125;&#125;
+&lt;p&gt;After: outer=&#123;&#123;vars.outer&#125;&#125;, inner=&#123;&#123;vars.inner&#125;&#125;&lt;/p&gt;
+
+&lt;!-- Preventing Loop Pollution --&gt;
+&#123;&#123;#each user.roles&#125;&#125;
+    &#123;&#123;#let index=@index itemClass="active"&#125;&#125;
+        &lt;p&gt;Item &#123;&#123;vars.index&#125;&#125;: &#123;&#123;this&#125;&#125; (class: &#123;&#123;vars.itemClass&#125;&#125;)&lt;/p&gt;
+    &#123;&#123;/let&#125;&#125;
+&#123;&#123;/each&#125;&#125;
+&lt;p&gt;After loop, itemClass is gone: "&#123;&#123;vars.itemClass&#125;&#125;"&lt;/p&gt;
+
+&lt;!-- Nested Block Scopes --&gt;
+&#123;&#123;let level="L0"&#125;&#125;
+&#123;&#123;#let level="L1"&#125;&#125;
+    &lt;p&gt;Level 1: &#123;&#123;vars.level&#125;&#125;&lt;/p&gt;
+    &#123;&#123;#let level="L2"&#125;&#125;
+        &lt;p&gt;Level 2: &#123;&#123;vars.level&#125;&#125;&lt;/p&gt;
+    &#123;&#123;/let&#125;&#125;
+    &lt;p&gt;Back to Level 1: &#123;&#123;vars.level&#125;&#125;&lt;/p&gt;
+&#123;&#123;/let&#125;&#125;
+&lt;p&gt;Back to Level 0: &#123;&#123;vars.level&#125;&#125;&lt;/p&gt;
                 </div>
             </div>
         </div>
@@ -488,6 +741,68 @@
                         </tr>
                     </table>
                 </div>
+
+                <div class="jp-warning-box">
+                    <h4>Custom Variables</h4>
+                    <table class="jp-table">
+                        <tr>
+                            <th>Variable</th>
+                            <th>Handlebar</th>
+                            <th>Description</th>
+                        </tr>
+                        <tr>
+                            <td>Define variable</td>
+                            <td><code>&#123;&#123;let myVar="value"&#125;&#125;</code></td>
+                            <td>Sets custom variable in vars namespace</td>
+                        </tr>
+                        <tr>
+                            <td>Access variable</td>
+                            <td><code>&#123;&#123;vars.myVar&#125;&#125;</code></td>
+                            <td>Accesses custom variable</td>
+                        </tr>
+                        <tr>
+                            <td>Block-scoped variables</td>
+                            <td><code>&#123;&#123;#let key="value"&#125;&#125;...&#123;&#123;/let&#125;&#125;</code></td>
+                            <td>Variables only exist within block (scope isolation)</td>
+                        </tr>
+                        <tr>
+                            <td>Context switching</td>
+                            <td><code>&#123;&#123;#with user&#125;&#125;...&#123;&#123;/with&#125;&#125;</code></td>
+                            <td>Switches context to object properties</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="jp-info-box">
+                    <h4>Reusable Components</h4>
+                    <table class="jp-table">
+                        <tr>
+                            <th>Variable</th>
+                            <th>Handlebar</th>
+                            <th>Description</th>
+                        </tr>
+                        <tr>
+                            <td>Define component</td>
+                            <td><code>&#123;&#123;#component "adminCards.config"&#125;&#125;...&#123;&#123;/component&#125;&#125;</code></td>
+                            <td>Defines a reusable component</td>
+                        </tr>
+                        <tr>
+                            <td>Include component library</td>
+                            <td><code>&#123;&#123;file.includeComponents "admin/*.shtml" component="adminCards.*"&#125;&#125;</code></td>
+                            <td>Loads components from multiple admin dashboard files</td>
+                        </tr>
+                        <tr>
+                            <td>Use component</td>
+                            <td><code>&#123;&#123;components.adminCards.config&#125;&#125;</code></td>
+                            <td>Renders the component</td>
+                        </tr>
+                        <tr>
+                            <td>Use component with params</td>
+                            <td><code>&#123;&#123;components.jPulseIcons.configSvg size="64"&#125;&#125;</code></td>
+                            <td>Renders with custom parameters</td>
+                        </tr>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -508,13 +823,23 @@
                 window.jPulseNavigation.tabs.jPulseExamplesSubTabs
             );
 
+            // Interactive examples tabs
+            jPulse.UI.tabs.register('interactive-tabs', {
+                tabs: [
+                    { id: 'interactive-example-tab', label: 'Example', panelId: 'interactive-example-panel' },
+                    { id: 'interactive-source-tab', label: 'Source Code', panelId: 'interactive-source-panel' }
+                ],
+                //panelHeight: '15rem',
+                slideAnimation: true
+            }, 'interactive-example-tab');
+
             // Variables example tabs
             jPulse.UI.tabs.register('variables-tabs', {
                 tabs: [
                     { id: 'variables-example-tab', label: 'Example', panelId: 'variables-example-panel' },
                     { id: 'variables-source-tab', label: 'Source Code', panelId: 'variables-source-panel' }
                 ],
-                panelHeight: '15rem',
+                panelHeight: '17.5rem',
                 slideAnimation: true
             }, 'variables-example-tab');
 
@@ -562,6 +887,54 @@
                 ],
                 slideAnimation: true
             }, 'loops-example');
+
+            // {{let}} variables example tabs
+            jPulse.UI.tabs.register('let-tabs', {
+                tabs: [
+                    { id: 'let-example', label: 'Example', panelId: 'let-example-panel' },
+                    { id: 'let-source', label: 'Source Code', panelId: 'let-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'let-example');
+
+            // {{#with}} context switching example tabs
+            jPulse.UI.tabs.register('with-tabs', {
+                tabs: [
+                    { id: 'with-example', label: 'Example', panelId: 'with-example-panel' },
+                    { id: 'with-source', label: 'Source Code', panelId: 'with-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'with-example');
+
+            // {{#let}} block-scoped variables example tabs
+            jPulse.UI.tabs.register('let-block-tabs', {
+                tabs: [
+                    { id: 'let-block-example', label: 'Example', panelId: 'let-block-example-panel' },
+                    { id: 'let-block-source', label: 'Source Code', panelId: 'let-block-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'let-block-example');
+
+            document.getElementById('handlebarButton').addEventListener('click', async () => {
+                const $resultElem = document.getElementById('handlebarResult');
+                try {
+                    const text = document.getElementById('handlebarTextarea').value;
+                    const response = await jPulse.api.post('/api/1/handlebar/expand', { text });
+                    if (response.success) {
+                        $resultElem.style.background = '#f8f9fa';
+                        $resultElem.textContent = response.text;
+                        jPulse.UI.toast.success('See the expanded result below');
+                    } else {
+                        $resultElem.style.background = '#ffebee';
+                        $resultElem.textContent = `Error: ${response.error}`;
+                        jPulse.UI.toast.error('API returned an error: ' + response.error);
+                    }
+                } catch (error) {
+                    $resultElem.style.background = '#ffebee';
+                    $resultElem.textContent = `Error: ${error.message}`;
+                    jPulse.UI.toast.error('API call failed: ' + error.message);
+                }
+            });
         });
     </script>
 

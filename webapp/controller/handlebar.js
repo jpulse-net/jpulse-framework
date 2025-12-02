@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.3.3
- * @release         2025-12-01
+ * @version         1.3.4
+ * @release         2025-12-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -136,7 +136,9 @@ class HandlebarController {
             // Add i18n object to context for dot notation access
             i18n: global.i18n.getLang(AuthController.getUserLanguage(req)),
             // W-102: Components context (populated by file.includeComponents)
-            components: {}
+            components: {},
+            // W-103: User-defined variables namespace (populated by {{let}})
+            vars: {}
         };
 
         // W-014: Extend context with site/plugin extensions
@@ -388,6 +390,10 @@ class HandlebarController {
                     return await _handleBlockEach(params, blockContent, currentContext);
                 case 'component':
                     return await _handleComponentDefinition(params, blockContent, currentContext);
+                case 'with':
+                    return await _handleWithBlock(params, blockContent, currentContext);
+                case 'let':
+                    return await _handleLetBlock(params, blockContent, currentContext);
                 default:
                     throw new Error(`Unknown block type: #${blockType}`);
             }
@@ -418,6 +424,8 @@ class HandlebarController {
                     return _handleFileExists(parsedArgs._target);
                 case 'file.list':
                     return _handleFileList(parsedArgs, currentContext);
+                case 'let':
+                    return _handleLet(expression, currentContext);
                 default:
                     // Handle property access (no spaces)
                     if (!helper.includes(' ')) {
@@ -557,6 +565,136 @@ class HandlebarController {
             }
 
             return result;
+        }
+
+        /**
+         * W-103: Handle {{let}} inline variable assignment
+         * Sets variables in vars namespace (template-scoped)
+         * Example: {{let key1="val1" key2=123 nested.key="value"}}
+         */
+        function _handleLet(expression, currentContext) {
+            // Ensure vars namespace exists
+            if (!currentContext.vars) {
+                currentContext.vars = {};
+            }
+
+            // Extract key=value pairs from the expression
+            // Regex to match: key="value" or key=value or nested.key="value"
+            const args = {};
+            const keyValueRegex = /(\w+(?:\.\w+)*)=(?:(['"])(.*?)\2|([^\s]+))/g;
+            let match;
+
+            while ((match = keyValueRegex.exec(expression)) !== null) {
+                const key = match[1];
+                let value = match[3] !== undefined ? match[3] : match[4]; // quoted or unquoted
+
+                // Type conversion for unquoted values
+                if (match[3] === undefined) { // unquoted
+                    if (value === 'true') {
+                        value = true;
+                    } else if (value === 'false') {
+                        value = false;
+                    } else if (!isNaN(value) && value !== '') {
+                        value = Number(value);
+                    }
+                }
+
+                args[key] = value;
+            }
+
+            // Set all key=value pairs in vars namespace
+            const setVars = [];
+            for (const [key, value] of Object.entries(args)) {
+                _setNestedProperty(currentContext.vars, key, value);
+                setVars.push(key);
+            }
+
+            if (setVars.length > 0) {
+                LogController.logInfo(req, 'handlebar.let',
+                    `Variables set: ${setVars.join(', ')}`);
+            }
+
+            return ''; // No output
+        }
+
+        /**
+         * W-103: Handle {{#with}} block (context switching only - standard Handlebars)
+         * Switches context root to specified object
+         * Example: {{#with user}} {{firstName}} {{lastName}} {{/with}}
+         */
+        async function _handleWithBlock(params, blockContent, currentContext) {
+            const trimmedParams = params.trim();
+
+            // Get the context object
+            const contextValue = getNestedProperty(currentContext, trimmedParams);
+
+            if (!contextValue || typeof contextValue !== 'object') {
+                LogController.logInfo(req, 'handlebar.with',
+                    `Context not found or invalid: ${trimmedParams}`);
+                return ''; // Empty output if context not found
+            }
+
+            // Switch context root to this object
+            const blockContext = {
+                ...currentContext,
+                ...contextValue
+            };
+
+            LogController.logInfo(req, 'handlebar.with',
+                `Context switched to: ${trimmedParams}`);
+
+            return await _resolveHandlebars(blockContent, blockContext);
+        }
+
+        /**
+         * W-103 TD-001: Handle {{#let}} block-scoped variables
+         * Creates isolated vars scope for the block
+         * Example: {{#let greeting="Hello" name="World"}} {{vars.greeting}}, {{vars.name}}! {{/let}}
+         */
+        async function _handleLetBlock(params, blockContent, currentContext) {
+            // Extract key=value pairs from params
+            const args = {};
+            const keyValueRegex = /(\w+(?:\.\w+)*)=(?:(['"])(.*?)\2|([^\s]+))/g;
+            let match;
+
+            while ((match = keyValueRegex.exec(params)) !== null) {
+                const key = match[1];
+                let value = match[3] !== undefined ? match[3] : match[4]; // quoted or unquoted
+
+                // Type conversion for unquoted values
+                if (match[3] === undefined) { // unquoted
+                    if (value === 'true') {
+                        value = true;
+                    } else if (value === 'false') {
+                        value = false;
+                    } else if (!isNaN(value) && value !== '') {
+                        value = Number(value);
+                    }
+                }
+
+                args[key] = value;
+            }
+
+            // Create isolated context with cloned vars
+            const blockContext = {
+                ...currentContext,
+                vars: { ...(currentContext.vars || {}) } // Clone existing vars
+            };
+
+            // Add new vars to block scope
+            const setVars = [];
+            for (const [key, value] of Object.entries(args)) {
+                _setNestedProperty(blockContext.vars, key, value);
+                setVars.push(key);
+            }
+
+            if (setVars.length > 0) {
+                LogController.logInfo(req, 'handlebar.let',
+                    `Block-scoped variables set: ${setVars.join(', ')}`);
+            }
+
+            // Process block with isolated vars scope
+            return await _resolveHandlebars(blockContent, blockContext);
         }
 
         /**
@@ -1366,7 +1504,7 @@ class HandlebarController {
             }
 
             // Expand handlebars (context will be merged with internal context and filtered)
-            const expandedText = await this.expandHandlebars(req, text, context, 0);
+            const expandedText = await HandlebarController.expandHandlebars(req, text, context, 0);
 
             const duration = Date.now() - startTime;
             LogController.logInfo(req, 'handlebar.apiExpand', `success: expanded in ${duration}ms`);

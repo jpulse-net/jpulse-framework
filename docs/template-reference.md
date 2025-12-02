@@ -1,4 +1,4 @@
-# jPulse Docs / Template Reference v1.3.3
+# jPulse Docs / Template Reference v1.3.4
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -30,10 +30,21 @@ The jPulse Framework uses a custom Handlebars implementation for server-side tem
 Templates use the `.shtml` extension and follow the MVC directory structure:
 
 ```
-webapp/view/                # Framework templates
+site/webapp/view/           # Site override templates (checked first)
+├── jpulse-navigation.js    # Site navigation overrides (W-098)
+├── components/
+│   └── custom-icons.tmpl   # Site-specific component library
+├── home/
+│   └── index.shtml         # Site-specific home page override
+└── custom/
+    └── dashboard.shtml     # Site-specific custom page
+
+webapp/view/                # Framework templates (checked second)
 ├── jpulse-header.tmpl      # Include for common head section
 ├── jpulse-footer.tmpl      # Include for common footer (page decoration, JavaScript)
 ├── jpulse-navigation.js    # Framework navigation structure (site nav, breadcrumbs, tabs)
+├── components/
+│   └── svg-icons.tmpl      # Framework component library
 ├── home/
 │   └── index.shtml         # Home page template
 ├── auth/
@@ -46,13 +57,6 @@ webapp/view/                # Framework templates
 │   └── config.shtml        # Site configuration
 └── error/
     └── index.shtml         # Error page template
-
-site/webapp/view/           # Site override templates (optional)
-├── jpulse-navigation.js    # Site navigation overrides (W-098)
-├── home/
-│   └── index.shtml         # Site-specific home page override
-└── custom/
-    └── dashboard.shtml     # Site-specific custom page
 ```
 
 > **Navigation Customization:** See [Site Navigation Guide](site-navigation.md) for complete documentation on customizing site navigation.
@@ -79,12 +83,12 @@ Templates have access to a rich context object with application data, user infor
 ### Application Information
 
 ```html
-<!-- Application metadata -->
+{{!-- Application metadata --}}
 <title>{{app.jPulse.name}} v{{app.jPulse.version}}</title>
 <meta name="generator" content="{{app.jPulse.name}} {{app.jPulse.version}}">
 <span class="version">Version {{app.jPulse.version}} ({{app.jPulse.release}})</span>
 
-<!-- Example output -->
+{{!-- Example output: --}}
 <title>jPulse Framework v1.0.0</title>
 <span class="version">Version 1.0.0 (2025-10-01)</span>
 ```
@@ -92,7 +96,7 @@ Templates have access to a rich context object with application data, user infor
 ### User Context
 
 ```html
-<!-- Authentication state -->
+{{!-- Authentication state --}}
 {{#if user.isAuthenticated}}
     <div class="user-panel">
         <span>Welcome, {{user.firstName}}!</span>
@@ -104,7 +108,7 @@ Templates have access to a rich context object with application data, user infor
     </div>
 {{/if}}
 
-<!-- User profile information -->
+{{!-- User profile information --}}
 <div class="profile">
     <h2>{{user.firstName}} {{user.lastName}}</h2>
     <p>Email: {{user.email}}</p>
@@ -113,20 +117,20 @@ Templates have access to a rich context object with application data, user infor
     <p>Last Login: {{user.lastLogin}}</p>
 </div>
 
-<!-- User preferences -->
+{{!-- User preferences --}}
 <body class="theme-{{user.preferences.theme}} lang-{{user.preferences.language}}">
 ```
 
 ### Configuration Access
 
 ```html
-<!-- Application configuration -->
+{{!-- Application configuration --}}
 <div style="max-width: {{appConfig.view.maxWidth}}px;">
     <input maxlength="{{appConfig.controller.log.maxMsgLength}}">
     <span>Environment: {{appConfig.app.environment}}</span>
 </div>
 
-<!-- Site configuration -->
+{{!-- Site configuration --}}
 <footer>
     <p>Contact: <a href="mailto:{{config.email.adminEmail}}">{{config.email.adminName}}</a></p>
     {{#if config.messages.broadcast}}
@@ -138,17 +142,17 @@ Templates have access to a rich context object with application data, user infor
 ### URL Information
 
 ```html
-<!-- URL components -->
+{{!-- URL components --}}
 <base href="{{url.domain}}">
 <span>Current page: {{url.pathname}}</span>
 <span>Server: {{url.hostname}}:{{url.port}}</span>
 
-<!-- URL parameters -->
+{{!-- URL parameters --}}
 {{#if url.param.redirect}}
     <input type="hidden" name="redirect" value="{{url.param.redirect}}">
 {{/if}}
 
-<!-- Example: Login form with redirect -->
+{{!-- Example: Login form with redirect --}}
 <form action="/api/1/auth/login" method="post">
     <input type="text" name="identifier" placeholder="Username or Email">
     <input type="password" name="password" placeholder="Password">
@@ -159,19 +163,66 @@ Templates have access to a rich context object with application data, user infor
 </form>
 ```
 
+### Custom Variables
+
+Define your own template variables safely using the `vars` namespace:
+
+```html
+{{!-- Inline variable assignment --}}
+{{let pageTitle="User Dashboard" maxResults=20 showFilters=true}}
+<title>{{vars.pageTitle}}</title>
+<div class="results" data-max="{{vars.maxResults}}">
+    {{#if vars.showFilters}}
+        <div class="filters">...</div>
+    {{/if}}
+</div>
+
+{{!-- Block-scoped variables (prevent pollution) --}}
+{{#each items}}
+    {{#let rowClass="active" rowIndex=@index}}
+        <tr class="{{vars.rowClass}}" data-index="{{vars.rowIndex}}">
+            <td>{{this.name}}</td>
+        </tr>
+    {{/let}}
+    {{!-- vars.rowClass and vars.rowIndex don't exist here --}}
+{{/each}}
+
+{{!-- Context switching --}}
+{{#with user}}
+    <div class="profile">
+        <h2>{{firstName}} {{lastName}}</h2>
+        <p>{{email}}</p>
+    </div>
+{{/with}}
+
+{{!-- Combined usage --}}
+{{let greeting="Welcome"}}
+{{#with user}}
+    <p>{{vars.greeting}}, {{firstName}}!</p>
+{{/with}}
+```
+
+**Available variable helpers:**
+- `{{let key="value"}}` - Define template-scoped variables
+- `{{#let key="value"}}...{{/let}}` - Block-scoped variables (isolated)
+- `{{#with object}}...{{/with}}` - Context switching
+- `{{vars.*}}` - Access custom variables
+
+> **See Also:** [Handlebars Reference](handlebars.md) for complete custom variables documentation with examples and best practices.
+
 ## 🌐 Internationalization (i18n)
 
 ### Basic Translation Access
 
 ```html
-<!-- Simple translations -->
+{{!-- Simple translations --}}
 <title>{{i18n.view.home.title}}</title>             <!-- 'Home' -->
 <h1>{{i18n.view.auth.signup.title}}</h1>            <!-- 'Create Account' -->
 <button>{{i18n.view.auth.signup.signin}}</button>   <!-- 'Sign In' -->
 {{i18n.controller.*}}                               <!-- all controller messages -->
 {{i18n.view.*}}                                     <!-- all view messages -->
 
-<!-- Navigation with i18n (W-098 pattern) -->
+{{!-- Navigation with i18n (W-098 pattern) --}}
 // Framework navigation (webapp/view/jpulse-navigation.js)
 window.jPulseNavigation = {
     site: {
@@ -208,12 +259,12 @@ window.siteNavigation = {
 The i18n system supports handlebars-style variable substitution within translations:
 
 ```html
-<!-- Translation file content: -->
-<!-- welcome: 'Welcome back, {{user.firstName}}!' -->
-<!-- lastLogin: 'Last login: {{user.lastLogin}}' -->
-<!-- emailNotification: 'Email sent to {{user.email}}' -->
+{{!-- Translation file content: --}}
+{{!-- welcome: 'Welcome back, {{user.firstName}}!' --}}
+{{!-- lastLogin: 'Last login: {{user.lastLogin}}' --}}
+{{!-- emailNotification: 'Email sent to {{user.email}}' --}}
 
-<!-- Template usage: -->
+{{!-- Template usage: --}}
 <div class="welcome-message">
     <h2>{{i18n.view.home.welcomeBack}}</h2>     <!-- Welcome back, John! -->
     <p>{{i18n.view.user.index.lastLogin}}</p>   <!-- Last login: 2025-09-07 -->
@@ -229,16 +280,16 @@ The i18n system supports handlebars-style variable substitution within translati
 ### Available Context in Translations
 
 ```html
-<!-- User context -->
+{{!-- User context --}}
 {{user.firstName}}, {{user.lastName}}, {{user.email}}
 
-<!-- Configuration context -->
+{{!-- Configuration context --}}
 {{config.siteName}}, {{config.adminEmail}}
 
-<!-- URL context -->
+{{!-- URL context --}}
 {{url.domain}}, {{url.pathname}}
 
-<!-- Application context -->
+{{!-- Application context --}}
 {{app.jPulse.version}}, {{app.jPulse.release}}
 ```
 
@@ -330,14 +381,14 @@ jPulse.UI.toast.success(`{{i18n.view.success.itemSaved}}`.replace('%NAME%', name
 The `{{file.include}}` directive allows secure inclusion of other template files:
 
 ```html
-<!-- Common page structure -->
+{{!-- Common page structure --}}
 {{file.include "jpulse-header.tmpl"}}
 
 <main class="jp-main">
     <div class="jp-container">
         <h1>{{pageTitle}}</h1>
 
-        <!-- Page-specific content -->
+        {{!-- Page-specific content --}}
         <div class="content">
             {{#if user.isAuthenticated}}
                 {{file.include "components/user-dashboard.tmpl"}}
@@ -346,7 +397,7 @@ The `{{file.include}}` directive allows secure inclusion of other template files
             {{/if}}
         </div>
 
-        <!-- Conditional includes -->
+        {{!-- Conditional includes --}}
         {{#if showNavigation}}
             {{file.include "components/navigation.tmpl"}}
         {{/if}}
@@ -403,13 +454,13 @@ In each admin page, such as `admin/users.shtml`:
 
 **Sorting Options:**
 ```html
-<!-- Sort by component order (default) -->
+{{!-- Sort by component order (default) --}}
 {{file.includeComponents "admin/*.shtml" component="adminCards.*" sortBy="component-order"}}
 
-<!-- Sort by plugin dependency order (for plugin dashboards) -->
+{{!-- Sort by plugin dependency order (for plugin dashboards) --}}
 {{file.includeComponents "jpulse-plugins/*.shtml" component="pluginCards.*" sortBy="plugin-order"}}
 
-<!-- Sort alphabetically by filename -->
+{{!-- Sort alphabetically by filename --}}
 {{file.includeComponents "pages/*.shtml" component="pageCards.*" sortBy="filename"}}
 ```
 
@@ -437,14 +488,14 @@ The jPulse Framework uses Handlebars templating for dynamic server-side renderin
 
 **Block Helpers** - For control flow (conditionals and loops):
 ```handlebars
-<!-- Conditionals -->
+{{!-- Conditionals --}}
 {{#if user.isAuthenticated}}
     <p>Welcome back, {{user.firstName}}!</p>
 {{else}}
     <p>Please log in.</p>
 {{/if}}
 
-<!-- Iteration -->
+{{!-- Iteration --}}
 {{#each users}}
     <div>{{this.name}} - Position: {{@index}}</div>
 {{/each}}
@@ -469,12 +520,12 @@ For comprehensive documentation of all Handlebars syntax, features, and examples
 All file operations are secured against path traversal attacks:
 
 ```html
-<!-- Safe includes (within webapp/view/) -->
+{{!-- Safe includes (within webapp/view/) --}}
 {{file.include "jpulse-header.tmpl"}}        ✅ Safe
 {{file.include "components/nav.tmpl"}}        ✅ Safe
 {{file.include "admin/sidebar.tmpl"}}         ✅ Safe
 
-<!-- Blocked includes (security violations) -->
+{{!-- Blocked includes (security violations) --}}
 {{file.include "../../../etc/passwd"}}       ❌ Blocked
 {{file.include "/etc/hosts"}}                 ❌ Blocked
 {{file.include "../../config/secrets.conf"}} ❌ Blocked
@@ -485,12 +536,12 @@ All file operations are secured against path traversal attacks:
 Prevents infinite recursion with maximum include depth:
 
 ```html
-<!-- Maximum 10 levels of includes allowed -->
-<!-- Level 1 --> {{file.include "header.tmpl"}}
-<!-- Level 2 -->   {{file.include "nav.tmpl"}}
-<!-- Level 3 -->     {{file.include "menu.tmpl"}}
-<!-- ... up to level 16 -->
-<!-- Level 17+ --> ❌ Blocked to prevent infinite recursion
+{{!-- Maximum 10 levels of includes allowed --}}
+{{!-- Level 1 --}} {{file.include "header.tmpl"}}
+{{!-- Level 2 --}}   {{file.include "nav.tmpl"}}
+{{!-- Level 3 --}}     {{file.include "menu.tmpl"}}
+{{!-- ... up to level 16 --}}
+{{!-- Level 17+ --}} ❌ Blocked to prevent infinite recursion
 ```
 
 ### View Root Jail

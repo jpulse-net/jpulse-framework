@@ -1,6 +1,116 @@
-# jPulse Docs / Version History v1.3.3
+# jPulse Docs / Version History v1.3.4
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.4, W-103, 2025-12-02
+
+**Commit:** `W-103, v1.3.4: handlebars: custom variables with {{let}}, {{#let}}, and {{#with}}`
+
+**FEATURE RELEASE**: Introduced custom template variables with safe `vars` namespace, block-scoped variables for scope isolation, and context switching for cleaner nested access.
+
+**Objective**: Enable template authors to define custom variables safely without polluting the main context, providing flexible variable scoping and intuitive context switching.
+
+**Implementation**:
+
+**Custom Variables System**:
+- **Inline variables**: `{{let key="value" count=10 active=true}}`
+  * Defines template-scoped variables in `vars` namespace
+  * Supports strings, numbers, booleans
+  * Nested properties: `{{let config.theme="dark" api.v2.endpoint="/api/v2"}}`
+  * Access: `{{vars.key}}`, `{{vars.config.theme}}`
+- **Block-scoped variables**: `{{#let key="value"}}...{{/let}}`
+  * Variables only exist within block (scope isolation)
+  * Inherits parent scope vars
+  * Prevents variable pollution in loops
+  * Nested blocks with proper scope stacking
+- **Context switching**: `{{#with object}}...{{/with}}`
+  * Standard Handlebars context switching
+  * Cleaner nested property access: `{{#with user}} {{firstName}} {{/with}}`
+  * Can be combined with custom variables
+
+**Code Changes**:
+- `webapp/controller/handlebar.js`:
+  * Added `vars: {}` to context initialization in `_buildInternalContext()`
+  * Added `_handleLet()` for inline `{{let}}` helper (~20 lines)
+  * Added `_handleLetBlock()` for block-scoped `{{#let}}` helper (~25 lines)
+  * Added `_handleWithBlock()` for `{{#with}}` context switching (~20 lines)
+  * Enhanced `_parseArguments()` to handle `{{let}}` syntax
+  * Added `_setNestedProperty()` utility for nested property setting
+
+**Test Coverage**:
+- `webapp/tests/unit/controller/handlebar-variables.test.js` (362 lines, new file):
+  * 33 comprehensive unit tests (all passing)
+  * 10 tests for inline `{{let}}`
+  * 5 tests for `{{#with}}` context switching
+  * 7 tests for `{{#let}}` block scope
+  * 4 tests for combined usage
+  * 5 tests for edge cases
+  * 2 tests for namespace isolation
+
+**Documentation Updates (4 files)**:
+- `docs/handlebars.md`:
+  * Added "Custom Variables" section (~170 lines)
+  * Documented `{{let}}`, `{{#let}}`, `{{#with}}` with examples
+  * Explained `vars` namespace and safety benefits
+  * Added best practices section
+- `docs/template-reference.md`:
+  * Added "Custom Variables" section (~40 lines)
+  * Updated file hierarchy to show site/ first
+  * Converted HTML comments to Handlebars comments throughout
+- `docs/front-end-development.md`:
+  * Added `vars` and `components` to available server context
+  * Added "Dynamic Dashboard with Custom Variables" example
+  * Updated key features list
+- `webapp/view/jpulse-examples/handlebars.shtml`:
+  * Added "Custom Variables with {{let}}" section with live examples
+  * Added "Context Switching with {{#with}}" section
+  * Added "Block-Scoped Variables with {{#let}}" section
+  * All examples include source code display
+
+**Usage Examples**:
+```handlebars
+{{!-- Template-scoped variables --}}
+{{let pageTitle="Dashboard" maxItems=10 showFooter=true}}
+<title>{{vars.pageTitle}}</title>
+
+{{!-- Block-scoped variables (prevent pollution) --}}
+{{#each items}}
+    {{#let rowClass="active" index=@index}}
+        <li class="{{vars.rowClass}}">Item {{vars.index}}: {{this}}</li>
+    {{/let}}
+{{/each}}
+
+{{!-- Context switching --}}
+{{#with user}}
+    <p>Welcome, {{firstName}} {{lastName}}!</p>
+{{/with}}
+
+{{!-- Combined usage --}}
+{{let greeting="Hello"}}
+{{#with user}}
+    <p>{{vars.greeting}}, {{firstName}}!</p>
+{{/with}}
+```
+
+**Test Results**: 33/33 tests passing
+- All inline variable tests passing
+- All block scope tests passing
+- All context switching tests passing
+- All edge case tests passing
+- No linter errors
+
+**Benefits**:
+- **Safety**: Cannot override system variables (user, app, config, etc.)
+- **Clarity**: `{{vars.myVar}}` self-documents custom variables
+- **Flexibility**: Choose template-scoped or block-scoped as needed
+- **Clean Code**: Scope isolation prevents variable pollution in loops
+- **Intuitive**: Standard Handlebars `{{#with}}` for context switching
+- **Maintainability**: Easy to debug with clear namespace separation
+
+**Tech Debt Deferred**:
+- TD-002: Expression support (e.g., `{{let total=(price * quantity)}}`)
+- TD-003: JSON string auto-parsing
 
 ________________________________________________
 ## v1.3.3, W-102, 2025-12-01

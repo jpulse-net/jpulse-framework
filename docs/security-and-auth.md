@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.3.3
+# jPulse Docs / Security & Authentication v1.3.4
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 

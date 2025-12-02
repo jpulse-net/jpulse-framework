@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.3
+# jPulse Docs / Dev / Work Items v1.3.4
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -38,7 +38,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - read & save functions for routes: /api/1/config/*
 - prepare for hierarchy of config docs, for now just one doc with _id == 'global'
 - schema: at this time just two data groups
-  ```{
+  ```
+  {
       _id:            String, // 'global'
       data: {
           email: {                // default:
@@ -58,7 +59,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
       updatedAt:      Date,   // auto-updated
       updatedBy:      String, // login user ID
       docVersion:     Number  // default: 1
-  }```
+  }
+  ```
 - create tests, and test
 
 ### W-005, v0.1.3: create log infrastructure
@@ -79,7 +81,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - vm:123 is the numerical part of the server, such as 123 for app-server-123.ca.example.com, or vm:0 if no number exists
   - id:8 is the pm2 instance ID, or id:0 when not using pm2
 - schema:
-  ```{
+  ```
+  {
       data: {
           docId:      Object, // _id (ObjectId or String)
           docType:    String, // 'config', 'user', ...
@@ -89,7 +92,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
       createdAt:      Date,   // default: new Date()
       createdBy:      String, // login user ID
       docVersion:     Number  // default: 1
-  }```
+  }
+  ```
 - create tests, and test
 
 ### W-006, v0.1.4: create server sice include function
@@ -2014,11 +2018,11 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - returns array of all matching files in load order (framework, site, plugins)
     - supports W-098 append mode strategy
   - webapp/view/jpulse-navigation.js -- renamed from .tmpl, restructured with unified format
-    - window.jPulseNavigation = { site: {...}, tabs: {...} }
+    - `window.jPulseNavigation = { site: {...}, tabs: {...} }`
     - framework defines structure, sites extend via direct mutation
-    - includes SVG icon components via {{file.include}}
+    - includes SVG icon components via `{{file.include}}`
   - webapp/view/jpulse-header.tmpl -- simplified navigation loading
-    - single <script> tag for jpulse-navigation.js
+    - single `<script>` tag for jpulse-navigation.js
     - removed separate site-common.js/css includes (now append mode)
     - includes svg-icons.tmpl for page content
   - webapp/view/jpulse-footer.tmpl -- simplified navigation initialization
@@ -2027,19 +2031,19 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/view/jpulse-common.js -- removed deepMerge utility
     - no longer needed with direct mutation pattern
   - webapp/view/components/svg-icons.tmpl -- converted to Handlebars comments
-    - changed file header/footer from <!-- --> to {{!-- --}}
+    - changed file header/footer from `<!-- -->` to `{{!-- --}}`
     - prevents JavaScript syntax errors when included in .js files
     - HTML comments inside SVG markup preserved
   - webapp/controller/handlebar.js -- implemented Handlebars comment stripping
-    - removes {{!-- --}} comments at start of _expandHandlebars
+    - removes `{{!-- --}}` comments at start of _expandHandlebars
     - supports single-line and multi-line comments
     - enables svg-icons.tmpl to work in both HTML and JS contexts
   - webapp/routes.js -- removed redundant site-common route
-    - /\/jpulse-.*\.(js|css)$/ pattern covers all append mode files
+    - `/\/jpulse-.*\.(js|css)$/` pattern covers all append mode files
   - site/webapp/view/jpulse-navigation.js.tmpl -- direct mutation pattern example
     - shows how to add, modify, and delete navigation sections
-    - uses window.jPulseNavigation.site.foo = {...} pattern
-    - deletion marker: window.jPulseNavigation.site.foo = null
+    - uses `window.jPulseNavigation.site.foo = {...}` pattern
+    - deletion marker: `window.jPulseNavigation.site.foo = null`
   - site/webapp/view/jpulse-common.js.tmpl -- append mode convention documented
     - updated header to explain append mode pattern
     - EOF comment updated to jpulse-common.js.tmpl
@@ -2064,7 +2068,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - bin/configure.js -- updated file paths for jpulse-common templates
   - webapp/tests/integration/w047-site-files.test.js -- updated for append mode
     - site-common.* → jpulse-common.* expectations
-    - route pattern check updated to general /\/jpulse-.*\.(js|css)$/
+    - route pattern check updated to general `/\/jpulse-.*\.(js|css)$/`
     - test descriptions mention "W-098 append mode"
   - webapp/tests/integration/cache-api.test.js -- deleted empty stub
 
@@ -2161,10 +2165,10 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/utils/bootstrap.js:
     - pass isTest flag to PluginModel.ensureIndexes() for proper test handling
   - 15 view files (admin, user, jpulse-docs, jpulse-examples, jpulse-plugins):
-    - converted 160+ instances of '{{i18n.*}}' to backticks for JavaScript safety
+    - converted 160+ instances of `{{i18n.*}}` to backticks for JavaScript safety
   - webapp/translations/en.conf:
     - reverted resetSuccess to natural English with apostrophe ("Don't" instead of "Do not")
-    - established %TOKEN% pattern for dynamic error messages
+    - established `%TOKEN%` pattern for dynamic error messages
   - docs/template-reference.md:
     - added comprehensive "Using i18n in JavaScript Context" section with best practices
 - test results: 926 passed, 0 failed (942 total with 16 skipped)
@@ -2205,14 +2209,15 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - objective: more intuitive framework
-- background: the current way of declaring a card with extract:start and extract:end section, and auto-populating a dashboard with {{file.extract this}} works, but is not intuitive
+- background: the current way of declaring a card with extract:start and extract:end section, and auto-populating a dashboard with `{{file.extract this}}` works, but is not intuitive
 - solution:
-  - unified component system - components available as context variables ({{components.*}})
-  - new helper: {{file.includeComponents "glob" component="namespace.*" sortBy="method"}}
-  - access pattern: {{components.namespace.name}} or {{#each components.namespace}} {{this}} {{/each}}
+  - unified component system - components available as context variables (`{{components.*}}`)
+  - new helper: `{{file.includeComponents "glob" component="namespace.*" sortBy="method"}}`
+  - access pattern: `{{components.namespace.name}}` or `{{#each components.namespace}} {{this}} {{/each}}`
   - sorting: component-order (default), plugin-order (explicit), filename
   - pattern filtering: component="adminCards.*" to load specific namespace
 - old syntax:
+    ```
     <div style="display: none;">
         <!-- extract:start order=10 -->
         <a href="/admin/config.shtml" class="jp-card-dashboard jp-icon-btn">
@@ -2225,7 +2230,9 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     {{#each file.list "admin/*.shtml" sortBy="extract-order"}}
         {{file.extract this}}
     {{/each}}
+    ```
 - new syntax:
+    ```
     {{#component "adminCards.config" order=10}}
         {{!-- This card is automatically included in the admin dashboard --}}
         <a href="/admin/config.shtml" class="jp-card-dashboard jp-icon-btn">
@@ -2240,9 +2247,10 @@ This is the doc to track jPulse Framework work items, arranged in three sections
             {{this}}
         {{/each}}
     </div>
+    ```
 - benefits:
-  - "don't make me think" - components accessed like {{user.*}} or {{config.*}}
-  - no more <div style="display: none;"> wrappers
+  - "don't make me think" - components accessed like `{{user.*}}` or `{{config.*}}`
+  - no more `<div style="display: none;">` wrappers
   - clean Handlebars syntax with proper highlighting
   - pattern filtering for memory efficiency
   - explicit sorting control (plugin-order, component-order, filename)
@@ -2253,21 +2261,21 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - added helper functions: _parseComponentBlocks(), _matchesComponentPattern(), _sortComponents(), _extractPluginName(), _getPluginLoadOrder(), _setNestedProperty()
     - removed deprecated extract code: _handleFileExtract(), _extractOrderFromMarkers(), _extractFromRegex(), _extractFromCSSSelector() (~210 lines)
     - simplified _handleBlockEach() to remove extract-order sorting logic
-    - fixed component expansion to always use _handleComponentCall() for {{components.*}}
+    - fixed component expansion to always use _handleComponentCall() for `{{components.*}}`
     - added immediate context registration in _handleComponentDefinition()
   - webapp/view/admin/*.shtml (8 files):
-    - migrated from extract:start/end to {{#component}} syntax
+    - migrated from extract:start/end to `{{#component}}` syntax
     - updated admin/index.shtml dashboard to use file.includeComponents
   - webapp/view/jpulse-examples/*.shtml (5 files):
-    - migrated from extract:start/end to {{#component}} syntax
+    - migrated from extract:start/end to `{{#component}}` syntax
     - updated jpulse-examples/index.shtml dashboard to use file.includeComponents
   - webapp/view/jpulse-plugins/index.shtml:
     - updated to use file.includeComponents with sortBy="plugin-order"
   - site/webapp/view/hello/*.shtml (7 files):
-    - migrated site hello demo views to {{#component}} syntax
+    - migrated site hello demo views to `{{#component}}` syntax
     - updated site/webapp/view/hello/index.shtml dashboard
   - plugins/hello-world/webapp/view/hello-plugin/index.shtml:
-    - migrated plugin view to {{#component}} syntax
+    - migrated plugin view to `{{#component}}` syntax
   - docs/handlebars.md:
     - removed "File Extraction" section (~75 lines)
     - added "Include Components from Files" section with complete documentation
@@ -2275,7 +2283,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - replaced "File Listing and Extraction" with "File Listing and Component Inclusion"
     - updated caching section references
   - docs/plugins/creating-plugins.md:
-    - updated plugin dashboard card example to use {{#component}} syntax
+    - updated plugin dashboard card example to use `{{#component}}` syntax
   - docs/genai-instructions.md:
     - added comprehensive plugin system documentation throughout
     - updated directory layout, file resolution priority, CSS/JS layers
@@ -2295,6 +2303,51 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-103, v1.3.4: handlebars: custom variables with `{{let}}`, `{{#let}}`, and `{{#with}}`
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: enable template authors to define custom variables safely without polluting the main context
+- working document: docs/dev/working/W-103-handlebars-let-with-variables.md
+- features:
+  - define custom variables in `vars` namespace
+  - inline: `{{let key="value"}}` persists in template scope
+  - block-scoped: `{{#let key="value"}}...{{/let}}` for isolated scope
+  - Access: `{{vars.key}}`
+  - context switching: `{{#with object}}` for cleaner nested access
+- examples:
+  - variables in template scope:
+    ```
+    {{let key1="val1" key2=123 key3=true custom.namespace.key="custom"}}
+    key1: {{vars.key1}}, key2: {{vars.key2}}, key3: {{vars.key3}}, custom.namespace.key: {{vars.custom.namespace.key}}
+    ```
+  - variables in block scope:
+    ```
+    {{!-- vars.greeting and vars.name not available here --}}
+    {{#let greeting="Hello" name="World"}}
+      <p>{{vars.greeting}}, {{vars.name}}!</p>
+    {{/let}}
+    {{!-- vars.greeting and vars.name not available here --}}
+    ```
+  - context switching in block scope:
+    ```
+    {{#with user}}
+      <p>Hi {{firstName}} {{lastName}}!</p>
+    {{/with}}
+    ```
+- deliverables:
+  - webapp/controller/handlebar.js
+    - `{{let}}` inline helper, `{{#let}}` block helper, `{{#with}}` context switching
+  - webapp/tests/unit/controller/handlebar-variables.test.js
+    - 33 comprehensive unit tests
+  - webapp/view/jpulse-examples/handlebars.shtml
+    - live examples with source code
+  - docs/handlebars.md
+    - complete custom variables documentation
+  - docs/template-reference.md
+    - custom variables section and examples
+  - docs/front-end-development.md
+    - client-side template expansion with custom variables
+
 
 
 
@@ -2308,10 +2361,13 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 ### Pending
 
 pending:
+- docs: {{#each file.list "admin/*.shtml" sortBy="filename"}}
+  - document all sortBy
+- document {{let}}, {{#with}}...{{/with}}
 
 
 old pending:
-- view controller: return unexpanded {{handlebars}} if not exist, instead of empty return
+- view controller: return unexpanded `{{handlebars}}` if not exist, instead of empty return
 - navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
@@ -2324,8 +2380,8 @@ old pending:
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-037: view: create themes
 - W-0: markdown docs: a way to define the sequence of docs
-- W-0: handlebars: enhance {{#if}} and {{#unless}} with and, or, gt, gte, lt, lte, eq, ne
-- W-0: handlebars: new {{set}} and {{#set}} handlebars to define custom context
+- W-0: handlebars: enhance `{{#if}}` and `{{#unless}}` with and, or, gt, gte, lt, lte, eq, ne
+- W-103: handlebars: new `{{let}}` and `{{#with}}` handlebars to define variables
 - W-0: deployment: docker strategy
 - W-0: auth controller: authentication with OAuth2
 - W-0: auth controller: authentication with LDAP
@@ -2341,8 +2397,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-102, v1.3.3
-- update deliverables in W-102 work-items to document work done (don't make any other changes to this file)
+- assume release: W-103, v1.3.4
+- update deliverables in W-103 work-items to document work done (don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -2359,12 +2415,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.3
+node bin/bump-version.js 1.3.4
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.3
+git tag v1.3.4
 git push origin main --tags
 
 === on failed package build on github ===
@@ -2463,7 +2519,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - on desktop:
   - show options:
     - fixed (default)
-    - toggle: ▶ / ◀ clickable buttons
+    - toggle: `▶` / `◀` clickable buttons
     - auto-hide: show when mouse is on left page padding (open close with delay)
     - when open:
       - shift left border of main content to right (with content reflow), or
@@ -2519,12 +2575,12 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - minimize status is remembered across page loads
   - minimize status is reset after 4 hours site config setting (nag time)
 - broadcast message can be set in site config
-            messages: {
-                enable: { type: 'boolean', default: false },
-                broadcast: { type: 'string', default: '' },
-                // show minimized message again after N hours:
-                nagTimeHours: { type: 'number', default: 4 } // 0: disable
-            }
+  messages: {
+      enable: { type: 'boolean', default: false },
+      broadcast: { type: 'string', default: '' },
+      // show minimized message again after N hours:
+      nagTimeHours: { type: 'number', default: 4 } // 0: disable
+  }
 
 ### W-084: security: harden security
 - status: 🕑 PENDING
@@ -2577,7 +2633,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - W-076, v1.0.0: framework: redis infrastrucure for a scaleable jPulse Framework
 - /hello-websocket/, /hello-app-cluster/ should work properly on its own page, that is no messaging to other tabs with same page open
 
-### W-0: handlebars: enhance {{#if}} and {{#unless}} with and, or, gt, gte, lt, lte, eq, ne
+### W-0: handlebars: enhance `{{#if}}` and `{{#unless}}` with and, or, gt, gte, lt, lte, eq, ne
 - status: 🕑 PENDING
 - type: Feature
 - objective: more flexible handlebars
@@ -2601,24 +2657,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - deliverables:
   - webapp/controller/handlebar.js -- enhanced `{{#if}}` and `{{#unless}}` block handlebars
 
-### W-0: handlebars: new {{set}} and {{#set}} handlebars to define custom context
-- status: 🕑 PENDING
-- type: Feature
-- objective: more flexible handlebars
-- feature:
-  - set custom context variables, either in global scope, or in block scope
-  - global scope:
-    {{set key1="val1" key2=123 key3=true custom.namespace.key="custom"}}
-    key1: {{key1}}, key2: {{key2}}, key3: {{key3}}, custom.namespace.key: {{custom.namespace.key}}
-  - block scope:
-    {{#set key1="val1" key2=123 key3=true custom.namespace.key="custom"}}
-      key1: {{key1}}, key2: {{key2}}, key3: {{key3}}, custom.namespace.key: {{custom.namespace.key}}
-    {{/set}}
-  - not all context variables can be overridden, such as user, config, appConfig, url
-    - possibly better to define an opt-in list (in app.conf)
-- deliverables:
-  - webapp/controller/view.js -- new {{#set}} block handlebar
-
 ### W-0: handlebars: block components with content slots
 - status: 🕑 PENDING
 - type: Feature
@@ -2629,13 +2667,17 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - current limitation: components are inline-only ({{components.card title="Hello"}}), cannot wrap content
 - proposed enhancement:
   - define:
+    ```
     {{#component "card" title="Default"}}
       <div class="card-body">{{@content}}</div>
     {{/component}}
+    ```
   - use:
+    ```
     {{#components.card title="User Profile"}}
       <p>Welcome {{user.firstName}}!</p>
-    {{/components.card}}`
+    {{/components.card}}
+    ```
 - benefits:
   - wrap arbitrary content in reusable containers
   - reduce duplication of wrapper HTML (cards, modals, panels)
@@ -2663,7 +2705,8 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - type: Feature
 - objective: way to indicate the progress of a multi step process, such as multi-page forms
 - deliverables:
-  - jPulse.UI.progressbar('step-2', {
+  - ```
+    jPulse.UI.progressbar('step-2', {
       steps: [
         { id: 'step-1', label: 'Step 1', url: '/signup/1' },
         { id: 'step-2', label: 'Step 2', url: '/signup/2' },
@@ -2671,6 +2714,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
       disablePending: true,   // disable to pending steps after current step
       width:          '100%'
     })
+    ```
   - visual display:
     - ative step in blue background
     - done steps in light blue

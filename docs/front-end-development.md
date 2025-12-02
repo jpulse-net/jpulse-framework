@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.3.3
+# jPulse Docs / Front-End Development Guide v1.3.4
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -18,6 +18,8 @@ The jPulse Framework provides a comprehensive client-side utility library availa
 
 ### Key Features
 - **API Call Standardization**: Simplified REST API interactions
+- **Handlebars Template Expansion**: Client-side template rendering with server context
+- **Custom Variables**: Define template variables with `{{let}}` for flexible templates
 - **Form Handling**: Enhanced form submission with validation and error handling
 - **UI Components**: Slide-down messages, collapsible sections, and more
 - **DOM Utilities**: Enhanced DOM manipulation with consistent patterns
@@ -247,6 +249,52 @@ showNotification('orderShipped', {
 });
 ```
 
+### Real-World Example: Dynamic Dashboard with Custom Variables
+
+```javascript
+// Generate dashboard with custom variables and server context
+async function renderDashboard(stats) {
+    const result = await jPulse.api.post('/api/1/handlebar/expand', {
+        text: `
+            {{let pageTitle="Dashboard" showFilters=true maxItems=10}}
+            <div class="dashboard">
+                <h1>{{vars.pageTitle}} - Welcome {{user.firstName}}!</h1>
+
+                {{#if vars.showFilters}}
+                    <div class="filters">
+                        <label>Show up to {{vars.maxItems}} items</label>
+                    </div>
+                {{/if}}
+
+                <div class="stats-grid">
+                    {{#each stats}}
+                        {{#let cardClass="stat-card" cardColor=this.color}}
+                            <div class="{{vars.cardClass}} {{vars.cardColor}}">
+                                <h3>{{this.label}}</h3>
+                                <span class="value">{{this.value}}</span>
+                            </div>
+                        {{/let}}
+                    {{/each}}
+                </div>
+            </div>
+        `,
+        context: {
+            stats: stats
+        }
+    });
+
+    if (result.success) {
+        document.getElementById('dashboard-container').innerHTML = result.text;
+    }
+}
+
+// Usage
+const dashboardStats = await jPulse.api.get('/api/1/dashboard/stats');
+if (dashboardStats.success) {
+    renderDashboard(dashboardStats.data);
+}
+```
+
 ### Available Server Context
 
 The endpoint automatically provides the same context as server-side templates:
@@ -260,6 +308,10 @@ The endpoint automatically provides the same context as server-side templates:
 - **`appConfig`** - Application configuration (filtered based on authentication)
 - **`url`** - Current request URL information
 - **`i18n`** - Internationalization translations
+- **`vars`** - Custom template variables
+  - User-defined variables set with `{{let}}` (see [Custom Variables](handlebars.md#custom-variables))
+- **`components`** - Registered reusable components
+  - Template components defined with `{{#component}}` (see [Reusable Components](handlebars.md#reusable-components))
 
 ### Security and Context Filtering
 
@@ -550,7 +602,7 @@ jPulse.UI.toast.error('An error occurred.');
 // Dialog widgets
 await jPulse.UI.alertDialog('Warning message', 'Alert');
 await jPulse.UI.infoDialog('Information message', 'Info');
-await jPulse.UI.successDialog('Success message', 'Success'); // New in v1.0.4
+await jPulse.UI.successDialog('Success message', 'Success');
 
 // Confirm dialog with options
 const result = await jPulse.UI.confirmDialog({
@@ -1051,8 +1103,9 @@ class UserTable {
 
 ### Framework Documentation
 - **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation
+- **[Handlebars Reference](handlebars.md)** - Handlebars syntax, custom variables, and components
+- **[Template Reference](template-reference.md)** - Server-side template development patterns
 - **[Style Reference](style-reference.md)** - Complete `jp-*` styling framework
-- **[Template Reference](template-reference.md)** - Server-side Handlebars integration
 
 ### Getting Started
 - **[Installation Guide](installation.md)** - Setup for development and production

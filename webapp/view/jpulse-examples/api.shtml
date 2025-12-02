@@ -4,8 +4,8 @@
  * @tagline         API integration examples and patterns
  * @description     Comprehensive examples of API integration, data handling, and dynamic UX in jPulse
  * @file            webapp/view/jpulse-examples/api.shtml
- * @version         1.3.3
- * @release         2025-12-01
+ * @version         1.3.4
+ * @release         2025-12-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -115,27 +115,27 @@ document.getElementById('testApiBtn').addEventListener('click', async () =&gt; {
 
                 <p><strong>Click to simulate a 3-second API call:</strong></p>
 
-                        <button id="loadingTestBtn" class="jp-btn jp-btn-secondary">
-                            <span class="btn-text">Simulate Long API Call</span>
-                            <span class="btn-loading" style="display: none;">Loading...</span>
-                        </button>
+                <button id="loadingTestBtn" class="jp-btn jp-btn-secondary">
+                    <span class="btn-text">Simulate Long API Call</span>
+                    <span class="btn-loading" style="display: none;">Loading...</span>
+                </button>
 
-                        <div id="loadingDemo" style="margin-top: 20px;">
-                            <div id="loadingContent" style="display: none;">
-                                <div class="jp-info-box">
-                                    <h4>Loaded Data</h4>
-                                    <p>This content was "loaded" from an API call.</p>
-                                    <ul id="loadedList">
-                                        <!-- Content will be populated by JavaScript -->
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div id="loadingSpinner" style="display: none; text-align: center; padding: 40px;">
-                                <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #007acc; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                                <p style="margin-top: 15px; color: #666;">Loading data...</p>
-                            </div>
+                <div id="loadingDemo" style="margin-top: 20px;">
+                    <div id="loadingContent" style="display: none;">
+                        <div class="jp-info-box">
+                            <h4>Loaded Data</h4>
+                            <p>This content was "loaded" from an API call.</p>
+                            <ul id="loadedList">
+                                <!-- Content will be populated by JavaScript -->
+                            </ul>
                         </div>
+                    </div>
+
+                    <div id="loadingSpinner" style="display: none; text-align: center; padding: 40px;">
+                        <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #007acc; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <p style="margin-top: 15px; color: #666;">Loading data...</p>
+                    </div>
+                </div>
             </div>
             <div id="loading-states-source-panel" class="jp-panel">
                 <div class="jp-source-code" data-lang="html">
@@ -234,33 +234,33 @@ async function simulateApiCall() {
                 <p><strong>Fill out and submit the form below:</strong></p>
 
                 <form id="apiForm" class="jp-form">
-                            <div class="jp-form-group">
-                                <label for="api-name">Name</label>
-                                <input type="text" id="api-name" name="name" class="jp-form-input" required>
-                            </div>
+                    <div class="jp-form-group">
+                        <label for="api-name">Name</label>
+                        <input type="text" id="api-name" name="name" class="jp-form-input" required>
+                    </div>
 
-                            <div class="jp-form-group">
-                                <label for="api-email">Email</label>
-                                <input type="email" id="api-email" name="email" class="jp-form-input" required>
-                            </div>
+                    <div class="jp-form-group">
+                        <label for="api-email">Email</label>
+                        <input type="email" id="api-email" name="email" class="jp-form-input" required>
+                    </div>
 
-                            <div class="jp-form-group">
-                                <label for="api-message">Message</label>
-                                <textarea id="api-message" name="message" class="jp-form-input" rows="4" required></textarea>
-                            </div>
+                    <div class="jp-form-group">
+                        <label for="api-message">Message</label>
+                        <textarea id="api-message" name="message" class="jp-form-input" rows="4" required></textarea>
+                    </div>
 
-                            <button type="submit" class="jp-btn jp-btn-primary" id="submitBtn">
-                                <span class="submit-text">Submit Form</span>
-                                <span class="submit-loading" style="display: none;">Submitting...</span>
-                            </button>
-                        </form>
+                    <button type="submit" class="jp-btn jp-btn-primary" id="submitBtn">
+                        <span class="submit-text">Submit Form</span>
+                        <span class="submit-loading" style="display: none;">Submitting...</span>
+                    </button>
+                </form>
 
-                        <div id="submissionResult" style="margin-top: 15px; display: none;">
-                            <div class="jp-info-box">
-                                <h4>Submission Result</h4>
-                                <pre id="submissionData" style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px;"></pre>
-                            </div>
-                        </div>
+                <div id="submissionResult" style="margin-top: 15px; display: none;">
+                    <div class="jp-info-box">
+                        <h4>Submission Result</h4>
+                        <pre id="submissionData" style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px;"></pre>
+                    </div>
+                </div>
             </div>
             <div id="form-submission-source-panel" class="jp-panel">
                 <div class="jp-source-code" data-lang="html">
@@ -334,31 +334,31 @@ function displaySubmissionResult(data) {
         <div class="jp-card">
             <h2 class="jp-card-dialog-heading">Error Handling Patterns</h2>
             <div id="error-handling-tabs" class="jp-tabs"></div>
-                <div id="error-handling-example-panel" class="jp-panel">
-                    <div class="jp-info-box">
-                        <p><strong>What you learn:</strong> How to handle different types of API errors gracefully with user-friendly messages and recovery options.</p>
-                        <p><strong>Error Types:</strong> 404 Not Found, 500 Server Error, Network Failures, and Timeouts.</p>
-                        <p><strong>Best Practice:</strong> Always provide clear, user-friendly error messages and recovery options.</p>
-                    </div>
-
-                    <p><strong>Click buttons to simulate different error types:</strong></p>
-
-                            <div class="jp-btn-group">
-                                <button id="test404Btn" class="jp-btn jp-btn-warning">Test 404 Error</button>
-                                <button id="test500Btn" class="jp-btn jp-btn-danger">Test Server Error</button>
-                                <button id="testNetworkBtn" class="jp-btn jp-btn-secondary">Test Network Error</button>
-                                <button id="testTimeoutBtn" class="jp-btn jp-btn-info">Test Timeout</button>
-                            </div>
-
-                            <div id="errorDetails" style="margin-top: 15px; display: none;">
-                                <div class="jp-error-box">
-                                    <h4>Error Details</h4>
-                                    <pre id="errorContent" style="background: #fff; padding: 10px; border-radius: 4px; font-size: 12px;"></pre>
-                                </div>
-                            </div>
+            <div id="error-handling-example-panel" class="jp-panel">
+                <div class="jp-info-box">
+                    <p><strong>What you learn:</strong> How to handle different types of API errors gracefully with user-friendly messages and recovery options.</p>
+                    <p><strong>Error Types:</strong> 404 Not Found, 500 Server Error, Network Failures, and Timeouts.</p>
+                    <p><strong>Best Practice:</strong> Always provide clear, user-friendly error messages and recovery options.</p>
                 </div>
-                <div id="error-handling-source-panel" class="jp-panel">
-                    <div class="jp-source-code" data-lang="js">
+
+                <p><strong>Click buttons to simulate different error types:</strong></p>
+
+                <div class="jp-btn-group">
+                    <button id="test404Btn" class="jp-btn jp-btn-warning">Test 404 Error</button>
+                    <button id="test500Btn" class="jp-btn jp-btn-danger">Test Server Error</button>
+                    <button id="testNetworkBtn" class="jp-btn jp-btn-secondary">Test Network Error</button>
+                    <button id="testTimeoutBtn" class="jp-btn jp-btn-info">Test Timeout</button>
+                </div>
+
+                <div id="errorDetails" style="margin-top: 15px; display: none;">
+                    <div class="jp-error-box">
+                        <h4>Error Details</h4>
+                        <pre id="errorContent" style="background: #fff; padding: 10px; border-radius: 4px; font-size: 12px;"></pre>
+                    </div>
+                </div>
+            </div>
+            <div id="error-handling-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="js">
 &lt;script&gt;
 async function handleApiCall(url, options = {}) {
     try {
@@ -419,7 +419,6 @@ function withTimeout(promise, timeoutMs = 10000) {
     ]);
 }
 &lt;/script&gt;
-                    </div>
                 </div>
             </div>
         </div>
@@ -437,22 +436,22 @@ function withTimeout(promise, timeoutMs = 10000) {
 
                 <p><strong>Control the real-time updates:</strong></p>
 
-                        <div class="jp-btn-group">
-                            <button id="startPollingBtn" class="jp-btn jp-btn-success">Start Updates</button>
-                            <button id="stopPollingBtn" class="jp-btn jp-btn-danger" disabled>Stop Updates</button>
-                        </div>
+                <div class="jp-btn-group">
+                    <button id="startPollingBtn" class="jp-btn jp-btn-success">Start Updates</button>
+                    <button id="stopPollingBtn" class="jp-btn jp-btn-danger" disabled>Stop Updates</button>
+                </div>
 
-                        <div id="realtimeData" style="margin-top: 15px;">
-                            <div class="jp-info-box">
-                                <h4>Live Data <span id="updateStatus" style="color: #666;">(Stopped)</span></h4>
-                                <p><strong>Last Update:</strong> <span id="lastUpdate">Never</span></p>
-                                <p><strong>Update Count:</strong> <span id="updateCount">0</span></p>
-                                <p><strong>Random Value:</strong> <span id="randomValue">-</span></p>
-                                <div id="dataHistory" style="margin-top: 10px; max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 4px;">
-                                    <small>Update history will appear here...</small>
-                                </div>
-                            </div>
+                <div id="realtimeData" style="margin-top: 15px;">
+                    <div class="jp-info-box">
+                        <h4>Live Data <span id="updateStatus" style="color: #666;">(Stopped)</span></h4>
+                        <p><strong>Last Update:</strong> <span id="lastUpdate">Never</span></p>
+                        <p><strong>Update Count:</strong> <span id="updateCount">0</span></p>
+                        <p><strong>Random Value:</strong> <span id="randomValue">-</span></p>
+                        <div id="dataHistory" style="margin-top: 10px; max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                            <small>Update history will appear here...</small>
                         </div>
+                    </div>
+                </div>
             </div>
             <div id="realtime-source-panel" class="jp-panel">
                 <div class="jp-source-code" data-lang="js">
@@ -569,38 +568,37 @@ function updateButtonStates(isRunning) {
         <!-- API Best Practices -->
         <div class="jp-card">
             <h2 class="jp-card-dialog-heading">API Integration Best Practices</h2>
-                <div class="jp-info-box">
-                    <h4>jPulse.api.call() Features</h4>
-                    <ul>
-                        <li>Consistent error handling across all API calls</li>
-                        <li>Automatic JSON parsing and response formatting</li>
-                        <li>Built-in support for different HTTP methods</li>
-                        <li>Integration with jPulse notification system</li>
-                        <li>Proper handling of authentication and headers</li>
-                    </ul>
-                </div>
+            <div class="jp-info-box">
+                <h4>jPulse.api.call() Features</h4>
+                <ul>
+                    <li>Consistent error handling across all API calls</li>
+                    <li>Automatic JSON parsing and response formatting</li>
+                    <li>Built-in support for different HTTP methods</li>
+                    <li>Integration with jPulse notification system</li>
+                    <li>Proper handling of authentication and headers</li>
+                </ul>
+            </div>
 
-                <div class="jp-warning-box">
-                    <h4>Performance Considerations</h4>
-                    <ul>
-                        <li>Implement proper loading states for better UX</li>
-                        <li>Use debouncing for search/filter API calls</li>
-                        <li>Cache responses when appropriate</li>
-                        <li>Implement retry logic for transient failures</li>
-                        <li>Set reasonable timeouts for API calls</li>
-                    </ul>
-                </div>
+            <div class="jp-warning-box">
+                <h4>Performance Considerations</h4>
+                <ul>
+                    <li>Implement proper loading states for better UX</li>
+                    <li>Use debouncing for search/filter API calls</li>
+                    <li>Cache responses when appropriate</li>
+                    <li>Implement retry logic for transient failures</li>
+                    <li>Set reasonable timeouts for API calls</li>
+                </ul>
+            </div>
 
-                <div class="jp-info-box">
-                    <h4>Security Best Practices</h4>
-                    <ul>
-                        <li>Never expose sensitive data in client-side code</li>
-                        <li>Validate and sanitize all user inputs</li>
-                        <li>Use HTTPS for all API communications</li>
-                        <li>Implement proper authentication and authorization</li>
-                        <li>Handle errors gracefully without exposing system details</li>
-                    </ul>
-                </div>
+            <div class="jp-info-box">
+                <h4>Security Best Practices</h4>
+                <ul>
+                    <li>Never expose sensitive data in client-side code</li>
+                    <li>Validate and sanitize all user inputs</li>
+                    <li>Use HTTPS for all API communications</li>
+                    <li>Implement proper authentication and authorization</li>
+                    <li>Handle errors gracefully without exposing system details</li>
+                </ul>
             </div>
         </div>
     </div>

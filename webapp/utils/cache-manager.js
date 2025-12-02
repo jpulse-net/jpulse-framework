@@ -7,8 +7,8 @@
  *                  const cache = cacheManager.register(config, 'TemplateCa che');
  *                  const content = cache.getFileSync(filePath);
  * @file            webapp/utils/cache-manager.js
- * @version         1.3.3
- * @release         2025-12-01
+ * @version         1.3.4
+ * @release         2025-12-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.3.3
+# jPulse Docs / Handlebars Templating v1.3.4
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -38,12 +38,12 @@ Use `#unless` blocks for inverse conditional rendering (when condition is false)
 **Note:** The `{{#unless}}` helper does not support `{{else}}` blocks. If you need else functionality, use `{{#if}}` with `{{else}}` instead:
 
 ```handlebars
-<!-- Using unless (no else support) -->
+{{!-- Using unless (no else support) --}}
 {{#unless user.isAuthenticated}}
     <p>Please log in to continue.</p>
 {{/unless}}
 
-<!-- Equivalent using if/else -->
+{{!-- Equivalent using if/else --}}
 {{#if user.isAuthenticated}}
     <p>Welcome back, {{user.firstName}}!</p>
 {{else}}
@@ -101,9 +101,11 @@ Use Handlebars comments for notes that should not appear in the rendered output:
 
 ```handlebars
 {{!-- This is a Handlebars comment - stripped during processing --}}
+
 {{!--
-Multi-line comments are also supported
-and will be completely removed from output
+  Multi-line comments are also supported,
+  they may contain handlebars, such as {{user.firstName}},
+  and will be completely removed from the output
 --}}
 
 <!-- This is an HTML comment - visible in browser source -->
@@ -121,9 +123,10 @@ and will be completely removed from output
 
 **Example:**
 ```handlebars
-{{!-- SVG Icon Component Library
-     These components are used throughout the application
-     Updated: 2025-11-24
+{{!--
+  SVG Icon Component Library
+  These components are used throughout the application
+  Updated: 2025-11-24
 --}}
 {{#component "jpIcons.configSvg" fillColor="currentColor" size="64"}}
     <svg width="{{size}}" height="{{size}}">...</svg>
@@ -165,7 +168,7 @@ You can nest conditionals for complex logic (v0.7.20+):
 Complex template scenarios with nested blocks are fully supported (v0.7.20+):
 
 ```handlebars
-<!-- Nested {{#if}} within {{#each}} -->
+{{!-- Nested {{#if}} within {{#each}} --}}
 {{#each users}}
     <div class="user-card">
         {{#if this.active}}
@@ -175,7 +178,7 @@ Complex template scenarios with nested blocks are fully supported (v0.7.20+):
     </div>
 {{/each}}
 
-<!-- Nested {{#each}} loops -->
+{{!-- Nested {{#each}} loops --}}
 {{#each books}}
     <div class="book">
         <h2>{{this.title}}</h2>
@@ -231,6 +234,182 @@ The jPulse Framework provides several context objects that are available in all 
 - `{{i18n.controller.*}}` - Controller messages
 - `{{i18n.*}}` - Consult the translation files at webapp/translations/ for available fields
 
+### Custom Variables and Components
+- `{{vars.*}}` - User-defined custom variables (see [Custom Variables](#custom-variables) section)
+- `{{components.*}}` - Registered reusable components (see [Reusable Components](#reusable-components) section)
+
+> **Note:** System context variables (`app`, `user`, `url`, `config`, `i18n`) are protected and cannot be overridden by custom variables.
+
+## Custom Variables
+
+The jPulse Framework provides helpers for defining your own template variables safely, without polluting the system context. All custom variables are stored in the `vars` namespace for clear separation from system variables.
+
+### Inline Variables with `{{let}}`
+
+Define template-scoped variables using the `{{let}}` helper:
+
+```handlebars
+{{let pageTitle="Dashboard" maxItems=10 showFooter=true}}
+<title>{{vars.pageTitle}}</title>
+<p>Showing {{vars.maxItems}} items</p>
+{{#if vars.showFooter}}
+    <footer>...</footer>
+{{/if}}
+```
+
+**Supported value types:**
+- Strings: `{{let name="John"}}`
+- Numbers: `{{let count=42}}`
+- Booleans: `{{let active=true}}`
+
+**Nested properties:**
+```handlebars
+{{let config.theme="dark" config.timeout=5000 api.v2.endpoint="/api/v2"}}
+<p>Theme: {{vars.config.theme}}</p>
+<p>Timeout: {{vars.config.timeout}}ms</p>
+<p>API: {{vars.api.v2.endpoint}}</p>
+```
+
+### Block-Scoped Variables with `{{#let}}`
+
+Use `{{#let}}` blocks to create variables that only exist within the block scope, preventing variable pollution:
+
+```handlebars
+{{let outer="outer"}}
+
+{{#let inner="inner"}}
+    <p>Inside: {{vars.outer}}, {{vars.inner}}</p>
+{{/let}}
+
+<p>After block: {{vars.outer}}, {{vars.inner}}</p>
+{{!-- vars.inner is empty here --}}
+```
+
+**Preventing loop pollution:**
+```handlebars
+{{#each items}}
+    {{#let rowClass="active" index=@index}}
+        <li class="{{vars.rowClass}}">Item {{vars.index}}: {{this}}</li>
+    {{/let}}
+{{/each}}
+{{!-- vars.rowClass and vars.index don't persist after the loop --}}
+```
+
+**Nested block scopes:**
+```handlebars
+{{let level="L0"}}
+{{#let level="L1"}}
+    <p>Level 1: {{vars.level}}</p>
+    {{#let level="L2"}}
+        <p>Level 2: {{vars.level}}</p>
+    {{/let}}
+    <p>Back to Level 1: {{vars.level}}</p>
+{{/let}}
+<p>Back to Level 0: {{vars.level}}</p>
+```
+
+### Context Switching with `{{#with}}`
+
+Switch the context to an object's properties using the standard Handlebars `{{#with}}` helper:
+
+```handlebars
+{{#with user}}
+    <p>Name: {{firstName}} {{lastName}}</p>
+    <p>Email: {{email}}</p>
+    {{#if isAdmin}}
+        <p>Admin privileges enabled</p>
+    {{/if}}
+{{/with}}
+```
+
+**With nested objects:**
+```handlebars
+{{#with user.profile}}
+    <p>Bio: {{bio}}</p>
+    <p>Location: {{location}}</p>
+{{/with}}
+```
+
+**Combined with custom variables:**
+```handlebars
+{{let greeting="Hello"}}
+{{#with user}}
+    <p>{{vars.greeting}}, {{firstName}}!</p>
+{{/with}}
+```
+
+### The `vars` Namespace
+
+All custom variables are stored in the `vars` namespace:
+
+**Benefits:**
+- **Safety:** Cannot accidentally override system variables (user, app, config, etc.)
+- **Clarity:** Self-documenting - `{{vars.myVar}}` clearly indicates a custom variable
+- **Debugging:** Easy to distinguish between system and custom variables
+
+**Example:**
+```handlebars
+{{let user="customValue"}}
+
+{{!-- Custom variable --}}
+<p>Custom: {{vars.user}}</p>
+
+{{!-- System variable (unaffected) --}}
+<p>System: {{user.firstName}}</p>
+```
+
+### Best Practices for Custom Variables
+
+1. **Use descriptive names:**
+   ```handlebars
+   {{!-- Good --}}
+   {{let pageTitle="Dashboard" showSidebar=true}}
+
+   {{!-- Avoid --}}
+   {{let pt="Dashboard" ss=true}}
+   ```
+
+2. **Use block scope to prevent pollution:**
+   ```handlebars
+   {{!-- Good - isolated scope --}}
+   {{#each items}}
+       {{#let itemClass="active"}}
+           <li class="{{vars.itemClass}}">{{this}}</li>
+       {{/let}}
+   {{/each}}
+
+   {{!-- Avoid - pollutes template scope --}}
+   {{#each items}}
+       {{let itemClass="active"}}
+       <li class="{{vars.itemClass}}">{{this}}</li>
+   {{/each}}
+   ```
+
+3. **Use `{{#with}}` for context switching:**
+   ```handlebars
+   {{!-- Good - clear intent --}}
+   {{#with user}}
+       <p>{{firstName}} {{lastName}}</p>
+   {{/with}}
+
+   {{!-- Also works but more verbose --}}
+   <p>{{user.firstName}} {{user.lastName}}</p>
+   ```
+
+4. **Combine features for complex scenarios:**
+   ```handlebars
+   {{#each users}}
+       {{#let rowIndex=@index}}
+           {{#with this}}
+               <tr class="row-{{vars.rowIndex}}">
+                   <td>{{firstName}}</td>
+                   <td>{{lastName}}</td>
+               </tr>
+           {{/with}}
+       {{/let}}
+   {{/each}}
+   ```
+
 ## File Operations
 
 The jPulse Framework provides special helpers for file operations:
@@ -256,7 +435,7 @@ You can define parameters, and use them in the included template, such as this i
 Get the last modified timestamp of a file:
 ```handlebars
 {{file.timestamp "jpulse-footer.tmpl"}}
-<!-- Use the file timestamp for browser cache busting: -->
+{{!-- Use the file timestamp for browser cache busting: --}}
 <link rel="stylesheet" href="/jpulse-common.css?t={{file.timestamp "jpulse-common.css"}}">
 ```
 
@@ -297,10 +476,10 @@ The `file.list` helper supports:
 Use `file.includeComponents` to register components from multiple files and make them available in the `components` context. This is particularly useful for dashboard pages that aggregate cards from multiple source files:
 
 ```handlebars
-<!-- Register all admin dashboard cards -->
+{{!-- Register all admin dashboard cards --}}
 {{file.includeComponents "admin/*.shtml" component="adminCards.*"}}
 
-<!-- Render all registered cards -->
+{{!-- Render all registered cards --}}
 {{#each components.adminCards}}
     {{this}}
 {{/each}}
@@ -317,23 +496,22 @@ Use `file.includeComponents` to register components from multiple files and make
 {{/component}}
 ```
 
-**Parameters:**
-- `glob-pattern` (required): File pattern to search (e.g., `"admin/*.shtml"`)
-- `component="namespace.*"` (optional): Filter components by namespace pattern
-- `sortBy="method"` (optional): Sort method - `"component-order"` (default), `"plugin-order"`, `"filename"`, `"filesystem"`
-
-**Sort Methods:**
-- `component-order` (default): Sort by the `order=N` parameter in component definitions
-- `plugin-order`: Sort by plugin dependency resolution order (for plugin dashboards)
-- `filename`: Alphabetical sorting by filename
-- `filesystem`: Natural filesystem order (no sorting)
+**Include components parameters:**
+- `{{file.includeComponents "admin/*.shtml" component="adminCards.*" sortBy="component-order"}}`
+- `"glob-pattern"`: File pattern to search, such as `"admin/*.shtml"` (required)
+- `component="namespace.*"`: Filter components by namespace pattern (optional)
+- `sortBy="method"`: Sort method (optional)
+  - `"component-order"`: Sort by the `order=N` parameter in component definitions (default)
+  - `"plugin-order"`: Sort by plugin dependency resolution order (for plugin dashboards)
+  - `"filename"`: Alphabetical sorting by filename
+  - `"filesystem"`: Natural filesystem order (no sorting)
 
 **Example - Plugin Dashboard:**
 ```handlebars
-<!-- Register plugin cards sorted by dependency order -->
+{{!-- Register plugin cards sorted by dependency order --}}
 {{file.includeComponents "jpulse-plugins/*.shtml" component="pluginCards.*" sortBy="plugin-order"}}
 
-<!-- Render plugin cards -->
+{{!-- Render plugin cards --}}
 {{#each components.pluginCards}}
     {{this}}
 {{/each}}
@@ -367,17 +545,18 @@ Define components using the `{{#component}}` block helper:
 - Must start with a letter
 - Can contain letters, numbers, underscores, hyphens, and dots (for namespaces)
 - Must end with a letter or number
-- Examples: `icon-box`, `userCard`, `Button_Large`, `svg-icon-2`, `jpIcons.configSvg`
+- Recommended to always use namespaces to avoid naming collisions
+- Examples: `icon.box`, `icons.svg-icon-2`, `cards.userCard`, `buttons.Button_Large`, `jpIcons.configSvg`
 
 ### Component Usage
 
 Use components with the `{{components.componentName}}` syntax:
 
 ```handlebars
-<!-- Use with default parameters -->
+{{!-- Use with default parameters --}}
 {{components.widgets.buttonPrimary}}
 
-<!-- Override specific parameters -->
+{{!-- Override specific parameters --}}
 {{components.widgets.buttonPrimary text="Submit" size="large"}}
 ```
 
@@ -402,7 +581,7 @@ Components support both user-defined parameters and special framework parameters
 
 `_inline` - Removes newlines and collapses whitespace for inline use in JavaScript:
 ```handlebars
-<!-- In JavaScript object literal -->
+{{!-- In JavaScript object literal --}}
 <script>
 const navConfig = {
     icon: `{{components.jpIcons.configSvg size="24" _inline=true}}`
@@ -420,7 +599,7 @@ const navConfig = {
 Components support optional dot-notation namespaces for organization:
 
 ```handlebars
-<!-- Define namespaced components -->
+{{!-- Define namespaced components --}}
 {{#component "jpIcons.configSvg" size="64"}}
     <svg width="{{size}}">...</svg>
 {{/component}}
@@ -433,7 +612,7 @@ Components support optional dot-notation namespaces for organization:
     <button>{{text}}</button>
 {{/component}}
 
-<!-- Use namespaced components -->
+{{!-- Use namespaced components --}}
 {{components.jpIcons.configSvg size="32"}}
 {{components.siteIcons.userSvg size="48"}}
 {{components.buttons.primary text="Submit"}}
@@ -451,7 +630,7 @@ Create reusable component libraries by defining multiple components in `.tmpl` f
 
 **File: `webapp/view/components/svg-icons.tmpl`**
 ```handlebars
-<!-- SVG Icon Component Library -->
+{{!-- SVG Icon Component Library --}}
 
 {{#component "jpIcons.logsSvg" fillColor="currentColor" size="64"}}
     <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none">
@@ -487,7 +666,7 @@ Create reusable component libraries by defining multiple components in `.tmpl` f
 Components can call other components:
 
 ```handlebars
-<!-- Define a wrapper component that uses another component -->
+{{!-- Define a wrapper component that uses another component --}}
 {{#component "widgets.card-with-icon" title="Dashboard" iconSize="32"}}
     <div class="card">
         <div class="card-icon">
@@ -497,9 +676,9 @@ Components can call other components:
     </div>
 {{/component}}
 
-<!-- The jpIcons.configSvg component is already defined in svg-icons.tmpl -->
+{{!-- The jpIcons.configSvg component is already defined in svg-icons.tmpl --}}
 
-<!-- Usage -->
+{{!-- Usage --}}
 {{components.widgets.cardWithIcon title="System Status" iconSize="48"}}
 ```
 
@@ -545,8 +724,8 @@ This generates output:<br/>
    - Store in `site/webapp/view/components/`
      - Don't use `webapp/view/components/`, which is jPulse Framework specific
 
-2. **Use descriptive names:**
-   - Good: `icon-user`, `iconUser`, `button-primary`, `card-dashboard`
+2. **Use descriptive names with namespaces:**
+   - Good: `icons.user`, `icons.iconUser`, `buttons.button-primary`, `cardLib.cardDashboard`
    - Avoid: `icon1`, `btn`, `c`
 
 3. **Provide sensible defaults:**
@@ -567,16 +746,16 @@ The Handlebars system includes robust error handling for various scenarios:
 
 ### Safe Iteration
 ```handlebars
-<!-- Safe handling of null/undefined -->
+{{!-- Safe handling of null/undefined --}}
 {{#each possiblyUndefined}}
     <p>{{this}}</p>
 {{/each}}
-<!-- If possiblyUndefined is null/undefined, no output is generated -->
+{{!-- If possiblyUndefined is null/undefined, no output is generated --}}
 ```
 
 ### Type Checking
 ```handlebars
-<!-- Invalid data types show error comments -->
+{{!-- Invalid data types show error comments --}}
 {{#each stringValue}}
     <p>{{this}}</p>
 {{/each}}
@@ -589,10 +768,10 @@ If stringValue is a string (not array/object), it generates output:<br/>
 ### 1. Use Semantic Variable Names
 Choose descriptive variable names that clearly indicate their purpose:
 ```handlebars
-<!-- Good -->
+{{!-- Good --}}
 {{user.firstName}} {{user.lastName}}
 
-<!-- Avoid -->
+{{!-- Avoid --}}
 {{u.fn}} {{u.ln}}
 ```
 
@@ -609,12 +788,12 @@ Always consider what happens when data might be missing:
 ### 3. Keep Templates Clean
 Avoid complex logic in templates. Use the controller to prepare data:
 ```handlebars
-<!-- Good -->
+{{!-- Good --}}
 {{#if user.isAdmin}}
     <div class="admin-panel">...</div>
 {{/if}}
 
-<!-- Avoid complex conditions in templates, currenty not supported -->
+{{!-- Avoid complex conditions in templates, currenty not supported --}}
 {{#if and: user.isAuthenticated user.isAdmin}}
     <div class="admin-panel">...</div>
 {{/if}}
@@ -627,6 +806,23 @@ Follow consistent naming conventions for CSS classes and IDs:
     <span class="jp-user-name">{{user.firstName}} {{user.lastName}}</span>
     <span class="jp-user-email">{{user.email}}</span>
 </div>
+```
+
+### 5. Use Block Scope to Prevent Variable Pollution
+When defining temporary variables in loops, use `{{#let}}` blocks to prevent pollution:
+```handlebars
+{{!-- Good - block scope prevents pollution --}}
+{{#each items}}
+    {{#let itemClass="active" index=@index}}
+        <li class="{{vars.itemClass}}">Item {{vars.index}}</li>
+    {{/let}}
+{{/each}}
+
+{{!-- Avoid - variables persist after loop --}}
+{{#each items}}
+    {{let itemClass="active" index=@index}}
+    <li class="{{vars.itemClass}}">Item {{vars.index}}</li>
+{{/each}}
 ```
 
 ## Template Organization

@@ -1,10 +1,10 @@
-# jPulse Docs / Installed Plugins / Overview v1.3.4
+# jPulse Docs / Installed Plugins / Overview v1.3.5
 
 This directory contains documentation for all installed jPulse plugins.
 
 ## Available Plugins
 
-Browse the available plugins in the sidebar.
+%DYNAMIC{plugins-list-table}%
 
 Each plugin provides:
 - User/admin documentation
@@ -18,4 +18,4 @@ Want to create your own plugins? See the [Plugin Development Guide](../plugins/R
 
 ## Plugin Management
 
-Use the [Plugins Dashboard](/plugins/) to configure and manage installed plugins.
+Use the [Plugins Dashboard](/jpulse-plugins/) to configure and manage installed plugins.

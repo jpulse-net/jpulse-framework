@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.3.4
+# jPulse Docs / Plugins / Creating Plugins v1.3.5
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -473,6 +473,8 @@ window.jPulseNavigation.site.{sectionKey} = {
 ```
 
 ## Step 7: Add Documentation
+
+> 📚 **Markdown System Guide**: See [Markdown Documentation](../markdown-docs.md) for advanced features like dynamic content (`%DYNAMIC{}%`), file exclusion, and styling.
 
 ### Developer Documentation
 

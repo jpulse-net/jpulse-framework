@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v1.3.4
+# jPulse Docs / Site Customization Guide v1.3.5
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -252,6 +252,8 @@ ________________________________________________
 ## Site Documentation System (W-049)
 
 jPulse includes a powerful markdown-based documentation system that allows sites to create multiple documentation namespaces for different audiences.
+
+> 📚 **Comprehensive Guide**: See [Markdown Documentation](markdown-docs.md) for complete documentation including dynamic content, `.jpulse-ignore`, styling, and best practices.
 
 ### Quick Start: Adding Site Documentation
 

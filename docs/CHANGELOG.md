@@ -1,6 +1,125 @@
-# jPulse Docs / Version History v1.3.4
+# jPulse Docs / Version History v1.3.5
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.5, W-104, 2025-12-03
+
+**Commit:** `W-104, v1.3.5: markdown: handle dynamic content tokens`
+
+**FEATURE RELEASE**: Introduced dynamic content tokens for markdown documentation with secure generator registry, client-side docs viewer API, and comprehensive configuration options.
+
+**Objective**: Enable server-generated content in markdown documentation using `%DYNAMIC{}%` tokens, providing flexible, secure, and cacheable dynamic content injection.
+
+**Implementation**:
+
+**Dynamic Content Token System**:
+- **Syntax**: `%DYNAMIC{generator-name key="value" another="value"}%`
+  * Generator names in kebab-case (plugins-list-table, plugins-count)
+  * Optional key="value" parameters
+  * Automatic type coercion: "50" → number, "true" → boolean
+- **Security**: Whitelist-based generator registry
+  * Only registered generators can be called from markdown
+  * Unknown generators produce error message (not exception)
+- **Caching**: Post-cache processing
+  * Content loaded from file cache
+  * Dynamic tokens processed after retrieval (always fresh)
+- **Escaping**: Backtick prefix prevents processing
+  * `` `%DYNAMIC{example}%` `` displays literally (for documentation)
+
+**Built-in Generators**:
+- `plugins-list-table`: Markdown table (icon, name, version, status, description)
+- `plugins-list`: Bullet list format with icons
+- `plugins-count`: Count with optional status filter
+- `dynamic-generator-list`: Self-documenting list of all generators
+
+**jPulse.UI.docs API**:
+- `init(options)`: Initialize documentation viewer
+  * `navElement`: Selector for navigation container (required)
+  * `contentElement`: Selector for content container (required)
+  * `namespace`: Auto-detected from URL if omitted
+  * `registerWithSiteNav`: Add to site nav dropdown
+  * `siteNavKey`: Key for site nav registration
+  * `flattenTopLevel`: Remove root folder wrapper
+- `getViewer()`: Get active viewer instance
+- `convertFilesToPages(files)`: Convert markdown files to nav structure
+
+**SPA Detection Enhancement**:
+- Added `jPulse.UI.docs.init` as automatic SPA trigger
+- Pages using docs API detected as SPAs for proper routing
+
+**Title Case Fix Configuration**:
+- `app.conf` → `controller.markdown.titleCaseFix`
+- Default fixes: Api→API, Html→HTML, Css→CSS, Jpulse→jPulse, etc.
+- Site override via deep merge (add/override individual entries)
+
+**Code Changes**:
+- `webapp/controller/markdown.js`:
+  * Added `DYNAMIC_CONTENT_REGISTRY` with generator metadata
+  * Added `_parseDynamicToken()` for parsing name and parameters
+  * Added `_processDynamicContent()` async token processor
+  * Added `_generatePluginsTable()`, `_generatePluginsList()`, `_generateGeneratorList()`
+  * Modified `_getMarkdownFile()` to be async with dynamic processing
+- `webapp/controller/view.js`:
+  * Added `jPulse.UI.docs.init` to SPA detection triggers
+- `webapp/view/jpulse-common.js`:
+  * Added `jPulse.UI.docs` namespace (~300 lines)
+  * Moved `convertMarkdownFilesToPages` from navigation.helpers
+- `webapp/view/jpulse-docs/index.shtml`:
+  * Refactored to use `jPulse.UI.docs.init()` API
+
+**Test Coverage**:
+- `webapp/tests/unit/controller/markdown.test.js`:
+  * 20 new tests for dynamic content (all passing)
+  * 10 tests for token parsing (name, params, type coercion)
+  * 7 tests for content processing (escaping, errors, generators)
+  * 3 tests for registry verification
+- `webapp/tests/unit/utils/jpulse-ui-navigation.test.js`:
+  * Updated 2 tests for new API location
+
+**Documentation**:
+- `docs/markdown-docs.md` (NEW - 580 lines):
+  * Complete guide for markdown documentation infrastructure
+  * Quick start for creating documentation namespaces
+  * Dynamic content tokens with syntax and examples
+  * jPulse.UI.docs API reference
+  * Title case fix configuration and overrides
+  * Symlink approach for accessible docs directories
+  * Linking best practices (GitHub compatibility)
+- Updated links in `docs/README.md`, `docs/site-customization.md`, `docs/plugins/creating-plugins.md`
+- `docs/installed-plugins/README.md` now uses `%DYNAMIC{plugins-list-table}%`
+
+**Usage Examples**:
+```markdown
+# Installed Plugins
+
+`%DYNAMIC{plugins-list-table}%`
+
+We have %DYNAMIC{plugins-count}% plugins installed.
+
+## Available Generators
+
+`%DYNAMIC{dynamic-generator-list}%`
+```
+
+**Benefits**:
+1. **Flexibility**: Dynamic content without rebuilding docs
+2. **Security**: Whitelist prevents arbitrary code execution
+3. **Performance**: Cache-friendly with post-cache processing
+4. **Maintainability**: Self-documenting generator list
+5. **Developer Experience**: Simple API for docs viewers
+
+**Files Modified**: 11 files
+- 2 controllers: markdown.js, view.js
+- 1 client library: jpulse-common.js
+- 1 view: jpulse-docs/index.shtml
+- 2 test files: markdown.test.js, jpulse-ui-navigation.test.js
+- 5 documentation: markdown-docs.md (new), README.md, site-customization.md, creating-plugins.md, installed-plugins/README.md
+
+**Breaking Changes**: None
+- New opt-in features
+- Existing markdown unchanged
+- API additions only
 
 ________________________________________________
 ## v1.3.4, W-103, 2025-12-02

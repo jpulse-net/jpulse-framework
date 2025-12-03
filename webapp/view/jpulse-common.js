@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.3.4
- * @release         2025-12-02
+ * @version         1.3.5
+ * @release         2025-12-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -2531,37 +2531,9 @@ window.jPulse = {
 
             /**
              * Helper functions for common page conversions
+             * Note: convertMarkdownFilesToPages moved to jPulse.UI.docs.convertFilesToPages (W-104)
              */
-            helpers: {
-                /**
-                 * Convert markdown file list to navigation pages structure
-                 * @param {Array} files - Array of file objects from markdown API
-                 * @param {number} depth - Current recursion depth
-                 * @returns {Object} Pages structure matching app.conf format
-                 */
-                convertMarkdownFilesToPages: (files, depth = 0) => {
-                    const MAX_DEPTH = 16;
-                    if (depth > MAX_DEPTH || !Array.isArray(files)) {
-                        return {};
-                    }
-
-                    const pages = {};
-                    files.forEach(file => {
-                        const key = file.name || file.path.replace('.md', '').replace(/[^a-zA-Z0-9]/g, '_');
-                        pages[key] = {
-                            label: file.title || file.name,
-                            url: file.url || file.path.replace('.md', '')
-                        };
-
-                        // Recursively convert subdirectories
-                        if (file.isDirectory && file.files && file.files.length > 0) {
-                            pages[key].pages = jPulse.UI.navigation.helpers.convertMarkdownFilesToPages(file.files, depth + 1);
-                        }
-                    });
-
-                    return pages;
-                }
-            },
+            helpers: {},
 
             // ========================================
             // INTERNAL NAVIGATION FUNCTIONS
@@ -3283,6 +3255,354 @@ window.jPulse = {
              */
             _destroyMobileMenu: () => {
                 jPulse.UI.navigation._closeMobileMenu();
+            }
+        },
+
+        // ========================================
+        // DOCUMENTATION VIEWER (W-104)
+        // ========================================
+
+        /**
+         * Documentation viewer for markdown-based docs
+         * Provides SPA navigation, markdown rendering, and site nav integration
+         */
+        docs: {
+            // Internal state
+            _viewer: null,
+
+            /**
+             * Initialize a documentation viewer
+             * @param {Object} options - Configuration options
+             * @param {string} options.navElement - Selector for navigation container (required)
+             * @param {string} options.contentElement - Selector for content container (required)
+             * @param {string} options.namespace - Documentation namespace (auto-detected from URL if omitted)
+             * @param {string} options.defaultPath - Initial page to load (default: 'README.md')
+             * @param {Function} options.onNavigate - Callback after navigation (path, content)
+             * @param {Function} options.onError - Callback on errors (error)
+             * @param {boolean} options.registerWithSiteNav - Register pages with site nav dropdown
+             * @param {string} options.siteNavKey - Key for site nav registration
+             * @param {boolean} options.flattenTopLevel - Remove root folder wrapper in site nav
+             * @returns {Promise<Object>} Viewer instance for programmatic control
+             */
+            init: async (options = {}) => {
+                const config = {
+                    navElement: options.navElement,
+                    contentElement: options.contentElement,
+                    namespace: options.namespace || jPulse.UI.docs._getNamespaceFromUrl(),
+                    defaultPath: options.defaultPath || 'README.md',
+                    onNavigate: options.onNavigate || null,
+                    onError: options.onError || null,
+                    registerWithSiteNav: options.registerWithSiteNav || false,
+                    siteNavKey: options.siteNavKey || null,
+                    flattenTopLevel: options.flattenTopLevel !== false // Default true
+                };
+
+                // Validate required options
+                if (!config.navElement) {
+                    throw new Error('jPulse.UI.docs.init: navElement is required');
+                }
+                if (!config.contentElement) {
+                    throw new Error('jPulse.UI.docs.init: contentElement is required');
+                }
+
+                // Create viewer instance
+                const viewer = {
+                    namespace: config.namespace,
+                    currentPath: jPulse.UI.docs._getPathFromUrl(config.namespace) || config.defaultPath,
+                    files: null,
+                    _config: config,
+                    _navEl: document.querySelector(config.navElement),
+                    _contentEl: document.querySelector(config.contentElement),
+
+                    /**
+                     * Navigate to a document
+                     * @param {string} path - Document path (e.g., 'guides/installation.md')
+                     */
+                    navigateTo: async function(path) {
+                        const normalizedPath = path.endsWith('.md') ? path : `${path}.md`;
+                        const url = `/${this.namespace}/${path.replace('.md', '')}`;
+                        history.pushState({ path: normalizedPath }, '', url);
+                        this.currentPath = normalizedPath;
+                        await jPulse.UI.docs._loadDocument(this);
+                        jPulse.UI.docs._updateActiveNav(this);
+                    },
+
+                    /**
+                     * Get current document path
+                     * @returns {string} Current path
+                     */
+                    getCurrentPath: function() {
+                        return this.currentPath;
+                    },
+
+                    /**
+                     * Refresh current document
+                     */
+                    refresh: async function() {
+                        await jPulse.UI.docs._loadDocument(this);
+                    },
+
+                    /**
+                     * Get cached file structure
+                     * @returns {Array} File structure from API
+                     */
+                    getFiles: function() {
+                        return this.files;
+                    }
+                };
+
+                // Validate DOM elements
+                if (!viewer._navEl) {
+                    throw new Error(`jPulse.UI.docs.init: navElement '${config.navElement}' not found`);
+                }
+                if (!viewer._contentEl) {
+                    throw new Error(`jPulse.UI.docs.init: contentElement '${config.contentElement}' not found`);
+                }
+
+                // Load navigation and initial document
+                await jPulse.UI.docs._loadNavigation(viewer);
+                await jPulse.UI.docs._loadDocument(viewer);
+                jPulse.UI.docs._setupNavigation(viewer);
+
+                // Register with site nav if requested
+                if (config.registerWithSiteNav && config.siteNavKey) {
+                    jPulse.UI.navigation.registerPages(config.siteNavKey, async () => {
+                        if (viewer.files) {
+                            const pages = jPulse.UI.docs.convertFilesToPages(viewer.files);
+
+                            // Flatten top level if requested
+                            if (config.flattenTopLevel) {
+                                const firstKey = Object.keys(pages)[0];
+                                if (firstKey && pages[firstKey].pages && Object.keys(pages[firstKey].pages).length > 0) {
+                                    return pages[firstKey].pages;
+                                }
+                            }
+
+                            return pages;
+                        }
+                        return {};
+                    });
+                }
+
+                // Store viewer instance
+                jPulse.UI.docs._viewer = viewer;
+
+                return viewer;
+            },
+
+            /**
+             * Get the current viewer instance
+             * @returns {Object|null} Viewer instance or null if not initialized
+             */
+            getViewer: () => {
+                return jPulse.UI.docs._viewer;
+            },
+
+            /**
+             * Convert markdown file list to navigation pages structure
+             * @param {Array} files - Array of file objects from markdown API
+             * @param {number} depth - Current recursion depth (internal)
+             * @returns {Object} Pages structure matching navigation format
+             */
+            convertFilesToPages: (files, depth = 0) => {
+                const MAX_DEPTH = 16;
+                if (depth > MAX_DEPTH || !Array.isArray(files)) {
+                    return {};
+                }
+
+                const pages = {};
+                files.forEach(file => {
+                    const key = file.name || file.path.replace('.md', '').replace(/[^a-zA-Z0-9]/g, '_');
+                    pages[key] = {
+                        label: file.title || file.name,
+                        url: file.url || file.path.replace('.md', '')
+                    };
+
+                    // Recursively convert subdirectories
+                    if (file.isDirectory && file.files && file.files.length > 0) {
+                        pages[key].pages = jPulse.UI.docs.convertFilesToPages(file.files, depth + 1);
+                    }
+                });
+
+                return pages;
+            },
+
+            // ========================================
+            // INTERNAL DOCS FUNCTIONS
+            // ========================================
+
+            /**
+             * Get namespace from URL path
+             * @returns {string} Namespace (first path segment)
+             */
+            _getNamespaceFromUrl: () => {
+                const pathParts = window.location.pathname.split('/').filter(p => p);
+                return pathParts[0] || 'jpulse-docs';
+            },
+
+            /**
+             * Get document path from URL
+             * @param {string} namespace - Current namespace
+             * @returns {string} Document path with .md extension
+             */
+            _getPathFromUrl: (namespace) => {
+                const path = window.location.pathname.replace(`/${namespace}/`, '') || 'README.md';
+                return path.endsWith('.md') ? path : `${path}.md`;
+            },
+
+            /**
+             * Load navigation structure from API
+             * @param {Object} viewer - Viewer instance
+             */
+            _loadNavigation: async (viewer) => {
+                try {
+                    const response = await fetch(`/api/1/markdown/${viewer.namespace}/`);
+                    const data = await response.json();
+                    viewer.files = data.files;
+                    jPulse.UI.docs._renderNavigation(viewer, data.files);
+                } catch (error) {
+                    console.error('Failed to load navigation:', error);
+                    if (viewer._config.onError) {
+                        viewer._config.onError(error);
+                    }
+                }
+            },
+
+            /**
+             * Render navigation sidebar
+             * @param {Object} viewer - Viewer instance
+             * @param {Array} files - File structure
+             */
+            _renderNavigation: (viewer, files) => {
+                viewer._navEl.innerHTML = `<ul class="jp-docs-nav">${jPulse.UI.docs._renderFileList(viewer, files)}</ul>`;
+            },
+
+            /**
+             * Render file list recursively
+             * @param {Object} viewer - Viewer instance
+             * @param {Array} files - Files to render
+             * @returns {string} HTML string
+             */
+            _renderFileList: (viewer, files) => {
+                let html = '';
+                files.forEach(file => {
+                    html += jPulse.UI.docs._renderFileItem(viewer, file);
+                });
+                return html;
+            },
+
+            /**
+             * Render single file item
+             * @param {Object} viewer - Viewer instance
+             * @param {Object} item - File object
+             * @returns {string} HTML string
+             */
+            _renderFileItem: (viewer, item) => {
+                const isActive = item.path === viewer.currentPath;
+                let cssClass = isActive ? 'jp-docs-nav-active' : '';
+                let html = '<li>';
+
+                if (item.isDirectory) {
+                    cssClass += ' jp-docs-nav-directory';
+                    if (item.name) {
+                        // Directory with README - clickable
+                        html += `<a href="/${viewer.namespace}/${item.path.replace('.md', '')}" class="${cssClass}" data-path="${item.path}"><strong>${item.title}</strong></a>`;
+                    } else {
+                        // Directory without README - just label
+                        html += `<strong class="${cssClass}">${item.title}</strong>`;
+                    }
+
+                    // Render nested files
+                    if (item.files && item.files.length > 0) {
+                        html += `<ul>${jPulse.UI.docs._renderFileList(viewer, item.files)}</ul>`;
+                    }
+                } else {
+                    // Regular file
+                    html += `<a href="/${viewer.namespace}/${item.path.replace('.md', '')}" class="${cssClass}" data-path="${item.path}">${item.title}</a>`;
+                }
+
+                html += '</li>';
+                return html;
+            },
+
+            /**
+             * Load document content from API
+             * @param {Object} viewer - Viewer instance
+             */
+            _loadDocument: async (viewer) => {
+                try {
+                    const response = await fetch(`/api/1/markdown/${viewer.namespace}/${viewer.currentPath}`);
+                    const data = await response.json();
+                    if (!data.success) {
+                        throw new Error(data.error || 'Failed to load document');
+                    }
+                    jPulse.UI.docs._renderMarkdown(viewer, data.content);
+
+                    // Call onNavigate callback
+                    if (viewer._config.onNavigate) {
+                        viewer._config.onNavigate(viewer.currentPath, data.content);
+                    }
+                } catch (error) {
+                    const message = error.message || 'Failed to load documentation';
+                    viewer._contentEl.innerHTML = `<div class="jp-error">${message}</div>`;
+
+                    if (viewer._config.onError) {
+                        viewer._config.onError(error);
+                    }
+                }
+            },
+
+            /**
+             * Render markdown content
+             * @param {Object} viewer - Viewer instance
+             * @param {string} content - Markdown content (already transformed by server)
+             */
+            _renderMarkdown: (viewer, content) => {
+                // Check if marked.js is available
+                if (typeof marked !== 'undefined') {
+                    const html = marked.parse(content);
+                    viewer._contentEl.innerHTML = html;
+                } else {
+                    console.error('marked.js not loaded. Include: <script src="/common/marked/marked.min.js"></script>');
+                    viewer._contentEl.innerHTML = `<pre>${content}</pre>`;
+                }
+            },
+
+            /**
+             * Setup navigation event handlers
+             * @param {Object} viewer - Viewer instance
+             */
+            _setupNavigation: (viewer) => {
+                // Handle navigation clicks
+                document.addEventListener('click', async (e) => {
+                    if (e.target.matches('.jp-docs-nav a')) {
+                        e.preventDefault();
+                        const path = e.target.getAttribute('data-path');
+                        const url = `/${viewer.namespace}/${path.replace('.md', '')}`;
+                        history.pushState({ path }, '', url);
+                        viewer.currentPath = path;
+                        await jPulse.UI.docs._loadDocument(viewer);
+                        jPulse.UI.docs._updateActiveNav(viewer);
+                    }
+                });
+
+                // Handle browser back/forward
+                window.addEventListener('popstate', async () => {
+                    viewer.currentPath = jPulse.UI.docs._getPathFromUrl(viewer.namespace);
+                    await jPulse.UI.docs._loadDocument(viewer);
+                    jPulse.UI.docs._updateActiveNav(viewer);
+                });
+            },
+
+            /**
+             * Update active navigation item
+             * @param {Object} viewer - Viewer instance
+             */
+            _updateActiveNav: (viewer) => {
+                document.querySelectorAll('.jp-docs-nav a').forEach(link => {
+                    link.classList.toggle('jp-docs-nav-active',
+                        link.getAttribute('data-path') === viewer.currentPath);
+                });
             }
         },
 

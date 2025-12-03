@@ -47188,3 +47188,228 @@ Date: 2025-12-02
 
 
 ============================================================
+2025-12-02 13:05
+
+User requested implementation of W-104: markdown: handle dynamic content tokens
+
+Prompt: "implement W-104, v1.3.4: markdown: handle dynamic content tokens"
+
+Summary of implementation:
+- Added dynamic content token support to MarkdownController
+- Syntax: %DYNAMIC{content-name key="value"}%
+- Tokens preceded by backtick are not processed (for documentation escaping)
+- Three initial generators implemented:
+  - plugins-list-table: Generates markdown table of installed plugins
+  - plugins-list: Generates bullet list of installed plugins
+  - plugins-count: Returns count of plugins (supports status filter)
+- Parameters support type coercion (string, number, boolean)
+- Dynamic content processed AFTER cache retrieval for fresh data
+
+Files modified:
+- webapp/controller/markdown.js
+  - Added import for PluginManager
+  - Added DYNAMIC_CONTENT_GENERATORS registry
+  - Added _parseDynamicToken() method
+  - Added _processDynamicContent() async method
+  - Added _generatePluginsTable() method
+  - Added _generatePluginsList() method
+  - Made _getMarkdownFile() async
+  - Updated api() to await _getMarkdownFile()
+- docs/installed-plugins/README.md
+  - Added %DYNAMIC{plugins-list-table}% token
+
+Work Item: W-104
+Status: ✅ IMPLEMENTED - pending testing
+
+
+============================================================
+2025-12-02 16:00
+
+User reported error and requested documentation:
+- Error: "LogController.logDebug is not a function"
+- Request: Create docs/markdown-docs.md for markdown documentation system
+
+Summary:
+1. Fixed bug: Removed call to non-existent LogController.logDebug() in markdown.js
+2. Created comprehensive documentation: docs/markdown-docs.md
+   - How to create custom doc namespaces (/help/, /faq/, etc.)
+   - Directory structure and README.md conventions
+   - Dynamic content with %DYNAMIC{}% tokens
+   - File exclusion with .jpulse-ignore
+   - Linking between documents
+   - API reference
+   - Client-side integration
+   - Styling and best practices
+   - Complete example: Creating a Help Center
+3. Added links to new documentation in:
+   - docs/README.md (Site Development section)
+   - docs/site-customization.md (Site Documentation System section)
+   - docs/plugins/creating-plugins.md (Step 7: Add Documentation)
+
+Files modified:
+- webapp/controller/markdown.js (removed logDebug call)
+- docs/markdown-docs.md (new file)
+- docs/README.md (added link)
+- docs/site-customization.md (added link)
+- docs/plugins/creating-plugins.md (added link)
+
+Status: ✅ COMPLETED
+
+
+============================================================
+2025-12-02 16:15
+
+User requested: Create a dynamic-generator-list that lists all generators
+
+Implementation:
+- Refactored DYNAMIC_CONTENT_GENERATORS to DYNAMIC_CONTENT_REGISTRY
+- Registry now includes metadata: description, params, generator function
+- Added getter DYNAMIC_CONTENT_GENERATORS for backward compatibility
+- Added new generator: dynamic-generator-list
+- Added _generateGeneratorList() method
+- Updated docs/markdown-docs.md to use %DYNAMIC{dynamic-generator-list}%
+
+Files modified:
+- webapp/controller/markdown.js
+- docs/markdown-docs.md
+
+Status: ✅ COMPLETED
+
+
+============================================================
+2025-12-02 17:00
+
+User requested: Create jPulse.UI.docs API for documentation viewer
+
+Implementation (W-104 enhancement):
+1. Created jPulse.UI.docs namespace in jpulse-common.js with:
+   - init(options) - Initialize documentation viewer
+   - getViewer() - Get current viewer instance
+   - convertFilesToPages(files) - Convert markdown files to nav structure
+   - Internal methods for navigation, rendering, etc.
+
+2. init() options:
+   - navElement: selector for navigation container (required)
+   - contentElement: selector for content container (required)
+   - namespace: auto-detected from URL if omitted
+   - defaultPath: initial page (default: 'README.md')
+   - onNavigate, onError: callbacks
+   - registerWithSiteNav, siteNavKey, flattenTopLevel: site nav integration
+
+3. Viewer instance methods:
+   - navigateTo(path) - Navigate to a document
+   - getCurrentPath() - Get current path
+   - refresh() - Reload current document
+   - getFiles() - Get cached file structure
+
+4. Moved convertMarkdownFilesToPages from jPulse.UI.navigation.helpers
+   to jPulse.UI.docs.convertFilesToPages
+
+5. Updated jpulse-docs/index.shtml to use new API:
+   - Removed 130+ lines of jPulseDocsViewer class
+   - Now just 15 lines with jPulse.UI.docs.init()
+
+6. Updated docs/markdown-docs.md with new API documentation
+
+Files modified:
+- webapp/view/jpulse-common.js (added ~300 lines for jPulse.UI.docs)
+- webapp/view/jpulse-docs/index.shtml (simplified from 170 to ~50 lines)
+- docs/markdown-docs.md (updated API documentation)
+
+Status: ✅ COMPLETED
+
+
+============================================================
+2025-12-02 18:05
+
+Session: Fix documentation and test regressions after jPulse.UI.docs refactoring
+
+Changes made:
+
+1. docs/markdown-docs.md:
+   - Removed duplicate View Page example (Help Center section now references Quick Start)
+   - Escaped %DYNAMIC{}% tokens in code examples (backtick prefix to prevent processing)
+   - Added note about framework's jpulse-docs having extra tabs not needed for site docs
+   - Documented titleCaseFix configuration and how to override in site config
+   - Fixed example links with .md.md workaround (preprocessor strips one .md)
+
+2. webapp/controller/view.js:
+   - Added jPulse.UI.docs.init as SPA detection trigger (line 74)
+   - Enables automatic SPA routing for pages using the docs API
+
+3. webapp/tests/unit/utils/jpulse-ui-navigation.test.js:
+   - Updated test calls from jPulse.UI.navigation.helpers.convertMarkdownFilesToPages
+     to jPulse.UI.docs.convertFilesToPages (2 occurrences)
+
+Status: ✅ COMPLETED - All convert tests pass (2 passed, 54 skipped)
+
+
+============================================================
+2025-12-02 18:15
+
+Added unit tests for W-104 dynamic content feature
+
+Tests added to webapp/tests/unit/controller/markdown.test.js:
+
+1. Dynamic Content Token Parsing (_parseDynamicToken) - 10 tests:
+   - Parse simple name without parameters
+   - Parse name with single/multiple parameters
+   - Integer coercion, float coercion
+   - Boolean true/false coercion
+   - String values preserved
+   - Invalid syntax error handling
+   - Empty token error handling
+
+2. Dynamic Content Processing (_processDynamicContent) - 7 tests:
+   - No tokens - return unchanged
+   - Escaped tokens (backtick) - not processed
+   - Unknown generator - error message
+   - plugins-count generator works
+   - dynamic-generator-list generator works
+   - Multiple tokens in same content
+   - Mixed escaped and non-escaped tokens
+
+3. Dynamic Content Registry - 3 tests:
+   - Required generators registered
+   - Generator functions exist
+   - Descriptions for documentation
+
+Result: 20 tests passed
+
+Updated work-items.md:
+- W-104 status: ✅ DONE
+- Added test file to deliverables
+- Marked testing considerations as complete
+
+Status: ✅ COMPLETED
+
+
+============================================================
+2025-12-02 18:20
+
+Release prep for W-104, v1.3.5
+
+Verified release notes already in place:
+- README.md: Latest Release Highlights updated ✅
+- docs/README.md: Latest Release Highlights updated ✅
+- docs/CHANGELOG.md: v1.3.5 section complete ✅
+
+Updated commit-message.txt with comprehensive release notes:
+- Dynamic content token system overview
+- Security whitelist-based registry
+- Built-in generators (4)
+- jPulse.UI.docs API (~300 lines)
+- SPA detection enhancement
+- Title case fix configuration
+- Code changes summary
+- Test coverage (20 new tests)
+- Documentation (580+ lines new)
+- Usage examples
+- No breaking changes
+
+Ready for version bump: node bin/bump-version.js 1.3.5
+
+Status: ✅ RELEASE PREP COMPLETED
+
+
+============================================================

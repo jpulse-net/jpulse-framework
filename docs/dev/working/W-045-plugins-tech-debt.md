@@ -150,7 +150,10 @@ For the main architectural specification, see: [`W-014-W-045-mvc-site-plugins-ar
 
 ---
 
-## W-045-TD-13: Auto-Generate Installed Plugins Index
+## W-045-TD-13: Auto-Generate Installed Plugins Index -- ✅ DONE
+
+Status: ✅ DONE
+Work item: W-104, v1.3.5, 2025-12-03: markdown: handle dynamic content tokens
 
 - **Description**: Automatically regenerate `docs/installed-plugins/README.md` when plugins are installed/uninstalled
 - **Complexity**: Medium - deployment location varies
@@ -308,7 +311,10 @@ For the main architectural specification, see: [`W-014-W-045-mvc-site-plugins-ar
 
 ---
 
-## W-045-TD-18: HTML Sanitization for Plugin Descriptions
+## W-045-TD-18: HTML Sanitization for Plugin Descriptions -- ✅ DONE
+
+Status: ✅ DONE
+Work item: W-045, v1.3.0, 2025-11-30: architecture: add plugin infrastructure with auto-discovery
 
 - **Description**: Sanitize HTML content in plugin descriptions to prevent XSS attacks
 - **Current Limitation**: Plugin descriptions from `plugin.json` are displayed directly in admin UI without sanitization

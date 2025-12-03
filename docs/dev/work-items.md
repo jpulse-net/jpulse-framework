@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.4
+# jPulse Docs / Dev / Work Items v1.3.5
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -2289,7 +2289,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - updated directory layout, file resolution priority, CSS/JS layers
     - added plugin development guidelines and reference implementations
 
-### W-103, v1.3.4: handlebars: custom variables with `{{let}}`, `{{#let}}`, and `{{#with}}`
+### W-103, v1.3.4, 2025-12-02: handlebars: custom variables with `{{let}}`, `{{#let}}`, and `{{#with}}`
 - status: ✅ DONE
 - type: Feature
 - objective: enable template authors to define custom variables safely without polluting the main context
@@ -2348,7 +2348,83 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-
+### W-104, v1.3.5, 2025-12-03: markdown: handle dynamic content tokens
+- status: ✅ DONE
+- type: Feature
+- objective: ability to add dynamic content into markdown, such as a table of the installed plugins
+- prerequisites:
+  - docs/dev/working/W-045-plugins-tech-debt.md:
+    - W-045-TD-13: Auto-Generate Installed Plugins Index
+- statement of work:
+  - the initial idea to recreate the docs/installed-plugins/README.md markdown document when a plugin is installed/removed is too complex
+  - a token that handles content dynamically at page view time is much more flexible
+  - for security, the list of functions that can be called is limited to registered generators
+  - dynamic content is processed AFTER cache retrieval, ensuring fresh data while maintaining cache benefits
+  - tokens enclosed in backticks are not expanded - this is done so that it is possible to document this feature in markdown!
+- syntax:
+  - `%DYNAMIC{ content-name key="value" }%`
+  - content-name: kebab-case identifier, such as plugins-list-table
+  - parameters: optional key="value" pairs
+  - values: automatically coerced to number/boolean when possible
+- examples:
+  - `%DYNAMIC{plugins-list-table}%` -- return markdown table of installed plugins
+  - `%DYNAMIC{plugins-list-table status="enabled" limit="10"}%` -- only enabled ones, max 10
+  - `%DYNAMIC{plugins-count status="enabled"}%` -- count of enabled plugins
+  - `%DYNAMIC{user-stats period="30d" type="active"}%` -- user stats over 30 days
+  - `%DYNAMIC{logs-list-table columns="date, username, action, type" limit="50"}%` -- recent logs
+- implementation approach:
+  - add `_processDynamicContent()` method to MarkdownController
+  - process tokens after cache retrieval (dynamic content always fresh)
+  - parse token syntax into name and parameters
+  - call registered generator functions with parsed params
+  - handle errors gracefully (show error message in markdown)
+- new methods:
+  - MarkdownController._parseDynamicToken(token) - parse name and params
+  - MarkdownController._processDynamicContent(content, req) - async token processor
+  - MarkdownController.DYNAMIC_CONTENT_REGISTRY - registry object (security whitelist)
+  - MarkdownController._generatePluginsTable(params) - markdown table generator
+  - MarkdownController._generatePluginsList(params) - markdown list generator
+  - MarkdownController._generateGeneratorList() - list all available generators
+- generators implemented:
+  - plugins-list-table: table format with columns: Plugin, Version, Status, Description
+  - plugins-list: bullet list format with icons
+  - plugins-count: simple count (supports status filter)
+  - dynamic-generator-list: self-documenting list of all generators
+- testing considerations:
+  - verify token parsing with/without parameters
+  - test unknown generator names (error handling)
+  - test parameter type coercion (string, number, boolean)
+  - verify cache still works (process after cache retrieval)
+  - test error scenarios (syntax errors, generator exceptions)
+  - unit tests added: 20 tests in markdown.test.js
+- usage in docs:
+  - update docs/installed-plugins/README.md to use `%DYNAMIC{plugins-list-table}%`
+- deliverables:
+  - webapp/controller/markdown.js
+    - added DYNAMIC_CONTENT_REGISTRY with generator metadata
+    - added _parseDynamicToken() method
+    - added _processDynamicContent() async method
+    - added _generatePluginsTable(), _generatePluginsList(), _generateGeneratorList()
+    - modified _getMarkdownFile() to be async and call _processDynamicContent()
+  - webapp/controller/view.js
+    - added jPulse.UI.docs.init as SPA detection trigger
+  - webapp/view/jpulse-common.js
+    - added jPulse.UI.docs namespace with init(), getViewer(), convertFilesToPages()
+    - moved convertMarkdownFilesToPages from jPulse.UI.navigation.helpers
+  - webapp/view/jpulse-docs/index.shtml
+    - refactored to use jPulse.UI.docs.init() API
+  - webapp/tests/unit/utils/jpulse-ui-navigation.test.js
+    - updated tests to use jPulse.UI.docs.convertFilesToPages()
+  - webapp/tests/unit/controller/markdown.test.js
+    - added 20 tests for dynamic content: token parsing, processing, registry
+  - docs/installed-plugins/README.md
+    - uses `%DYNAMIC{plugins-list-table}%`
+  - docs/markdown-docs.md (NEW)
+    - comprehensive documentation for markdown docs infrastructure
+    - documents %DYNAMIC{}% tokens, syntax, generators
+    - documents jPulse.UI.docs API for creating doc viewers
+    - documents titleCaseFix configuration and overrides
+    - documents symlink approach for accessible docs directories
 
 
 
@@ -2393,8 +2469,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-103, v1.3.4
-- update deliverables in W-103 work-items to document work done (don't make any other changes to this file)
+- assume release: W-104, v1.3.5
+- update deliverables in W-104 work-items to document work done (don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -2411,12 +2487,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.4
+node bin/bump-version.js 1.3.5
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.4
+git tag v1.3.5
 git push origin main --tags
 
 === on failed package build on github ===

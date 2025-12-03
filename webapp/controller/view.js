@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         1.3.4
- * @release         2025-12-02
+ * @version         1.3.5
+ * @release         2025-12-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -71,6 +71,7 @@ class ViewController {
                     content.includes('/vue-router.min.js') ||
                     content.includes('/vue-router.js') ||
                     content.includes('VueRouter.createRouter') ||
+                    content.includes('jPulse.UI.docs.init') || // W-104: Docs viewer uses SPA routing
                     (content.includes('history.pushState') && content.includes('popstate'))
                 );
             }

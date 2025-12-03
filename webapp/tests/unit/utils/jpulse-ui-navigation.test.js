@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.navigation Widget (W-069)
  * @description     Tests for client-side site navigation dropdown and mobile hamburger menu
  * @file            webapp/tests/unit/utils/jpulse-ui-navigation.test.js
- * @version         1.3.4
- * @release         2025-12-02
+ * @version         1.3.5
+ * @release         2025-12-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -429,7 +429,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
             }
         ];
 
-        const pages = window.jPulse.UI.navigation.helpers.convertMarkdownFilesToPages(mockFiles);
+        const pages = window.jPulse.UI.docs.convertFilesToPages(mockFiles);
 
         // Verify structure (use bracket notation for keys with dots)
         expect(Object.keys(pages)).toContain('README.md');
@@ -456,7 +456,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         };
 
         const deepFiles = createNestedFiles(1);
-        const pages = window.jPulse.UI.navigation.helpers.convertMarkdownFilesToPages(deepFiles);
+        const pages = window.jPulse.UI.docs.convertFilesToPages(deepFiles);
 
         // Count actual depth - should stop at MAX_DEPTH (16)
         const getMaxDepth = (obj, depth = 0) => {

@@ -4,8 +4,8 @@
  * @tagline         JPulse Framework documentation page
  * @description     JPulse Framework documentation, page loads markdown via markdown API, and renders it as HTML
  * @file            webapp/view/jpulse/index.shtml
- * @version         1.3.4
- * @release         2025-12-02
+ * @version         1.3.5
+ * @release         2025-12-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -46,171 +46,22 @@
 
     <script src="/common/marked/marked.min.js"></script>
     <script>
-        class jPulseDocsViewer {
-            constructor() {
-                // Auto-detect namespace from URL path
-                this.namespace = this.getNamespaceFromUrl();
-                this.currentPath = this.getPathFromUrl();
-                this.files = null; // Cache for file structure (shared with site nav)
-                // Note: init() called explicitly outside constructor for async/await
-            }
-
-            getNamespaceFromUrl() {
-                const pathParts = window.location.pathname.split('/').filter(p => p);
-                return pathParts[0] || 'jpulse'; // Default to jpulse if no namespace found
-            }
-
-            async init() {
-                await this.loadNavigation();
-                await this.loadDocument();
-                this.setupNavigation();
-            }
-
-            getPathFromUrl() {
-                const path = window.location.pathname.replace(`/${this.namespace}/`, '') || 'README.md';
-                return path.endsWith('.md') ? path : `${path}.md`;
-            }
-
-            async loadNavigation() {
-                try {
-                    const response = await fetch(`/api/1/markdown/${this.namespace}/`);
-                    const data = await response.json();
-                    //console.log('DEBUG: data.files:', JSON.stringify(data.files, null, 2));
-                    this.files = data.files; // Cache file structure for sharing
-                    this.renderNavigation(data.files);
-                } catch (error) {
-                    console.error('Failed to load navigation:', error);
-                }
-            }
-
-            renderNavigation(files) {
-                const nav = document.getElementById('docs-navigation');
-                nav.innerHTML = `<ul class="jp-docs-nav">${this.renderFileList(files)}</ul>`;
-            }
-
-            renderFileList(files) {
-                let html = '';
-
-                files.forEach(file => {
-                    html += this.renderFileItem(file);
-                });
-
-                return html;
-            }
-
-            renderFileItem(item) {
-                const isActive = item.path === this.currentPath;
-                let cssClass = isActive ? 'jp-docs-nav-active' : '';
-                let html = '<li>';
-                if (item.isDirectory) {
-                    cssClass += ' jp-docs-nav-directory';
-                    if (item.name) {
-                        // Directory with README - clickable
-                        html += `<a href="/${this.namespace}/${item.path.replace('.md', '')}" class="${cssClass}" data-path="${item.path}"><strong>${item.title}</strong></a>`;
-                    } else {
-                        // Directory without README - just label
-                        html += `<strong class="${cssClass}">${item.title}</strong>`;
-                    }
-
-                    // If this directory has files, render them as nested list
-                    if (item.files && item.files.length > 0) {
-                        html += `<ul>${this.renderFileList(item.files)}</ul>`;
-                    }
-                } else {
-                    // Regular file
-                    html += `<a href="/${this.namespace}/${item.path.replace('.md', '')}" class="${cssClass}" data-path="${item.path}">${item.title}</a>`;
-                }
-
-                html += '</li>';
-                return html;
-            }
-
-            async loadDocument() {
-                try {
-                    const response = await fetch(`/api/1/markdown/${this.namespace}/${this.currentPath}`);
-                    const data = await response.json();
-                    if(!data.success) {
-                        throw new Error(data.error);
-                    }
-                    this.renderMarkdown(data.content);
-                } catch (error) {
-                    const message = error.message || 'Failed to load documentation';
-                    document.getElementById('markdown-content').innerHTML =
-                        `<div class="jp-error">${message}</div>`;
-                }
-            }
-
-            renderMarkdown(content) {
-                // Content is already transformed by the server (links and images)
-                // Just parse markdown to HTML
-                const html = marked.parse(content);
-                document.getElementById('markdown-content').innerHTML = html;
-            }
-
-            setupNavigation() {
-                // Handle navigation clicks
-                document.addEventListener('click', (e) => {
-                    if (e.target.matches('.jp-docs-nav a')) {
-                        e.preventDefault();
-                        const path = e.target.getAttribute('data-path');
-                        const url = `/${this.namespace}/${path.replace('.md', '')}`;
-                        history.pushState({ path }, '', url);
-                        this.currentPath = path;
-                        this.loadDocument();
-                        this.updateActiveNav();
-                    }
-                });
-
-                // Handle browser back/forward
-                window.addEventListener('popstate', (e) => {
-                    this.currentPath = this.getPathFromUrl();
-                    this.loadDocument();
-                    this.updateActiveNav();
-                });
-            }
-
-            updateActiveNav() {
-                document.querySelectorAll('.jp-docs-nav a').forEach(link => {
-                    link.classList.toggle('jp-docs-nav-active',
-                        link.getAttribute('data-path') === this.currentPath);
-                });
-            }
-        }
-
-        // Initialize when DOM is ready
+        // W-104: Using jPulse.UI.docs API for documentation viewer
         jPulse.dom.ready(async () => {
             // Initialize main navigation tab row
             jPulse.UI.tabs.register(
                 'jpulse-docs-examples-tabs',
-                window.jPulseNavigation.tabs.jPulseDocsExamplesTabs,
-                //'jp-tab-docs'
+                window.jPulseNavigation.tabs.jPulseDocsExamplesTabs
             );
 
-            // Create docs viewer instance (fetches markdown structure once)
-            const docsViewer = new jPulseDocsViewer();
-
-            // Wait for navigation to load, then share with site nav dropdown (W-069)
-            if (jPulse.UI && jPulse.UI.navigation) {
-                // Wait for files to be loaded
-                await docsViewer.init();
-
-                // Register using cached file structure (no second fetch)
-                jPulse.UI.navigation.registerPages('jPulseDocs', async () => {
-                    if (docsViewer.files) {
-                        const pages = jPulse.UI.navigation.helpers.convertMarkdownFilesToPages(docsViewer.files);
-
-                        // Flatten: if first item is "jPulse Docs" folder, promote its children
-                        const firstKey = Object.keys(pages)[0];
-                        if (firstKey && pages[firstKey].pages && Object.keys(pages[firstKey].pages).length > 0) {
-                            // Return the nested pages directly (flatten one level)
-                            return pages[firstKey].pages;
-                        }
-
-                        return pages;
-                    }
-                    return {};
-                });
-            }
+            // Initialize docs viewer with site nav integration
+            await jPulse.UI.docs.init({
+                navElement: '#docs-navigation',
+                contentElement: '#markdown-content',
+                registerWithSiteNav: true,
+                siteNavKey: 'jPulseDocs',
+                flattenTopLevel: true
+            });
         });
     </script>
 

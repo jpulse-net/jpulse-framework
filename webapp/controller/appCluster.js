@@ -2,8 +2,8 @@
  * @name            jPulse Framework / WebApp / Controller / App Cluster
  * @description     Generic WebSocket handler for jPulse.appCluster.broadcast system
  * @file            webapp/controller/appCluster.js
- * @version         1.3.4
- * @release         2025-12-02
+ * @version         1.3.5
+ * @release         2025-12-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

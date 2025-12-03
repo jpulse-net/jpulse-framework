@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.5
+# jPulse Docs / Dev / Work Items v1.3.6
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -2334,20 +2334,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/front-end-development.md
     - client-side template expansion with custom variables
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-104, v1.3.5, 2025-12-03: markdown: handle dynamic content tokens
 - status: ✅ DONE
 - type: Feature
@@ -2434,6 +2420,80 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-105, v1.3.6, 2025-12-03: plugins: add plugin hooks for authentication and user management
+- status: ✅ DONE
+- type: Feature
+- objective: create the base infrastructure for auth plugins (OAuth2, LDAP, MFA)
+- features:
+  - HookManager utility for plugin hook registration and execution
+  - Auto-registration: plugins declare hooks in static `hooks` object, PluginManager auto-registers
+  - Hook naming: camelCase with Hook suffix (e.g., `authBeforeLoginHook`, `userAfterCreateHook`)
+  - One format: `hookName: { handler?, priority? }` - all properties optional
+  - Authentication hooks (13): authBeforeLoginHook, authGetProviderHook, authAfterPasswordValidationHook,
+    authBeforeSessionCreateHook, authAfterLoginSuccessHook, authOnLoginFailureHook,
+    authBeforeLogoutHook, authAfterLogoutHook, authRequireMfaHook, authOnMfaChallengeHook,
+    authValidateMfaHook, authOnMfaSuccessHook, authOnMfaFailureHook
+  - User lifecycle hooks (11): userBeforeSignupHook, userAfterSignupValidationHook, userBeforeCreateHook,
+    userAfterCreateHook, userOnSignupCompleteHook, userBeforeSaveHook, userAfterSaveHook,
+    userBeforeDeleteHook, userAfterDeleteHook, userMapExternalProfileHook, userSyncExternalProfileHook
+  - Hook priority system for execution order control (lower = runs earlier, default 100)
+  - Hook cancellation support (return false to cancel operation)
+  - Dynamic content generators: plugins-hooks-list, plugins-hooks-list-table for auto-documentation
+- deliverables:
+  - webapp/utils/hook-manager.js (NEW, 405 lines):
+    - Central hook registration and execution system
+    - Methods: register, execute, executeWithCancel, executeFirst, unregister, hasHandlers
+    - Methods: getRegisteredHooks, getAvailableHooks, getHooksByNamespace, isValidHook, getStats, clear
+    - 24 hooks defined: 13 auth + 11 user lifecycle
+  - webapp/utils/bootstrap.js:
+    - Added HookManager initialization (Step 4.5, before PluginManager)
+  - webapp/utils/plugin-manager.js:
+    - Added registerPluginHooks() for auto-registration from Controller.hooks
+    - Added _registerControllerHooks() for individual controller processing
+    - Added unregisterPluginHooks() for plugin disable cleanup
+  - webapp/controller/auth.js:
+    - Added 8 hook calls: authBeforeLoginHook, authOnLoginFailureHook, authAfterPasswordValidationHook,
+      authBeforeSessionCreateHook, authAfterLoginSuccessHook, authBeforeLogoutHook, authAfterLogoutHook
+    - MFA challenge point ready for future MFA plugins
+  - webapp/controller/user.js:
+    - Added 5 hook calls: userBeforeSignupHook, userAfterSignupValidationHook, userBeforeCreateHook,
+      userAfterCreateHook, userOnSignupCompleteHook (async fire-and-forget)
+  - webapp/model/user.js:
+    - Added 4 hook calls: userBeforeSaveHook, userAfterSaveHook (in create and updateById)
+  - webapp/controller/markdown.js:
+    - Added 3 dynamic content generators: plugins-hooks-list, plugins-hooks-list-table, plugins-hooks-count
+  - webapp/translations/en.conf, de.conf:
+    - Added mfaRequired translation key
+  - webapp/tests/unit/utils/hook-manager.test.js (NEW, 313 lines):
+    - 26 unit tests covering register, execute, executeWithCancel, executeFirst, unregister, etc.
+  - webapp/tests/unit/controller/auth-controller.test.js:
+    - Updated logout tests for async hooks, added HookManager.clear() in beforeEach
+  - plugins/hello-world/webapp/controller/helloPlugin.js:
+    - Added example hook usage: authAfterLoginSuccessHook, authBeforeSessionCreateHook
+  - docs/plugins/plugin-hooks.md (NEW, 337 lines):
+    - Comprehensive developer guide for using hooks
+    - Quick start, declaration format, handler patterns
+    - Common use cases: OAuth2, MFA, email confirmation, audit logging
+  - docs/plugins/README.md, creating-plugins.md, plugin-api-reference.md, plugin-architecture.md:
+    - Added links to plugin-hooks.md
+  - docs/dev/working/W-105-plugins-add-hooks.md:
+    - Working document with full implementation plan and analysis
+
+
+
+
+
+
+
+
+
+
 ### Pending
 
 pending:
@@ -2469,8 +2529,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-104, v1.3.5
-- update deliverables in W-104 work-items to document work done (don't make any other changes to this file)
+- assume release: W-105, v1.3.6
+- update deliverables in W-105 work-items to document work done (don't chaneg status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -2487,12 +2547,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.5
+node bin/bump-version.js 1.3.6
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.5
+git tag v1.3.6
 git push origin main --tags
 
 === on failed package build on github ===

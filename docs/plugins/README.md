@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Development Guide v1.3.5
+# jPulse Docs / Plugins / Plugin Development Guide v1.3.6
 
 Welcome to jPulse Framework's plugin development guide! This documentation will help you create, publish, and manage plugins for the jPulse Framework.
 
@@ -6,9 +6,10 @@ Welcome to jPulse Framework's plugin development guide! This documentation will 
 
 1. **[Creating Plugins](creating-plugins.md)** - Step-by-step guide to building your first plugin
 2. **[Plugin Architecture](plugin-architecture.md)** - Understanding how the plugin system works
-3. **[API Reference](plugin-api-reference.md)** - Complete API documentation
-4. **[Publishing Plugins](publishing-plugins.md)** - Package and publish your plugins
-5. **[Managing Plugins](managing-plugins.md)** - Install, configure, and manage plugins
+3. **[Plugin Hooks](plugin-hooks.md)** - Extend framework behavior with hooks
+4. **[API Reference](plugin-api-reference.md)** - Complete API documentation
+5. **[Publishing Plugins](publishing-plugins.md)** - Package and publish your plugins
+6. **[Managing Plugins](managing-plugins.md)** - Install, configure, and manage plugins
 
 ## Overview
 
@@ -18,6 +19,7 @@ The jPulse plugin system is designed to be simple yet powerful:
 
 - **🔍 Auto-Discovery**: Drop a plugin in `plugins/` and it's automatically detected
 - **🧩 MVC Integration**: Full support for Models, Views, and Controllers
+- **🪝 Plugin Hooks**: Extend authentication, user management, and more
 - **⚙️ Configuration**: Dynamic admin UI generated from JSON schema
 - **💾 Database**: Extend existing models or create new collections
 - **📡 API Endpoints**: Register REST endpoints with auto-discovery

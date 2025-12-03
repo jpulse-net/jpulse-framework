@@ -3,7 +3,7 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.3.5
+ * @version         1.3.6
  * @release         2025-12-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -26,6 +26,7 @@ class UserController {
     /**
      * User signup/registration
      * POST /api/1/user/signup
+     * W-105: Enhanced with plugin hooks for email confirmation, external validation
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
@@ -34,14 +35,18 @@ class UserController {
         try {
             LogController.logRequest(req, 'user.signup', JSON.stringify({ username: req.body.username, email: req.body.email }));
 
-             // Bail out if signup is disabled
-             if (global.appConfig.controller.user.disableSignup) {
+            // Bail out if signup is disabled
+            if (global.appConfig.controller.user.disableSignup) {
                 LogController.logError(req, 'user.signup', 'error: signup is disabled');
                 const message = global.i18n.translate(req, 'controller.user.signup.signupDisabled');
                 return global.CommonUtils.sendError(req, res, 403, message, 'SIGNUP_DISABLED');
             }
 
-            const { firstName, lastName, username, email, password, confirmPassword, acceptTerms } = req.body;
+            // W-105: HOOK userBeforeSignupHook - can modify userData or add fields
+            let signupContext = { req, userData: { ...req.body } };
+            signupContext = await global.HookManager.execute('userBeforeSignupHook', signupContext);
+
+            const { firstName, lastName, username, email, password, confirmPassword, acceptTerms } = signupContext.userData;
 
             // Validate required fields
             if (!firstName || !lastName || !username || !email || !password) {
@@ -64,8 +69,19 @@ class UserController {
                 return global.CommonUtils.sendError(req, res, 400, message, 'TERMS_NOT_ACCEPTED');
             }
 
+            // W-105: HOOK userAfterSignupValidationHook - can cancel signup with custom validation
+            const validationResult = await global.HookManager.executeWithCancel('userAfterSignupValidationHook', {
+                req,
+                userData: signupContext.userData
+            });
+            if (validationResult.cancelled) {
+                LogController.logError(req, 'user.signup', `error: signup cancelled by plugin ${validationResult.cancelledBy}`);
+                const message = global.i18n.translate(req, 'controller.user.signup.validationFailed', { details: 'Signup cancelled by plugin' });
+                return global.CommonUtils.sendError(req, res, 400, message, 'VALIDATION_ERROR');
+            }
+
             // Prepare user data
-            const userData = {
+            let userData = {
                 username: username,
                 email: email,
                 password: password,
@@ -83,8 +99,19 @@ class UserController {
                 status: 'active'
             };
 
+            // W-105: HOOK userBeforeCreateHook - can transform user data before creation
+            let createContext = { req, userData };
+            createContext = await global.HookManager.execute('userBeforeCreateHook', createContext);
+            userData = createContext.userData;
+
             // Create user
             const newUser = await UserModel.create(userData);
+
+            // W-105: HOOK userAfterCreateHook - post-create actions (email confirmation, etc.)
+            await global.HookManager.execute('userAfterCreateHook', {
+                req,
+                user: newUser
+            });
 
             const message = global.i18n.translate(req, 'controller.user.signup.accountCreated');
             res.status(201).json({
@@ -102,6 +129,18 @@ class UserController {
             });
             const duration = Date.now() - startTime;
             LogController.logInfo(req, 'user.signup', `success: ${newUser.username} created successfully, completed in ${duration}ms`);
+
+            // W-105: HOOK userOnSignupCompleteHook - async, after response (fire and forget)
+            setImmediate(async () => {
+                try {
+                    await global.HookManager.execute('userOnSignupCompleteHook', {
+                        req,
+                        user: newUser
+                    });
+                } catch (err) {
+                    LogController.logError(req, 'user.signup', `userOnSignupCompleteHook error: ${err.message}`);
+                }
+            });
 
         } catch (error) {
             LogController.logError(req, 'user.signup', `error: ${error.message}`);

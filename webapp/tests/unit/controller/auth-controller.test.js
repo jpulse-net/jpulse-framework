@@ -3,7 +3,7 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         1.3.5
+ * @version         1.3.6
  * @release         2025-12-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -63,6 +63,11 @@ describe('AuthController', () => {
         // Mock next function
         mockNext = jest.fn();
 
+        // W-105: Clear HookManager hooks to isolate tests
+        if (global.HookManager) {
+            global.HookManager.clear();
+        }
+
         // Mock i18n translate function with new signature: translate(req, key, context)
         global.i18n = {
             default: 'en', // Add default property for getUserLanguage tests
@@ -75,7 +80,8 @@ describe('AuthController', () => {
                     'controller.auth.loginSuccess': 'Login successful',
                     'controller.auth.loginInternalError': `Internal server error during login: ${context.error}`,
                     'controller.auth.logoutSuccessful': 'Logout successful',
-                    'controller.auth.logoutFailed': 'Failed to log out'
+                    'controller.auth.logoutFailed': 'Failed to log out',
+                    'controller.auth.mfaRequired': 'Multi-factor authentication required'
                 };
                 return translations[key] || key;
             })
@@ -409,13 +415,17 @@ describe('AuthController', () => {
         });
 
         describe('logout', () => {
-            test('should logout authenticated user', () => {
+            // W-105: Tests updated to handle async logout with hook calls
+            test('should logout authenticated user', async () => {
                 mockReq.session = {
                     user: { isAuthenticated: true, username: 'testuser' },
                     destroy: jest.fn(callback => callback())
                 };
 
-                AuthController.logout(mockReq, mockRes);
+                await AuthController.logout(mockReq, mockRes);
+
+                // Wait for async callback to complete
+                await new Promise(resolve => setImmediate(resolve));
 
                 expect(mockReq.session.destroy).toHaveBeenCalled();
                 expect(mockRes.json).toHaveBeenCalledWith({
@@ -425,12 +435,15 @@ describe('AuthController', () => {
                 });
             });
 
-            test('should handle logout for unauthenticated user', () => {
+            test('should handle logout for unauthenticated user', async () => {
                 mockReq.session = {
                     destroy: jest.fn(callback => callback(null)) // Mock successful destroy
                 };
 
-                AuthController.logout(mockReq, mockRes);
+                await AuthController.logout(mockReq, mockRes);
+
+                // Wait for async callback to complete
+                await new Promise(resolve => setImmediate(resolve));
 
                 expect(mockReq.session.destroy).toHaveBeenCalled();
                 expect(mockRes.json).toHaveBeenCalledWith({
@@ -440,14 +453,17 @@ describe('AuthController', () => {
                 });
             });
 
-            test('should handle session destruction errors', () => {
+            test('should handle session destruction errors', async () => {
                 const error = new Error('Session destruction failed');
                 mockReq.session = {
                     user: { isAuthenticated: true, username: 'testuser' },
                     destroy: jest.fn(callback => callback(error))
                 };
 
-                AuthController.logout(mockReq, mockRes);
+                await AuthController.logout(mockReq, mockRes);
+
+                // Wait for async callback to complete
+                await new Promise(resolve => setImmediate(resolve));
 
                 // AuthController uses direct res.status().json(), not CommonUtils.sendError
                 expect(mockRes.status).toHaveBeenCalledWith(500);

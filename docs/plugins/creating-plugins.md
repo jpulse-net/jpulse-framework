@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.3.5
+# jPulse Docs / Plugins / Creating Plugins v1.3.6
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -522,6 +522,7 @@ Note: Add additional pages as needed.
 
 - Review the [Hello World plugin](../installed-plugins/hello-world/README) for a complete working example
 - Read the [Plugin Architecture](plugin-architecture) guide to understand how plugins integrate
+- Use [Plugin Hooks](plugin-hooks) to extend authentication, user management, and more
 - Check the [API Reference](plugin-api-reference) for all available methods
 - Learn how to [publish your plugin](publishing-plugins) when ready
 

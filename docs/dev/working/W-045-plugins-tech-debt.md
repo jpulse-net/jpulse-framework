@@ -102,7 +102,10 @@ For the main architectural specification, see: [`W-014-W-045-mvc-site-plugins-ar
 
 ---
 
-## W-045-TD-10: Hook System Enhancement
+## W-045-TD-10: Hook System Enhancement -- ✅ DONE
+
+Status: ✅ DONE
+Work item: W-105, v1.3.6, 2025-12-03: plugins: add plugin hooks for authentication and user management
 
 - **Description**: Formal hook registration and execution system
 - **Implementation**: Explicit hook points in framework code

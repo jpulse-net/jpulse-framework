@@ -3,7 +3,7 @@
  * @tagline         Plugin Discovery and Lifecycle Management
  * @description     Manages plugin discovery, validation, dependencies, and lifecycle
  * @file            webapp/utils/plugin-manager.js
- * @version         1.3.5
+ * @version         1.3.6
  * @release         2025-12-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -576,6 +576,113 @@ class PluginManager {
             new: newCount > 0 ? newCount : 0,
             message: newCount > 0 ? `Discovered ${newCount} new plugin(s)` : 'No new plugins found'
         };
+    }
+
+    // ========================================================================
+    // W-105: Plugin Hook Registration
+    // ========================================================================
+
+    /**
+     * Register hooks from all active plugins (W-105)
+     * Scans plugin controllers for static `hooks` property and auto-registers
+     * @returns {object} Registration statistics
+     */
+    static async registerPluginHooks() {
+        if (!global.HookManager) {
+            global.LogController?.logWarning(null, 'plugin-manager',
+                'HookManager not available, skipping hook registration');
+            return { registered: 0, plugins: [] };
+        }
+
+        const activePlugins = this.getActivePlugins();
+        let totalRegistered = 0;
+        const pluginsWithHooks = [];
+
+        for (const plugin of activePlugins) {
+            const pluginControllerDir = path.join(plugin.path, 'webapp', 'controller');
+
+            if (!fs.existsSync(pluginControllerDir)) {
+                continue;
+            }
+
+            // Scan controller files in plugin
+            const files = fs.readdirSync(pluginControllerDir)
+                .filter(file => file.endsWith('.js'));
+
+            let pluginHookCount = 0;
+
+            for (const file of files) {
+                const controllerPath = path.join(pluginControllerDir, file);
+                try {
+                    // Dynamic import of controller module
+                    const { default: Controller } = await import(`file://${controllerPath}`);
+
+                    if (Controller && Controller.hooks) {
+                        const registered = this._registerControllerHooks(plugin.name, Controller);
+                        pluginHookCount += registered;
+                    }
+                } catch (error) {
+                    global.LogController?.logError(null, `plugin.${plugin.name}`,
+                        `Failed to load controller ${file}: ${error.message}`);
+                }
+            }
+
+            if (pluginHookCount > 0) {
+                totalRegistered += pluginHookCount;
+                pluginsWithHooks.push({ name: plugin.name, hooks: pluginHookCount });
+            }
+        }
+
+        global.LogController?.logInfo(null, 'plugin-manager',
+            `Registered ${totalRegistered} hook(s) from ${pluginsWithHooks.length} plugin(s)`);
+
+        return {
+            registered: totalRegistered,
+            plugins: pluginsWithHooks
+        };
+    }
+
+    /**
+     * Register hooks from a single controller (W-105)
+     * Called by registerPluginHooks() for each controller with hooks
+     * @param {string} pluginName - Plugin name
+     * @param {object} Controller - Controller class with static `hooks` property
+     * @returns {number} Number of hooks registered
+     */
+    static _registerControllerHooks(pluginName, Controller) {
+        if (!Controller.hooks || typeof Controller.hooks !== 'object') {
+            return 0;
+        }
+
+        let count = 0;
+
+        for (const [hookName, config] of Object.entries(Controller.hooks)) {
+            // Default: method name = hook name, priority = 100
+            const handlerMethodName = config?.handler || hookName;
+            const priority = config?.priority || 100;
+            const method = Controller[handlerMethodName];
+
+            if (typeof method === 'function') {
+                global.HookManager.register(hookName, pluginName, method.bind(Controller), priority);
+                count++;
+            } else {
+                global.LogController?.logError(null, `plugin.${pluginName}`,
+                    `Hook handler '${handlerMethodName}' not found for hook '${hookName}'`);
+            }
+        }
+
+        return count;
+    }
+
+    /**
+     * Unregister all hooks for a plugin (W-105)
+     * Called when disabling a plugin
+     * @param {string} pluginName - Plugin name
+     */
+    static unregisterPluginHooks(pluginName) {
+        if (global.HookManager) {
+            global.HookManager.unregister(pluginName);
+        }
     }
 }
 

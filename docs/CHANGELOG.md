@@ -1,6 +1,127 @@
-# jPulse Docs / Version History v1.3.5
+# jPulse Docs / Version History v1.3.6
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.6, W-105, 2025-12-03
+
+**Commit:** `W-105, v1.3.6: plugins: add plugin hooks for authentication and user management`
+
+**FEATURE RELEASE**: Comprehensive plugin hook system enabling third-party authentication providers (OAuth2, LDAP, MFA) and user lifecycle extensions with auto-registration and priority-based execution.
+
+**Objective**: Create the base infrastructure for authentication plugins by providing hook points throughout the login, logout, signup, and user persistence flows.
+
+**Implementation**:
+
+**HookManager Utility** (`webapp/utils/hook-manager.js`, NEW, 405 lines):
+- Central registry for 24 hooks: 13 authentication + 11 user lifecycle
+- Methods: `register()`, `execute()`, `executeWithCancel()`, `executeFirst()`
+- Methods: `unregister()`, `hasHandlers()`, `getRegisteredHooks()`
+- Methods: `getAvailableHooks()`, `getHooksByNamespace()`, `isValidHook()`, `getStats()`, `clear()`
+- Priority-based execution order (lower = earlier, default 100)
+- Context modification: handlers receive context, modify it, return it
+- Cancellation support: return `false` to cancel operation
+- Error isolation: handler errors logged but don't break flow
+
+**Auto-Registration System**:
+- Plugins declare hooks in static `hooks` object on controllers
+- Format: `static hooks = { hookName: { handler?, priority? } }`
+- Default: method name = hook name, priority = 100
+- PluginManager scans controllers during bootstrap and registers hooks
+- No manual registration required - "don't make me think" principle
+
+**Hook Naming Convention**:
+- CamelCase with Hook suffix: `authBeforeLoginHook`, `userAfterCreateHook`
+- Namespace prefix: `auth*` for authentication, `user*` for user lifecycle
+- Self-documenting: method names match hook names
+
+**Authentication Hooks (13)**:
+- Login flow: `authBeforeLoginHook` (external auth), `authGetProviderHook`, `authAfterPasswordValidationHook` (MFA check), `authBeforeSessionCreateHook` (session data), `authAfterLoginSuccessHook`, `authOnLoginFailureHook`
+- Logout flow: `authBeforeLogoutHook`, `authAfterLogoutHook`
+- MFA: `authRequireMfaHook`, `authOnMfaChallengeHook`, `authValidateMfaHook`, `authOnMfaSuccessHook`, `authOnMfaFailureHook`
+
+**User Lifecycle Hooks (11)**:
+- Signup flow: `userBeforeSignupHook`, `userAfterSignupValidationHook` (can cancel), `userBeforeCreateHook`, `userAfterCreateHook`, `userOnSignupCompleteHook` (async)
+- Persistence: `userBeforeSaveHook`, `userAfterSaveHook`, `userBeforeDeleteHook` (can cancel), `userAfterDeleteHook`
+- Profile sync: `userMapExternalProfileHook`, `userSyncExternalProfileHook`
+
+**Dynamic Content Generators**:
+- `plugins-hooks-list`: Bullet list of available hooks
+- `plugins-hooks-list-table`: Markdown table with description, context, modify/cancel flags
+- `plugins-hooks-count`: Count of hooks with optional namespace filter
+
+**Code Changes**:
+- `webapp/utils/hook-manager.js` (NEW): HookManager class with full hook registry
+- `webapp/utils/bootstrap.js`: Added HookManager initialization (Step 4.5)
+- `webapp/utils/plugin-manager.js`: Added `registerPluginHooks()`, `_registerControllerHooks()`, `unregisterPluginHooks()`
+- `webapp/controller/auth.js`: Added 8 hook calls in login/logout flow
+- `webapp/controller/user.js`: Added 5 hook calls in signup flow
+- `webapp/model/user.js`: Added 4 hook calls in create/updateById
+- `webapp/controller/markdown.js`: Added 3 dynamic content generators
+- `webapp/translations/en.conf`, `de.conf`: Added `mfaRequired` translation
+- `plugins/hello-world/webapp/controller/helloPlugin.js`: Added example hooks
+
+**Test Coverage**:
+- `webapp/tests/unit/utils/hook-manager.test.js` (NEW, 313 lines):
+  * 26 tests covering registration, execution, cancellation, priority ordering
+  * Tests for `executeFirst()`, `unregister()`, `getStats()`, namespace filtering
+- `webapp/tests/unit/controller/auth-controller.test.js`:
+  * Updated logout tests for async hook execution
+  * Added `HookManager.clear()` in beforeEach for test isolation
+
+**Documentation**:
+- `docs/plugins/plugin-hooks.md` (NEW, 337 lines):
+  * Comprehensive developer guide for using hooks
+  * Quick start with declaration and handler examples
+  * Common use cases: OAuth2, LDAP, MFA, email confirmation, audit logging
+  * Debugging tips and best practices
+- Updated `docs/plugins/README.md`: Added to Quick Start list and Key Features
+- Updated `docs/plugins/creating-plugins.md`: Added to Next Steps
+- Updated `docs/plugins/plugin-api-reference.md`: Added to See Also
+- Updated `docs/plugins/plugin-architecture.md`: Added to System Overview and See Also
+
+**Usage Examples**:
+
+Plugin Hook Declaration:
+```javascript
+class MyAuthController {
+    static hooks = {
+        authBeforeLoginHook: { priority: 50 },
+        authAfterLoginSuccessHook: {}
+    };
+
+    static async authBeforeLoginHook(context) {
+        // External auth (LDAP, OAuth2)
+        if (await this.isExternalUser(context.identifier)) {
+            context.skipPasswordCheck = true;
+            context.user = await this.authenticateExternal(context);
+            context.authMethod = 'ldap';
+        }
+        return context;
+    }
+}
+```
+
+Dynamic Content in Markdown:
+```markdown
+## Available Hooks
+%DYNAMIC{plugins-hooks-list-table namespace=auth}%
+```
+
+**Files Modified**: 15
+- 1 new utility: hook-manager.js
+- 4 controllers: auth.js, user.js, markdown.js + bootstrap.js
+- 1 model: user.js
+- 1 plugin-manager: plugin-manager.js
+- 2 translations: en.conf, de.conf
+- 1 plugin: hello-world/helloPlugin.js
+- 2 tests: hook-manager.test.js (new), auth-controller.test.js
+- 5 documentation: plugin-hooks.md (new), 4 updated
+
+**Breaking Changes**: None
+- New opt-in feature for plugin developers
+- Existing plugins work unchanged
+- Framework behavior unchanged unless plugins register hooks
 
 ________________________________________________
 ## v1.3.5, W-104, 2025-12-03

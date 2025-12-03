@@ -864,3 +864,204 @@ Status: ✅ ACCEPTED
 
 
 ============================================================
+2025-12-02 22:24
+
+W-105: Added Hook suffix for self-documentation
+
+User request: Add "Hook" suffix to all hook names for self-documentation.
+
+Before: authBeforeLogin, userSyncExternalProfile
+After:  authBeforeLoginHook, userSyncExternalProfileHook
+
+Benefits:
+1. Self-documenting - immediately clear a method is a hook handler
+2. Searchable - grep "Hook" finds all hooks
+3. IDE friendly - type "Hook" to autocomplete all hook methods
+
+Updated throughout document:
+- All 5 hook tables
+- Hook execution flow examples
+- Implementation priority list
+- getAvailableHooks() registry (22 hooks now)
+- auth-ldap example (hooks + methods)
+- Implementation plan code examples
+- Hook naming convention section
+
+Pattern: {namespace}{Action}Hook
+- authBeforeLoginHook, authAfterPasswordValidationHook
+- userBeforeCreateHook, userSyncExternalProfileHook
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2025-12-02 22:30
+
+W-105: Convention note - Mfa not MFA in camelCase
+
+User corrected: MFA → Mfa in hook names (camelCase convention)
+
+Before: authRequireMFAHook, authValidateMFAHook, authOnMFASuccessHook
+After:  authRequireMfaHook, authValidateMfaHook, authOnMfaSuccessHook
+
+Convention: In camelCase identifiers, acronyms use title case (Mfa, not MFA)
+- Hook names: authRequireMfaHook ✅
+- Prose/descriptions: MFA (multi-factor authentication) ✅
+
+Status: ✅ NOTED
+
+
+============================================================
+2025-12-02 22:35
+
+W-105: Updated work-items.md with latest spec
+
+Updated W-105 entry in work-items.md to reflect:
+- Auto-registration via static hooks object
+- Hook naming with Hook suffix
+- One format: { handler?, priority? }
+- All 24 hooks listed (13 auth + 11 user)
+- Dynamic content generators (hooks-list, hooks-list-table)
+- Additional deliverables (plugin-manager.js, markdown.js)
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2025-12-02 22:40
+
+W-105: Renamed userTransformExternalProfileHook → userMapExternalProfileHook
+
+Better name: "map" is more descriptive for mapping external provider fields
+to user model fields (e.g., LDAP givenName → firstName)
+
+Updated in: W-105 working doc, work-items.md
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2025-12-02 23:00
+
+W-105: Plugin Hook System - IMPLEMENTATION COMPLETE
+
+Implemented comprehensive plugin hook system for auth and user management:
+
+Files Created:
+- webapp/utils/hook-manager.js: Central HookManager with 24 hooks
+- webapp/tests/unit/utils/hook-manager.test.js: 26 unit tests
+
+Files Updated:
+- webapp/utils/bootstrap.js: HookManager initialization (Step 4.5)
+- webapp/utils/plugin-manager.js: Auto-registration of plugin hooks
+- webapp/controller/auth.js: 8 hook calls (login, logout, MFA)
+- webapp/controller/user.js: 5 hook calls (signup flow)
+- webapp/model/user.js: 4 hook calls (beforeSave, afterSave)
+- webapp/controller/markdown.js: Dynamic generators (hooks-list, hooks-list-table, hooks-count)
+- webapp/translations/en.conf, de.conf: mfaRequired translation
+- webapp/tests/unit/controller/auth-controller.test.js: Fixed for hooks
+- plugins/hello-world/webapp/controller/helloPlugin.js: Example hook usage
+
+Hook Categories (24 total):
+- Auth hooks (13): authBeforeLoginHook, authGetProviderHook, authAfterPasswordValidationHook,
+  authBeforeSessionCreateHook, authAfterLoginSuccessHook, authOnLoginFailureHook,
+  authBeforeLogoutHook, authAfterLogoutHook, authRequireMfaHook, authOnMfaChallengeHook,
+  authValidateMfaHook, authOnMfaSuccessHook, authOnMfaFailureHook
+- User hooks (11): userBeforeSignupHook, userAfterSignupValidationHook, userBeforeCreateHook,
+  userAfterCreateHook, userOnSignupCompleteHook, userBeforeSaveHook, userAfterSaveHook,
+  userBeforeDeleteHook, userAfterDeleteHook, userMapExternalProfileHook, userSyncExternalProfileHook
+
+Plugin Declaration Format:
+```javascript
+static hooks = {
+    authBeforeLoginHook: { priority: 50 },  // Optional priority
+    userAfterCreateHook: {}                  // Default priority 100
+};
+static async authBeforeLoginHook(context) { return context; }
+```
+
+Tests: All passing (26 hook-manager + 26 auth-controller)
+
+Status: ✅ COMPLETE
+
+
+============================================================
+2025-12-02 23:10
+
+W-105: Consistency Review and Naming Update
+
+1. Renamed dynamic content generators to plugins-* namespace:
+   - hooks-list → plugins-hooks-list
+   - hooks-list-table → plugins-hooks-list-table
+   - hooks-count → plugins-hooks-count
+
+2. Consistency review findings (all OK):
+   - LogController: auth.js uses global.*, user.js uses imported - both consistent with file patterns
+   - HookManager: Model uses if(global.HookManager) guard, controllers call directly (post-bootstrap)
+   - i18n: All use global.i18n.translate() consistently
+   - try/catch: All controller methods wrapped properly
+   - Error reporting: LogController.logError + appropriate response codes
+
+3. Fixed: hello-world plugin hook was using null instead of context.req for logging
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2025-12-02 23:20
+
+W-105: Created Plugin Hooks Documentation
+
+Created new docs/plugins/plugin-hooks.md with:
+- Overview and quick start
+- Hook declaration format
+- Handler patterns (modify, cancel, react, external auth)
+- Auto-generated hook tables using %DYNAMIC{plugins-hooks-list-table}%
+- Common use cases (OAuth2, MFA, email confirmation, audit logging)
+- Debugging tips and best practices
+
+Updated related docs with links to plugin-hooks.md:
+- docs/plugins/README.md: Added to Quick Start list and Key Features
+- docs/plugins/creating-plugins.md: Added to Next Steps
+- docs/plugins/plugin-api-reference.md: Added to See Also
+- docs/plugins/plugin-architecture.md: Added to System Overview and See Also
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2025-12-02 23:30
+
+W-105: Release Prep for v1.3.6
+
+Updated for release:
+- docs/dev/work-items.md: Updated W-105 deliverables with actual files and line counts
+- README.md: Added v1.3.6 to Latest Release Highlights
+- docs/README.md: Added v1.3.6 to Latest Release Highlights
+- docs/CHANGELOG.md: Added comprehensive v1.3.6 release notes (~120 lines)
+- commit-message.txt: Updated with full release message
+
+Status: ✅ READY FOR RELEASE
+
+
+
+
+============================================================
+2025-12-03 00:15
+
+Add tech debt section for future hooks
+
+Prompt: add a tech debt to W-105-plugins-add-hooks.md on future hooks, such as viewBeforeRender, viewAfterRender, doc save hooks etc
+
+Summary:
+Added "Tech Debt: Future Hooks" section to W-105-plugins-add-hooks.md with candidates for future implementation:
+- View Rendering Hooks: viewBeforeRenderHook, viewAfterRenderHook, viewOnErrorHook
+- Generic Model Hooks: modelBeforeSaveHook, modelAfterSaveHook, modelBeforeDeleteHook, modelAfterDeleteHook, modelBeforeQueryHook
+- Request Lifecycle Hooks: requestBeforeRouteHook, requestAfterRouteHook, requestOnErrorHook
+- WebSocket Hooks: wsOnConnectHook, wsOnDisconnectHook, wsBeforeMessageHook
+- Email Hooks: emailBeforeSendHook, emailAfterSendHook
+
+Status: ✅ ACCEPTED
+
+
+============================================================

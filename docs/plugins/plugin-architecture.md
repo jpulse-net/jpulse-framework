@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Architecture v1.3.5
+# jPulse Docs / Plugins / Plugin Architecture v1.3.6
 
 Understanding how the jPulse plugin system works under the hood.
 
@@ -7,6 +7,7 @@ Understanding how the jPulse plugin system works under the hood.
 The jPulse plugin system extends the framework's MVC architecture with:
 - **Auto-discovery** of plugin components
 - **Priority-based path resolution** (Site → Plugins → Framework)
+- **Plugin hooks** for extending framework behavior (auth, user management)
 - **Dependency management** with topological sorting
 - **Configuration storage** in MongoDB
 - **Symlink-based asset serving** for static files
@@ -289,3 +290,11 @@ Response (JSON or view render)
 For in-depth technical information, see:
 - Hello World Plugin Source: `plugins/hello-world/`
 - PluginManager Source: `webapp/utils/plugin-manager.js`
+- HookManager Source: `webapp/utils/hook-manager.js`
+
+## See Also
+
+- [Creating Plugins](creating-plugins.md) - Step-by-step guide
+- [Plugin Hooks](plugin-hooks.md) - Extend framework behavior with hooks
+- [API Reference](plugin-api-reference.md) - Complete API documentation
+- [Hello World Plugin](../installed-plugins/hello-world/README.md) - Complete example

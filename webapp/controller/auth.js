@@ -3,7 +3,7 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         1.3.5
+ * @version         1.3.6
  * @release         2025-12-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -149,6 +149,7 @@ class AuthController {
     /**
      * User login/authentication
      * POST /api/1/auth/login
+     * W-105: Enhanced with plugin hooks for external auth providers (OAuth2, LDAP, MFA)
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
@@ -157,9 +158,9 @@ class AuthController {
         try {
             global.LogController.logRequest(req, 'auth.login', JSON.stringify({ identifier: req.body.identifier }));
 
-             // Bail out if login is disabled
-             if (global.appConfig.controller.auth.disableLogin) {
-                LogController.logError(req, 'auth.login', 'error: login is disabled');
+            // Bail out if login is disabled
+            if (global.appConfig.controller.auth.disableLogin) {
+                global.LogController.logError(req, 'auth.login', 'error: login is disabled');
                 const message = global.i18n.translate(req, 'controller.auth.loginDisabled');
                 return global.CommonUtils.sendError(req, res, 403, message, 'LOGIN_DISABLED');
             }
@@ -176,10 +177,35 @@ class AuthController {
                 });
             }
 
-            // Authenticate user
-            const user = await UserModel.authenticate(identifier, password);
+            // W-105: HOOK authBeforeLoginHook - can skip password check for external auth
+            let user = null;
+            let beforeLoginContext = {
+                req,
+                identifier,
+                password,
+                skipPasswordCheck: false,
+                user: null,
+                authMethod: 'internal'
+            };
+            beforeLoginContext = await global.HookManager.execute('authBeforeLoginHook', beforeLoginContext);
+
+            if (beforeLoginContext.skipPasswordCheck && beforeLoginContext.user) {
+                // External auth provided the user (LDAP, OAuth2, etc.)
+                user = beforeLoginContext.user;
+            } else {
+                // Internal authentication
+                user = await UserModel.authenticate(identifier, password);
+            }
 
             if (!user) {
+                // W-105: HOOK authOnLoginFailureHook
+                await global.HookManager.execute('authOnLoginFailureHook', {
+                    req,
+                    identifier,
+                    reason: 'INVALID_CREDENTIALS',
+                    authMethod: beforeLoginContext.authMethod
+                });
+
                 global.LogController.logError(req, 'auth.login', `error: Login failed for identifier: ${identifier}`);
                 const message = global.i18n.translate(req, 'controller.auth.invalidCredentials');
                 return res.status(401).json({
@@ -189,14 +215,35 @@ class AuthController {
                 });
             }
 
+            // W-105: HOOK authAfterPasswordValidationHook - MFA check point
+            let mfaContext = {
+                req,
+                user,
+                isValid: true,
+                requireMfa: false,
+                mfaMethod: null
+            };
+            mfaContext = await global.HookManager.execute('authAfterPasswordValidationHook', mfaContext);
+
+            // If MFA is required, return MFA challenge (don't create session yet)
+            if (mfaContext.requireMfa) {
+                global.LogController.logInfo(req, 'auth.login', `MFA required for user ${user.username}, method: ${mfaContext.mfaMethod}`);
+                return res.json({
+                    success: true,
+                    requireMfa: true,
+                    mfaMethod: mfaContext.mfaMethod,
+                    message: global.i18n.translate(req, 'controller.auth.mfaRequired')
+                });
+            }
+
             // Update login statistics
             await UserModel.updateById(user._id, {
                 lastLogin: new Date(),
                 loginCount: (user.loginCount || 0) + 1
             });
 
-            // Store user in session
-            req.session.user = {
+            // W-105: HOOK authBeforeSessionCreateHook - can modify session data
+            let sessionData = {
                 id: user._id.toString(),
                 username: user.username,
                 email: user.email,
@@ -208,9 +255,22 @@ class AuthController {
                 preferences: user.preferences,
                 isAuthenticated: true
             };
+            let sessionContext = { req, user, sessionData };
+            sessionContext = await global.HookManager.execute('authBeforeSessionCreateHook', sessionContext);
+
+            // Store user in session
+            req.session.user = sessionContext.sessionData;
+
+            // W-105: HOOK authAfterLoginSuccessHook
+            await global.HookManager.execute('authAfterLoginSuccessHook', {
+                req,
+                user,
+                session: req.session.user,
+                authMethod: beforeLoginContext.authMethod
+            });
 
             const elapsed = Date.now() - startTime;
-            global.LogController.logInfo(req, 'auth.login', `success: User ${user.username} logged in, completed in ${elapsed}ms`);
+            global.LogController.logInfo(req, 'auth.login', `success: User ${user.username} logged in via ${beforeLoginContext.authMethod}, completed in ${elapsed}ms`);
             const message = global.i18n.translate(req, 'controller.auth.loginSuccess');
             res.json({
                 success: true,
@@ -236,6 +296,7 @@ class AuthController {
     /**
      * User logout
      * POST /api/1/auth/logout
+     * W-105: Enhanced with plugin hooks for logout notifications
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
@@ -243,11 +304,18 @@ class AuthController {
         const startTime = Date.now();
         try {
             const username = req.session.user ? req.session.user.username : '(unknown)';
+            const sessionData = req.session.user ? { ...req.session.user } : null;
 
             global.LogController.logRequest(req, 'auth.logout', username);
 
+            // W-105: HOOK authBeforeLogoutHook
+            await global.HookManager.execute('authBeforeLogoutHook', {
+                req,
+                session: sessionData
+            });
+
             // Destroy session
-            req.session.destroy((err) => {
+            req.session.destroy(async (err) => {
                 if (err) {
                     global.LogController.logError(req, 'auth.logout', `error: ${err.message}`);
                     const message = global.i18n.translate(req, 'controller.auth.logoutFailed');
@@ -257,6 +325,12 @@ class AuthController {
                         code: 'LOGOUT_ERROR'
                     });
                 }
+
+                // W-105: HOOK authAfterLogoutHook
+                await global.HookManager.execute('authAfterLogoutHook', {
+                    req,
+                    username
+                });
 
                 const elapsed = Date.now() - startTime;
                 global.LogController.logInfo(req, 'auth.logout', `success: User ${username} logged out, completed in ${elapsed}ms`);

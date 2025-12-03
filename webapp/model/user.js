@@ -3,7 +3,7 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.3.5
+ * @version         1.3.6
  * @release         2025-12-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -484,11 +484,19 @@ class UserModel {
 
     /**
      * Create new user
+     * W-105: Enhanced with plugin hooks for data transformation
      * @param {object} data - User data
      * @returns {Promise<object>} Created user document
      */
     static async create(data) {
         try {
+            // W-105: HOOK userBeforeSaveHook - can modify data before save
+            let saveContext = { data: { ...data }, isUpdate: false };
+            if (global.HookManager) {
+                saveContext = await global.HookManager.execute('userBeforeSaveHook', saveContext);
+                data = saveContext.data;
+            }
+
             // Validate data
             this.validate(data, false);
 
@@ -519,6 +527,15 @@ class UserModel {
             // Return the created document without password hash
             const createdUser = await this.findById(userData._id);
             const { passwordHash, ...userWithoutPassword } = createdUser;
+
+            // W-105: HOOK userAfterSaveHook - post-save actions
+            if (global.HookManager) {
+                await global.HookManager.execute('userAfterSaveHook', {
+                    user: userWithoutPassword,
+                    isUpdate: false
+                });
+            }
+
             return userWithoutPassword;
         } catch (error) {
             throw new Error(`Failed to create user: ${error.message}`);
@@ -527,12 +544,20 @@ class UserModel {
 
     /**
      * Update user by ID
+     * W-105: Enhanced with plugin hooks for data transformation
      * @param {string} id - User ID
      * @param {object} data - Update data
      * @returns {Promise<object|null>} Updated user document or null if not found
      */
     static async updateById(id, data) {
         try {
+            // W-105: HOOK userBeforeSaveHook - can modify data before save
+            let saveContext = { id, data: { ...data }, isUpdate: true };
+            if (global.HookManager) {
+                saveContext = await global.HookManager.execute('userBeforeSaveHook', saveContext);
+                data = saveContext.data;
+            }
+
             // Validate data for update
             this.validate(data, true);
 
@@ -558,7 +583,17 @@ class UserModel {
             }
 
             // Return updated document
-            return await this.findById(id);
+            const updatedUser = await this.findById(id);
+
+            // W-105: HOOK userAfterSaveHook - post-save actions
+            if (global.HookManager) {
+                await global.HookManager.execute('userAfterSaveHook', {
+                    user: updatedUser,
+                    isUpdate: true
+                });
+            }
+
+            return updatedUser;
         } catch (error) {
             throw new Error(`Failed to update user: ${error.message}`);
         }

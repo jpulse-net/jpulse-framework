@@ -3,7 +3,7 @@
  * @tagline         Hello Plugin Controller
  * @description     Simple API controller demonstrating plugin structure
  * @file            plugins/hello-world/webapp/controller/helloPlugin.js
- * @version         1.3.5
+ * @version         1.3.6
  * @author          jPulse Team, https://jpulse.net
  * @license         BSL 1.1
  * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
@@ -18,6 +18,41 @@ import LogController from '../../../../webapp/controller/log.js';
  * Auto-discovered by jPulse Framework
  */
 class HelloPluginController {
+
+    // ========================================================================
+    // W-105: Example Plugin Hooks Declaration
+    // Hooks are auto-registered by PluginManager during bootstrap
+    // Format: { hookName: { handler?, priority? } }
+    // ========================================================================
+    static hooks = {
+        // Example: Log after successful login (priority 100 = default)
+        authAfterLoginSuccessHook: {},
+        // Example: Add custom data to session (priority 50 = runs earlier)
+        authBeforeSessionCreateHook: { priority: 50 }
+    };
+
+    /**
+     * W-105: Hook handler - called after successful login
+     * Demonstrates how plugins can react to framework events
+     */
+    static async authAfterLoginSuccessHook(context) {
+        LogController.logInfo(context.req, 'helloPlugin.hook',
+            `User ${context.user.username} logged in via ${context.authMethod}`);
+        return context;
+    }
+
+    /**
+     * W-105: Hook handler - add plugin data to session
+     * Demonstrates how plugins can modify context data
+     */
+    static async authBeforeSessionCreateHook(context) {
+        // Add hello-world plugin marker to session data
+        context.sessionData.helloPlugin = {
+            welcomed: true,
+            timestamp: new Date().toISOString()
+        };
+        return context;
+    }
 
     /**
      * Get plugin data

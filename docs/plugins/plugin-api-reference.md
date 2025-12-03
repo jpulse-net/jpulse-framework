@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.3.5
+# jPulse Docs / Plugins / Plugins API Reference v1.3.6
 
 Complete API reference for jPulse plugin developers.
 
@@ -444,6 +444,7 @@ try {
 ## See Also
 
 - [Creating Plugins](creating-plugins.md) - Step-by-step guide
+- [Plugin Hooks](plugin-hooks.md) - Extend framework behavior with hooks
 - [Plugin Architecture](plugin-architecture.md) - How it works
 - [Managing Plugins](managing-plugins.md) - Admin guide
 - [Hello World Plugin](../installed-plugins/hello-world/README.md) - Complete example

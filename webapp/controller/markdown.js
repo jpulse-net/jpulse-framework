@@ -3,7 +3,7 @@
  * @tagline         Markdown controller for the jPulse Framework
  * @description     Markdown document serving with caching support, part of jPulse Framework
  * @file            webapp/controller/markdown.js
- * @version         1.3.5
+ * @version         1.3.6
  * @release         2025-12-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -67,6 +67,28 @@ class MarkdownController {
             description: 'List of all available dynamic content generators',
             params: '—',
             generator: async () => MarkdownController._generateGeneratorList(),
+        },
+        // W-105: Plugin hooks dynamic content generators
+        'plugins-hooks-list': {
+            description: 'Bullet list of available plugin hooks',
+            params: '`namespace`',
+            generator: async (params) => MarkdownController._generatePluginsHooksList(params),
+        },
+        'plugins-hooks-list-table': {
+            description: 'Markdown table of available plugin hooks',
+            params: '`namespace`',
+            generator: async (params) => MarkdownController._generatePluginsHooksTable(params),
+        },
+        'plugins-hooks-count': {
+            description: 'Count of available plugin hooks',
+            params: '`namespace`',
+            generator: async (params) => {
+                if (!global.HookManager) return '0';
+                const hooks = params.namespace
+                    ? global.HookManager.getHooksByNamespace(params.namespace)
+                    : global.HookManager.getAvailableHooks();
+                return `${Object.keys(hooks).length}`;
+            },
         },
     };
 
@@ -776,6 +798,82 @@ class MarkdownController {
         for (const name of generators) {
             const entry = registry[name];
             md += `| \`${name}\` | ${entry.description} | ${entry.params} |\n`;
+        }
+
+        return md;
+    }
+
+    // ========================================================================
+    // W-105: Plugin hooks dynamic content generators
+    // ========================================================================
+
+    /**
+     * W-105: Generate markdown table of available plugin hooks
+     * Used for dynamic content: %DYNAMIC{plugins-hooks-list-table}%
+     * @param {object} params - Optional parameters
+     *   - namespace: filter by namespace prefix (e.g., "auth", "user")
+     * @returns {string} Markdown table
+     * @private
+     */
+    static _generatePluginsHooksTable(params = {}) {
+        if (!global.HookManager) {
+            return '_HookManager not initialized._';
+        }
+
+        const hooks = params.namespace
+            ? global.HookManager.getHooksByNamespace(params.namespace)
+            : global.HookManager.getAvailableHooks();
+
+        const hookNames = Object.keys(hooks).sort();
+
+        if (hookNames.length === 0) {
+            return '_No hooks match the criteria._';
+        }
+
+        let md = '| Hook | Description | Context | Modify | Cancel |\n';
+        md += '|------|-------------|---------|--------|--------|\n';
+
+        for (const name of hookNames) {
+            const hook = hooks[name];
+            const canModify = hook.canModify ? '✅' : '❌';
+            const canCancel = hook.canCancel ? '✅' : '❌';
+            md += `| \`${name}\` | ${hook.description} | \`${hook.context}\` | ${canModify} | ${canCancel} |\n`;
+        }
+
+        return md;
+    }
+
+    /**
+     * W-105: Generate markdown list of available plugin hooks
+     * Used for dynamic content: %DYNAMIC{plugins-hooks-list}%
+     * @param {object} params - Optional parameters
+     *   - namespace: filter by namespace prefix (e.g., "auth", "user")
+     * @returns {string} Markdown list
+     * @private
+     */
+    static _generatePluginsHooksList(params = {}) {
+        if (!global.HookManager) {
+            return '_HookManager not initialized._';
+        }
+
+        const hooks = params.namespace
+            ? global.HookManager.getHooksByNamespace(params.namespace)
+            : global.HookManager.getAvailableHooks();
+
+        const hookNames = Object.keys(hooks).sort();
+
+        if (hookNames.length === 0) {
+            return '_No hooks match the criteria._';
+        }
+
+        let md = '';
+        for (const name of hookNames) {
+            const hook = hooks[name];
+            const badges = [];
+            if (hook.canModify) badges.push('modify');
+            if (hook.canCancel) badges.push('cancel');
+            const badgeStr = badges.length > 0 ? ` _(${badges.join(', ')})_` : '';
+            md += `- **\`${name}\`**${badgeStr} - ${hook.description}\n`;
         }
 
         return md;

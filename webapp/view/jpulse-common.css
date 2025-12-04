@@ -3511,8 +3511,6 @@ Example site customizations:
 .jp-markdown-content img {
     max-width: 100%;
     height: auto;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 /* Markdown Table Styling */
@@ -3550,6 +3548,11 @@ Example site customizations:
 .jp-markdown-content table td {
     font-size: 16px;
     line-height: 1.5;
+}
+
+.jp-markdown-content svg {
+    vertical-align: middle;
+    display: inline-block;
 }
 
 .jp-markdown-content table tbody tr:nth-child(even) {

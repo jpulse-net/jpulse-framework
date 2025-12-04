@@ -89,25 +89,8 @@ Whether you code manually or with AI assistance, jPulse's "don't make me think" 
 ## Site Architecture
 
 Your jPulse site has a three-tier stack for update-safe custom site code:
-```
-┌─────────────────────────────────┐
-│                                 │
-│            Site code            │   Location: my-jpulse-site/site/
-│                                 │
-└────────────────┬────────────────┘
-                 │
-┌────────────────┴────────────────┐
-│                                 │   Install:
-│          Plugins code           │     npm install @jpulse-net/plugin-[name]
-│                                 │   Location: my-jpulse-site/plugins/
-└────────────────┬────────────────┘
-                 │
-┌────────────────┴────────────────┐
-│                                 │   Install:  npx jpulse-install
-│      jPulse Framework code      │   Update:   npx jpulse update
-│                                 │   Location: my-jpulse-site/webapp/
-└─────────────────────────────────┘
-```
+
+![jPulse Site Stack](./images/jpulse-site-stack.svg)
 
 The framework follows a MVC pattern with clean separation of concerns:
 

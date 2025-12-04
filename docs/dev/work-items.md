@@ -2412,20 +2412,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - documents titleCaseFix configuration and overrides
     - documents symlink approach for accessible docs directories
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-105, v1.3.6, 2025-12-03: plugins: add plugin hooks for authentication and user management
 - status: ✅ DONE
 - type: Feature
@@ -2494,6 +2480,20 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
+
+
+
+
+
+
+
+
 ### Pending
 
 pending:
@@ -2508,6 +2508,7 @@ old pending:
 - add SiteControllerRegistry.getStats() to metrics api & system-status
 
 ### Potential next items:
+- W-080: controller: change search to cursor based paging API with limit & cursor
 - W-068: view: create responsive sidebar
 - W-0: view: headings with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
@@ -2920,9 +2921,4 @@ status codes:
 - status: ✅ DONE
 - status: ❌ CANCELED
 ------------------------
-
-------------------------
-
-Conversation with Grok on view strategy, e.g. build your own or use vue:
-https://grok.com/share/c2hhcmQtNA%3D%3D_5c4f68c9-f2ae-46d2-aa33-3f6975601839
 

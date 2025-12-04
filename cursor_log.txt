@@ -1065,3 +1065,20 @@ Status: ✅ ACCEPTED
 
 
 ============================================================
+2025-12-03 13:18
+
+Fix SVG icon height in markdown tables
+
+Prompt: SVG icon in markdown tables is too high (unicode icons OK)
+
+Summary:
+Added CSS rule for SVG icons in markdown content:
+- .jp-markdown-content svg (applies everywhere, not just tables)
+- vertical-align: middle (align with text)
+- display: inline-block
+- Note: Removed width/height constraints - SVGs could be diagrams, not just icons
+
+Status: ✅ ACCEPTED (user refined by removing width/height)
+
+
+============================================================

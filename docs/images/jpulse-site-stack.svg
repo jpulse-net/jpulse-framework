@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="645" height="270" viewBox="-2 -2 645 270">
+  <style>
+    .box { fill: #f8f8f8; stroke: #000; stroke-width: 1; }
+    .arrow { fill: none; stroke: #000; stroke-width: 1; }
+    text { font-family: Helvetica, Arial, sans-serif; font-size: 16px; fill: #000; }
+    .label { text-anchor: middle; }
+    .key { text-anchor: start; }
+    .val { text-anchor: start; }
+  </style>
+  <!-- Site Code -->
+  <rect x="0" y="0" width="280" height="60" rx="9" class="box"/>
+  <text x="140" y="35" class="label">Site Code</text>
+  <text x="310" y="35" class="key">Location:</text>
+  <text x="375" y="35" class="val">my-jpulse-site/site/</text>
+  <!-- Arrow 1 -->
+  <path d="M140 60 L140 94 M136 88 L140 94 L144 88" class="arrow"/>
+  <!-- Plugins Code -->
+  <rect x="0" y="100" width="280" height="60" rx="9" class="box"/>
+  <text x="140" y="135" class="label">Plugins Code</text>
+  <text x="310" y="120" class="key">Install:</text>
+  <text x="375" y="120" class="val">npm install @jpulse-net/plugin-[name]</text>
+  <text x="310" y="145" class="key">Location:</text>
+  <text x="375" y="145" class="val">my-jpulse-site/plugins/</text>
+  <!-- Arrow 2 -->
+  <path d="M140 160 L140 194 M136 188 L140 194 L144 188" class="arrow"/>
+  <!-- jPulse Framework Code -->
+  <rect x="0" y="200" width="280" height="60" rx="9" class="box"/>
+  <text x="140" y="231" class="label">jPulse Framework Code</text>
+  <text x="310" y="211" class="key">Install:</text>
+  <text x="375" y="211" class="val">npx jpulse-install</text>
+  <text x="310" y="236" class="key">Update:</text>
+  <text x="375" y="236" class="val">npx jpulse update</text>
+  <text x="310" y="261" class="key">Location:</text>
+  <text x="375" y="261" class="val">my-jpulse-site/webapp/</text>
+</svg>

@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Managing Plugins v1.3.6
+# jPulse Docs / Plugins / Managing Plugins v1.3.7
 
 Guide for site administrators to install, configure, and manage jPulse plugins.
 

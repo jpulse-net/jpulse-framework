@@ -1082,3 +1082,348 @@ Status: ✅ ACCEPTED (user refined by removing width/height)
 
 
 ============================================================
+2025-12-03 19:15
+
+W-080: Review of Cursor-Based Pagination Feature
+
+Prompt: Review cursor-based pagination approach for search API
+
+Summary:
+- Reviewed MongoDB cursor-based pagination approach from referenced article
+- Current codebase uses offset-based pagination (skip/page/limit) in model search() methods
+- Cursor-based pagination recommended for large datasets - avoids skip() performance issues
+- Cursor design: stateless Base64 encoded JSON blob containing query, sort, limit, lastValue, fields
+- Sort always required with _id tiebreaker for consistent pagination
+- Recommendation: Offer BOTH offset and cursor pagination for flexibility
+  - Offset: small datasets, "jump to page N" UI
+  - Cursor: large datasets, infinite scroll, consistent results
+
+High-level implementation:
+1. Add cursor encode/decode utilities to CommonUtils
+2. Create searchWithCursor() method or enhance existing search()
+3. Build range queries using $gt/$lt on sort key values
+4. Always fetch limit+1 to detect hasMore
+5. Return nextCursor/prevCursor tokens in response
+
+Status: Review complete, ready for implementation planning
+
+
+============================================================
+2025-12-03 20:18
+
+W-080: Finalized Design and Implementation Plan
+
+Prompt: Finalize design decisions and create implementation plan
+
+Design Decisions Finalized:
+1. Default mode: Cursor-based (modern API pattern, better performance)
+2. Offset mode: Opt-in via presence of `offset` parameter
+3. Parameters: `limit`, `offset`, `sort`, `cursor` (removed: `skip`, `page`)
+4. Cursor structure: Base64 JSON with v, q, s, f, l, t, lv, d fields
+5. Total count: Run countDocuments() on first call only, cache in cursor
+6. Sort: Always add `_id` as tiebreaker for unique ordering
+7. hasMore detection: Fetch limit+1, pop extra item
+8. Utility naming: verb-first pattern (encodePaginationCursor, decodePaginationCursor)
+
+Implementation Plan Added (4 Phases):
+- Phase 1: Core Cursor Utilities (2-3h) - CommonUtils functions + unit tests
+- Phase 2: Model Layer Updates (3-4h) - paginatedSearch, offset/cursor modes
+- Phase 3: Admin UI Updates (2-3h) - users.shtml, logs.shtml pagination
+- Phase 4: Documentation (1-2h) - API reference, cleanup
+
+Total estimated effort: 8-12 hours
+
+Files Updated:
+- docs/dev/working/W-080-search-with-pagination-cursor.md: Added detailed implementation plan
+
+Status: ✅ DESIGN COMPLETE, READY FOR IMPLEMENTATION
+
+
+============================================================
+2025-12-03 20:28
+
+W-080: Consolidated Implementation - Avoid Code Duplication
+
+Prompt: Can more code in Phase 2 be moved to Phase 1 to avoid duplication?
+
+Analysis:
+- UserModel.search() and LogModel.search() have ~40 lines of identical pagination code
+- Originally Phase 2 had duplicate logic in each model
+
+Solution: Consolidate all pagination logic into CommonUtils.paginatedSearch()
+- Models pass their collection to CommonUtils (no model imports in CommonUtils)
+- Keeps dependencies one-way: Models → CommonUtils (not circular)
+- Each model's search() becomes ~15 lines (thin wrapper)
+
+Updated Implementation Plan:
+- Phase 1 (4-5h): Complete pagination system in CommonUtils
+  - paginatedSearch(collection, query, queryParams, options) - main entry
+  - _paginatedOffsetSearch() - internal offset mode
+  - _paginatedCursorSearch() - internal cursor mode
+  - _extractSortValues() - helper for cursor building
+  - Plus original utilities (encode, decode, buildRangeQuery, normalizeSort)
+
+- Phase 2 (1-2h): Model updates become minimal
+  - Each model just builds query + calls CommonUtils.paginatedSearch()
+  - Pass collection as parameter (no imports needed in CommonUtils)
+
+Benefits:
+1. Single source of truth for pagination logic
+2. Easier testing - test pagination once in CommonUtils
+3. Consistent response format across all models
+4. Bug fixes apply everywhere
+5. ~40 → ~15 lines per model
+
+Status: ✅ PLAN UPDATED
+
+
+============================================================
+2025-12-03 20:35
+
+W-080: Private Function Visibility Review
+
+Prompt: Review which pagination functions should be private ("_" prefix)
+
+Decision: Minimal public API - only expose what models need.
+
+**Public (1 function):**
+- `paginatedSearch(collection, query, queryParams, options)` - Main entry point
+
+**Private (7 functions - "_" prefix):**
+- `_paginatedOffsetSearch()` - Internal: offset mode
+- `_paginatedCursorSearch()` - Internal: cursor mode
+- `_extractSortValues()` - Internal: extract values for cursor
+- `_encodePaginationCursor()` - Internal: encode to Base64
+- `_decodePaginationCursor()` - Internal: decode and validate
+- `_buildPaginationCursorRangeQuery()` - Internal: build $or range query
+- `_normalizePaginationSort()` - Internal: parse sort, add _id tiebreaker
+
+Rationale:
+- Models only need paginatedSearch() - everything else is implementation detail
+- Cursor encoding/decoding is internal - cursor is opaque to callers
+- Makes future refactoring easier without breaking external code
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2025-12-03 20:45
+
+W-080: Implementation Complete (Phase 1 & 2)
+
+Prompt: Update work-items.md and implement pagination
+
+Implementation Summary:
+
+1. Updated docs/dev/work-items.md:
+   - Added features list (cursor/offset modes, stateless cursor, etc.)
+   - Added complete deliverables with line counts
+
+2. Implemented webapp/utils/common.js (~200 lines):
+   - paginatedSearch(collection, query, queryParams, options) - PUBLIC
+   - _paginatedOffsetSearch() - private offset mode
+   - _paginatedCursorSearch() - private cursor mode
+   - _encodePaginationCursor() - private Base64 encode
+   - _decodePaginationCursor() - private decode/validate
+   - _buildPaginationCursorRangeQuery() - private $or range query
+   - _normalizePaginationSort() - private sort parser
+   - _extractSortValues() - private value extraction
+
+3. Updated webapp/model/user.js:
+   - search() now uses CommonUtils.paginatedSearch()
+   - Reduced from ~40 lines to ~15 lines
+   - Kept model-specific 'name' parameter handling
+
+4. Updated webapp/model/log.js:
+   - search() now uses CommonUtils.paginatedSearch()
+   - Reduced from ~40 lines to ~10 lines
+
+5. Created webapp/tests/unit/utils/common-pagination.test.js:
+   - 37 unit tests covering all pagination utilities
+   - Tests for: sort normalization, cursor encode/decode, range queries,
+     value extraction, offset mode, cursor mode, edge cases
+   - All 37 tests passing
+
+Key Design Decisions:
+- Cursor mode is default (modern, better performance)
+- Offset mode triggered by presence of 'offset' param
+- Models pass collection to CommonUtils (no circular imports)
+- One public function, 7 private helpers
+- Sort always includes _id tiebreaker
+- Total count cached in cursor after first call
+
+Status: ✅ PHASE 1 & 2 COMPLETE
+Tests: 37/37 passing
+Next: Phase 3 (Admin UI updates) and Phase 4 (Documentation)
+
+
+============================================================
+2025-12-03 20:55
+
+W-080: Phase 3 & 4 Complete - All Implementation Done
+
+Implementation Summary:
+
+Phase 3 - Admin UI Updates:
+
+1. webapp/view/admin/users.shtml:
+   - Replaced page-based state with cursor-based state (paginationState)
+   - Updated loadUsers() to accept cursor parameter
+   - Updated setupPagination() for cursor/nextCursor/prevCursor
+   - Updated searchUsers() to reset cursor state on new search
+   - Removed changePage() function (no longer needed)
+   - UI shows "Showing X of Y" instead of page numbers
+
+2. webapp/view/admin/logs.shtml:
+   - Replaced page-based state with cursor-based state
+   - Updated loadLogs() to accept cursor parameter
+   - Updated updatePagination() for cursor mode
+   - Updated updateResultsInfo() for cursor mode display
+   - Reset cursor state on: search, clear, sort change, page size change
+
+Phase 4 - Documentation:
+
+1. docs/api-reference.md:
+   - Added pagination mode table (cursor vs offset)
+   - Documented cursor parameter for next/prev navigation
+   - Documented offset parameter for opt-in offset mode
+   - Updated User Search response examples
+   - Updated Log Search response examples
+   - Added W-080 references
+
+Files Modified (Phase 3 & 4):
+- webapp/view/admin/users.shtml (~50 lines changed)
+- webapp/view/admin/logs.shtml (~60 lines changed)
+- docs/api-reference.md (~100 lines changed)
+
+Tests: 37/37 pagination tests passing
+
+Status: ✅ W-080 COMPLETE - All 4 phases implemented
+
+
+============================================================
+2025-12-03 21:00
+
+W-080: Bug Fix - Cursor Pagination Returns 0 Results
+
+Bug Report:
+- Initial page load shows "50 of 238 results"
+- Clicking Next shows "0 results"
+- Server log shows cursor was decoded correctly but query returned 0 docs
+
+Root Cause:
+When navigating with a cursor, the frontend correctly sends only the cursor
+(not the filter params). But the backend was using the empty query from
+the current request instead of the original query stored in the cursor.
+
+Fix in `_paginatedCursorSearch()`:
+1. Added `originalQuery` variable to track the correct query
+2. When cursor is decoded, use `cursorData.q` as the original query
+3. Use `originalQuery` (not empty `query`) when building range query
+4. Use `originalQuery` when building next/prev cursors
+5. Use `effectiveSort` (from cursor) for cursor building
+
+Code Changes:
+```javascript
+// Before: effectiveQuery = { $and: [query, rangeQuery] };  // query was empty!
+// After:  effectiveQuery = { $and: [originalQuery, rangeQuery] };
+
+// Before: q: query,  // was empty on subsequent pages
+// After:  q: originalQuery,  // preserves filters
+```
+
+Tests: 37/37 passing
+
+Status: ✅ BUG FIXED
+
+
+============================================================
+2025-12-03 21:08
+
+W-080: UI Enhancement - Display Range in Pagination
+
+Request: Change "50 of 238 results" to "1 to 50 of 238 results"
+
+Implementation:
+1. Added `currentStart` to paginationState in both logs.shtml and users.shtml
+2. Updated prev/next button handlers to track position:
+   - Next: currentStart = currentStart + currentCount
+   - Prev: currentStart = max(1, currentStart - pageSize)
+3. Reset currentStart to 1 on: new search, clear filters, change page size, sort change
+4. Updated display format:
+   - logs.shtml: "1 to 50 of 238 results" and "1-50 of 238" in page info
+   - users.shtml: "Showing 1-20 of 45"
+
+Files Modified:
+- webapp/view/admin/logs.shtml
+- webapp/view/admin/users.shtml
+
+Status: ✅ COMPLETE
+
+
+============================================================
+2025-12-03 21:30
+
+W-080: i18n Fixes and jPulse.UI.pagination Helper
+
+Part 1: i18n Improvements
+- Added missing i18n strings for users pagination:
+  - en.conf: showingResults, result, results
+  - de.conf: showingResults, result, results
+- Logs already had showingResults template: 'Showing %START%-%END% of %TOTAL% results'
+- Users now uses same template pattern
+
+Part 2: Created jPulse.UI.pagination Helper
+New helper in jpulse-common.js with methods:
+- createState() - Create fresh pagination state object
+- resetState(state) - Reset state to initial values (in place)
+- updateState(state, pagination) - Update from API response
+- formatRange(state, count, template) - Format "1-50 of 238" using i18n template
+- updateButtons(state, prevBtn, nextBtn) - Update button disabled states
+- goNext/goPrev(state, count/pageSize, loadFn, filters) - Navigation
+- setupButtons(config) - One-call setup for prev/next button listeners
+
+Part 3: Simplified View Code
+Before (typical):
+  let paginationState = { nextCursor: null, ... };
+  document.getElementById('prevPage').addEventListener('click', () => { ... });
+  document.getElementById('nextPage').addEventListener('click', () => { ... });
+
+After:
+  let paginationState = jPulse.UI.pagination.createState();
+  jPulse.UI.pagination.setupButtons({ state, prevBtn, nextBtn, loadFn, ... });
+
+Files Modified:
+- webapp/translations/en.conf - Added users pagination strings
+- webapp/translations/de.conf - Added users pagination strings
+- webapp/view/jpulse-common.js - Added jPulse.UI.pagination helper (~100 lines)
+- webapp/view/admin/logs.shtml - Simplified using helper
+- webapp/view/admin/users.shtml - Simplified using helper
+
+Status: ✅ COMPLETE
+
+
+============================================================
+2024-12-03 22:43
+
+Prompt: implement! (user stats endpoint) + add "Results per page:" selector on users page
+
+Summary:
+1. User stats endpoint was already implemented - just updated users.shtml to use
+   /api/1/user/stats instead of fetching all users for stats calculation
+2. Added "Results per page:" selector to users page matching logs page
+
+Changes Made:
+- webapp/view/admin/users.shtml:
+  - Updated loadUserStats() to use efficient /api/1/user/stats endpoint
+  - Added pageSize variable and changePageSize() function
+  - Added page-size-selector CSS and HTML
+  - Updated loadUsers() to use dynamic pageSize
+  - Reset page size from test value (5) to production (50)
+- webapp/translations/en.conf - Added resultsPerPage for users
+- webapp/translations/de.conf - Added resultsPerPage for users
+
+Status: ✅ ACCEPTED
+
+
+============================================================

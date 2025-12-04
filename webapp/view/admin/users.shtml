@@ -4,8 +4,8 @@
  * @tagline         Admin user management interface
  * @description     User management dashboard for site administrators
  * @file            webapp/view/admin/users.shtml
- * @version         1.3.6
- * @release         2025-12-03
+ * @version         1.3.7
+ * @release         2025-12-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -58,6 +58,39 @@
         /* Status-specific font size adjustment for table */
         .local-users-table .jp-status-badge {
             font-size: 11px;
+        }
+
+        /* Results info display */
+        .local-results-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .local-page-size-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .local-page-size-selector select {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .local-results-info {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
         }
     </style>
 </head>
@@ -134,6 +167,20 @@
                   </form>
               </div>
 
+              <!-- Results info -->
+              <div class="local-results-info" id="resultsInfo" style="display: none;">
+                  <span id="resultsCount">0 results</span>
+                  <div class="local-page-size-selector">
+                      <label for="pageSize">{{i18n.view.admin.users.resultsPerPage}}</label>
+                      <select id="pageSize" onchange="changePageSize()">
+                          <option value="25">25</option>
+                          <option value="50" selected>50</option>
+                          <option value="100">100</option>
+                          <option value="200">200</option>
+                      </select>
+                  </div>
+              </div>
+
               <div class="jp-table-container" id="usersTableContainer">
                   <table class="jp-table" id="usersTable">
                       <thead>
@@ -154,7 +201,7 @@
 
               <div class="jp-pagination" id="pagination" style="display: none;">
                   <button id="prevPage" disabled>{{i18n.view.admin.users.previous}}</button>
-                  <span id="pageInfo">{{i18n.view.admin.users.pageInfo}}</span>
+                  <span id="pageInfo"></span>
                   <button id="nextPage" disabled>{{i18n.view.admin.users.next}}</button>
               </div>
 
@@ -176,11 +223,12 @@
     </div>
 
     <script>
-        let currentPage = 1;
-        let totalPages = 1;
+        // W-080: Cursor-based pagination state (using jPulse.UI.pagination helper)
+        let paginationState = jPulse.UI.pagination.createState();
         let currentFilters = {};
         let allUsers = [];
         let userSchema = null;
+        let pageSize = 50;
 
         // Enhanced user management using jPulse utilities
         jPulse.dom.ready(() => {
@@ -200,70 +248,63 @@
                 searchUsers(event);
             });
 
-            // Setup pagination
-            document.getElementById('prevPage').addEventListener('click', () => {
-                if (currentPage > 1) {
-                    currentPage--;
-                    loadUsers(currentFilters);
-                }
-            });
-
-            document.getElementById('nextPage').addEventListener('click', () => {
-                if (currentPage < totalPages) {
-                    currentPage++;
-                    loadUsers(currentFilters);
-                }
+            // W-080: Cursor-based pagination (using jPulse.UI.pagination helper)
+            jPulse.UI.pagination.setupButtons({
+                state: paginationState,
+                prevBtn: 'prevPage',
+                nextBtn: 'nextPage',
+                loadFn: loadUsers,
+                getFilters: () => currentFilters,
+                getCount: () => document.querySelectorAll('#usersTableBody tr').length,
+                pageSize: pageSize
             });
         }
 
-        // Restore original working functions
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('pageSize').value);
+            // W-080: Reset cursor state when page size changes
+            jPulse.UI.pagination.resetState(paginationState);
+            loadUsers(currentFilters);
+        }
+
+        // Load user stats using efficient aggregation endpoint
         async function loadUserStats() {
             try {
-                // Get all users to calculate stats (original approach)
-                const result = await jPulse.api.get('/api/1/user/search?limit=1000');
+                const result = await jPulse.api.get('/api/1/user/stats');
                 if (result.success) {
-                    const users = result.data || [];
-
-                    // Calculate stats from user data
-                    const stats = {
-                        totalUsers: users.length,
-                        activeUsers: users.filter(user => user.status === 'active').length,
-                        adminUsers: users.filter(user => user.roles && (user.roles.includes('admin') || user.roles.includes('root'))).length,
-                        recentLogins: 0
-                    };
-
-                    // Calculate recent logins (last 30 days)
-                    const thirtyDaysAgo = new Date();
-                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                    stats.recentLogins = users.filter(user =>
-                        user.lastLogin && new Date(user.lastLogin) > thirtyDaysAgo
-                    ).length;
-
+                    const stats = result.data;
                     // Update stats display
-                    document.getElementById('totalUsers').textContent = stats.totalUsers;
-                    document.getElementById('activeUsers').textContent = stats.activeUsers;
-                    document.getElementById('adminUsers').textContent = stats.adminUsers;
-                    document.getElementById('recentLogins').textContent = stats.recentLogins;
+                    document.getElementById('totalUsers').textContent = stats.total || 0;
+                    document.getElementById('activeUsers').textContent = stats.byStatus?.active || 0;
+                    document.getElementById('adminUsers').textContent = stats.admins || 0;
+                    document.getElementById('recentLogins').textContent = stats.recentLogins?.last30d || 0;
                 }
             } catch (error) {
                 console.error('Failed to load stats:', error);
             }
         }
 
-        async function loadUsers(queryParams = {}) {
+        // W-080: Updated to use cursor-based pagination
+        async function loadUsers(queryParams = {}, cursor = null) {
             try {
                 showLoading(true);
 
-                // Build query parameters (original approach)
+                // Build query parameters
                 const params = new URLSearchParams();
-                params.append('page', currentPage);
-                params.append('limit', '20');
+                params.append('limit', pageSize);
+                params.append('sort', '-createdAt'); // Descending by createdAt (API also accepts 'createdAt:-1')
 
-                Object.keys(queryParams).forEach(key => {
-                    if (queryParams[key]) {
-                        params.append(key, queryParams[key]);
-                    }
-                });
+                // If cursor provided, use it (for next/prev navigation)
+                if (cursor) {
+                    params.append('cursor', cursor);
+                } else {
+                    // First page or new search - add filter params
+                    Object.keys(queryParams).forEach(key => {
+                        if (queryParams[key]) {
+                            params.append(key, queryParams[key]);
+                        }
+                    });
+                }
 
                 const result = await jPulse.api.get('/api/1/user/search?' + params.toString());
 
@@ -271,6 +312,7 @@
                     const userData = result.data;
                     displayUsers(userData);
                     setupPagination(result.pagination);
+                    updateResultsInfo(result.pagination);
                 } else {
                     jPulse.UI.toast.error(result.error || `{{i18n.view.admin.users.failedToLoadUsers}}`);
                 }
@@ -342,7 +384,7 @@
                 const date = new Date(user.lastLogin);
                 lastLoginCell.textContent = date.toISOString().split('T')[0]; // YYYY-MM-DD format
             } else {
-                lastLoginCell.textContent = 'Never';
+                lastLoginCell.textContent = '{{i18n.view.admin.users.never}}';
             }
             tr.appendChild(lastLoginCell);
 
@@ -357,38 +399,54 @@
             return tr;
         }
 
+        // W-080: Updated for cursor-based pagination (using jPulse.UI.pagination helper)
+        const i18nShowingResults = `{{i18n.view.admin.users.showingResults}}`;
+
         function setupPagination(pagination) {
             const paginationDiv = document.getElementById('pagination');
 
             if (!pagination) {
+                paginationDiv.style.display = 'none';
                 return;
             }
 
-            totalPages = pagination.totalPages || 1;
-            const currentPageNum = pagination.page || 1;
+            // Update state from API response
+            jPulse.UI.pagination.updateState(paginationState, pagination);
 
-            let paginationHTML = '';
+            // Update button states
+            jPulse.UI.pagination.updateButtons(paginationState, 'prevPage', 'nextPage');
 
-            // Previous button
-            const prevDisabled = currentPageNum <= 1;
-            paginationHTML += `<button onclick="changePage(${currentPageNum - 1})" ${prevDisabled ? 'disabled' : ''}>{{i18n.view.admin.users.previous}}</button>`;
-
-            // Page numbers (only show if more than 1 page)
-            if (totalPages > 1) {
-                for (let i = Math.max(1, currentPageNum - 2); i <= Math.min(totalPages, currentPageNum + 2); i++) {
-                    paginationHTML += `<button onclick="changePage(${i})" ${i === currentPageNum ? 'class="jp-current-page"' : ''}>${i}</button>`;
-                }
-            } else {
-                // Show current page even if only 1 page
-                paginationHTML += `<button class="jp-current-page">1</button>`;
+            // Show "Showing X to Y of Z" info
+            const count = document.querySelectorAll('#usersTableBody tr').length;
+            let infoText = '';
+            if (paginationState.total > 0 && count > 0) {
+                infoText = jPulse.UI.pagination.formatRange(paginationState, count, i18nShowingResults);
+            } else if (paginationState.total > 0) {
+                infoText = '{{i18n.view.admin.users.totalResults}}'.replace('%TOTAL%', paginationState.total);
             }
 
-            // Next button
-            const nextDisabled = currentPageNum >= totalPages;
-            paginationHTML += `<button onclick="changePage(${currentPageNum + 1})" ${nextDisabled ? 'disabled' : ''}>{{i18n.view.admin.users.next}}</button>`;
+            // Update the pageInfo span directly
+            document.getElementById('pageInfo').textContent = infoText;
 
-            paginationDiv.innerHTML = paginationHTML;
-            paginationDiv.style.display = 'flex';
+            // Show pagination if there's more than one page worth of data
+            paginationDiv.style.display = (paginationState.prevCursor || paginationState.nextCursor || paginationState.total > count) ? 'flex' : 'none';
+        }
+
+        function updateResultsInfo(pagination) {
+            const resultsInfo = document.getElementById('resultsInfo');
+            const resultsCount = document.getElementById('resultsCount');
+            const total = pagination?.total || 0;
+            const count = document.querySelectorAll('#usersTableBody tr').length;
+
+            if (total === 0) {
+                resultsInfo.style.display = 'none';
+            } else {
+                resultsInfo.style.display = 'flex';
+                // Always show range format like logs page: "Showing 1-16 of 16"
+                resultsCount.textContent = jPulse.UI.pagination.formatRange(
+                    paginationState, count, i18nShowingResults
+                );
+            }
         }
 
         function searchUsers(event) {
@@ -406,16 +464,9 @@
 
             // Store current search for pagination
             currentFilters = searchParams;
-            // Reset to page 1 for new searches
-            currentPage = 1;
+            // W-080: Reset cursor state for new search (first page)
+            jPulse.UI.pagination.resetState(paginationState);
             loadUsers(searchParams);
-        }
-
-        function changePage(newPage) {
-            if (newPage >= 1 && newPage <= totalPages) {
-                currentPage = newPage;
-                loadUsers(currentFilters);
-            }
         }
 
         function viewUser(username) {

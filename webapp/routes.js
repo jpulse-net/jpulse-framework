@@ -3,8 +3,8 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.3.6
- * @release         2025-12-03
+ * @version         1.3.7
+ * @release         2025-12-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -98,6 +98,7 @@ router.get('/api/1/cache/stats', CacheController.getStats);
 router.post('/api/1/user/signup', UserController.signup);
 router.put('/api/1/user/password', AuthController.requireAuthentication, UserController.changePassword);
 router.get('/api/1/user/search', AuthController.requireRole(adminRoles), UserController.search);
+router.get('/api/1/user/stats', AuthController.requireRole(adminRoles), UserController.stats);
 router.get('/api/1/user/enums', AuthController.requireAuthentication, UserController.getEnums);
 router.get('/api/1/user', AuthController.requireAuthentication, UserController.get);
 router.get('/api/1/user/:id', AuthController.requireAuthentication, UserController.get);

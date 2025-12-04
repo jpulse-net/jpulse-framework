@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.3.6
- * @release         2025-12-03
+ * @version         1.3.7
+ * @release         2025-12-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -401,6 +401,7 @@ class UserModel {
 
     /**
      * Search users using schema-based query building
+     * W-080: Now uses CommonUtils.paginatedSearch() for cursor/offset pagination
      * @param {object} queryParams - URI query parameters
      * @param {object} options - Query options
      * @returns {Promise<object>} Search results with metadata
@@ -408,7 +409,7 @@ class UserModel {
     static async search(queryParams, options = {}) {
         try {
             // Build MongoDB query from URI parameters
-            const ignoreFields = ['limit', 'skip', 'sort', 'page', 'password', 'passwordHash', 'name'];
+            const ignoreFields = ['limit', 'offset', 'sort', 'cursor', 'password', 'passwordHash', 'name'];
             const query = CommonUtils.schemaBasedQuery(UserModel.getSchema(), queryParams, ignoreFields);
 
             // Handle special 'name' parameter to search both firstName and lastName
@@ -421,45 +422,9 @@ class UserModel {
                 ];
             }
 
-            // Handle pagination
-            const limit = Math.min(parseInt(queryParams.limit) || 50, 1000);
-            const skip = parseInt(queryParams.skip) || 0;
-            const page = parseInt(queryParams.page) || 1;
-
-            if (page > 1) {
-                options.skip = (page - 1) * limit;
-            } else if (skip > 0) {
-                options.skip = skip;
-            }
-            options.limit = limit;
-
-            // Handle sorting
-            if (queryParams.sort) {
-                const sortField = queryParams.sort.startsWith('-') ?
-                    queryParams.sort.substring(1) : queryParams.sort;
-                const sortOrder = queryParams.sort.startsWith('-') ? -1 : 1;
-                options.sort = { [sortField]: sortOrder };
-            }
-
-            // Execute search
-            const results = await UserModel.find(query, options);
-
-            // Get total count for pagination
+            // Delegate to CommonUtils.paginatedSearch() for pagination handling
             const collection = UserModel.getCollection();
-            const totalCount = await collection.countDocuments(query);
-
-            return {
-                success: true,
-                data: results,
-                pagination: {
-                    total: totalCount,
-                    limit,
-                    skip: options.skip || 0,
-                    page: Math.floor((options.skip || 0) / limit) + 1,
-                    totalPages: Math.ceil(totalCount / limit)  // Add totalPages for frontend
-                },
-                query: query
-            };
+            return CommonUtils.paginatedSearch(collection, query, queryParams, options);
         } catch (error) {
             throw new Error(`Failed to search users: ${error.message}`);
         }
@@ -479,6 +444,89 @@ class UserModel {
             return count;
         } catch (error) {
             throw new Error(`Failed to count admins: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get user statistics using MongoDB aggregation
+     * Efficient single-query approach for dashboard stats
+     * @returns {Promise<object>} User statistics
+     */
+    static async getStats() {
+        try {
+            const collection = this.getCollection();
+            const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+
+            // Calculate date thresholds for recent logins
+            const now = new Date();
+            const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const last30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+            // Single aggregation with $facet for parallel pipelines
+            const result = await collection.aggregate([
+                {
+                    $facet: {
+                        total: [{ $count: 'count' }],
+                        byStatus: [
+                            { $group: { _id: '$status', count: { $sum: 1 } } }
+                        ],
+                        byRole: [
+                            { $unwind: { path: '$roles', preserveNullAndEmptyArrays: false } },
+                            { $group: { _id: '$roles', count: { $sum: 1 } } }
+                        ],
+                        admins: [
+                            { $match: { roles: { $in: adminRoles } } },
+                            { $count: 'count' }
+                        ],
+                        recentLogins24h: [
+                            { $match: { lastLogin: { $gte: last24h } } },
+                            { $count: 'count' }
+                        ],
+                        recentLogins7d: [
+                            { $match: { lastLogin: { $gte: last7d } } },
+                            { $count: 'count' }
+                        ],
+                        recentLogins30d: [
+                            { $match: { lastLogin: { $gte: last30d } } },
+                            { $count: 'count' }
+                        ]
+                    }
+                }
+            ]).toArray();
+
+            const data = result[0];
+
+            // Transform aggregation result into clean stats object
+            const stats = {
+                total: data.total[0]?.count || 0,
+                byStatus: {},
+                byRole: {},
+                admins: data.admins[0]?.count || 0,
+                recentLogins: {
+                    last24h: data.recentLogins24h[0]?.count || 0,
+                    last7d: data.recentLogins7d[0]?.count || 0,
+                    last30d: data.recentLogins30d[0]?.count || 0
+                }
+            };
+
+            // Convert byStatus array to object
+            data.byStatus.forEach(item => {
+                if (item._id) {
+                    stats.byStatus[item._id] = item.count;
+                }
+            });
+
+            // Convert byRole array to object
+            data.byRole.forEach(item => {
+                if (item._id) {
+                    stats.byRole[item._id] = item.count;
+                }
+            });
+
+            return stats;
+        } catch (error) {
+            throw new Error(`Failed to get user stats: ${error.message}`);
         }
     }
 

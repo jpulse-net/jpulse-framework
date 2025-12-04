@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.3.6
+# jPulse Docs / jPulse.UI Widget Reference v1.3.7
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -11,6 +11,7 @@ Complete reference documentation for all `jPulse.UI.*` widgets available in the 
 - [Accordion Component](#accordion-component) - Grouped sections with mutual exclusion
 - [Tab Interface](#tab-interface) - Navigation and panel tabs
 - [Source Code Display](#source-code-display) - Syntax-highlighted code blocks
+- [Pagination Helper](#pagination-helper) - Cursor-based pagination state management
 
 ---
 
@@ -504,6 +505,129 @@ jPulse.UI.sourceCode.init(codeElement);
 - **Copy to clipboard**: One-click copy functionality
 - **Language labels**: Optional language indicator
 - **Auto-initialization**: Automatically initializes on page load
+
+---
+
+## Pagination Helper
+
+Client-side pagination state management for cursor-based and offset-based pagination in admin views.
+
+### Basic Usage
+
+```javascript
+// Create pagination state
+let paginationState = jPulse.UI.pagination.createState();
+
+// Update state from API response
+jPulse.UI.pagination.updateState(paginationState, response.pagination);
+
+// Update button disabled states
+jPulse.UI.pagination.updateButtons(paginationState, 'prevBtn', 'nextBtn');
+
+// Format range display: "Showing 1-50 of 238"
+const rangeText = jPulse.UI.pagination.formatRange(
+    paginationState,
+    itemCount,
+    'Showing %START%-%END% of %TOTAL%'
+);
+```
+
+### API Reference
+
+#### `jPulse.UI.pagination.createState()`
+Create a new, clean pagination state object.
+
+**Returns:** `object` - Initial state with `nextCursor`, `prevCursor`, `total`, `hasMore`, `currentStart`
+
+#### `jPulse.UI.pagination.resetState(state)`
+Reset pagination state to initial values.
+
+**Parameters:**
+- `state` (object): The pagination state object to reset
+
+#### `jPulse.UI.pagination.updateState(state, paginationData)`
+Update pagination state from an API response.
+
+**Parameters:**
+- `state` (object): The current pagination state object
+- `paginationData` (object): The pagination object from API response
+
+#### `jPulse.UI.pagination.formatRange(state, count, template)`
+Format the pagination range string.
+
+**Parameters:**
+- `state` (object): The current pagination state object
+- `count` (number): Number of items on the current page
+- `template` (string): i18n template string (e.g., `'Showing %START%-%END% of %TOTAL%'`)
+
+**Returns:** `string` - Formatted range string
+
+#### `jPulse.UI.pagination.updateButtons(state, prevBtnId, nextBtnId)`
+Update the disabled state of pagination buttons.
+
+**Parameters:**
+- `state` (object): The current pagination state object
+- `prevBtnId` (string): ID of the previous button
+- `nextBtnId` (string): ID of the next button
+
+#### `jPulse.UI.pagination.setupButtons(config)`
+Set up event listeners for pagination buttons.
+
+**Parameters:**
+- `config.state` (object): The pagination state object
+- `config.prevBtn` (string): ID of the previous button
+- `config.nextBtn` (string): ID of the next button
+- `config.loadFn` (Function): Function to call for loading data
+- `config.getFilters` (Function): Function to get current filters
+- `config.getCount` (Function): Function to get current page item count
+- `config.pageSize` (number): Number of items per page
+
+### Complete Example
+
+```javascript
+// Initialize state
+let paginationState = jPulse.UI.pagination.createState();
+let pageSize = 50;
+
+// Setup button listeners
+jPulse.UI.pagination.setupButtons({
+    state: paginationState,
+    prevBtn: 'prevPage',
+    nextBtn: 'nextPage',
+    loadFn: loadData,
+    getFilters: () => currentFilters,
+    getCount: () => document.querySelectorAll('#tableBody tr').length,
+    pageSize: pageSize
+});
+
+// After API call
+async function loadData(filters, cursor) {
+    const params = new URLSearchParams();
+    params.append('limit', pageSize);
+    if (cursor) params.append('cursor', cursor);
+
+    const result = await jPulse.api.get('/api/1/data/search?' + params);
+    if (result.success) {
+        displayData(result.data);
+        updatePagination(result.pagination);
+    }
+}
+
+function updatePagination(pagination) {
+    jPulse.UI.pagination.updateState(paginationState, pagination);
+    jPulse.UI.pagination.updateButtons(paginationState, 'prevPage', 'nextPage');
+
+    const count = document.querySelectorAll('#tableBody tr').length;
+    document.getElementById('pageInfo').textContent =
+        jPulse.UI.pagination.formatRange(paginationState, count, i18nShowingResults);
+}
+```
+
+### Features
+- **Stateless cursors**: All state encoded in cursor tokens from API
+- **Bidirectional navigation**: Support for both next and previous page
+- **Range display**: Formatted "Showing X-Y of Z" with i18n support
+- **Button management**: Automatic disabled state based on cursor availability
 
 ---
 

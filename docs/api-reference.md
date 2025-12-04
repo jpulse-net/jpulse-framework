@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.3.6
+# jPulse Docs / REST API Reference v1.3.7
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -643,30 +643,48 @@ Search and filter users with advanced query capabilities.
 - `createdAt` (string): Date range filter (YYYY, YYYY-MM, YYYY-MM-DD)
 - `lastLogin` (string): Last login date filter
 - `limit` (number): Maximum results to return (default: 50, max: 1000)
-- `skip` (number): Number of results to skip for pagination
-- `page` (number): Page number (alternative to skip)
-- `sort` (string): Sort field with optional `-` prefix for descending
+- `sort` (string): Sort field with optional `-` prefix for descending (e.g., `-createdAt`)
+
+**Pagination Parameters (W-080):**
+
+The API supports two pagination modes:
+
+| Mode | Trigger | Best For |
+|------|---------|----------|
+| **Cursor** (default) | No `offset` param | Large datasets, infinite scroll, consistent results |
+| **Offset** (opt-in) | `offset` param present | Jump-to-page UI, small datasets |
+
+*Cursor mode parameters:*
+- `cursor` (string): Opaque pagination token from previous response
+
+*Offset mode parameters:*
+- `offset` (number): Number of results to skip
 
 **Example Requests:**
 ```bash
-# Find active admin users
+# Find active admin users (cursor mode - default)
 GET /api/1/user/search?status=active&roles=admin
 
 # Search users by name with wildcard
 GET /api/1/user/search?profile.firstName=John*
 
-# Paginated results sorted by last login
-GET /api/1/user/search?limit=25&page=2&sort=-lastLogin
+# Cursor-based pagination - first page
+GET /api/1/user/search?limit=25&sort=-lastLogin
+
+# Cursor-based pagination - next page (use nextCursor from response)
+GET /api/1/user/search?cursor=eyJ2IjoxLCJxIjp7fSwic...
+
+# Offset-based pagination (opt-in)
+GET /api/1/user/search?limit=25&offset=50&sort=-lastLogin
 ```
 
-**Response (200):**
+**Response - Cursor Mode (200):**
 ```json
 {
     "success": true,
-    "message": "Found 15 users",
     "data": [
         {
-            "id": "66cb1234567890abcdef1234",
+            "_id": "66cb1234567890abcdef1234",
             "username": "jsmith",
             "email": "john@example.com",
             "profile": {
@@ -681,14 +699,31 @@ GET /api/1/user/search?limit=25&page=2&sort=-lastLogin
             "createdAt": "2025-08-01T08:00:00.000Z"
         }
     ],
+    "count": 25,
     "pagination": {
-        "total": 15,
-        "limit": 50,
-        "skip": 0,
-        "page": 1,
-        "pages": 1
-    },
-    "elapsed": 12
+        "mode": "cursor",
+        "total": 150,
+        "limit": 25,
+        "hasMore": true,
+        "nextCursor": "eyJ2IjoxLCJxIjp7fSwicyI6eyJsYXN0TG9naW4iOi0xLCJfaWQiOi0xfX0=",
+        "prevCursor": null
+    }
+}
+```
+
+**Response - Offset Mode (200):**
+```json
+{
+    "success": true,
+    "data": [...],
+    "count": 25,
+    "pagination": {
+        "mode": "offset",
+        "total": 150,
+        "limit": 25,
+        "offset": 50,
+        "hasMore": true
+    }
 }
 ```
 
@@ -848,14 +883,15 @@ Search and filter log entries with advanced query capabilities.
 - `docType` (string): Document type filter (`config`, `user`, `log`)
 - `action` (string): Action filter (`create`, `update`, `delete`)
 - `createdBy` (string): User ID filter
-- `limit` (number): Maximum results to return (default: 100, max: 1000)
-- `skip` (number): Number of results to skip for pagination
-- `sort` (string): Sort field (default: `createdAt`)
-- `order` (string): Sort order (`asc`, `desc`, default: `desc`)
+- `limit` (number): Maximum results to return (default: 50, max: 1000)
+- `sort` (string): Sort field with optional `-` prefix for descending (default: `-createdAt`)
+
+**Pagination (W-080):** Same as User Search - supports cursor (default) and offset modes.
+See [User Search](#search-users) for pagination parameter details.
 
 **Example Requests:**
 ```bash
-# Get error logs from the last month
+# Get error logs from the last month (cursor mode)
 GET /api/1/log/search?level=error&createdAt=2025-01&limit=50
 
 # Search for database-related messages
@@ -863,14 +899,18 @@ GET /api/1/log/search?message=database*
 
 # Get configuration update logs
 GET /api/1/log/search?docType=config&action=update
+
+# Next page using cursor
+GET /api/1/log/search?cursor=eyJ2IjoxLC4uLn0
+
+# Offset-based pagination (opt-in)
+GET /api/1/log/search?level=error&limit=50&offset=100
 ```
 
 **Response (200):**
 ```json
 {
     "success": true,
-    "message": "Found 15 log entries",
-    "elapsed": 8,
     "data": [
         {
             "_id": "66cb1234567890abcdef1234",
@@ -887,12 +927,14 @@ GET /api/1/log/search?docType=config&action=update
             "docVersion": 1
         }
     ],
+    "count": 50,
     "pagination": {
-        "total": 15,
-        "limit": 100,
-        "skip": 0,
-        "page": 1,
-        "pages": 1
+        "mode": "cursor",
+        "total": 150,
+        "limit": 50,
+        "hasMore": true,
+        "nextCursor": "eyJ2IjoxLCJxIjp7fSwic....",
+        "prevCursor": null
     }
 }
 ```

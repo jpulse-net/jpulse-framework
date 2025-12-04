@@ -3,8 +3,8 @@
  * @tagline         Log Model for jPulse Framework WebApp
  * @description     This is the log model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/log.js
- * @version         1.3.6
- * @release         2025-12-03
+ * @version         1.3.7
+ * @release         2025-12-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -279,6 +279,7 @@ class LogModel {
 
     /**
      * Search log entries using schema-based query building
+     * W-080: Now uses CommonUtils.paginatedSearch() for cursor/offset pagination
      * @param {object} queryParams - URI query parameters
      * @param {object} options - Query options
      * @returns {Promise<object>} Search results with metadata
@@ -286,44 +287,12 @@ class LogModel {
     static async search(queryParams, options = {}) {
         try {
             // Build MongoDB query from URI parameters
-            const ignoreFields = ['limit', 'skip', 'sort', 'page'];
+            const ignoreFields = ['limit', 'offset', 'sort', 'cursor'];
             const query = CommonUtils.schemaBasedQuery(LogModel.schema, queryParams, ignoreFields);
-            // Handle pagination
-            const limit = Math.min(parseInt(queryParams.limit) || 50, 1000);
-            const skip = parseInt(queryParams.skip) || 0;
-            const page = parseInt(queryParams.page) || 1;
-            if (page > 1) {
-                options.skip = (page - 1) * limit;
-            } else if (skip > 0) {
-                options.skip = skip;
-            }
-            options.limit = limit;
-            // Handle sorting
-            if (queryParams.sort) {
-                const sortField = queryParams.sort.startsWith('-') ?
-                    queryParams.sort.substring(1) : queryParams.sort;
-                const sortOrder = queryParams.sort.startsWith('-') ? -1 : 1;
-                options.sort = { [sortField]: sortOrder };
-            }
-            // Execute search
-            const results = await LogModel.find(query, options);
-            // Get total count for pagination
+
+            // Delegate to CommonUtils.paginatedSearch() for pagination handling
             const collection = LogModel.getCollection();
-            const totalCount = await collection.countDocuments(query);
-            const pagesCount = Math.ceil(totalCount / limit);
-            return {
-                success: true,
-                data: results,
-                pagination: {
-                    total: totalCount,
-                    limit,
-                    skip: options.skip || 0,
-                    page: Math.floor((options.skip || 0) / limit) + 1,
-                    pages: pagesCount
-                },
-                query: query,
-                count: results.length
-            };
+            return CommonUtils.paginatedSearch(collection, query, queryParams, options);
         } catch (error) {
             throw new Error(`Failed to search log entries: ${error.message}`);
         }

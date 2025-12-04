@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.6
+# jPulse Docs / Dev / Work Items v1.3.7
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -2485,6 +2485,62 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-080, v1.3.7, 2025-12-04: controller: search API with cursor-based pagination
+- status: ✅ DONE
+- type: Feature
+- objective: paged queries that do not miss or duplicate docs between calls
+- reference: https://medium.com/swlh/mongodb-pagination-fast-consistent-ece2a97070f3
+- working document: docs/dev/working/W-080-search-with-pagination-cursor.md
+- enhancements:
+  - cursor-based pagination as default (better performance, consistent results)
+  - offset-based pagination as opt-in (when `offset` param present)
+  - stateless cursor: Base64 encoded JSON with query, sort, limit, total, lastValues
+  - sort always includes `_id` tiebreaker for unique ordering
+  - total count cached in cursor (countDocuments only on first call)
+  - `limit+1` fetch for hasMore detection
+  - response includes `nextCursor` and `prevCursor` for navigation
+  - parameters: `limit`, `offset`, `sort`, `cursor` (removed: `skip`, `page`)
+  - `jPulse.UI.pagination` client-side helper for reusable pagination state/buttons
+  - `/api/1/user/stats` endpoint for efficient aggregation-based user statistics
+- deliverables:
+  - webapp/utils/common.js (~200 lines added):
+    - `paginatedSearch(collection, query, queryParams, options)` - PUBLIC main entry
+    - `_paginatedOffsetSearch()` - private offset mode
+    - `_paginatedCursorSearch()` - private cursor mode
+    - `_encodePaginationCursor()` - private Base64 encode
+    - `_decodePaginationCursor()` - private decode/validate
+    - `_buildPaginationCursorRangeQuery()` - private $or range query with type conversion
+    - `_normalizePaginationSort()` - private sort parser with _id tiebreaker
+    - `_extractSortValues()` - private extract values for cursor
+    - `_convertCursorValue()` - private Date/ObjectId type restoration
+  - webapp/model/user.js:
+    - updated `search()` to use `CommonUtils.paginatedSearch()`
+    - `getStats()` - aggregation-based statistics (total, byStatus, byRole, admins, recentLogins)
+  - webapp/model/log.js:
+    - updated `search()` to use `CommonUtils.paginatedSearch()`
+  - webapp/controller/user.js:
+    - added `stats()` endpoint handler
+  - webapp/routes.js:
+    - added GET `/api/1/user/stats` route
+  - webapp/view/jpulse-common.js:
+    - added `jPulse.UI.pagination` helper (createState, resetState, updateState, formatRange, updateButtons, setupButtons)
+  - webapp/view/admin/users.shtml:
+    - cursor-based pagination with jPulse.UI.pagination helper
+    - "Results per page" selector
+    - efficient stats via /api/1/user/stats endpoint
+  - webapp/view/admin/logs.shtml:
+    - cursor-based pagination with jPulse.UI.pagination helper
+    - "Results per page" selector
+  - webapp/tests/unit/utils/common-pagination.test.js:
+    - 37 unit tests for all pagination utilities
+  - webapp/translations/en.conf, de.conf:
+    - added pagination i18n strings (showingResults, resultsPerPage, etc.)
+  - docs/api-reference.md:
+    - documented cursor and offset pagination modes
+    - documented user stats endpoint
+  - docs/jpulse-ui-reference.md:
+    - documented jPulse.UI.pagination helper
+
 
 
 
@@ -2508,7 +2564,6 @@ old pending:
 - add SiteControllerRegistry.getStats() to metrics api & system-status
 
 ### Potential next items:
-- W-080: controller: change search to cursor based paging API with limit & cursor
 - W-068: view: create responsive sidebar
 - W-0: view: headings with anchor links for copy & paste in browser URL bar
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
@@ -2530,8 +2585,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-105, v1.3.6
-- update deliverables in W-105 work-items to document work done (don't chaneg status, don't make any other changes to this file)
+- assume release: W-080, v1.3.7
+- update deliverables in W-080 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -2548,12 +2603,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.6
+node bin/bump-version.js 1.3.7
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.6
+git tag v1.3.7
 git push origin main --tags
 
 === on failed package build on github ===
@@ -2586,11 +2641,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
-
-### W-080: controller: change search to cursor based paging API with limit & cursor
-- status: 🕑 PENDING
-- type: Feature
-- objective: paged queries that do not miss or duplicate docs between calls
 
 ### W-055: deployment: load balancer and multi-server setup
 - status: 🕑 PENDING

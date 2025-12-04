@@ -4,8 +4,8 @@
  * @tagline         Admin logs viewer interface
  * @description     Log analysis and search interface for site administrators
  * @file            webapp/view/admin/logs.shtml
- * @version         1.3.6
- * @release         2025-12-03
+ * @version         1.3.7
+ * @release         2025-12-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -36,13 +36,9 @@
 
         /* Remove local sorting styles - using jp-* styles now */
 
-        /* Force table visibility for debugging */
+        /* Table container */
         #logsTableContainer {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            height: auto !important;
-            margin-bottom: 200px; /* Extra space for dropdowns */
+            display: block;
         }
 
         /* Changes dropdown */
@@ -320,6 +316,7 @@
                         <option value="25">25</option>
                         <option value="50" selected>50</option>
                         <option value="100">100</option>
+                        <option value="200">200</option>
                     </select>
                 </div>
             </div>
@@ -354,7 +351,7 @@
             <!-- Pagination -->
             <div class="jp-pagination" id="pagination" style="display: none;">
                 <button id="prevPage" disabled>{{i18n.view.admin.logs.previous}}</button>
-                <span id="pageInfo">Page 1 of 1</span>
+                <span id="pageInfo"></span>
                 <button id="nextPage" disabled>{{i18n.view.admin.logs.next}}</button>
             </div>
 
@@ -386,8 +383,8 @@
             results: `{{i18n.view.admin.logs.results}}`
         };
 
-        let currentPage = 1;
-        let totalPages = 1;
+        // W-080: Cursor-based pagination state (using jPulse.UI.pagination helper)
+        let paginationState = jPulse.UI.pagination.createState();
         let currentFilters = {};
         let currentSort = { field: 'createdAt', order: 'desc' };
         let pageSize = 50;
@@ -465,19 +462,15 @@
                 th.addEventListener('click', () => sortTable(th.dataset.sort));
             });
 
-            // Pagination
-            document.getElementById('prevPage').addEventListener('click', () => {
-                if (currentPage > 1) {
-                    currentPage--;
-                    loadLogs(currentFilters);
-                }
-            });
-
-            document.getElementById('nextPage').addEventListener('click', () => {
-                if (currentPage < totalPages) {
-                    currentPage++;
-                    loadLogs(currentFilters);
-                }
+            // W-080: Cursor-based pagination (using jPulse.UI.pagination helper)
+            jPulse.UI.pagination.setupButtons({
+                state: paginationState,
+                prevBtn: 'prevPage',
+                nextBtn: 'nextPage',
+                loadFn: loadLogs,
+                getFilters: () => currentFilters,
+                getCount: () => allLogs.length,
+                pageSize: pageSize
             });
         }
 
@@ -532,7 +525,8 @@
         }
 
         function searchLogs() {
-            currentPage = 1;
+            // W-080: Reset cursor state for new search
+            jPulse.UI.pagination.resetState(paginationState);
             const formData = new FormData(document.getElementById('logsSearchForm'));
             currentFilters = {};
 
@@ -550,7 +544,8 @@
             document.getElementById('logsSearchForm').reset();
             setDefaultDate();
             currentFilters = {};
-            currentPage = 1;
+            // W-080: Reset cursor state
+            jPulse.UI.pagination.resetState(paginationState);
             loadLogs();
             updateActiveFiltersDisplay();
         }
@@ -572,7 +567,8 @@
 
         function changePageSize() {
             pageSize = parseInt(document.getElementById('pageSize').value);
-            currentPage = 1;
+            // W-080: Reset cursor state when page size changes
+            jPulse.UI.pagination.resetState(paginationState);
             loadLogs(currentFilters);
         }
 
@@ -584,6 +580,8 @@
                 currentSort.order = 'desc';
             }
 
+            // W-080: Reset cursor state when sort changes
+            jPulse.UI.pagination.resetState(paginationState);
             updateSortHeaders();
             loadLogs(currentFilters);
         }
@@ -597,7 +595,8 @@
             });
         }
 
-        async function loadLogs(filters = {}) {
+        // W-080: Updated to use cursor-based pagination
+        async function loadLogs(filters = {}, cursor = null) {
             const loading = document.getElementById('loading');
             const noResults = document.getElementById('noResults');
             const tableContainer = document.getElementById('logsTableContainer');
@@ -613,12 +612,21 @@
 
             try {
                 // Build query parameters
-                const queryParams = new URLSearchParams({
-                    ...filters,
-                    limit: pageSize,
-                    page: currentPage,
-                    sort: currentSort.order === 'desc' ? `-${currentSort.field}` : currentSort.field
-                });
+                const queryParams = new URLSearchParams();
+                queryParams.append('limit', pageSize);
+                queryParams.append('sort', currentSort.order === 'desc' ? `-${currentSort.field}` : currentSort.field);
+
+                // If cursor provided, use it (for next/prev navigation)
+                if (cursor) {
+                    queryParams.append('cursor', cursor);
+                } else {
+                    // First page or new search - add filter params
+                    Object.keys(filters).forEach(key => {
+                        if (filters[key]) {
+                            queryParams.append(key, filters[key]);
+                        }
+                    });
+                }
 
                 const response = await fetch(`/api/1/log/search?${queryParams}`);
                 const result = await response.json();
@@ -637,7 +645,7 @@
                 if (result.data.length > 0) {
                     tableContainer.style.display = 'block';
                     resultsInfo.style.display = 'flex';
-                    if (result.pagination.pages > 1) {
+                    if (paginationState.prevCursor || paginationState.nextCursor) {
                         pagination.style.display = 'block';
                     }
                 } else {
@@ -912,31 +920,39 @@
             }
         }
 
+        // W-080: Updated for cursor-based pagination (using jPulse.UI.pagination helper)
         function updatePagination(pagination) {
-            currentPage = pagination.page;
-            totalPages = pagination.pages;
+            // Update state from API response
+            jPulse.UI.pagination.updateState(paginationState, pagination);
 
-            document.getElementById('prevPage').disabled = currentPage <= 1;
-            document.getElementById('nextPage').disabled = currentPage >= totalPages;
-            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+            // Update button states
+            jPulse.UI.pagination.updateButtons(paginationState, 'prevPage', 'nextPage');
+
+            // Update page info text with range
+            const count = allLogs.length;
+            let infoText = '';
+            if (paginationState.total > 0 && count > 0) {
+                infoText = jPulse.UI.pagination.formatRange(paginationState, count, i18nStrings.showingResults);
+            } else if (paginationState.total > 0) {
+                infoText = `${paginationState.total} ${i18nStrings.results}`;
+            }
+            document.getElementById('pageInfo').textContent = infoText;
         }
 
         function updateResultsInfo(pagination) {
             const resultsCount = document.getElementById('resultsCount');
-            const total = pagination.total;
-            const showing = pagination.limit;
-            const start = (pagination.page - 1) * showing + 1;
-            const end = Math.min(start + showing - 1, total);
+            const total = pagination.total || 0;
+            const count = allLogs.length;
 
             if (total === 0) {
                 resultsCount.textContent = i18nStrings.noResultsFound;
-            } else if (total <= showing) {
+            } else if (total === count) {
                 resultsCount.textContent = `${total} ${total === 1 ? i18nStrings.result : i18nStrings.results}`;
             } else {
-                resultsCount.textContent = i18nStrings.showingResults
-                    .replace('%START%', start)
-                    .replace('%END%', end)
-                    .replace('%TOTAL%', total);
+                // W-080: Use i18n template for range display
+                resultsCount.textContent = jPulse.UI.pagination.formatRange(
+                    paginationState, count, i18nStrings.showingResults
+                );
             }
         }
 

@@ -1,7 +1,7 @@
 # W-105: plugins: add plugin hooks for authentication and user management
 
 ## Status
-🚧 IN_PROGRESS
+✅ DONE
 
 ## Objective
 

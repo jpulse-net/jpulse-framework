@@ -1,6 +1,78 @@
-# jPulse Docs / Version History v1.3.6
+# jPulse Docs / Version History v1.3.7
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.7, W-080, 2025-12-04
+
+**Commit:** `W-080, v1.3.7: controller: search API with cursor-based pagination`
+
+**FEATURE RELEASE**: Efficient cursor-based pagination for search APIs with stateless cursors, client-side pagination helper, and optimized user statistics endpoint.
+
+**Objective**: Implement paged queries that do not miss or duplicate documents between calls, with better performance for large datasets.
+
+**Implementation**:
+
+**Cursor-Based Pagination** (`webapp/utils/common.js`, ~200 lines added):
+- `paginatedSearch()` - Public entry point supporting both cursor and offset modes
+- Cursor mode (default): Stateless Base64-encoded JSON with query, sort, limit, total, lastValues
+- Offset mode (opt-in): Traditional skip/limit when `offset` param present
+- Sort always includes `_id` tiebreaker for unique, consistent ordering
+- Total count cached in cursor (countDocuments only on first request)
+- `limit+1` fetch pattern for efficient hasMore detection
+- Response includes `nextCursor` and `prevCursor` for bidirectional navigation
+- Type conversion for Date and ObjectId values in cursor restoration
+
+**Private Helper Functions**:
+- `_paginatedOffsetSearch()` - Offset-based pagination implementation
+- `_paginatedCursorSearch()` - Cursor-based pagination implementation
+- `_encodePaginationCursor()` - Base64 encode cursor state
+- `_decodePaginationCursor()` - Decode and validate cursor
+- `_buildPaginationCursorRangeQuery()` - Build $or range query for cursor position
+- `_normalizePaginationSort()` - Parse sort string with _id tiebreaker
+- `_extractSortValues()` - Extract values from last document for cursor
+- `_convertCursorValue()` - Restore Date/ObjectId types from cursor strings
+
+**Client-Side Pagination Helper** (`webapp/view/jpulse-common.js`):
+- `jPulse.UI.pagination.createState()` - Create clean pagination state object
+- `jPulse.UI.pagination.resetState()` - Reset state to initial values
+- `jPulse.UI.pagination.updateState()` - Update state from API response
+- `jPulse.UI.pagination.formatRange()` - Format "Showing X-Y of Z" string
+- `jPulse.UI.pagination.updateButtons()` - Update prev/next button disabled states
+- `jPulse.UI.pagination.setupButtons()` - Wire up button event listeners
+
+**User Statistics Endpoint** (`/api/1/user/stats`):
+- Efficient MongoDB aggregation using `$facet` for parallel pipelines
+- Returns: total, byStatus, byRole, admins count, recentLogins (24h/7d/30d)
+- Replaces expensive client-side calculation that fetched all users
+
+**Code Changes**:
+- `webapp/utils/common.js`: Added pagination utilities (~200 lines)
+- `webapp/model/user.js`: Updated search() to use CommonUtils.paginatedSearch(), added getStats()
+- `webapp/model/log.js`: Updated search() to use CommonUtils.paginatedSearch()
+- `webapp/controller/user.js`: Added stats() endpoint handler
+- `webapp/routes.js`: Added GET /api/1/user/stats route
+- `webapp/view/jpulse-common.js`: Added jPulse.UI.pagination helper
+- `webapp/view/admin/users.shtml`: Cursor pagination, results-per-page selector, stats endpoint
+- `webapp/view/admin/logs.shtml`: Cursor pagination, results-per-page selector
+- `webapp/translations/en.conf`, `de.conf`: Added pagination i18n strings
+
+**Test Coverage**:
+- `webapp/tests/unit/utils/common-pagination.test.js` (NEW, 441 lines):
+  * 37 tests covering all pagination utilities
+  * Tests for normalization, encoding/decoding, range queries, type conversion
+
+**Documentation**:
+- `docs/api-reference.md`: Documented cursor and offset pagination modes
+- `docs/jpulse-ui-reference.md`: Documented jPulse.UI.pagination helper
+
+**API Changes**:
+- Parameters: `limit`, `offset`, `sort`, `cursor` (removed: `skip`, `page`)
+- Response includes `pagination` object with `mode`, `total`, `limit`, `hasMore`, `nextCursor`, `prevCursor`
+
+**Breaking Changes**: None
+- Cursor mode is default but offset mode works when `offset` param present
+- Existing API calls continue to work unchanged
 
 ________________________________________________
 ## v1.3.6, W-105, 2025-12-03

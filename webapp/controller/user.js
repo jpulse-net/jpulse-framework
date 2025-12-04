@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.3.6
- * @release         2025-12-03
+ * @version         1.3.7
+ * @release         2025-12-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -260,6 +260,34 @@ class UserController {
         } catch (error) {
             LogController.logError(req, 'user.search', `error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.user.search.internalError', { details: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
+     * Get user statistics (efficient aggregation-based)
+     * GET /api/1/user/stats
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async stats(req, res) {
+        const startTime = Date.now();
+        try {
+            LogController.logRequest(req, 'user.stats', '');
+
+            const stats = await UserModel.getStats();
+            const elapsed = Date.now() - startTime;
+
+            LogController.logInfo(req, 'user.stats', `success: stats retrieved in ${elapsed}ms`);
+            res.json({
+                success: true,
+                data: stats,
+                elapsed
+            });
+
+        } catch (error) {
+            LogController.logError(req, 'user.stats', `error: ${error.message}`);
+            const message = global.i18n.translate(req, 'controller.user.stats.internalError', { details: error.message });
             return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }

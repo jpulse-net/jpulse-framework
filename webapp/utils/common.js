@@ -3,14 +3,16 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.3.6
- * @release         2025-12-03
+ * @version         1.3.7
+ * @release         2025-12-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
  */
+
+import { ObjectId } from 'mongodb';
 
 /**
  * Common Utilities - shared functions for the jPulse Framework
@@ -572,6 +574,337 @@ class CommonUtils {
         const context = CommonUtils.getLogContext(req);
         return `-\t${timestamp}\t${level}\t${context.username}\tip:${context.ip}\tvm:${context.vm}\tid:${context.id}\t${scope}\t${message}`;
     }
+
+    // =========================================================================
+    // Pagination Utilities (W-080)
+    // =========================================================================
+
+    /**
+     * Execute paginated search on a MongoDB collection
+     * Supports both cursor-based (default) and offset-based pagination
+     *
+     * @param {Collection} collection - MongoDB collection (passed by model)
+     * @param {object} query - MongoDB query object (already built by model)
+     * @param {object} queryParams - Original URI parameters (for limit, sort, cursor, offset)
+     * @param {object} options - Additional options (projection, etc.)
+     * @returns {Promise<object>} Standardized search results with pagination metadata
+     *
+     * @example
+     * // Called from model - model passes its own collection
+     * const collection = UserModel.getCollection();
+     * const query = { status: 'active' };
+     * return CommonUtils.paginatedSearch(collection, query, req.query, { projection: { password: 0 } });
+     */
+    static async paginatedSearch(collection, query, queryParams = {}, options = {}) {
+        // Determine mode: offset if 'offset' param present, else cursor (default)
+        const isOffsetMode = queryParams.offset !== undefined;
+
+        // Parse common params
+        const limit = Math.min(parseInt(queryParams.limit) || 50, 1000);
+        const sort = CommonUtils._normalizePaginationSort(queryParams.sort);
+
+        if (isOffsetMode) {
+            return CommonUtils._paginatedOffsetSearch(collection, query, limit, sort, queryParams, options);
+        } else {
+            return CommonUtils._paginatedCursorSearch(collection, query, limit, sort, queryParams, options);
+        }
+    }
+
+    /**
+     * Internal: Execute offset-based paginated search
+     * @private
+     */
+    static async _paginatedOffsetSearch(collection, query, limit, sort, queryParams, options) {
+        const offset = parseInt(queryParams.offset) || 0;
+
+        // Build find options
+        const findOptions = { ...options };
+        if (options.projection) {
+            findOptions.projection = options.projection;
+        }
+
+        // Execute query with skip/limit
+        const results = await collection.find(query, findOptions)
+            .sort(sort)
+            .skip(offset)
+            .limit(limit)
+            .toArray();
+
+        // Get total count
+        const total = await collection.countDocuments(query);
+
+        return {
+            success: true,
+            data: results,
+            count: results.length,
+            pagination: {
+                mode: 'offset',
+                total,
+                limit,
+                offset,
+                hasMore: offset + results.length < total
+            }
+        };
+    }
+
+    /**
+     * Internal: Execute cursor-based paginated search
+     * @private
+     */
+    static async _paginatedCursorSearch(collection, query, limit, sort, queryParams, options) {
+        let cursorData = null;
+        let total = null;
+        let effectiveQuery = { ...query };
+        let effectiveSort = sort;
+        let originalQuery = query; // Store for countDocuments
+
+        // Decode cursor if provided (and not just 'true' for first page)
+        if (queryParams.cursor && queryParams.cursor !== 'true') {
+            cursorData = CommonUtils._decodePaginationCursor(queryParams.cursor);
+            if (cursorData) {
+                // Use cached total from cursor
+                total = cursorData.t;
+                // Use sort from cursor for consistency
+                effectiveSort = cursorData.s;
+                // Use original query from cursor (not the empty query from current request)
+                originalQuery = cursorData.q || {};
+                // Build range query from lastValues
+                const rangeQuery = CommonUtils._buildPaginationCursorRangeQuery(
+                    cursorData.s, cursorData.lv, cursorData.d || 1
+                );
+                // Merge range query with original query from cursor
+                if (rangeQuery.$or) {
+                    effectiveQuery = { $and: [originalQuery, rangeQuery] };
+                } else {
+                    effectiveQuery = originalQuery;
+                }
+            }
+        }
+
+        // First page: run countDocuments
+        if (total === null) {
+            total = await collection.countDocuments(originalQuery);
+        }
+
+        // Build find options
+        const findOptions = { ...options };
+        if (options.projection) {
+            findOptions.projection = options.projection;
+        }
+
+        // Fetch limit + 1 for hasMore detection
+        const results = await collection.find(effectiveQuery, findOptions)
+            .sort(effectiveSort)
+            .limit(limit + 1)
+            .toArray();
+
+        const hasMore = results.length > limit;
+        if (hasMore) {
+            results.pop(); // Remove extra item
+        }
+
+        // Build next/prev cursors (use originalQuery to preserve filters)
+        let nextCursor = null;
+        let prevCursor = null;
+
+        if (hasMore && results.length > 0) {
+            const lastDoc = results[results.length - 1];
+            nextCursor = CommonUtils._encodePaginationCursor({
+                v: 1,
+                q: originalQuery,
+                s: effectiveSort,
+                l: limit,
+                t: total,
+                lv: CommonUtils._extractSortValues(lastDoc, effectiveSort),
+                d: 1  // forward
+            });
+        }
+
+        // prevCursor only if we came from a cursor (not first page)
+        if (cursorData && results.length > 0) {
+            const firstDoc = results[0];
+            prevCursor = CommonUtils._encodePaginationCursor({
+                v: 1,
+                q: originalQuery,
+                s: effectiveSort,
+                l: limit,
+                t: total,
+                lv: CommonUtils._extractSortValues(firstDoc, effectiveSort),
+                d: -1  // backward
+            });
+        }
+
+        return {
+            success: true,
+            data: results,
+            count: results.length,
+            pagination: {
+                mode: 'cursor',
+                total,
+                limit,
+                hasMore,
+                nextCursor,
+                prevCursor
+            }
+        };
+    }
+
+    /**
+     * Encode pagination cursor to Base64 string
+     * @private
+     * @param {object} cursorData - Cursor data object
+     * @returns {string|null} Base64-encoded cursor string or null if invalid
+     */
+    static _encodePaginationCursor(cursorData) {
+        if (!cursorData || typeof cursorData !== 'object') {
+            return null;
+        }
+        try {
+            return Buffer.from(JSON.stringify(cursorData)).toString('base64');
+        } catch (error) {
+            return null;
+        }
+    }
+
+    /**
+     * Decode and validate pagination cursor from Base64 string
+     * @private
+     * @param {string} cursorString - Base64-encoded cursor string
+     * @returns {object|null} Decoded cursor data or null if invalid
+     */
+    static _decodePaginationCursor(cursorString) {
+        if (!cursorString || typeof cursorString !== 'string') {
+            return null;
+        }
+        try {
+            const decoded = JSON.parse(Buffer.from(cursorString, 'base64').toString('utf8'));
+            // Validate required fields
+            if (!decoded.v || !decoded.s || !decoded.l) {
+                return null;
+            }
+            return decoded;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    /**
+     * Convert cursor value back to proper MongoDB type
+     * @private
+     * @param {string} key - Field name
+     * @param {*} value - Value from decoded cursor (may be string)
+     * @returns {*} Value converted to proper MongoDB type
+     */
+    static _convertCursorValue(key, value) {
+        if (value === null || value === undefined) {
+            return value;
+        }
+
+        // Convert _id strings to ObjectId
+        if (key === '_id' && typeof value === 'string' && /^[0-9a-fA-F]{24}$/.test(value)) {
+            return new ObjectId(value);
+        }
+
+        // Convert ISO date strings to Date objects
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+            const date = new Date(value);
+            if (!isNaN(date.getTime())) {
+                return date;
+            }
+        }
+
+        return value;
+    }
+
+    /**
+     * Build MongoDB range query for cursor-based pagination
+     * @private
+     * @param {object} sort - Sort object (e.g., { createdAt: -1, _id: -1 })
+     * @param {object} lastValues - Last document's values for sort keys
+     * @param {number} direction - Pagination direction: 1=forward, -1=backward
+     * @returns {object} MongoDB $or query for range
+     */
+    static _buildPaginationCursorRangeQuery(sort, lastValues, direction = 1) {
+        const sortKeys = Object.keys(sort);
+        if (sortKeys.length === 0 || !lastValues) {
+            return {};
+        }
+
+        const orConditions = [];
+
+        for (let i = 0; i < sortKeys.length; i++) {
+            const condition = {};
+
+            // Add equality conditions for previous keys (with type conversion)
+            for (let j = 0; j < i; j++) {
+                const key = sortKeys[j];
+                condition[key] = CommonUtils._convertCursorValue(key, lastValues[key]);
+            }
+
+            // Add range condition for current key (with type conversion)
+            const currentKey = sortKeys[i];
+            const sortDirection = sort[currentKey] * direction;
+            const operator = sortDirection > 0 ? '$gt' : '$lt';
+            const convertedValue = CommonUtils._convertCursorValue(currentKey, lastValues[currentKey]);
+            condition[currentKey] = { [operator]: convertedValue };
+
+            orConditions.push(condition);
+        }
+
+        return orConditions.length > 0 ? { $or: orConditions } : {};
+    }
+
+    /**
+     * Normalize sort parameter and ensure _id tiebreaker
+     * @private
+     * @param {string|object} sortParam - Sort parameter (e.g., "createdAt:-1" or { createdAt: -1 })
+     * @returns {object} Normalized sort object with _id tiebreaker
+     */
+    static _normalizePaginationSort(sortParam) {
+        let sort = {};
+
+        if (typeof sortParam === 'string' && sortParam.trim()) {
+            // Parse "field:direction" or "-field" format
+            if (sortParam.includes(':')) {
+                const [field, dir] = sortParam.split(':');
+                sort[field] = dir === '-1' || dir === 'desc' ? -1 : 1;
+            } else if (sortParam.startsWith('-')) {
+                sort[sortParam.substring(1)] = -1;
+            } else {
+                sort[sortParam] = 1;
+            }
+        } else if (typeof sortParam === 'object' && sortParam !== null) {
+            sort = { ...sortParam };
+        }
+
+        // Default to _id if no sort specified
+        if (Object.keys(sort).length === 0) {
+            sort._id = 1;
+        }
+
+        // Add _id as tiebreaker if not already present
+        if (!('_id' in sort)) {
+            const firstSortDir = Object.values(sort)[0] || 1;
+            sort._id = firstSortDir;
+        }
+
+        return sort;
+    }
+
+    /**
+     * Extract sort field values from a document for cursor
+     * @private
+     * @param {object} doc - MongoDB document
+     * @param {object} sort - Sort object
+     * @returns {object} Object with sort field values
+     */
+    static _extractSortValues(doc, sort) {
+        const values = {};
+        for (const key of Object.keys(sort)) {
+            values[key] = doc[key];
+        }
+        return values;
+    }
 }
 
 export default CommonUtils;
@@ -590,7 +923,8 @@ export const {
     sendError,
     getLogContext,
     formatTimestamp,
-    formatLogMessage
+    formatLogMessage,
+    paginatedSearch
 } = CommonUtils;
 
 // EOF webapp/utils/common.js

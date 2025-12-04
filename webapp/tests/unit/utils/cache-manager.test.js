@@ -3,8 +3,8 @@
  * @tagline         Unit tests for CacheManager utility
  * @description     Tests for centralized cache management with periodic refresh
  * @file            webapp/tests/unit/utils/cache-manager.test.js
- * @version         1.3.6
- * @release         2025-12-03
+ * @version         1.3.7
+ * @release         2025-12-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

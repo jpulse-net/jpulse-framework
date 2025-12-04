@@ -25,7 +25,7 @@
   <path d="M140 160 L140 194 M136 188 L140 194 L144 188" class="arrow"/>
   <!-- jPulse Framework Code -->
   <rect x="0" y="200" width="280" height="60" rx="9" class="box"/>
-  <text x="140" y="231" class="label">jPulse Framework Code</text>
+  <text x="140" y="235" class="label">jPulse Framework Code</text>
   <text x="310" y="211" class="key">Install:</text>
   <text x="375" y="211" class="val">npx jpulse-install</text>
   <text x="310" y="236" class="key">Update:</text>

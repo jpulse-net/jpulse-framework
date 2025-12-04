@@ -3,7 +3,7 @@
  * @tagline         Hello Plugin Data Model
  * @description     Simple data model demonstrating plugin structure
  * @file            plugins/hello-world/webapp/model/helloPlugin.js
- * @version         1.3.6
+ * @version         1.3.7
  * @author          jPulse Team, https://jpulse.net
  * @license         BSL 1.1
  * @genai           80%, Cursor 2.0, Claude Sonnet 4.5

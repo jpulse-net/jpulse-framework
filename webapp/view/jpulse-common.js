@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.3.6
- * @release         2025-12-03
+ * @version         1.3.7
+ * @release         2025-12-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -4019,6 +4019,145 @@ window.jPulse = {
                     button.textContent = '📋 Copy';
                     button.classList.remove('jp-copy-success');
                 }, 2000);
+            }
+        },
+
+        // ========================================
+        // Cursor-based Pagination Helper (W-080)
+        // ========================================
+
+        /**
+         * Cursor-based pagination state management and UI helpers
+         * Provides centralized pagination logic for consistent behavior across views
+         */
+        pagination: {
+            /**
+             * Create a new pagination state object
+             * @returns {Object} Fresh pagination state
+             */
+            createState: function() {
+                return {
+                    nextCursor: null,
+                    prevCursor: null,
+                    total: 0,
+                    hasMore: false,
+                    currentStart: 1
+                };
+            },
+
+            /**
+             * Reset pagination state to initial values
+             * @param {Object} state - Pagination state to reset
+             * @returns {Object} Reset state (same object, modified in place)
+             */
+            resetState: function(state) {
+                state.nextCursor = null;
+                state.prevCursor = null;
+                state.total = 0;
+                state.hasMore = false;
+                state.currentStart = 1;
+                return state;
+            },
+
+            /**
+             * Update pagination state from API response
+             * @param {Object} state - Current pagination state
+             * @param {Object} pagination - Pagination data from API response
+             * @returns {Object} Updated state (same object, modified in place)
+             */
+            updateState: function(state, pagination) {
+                if (!pagination) return state;
+                state.nextCursor = pagination.nextCursor || null;
+                state.prevCursor = pagination.prevCursor || null;
+                state.total = pagination.total || 0;
+                state.hasMore = pagination.hasMore || false;
+                // currentStart is preserved (managed by goNext/goPrev)
+                return state;
+            },
+
+            /**
+             * Format range text using i18n template
+             * @param {Object} state - Pagination state with currentStart and total
+             * @param {number} count - Number of items currently displayed
+             * @param {string} template - Template string with %START%, %END%, %TOTAL% placeholders
+             * @returns {string} Formatted range string
+             */
+            formatRange: function(state, count, template) {
+                const start = state.currentStart || 1;
+                const end = start + count - 1;
+                return template
+                    .replace('%START%', start)
+                    .replace('%END%', end)
+                    .replace('%TOTAL%', state.total);
+            },
+
+            /**
+             * Update prev/next button disabled states
+             * @param {Object} state - Pagination state
+             * @param {string|Element} prevBtn - Previous button element or ID
+             * @param {string|Element} nextBtn - Next button element or ID
+             */
+            updateButtons: function(state, prevBtn, nextBtn) {
+                const prev = typeof prevBtn === 'string' ? document.getElementById(prevBtn) : prevBtn;
+                const next = typeof nextBtn === 'string' ? document.getElementById(nextBtn) : nextBtn;
+                if (prev) prev.disabled = !state.prevCursor;
+                if (next) next.disabled = !state.nextCursor;
+            },
+
+            /**
+             * Navigate to next page
+             * @param {Object} state - Pagination state
+             * @param {number} currentCount - Current page item count
+             * @param {Function} loadFn - Function to call with (filters, cursor)
+             * @param {Object} filters - Current filter parameters
+             */
+            goNext: function(state, currentCount, loadFn, filters) {
+                if (state.nextCursor) {
+                    state.currentStart += currentCount;
+                    loadFn(filters, state.nextCursor);
+                }
+            },
+
+            /**
+             * Navigate to previous page
+             * @param {Object} state - Pagination state
+             * @param {number} pageSize - Page size for calculating new start
+             * @param {Function} loadFn - Function to call with (filters, cursor)
+             * @param {Object} filters - Current filter parameters
+             */
+            goPrev: function(state, pageSize, loadFn, filters) {
+                if (state.prevCursor) {
+                    state.currentStart = Math.max(1, state.currentStart - pageSize);
+                    loadFn(filters, state.prevCursor);
+                }
+            },
+
+            /**
+             * Setup pagination button event listeners
+             * @param {Object} config - Configuration object
+             * @param {Object} config.state - Pagination state object
+             * @param {string|Element} config.prevBtn - Previous button element or ID
+             * @param {string|Element} config.nextBtn - Next button element or ID
+             * @param {Function} config.loadFn - Function to call with (filters, cursor)
+             * @param {Function} config.getFilters - Function that returns current filters
+             * @param {Function} config.getCount - Function that returns current item count
+             * @param {number} config.pageSize - Page size for prev navigation
+             */
+            setupButtons: function(config) {
+                const prev = typeof config.prevBtn === 'string' ? document.getElementById(config.prevBtn) : config.prevBtn;
+                const next = typeof config.nextBtn === 'string' ? document.getElementById(config.nextBtn) : config.nextBtn;
+
+                if (prev) {
+                    prev.addEventListener('click', () => {
+                        this.goPrev(config.state, config.pageSize, config.loadFn, config.getFilters());
+                    });
+                }
+
+                if (next) {
+                    next.addEventListener('click', () => {
+                        this.goNext(config.state, config.getCount(), config.loadFn, config.getFilters());
+                    });
+                }
             }
         },
 

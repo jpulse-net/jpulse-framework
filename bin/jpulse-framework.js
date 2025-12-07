@@ -32,7 +32,8 @@ const commands = {
     'setup': './jpulse-setup.sh',
     'mongodb-setup': './mongodb-setup.sh',
     'db-setup': './mongodb-setup.sh',
-    'validate': './jpulse-validate.sh'
+    'validate': './jpulse-validate.sh',
+    'plugin': './plugin-manager-cli.js'
 };
 
 /**
@@ -65,18 +66,21 @@ function showHelp(context) {
     if (context === 'framework') {
         console.log('Available commands (framework development):');
         console.log('  bump-version    - Bump version numbers across framework files');
+        console.log('  plugin          - Manage plugins (install, enable, publish, etc.)');
         console.log('');
         console.log('Usage:');
         console.log('  npx jpulse bump-version <version> [date]');
-        console.log('  node bin/bump-version.js <version> [date]');
+        console.log('  npx jpulse plugin <action> [name] [options]');
         console.log('');
         console.log('Example:');
         console.log('  npx jpulse bump-version 1.0.5');
-        console.log('  npx jpulse bump-version 1.0.5 2025-01-27');
+        console.log('  npx jpulse plugin list');
+        console.log('  npx jpulse plugin publish auth-mfa');
     } else if (context === 'site') {
         console.log('Available commands:');
         console.log('  configure       - Configure jPulse site (setup/update configuration)');
         console.log('  update          - Update framework to latest and sync files');
+        console.log('  plugin          - Manage plugins (install, enable, disable, etc.)');
         console.log('  bump-version    - Bump version numbers across site files');
         console.log('  setup           - Setup system dependencies (run as root)');
         console.log('  mongodb-setup   - Setup MongoDB database');
@@ -88,14 +92,15 @@ function showHelp(context) {
         console.log('Examples:');
         console.log('  npx jpulse configure');
         console.log('  npx jpulse update');
-        console.log('  npx jpulse update @jpulse-net/jpulse-framework@1.0.0-rc.1');
-        console.log('  npx jpulse bump-version 0.2.0');
+        console.log('  npx jpulse plugin install auth-mfa');
+        console.log('  npx jpulse plugin list');
         console.log('  npx jpulse validate');
     } else {
         // Unknown context - show all commands
         console.log('Available commands:');
         console.log('  configure       - Configure jPulse site (setup/update configuration)');
         console.log('  update          - Update framework to latest and sync files');
+        console.log('  plugin          - Manage plugins (install, enable, disable, etc.)');
         console.log('  bump-version    - Bump version numbers across files');
         console.log('  setup           - Setup system dependencies (run as root)');
         console.log('  mongodb-setup   - Setup MongoDB database');

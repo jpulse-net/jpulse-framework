@@ -1,6 +1,54 @@
-# jPulse Docs / Version History v1.3.7
+# jPulse Docs / Version History v1.3.8
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.8, W-106, 2025-12-07
+
+**Commit:** `W-106, v1.3.8: plugins: CLI management to install, enable, list plugins`
+
+**FEATURE RELEASE**: Complete command-line interface for plugin management enabling developers and site administrators to install, remove, enable, disable, and list plugins from the command line.
+
+**Objective**: Add plugin management commands to the jPulse CLI (`npx jpulse plugin ...`) establishing the foundation for plugin distribution via npm.
+
+**Implementation**:
+
+**Plugin Manager CLI** (`bin/plugin-manager-cli.js`, NEW, ~1500 lines):
+- `list [--all] [--json]` - List installed plugins with status and version
+- `info <name>` - Show detailed plugin information including config schema
+- `install <source>` - Install plugin from npm, git, or local path
+- `update [name]` - Update plugin(s) to latest version
+- `remove <name>` - Remove an installed plugin
+- `enable <name>` - Enable a disabled plugin
+- `disable <name>` - Disable an enabled plugin
+- `publish <name>` - Publish plugin to npm registry with version sync
+
+**Key Features**:
+- Shorthand package names: `auth-mfa` → `@jpulse-net/plugin-auth-mfa`
+- Two-step install process: npm fetch to node_modules → sync to plugins/
+- Version synchronization between plugin.json and package.json on publish
+- Air-gapped/private registry support via npm configuration
+- Colored console output with formatted tables
+- Complements existing Admin UI at `/admin/plugins`
+
+**Code Changes**:
+- `bin/plugin-manager-cli.js`: NEW file with complete CLI implementation
+- `bin/jpulse-framework.js`: Added `plugin` command routing
+- `docs/plugins/managing-plugins.md`: Updated with CLI documentation
+- `docs/plugins/publishing-plugins.md`: Updated with publish workflow
+
+**Documentation**:
+- `docs/plugins/managing-plugins.md`: Complete CLI command reference with examples
+- `docs/plugins/publishing-plugins.md`: npm publish workflow and configuration
+- `docs/dev/working/W-106-plugin-cli-management.md`: Working document with full specification
+
+**Files Modified**: 4
+- 2 bin files: jpulse-framework.js, plugin-manager-cli.js (new)
+- 2 documentation: managing-plugins.md, publishing-plugins.md
+
+**Breaking Changes**: None
+- New opt-in CLI commands
+- Admin UI continues to work as before
 
 ________________________________________________
 ## v1.3.7, W-080, 2025-12-04

@@ -1,12 +1,20 @@
-# jPulse Docs / Plugins / Publishing Plugins v1.3.7
+# jPulse Docs / Plugins / Publishing Plugins v1.3.8
 
 Guide to packaging and publishing jPulse plugins for distribution.
+
+## Quick Start
+
+```bash
+# From framework root, publish plugin to GitHub Packages
+npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com
+```
 
 ## Pre-Publication Checklist
 
 Before publishing your plugin, ensure:
 
-- **plugin.json is complete** - All required fields filled
+- **plugin.json is complete** - All required fields filled (name, version, summary, author, jpulseVersion)
+- **package.json exists** - npm package manifest with correct name (`@jpulse-net/plugin-{name}`)
 - **Documentation is written** - README.md and docs/README.md
 - **Code is tested** - Enable/disable, configuration works
 - **Naming conventions followed** - CSS classes, JavaScript namespaces
@@ -78,30 +86,48 @@ License information.
 
 ## npm Package Publishing
 
+### Using the jPulse CLI (Recommended)
+
+The easiest way to publish is using the jPulse CLI:
+
+```bash
+# Publish to GitHub Packages (default for @jpulse-net plugins)
+npx jpulse plugin publish my-plugin --registry=https://npm.pkg.github.com
+
+# Publish to npmjs.org
+npx jpulse plugin publish my-plugin
+
+# Publish with a tag (e.g., beta)
+npx jpulse plugin publish my-plugin --tag beta
+```
+
+The CLI automatically:
+1. Validates `plugin.json` and `package.json`
+2. Syncs version from `plugin.json` → `package.json`
+3. Runs `npm publish` from the plugin directory
+
 ### 1. Create package.json
 
 ```json
 {
-    "name": "@your-org/plugin-your-plugin",
+    "name": "@jpulse-net/plugin-your-plugin",
     "version": "1.0.0",
     "description": "jPulse Framework plugin for...",
-    "main": "plugin.json",
-    "keywords": ["jpulse", "plugin", "your-keywords"],
+    "main": "webapp/controller/yourPlugin.js",
+    "keywords": ["jpulse", "jpulse-plugin", "your-keywords"],
     "author": "Your Name <you@example.com>",
-    "license": "MIT",
+    "license": "BSL-1.1",
     "repository": {
         "type": "git",
-        "url": "https://github.com/your-org/plugin-your-plugin"
+        "url": "https://github.com/jpulse-net/plugin-your-plugin.git"
     },
-    "bugs": {
-        "url": "https://github.com/your-org/plugin-your-plugin/issues"
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
     },
-    "homepage": "https://github.com/your-org/plugin-your-plugin#readme",
     "peerDependencies": {
-        "jpulse-framework": ">=1.3.0"
+        "@jpulse-net/jpulse-framework": ">=1.3.8"
     },
     "dependencies": {
-        // Your plugin's npm dependencies
     },
     "files": [
         "plugin.json",
@@ -112,28 +138,42 @@ License information.
 }
 ```
 
-### 2. Configure npm Registry
+### 2. Configure GitHub Packages Authentication
 
-If using a private npm registry:
+For GitHub Packages, you need to authenticate:
 
 ```bash
-# Configure .npmrc
-echo "@your-org:registry=https://your-registry.com/" > .npmrc
+# Create Personal Access Token at:
+# GitHub → Settings → Developer settings → Personal access tokens
+# Scopes needed: read:packages, write:packages
+
+# Login to GitHub Packages
+npm login --registry=https://npm.pkg.github.com
+# Username: your-github-username
+# Password: your-personal-access-token
+# Email: your-email
+
+# Or add to ~/.npmrc
+echo "//npm.pkg.github.com/:_authToken=YOUR_TOKEN" >> ~/.npmrc
 ```
 
-### 3. Publish to npm
+### 3. Publish
 
+**Using jPulse CLI:**
 ```bash
-# Login (if needed)
-npm login
+npx jpulse plugin publish my-plugin --registry=https://npm.pkg.github.com
+```
 
-# Test package contents
+**Or manually:**
+```bash
+cd plugins/my-plugin
+
+# Test package contents first
 npm pack
-tar -xzf *.tgz
-ls package/
+tar -tzf *.tgz
 
 # Publish
-npm publish --access public
+npm publish --registry=https://npm.pkg.github.com
 ```
 
 ## Semantic Versioning
@@ -159,14 +199,22 @@ npm version major
 
 ### jpulseVersion Requirement
 
-Specify minimum framework version:
+Specify minimum framework version in plugin.json:
 
 ```json
 {
-    "jpulseVersion": ">=1.3.0",  // Minimum version
-    "jpulseVersion": "^1.3.0",   // Compatible with 1.x
-    "jpulseVersion": "~1.3.2"    // Compatible with 1.3.x
+    "jpulseVersion": ">=1.3.8"   // Minimum version (recommended)
 }
+```
+
+The CLI validates version compatibility during install and shows helpful errors:
+
+```
+❌ Error: Plugin requires jPulse >=1.3.8, current version is 1.3.7
+
+Suggestions:
+  • Update jPulse framework to >=1.3.8 or later
+  • Or install an older version of this plugin compatible with 1.3.7
 ```
 
 ## Testing Before Publishing
@@ -175,25 +223,37 @@ Specify minimum framework version:
 
 1. **Install in test environment**
    ```bash
-   cp -r /path/to/plugin plugins/your-plugin
+   # Install from local development path
+   npx jpulse plugin install ./plugins/your-plugin
+
+   # Or if developing in plugins/ directory, just list to verify
+   npx jpulse plugin list --all
+   npx jpulse plugin info your-plugin
    ```
 
 2. **Test plugin lifecycle**
-   - Discovery: Shows in admin UI
-   - Enable: Activates successfully
-   - Configure: All fields work
-   - Disable: Deactivates cleanly
+   ```bash
+   # Enable
+   npx jpulse plugin enable your-plugin
+
+   # Check status
+   npx jpulse plugin info your-plugin
+
+   # Disable
+   npx jpulse plugin disable your-plugin
+   ```
 
 3. **Test functionality**
    - API endpoints respond correctly
    - Views render properly
    - CSS/JavaScript loads
+   - Configuration works in Admin UI at `/admin/plugins/your-plugin`
    - Documentation accessible
 
 4. **Test edge cases**
    - Invalid configuration values
    - Missing dependencies
-   - Framework version mismatch
+   - Framework version mismatch (change jpulseVersion temporarily)
 
 ### Automated Testing
 
@@ -243,12 +303,37 @@ echo "Tests complete!"
 
 ## Distribution Channels
 
-### 1. GitHub Releases
+### 1. GitHub Packages (Recommended for @jpulse-net)
 
-Create releases with changelog:
+Official jPulse plugins use GitHub Packages:
+
+```bash
+# Publish using CLI
+npx jpulse plugin publish your-plugin --registry=https://npm.pkg.github.com
+
+# Users install with
+npx jpulse plugin install your-plugin --registry=https://npm.pkg.github.com
+```
+
+### 2. npm Registry (Public)
+
+For publicly available plugins:
+
+```bash
+# Publish to npmjs.org
+npx jpulse plugin publish your-plugin
+
+# Users install with
+npx jpulse plugin install @your-org/plugin-your-plugin
+```
+
+### 3. GitHub Releases
+
+Create releases with changelog for versioning:
 
 ```bash
 # Tag the version
+cd plugins/your-plugin
 git tag -a v1.0.0 -m "Release version 1.0.0"
 git push origin v1.0.0
 ```
@@ -258,78 +343,82 @@ On GitHub:
 - Add changelog
 - Attach binaries (if needed)
 
-### 2. npm Registry
+### 4. Private Registry (Enterprise)
 
-Publish to public or private npm registry:
+For air-gapped or enterprise environments:
 
 ```bash
-npm publish
+# Publish to private Verdaccio/Nexus
+npm publish --registry=http://npm.internal.corp:4873
+
+# Users install with
+npx jpulse plugin install your-plugin --registry=http://npm.internal.corp:4873
 ```
-
-### 3. Plugin Marketplace (Future)
-
-A centralized jPulse plugin marketplace is planned for future releases.
 
 ## Installation Instructions for Users
 
-Provide clear installation instructions:
+Provide clear installation instructions in your README:
 
-### From npm
+### Using jPulse CLI (Recommended)
 
 ```bash
-# Install plugin
-npm install @your-org/plugin-your-plugin
+# Install from GitHub Packages
+npx jpulse plugin install your-plugin --registry=https://npm.pkg.github.com
 
-# Create symlink
-cd plugins
-ln -s ../node_modules/@your-org/plugin-your-plugin your-plugin
+# Install specific version
+npx jpulse plugin install your-plugin@1.0.0 --registry=https://npm.pkg.github.com
 
-# Restart server
+# Enable after install
+npx jpulse plugin enable your-plugin
+
+# Restart app for changes to take effect
 ```
 
-### From GitHub
+### From Local Path (Development)
 
 ```bash
-# Clone repository
+# Install from local directory
+npx jpulse plugin install ./path/to/your-plugin
+
+# Or clone directly into plugins/
 cd plugins
-git clone https://github.com/your-org/plugin-your-plugin.git your-plugin
-
-# Install dependencies
-cd your-plugin
-npm install
-
-# Restart server
+git clone https://github.com/jpulse-net/plugin-your-plugin.git your-plugin
 ```
 
-### Manual Installation
+### Air-Gapped / Private Registry
 
 ```bash
-# Download and extract
-cd plugins
-wget https://github.com/your-org/plugin-your-plugin/archive/v1.0.0.tar.gz
-tar -xzf v1.0.0.tar.gz
-mv plugin-your-plugin-1.0.0 your-plugin
+# Using private npm registry
+npx jpulse plugin install your-plugin --registry=http://npm.internal.corp:4873
 
-# Restart server
+# Using local tarball
+npx jpulse plugin install ./plugin-your-plugin-1.0.0.tgz
 ```
 
 ## Updating Published Plugins
 
 1. **Make changes** to code
-2. **Update version** in plugin.json and package.json
+2. **Update version** in plugin.json (package.json will be auto-synced)
 3. **Update CHANGELOG.md** with changes
 4. **Test thoroughly** in development
 5. **Commit and tag**
    ```bash
+   cd plugins/your-plugin
    git commit -am "Release v1.1.0"
-   git tag v1.1.0
-   git push origin main --tags
+   git push origin main
    ```
-6. **Publish to npm**
+6. **Publish using jPulse CLI**
    ```bash
-   npm publish
+   cd /path/to/jpulse-framework
+   npx jpulse plugin publish your-plugin --registry=https://npm.pkg.github.com
    ```
-7. **Create GitHub release** with changelog
+7. **Create git tag** (CLI suggests commands after publish)
+   ```bash
+   cd plugins/your-plugin
+   git tag -a v1.1.0 -m "Release v1.1.0"
+   git push origin v1.1.0
+   ```
+8. **Create GitHub release** with changelog
 
 ## Best Practices
 

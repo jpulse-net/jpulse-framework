@@ -1,212 +1,380 @@
-# jPulse Docs / Plugins / Managing Plugins v1.3.7
+# jPulse Docs / Plugins / Managing Plugins via CLI v1.3.8
 
-Guide for site administrators to install, configure, and manage jPulse plugins.
+jPulse Framework provides a command-line interface for managing plugins. This guide covers installation, updates, and publishing.
 
-## Admin Dashboard
+## Quick Start
 
-Access plugin management at: [/admin/plugins.shtml](/admin/plugins.shtml) (for administrators only)
-
-### Features:
-- **View all plugins** - List installed plugins with status
-- **Enable/Disable** - Toggle plugins on/off
-- **Configure** - Manage plugin settings
-- **View details** - See metadata, version, dependencies
-
-## Installing Plugins
-
-### Method 1: Manual Installation (Development)
-
-1. **Copy plugin directory** to `plugins/`
-   ```bash
-   cp -r /path/to/plugin plugins/your-plugin
-   ```
-
-2. **Restart the server** - Plugin is auto-discovered
-
-3. **Check admin dashboard** - Plugin should appear in list
-
-4. **Enable if needed** - Click "Enable" button (if `autoEnable: false`)
-
-### Method 2: npm Installation (Future)
-
-**Note**: Automated npm installation is not yet implemented. For now, use Method 1 (Manual Installation).
-
-**Planned workflow:**
 ```bash
-# Future: Install plugin from npm registry
-npm install @jpulse-net/plugin-your-plugin
+# List installed plugins
+npx jpulse plugin list
 
-# Plugin automatically copied to plugins/ directory
-# Restart server to activate
-npm restart
+# Install a plugin
+npx jpulse plugin install auth-mfa
+
+# Enable/disable a plugin
+npx jpulse plugin enable auth-mfa
+npx jpulse plugin disable auth-mfa
+
+# Get detailed info
+npx jpulse plugin info auth-mfa
 ```
 
-**Planned behavior:**
-- Plugin package copied from `node_modules/` to `plugins/` directory
-- Plugin auto-discovered on server restart
-- Auto-enabled if plugin author set `autoEnable: true`
-- Plugin npm dependencies automatically installed
+---
 
-## Configuring Plugins
+## Commands Reference
 
-### Using the Admin UI
+### `plugin list`
 
-1. **Navigate to**: `/admin/plugins.shtml`
-2. **Click "Configure"** on the plugin you want to configure
-3. **Fill in settings** - Form is generated from plugin's configuration schema
-4. **Save changes** - Configuration is stored in MongoDB
-5. **Restart if needed** - Some plugins may require restart
+List installed plugins.
 
-**Direct link**: `/admin/plugin-config.shtml?plugin=your-plugin`
-
-### Using the API
-
-```javascript
-// Get current configuration
-const config = await jPulse.api.get('/api/1/plugin/your-plugin/config');
-
-// Update configuration
-await jPulse.api.put('/api/1/plugin/your-plugin/config', {
-    setting1: 'value1',
-    setting2: true
-});
+```bash
+npx jpulse plugin list           # List enabled plugins
+npx jpulse plugin list --all     # Include disabled plugins
+npx jpulse plugin list --json    # Output as JSON
 ```
 
-## Enabling/Disabling Plugins
+**Example output:**
 
-### Via Admin UI
+```
+jPulse Plugins
 
-1. Visit `/admin/plugins.shtml`
-2. Click "Enable" or "Disable" button
-3. Plugin status saved to `.jpulse/plugins.json`
-4. Restart server to apply changes
+  Name              Version   Status    Source
+  ────────────────────────────────────────────
+  hello-world       1.3.7     enabled   @jpulse-net/plugin-hello-world
+  auth-mfa          1.0.0     disabled  @jpulse-net/plugin-auth-mfa
 
-### Via API
-
-```javascript
-// Enable plugin
-await jPulse.api.post('/api/1/plugin/your-plugin/enable');
-
-// Disable plugin
-await jPulse.api.post('/api/1/plugin/your-plugin/disable');
+Total: 2 plugin(s) (1 enabled, 1 disabled)
 ```
 
-### What Happens:
+---
 
-**On Enable (via API/UI):**
-- Plugin marked as enabled in registry (`.jpulse/plugins.json`)
-- Returns `restartRequired: true`
+### `plugin info`
 
-**On Server Restart:**
-- Enabled plugins are loaded
-- Symlinks automatically created for static assets and documentation
-- Plugin configuration loaded from database
-- Plugin becomes active
+Show detailed information about a plugin.
 
-**On Disable (via API/UI):**
-- Plugin marked as disabled in registry
-- Returns `restartRequired: true`
-
-**On Server Restart:**
-- Disabled plugins are skipped
-- Symlinks automatically removed
-- Plugin code not loaded
-- Configuration preserved in database
-
-## Updating Plugins
-
-1. **Backup configuration** (optional - stored in database)
-2. **Replace plugin directory** with new version
-3. **Restart server** - New version loaded
-4. **Check admin dashboard** - Verify version updated
-5. **Test functionality** - Ensure plugin works correctly
-
-**Version conflicts**: If `jpulseVersion` requirement isn't met, plugin shows in error state.
-
-## Removing Plugins
-
-1. **Disable plugin** via admin UI or API
-2. **Verify no dependencies** - Check if other plugins depend on it
-3. **Delete directory**:
-   ```bash
-   rm -rf plugins/your-plugin
-   ```
-4. **Restart server** - Plugin disappears from list
-
-**Note**: Configuration data remains in MongoDB. To remove:
-```javascript
-// Use MongoDB directly or create cleanup endpoint
-db.pluginConfigs.deleteOne({ pluginName: 'your-plugin' });
+```bash
+npx jpulse plugin info <name>
+npx jpulse plugin info auth-mfa
 ```
 
-## Plugin Dependencies
+**Example output:**
 
-Plugins can depend on:
-- **Framework version**: `jpulseVersion: ">=1.3.0"`
-- **npm packages**: Auto-installed when plugin is enabled
-- **Other plugins**: Must be enabled first
+```
+Plugin: auth-mfa
 
-**Dependency conflicts** are shown in the admin UI with error messages.
+  Name:           auth-mfa
+  Version:        0.5.0
+  Status:         disabled
+  Auto-Enable:    no
+  Source:         @jpulse-net/plugin-auth-mfa
 
-## Troubleshooting
+  Summary:        Multi-factor authentication using TOTP authenticator apps
+  Author:         jPulse Team <team@jpulse.net>
+  jPulse Version: >=1.3.8
 
-### Plugin Not Appearing
+  Dependencies:
+    npm:          (none)
+    plugins:      (none)
 
-- Check `plugins/` directory contains plugin
-- Verify `plugin.json` is valid JSON
-- Check server logs for validation errors
-- Restart server to trigger discovery
+  Configuration:
+    Tabs:         Policy, Security, Advanced
+    Fields:       8
 
-### Plugin Shows "Error" Status
+  Location:       /path/to/plugins/auth-mfa
+```
 
-- Check `jpulseVersion` requirement matches framework
-- Verify all required dependencies are installed
-- Check server logs for specific error messages
-- Review plugin configuration for validation errors
+---
 
-### Configuration Won't Save
+### `plugin install`
 
-- Verify configuration values match schema requirements
-- Check for validation errors in UI
-- Ensure required fields are filled
-- Check server logs for detailed error messages
+Install a plugin from various sources.
 
-### Plugin Pages Not Loading
+```bash
+# By short name (assumes @jpulse-net/plugin-{name})
+npx jpulse plugin install auth-mfa
+npx jpulse plugin install auth-mfa@1.0.0
 
-- Verify plugin is enabled
-- Check symlinks exist (location depends on environment):
-  ```bash
-  # Static assets (same for framework and site)
-  ls -la webapp/static/plugins/your-plugin
+# By full npm package name
+npx jpulse plugin install @jpulse-net/plugin-auth-mfa
 
-  # Documentation (context-dependent)
-  # Framework repo:
-  ls -la docs/installed-plugins/your-plugin
-  # Site installation:
-  ls -la webapp/static/assets/jpulse-docs/installed-plugins/your-plugin
-  ```
-- Restart server after enabling plugin
-- Check browser console for JavaScript errors
+# From GitHub Packages (requires authentication)
+npx jpulse plugin install auth-mfa --registry=https://npm.pkg.github.com
 
-### API Endpoints Not Working
+# From local path (development)
+npx jpulse plugin install ./my-local-plugin
+npx jpulse plugin install /absolute/path/to/plugin
 
-- Verify controller file exists in `webapp/controller/`
-- Check method name starts with `api` (e.g., `apiGet`)
-- Restart server to register new endpoints
-- Check server logs for registration messages
+# With options
+npx jpulse plugin install auth-mfa --enable     # Enable after install
+npx jpulse plugin install auth-mfa --no-enable  # Keep disabled
+npx jpulse plugin install auth-mfa --force      # Overwrite existing
+```
 
-## Best Practices
+**Name Resolution:**
 
-- **Always test in development** before production deployment
-- **Document configuration** clearly in plugin docs
-- **Use semantic versioning** for plugin updates
-- **Declare all dependencies** in plugin.json
-- **Provide default values** for configuration fields
-- **Test enable/disable** to ensure clean activation/deactivation
-- **Keep plugin.json valid** - Invalid JSON breaks discovery
+| Input | Resolves To |
+|-------|-------------|
+| `auth-mfa` | `@jpulse-net/plugin-auth-mfa` |
+| `auth-mfa@1.0.0` | `@jpulse-net/plugin-auth-mfa@1.0.0` |
+| `@custom/my-plugin` | `@custom/my-plugin` (used as-is) |
+| `./local-plugin` | Local path (copied to plugins/) |
 
-## See Also
+**Example output:**
 
-- [Creating Plugins](creating-plugins.md) - Developer guide
-- [Plugin API Reference](plugin-api-reference.md) - Complete API documentation
-- [Hello World Plugin](../installed-plugins/hello-world/README.md) - Working example
+```
+Installing plugin from npm: @jpulse-net/plugin-auth-mfa
+
+  → Fetching @jpulse-net/plugin-auth-mfa...
+  ✓ Downloaded via npm
+  ✓ Validated plugin.json
+  ✓ Checked version compatibility (>=1.3.8)
+  ✓ Syncing to plugins/auth-mfa/
+  ✓ Registered in database
+
+Plugin 'auth-mfa' installed successfully!
+
+  Version:     0.5.0
+  Status:      disabled (autoEnable: no)
+  Location:    plugins/auth-mfa/
+
+  To enable:
+    npx jpulse plugin enable auth-mfa
+```
+
+---
+
+### `plugin update`
+
+Update installed plugins to latest version.
+
+```bash
+npx jpulse plugin update              # Update all plugins
+npx jpulse plugin update auth-mfa     # Update specific plugin
+
+# With custom registry
+npx jpulse plugin update --registry=https://npm.pkg.github.com
+```
+
+**Example output:**
+
+```
+Checking 2 plugin(s) for updates...
+
+  auth-mfa (0.5.0):
+    → Updating 0.5.0 → 1.0.0
+    ✓ Updated to 1.0.0
+  hello-world (1.3.7):
+    ✓ Already up to date (1.3.7)
+
+Update complete: 1 updated, 0 failed, 1 unchanged
+
+  ⚠ Note: App restart may be required for updates to take effect.
+```
+
+---
+
+### `plugin enable`
+
+Enable a disabled plugin.
+
+```bash
+npx jpulse plugin enable <name>
+npx jpulse plugin enable auth-mfa
+```
+
+**Example output:**
+
+```
+Plugin 'auth-mfa' enabled.
+
+  ⚠ Note: App restart may be required for the plugin to load.
+```
+
+---
+
+### `plugin disable`
+
+Disable an enabled plugin.
+
+```bash
+npx jpulse plugin disable <name>
+npx jpulse plugin disable auth-mfa
+```
+
+**Example output:**
+
+```
+Plugin 'auth-mfa' disabled.
+
+  Note: Plugin files remain in plugins/ directory.
+  Use `npx jpulse plugin remove` to fully remove.
+```
+
+---
+
+### `plugin remove`
+
+Remove an installed plugin.
+
+```bash
+npx jpulse plugin remove <name>
+npx jpulse plugin remove auth-mfa --force  # Skip confirmation
+```
+
+**Example output:**
+
+```
+About to remove plugin: auth-mfa
+  Version:  0.5.0
+  Location: /path/to/plugins/auth-mfa
+
+Use --force to skip this confirmation.
+```
+
+With `--force`:
+
+```
+Removing plugin: auth-mfa
+
+  ✓ Removed plugins/auth-mfa/
+  ✓ Removed from database
+
+Plugin 'auth-mfa' removed successfully.
+```
+
+---
+
+### `plugin publish`
+
+Publish a plugin to npm registry (for plugin developers).
+
+```bash
+npx jpulse plugin publish <name>
+npx jpulse plugin publish auth-mfa
+npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com
+npx jpulse plugin publish auth-mfa --tag beta
+```
+
+**Publish process:**
+
+1. Validates plugin has `plugin.json` and `package.json`
+2. Syncs version from `plugin.json` → `package.json`
+3. Runs `npm publish` from plugin directory
+
+**Example output:**
+
+```
+Publishing plugin: auth-mfa
+
+  Version: 1.0.0
+  Package: @jpulse-net/plugin-auth-mfa
+
+  → Running: npm publish --registry=https://npm.pkg.github.com
+
+  ✓ Published @jpulse-net/plugin-auth-mfa@1.0.0
+
+  To create a git tag:
+    cd plugins/auth-mfa
+    git tag -a v1.0.0 -m "Release v1.0.0"
+    git push origin v1.0.0
+```
+
+---
+
+## Using Private/GitHub Package Registry
+
+For plugins published to GitHub Packages, you need to authenticate:
+
+### 1. Create a Personal Access Token
+
+Go to GitHub → Settings → Developer settings → Personal access tokens → Generate new token with `read:packages` scope.
+
+### 2. Configure npm
+
+```bash
+# Login to GitHub Packages
+npm login --registry=https://npm.pkg.github.com
+# Username: your-github-username
+# Password: your-personal-access-token
+# Email: your-email
+
+# Or add to ~/.npmrc
+echo "//npm.pkg.github.com/:_authToken=YOUR_TOKEN" >> ~/.npmrc
+```
+
+### 3. Install from GitHub Packages
+
+```bash
+npx jpulse plugin install auth-mfa --registry=https://npm.pkg.github.com
+```
+
+---
+
+## Error Handling
+
+The CLI provides helpful error messages with suggestions:
+
+```
+❌ Error: Plugin 'nonexistent' not found in plugins/ directory.
+
+Suggestions:
+  • Run 'npx jpulse plugin list --all' to see installed plugins
+  • Run 'npx jpulse plugin install nonexistent' to install it
+
+Error code: PLUGIN_NOT_FOUND
+```
+
+Common error codes:
+- `PLUGIN_NOT_FOUND` - Plugin doesn't exist
+- `VERSION_MISMATCH` - jPulse version incompatibility
+- `ALREADY_EXISTS` - Plugin already installed
+- `NETWORK_ERROR` - Cannot reach registry
+- `PERMISSION_ERROR` - Authentication required
+
+---
+
+## Plugin Development Workflow
+
+### Clone-within-Clone Setup
+
+Develop plugins by cloning into the framework's `plugins/` directory:
+
+```bash
+# 1. Clone framework
+cd ~/Dev
+git clone git@github.com:jpulse-net/jpulse-framework.git
+cd jpulse-framework
+
+# 2. Clone plugin into plugins/
+cd plugins
+git clone git@github.com:jpulse-net/plugin-auth-mfa.git auth-mfa
+
+# 3. Work on plugin
+cd auth-mfa
+# Make changes...
+git commit -m "Add feature"
+git push  # Pushes to plugin repo only
+
+# 4. Publish
+cd ~/Dev/jpulse-framework
+npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com
+```
+
+The framework's `.gitignore` ignores `plugins/*` (except `hello-world`), so your plugin clone won't interfere with the framework repo.
+
+---
+
+## Admin UI Alternative
+
+Plugins can also be managed via the Admin UI at `/admin/plugins`:
+
+- View installed plugins
+- Enable/disable plugins
+- Configure plugin settings
+- View plugin hooks and status
+
+The CLI is recommended for:
+- Scripted deployments
+- CI/CD pipelines
+- Air-gapped installations
+- Plugin development and publishing

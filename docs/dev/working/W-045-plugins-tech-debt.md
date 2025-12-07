@@ -406,13 +406,112 @@ Work item: W-045, v1.3.0, 2025-11-30: architecture: add plugin infrastructure wi
 
 ---
 
+## W-045-TD-20: Data-Driven Plugin Admin Cards
+
+Status: Idea
+
+- **Description**: Enhance auto-generated plugin config page with data-driven admin cards
+- **Current Limitation**: Plugin config page only shows settings from `plugin.json` config schema; custom admin functionality (stats, user management, actions) requires separate custom admin pages
+- **Proposed Enhancement**: Add `adminCards` array to `plugin.json` for declarative admin UI:
+  ```json
+  {
+      "adminCards": [
+          {
+              "id": "stats",
+              "title": "MFA Statistics",
+              "type": "stats",
+              "endpoint": "/api/1/admin/mfa/stats",
+              "fields": [
+                  { "key": "totalUsers", "label": "Total Users", "icon": "👥" },
+                  { "key": "mfaEnabled", "label": "MFA Enabled", "icon": "✅", "style": "success" },
+                  { "key": "adoptionRate", "label": "Adoption Rate", "icon": "📊", "format": "percent" }
+              ]
+          },
+          {
+              "id": "userActions",
+              "title": "User MFA Actions",
+              "type": "form",
+              "fields": [
+                  { "name": "userId", "type": "user-select", "label": "Select User" }
+              ],
+              "actions": [
+                  { "label": "Reset MFA", "endpoint": "/api/1/admin/mfa/reset", "style": "warning", "confirm": true },
+                  { "label": "Unlock User", "endpoint": "/api/1/admin/mfa/unlock", "style": "primary" }
+              ]
+          }
+      ]
+  }
+  ```
+- **Card Types**:
+  - `stats` - Display key metrics from API endpoint
+  - `form` - User input with action buttons
+  - `table` - Paginated data table with actions
+  - `custom` - Render custom HTML from endpoint
+- **Benefits**:
+  - No custom admin views needed for most plugins
+  - Consistent admin UI across all plugins
+  - Framework handles rendering, API calls, confirmations
+  - Plugin just provides data endpoints
+  - Reduces plugin development effort significantly
+- **Implementation**:
+  - Extend `/admin/plugin-config.shtml` to render `adminCards`
+  - Create card renderer components for each type
+  - Add API response handling with loading states
+  - Support confirmation dialogs for destructive actions
+- **Priority**: Medium - significant DX improvement, but custom admin pages work
+- **Complexity**: High (8-12 hours for full implementation)
+- **Discovered During**: W-107 auth-mfa plugin development
+- **Note**: For complex UIs, still allow custom admin views as fallback
+
+---
+
+## W-045-TD-21: Custom API Route Paths for Plugin Controllers -- ✅ DONE
+
+Status: ✅ DONE (2025-12-06)
+
+- **Description**: Allow plugins to define custom API route paths instead of auto-generated paths
+- **Current Behavior**:
+  - Framework auto-discovers `api*` methods in plugin controllers
+  - Auto-generates paths as `/api/1/{controllerName}/{methodNameWithoutApi}`
+  - Example: `mfaAuth.apiStatus` → `/api/1/mfaAuth/status`
+  - No way to customize the path (e.g., `/api/1/mfa/status`)
+- **Proposed Enhancement**: Support `static routes = []` array that takes precedence:
+  ```javascript
+  class MfaAuthController {
+      static routes = [
+          { method: 'GET',  path: '/api/1/mfa/status',  handler: 'apiStatus',  auth: 'user' },
+          { method: 'POST', path: '/api/1/mfa/setup',   handler: 'apiSetup',   auth: 'user' },
+          // ...
+      ];
+
+      async apiStatus(req, res) { /* ... */ }
+      async apiSetup(req, res) { /* ... */ }
+  }
+  ```
+- **Behavior**:
+  - If `static routes` exists, register those paths (takes precedence)
+  - If no `static routes`, fall back to auto-discovery from `api*` methods
+  - `auth` field specifies required auth level: 'none', 'user', 'admin', 'root'
+- **Benefits**:
+  - Cleaner API paths (e.g., `/api/1/mfa/` instead of `/api/1/mfaAuth/`)
+  - Explicit route definition visible in one place
+  - Support for route-level auth requirements
+  - Control over HTTP methods without naming conventions
+  - Better alignment with RESTful API design
+- **Implementation Location**: `webapp/lib/site-controller-registry.js`
+- **Priority**: Medium - improves API design flexibility
+- **Complexity**: Low-Medium (~2 hours)
+- **Discovered During**: W-108 auth-mfa plugin implementation
+
+---
+
 ## Summary
 
-**Total Technical Debt Items**: 19
+**Total Technical Debt Items**: 21
 
 **Priority Breakdown**:
 - **High** (2): TD-5 (SQL migrations), TD-7 (sandboxing)
-- **Medium** (11): TD-1 (handlebars), TD-2 (i18n), TD-6 (testing), TD-10 (hooks), TD-12 (form transforms), TD-14 (npm install), TD-15 (dependency viz), TD-16 (performance), TD-17 (hot-reload), TD-18 (HTML sanitization), TD-19 (DB result checks)
+- **Medium** (13): TD-1 (handlebars), TD-2 (i18n), TD-6 (testing), TD-10 (hooks), TD-12 (form transforms), TD-14 (npm install), TD-15 (dependency viz), TD-16 (performance), TD-17 (hot-reload), TD-18 (HTML sanitization), TD-19 (DB result checks), TD-20 (admin cards), TD-21 (custom routes)
 - **Low** (6): TD-3 (email), TD-4 (context), TD-8 (dev mode), TD-9 (marketplace), TD-11 (communication), TD-13 (docs)
 
 **Blockers**:
@@ -439,5 +538,5 @@ Work item: W-045, v1.3.0, 2025-11-30: architecture: add plugin infrastructure wi
 
 ---
 
-**Last Updated**: 2025-11-29
+**Last Updated**: 2025-12-05
 

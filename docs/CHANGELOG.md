@@ -1,6 +1,80 @@
-# jPulse Docs / Version History v1.3.8
+# jPulse Docs / Version History v1.3.9
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.9, W-107, 2025-12-07
+
+**Commit:** `W-107, v1.3.9: users: data-driven user profile extensions for plugins`
+
+**FEATURE RELEASE**: Enable plugins to extend admin and user profile pages with data-driven cards that display plugin-specific user data and actions.
+
+**Objective**: Provide a standardized way for plugins to display their user data in profile pages without creating separate management pages.
+
+**Implementation**:
+
+**UserModel Schema Extensions** (`webapp/model/user.js`, +47 lines):
+- Enhanced `extendSchema()` to accept `_meta` block with `adminCard`/`userCard` configuration
+- Added `schemaExtensionsMetadata` storage for card rendering metadata
+- Added `getSchemaExtensionsMetadata()` method for API access
+
+**User Controller Enhancements** (`webapp/controller/user.js`, +46 lines):
+- Added `?includeSchema=1` query parameter to return schema extensions metadata
+- Added username fallback for `:id` parameter (falls back if not valid ObjectId)
+- Response includes `schema` object when `includeSchema=1`
+
+**Admin Profile View** (`webapp/view/admin/user-profile.shtml`, +404 lines):
+- `renderPluginCards()` function for data-driven card rendering from `adminCard` config
+- Card fields rendered based on `visible`, `readOnly`, `displayAs` attributes
+- `showIf` condition evaluation (hasValue, equals, exists, gt, all)
+- Action button handling: `setFields`, `navigate`, `handler` types
+- Plugin config loading for `config:` showIf conditions
+
+**User Profile View** (`webapp/view/user/profile.shtml`, +402 lines):
+- Same plugin card rendering using `userCard` config
+- User-appropriate actions and field visibility
+
+**Schema Extension Format**:
+```javascript
+UserModel.extendSchema({
+    mfa: {
+        _meta: {
+            plugin: 'auth-mfa',
+            adminCard: { visible: true, label: 'MFA Settings', icon: '🔐', order: 100, actions: [...] },
+            userCard: { visible: true, label: 'Two-Factor Auth', icon: '🔐', order: 10, actions: [...] }
+        },
+        enabled: { type: 'boolean', label: 'Status', displayAs: 'badge', adminCard: { visible: true } },
+        enrolledAt: { type: 'date', label: 'Enrolled', displayAs: 'date', showIf: 'hasValue' }
+    }
+});
+```
+
+**Action Types**:
+- `setFields`: Modify form data locally, user saves to persist
+- `navigate`: Redirect to another page (with unsaved changes warning)
+- `handler`: Call custom `jPulse.schemaHandlers['plugin.method']` function
+
+**Code Changes**:
+- `webapp/model/user.js`: Schema extension metadata storage
+- `webapp/controller/user.js`: `?includeSchema=1`, username fallback
+- `webapp/view/admin/user-profile.shtml`: Plugin card rendering
+- `webapp/view/user/profile.shtml`: Plugin card rendering
+
+**Documentation**:
+- `docs/api-reference.md`: `?includeSchema=1` parameter, username fallback
+- `docs/plugins/plugin-api-reference.md`: Full schema extension format
+
+**Test Coverage**:
+- 72 existing user tests pass
+
+**Files Modified**: 6
+- 2 model/controller: user.js (model), user.js (controller)
+- 2 views: user-profile.shtml, profile.shtml
+- 2 documentation: api-reference.md, plugin-api-reference.md
+
+**Breaking Changes**: None
+- New opt-in feature for plugins
+- Existing schema extensions continue to work
 
 ________________________________________________
 ## v1.3.8, W-106, 2025-12-07

@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.3.7
- * @release         2025-12-04
+ * @version         1.3.9
+ * @release         2025-12-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -295,6 +295,11 @@ class UserController {
     /**
      * Get user by ID, username, or current session user
      * GET /api/1/user/:id, GET /api/1/user?username=..., or GET /api/1/user (current user)
+     *
+     * W-107: Enhanced with:
+     * - ?includeSchema=1 - Returns schema extensions metadata for data-driven profile cards
+     * - :id parameter now falls back to username if not a valid ObjectId
+     *
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
@@ -306,11 +311,25 @@ class UserController {
             let userId = null;
             let lookupMethod = '';
 
-            // Priority 1: Check for :id parameter (ObjectId)
+            // Priority 1: Check for :id parameter
             if (req.params.id && req.params.id.trim() !== '') {
-                userId = req.params.id;
+                const idParam = req.params.id.trim();
+
+                // W-107: Check if it looks like a MongoDB ObjectId (24 hex characters)
+                const isObjectId = /^[a-fA-F0-9]{24}$/.test(idParam);
+
+                if (isObjectId) {
+                    userId = idParam;
                 lookupMethod = 'id';
                 user = await UserModel.findById(userId);
+                } else {
+                    // W-107: Fall back to username lookup
+                    lookupMethod = 'username';
+                    user = await UserModel.findByUsername(idParam);
+                    if (user) {
+                        userId = user._id.toString();
+                    }
+                }
             }
             // Priority 2: Check for username query parameter
             else if (req.query.username && req.query.username.trim() !== '') {
@@ -344,7 +363,7 @@ class UserController {
             }
 
             if (!user) {
-                const identifier = lookupMethod === 'username' ? req.query.username : userId;
+                const identifier = lookupMethod === 'username' ? (req.query.username || req.params.id) : userId;
                 LogController.logError(req, 'user.get', `error: user not found for ${lookupMethod}: ${identifier}`);
                 const message = global.i18n.translate(req, 'controller.user.get.userNotFound');
                 return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
@@ -359,15 +378,30 @@ class UserController {
                 // Note: email, roles, status are kept for regular users to see their own data
             }
 
+            // W-107: Include schema extensions metadata if requested
+            const includeSchema = req.query.includeSchema === '1' || req.query.includeSchema === 'true';
+            let schema = null;
+            if (includeSchema) {
+                schema = UserModel.getSchemaExtensionsMetadata();
+            }
+
             const elapsed = Date.now() - startTime;
-            LogController.logInfo(req, 'user.get', `success: user ${userId} retrieved in ${elapsed}ms`);
+            LogController.logInfo(req, 'user.get', `success: user ${userId} retrieved in ${elapsed}ms${includeSchema ? ' (with schema)' : ''}`);
             const message = global.i18n.translate(req, 'controller.user.get.retrieved');
-            res.json({
+
+            const response = {
                 success: true,
                 data: userProfile,
                 message: message,
                 elapsed
-            });
+            };
+
+            // W-107: Add schema to response if requested
+            if (schema) {
+                response.schema = schema;
+            }
+
+            res.json(response);
 
         } catch (error) {
             LogController.logError(req, 'user.get', `error: ${error.message}`);

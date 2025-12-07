@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.3.7
- * @release         2025-12-04
+ * @version         1.3.9
+ * @release         2025-12-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -65,8 +65,15 @@ class UserModel {
 
     /**
      * Schema extensions registry (applied in order)
+     * Each extension is the raw object passed to extendSchema()
      */
     static schemaExtensions = [];
+
+    /**
+     * Schema extensions with metadata (for W-107 data-driven profile cards)
+     * Keyed by block name (e.g., 'mfa'), contains _meta, fields with adminCard/userCard
+     */
+    static schemaExtensionsMetadata = {};
 
     /**
      * Initialize schema with plugin extensions
@@ -95,14 +102,52 @@ class UserModel {
 
     /**
      * Plugin API to extend schema
-     * @param {object} extension - Schema extension (deep merged into base schema)
+     * W-107: Enhanced to support _meta with adminCard/userCard for data-driven profile cards
+     *
+     * @param {object} extension - Schema extension object, e.g.:
+     *   {
+     *       mfa: {
+     *           _meta: {
+     *               plugin: 'auth-mfa',
+     *               adminCard: { visible: true, label: 'MFA Settings', ... },
+     *               userCard: { visible: true, label: 'Two-Factor Auth', ... }
+     *           },
+     *           enabled: { type: 'boolean', adminCard: { visible: true }, ... },
+     *           secret: { type: 'string', adminCard: { visible: false }, ... }
+     *       }
+     *   }
      */
     static extendSchema(extension) {
         this.schemaExtensions.push(extension);
+
+        // W-107: Store metadata for each block with _meta
+        for (const [blockKey, blockDef] of Object.entries(extension)) {
+            if (blockDef && typeof blockDef === 'object' && blockDef._meta) {
+                this.schemaExtensionsMetadata[blockKey] = blockDef;
+            }
+        }
+
         // Recompute schema if already initialized
         if (this.schema !== null) {
             this.initializeSchema();
         }
+    }
+
+    /**
+     * W-107: Get schema extensions metadata for data-driven profile cards
+     * Returns all blocks that have _meta with adminCard or userCard
+     *
+     * @returns {object} Schema extensions keyed by block name
+     *   {
+     *       mfa: {
+     *           _meta: { plugin: 'auth-mfa', adminCard: {...}, userCard: {...} },
+     *           enabled: { type: 'boolean', adminCard: {...}, userCard: {...} },
+     *           ...
+     *       }
+     *   }
+     */
+    static getSchemaExtensionsMetadata() {
+        return this.schemaExtensionsMetadata;
     }
 
     /**

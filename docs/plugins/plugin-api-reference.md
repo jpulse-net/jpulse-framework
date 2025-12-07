@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.3.8
+# jPulse Docs / Plugins / Plugins API Reference v1.3.9
 
 Complete API reference for jPulse plugin developers.
 
@@ -227,7 +227,7 @@ export default class YourPluginModel {
 // In your plugin's model file
 import UserModel from '../../model/user.js';
 
-// Extend the User model schema
+// Basic schema extension (fields only)
 UserModel.extendSchema({
     ldapDn: { type: 'string' },
     ldapGroups: { type: 'array' },
@@ -236,6 +236,115 @@ UserModel.extendSchema({
 ```
 
 **Note**: Schema extensions are applied during bootstrap before the database is accessed.
+
+### Data-Driven User Profile Cards
+
+Plugins can define how their data appears in admin and user profile pages using `_meta` with `adminCard`/`userCard` configuration:
+
+```javascript
+UserModel.extendSchema({
+    mfa: {
+        // Card-level metadata
+        _meta: {
+            plugin: 'auth-mfa',           // Plugin name (required)
+            adminCard: {
+                visible: true,
+                label: 'MFA Settings',
+                icon: '🔐',
+                description: 'Two-factor authentication management',
+                backgroundColor: '#fef9e7',
+                order: 100,               // Lower = appears first
+                actions: [
+                    {
+                        id: 'reset',
+                        label: 'Reset MFA',
+                        style: 'warning',  // primary, secondary, success, warning, danger
+                        confirm: 'Reset MFA for this user?',
+                        toast: "MFA has been reset. Don't forget to save.",
+                        showIf: { field: 'mfa.enabled', equals: true },
+                        setFields: {       // Modify form data locally
+                            'mfa.enabled': false,
+                            'mfa.secret': ''
+                        }
+                    }
+                ]
+            },
+            userCard: {
+                visible: true,
+                label: 'Two-Factor Authentication',
+                icon: '🔐',
+                description: 'Secure your account',
+                order: 10,
+                actions: [
+                    {
+                        id: 'setup',
+                        label: 'Enable 2FA',
+                        style: 'primary',
+                        showIf: { field: 'mfa.enabled', equals: false },
+                        navigate: '/auth/mfa-setup'  // Redirect action
+                    }
+                ]
+            }
+        },
+        // Field definitions with display attributes
+        enabled: {
+            type: 'boolean',
+            default: false,
+            label: 'Status',
+            adminCard: { visible: true, readOnly: true },
+            userCard: { visible: true, readOnly: true },
+            displayAs: 'badge'            // badge, date, datetime, count
+        },
+        secret: {
+            type: 'string',
+            adminCard: { visible: false },  // Never show sensitive data
+            userCard: { visible: false }
+        },
+        enrolledAt: {
+            type: 'date',
+            label: 'Enrolled',
+            adminCard: { visible: true, readOnly: true },
+            userCard: { visible: true, readOnly: true },
+            displayAs: 'date',
+            showIf: 'hasValue'             // Only show if field has value
+        }
+    }
+});
+```
+
+**Action Types:**
+
+| Type | Description |
+|------|-------------|
+| `setFields` | Modifies form data locally; user clicks "Save" to persist |
+| `navigate` | Redirects to another page (with unsaved changes warning) |
+| `handler` | Calls custom handler: `jPulse.schemaHandlers['plugin.method']` |
+
+**ShowIf Conditions:**
+
+```javascript
+showIf: 'hasValue'                              // Field is truthy
+showIf: { field: 'mfa.enabled', equals: true }  // Field equals value
+showIf: { field: 'mfa.lockedUntil', condition: 'exists' }
+showIf: { field: 'mfa.failedAttempts', condition: 'gt', value: 0 }
+showIf: { all: [ /* multiple conditions */ ] }  // AND logic
+```
+
+**Custom Action Handlers:**
+
+```javascript
+// In plugin's webapp/view/jpulse-common.js (gets appended to framework style)
+window.jPulse.schemaHandlers = window.jPulse.schemaHandlers || {};
+window.jPulse.schemaHandlers['mfa.regenerateBackupCodes'] = async function(userData, formData) {
+    const result = await jPulse.api.post('/api/1/auth-mfa/backup-codes');
+    if (result.success) {
+        // Show codes to user
+        await jPulse.UI.infoDialog({ title: 'New Codes', message: result.data.codes.join('\n') });
+        return { refresh: true };  // Tell UI to refresh the card
+    }
+    return { error: true };
+};
+```
 
 ## Client-Side JavaScript
 

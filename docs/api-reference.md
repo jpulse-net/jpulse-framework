@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.3.7
+# jPulse Docs / REST API Reference v1.3.9
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -405,12 +405,15 @@ End user session and clear authentication.
 ### User Profile Management
 
 #### Get User Profile
-Retrieve user profile information. Supports flexible user identification: ObjectId, username query parameter, or current session user.
+Retrieve user profile information. Supports flexible user identification: ObjectId, username query parameter, username as path parameter, or current session user.
 
 **Routes:**
 - `GET /api/1/user` - Get current user (session)
-- `GET /api/1/user/:id` - Get user by ObjectId
-- `GET /api/1/user?username=jsmith` - Get user by username
+- `GET /api/1/user/:id` - Get user by ObjectId or username (falls back to username if not valid ObjectId)
+- `GET /api/1/user?username=jsmith` - Get user by username query parameter
+
+**Query Parameters:**
+- `includeSchema` (optional): Set to `1` or `true` to include plugin schema extensions metadata for data-driven profile rendering
 
 **Middleware:** `AuthController.requireAuthentication`
 **Authentication:** Required
@@ -418,6 +421,18 @@ Retrieve user profile information. Supports flexible user identification: Object
 **Authorization:**
 - Regular users can only access their own profile
 - Admins can access any user's profile
+
+**Examples:**
+```bash
+# Get user by ObjectId
+GET /api/1/user/66cb1234567890abcdef1234
+
+# Get user by username (fallback)
+GET /api/1/user/jsmith
+
+# Get user with schema metadata for profile cards
+GET /api/1/user/jsmith?includeSchema=1
+```
 
 **Response (200):**
 ```json
@@ -446,6 +461,25 @@ Retrieve user profile information. Supports flexible user identification: Object
         "createdAt": "2025-08-01T08:00:00.000Z"
     },
     "elapsed": 15
+}
+```
+
+**Response with `?includeSchema=1`:**
+```json
+{
+    "success": true,
+    "data": { /* user data */ },
+    "schema": {
+        "mfa": {
+            "_meta": {
+                "plugin": "auth-mfa",
+                "adminCard": { "visible": true, "label": "MFA Settings", "icon": "🔐", "order": 100 },
+                "userCard": { "visible": true, "label": "Two-Factor Authentication", "icon": "🔐", "order": 10 }
+            },
+            "enabled": { "type": "boolean", "label": "Status", "adminCard": { "visible": true }, "displayAs": "badge" }
+        }
+    },
+    "elapsed": 18
 }
 ```
 
@@ -645,7 +679,7 @@ Search and filter users with advanced query capabilities.
 - `limit` (number): Maximum results to return (default: 50, max: 1000)
 - `sort` (string): Sort field with optional `-` prefix for descending (e.g., `-createdAt`)
 
-**Pagination Parameters (W-080):**
+**Pagination Parameters:**
 
 The API supports two pagination modes:
 
@@ -886,7 +920,7 @@ Search and filter log entries with advanced query capabilities.
 - `limit` (number): Maximum results to return (default: 50, max: 1000)
 - `sort` (string): Sort field with optional `-` prefix for descending (default: `-createdAt`)
 
-**Pagination (W-080):** Same as User Search - supports cursor (default) and offset modes.
+**Pagination:** Same as User Search - supports cursor (default) and offset modes.
 See [User Search](#search-users) for pagination parameter details.
 
 **Example Requests:**

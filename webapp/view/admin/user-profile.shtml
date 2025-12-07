@@ -4,8 +4,8 @@
  * @tagline         Admin user profile management with view and edit capabilities
  * @description     Admin user profile management with view and edit modes
  * @file            webapp/view/admin/user-profile.shtml
- * @version         1.3.7
- * @release         2025-12-04
+ * @version         1.3.9
+ * @release         2025-12-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -95,6 +95,91 @@
 
         .local-role-checkbox input[type="checkbox"] {
             width: auto;
+        }
+
+        /* W-107: Plugin card styles */
+        .local-plugin-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 2px solid transparent;
+        }
+
+        .local-plugin-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .local-plugin-card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .local-plugin-card-title h3 {
+            margin: 0;
+            color: #007acc;
+        }
+
+        .local-plugin-card-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .local-plugin-card-description {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .local-plugin-field-grid {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 10px 15px;
+        }
+
+        .local-plugin-field-label {
+            color: #555;
+            font-weight: 500;
+        }
+
+        .local-plugin-field-value {
+            color: #333;
+        }
+
+        .local-plugin-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .local-plugin-badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .local-plugin-badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .local-plugin-badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .local-plugin-badge-info {
+            background: #cce5ff;
+            color: #004085;
         }
     </style>
 </head>
@@ -205,6 +290,11 @@
                     </form>
                 </div>
 
+                <!-- W-107: Plugin Cards Container (data-driven) -->
+                <div id="pluginCardsContainer">
+                    <!-- Plugin cards will be rendered dynamically based on schema extensions -->
+                </div>
+
                 <div class="jp-btn-group">
                     <button id="editBtn" class="jp-btn jp-btn-primary" onclick="toggleEditMode()">{{i18n.view.admin.userProfile.edit}}</button>
                     <button id="saveBtn" class="jp-btn jp-btn-success jp-hidden" onclick="saveUser()">{{i18n.view.admin.userProfile.save}}</button>
@@ -229,6 +319,9 @@
         let originalValues = {};
         let currentUsername = null;
         let availableRoles = [];
+        let schemaMetadata = {};  // W-107: Schema extensions metadata
+        let currentUserData = {}; // W-107: Current user data for plugin cards
+        let pluginConfig = {};    // W-107: Plugin config from database
 
         // Get username from query parameter
         function getUsernameFromQuery() {
@@ -255,11 +348,24 @@
         async function loadUser() {
             try {
                 showLoading(true);
-                const result = await jPulse.api.get(`/api/1/user?username=${encodeURIComponent(currentUsername)}`);
+                // W-107: Request user data with schema extensions metadata
+                const result = await jPulse.api.get(`/api/1/user?username=${encodeURIComponent(currentUsername)}&includeSchema=1`);
 
                 if (result.success && result.data) {
                     const user = result.data;
+                    currentUserData = user;  // W-107: Store for plugin cards
+
+                    // W-107: Store schema metadata if provided
+                    if (result.schema) {
+                        schemaMetadata = result.schema;
+                    }
+
                     displayUser(user);
+
+                    // W-107: Render plugin cards based on schema
+                    await loadPluginConfig();
+                    renderPluginCards();
+
                     showLoading(false);
                 } else {
                     jPulse.UI.toast.error(result.error || `{{i18n.view.admin.userProfile.failedToLoadUser}}`);
@@ -270,6 +376,295 @@
                 jPulse.UI.toast.error(`{{i18n.view.admin.userProfile.networkErrorLoading}}`.replace('%ERROR%', error.message));
                 showLoading(false);
                 document.getElementById('errorState').style.display = 'block';
+            }
+        }
+
+        // W-107: Load plugin configuration from database
+        // TODO: Implement proper /api/1/plugin/config endpoint in future
+        async function loadPluginConfig() {
+            // For now, plugin config-based showIf conditions will use empty config
+            // This means actions with showIf: { config: '...' } will default to hidden
+            pluginConfig = {};
+        }
+
+        // W-107: Render plugin cards based on schema extensions
+        function renderPluginCards() {
+            const container = document.getElementById('pluginCardsContainer');
+            container.innerHTML = '';
+
+            if (!schemaMetadata || Object.keys(schemaMetadata).length === 0) {
+                return;
+            }
+
+            // Sort plugins by order
+            const sortedBlocks = Object.entries(schemaMetadata)
+                .filter(([key, blockDef]) => blockDef._meta?.adminCard?.visible)
+                .sort((a, b) => (a[1]._meta?.adminCard?.order || 999) - (b[1]._meta?.adminCard?.order || 999));
+
+            sortedBlocks.forEach(([blockKey, blockDef]) => {
+                const cardConfig = blockDef._meta.adminCard;
+                const cardHtml = renderPluginCard(blockKey, blockDef, cardConfig);
+                container.insertAdjacentHTML('beforeend', cardHtml);
+            });
+        }
+
+        // W-107: Render a single plugin card
+        function renderPluginCard(blockKey, blockDef, cardConfig) {
+            const userData = currentUserData[blockKey] || {};
+            const bgColor = cardConfig.backgroundColor || '#f8f9fa';
+            const icon = cardConfig.icon || '📦';
+            const label = cardConfig.label || blockKey;
+            const description = cardConfig.description || '';
+
+            // Build action buttons
+            const actionsHtml = renderCardActions(blockKey, cardConfig.actions || [], userData);
+
+            // Build fields display
+            const fieldsHtml = renderCardFields(blockKey, blockDef, userData);
+
+            return `
+                <div class="local-plugin-card" id="card-${blockKey}" style="background-color: ${bgColor}; border-color: ${bgColor === '#f8f9fa' ? 'transparent' : bgColor};">
+                    <div class="local-plugin-card-header">
+                        <div class="local-plugin-card-title">
+                            <span class="local-plugin-icon">${icon}</span>
+                            <h3>${label}</h3>
+                        </div>
+                        <div class="local-plugin-card-actions">
+                            ${actionsHtml}
+                        </div>
+                    </div>
+                    ${description ? `<div class="local-plugin-card-description">${description}</div>` : ''}
+                    <div class="local-plugin-field-grid">
+                        ${fieldsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        // W-107: Render card action buttons
+        function renderCardActions(blockKey, actions, userData) {
+            if (!actions || actions.length === 0) return '';
+
+            return actions
+                .filter(action => evaluateShowIf(action.showIf, userData, blockKey))
+                .map(action => {
+                    const style = action.style || 'secondary';
+                    const icon = action.icon ? `${action.icon} ` : '';
+                    const btnClass = `jp-btn jp-btn-${style} jp-btn-sm`;
+                    return `<button class="${btnClass}" onclick="handlePluginAction('${blockKey}', ${JSON.stringify(action).replace(/'/g, "\\'").replace(/"/g, '&quot;')})">${icon}${action.label}</button>`;
+                })
+                .join('');
+        }
+
+        // W-107: Evaluate showIf condition
+        function evaluateShowIf(showIf, userData, blockKey) {
+            if (!showIf) return true;
+
+            // Simple conditions
+            if (showIf === 'always') return true;
+            if (showIf === 'hasValue') return false; // For action buttons, default to true if no showIf
+
+            // Field-based condition: { field: 'mfa.enabled', equals: true }
+            if (showIf.field) {
+                let value = getNestedValue(currentUserData, showIf.field);
+
+                // Apply default from schema if value is undefined
+                if (value === undefined) {
+                    const parts = showIf.field.split('.');
+                    if (parts.length >= 2) {
+                        const schemaBlock = schemaMetadata[parts[0]];
+                        const fieldDef = schemaBlock?.[parts[1]];
+                        if (fieldDef?.default !== undefined) {
+                            value = fieldDef.default;
+                        }
+                    }
+                }
+
+                if (showIf.equals !== undefined) {
+                    return value === showIf.equals;
+                }
+                if (showIf.condition === 'exists') {
+                    return value !== null && value !== undefined;
+                }
+                if (showIf.condition === 'gt' && showIf.value !== undefined) {
+                    return value > showIf.value;
+                }
+                return false;
+            }
+
+            // Config-based condition: { config: 'auth-mfa.allowUserDisable', equals: true }
+            if (showIf.config) {
+                const value = getNestedValue(pluginConfig, showIf.config);
+                return value === showIf.equals;
+            }
+
+            // All condition: { all: [...conditions] }
+            if (showIf.all && Array.isArray(showIf.all)) {
+                return showIf.all.every(cond => evaluateShowIf(cond, userData, blockKey));
+            }
+
+            // Any condition: { any: [...conditions] }
+            if (showIf.any && Array.isArray(showIf.any)) {
+                return showIf.any.some(cond => evaluateShowIf(cond, userData, blockKey));
+            }
+
+            return true;
+        }
+
+        // W-107: Get nested value from object using dot notation
+        function getNestedValue(obj, path) {
+            if (!obj || !path) return undefined;
+            return path.split('.').reduce((acc, part) => acc?.[part], obj);
+        }
+
+        // W-107: Set nested value in object using dot notation
+        function setNestedValue(obj, path, value) {
+            const parts = path.split('.');
+            const last = parts.pop();
+            const target = parts.reduce((acc, part) => {
+                if (acc[part] === undefined) acc[part] = {};
+                return acc[part];
+            }, obj);
+            target[last] = value;
+        }
+
+        // W-107: Render card fields
+        function renderCardFields(blockKey, blockDef, userData) {
+            const fields = [];
+
+            for (const [fieldKey, fieldDef] of Object.entries(blockDef)) {
+                if (fieldKey === '_meta') continue;
+                if (!fieldDef.adminCard?.visible) continue;
+
+                // Get value with fallback to default from schema
+                let value = userData[fieldKey];
+                if (value === undefined && fieldDef.default !== undefined) {
+                    value = fieldDef.default;
+                }
+
+                // Check showIf
+                const showIf = fieldDef.showIf;
+                if (showIf === 'hasValue' && (value === null || value === undefined)) {
+                    continue;
+                }
+                if (typeof showIf === 'object' && !evaluateShowIf(showIf, userData, blockKey)) {
+                    continue;
+                }
+
+                const label = fieldDef.label || fieldKey;
+                const displayValue = formatFieldValue(value, fieldDef);
+
+                fields.push(`
+                    <div class="local-plugin-field-label">${label}:</div>
+                    <div class="local-plugin-field-value">${displayValue}</div>
+                `);
+            }
+
+            return fields.join('');
+        }
+
+        // W-107: Format field value based on displayAs
+        function formatFieldValue(value, fieldDef) {
+            const displayAs = fieldDef.displayAs;
+
+            if (value === null || value === undefined) {
+                return '<span style="color: #999;">—</span>';
+            }
+
+            switch (displayAs) {
+                case 'badge':
+                    if (typeof value === 'boolean') {
+                        const badgeClass = value ? 'local-plugin-badge-success' : 'local-plugin-badge-danger';
+                        const badgeText = value ? '✅ Enabled' : '❌ Disabled';
+                        return `<span class="local-plugin-badge ${badgeClass}">${badgeText}</span>`;
+                    }
+                    return `<span class="local-plugin-badge local-plugin-badge-info">${value}</span>`;
+
+                case 'date':
+                    if (!value) return '<span style="color: #999;">—</span>';
+                    return new Date(value).toLocaleDateString();
+
+                case 'datetime':
+                    if (!value) return '<span style="color: #999;">—</span>';
+                    return new Date(value).toLocaleString();
+
+                case 'count':
+                    if (Array.isArray(value)) {
+                        return `${value.length} remaining`;
+                    }
+                    return String(value);
+
+                default:
+                    if (typeof value === 'boolean') {
+                        return value ? 'Yes' : 'No';
+                    }
+                    if (Array.isArray(value)) {
+                        return value.join(', ');
+                    }
+                    return String(value);
+            }
+        }
+
+        // W-107: Handle plugin action button click
+        async function handlePluginAction(blockKey, action) {
+            // Parse action if it's a string (from HTML attribute)
+            if (typeof action === 'string') {
+                action = JSON.parse(action.replace(/&quot;/g, '"'));
+            }
+
+            // Show confirmation dialog if required
+            if (action.confirm) {
+                const result = await jPulse.UI.confirmDialog({
+                    title: action.label,
+                    message: action.confirm,
+                    buttons: ['Cancel', 'Continue']
+                });
+                if (result.button !== 'Continue') return;
+            }
+
+            // Handle different action types
+            if (action.setFields) {
+                // Apply setFields to currentUserData (local modification)
+                for (const [path, value] of Object.entries(action.setFields)) {
+                    setNestedValue(currentUserData, path, value);
+                }
+
+                // Mark form as dirty (enable save button)
+                if (!editMode) {
+                    toggleEditMode();
+                }
+
+                // Re-render the card
+                renderPluginCards();
+
+                // Show toast
+                if (action.toast) {
+                    jPulse.UI.toast.info(action.toast);
+                }
+            } else if (action.navigate) {
+                // Check for unsaved changes
+                if (editMode) {
+                    const result = await jPulse.UI.confirmDialog({
+                        title: 'Unsaved Changes',
+                        message: 'You have unsaved changes.',
+                        buttons: ['Cancel', 'Save and Continue']
+                    });
+                    if (result.button === 'Cancel') return;
+                    await saveUser();
+                }
+                window.location.href = action.navigate;
+            } else if (action.handler) {
+                // Call registered handler
+                const handler = window.jPulse?.schemaHandlers?.[action.handler];
+                if (handler) {
+                    const result = await handler(currentUserData, action);
+                    if (result?.refresh) {
+                        await loadUser();
+                    }
+                } else {
+                    console.error(`Handler not found: ${action.handler}`);
+                    jPulse.UI.toast.error(`Handler not available: ${action.handler}`);
+                }
             }
         }
 
@@ -547,6 +942,13 @@
                         theme: document.getElementById('theme').value
                     }
                 };
+
+                // W-107: Include plugin data from schema extensions
+                for (const blockKey of Object.keys(schemaMetadata)) {
+                    if (currentUserData[blockKey] !== undefined) {
+                        updateData[blockKey] = currentUserData[blockKey];
+                    }
+                }
 
                 const result = await jPulse.api.put(`/api/1/user?username=${encodeURIComponent(currentUsername)}`, updateData);
 

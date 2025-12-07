@@ -2471,20 +2471,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/dev/working/W-105-plugins-add-hooks.md:
     - Working document with full implementation plan and analysis
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-080, v1.3.7, 2025-12-04: controller: search API with cursor-based pagination
 - status: ✅ DONE
 - type: Feature
@@ -2541,7 +2527,142 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/jpulse-ui-reference.md:
     - documented jPulse.UI.pagination helper
 
+### W-106, v1.3.8, 2025-12-07: plugins: CLI management to install, enable, list plugins
+- status: ✅ DONE
+- type: Feature
+- objective: Simple way to manage plugins via CLI
+- working doc: docs/dev/working/W-106-plugin-cli-management.md
+- features:
+  - `npx jpulse plugin list/info` - List and inspect plugins
+  - `npx jpulse plugin install <name>` - Install from npm (shorthand: auth-mfa → @jpulse-net/plugin-auth-mfa)
+  - `npx jpulse plugin update [name]` - Update plugin(s)
+  - `npx jpulse plugin enable/disable <name>` - Enable/disable plugins
+  - `npx jpulse plugin remove <name>` - Remove plugins
+  - `npx jpulse plugin publish <name>` - Publish to npm with version sync
+  - Two-step install: npm fetch → sync to plugins/
+  - Air-gapped/private registry support
+  - Clone-within-clone development workflow
+- deliverables:
+  - bin/plugin-manager-cli.js:
+    - NEW file (~1500 lines) implementing full CLI plugin management
+    - Actions: list, info, install, update, remove, enable, disable, publish
+    - Shorthand expansion: `auth-mfa` → `@jpulse-net/plugin-auth-mfa`
+    - Two-step install process: npm fetch → sync to plugins/
+    - Version sync between plugin.json and package.json on publish
+    - Colored console output with tables for readable output
+  - bin/jpulse-framework.js:
+    - Added `plugin` command routing to plugin-manager-cli.js
+  - docs/plugins/managing-plugins.md:
+    - Updated with CLI command documentation
+    - Added examples for all plugin actions
+  - docs/plugins/publishing-plugins.md:
+    - Updated with publish workflow and npm configuration
+- estimated effort: ~34h (7 phases)
 
+### W-107, v1.3.9, 2025-12-07: users: data-driven user profile extensions for plugins
+- status: ✅ DONE
+- type: Feature
+- objective: enable plugins to extend user profile pages with data-driven cards
+- working doc: docs/dev/working/W-107-user-profiles-data-driven.md
+- features:
+  - `UserModel.extendSchema()` accepts `_meta` with `adminCard`/`userCard` configuration
+  - field-level display attributes: `visible`, `readOnly`, `displayAs`, `showIf`
+  - action types: `setFields` (local form update), `navigate` (redirect), `handler` (custom)
+  - `GET /api/1/user?includeSchema=1` returns schema extensions metadata
+  - `GET /api/1/user/:id` falls back to username if not valid ObjectId
+  - admin profile page renders plugin cards from `adminCard` config
+  - user profile page renders plugin cards from `userCard` config
+  - `jPulse.schemaHandlers` for custom action handlers
+- deliverables:
+  - webapp/model/user.js:
+    - enhanced `extendSchema()` to store `_meta` with `adminCard`/`userCard`
+    - added `getSchemaExtensionsMetadata()` method
+  - webapp/controller/user.js:
+    - added `?includeSchema=1` parameter to include schema metadata
+    - added username fallback for `:id` parameter (not just ObjectId)
+  - webapp/view/admin/user-profile.shtml:
+    - added `renderPluginCards()` function for data-driven card rendering
+    - action button handling with `setFields`, `navigate`, `handler` support
+    - `showIf` condition evaluation
+  - webapp/view/user/profile.shtml:
+    - same plugin card rendering using `userCard` config
+  - docs/api-reference.md:
+    - documented `?includeSchema=1` and username fallback
+  - docs/plugins/plugin-api-reference.md:
+    - full schema extension format with `_meta`, actions, `showIf`
+
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-108: plugins: auth-mfa plugin for MFA (multi-factor authentication)
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: Enterprise security via multi-factor authentication
+- working doc: docs/dev/working/W-108-auth-mfa-plugin.md
+- repository: github.com/jpulse-net/plugin-auth-mfa (separate repo, independent versioning)
+- depends on: W-106 (plugin CLI for install/publish)
+- features:
+  - TOTP-based MFA using authenticator apps (Google Authenticator, Authy, etc.)
+  - SMS is out of scope (external service dependency)
+  - User schema extension for MFA fields
+  - API endpoints: setup, verify, backup codes
+  - Views: view/auth/mfa-setup.shtml, mfa-verify.shtml
+  - Hook implementations for login flow
+  - Bootstrap protection (root users exempt until MFA setup)
+  - autoEnable: false (requires configuration)
+  - MFA policy: optional, required, required-for-roles
+- npm dependency: otplib (~20KB)
+- deliverables v0.5.0:
+  - plugins/auth-mfa/plugin.json:
+    - Plugin scaffold with config schema (v0.5.0)
+  - FIXME what else?
+- deliverables v1.0.0:
+  - FIXME file:
+    - FIXME summary
+    - Full MFA functionality (v1.0.0)
+    - Unit and integration tests
+
+### W-109: auth: multi-step login flow
+- status: 📋 SPEC_COMPLETE
+- type: Feature
+- objective: Flexible, hook-based, multi-step authentication supporting MFA, email verification, OAuth2, LDAP, terms acceptance, and more
+- working doc: docs/dev/working/W-109-auth-multi-step-login.md
+- depends on: W-105 (plugin hooks), W-108 (auth-mfa)
+- features:
+  - Single login endpoint: POST /api/1/auth/login
+  - Step-based flow with server-controlled chain
+  - Secure: completedSteps stored server-side only
+  - Dynamic steps: plugins add steps based on user context
+  - Non-blocking warnings for nag scenarios
+- new hooks:
+  - authGetRequiredSteps: plugins return blocking steps required
+  - authExecuteStep: plugins handle step-specific validation
+  - authGetLoginWarnings: plugins return non-blocking warnings
+- scenarios supported:
+  - Simple login (no extra steps)
+  - LDAP login (external identity)
+  - OAuth2 login (redirect-based)
+  - MFA required
+  - Email verification (required or nag)
+  - Password expired
+  - Terms of service acceptance
+  - Multi-tenant selection
+  - Captcha + multiple steps combined
+- estimated effort: ~9h
+
+
+questions:
 
 
 
@@ -2562,6 +2683,7 @@ old pending:
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
 - add SiteControllerRegistry.getStats() to metrics api & system-status
+- /api/1/user/ptester10 -- make this work: 1. test _id, 2. fallback to username, else fail
 
 ### Potential next items:
 - W-068: view: create responsive sidebar
@@ -2571,9 +2693,9 @@ old pending:
 - W-0: markdown docs: a way to define the sequence of docs
 - W-0: handlebars: enhance `{{#if}}` and `{{#unless}}` with and, or, gt, gte, lt, lte, eq, ne
 - W-0: deployment: docker strategy
-- W-0: auth controller: authentication with OAuth2
-- W-0: auth controller: authentication with LDAP
-- W-0: auth controller: MFA (multi-factor authentication)
+- W-0: auth controller: authentication with OAuth2 (see W-109 for flow design)
+- W-0: auth controller: authentication with LDAP (see W-109 for flow design)
+- W-0: auth controller: email verification plugin (see W-109 for flow design)
 
 ### Chat instructions
 
@@ -2585,8 +2707,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-080, v1.3.7
-- update deliverables in W-080 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-107, v1.3.9
+- update deliverables in W-107 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -2623,6 +2745,9 @@ git push origin v1.3.0
 === amend commit message ===
 git commit --amend -F commit-message.txt
 git push --force-with-lease origin main
+
+=== shof diff after git add ===
+git diff --cached
 
 === Restart redis ===
 brew services restart redis
@@ -2939,13 +3064,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - type: Feature
 - possiby as plugin once W-045 is implemented
 - strategy to splice LDAP attributes into user doc
-
-### W-0: auth controller: MFA (multi-factor authentication)
-- status: 🕑 PENDING
-- type: Feature
-- objective: offer increased security
-- possiby as plugin once W-045 is implemented
-- choice of SMS, authentication app
 
 ### W-0: i18n: utility app to manage translations
 - status: 🕑 PENDING

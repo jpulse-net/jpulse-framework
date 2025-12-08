@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.3.10
+# jPulse Docs / Front-End Development Guide v1.3.11
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -742,6 +742,61 @@ const value = jPulse.url.getParam('redirect'); // 'value' or null
 
 // Example: Handle redirect parameter
 const redirectUrl = jPulse.url.getParam('redirect') || '/dashboard/';
+```
+
+### URL Redirect with Toast Queue
+
+Redirect to a URL with optional toast messages that display after the page loads.
+
+```javascript
+// Simple redirect
+jPulse.url.redirect('/dashboard/');
+
+// Redirect with delay
+jPulse.url.redirect('/dashboard/', { delay: 1000 });
+
+// Redirect with toast messages (shown on target page)
+jPulse.url.redirect('/dashboard/', {
+    toasts: [
+        { toastType: 'success', message: 'Changes saved!' }
+    ]
+});
+
+// Redirect with delay and multiple toasts
+jPulse.url.redirect('/profile/', {
+    delay: 500,
+    toasts: [
+        { toastType: 'success', message: 'Profile updated!' },
+        { toastType: 'warning', message: 'Please verify your email.', link: '/verify/', linkText: 'Verify now' }
+    ]
+});
+```
+
+**Toast Object Format:**
+```javascript
+{
+    toastType: 'error',       // error, warning, info, success
+    message: 'Message',       // Required
+    link: '/path/page.shtml', // Optional - clickable link
+    linkText: 'Click here',   // Optional (default: 'Learn more')
+    duration: 10000           // Optional (default: error=8s, others=5s)
+}
+```
+
+**Notes:**
+- Toast messages stored in `sessionStorage` key `jpulse_toast_queue`
+- External URLs (different origin) automatically clear the toast queue
+- Use `jPulse.url.isInternal(url)` to check if URL is same origin
+
+### URL Origin Detection
+
+```javascript
+// Check if URL is internal (same origin)
+jPulse.url.isInternal('/dashboard/');             // true (relative)
+jPulse.url.isInternal('page.html');               // true (relative)
+jPulse.url.isInternal('#section');                // true (anchor)
+jPulse.url.isInternal('https://same.com/page');   // true (if on same.com)
+jPulse.url.isInternal('https://other.com/page');  // false (external)
 ```
 
 ## 📱 Device & Browser Detection

@@ -3,7 +3,7 @@
  * @tagline         Integration tests for W-045 Plugin API authentication
  * @description     Tests plugin REST API authentication and authorization
  * @file            webapp/tests/integration/plugin-api.test.js
- * @version         1.3.10
+ * @version         1.3.11
  * @release         2025-12-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

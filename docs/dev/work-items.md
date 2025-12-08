@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.10
+# jPulse Docs / Dev / Work Items v1.3.11
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -2591,48 +2591,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/plugins/plugin-api-reference.md:
     - full schema extension format with `_meta`, actions, `showIf`
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
-### W-108: plugins: auth-mfa plugin for MFA (multi-factor authentication)
-- status: 🚧 IN_PROGRESS
-- type: Feature
-- objective: Enterprise security via multi-factor authentication
-- working doc: docs/dev/working/W-108-auth-mfa-plugin.md
-- repository: github.com/jpulse-net/plugin-auth-mfa (separate repo, independent versioning)
-- depends on: W-106 (plugin CLI for install/publish)
-- features:
-  - TOTP-based MFA using authenticator apps (Google Authenticator, Authy, etc.)
-  - SMS is out of scope (external service dependency)
-  - User schema extension for MFA fields
-  - API endpoints: setup, verify, backup codes
-  - Views: view/auth/mfa-setup.shtml, mfa-verify.shtml
-  - Hook implementations for login flow
-  - Bootstrap protection (root users exempt until MFA setup)
-  - autoEnable: false (requires configuration)
-  - MFA policy: optional, required, required-for-roles
-- npm dependency: otplib (~20KB)
-- deliverables v0.5.0:
-  - plugins/auth-mfa/plugin.json:
-    - Plugin scaffold with config schema (v0.5.0)
-  - FIXME what else?
-- deliverables v1.0.0:
-  - FIXME file:
-    - FIXME summary
-    - Full MFA functionality (v1.0.0)
-    - Unit and integration tests
-
 ### W-109, v1.3.10, 2025-12-08: auth: multi-step login flow
 - status: ✅ DONE
 - type: Feature
@@ -2678,6 +2636,81 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-110, v1.3.11, 2025-12-08: view: jPulse.url.redirect with toast messages queue
+- status: ✅ DONE
+- type: Feature
+- objective: generic mechanism for queuing toast messages to display after page redirect
+- features:
+  - `jPulse.url.redirect(url, options)` - redirect with optional delay and toast queue
+    - options.delay: ms to wait before redirect (default: 0)
+    - options.toasts: array of toast objects to show after redirect
+  - `jPulse.url.isInternal(url)` - check if URL is same origin
+  - `jpulse_toast_queue` sessionStorage key for cross-page toast messages
+  - external URLs: clears toast queue (no orphaned messages)
+  - toast API enhanced with link support: `{ toastType, message, link?, linkText?, duration? }`
+  - error toasts default to 8 seconds (was 5 seconds)
+  - plugin-defined toast styling (plugins specify toastType, not hard-coded in core)
+- deliverables:
+  - webapp/view/jpulse-common.js:
+    - jPulse.url.redirect(url, options) method
+    - jPulse.url.isInternal(url) method
+    - jPulse.UI.toast.show() enhanced with link support
+    - toast queue processing on page load
+    - error toast default 8 seconds
+  - webapp/view/auth/login.shtml:
+    - uses jPulse.url.redirect() for login success
+    - deferred success toast (no delay, shown on target page)
+  - plugins/auth-mfa/webapp/controller/mfaAuth.js:
+    - MFA warnings define toastType: 'error'
+    - optional nag for "MFA optional" policy
+
+### W-108: plugins: auth-mfa plugin for MFA (multi-factor authentication)
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: Enterprise security via multi-factor authentication
+- working doc: docs/dev/working/W-108-auth-mfa-plugin.md
+- repository: github.com/jpulse-net/plugin-auth-mfa (separate repo, independent versioning)
+- depends on: W-106 (plugin CLI for install/publish)
+- features:
+  - TOTP-based MFA using authenticator apps (Google Authenticator, Authy, etc.)
+  - SMS is out of scope (external service dependency)
+  - User schema extension for MFA fields
+  - API endpoints: setup, verify, backup codes
+  - Views: view/auth/mfa-setup.shtml, mfa-verify.shtml
+  - Hook implementations for login flow
+  - Bootstrap protection (root users exempt until MFA setup)
+  - autoEnable: false (requires configuration)
+  - MFA policy: optional, required, required-for-roles
+- npm dependency: otplib (~20KB)
+- deliverables v0.5.0:
+  - plugins/auth-mfa/plugin.json:
+    - Plugin scaffold with config schema (v0.5.0)
+  - FIXME what else?
+- deliverables v1.0.0:
+  - FIXME file:
+    - FIXME summary
+    - Full MFA functionality (v1.0.0)
+    - Unit and integration tests
+
+
+
+
+
+
+
+
+
 ### Pending
 
 pending:
@@ -2715,8 +2748,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-109, v1.3.10
-- update deliverables in W-109 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-110, v1.3.11
+- update deliverables in W-110 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -2733,12 +2766,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.10
+node bin/bump-version.js 1.3.11
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.10
+git tag v1.3.11
 git push origin main --tags
 
 === on failed package build on github ===

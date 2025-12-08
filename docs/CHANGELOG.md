@@ -1,6 +1,89 @@
-# jPulse Docs / Version History v1.3.10
+# jPulse Docs / Version History v1.3.11
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.11, W-110, 2025-12-08
+
+**Commit:** `W-110, v1.3.11: view: jPulse.url.redirect with toast messages queue`
+
+**FEATURE RELEASE**: Generic mechanism for queuing toast messages to display after page redirect.
+
+**Objective**: Provide a clean, reusable way to show toast messages after page navigation, with plugin-defined styling and no hard-coded plugin checks in core.
+
+**Implementation**:
+
+**jPulse.url.redirect(url, options)** (`webapp/view/jpulse-common.js`):
+- `options.delay`: ms to wait before redirect (default: 0)
+- `options.toasts`: array of toast objects to show after redirect
+- Stores toasts in `jpulse_toast_queue` sessionStorage
+- External URLs: clears toast queue (no orphaned messages)
+
+**jPulse.url.isInternal(url)** (`webapp/view/jpulse-common.js`):
+- Checks if URL is same origin
+- Relative URLs (`/path`, `page.html`, `#anchor`) → internal
+- Absolute URLs → compare origin with `window.location.origin`
+
+**Toast API Enhanced** (`webapp/view/jpulse-common.js`):
+- `jPulse.UI.toast.show()` accepts options object: `{ duration, link, linkText }`
+- Link rendered as underlined, bold text within toast
+- Error toasts default to 8 seconds (was 5 seconds)
+- All shorthand methods (error, success, info, warning) accept options
+
+**Toast Queue Processing** (`webapp/view/jpulse-common.js`):
+- Reads `jpulse_toast_queue` from sessionStorage on page load
+- Displays each toast with plugin-defined `toastType`
+- No hard-coded plugin checks (plugins define styling via `toastType`)
+
+**Login Page Updated** (`webapp/view/auth/login.shtml`):
+- Uses `jPulse.url.redirect()` for login success
+- Instant redirect (no 1 second delay)
+- Success toast shown on target page (deferred)
+
+**MFA Plugin Updated** (`plugins/auth-mfa/webapp/controller/mfaAuth.js`):
+- MFA warnings define `toastType: 'error'`
+- Optional nag for "MFA optional" policy
+
+**Toast Object Format**:
+```javascript
+{
+    toastType: 'error',     // error, warning, info, success
+    message: 'Message',     // Required
+    link: '/path',          // Optional
+    linkText: 'Click here', // Optional (default: 'Learn more')
+    duration: 10000         // Optional (uses defaults: error=8s, others=5s)
+}
+```
+
+**Usage Example**:
+```javascript
+jPulse.url.redirect('/dashboard', {
+    delay: 500,
+    toasts: [
+        { toastType: 'success', message: 'Changes saved!' },
+        { toastType: 'error', message: 'Enable 2FA!', link: '/mfa', linkText: 'Set up' }
+    ]
+});
+```
+
+**Code Changes**:
+- `webapp/view/jpulse-common.js`: redirect(), isInternal(), toast enhancements
+- `webapp/view/auth/login.shtml`: Uses redirect() with deferred toast
+- `plugins/auth-mfa/webapp/controller/mfaAuth.js`: toastType in warnings
+
+**Bug Fix**:
+- Fixed toast auto-hide not working when options object passed without duration
+- Root cause: `undefined !== null` check failure
+- Fix: `options.duration ?? null` to convert undefined to null
+
+**Files Modified**: 3
+- 1 framework view: jpulse-common.js
+- 1 auth view: login.shtml
+- 1 plugin: mfaAuth.js
+
+**Breaking Changes**: None
+- New opt-in utilities
+- Existing toast API unchanged (backward compatible)
 
 ________________________________________________
 ## v1.3.10, W-109, 2025-12-08

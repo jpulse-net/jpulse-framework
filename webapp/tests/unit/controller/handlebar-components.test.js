@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-097 Phase 1: Reusable handlebars components
  * @description     Tests for component definition and usage functionality
  * @file            webapp/tests/unit/controller/handlebar-components.test.js
- * @version         1.3.10
+ * @version         1.3.11
  * @release         2025-12-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

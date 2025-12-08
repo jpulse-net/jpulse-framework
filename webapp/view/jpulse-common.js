@@ -3,7 +3,7 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.3.10
+ * @version         1.3.11
  * @release         2025-12-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -476,7 +476,66 @@ window.jPulse = {
             return params;
         },
 
-        getParam: (name) => new URLSearchParams(window.location.search).get(name)
+        getParam: (name) => new URLSearchParams(window.location.search).get(name),
+
+        /**
+         * Redirect to URL with optional toast messages and delay
+         * @param {string} url - Target URL
+         * @param {object} options - Optional settings
+         *   - delay: ms to wait before redirect (default: 0)
+         *   - toasts: array of toast objects to show after redirect
+         *     Format: [{ toastType, message, link?, linkText?, duration? }]
+         * @example
+         * jPulse.url.redirect('/dashboard', {
+         *     delay: 500,
+         *     toasts: [{ toastType: 'success', message: 'Changes saved!' }]
+         * });
+         */
+        redirect: (url, options = {}) => {
+            const { delay = 0, toasts } = options;
+
+            // Check if URL is internal (same origin) or external
+            const isInternal = jPulse.url.isInternal(url);
+
+            if (isInternal) {
+                // Queue toasts for display after redirect
+                if (toasts && toasts.length > 0) {
+                    sessionStorage.setItem('jpulse_toast_queue', JSON.stringify(toasts));
+                }
+            } else {
+                // External redirect - clear any existing toast queue
+                sessionStorage.removeItem('jpulse_toast_queue');
+            }
+
+            // Redirect with optional delay
+            if (delay > 0) {
+                setTimeout(() => {
+                    window.location.href = url;
+                }, delay);
+            } else {
+                window.location.href = url;
+            }
+        },
+
+        /**
+         * Check if URL is internal (same origin)
+         * @param {string} url - URL to check
+         * @returns {boolean} True if internal, false if external
+         */
+        isInternal: (url) => {
+            // Relative URLs are internal
+            if (!url || url.startsWith('/') || url.startsWith('#') || url.startsWith('?')) {
+                return true;
+            }
+            // Check if same origin
+            try {
+                const targetUrl = new URL(url, window.location.origin);
+                return targetUrl.origin === window.location.origin;
+            } catch {
+                // Invalid URL - treat as internal (relative path)
+                return true;
+            }
+        }
     },
 
     // ============================================================
@@ -564,21 +623,53 @@ window.jPulse = {
              * Show non-blocking toast notification with consistent styling
              * @param {string} message - The message to display
              * @param {string} type - Message type: 'info', 'error', 'success', 'warning'
-             * @param {number} duration - Auto-hide duration in ms (0 = no auto-hide, uses config if not specified)
+             * @param {object|number} options - Options object or duration in ms
+             *   - duration: Auto-hide duration in ms (0 = no auto-hide, uses config if not specified)
+             *   - link: Optional URL for a link
+             *   - linkText: Optional text for the link (defaults to 'Learn more')
              * @returns {Element} The created toast message element
              */
-            show: (message, type = 'info', duration = null) => {
+            show: (message, type = 'info', options = null) => {
+                // Support legacy signature: show(message, type, duration)
+                let duration = null;
+                let link = null;
+                let linkText = null;
+                if (typeof options === 'number') {
+                    duration = options;
+                } else if (options) {
+                    duration = options.duration ?? null;  // Convert undefined to null
+                    link = options.link;
+                    linkText = options.linkText || 'Learn more';
+                }
+
                 // Get duration from config if not specified
                 if (duration === null) {
                     const config = window.appConfig?.view?.toastMessage?.duration;
-                    duration = config?.[type] || 5000;
+                    // Default: error 8 sec, others 5 sec
+                    const defaultDuration = type === 'error' ? 8000 : 5000;
+                    duration = config?.[type] || defaultDuration;
                 }
 
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `jp-toast jp-toast-${type}`;
-                messageDiv.textContent = message;
                 messageDiv.dataset.type = type;
                 messageDiv.dataset.duration = duration;
+
+                // Build content with optional link
+                if (link) {
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = message + ' ';
+                    const linkEl = document.createElement('a');
+                    linkEl.href = link;
+                    linkEl.textContent = linkText;
+                    linkEl.style.color = 'inherit';
+                    linkEl.style.textDecoration = 'underline';
+                    linkEl.style.fontWeight = 'bold';
+                    messageDiv.appendChild(textSpan);
+                    messageDiv.appendChild(linkEl);
+                } else {
+                    messageDiv.textContent = message;
+                }
 
                 // Add to queue
                 jPulse.UI._toastQueue.push(messageDiv);
@@ -591,30 +682,38 @@ window.jPulse = {
 
             /**
              * Show error toast notification (red styling)
+             * @param {string} message - The message to display
+             * @param {object} options - Optional: { duration, link, linkText }
              */
-            error: (message) => {
-                return jPulse.UI.toast.show(message, 'error');
+            error: (message, options) => {
+                return jPulse.UI.toast.show(message, 'error', options);
             },
 
             /**
              * Show success toast notification (green styling)
+             * @param {string} message - The message to display
+             * @param {object} options - Optional: { duration, link, linkText }
              */
-            success: (message) => {
-                return jPulse.UI.toast.show(message, 'success');
+            success: (message, options) => {
+                return jPulse.UI.toast.show(message, 'success', options);
             },
 
             /**
              * Show info toast notification (blue styling)
+             * @param {string} message - The message to display
+             * @param {object} options - Optional: { duration, link, linkText }
              */
-            info: (message) => {
-                return jPulse.UI.toast.show(message, 'info');
+            info: (message, options) => {
+                return jPulse.UI.toast.show(message, 'info', options);
             },
 
             /**
              * Show warning toast notification (yellow styling)
+             * @param {string} message - The message to display
+             * @param {object} options - Optional: { duration, link, linkText }
              */
-            warning: (message) => {
-                return jPulse.UI.toast.show(message, 'warning');
+            warning: (message, options) => {
+                return jPulse.UI.toast.show(message, 'warning', options);
             },
 
             /**
@@ -5187,24 +5286,31 @@ jPulse.dom.ready(() => {
     jPulse.appCluster._isClusterMode = ('{{appCluster.available}}' === 'true');
     jPulse.UI.sourceCode.initAll();
 
-    // Display any login warnings stored in sessionStorage
-    const storedWarnings = sessionStorage.getItem('jpulse_login_warnings');
-    if (storedWarnings) {
+    // Process queued toast messages stored in sessionStorage
+    // Use case: show messages after page redirect (login warnings, confirmations, etc.)
+    // Format: [{ toastType, message, link?, linkText?, duration? }, ...]
+    // To queue: use jPulse.url.redirect(url, { toasts: [...] })
+    const toastQueue = sessionStorage.getItem('jpulse_toast_queue');
+    if (toastQueue) {
         try {
-            const warnings = JSON.parse(storedWarnings);
-            warnings.forEach(warning => {
-                // Use appropriate toast type based on warning
-                const message = warning.message || 'Unknown warning';
-                if (warning.type === 'mfa-not-enabled') {
-                    jPulse.UI.toast.warning(message, { duration: 8000 });
-                } else {
-                    jPulse.UI.toast.info(message, { duration: 5000 });
+            const messages = JSON.parse(toastQueue);
+            messages.forEach(item => {
+                const message = item.message || 'Unknown message';
+                const toastType = item.toastType || 'info';
+                const options = {
+                    link: item.link,
+                    linkText: item.linkText
+                };
+                // Only set duration if explicitly specified (otherwise use toast defaults)
+                if (item.duration) {
+                    options.duration = item.duration;
                 }
+                jPulse.UI.toast.show(message, toastType, options);
             });
-            sessionStorage.removeItem('jpulse_login_warnings');
         } catch (e) {
-            console.error('Error parsing login warnings:', e);
-            sessionStorage.removeItem('jpulse_login_warnings');
+            console.error('Error parsing toast queue:', e);
+        } finally {
+            sessionStorage.removeItem('jpulse_toast_queue');
         }
     }
 });

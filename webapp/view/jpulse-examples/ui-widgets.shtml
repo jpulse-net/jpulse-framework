@@ -4,7 +4,7 @@
  * @tagline         Interactive UI widget examples and demonstrations
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
- * @version         1.3.10
+ * @version         1.3.11
  * @release         2025-12-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -354,9 +354,60 @@ jPulse.dom.ready(() =&gt; {
             <p>Interactive elements for user actions and feedback</p>
         </div>
 
-        <!-- Buttons & Dialog Widget -->
+        <!-- Button Styles -->
         <div class="jp-card">
-            <h2 class="jp-card-dialog-heading">Buttons &amp; Dialog Widget</h2>
+            <h2 class="jp-card-dialog-heading">Button Styles</h2>
+            <div class="jp-info-box">
+                <p><strong>What you learn:</strong> Available button styles for different contexts - primary actions, success confirmations, danger warnings, and more.</p>
+                <p><strong>Behind the scenes:</strong> CSS classes that provide consistent button styling across the application with hover and active states.</p>
+            </div>
+            <div id="button-demo-tabs" class="jp-tabs"></div>
+            <div id="button-example-panel" class="jp-panel">
+                <p>Click any button to see an info toast:</p>
+
+                <div class="jp-btn-group" style="flex-wrap: wrap; gap: 10px;">
+                    <button id="btnPrimary" class="jp-btn jp-btn-primary">Primary</button>
+                    <button id="btnSecondary" class="jp-btn jp-btn-secondary">Secondary</button>
+                    <button id="btnSuccess" class="jp-btn jp-btn-success">Success</button>
+                    <button id="btnDanger" class="jp-btn jp-btn-danger">Danger</button>
+                    <button id="btnWarning" class="jp-btn jp-btn-warning">Warning</button>
+                    <button id="btnOutline" class="jp-btn jp-btn-outline">Outline</button>
+                </div>
+            </div>
+            <div id="button-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
+&lt;!-- Button Styles --&gt;
+
+&lt;!-- Primary - Main actions (blue) --&gt;
+&lt;button class="jp-btn jp-btn-primary"&gt;Primary&lt;/button&gt;
+
+&lt;!-- Secondary - Alternative actions (gray) --&gt;
+&lt;button class="jp-btn jp-btn-secondary"&gt;Secondary&lt;/button&gt;
+
+&lt;!-- Success - Confirmations (green) --&gt;
+&lt;button class="jp-btn jp-btn-success"&gt;Success&lt;/button&gt;
+
+&lt;!-- Danger - Destructive actions (red) --&gt;
+&lt;button class="jp-btn jp-btn-danger"&gt;Danger&lt;/button&gt;
+
+&lt;!-- Warning - Caution (yellow/orange) --&gt;
+&lt;button class="jp-btn jp-btn-warning"&gt;Warning&lt;/button&gt;
+
+&lt;!-- Outline - Subtle actions (border only) --&gt;
+&lt;button class="jp-btn jp-btn-outline"&gt;Outline&lt;/button&gt;
+
+&lt;!-- Button group for horizontal layout --&gt;
+&lt;div class="jp-btn-group"&gt;
+    &lt;button class="jp-btn jp-btn-primary"&gt;Save&lt;/button&gt;
+    &lt;button class="jp-btn jp-btn-secondary"&gt;Cancel&lt;/button&gt;
+&lt;/div&gt;
+                </div>
+            </div>
+        </div>
+
+        <!-- Dialog Widget -->
+        <div class="jp-card">
+            <h2 class="jp-card-dialog-heading">Dialog Widget</h2>
             <div class="jp-info-box">
                 <p><strong>What you learn:</strong> How to create modal dialogs for user interactions including alerts, confirmations, and custom content dialogs with async/await patterns.</p>
                 <p><strong>Behind the scenes:</strong> Uses jPulse's dialog system with promise-based responses, customizable buttons, HTML content support, and automatic focus management.</p>
@@ -490,11 +541,17 @@ document.getElementById('complexBtn').addEventListener('click', async () =&gt; {
             <div id="notification-example-panel" class="jp-panel">
                 <p>Show different types of notifications to users:</p>
 
-                <div class="jp-btn-group">
+                <div class="jp-btn-group" style="margin-bottom: 15px;">
                     <button id="successBtn" class="jp-btn jp-btn-success">Success Message</button>
                     <button id="errorBtn" class="jp-btn jp-btn-danger">Error Message</button>
                     <button id="warningBtn" class="jp-btn jp-btn-warning">Warning Message</button>
                     <button id="infoNotifyBtn" class="jp-btn jp-btn-primary">Info Message</button>
+                </div>
+
+                <p>Toast with clickable link:</p>
+                <div class="jp-btn-group">
+                    <button id="toastLinkBtn" class="jp-btn jp-btn-outline">Toast with Link</button>
+                    <button id="toastRedirectBtn" class="jp-btn jp-btn-outline">Redirect with Toast</button>
                 </div>
             </div>
             <div id="notification-source-panel" class="jp-panel">
@@ -504,7 +561,7 @@ document.getElementById('complexBtn').addEventListener('click', async () =&gt; {
 // Success notification
 jPulse.UI.toast.success('Operation completed successfully!');
 
-// Error notification
+// Error notification (8 second default)
 jPulse.UI.toast.error('An error occurred while processing your request.');
 
 // Warning notification
@@ -513,10 +570,19 @@ jPulse.UI.toast.warning('Please review your input before continuing.');
 // Info notification
 jPulse.UI.toast.info('Here is some helpful information.');
 
-// Custom notification with options
-jPulse.UI.toast.show('Custom message', 'info', {
-    duration: 5000,
-    closable: true
+// Toast with clickable link
+jPulse.UI.toast.error('Enable 2FA to secure your account.', {
+    link: '/settings/security',
+    linkText: 'Set up now'
+});
+
+// Redirect with deferred toast (shown on target page)
+jPulse.url.redirect('/dashboard', {
+    delay: 500,
+    toasts: [
+        { toastType: 'success', message: 'Changes saved!' },
+        { toastType: 'info', message: 'Check out new features.', link: '/changelog', linkText: 'Learn more' }
+    ]
 });
 &lt;/script&gt;
                 </div>
@@ -853,6 +919,14 @@ jPulse.UI.sourceCode.initAll();
                 slideAnimation: true
             }, 'notification-example-tab');
 
+            jPulse.UI.tabs.register('button-demo-tabs', {
+                tabs: [
+                    { id: 'button-example-tab', label: 'Example', panelId: 'button-example-panel' },
+                    { id: 'button-source-tab', label: 'Source Code', panelId: 'button-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'button-example-tab');
+
             jPulse.UI.tabs.register('collapsible-demo-tabs', {
                 tabs: [
                     { id: 'collapsible-example-tab', label: 'Example', panelId: 'collapsible-example-panel' },
@@ -1096,6 +1170,45 @@ jPulse.UI.sourceCode.initAll();
 
             document.getElementById('infoNotifyBtn').addEventListener('click', () => {
                 jPulse.UI.toast.info('Here is some helpful information for you. ℹ️');
+            });
+
+            // Toast with link examples
+            document.getElementById('toastLinkBtn').addEventListener('click', () => {
+                jPulse.UI.toast.error('Enable 2FA to secure your account.', {
+                    link: '/jpulse-plugins/auth-mfa.shtml',
+                    linkText: 'Set up now'
+                });
+            });
+
+            document.getElementById('toastRedirectBtn').addEventListener('click', () => {
+                jPulse.UI.toast.info('Redirecting to this same page with a deferred toast...');
+                setTimeout(() => {
+                    jPulse.url.redirect('/jpulse-examples/ui-widgets.shtml', {
+                        toasts: [
+                            { toastType: 'success', message: 'Page reloaded with deferred toast! 🎉' }
+                        ]
+                    });
+                }, 1500);
+            });
+
+            // Button style examples
+            document.getElementById('btnPrimary').addEventListener('click', () => {
+                jPulse.UI.toast.info('Primary button pressed - use for main actions');
+            });
+            document.getElementById('btnSecondary').addEventListener('click', () => {
+                jPulse.UI.toast.info('Secondary button pressed - use for alternative actions');
+            });
+            document.getElementById('btnSuccess').addEventListener('click', () => {
+                jPulse.UI.toast.info('Success button pressed - use for confirmations');
+            });
+            document.getElementById('btnDanger').addEventListener('click', () => {
+                jPulse.UI.toast.info('Danger button pressed - use for destructive actions');
+            });
+            document.getElementById('btnWarning').addEventListener('click', () => {
+                jPulse.UI.toast.info('Warning button pressed - use for caution');
+            });
+            document.getElementById('btnOutline').addEventListener('click', () => {
+                jPulse.UI.toast.info('Outline button pressed - use for subtle actions');
             });
 
             // Initialize demo collapsible

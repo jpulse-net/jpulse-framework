@@ -3650,10 +3650,7 @@ Completed release preparation for W-109, v1.3.10.
 
 
 ============================================================
-
-
-============================================================
-2025-12-08 12:45
+2025-12-07 21:10
 
 ## User Request
 Verify dynamic hook tables match source of truth and remove LEGACY hard-coded tables.
@@ -3674,6 +3671,357 @@ Verified %DYNAMIC{}% hook tables are generating correctly from hook-manager.js.
 - Single source of truth (hook-manager.js)
 - No manual sync when hooks change
 - Always accurate with implementation
+
+## Status
+✅ ACCEPTED
+
+
+
+============================================================
+2025-12-07 21:24
+
+## Release Complete
+
+### W-109, v1.3.10: Multi-Step Authentication & Hook Simplification
+
+**Status**: ✅ RELEASED
+
+**Deployment**:
+- Released to npm/GitHub
+- Deployed on 2 site installs
+- Spot check: ✅ Good (MFA testing pending)
+
+**Key Features**:
+- Multi-step login flow with server-controlled step chain
+- Phase 8 Hook Simplification: 24 → 12 hooks
+- onBucketAction naming convention
+- MFA policy enforcement with auto-redirect
+- Login warnings via sessionStorage
+
+**Next**: MFA testing on deployed sites
+
+
+============================================================
+2025-12-07 21:31
+
+## User Request
+W-108 testing found bug: MFA optional policy shows no nag message.
+
+## Bug Analysis
+- `onAuthGetWarnings` only added warnings when `mfaRequired.required === true`
+- For "optional" policy, `isMfaRequired()` returns `{ required: false, reason: 'optional' }`
+- No warning was pushed for optional case
+
+## Fix
+plugins/auth-mfa/webapp/controller/mfaAuth.js:
+- Added `else if (mfaRequired.reason === 'optional')` branch
+- New warning type: `mfa-recommended` (softer than `mfa-not-enabled`)
+- Message: "Secure your account with two-factor authentication."
+- Link: "/jpulse-plugins/auth-mfa.shtml"
+
+## Behavior
+- MFA required: `mfa-not-enabled` → redirects to setup page
+- MFA optional: `mfa-recommended` → toast on home page (no redirect)
+
+## Status
+✅ ACCEPTED - Ready for testing
+
+
+============================================================
+2025-12-07 21:35
+
+## User Request
+MFA optional nag message should be red toast with link, 8 sec duration.
+
+## Changes
+
+**1. webapp/view/jpulse-common.js - Toast API Enhancement**
+- `jPulse.UI.toast.show()` now accepts options object: `{ duration, link, linkText }`
+- Backward compatible: still supports `show(message, type, duration)` signature
+- Link rendered as underlined, bold text within toast
+- All shorthand methods (error, success, info, warning) now accept options
+
+**2. webapp/view/jpulse-common.js - Login Warning Display**
+- Both `mfa-not-enabled` and `mfa-recommended` shown as red (error) toast
+- 8 second duration
+- Includes clickable link from warning object
+
+## Result
+- "Secure your account..." message shown as red toast
+- "Enable 2FA" link is clickable
+- Auto-hides after 8 seconds
+
+## Status
+✅ ACCEPTED - Ready for testing
+
+
+============================================================
+2025-12-05 21:40
+
+## User Request
+Remove hard-coded plugin-specific code from core. Plugins should define toast type.
+
+## Changes
+
+**1. plugins/auth-mfa/webapp/controller/mfaAuth.js**
+- Added `toastType: 'error'` to warning objects
+- Plugin now fully defines how its warnings are displayed
+
+**2. webapp/view/jpulse-common.js - Toast Defaults**
+- Error toasts now default to 8 seconds (was 5 seconds)
+- Other toast types remain at 5 seconds default
+
+**3. webapp/view/jpulse-common.js - Warning Display (Generic)**
+- Removed hard-coded `mfa-not-enabled` / `mfa-recommended` checks
+- Now reads `toastType` from warning object (defaults to 'info')
+- Only sets duration if explicitly specified in warning
+- Core simply executes what plugins define
+
+## Warning Object Format (for plugins)
+```javascript
+{
+    type: 'warning-identifier',     // For logging/tracking
+    toastType: 'error',             // Toast style: error, warning, info, success
+    message: 'User-facing message',
+    link: '/path/to/action',        // Optional
+    linkText: 'Link text',          // Optional (default: 'Learn more')
+    duration: 10000                 // Optional (uses toast defaults if omitted)
+}
+```
+
+## Status
+✅ ACCEPTED - Clean separation of concerns
+
+
+
+============================================================
+2025-12-07 21:50
+
+## User Request
+Rename session storage key and add jPulse.url.redirect() utility.
+
+## Changes
+
+**1. Renamed session storage key**
+- From: `jpulse_login_warnings` (plugin-specific)
+- To: `jpulse_toast_queue` (generic, reusable)
+
+**2. Added jPulse.url.redirect(url, options)**
+New utility method for redirect with toast messages:
+```javascript
+jPulse.url.redirect('/dashboard', {
+    delay: 500,  // ms to wait before redirect (default: 0)
+    toasts: [
+        { toastType: 'success', message: 'Changes saved!' },
+        { toastType: 'error', message: 'Warning!', link: '/help', linkText: 'Learn more' }
+    ]
+});
+```
+
+**3. Updated login.shtml**
+- Now uses `jPulse.url.redirect()` instead of manual sessionStorage + setTimeout
+- Cleaner, more maintainable code
+
+## Toast Object Format
+```javascript
+{
+    toastType: 'error',     // error, warning, info, success
+    message: 'Message',     // Required
+    link: '/path',          // Optional
+    linkText: 'Click here', // Optional (default: 'Learn more')
+    duration: 10000         // Optional (uses defaults: error=8s, others=5s)
+}
+```
+
+## Status
+✅ ACCEPTED - Generic, reusable redirect with toasts
+
+
+
+============================================================
+2025-12-07 22:00
+
+## User Request
+Handle external URL redirects - don't store toasts, clear existing queue.
+
+## Changes
+
+**1. Updated jPulse.url.redirect()**
+- Detects if URL is internal (same origin) or external
+- Internal: stores toasts in sessionStorage (as before)
+- External: clears any existing toast queue (won't be orphaned)
+
+**2. Added jPulse.url.isInternal(url)**
+New utility to check if URL is same origin:
+```javascript
+jPulse.url.isInternal('/dashboard');           // true
+jPulse.url.isInternal('page.html');            // true
+jPulse.url.isInternal('https://same.com/x');   // true (if on same.com)
+jPulse.url.isInternal('https://other.com/x');  // false
+```
+
+## Logic
+- Relative URLs (`/path`, `page.html`, `#anchor`) → internal
+- Absolute URLs → compare origin with window.location.origin
+- Invalid URLs → treated as internal (safe default)
+
+## Status
+✅ ACCEPTED
+
+
+
+============================================================
+2025-12-07 22:10
+
+## User Request
+Mini release W-110: Update login to use deferred success toast, expand work-items.
+
+## Changes
+
+**1. webapp/view/auth/login.shtml**
+- Removed immediate success toast display
+- Removed 1 second delay before redirect
+- Success toast now queued with warnings for display on target page
+- Faster login experience (instant redirect)
+
+**2. docs/dev/work-items.md**
+- Expanded W-110 features and deliverables
+- Documents all new jPulse.url utilities
+- Documents toast API enhancements
+- Lists all modified files
+
+## Login Flow (Before vs After)
+Before:
+1. Show success toast
+2. Wait 1 second
+3. Redirect
+
+After:
+1. Redirect immediately
+2. Show success toast on target page
+
+## Status
+✅ ACCEPTED - Ready for release prep
+
+
+
+============================================================
+2025-12-07 22:20
+
+## Bug Fix
+Toasts not auto-hiding after duration.
+
+## Root Cause
+When `options = { link: '/foo' }` without duration:
+- `options.duration` returns `undefined`
+- `duration === null` check fails (undefined !== null)
+- Duration stays `undefined`
+- `parseInt(undefined)` returns `NaN`
+- `NaN > 0` is `false`
+- Auto-hide setTimeout never triggered!
+
+## Fix
+webapp/view/jpulse-common.js line 639:
+```javascript
+// Before
+duration = options.duration;
+
+// After
+duration = options.duration ?? null;  // Convert undefined to null
+```
+
+## Status
+✅ FIXED
+
+
+
+============================================================
+2025-12-07 22:30
+
+## User Request
+Release prep for W-110, v1.3.11.
+
+## Summary
+Completed release preparation for W-110, v1.3.11.
+
+### Files Updated
+
+**1. README.md (Latest Release Highlights)**
+- Added v1.3.11 entry at top
+- Toast queue for page redirects
+- jPulse.url.redirect() utility
+- Link to UI Widgets Examples
+
+**2. docs/README.md (Latest Release Highlights)**
+- Same v1.3.11 entry
+
+**3. docs/CHANGELOG.md**
+- Added complete v1.3.11 section
+- Implementation details
+- Code examples
+- Bug fix documentation
+- Files modified list
+
+**4. commit-message.txt**
+- Full commit message
+- New utilities documented
+- Toast object format
+- Usage examples
+- Bug fix details
+
+### W-110 Features
+- jPulse.url.redirect(url, options)
+- jPulse.url.isInternal(url)
+- jpulse_toast_queue sessionStorage
+- Toast API link support
+- Error toast 8 second default
+- Plugin-defined toastType
+- Instant login redirect
+
+## Status
+✅ ACCEPTED - Ready for version bump and commit
+
+
+============================================================
+
+
+============================================================
+2025-12-08 14:45
+
+## User Request
+Document W-110 features in docs and jpulse-examples.
+
+## Changes Made
+
+**1. docs/jpulse-ui-reference.md**
+- Updated toast.show() API to document options object
+- Added { duration, link, linkText } parameters
+- Added examples with links
+- Updated default durations (error=8s, others=5s)
+- Updated shorthand methods to show options parameter
+
+**2. docs/front-end-development.md**
+- Added "URL Redirect with Toast Queue" section
+- Documented jPulse.url.redirect(url, options)
+- Added toast object format reference
+- Added "URL Origin Detection" section
+- Documented jPulse.url.isInternal(url)
+
+**3. webapp/view/jpulse-examples/ui-widgets.shtml**
+- Added "Toast with Link" and "Redirect with Toast" buttons to notification section
+- Updated source code example with link syntax
+- Added new "Button Styles" section with all jp-btn-* variants
+- Interactive examples show info toast on click
+- Added JavaScript handlers for all new buttons
+- Registered button-demo-tabs for Example/Source tabs
+
+## Button Styles Documented
+- jp-btn-primary (blue - main actions)
+- jp-btn-secondary (gray - alternative actions)
+- jp-btn-success (green - confirmations)
+- jp-btn-danger (red - destructive actions)
+- jp-btn-warning (yellow - caution)
+- jp-btn-outline (border only - subtle actions)
 
 ## Status
 ✅ ACCEPTED

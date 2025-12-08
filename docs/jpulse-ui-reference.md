@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.3.10
+# jPulse Docs / jPulse.UI Widget Reference v1.3.11
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -37,27 +37,52 @@ jPulse.UI.toast.clearAll();
 
 ### API Reference
 
-#### `jPulse.UI.toast.show(message, type, duration)`
-Show a toast notification with custom type and duration.
+#### `jPulse.UI.toast.show(message, type, options)`
+Show a toast notification with custom type and options.
 
 **Parameters:**
 - `message` (string): The message to display
 - `type` (string): Message type: `'info'`, `'error'`, `'success'`, `'warning'` (default: `'info'`)
-- `duration` (number): Auto-hide duration in ms (0 = no auto-hide, uses config if not specified)
+- `options` (object|number): Options object or duration in ms (for backward compatibility)
+  - `duration` (number): Auto-hide duration in ms (default: error=8s, others=5s)
+  - `link` (string): Optional URL for a clickable link
+  - `linkText` (string): Text for the link (default: `'Learn more'`)
 
 **Returns:** `Element` - The created toast message element
 
-#### `jPulse.UI.toast.success(message)`
-Show success toast notification (green styling, 3s duration).
+**Examples:**
+```javascript
+// Simple message
+jPulse.UI.toast.show('Hello world', 'info');
 
-#### `jPulse.UI.toast.error(message)`
-Show error toast notification (red styling, 6s duration).
+// With custom duration
+jPulse.UI.toast.show('Processing...', 'info', 10000);
 
-#### `jPulse.UI.toast.info(message)`
-Show info toast notification (blue styling, 3s duration).
+// With link
+jPulse.UI.toast.show('Enable 2FA to secure your account.', 'error', {
+    link: '/settings/security',
+    linkText: 'Set up now'
+});
 
-#### `jPulse.UI.toast.warning(message)`
-Show warning toast notification (yellow styling, 5s duration).
+// With link and custom duration
+jPulse.UI.toast.show('New features available!', 'info', {
+    duration: 10000,
+    link: '/changelog',
+    linkText: 'See what\'s new'
+});
+```
+
+#### `jPulse.UI.toast.success(message, options)`
+Show success toast notification (green styling, 5s default).
+
+#### `jPulse.UI.toast.error(message, options)`
+Show error toast notification (red styling, 8s default).
+
+#### `jPulse.UI.toast.info(message, options)`
+Show info toast notification (blue styling, 5s default).
+
+#### `jPulse.UI.toast.warning(message, options)`
+Show warning toast notification (yellow styling, 5s default).
 
 #### `jPulse.UI.toast.clearAll()`
 Clear all currently displayed toast notifications.

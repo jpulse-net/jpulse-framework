@@ -28,6 +28,23 @@ jest.mock('../../../controller/log.js', () => ({
     logError: jest.fn()
 }));
 
+// Mock auth controller to avoid bcrypt native module loading
+jest.mock('../../../controller/auth.js', () => ({
+    default: {
+        requireAuthentication: jest.fn((req, res, next) => next()),
+        requireRole: jest.fn(() => (req, res, next) => next()),
+        isAuthenticated: jest.fn(() => false)
+    }
+}));
+
+// Mock user model to avoid bcrypt native module loading
+jest.mock('../../../model/user.js', () => ({
+    default: {
+        findById: jest.fn(),
+        findByUsername: jest.fn()
+    }
+}));
+
 describe('SiteControllerRegistry (W-014)', () => {
     let SiteControllerRegistry;
     let LogController;
@@ -256,13 +273,19 @@ describe('SiteControllerRegistry (W-014)', () => {
 
             SiteControllerRegistry.registerApiRoutes(mockRouter);
 
-            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
-            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/helloTodo', expect.any(Function));
-            expect(mockRouter.post).toHaveBeenCalledWith('/api/1/helloTodo', expect.any(Function));
-            expect(mockRouter.put).toHaveBeenCalledWith('/api/1/helloTodo/:id/toggle', expect.any(Function));
-            expect(mockRouter.delete).toHaveBeenCalledWith('/api/1/helloTodo/:id', expect.any(Function));
-            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/helloTodo/stats', expect.any(Function));
-            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/admin', expect.any(Function));
+            // W-109: Routes now include auth middleware. Verify paths are registered.
+            const getRegisteredPaths = mockRouter.get.mock.calls.map(call => call[0]);
+            const postRegisteredPaths = mockRouter.post.mock.calls.map(call => call[0]);
+            const putRegisteredPaths = mockRouter.put.mock.calls.map(call => call[0]);
+            const deleteRegisteredPaths = mockRouter.delete.mock.calls.map(call => call[0]);
+
+            expect(getRegisteredPaths).toContain('/api/1/hello');
+            expect(getRegisteredPaths).toContain('/api/1/helloTodo');
+            expect(postRegisteredPaths).toContain('/api/1/helloTodo');
+            expect(putRegisteredPaths).toContain('/api/1/helloTodo/:id/toggle');
+            expect(deleteRegisteredPaths).toContain('/api/1/helloTodo/:id');
+            expect(getRegisteredPaths).toContain('/api/1/helloTodo/stats');
+            expect(getRegisteredPaths).toContain('/api/1/admin');
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
                 'site-controller-registry',
@@ -303,10 +326,13 @@ describe('SiteControllerRegistry (W-014)', () => {
             SiteControllerRegistry.registerApiRoutes(mockRouter);
 
             // Verify the route was registered
-            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
+            // W-109: Routes include middleware, so verify path is registered
+            const registeredPaths = mockRouter.get.mock.calls.map(call => call[0]);
+            expect(registeredPaths).toContain('/api/1/hello');
 
-            // Get the registered route handler
-            const routeHandler = mockRouter.get.mock.calls.find(call => call[0] === '/api/1/hello')[1];
+            // Get the registered route handler (W-109: handler is at index 3 due to middleware)
+            const callArgs = mockRouter.get.mock.calls.find(call => call[0] === '/api/1/hello');
+            const routeHandler = callArgs[callArgs.length - 1]; // Handler is last argument
 
             // Mock Express req/res objects
             const mockReq = { method: 'GET', url: '/api/1/hello' };
@@ -351,7 +377,9 @@ describe('SiteControllerRegistry (W-014)', () => {
 
             SiteControllerRegistry.registerApiRoutes(mockRouter);
 
-            const routeHandler = mockRouter.get.mock.calls.find(call => call[0] === '/api/1/hello')[1];
+            // W-109: Handler is at last position due to middleware
+            const callArgs = mockRouter.get.mock.calls.find(call => call[0] === '/api/1/hello');
+            const routeHandler = callArgs[callArgs.length - 1];
             const mockReq = { method: 'GET', url: '/api/1/hello', originalUrl: '/api/1/hello' };
             const mockRes = {
                 json: jest.fn(),
@@ -415,9 +443,11 @@ describe('SiteControllerRegistry (W-014)', () => {
             SiteControllerRegistry.registerApiRoutes(mockRouter);
 
             expect(mockRouter.get).toHaveBeenCalledTimes(3); // hello + helloTodo (with stats endpoint) + helloTodo main
-            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
-            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/helloTodo', expect.any(Function));
-            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/helloTodo/stats', expect.any(Function));
+            // W-109: Routes now include auth middleware. Verify paths are registered correctly.
+            const registeredPaths = mockRouter.get.mock.calls.map(call => call[0]);
+            expect(registeredPaths).toContain('/api/1/hello');
+            expect(registeredPaths).toContain('/api/1/helloTodo');
+            expect(registeredPaths).toContain('/api/1/helloTodo/stats');
         });
     });
 
@@ -442,7 +472,9 @@ describe('SiteControllerRegistry (W-014)', () => {
             SiteControllerRegistry.registerApiRoutes(mockRouter);
 
             // Should auto-discover and register without manual configuration
-            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
+            // W-109: Routes now include auth middleware. Verify path is registered.
+            const registeredPaths = mockRouter.get.mock.calls.map(call => call[0]);
+            expect(registeredPaths).toContain('/api/1/hello');
             expect(LogController.logInfo).toHaveBeenCalledWith(
                 null,
                 'site-controller-registry',
@@ -492,9 +524,11 @@ describe('SiteControllerRegistry (W-014)', () => {
 
             SiteControllerRegistry.registerApiRoutes(mockRouter);
 
-            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/hello', expect.any(Function));
-            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/user-profile', expect.any(Function));
-            expect(mockRouter.get).toHaveBeenCalledWith('/api/1/admin-dashboard', expect.any(Function));
+            // W-109: Routes now include auth middleware. Verify paths are registered.
+            const registeredPaths = mockRouter.get.mock.calls.map(call => call[0]);
+            expect(registeredPaths).toContain('/api/1/hello');
+            expect(registeredPaths).toContain('/api/1/user-profile');
+            expect(registeredPaths).toContain('/api/1/admin-dashboard');
         });
 
         test('should maintain clean separation between framework and site code', async () => {

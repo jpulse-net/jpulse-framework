@@ -5088,6 +5088,43 @@ window.jPulse = {
 
     utils: {
         /**
+         * Deep equality comparison for objects, arrays, and primitives.
+         * Compares objects regardless of property order.
+         *
+         * @param {*} a - First value to compare
+         * @param {*} b - Second value to compare
+         * @returns {boolean} True if values are deeply equal
+         *
+         * @example
+         * jPulse.utils.deepEqual({ a: 1, b: 2 }, { b: 2, a: 1 }); // true
+         * jPulse.utils.deepEqual([1, 2, 3], [1, 2, 3]); // true
+         * jPulse.utils.deepEqual({ a: { b: 1 } }, { a: { b: 2 } }); // false
+         */
+        deepEqual: (a, b) => {
+            if (a === b) return true;
+            if (a == null || b == null) return a === b;
+            if (typeof a !== typeof b) return false;
+            if (typeof a !== 'object') return a === b;
+            if (Array.isArray(a) !== Array.isArray(b)) return false;
+
+            if (Array.isArray(a)) {
+                if (a.length !== b.length) return false;
+                return a.every((item, i) => jPulse.utils.deepEqual(item, b[i]));
+            }
+
+            // Handle Date objects
+            if (a instanceof Date && b instanceof Date) {
+                return a.getTime() === b.getTime();
+            }
+            if (a instanceof Date || b instanceof Date) return false;
+
+            const keysA = Object.keys(a);
+            const keysB = Object.keys(b);
+            if (keysA.length !== keysB.length) return false;
+            return keysA.every(key => jPulse.utils.deepEqual(a[key], b[key]));
+        },
+
+        /**
          * Deep merge objects (client-side implementation)
          * Recursively merges objects, with null acting as deletion marker
          * Arrays are replaced, not merged

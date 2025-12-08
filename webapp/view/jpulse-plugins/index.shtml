@@ -34,7 +34,7 @@
 
             <!-- Auto-discovered plugin cards -->
             {{file.includeComponents "jpulse-plugins/*.shtml" component="pluginCards.*" sortBy="plugin-order"}}
-            <div class="jp-card-grid">
+            <div class="jp-dashboard-grid">
             {{#each components.pluginCards}}
                 {{this}}
             {{/each}}

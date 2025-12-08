@@ -3,8 +3,8 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         1.3.7
- * @release         2025-12-04
+ * @version         1.3.10
+ * @release         2025-12-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -146,17 +146,123 @@ class AuthController {
     // AUTHENTICATION ENDPOINTS (moved from UserController)
     // ============================================================================
 
+    // ============================================================================
+    // W-109: Multi-step authentication helper methods
+    // ============================================================================
+
     /**
-     * User login/authentication
+     * Get required authentication steps from plugins
+     * W-109: Part of multi-step authentication flow
+     * @param {object} req - Express request
+     * @param {object} user - User object
+     * @param {array} completedSteps - Steps already completed
+     * @returns {array} Array of { step, priority, data }
+     */
+    static async _getRequiredSteps(req, user, completedSteps) {
+        const context = {
+            req,
+            user,
+            completedSteps,
+            requiredSteps: []
+        };
+        const result = await global.HookManager.execute('authGetRequiredStepsHook', context);
+
+        // Sort by priority (lower = first), filter already completed
+        return result.requiredSteps
+            .filter(s => !completedSteps.includes(s.step))
+            .sort((a, b) => (a.priority || 100) - (b.priority || 100));
+    }
+
+    /**
+     * Complete login - create session, return user
+     * W-109: Shared function for single-step and multi-step login completion
+     * @param {object} req - Express request
+     * @param {object} res - Express response
+     * @param {object} user - User object
+     * @param {string} authMethod - Authentication method used
+     * @param {number} startTime - Request start time for elapsed calculation
+     */
+    static async _completeLogin(req, res, user, authMethod, startTime) {
+        // Update login statistics
+        await UserModel.updateById(user._id, {
+            lastLogin: new Date(),
+            loginCount: (user.loginCount || 0) + 1
+        });
+
+        // Build session data
+        let sessionData = {
+            id: user._id.toString(),
+            username: user.username,
+            email: user.email,
+            firstName: user.profile?.firstName,
+            lastName: user.profile?.lastName,
+            nickName: user.profile?.nickName || user.profile?.firstName,
+            initials: (user.profile?.firstName?.charAt(0) || '?') +
+                      (user.profile?.lastName?.charAt(0) || ''),
+            roles: user.roles,
+            preferences: user.preferences,
+            isAuthenticated: true
+        };
+
+        // Hook: modify session data
+        let sessionContext = { req, user, sessionData };
+        sessionContext = await global.HookManager.execute('authBeforeSessionCreateHook', sessionContext);
+
+        // Hook: get non-blocking warnings
+        const warningContext = { req, user, warnings: [] };
+        const warningResult = await global.HookManager.execute('authGetLoginWarningsHook', warningContext);
+        global.LogController.logInfo(req, 'auth._completeLogin',
+            `Warnings hook result: ${warningResult.warnings?.length || 0} warning(s)`);
+
+        // Create session
+        req.session.user = sessionContext.sessionData;
+        delete req.session.pendingAuth;
+
+        // Hook: post-login
+        await global.HookManager.execute('authAfterLoginSuccessHook', {
+            req, user, session: req.session.user, authMethod
+        });
+
+        const elapsed = Date.now() - startTime;
+        global.LogController.logInfo(req, 'auth.login',
+            `success: ${user.username} logged in via ${authMethod}, completed in ${elapsed}ms`);
+
+        const message = global.i18n.translate(req, 'controller.auth.loginSuccess');
+        return res.json({
+            success: true,
+            nextStep: null,
+            data: { user: req.session.user },
+            warnings: warningResult.warnings,
+            message,
+            elapsed
+        });
+    }
+
+    /**
+     * User login/authentication - Multi-step flow
      * POST /api/1/auth/login
      * W-105: Enhanced with plugin hooks for external auth providers (OAuth2, LDAP, MFA)
+     * W-109: Refactored for multi-step authentication flow
+     *
+     * Request body:
+     *   First call:  { step: "credentials", identifier: "...", password: "..." }
+     *   Next calls:  { step: "mfa", code: "123456" }
+     *
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
     static async login(req, res) {
         const startTime = Date.now();
+        const PENDING_AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
         try {
-            global.LogController.logRequest(req, 'auth.login', JSON.stringify({ identifier: req.body.identifier }));
+            // W-109: Parse step from request, default to 'credentials' for backward compatibility
+            const { step = 'credentials', ...stepData } = req.body;
+
+            global.LogController.logRequest(req, 'auth.login', JSON.stringify({
+                step,
+                identifier: stepData.identifier || stepData.username || '(n/a)'
+            }));
 
             // Bail out if login is disabled
             if (global.appConfig.controller.auth.disableLogin) {
@@ -165,121 +271,213 @@ class AuthController {
                 return global.CommonUtils.sendError(req, res, 403, message, 'LOGIN_DISABLED');
             }
 
-            const { identifier, password } = req.body;
+            // Get or initialize pending auth state
+            let pending = req.session.pendingAuth;
 
-            if (!identifier || !password) {
-                global.LogController.logError(req, 'auth.login', 'error: Both identifier (username or email) and password are required');
-                const message = global.i18n.translate(req, 'controller.auth.idAndPasswordRequired');
-                return res.status(400).json({
-                    success: false,
-                    error: message,
-                    code: 'MISSING_CREDENTIALS'
-                });
-            }
+            // =========================================================================
+            // STEP: credentials (always first)
+            // =========================================================================
+            if (step === 'credentials') {
+                // Support both 'identifier' and 'username' for backward compatibility
+                const identifier = stepData.identifier || stepData.username;
+                const password = stepData.password;
 
-            // W-105: HOOK authBeforeLoginHook - can skip password check for external auth
-            let user = null;
-            let beforeLoginContext = {
-                req,
-                identifier,
-                password,
-                skipPasswordCheck: false,
-                user: null,
-                authMethod: 'internal'
-            };
-            beforeLoginContext = await global.HookManager.execute('authBeforeLoginHook', beforeLoginContext);
+                if (!identifier || !password) {
+                    global.LogController.logError(req, 'auth.login',
+                        'error: Both identifier (username or email) and password are required');
+                    const message = global.i18n.translate(req, 'controller.auth.idAndPasswordRequired');
+                    return res.status(400).json({
+                        success: false,
+                        error: message,
+                        code: 'MISSING_CREDENTIALS'
+                    });
+                }
 
-            if (beforeLoginContext.skipPasswordCheck && beforeLoginContext.user) {
-                // External auth provided the user (LDAP, OAuth2, etc.)
-                user = beforeLoginContext.user;
-            } else {
-                // Internal authentication
-                user = await UserModel.authenticate(identifier, password);
-            }
-
-            if (!user) {
-                // W-105: HOOK authOnLoginFailureHook
-                await global.HookManager.execute('authOnLoginFailureHook', {
+                // W-105: HOOK authBeforeLoginHook - can skip password check for external auth
+                let user = null;
+                let beforeLoginContext = {
                     req,
                     identifier,
-                    reason: 'INVALID_CREDENTIALS',
-                    authMethod: beforeLoginContext.authMethod
-                });
+                    password,
+                    skipPasswordCheck: false,
+                    user: null,
+                    authMethod: 'internal'
+                };
+                beforeLoginContext = await global.HookManager.execute('authBeforeLoginHook', beforeLoginContext);
 
-                global.LogController.logError(req, 'auth.login', `error: Login failed for identifier: ${identifier}`);
-                const message = global.i18n.translate(req, 'controller.auth.invalidCredentials');
-                return res.status(401).json({
+                if (beforeLoginContext.skipPasswordCheck && beforeLoginContext.user) {
+                    // External auth provided the user (LDAP, OAuth2, etc.)
+                    user = beforeLoginContext.user;
+                } else {
+                    // Internal authentication
+                    user = await UserModel.authenticate(identifier, password);
+                }
+
+                if (!user) {
+                    // W-105: HOOK authOnLoginFailureHook
+                    await global.HookManager.execute('authOnLoginFailureHook', {
+                        req,
+                        identifier,
+                        reason: 'INVALID_CREDENTIALS',
+                        authMethod: beforeLoginContext.authMethod
+                    });
+
+                    global.LogController.logError(req, 'auth.login',
+                        `error: Login failed for identifier: ${identifier}`);
+                    const message = global.i18n.translate(req, 'controller.auth.invalidCredentials');
+                    return res.status(401).json({
+                        success: false,
+                        error: message,
+                        code: 'INVALID_CREDENTIALS'
+                    });
+                }
+
+                // Check account status
+                if (user.status === 'locked') {
+                    global.LogController.logError(req, 'auth.login',
+                        `error: Account locked for user: ${user.username}`);
+                    return res.status(403).json({
+                        success: false,
+                        error: global.i18n.translate(req, 'controller.auth.accountLocked'),
+                        code: 'ACCOUNT_LOCKED'
+                    });
+                }
+
+                if (user.status === 'disabled') {
+                    global.LogController.logError(req, 'auth.login',
+                        `error: Account disabled for user: ${user.username}`);
+                    return res.status(403).json({
+                        success: false,
+                        error: global.i18n.translate(req, 'controller.auth.accountDisabled'),
+                        code: 'ACCOUNT_DISABLED'
+                    });
+                }
+
+                // W-109: Initialize pending auth
+                pending = {
+                    userId: user._id.toString(),
+                    username: user.username,
+                    authMethod: beforeLoginContext.authMethod,
+                    completedSteps: ['credentials'],
+                    createdAt: Date.now()
+                };
+
+                // W-109: Get required steps from plugins
+                const requiredSteps = await AuthController._getRequiredSteps(req, user, pending.completedSteps);
+
+                if (requiredSteps.length > 0) {
+                    const nextStep = requiredSteps[0];
+                    pending.requiredSteps = ['credentials', ...requiredSteps.map(s => s.step)];
+                    req.session.pendingAuth = pending;
+
+                    global.LogController.logInfo(req, 'auth.login',
+                        `credentials valid for ${user.username}, next step: ${nextStep.step}`);
+
+                    return res.json({
+                        success: true,
+                        nextStep: nextStep.step,
+                        ...nextStep.data
+                    });
+                }
+
+                // No additional steps - complete login immediately
+                return await AuthController._completeLogin(req, res, user, beforeLoginContext.authMethod, startTime);
+            }
+
+            // =========================================================================
+            // SUBSEQUENT STEPS (mfa, email-verify, etc.)
+            // =========================================================================
+
+            // Validate pending auth exists
+            if (!pending) {
+                global.LogController.logError(req, 'auth.login',
+                    `error: Step '${step}' submitted without pending auth`);
+                return res.status(400).json({
                     success: false,
-                    error: message,
-                    code: 'INVALID_CREDENTIALS'
+                    error: global.i18n.translate(req, 'controller.auth.noPendingAuth'),
+                    code: 'NO_PENDING_AUTH'
                 });
             }
 
-            // W-105: HOOK authAfterPasswordValidationHook - MFA check point
-            let mfaContext = {
-                req,
-                user,
-                isValid: true,
-                requireMfa: false,
-                mfaMethod: null
-            };
-            mfaContext = await global.HookManager.execute('authAfterPasswordValidationHook', mfaContext);
+            // Check timeout (5 minutes)
+            if (Date.now() - pending.createdAt > PENDING_AUTH_TIMEOUT_MS) {
+                delete req.session.pendingAuth;
+                global.LogController.logError(req, 'auth.login',
+                    `error: Pending auth expired for user: ${pending.username}`);
+                return res.status(400).json({
+                    success: false,
+                    error: global.i18n.translate(req, 'controller.auth.authExpired'),
+                    code: 'AUTH_EXPIRED'
+                });
+            }
 
-            // If MFA is required, return MFA challenge (don't create session yet)
-            if (mfaContext.requireMfa) {
-                global.LogController.logInfo(req, 'auth.login', `MFA required for user ${user.username}, method: ${mfaContext.mfaMethod}`);
+            // Validate step is expected
+            const remainingSteps = pending.requiredSteps.filter(
+                s => !pending.completedSteps.includes(s)
+            );
+            const expectedStep = remainingSteps[0];
+            // Allow alternative steps (e.g., 'mfa-backup' as alternative to 'mfa')
+            const isValidStep = step === expectedStep ||
+                (expectedStep === 'mfa' && step === 'mfa-backup');
+            if (!isValidStep) {
+                global.LogController.logError(req, 'auth.login',
+                    `error: Unexpected step '${step}', expected '${expectedStep}'`);
+                return res.status(400).json({
+                    success: false,
+                    error: global.i18n.translate(req, 'controller.auth.invalidStep', { step }),
+                    code: 'INVALID_STEP'
+                });
+            }
+
+            // Load user for hook context (plugins need full user object)
+            let user = await UserModel.findById(pending.userId);
+
+            // W-109: Execute step via hook
+            const stepContext = {
+                req,
+                step,
+                stepData,
+                pending,
+                user,       // Full user object for plugins
+                valid: false,
+                error: null
+            };
+            const result = await global.HookManager.execute('authExecuteStepHook', stepContext);
+
+            if (!result.valid) {
+                global.LogController.logError(req, 'auth.login',
+                    `error: Step '${step}' failed for user ${pending.username}: ${result.error}`);
+                return res.status(400).json({
+                    success: false,
+                    error: result.error || global.i18n.translate(req, 'controller.auth.stepFailed'),
+                    code: 'STEP_FAILED'
+                });
+            }
+
+            // Mark step complete (use expectedStep for alternatives like mfa-backup -> mfa)
+            pending.completedSteps.push(expectedStep);
+
+            // Reload user (may have been modified by step, e.g., MFA lockout cleared)
+            user = await UserModel.findById(pending.userId);
+            const requiredSteps = await AuthController._getRequiredSteps(req, user, pending.completedSteps);
+
+            if (requiredSteps.length > 0) {
+                const nextStep = requiredSteps[0];
+                pending.requiredSteps = [...pending.completedSteps, ...requiredSteps.map(s => s.step)];
+                req.session.pendingAuth = pending;
+
+                global.LogController.logInfo(req, 'auth.login',
+                    `step '${step}' complete for ${user.username}, next step: ${nextStep.step}`);
+
                 return res.json({
                     success: true,
-                    requireMfa: true,
-                    mfaMethod: mfaContext.mfaMethod,
-                    message: global.i18n.translate(req, 'controller.auth.mfaRequired')
+                    nextStep: nextStep.step,
+                    ...nextStep.data
                 });
             }
 
-            // Update login statistics
-            await UserModel.updateById(user._id, {
-                lastLogin: new Date(),
-                loginCount: (user.loginCount || 0) + 1
-            });
-
-            // W-105: HOOK authBeforeSessionCreateHook - can modify session data
-            let sessionData = {
-                id: user._id.toString(),
-                username: user.username,
-                email: user.email,
-                firstName: user.profile.firstName,
-                lastName: user.profile.lastName,
-                nickName: user.profile.nickName || user.profile.firstName,
-                initials: (user.profile.firstName?.charAt(0) || '?') + (user.profile.lastName?.charAt(0) || ''),
-                roles: user.roles,
-                preferences: user.preferences,
-                isAuthenticated: true
-            };
-            let sessionContext = { req, user, sessionData };
-            sessionContext = await global.HookManager.execute('authBeforeSessionCreateHook', sessionContext);
-
-            // Store user in session
-            req.session.user = sessionContext.sessionData;
-
-            // W-105: HOOK authAfterLoginSuccessHook
-            await global.HookManager.execute('authAfterLoginSuccessHook', {
-                req,
-                user,
-                session: req.session.user,
-                authMethod: beforeLoginContext.authMethod
-            });
-
-            const elapsed = Date.now() - startTime;
-            global.LogController.logInfo(req, 'auth.login', `success: User ${user.username} logged in via ${beforeLoginContext.authMethod}, completed in ${elapsed}ms`);
-            const message = global.i18n.translate(req, 'controller.auth.loginSuccess');
-            res.json({
-                success: true,
-                data: {
-                    user: req.session.user
-                },
-                message: message,
-                elapsed
-            });
+            // All steps complete - finish login
+            return await AuthController._completeLogin(req, res, user, pending.authMethod, startTime);
 
         } catch (error) {
             global.LogController.logError(req, 'auth.login', `error: ${error.message}`);

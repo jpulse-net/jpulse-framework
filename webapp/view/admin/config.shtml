@@ -251,6 +251,20 @@
             }
         }
 
+        // Dirty form state (declared outside jPulse.dom.ready for beforeunload access)
+        let isDirty = false;
+
+        // Warn user when navigating away with unsaved changes
+        window.addEventListener('beforeunload', (event) => {
+            if (isDirty) {
+                event.preventDefault();
+                // Modern browsers ignore custom messages and show their own generic prompt
+                // Setting returnValue to any truthy value triggers the dialog
+                event.returnValue = true;
+                return true;
+            }
+        });
+
         // Site configuration management
         jPulse.dom.ready(() => {
             const configForm = document.getElementById('configForm');
@@ -260,7 +274,6 @@
             const testEmailBtnTitle = `{{i18n.view.admin.config.testEmailDesc}}`;
             testEmailBtn.title = jPulse.string.escapeHtml(testEmailBtnTitle);
             let originalData = {};
-            let isDirty = false;
 
             // Load current configuration
             loadConfig();
@@ -320,10 +333,7 @@
 
             function checkDirty() {
                 const currentData = getFormData();
-                // Normalize data for comparison - ensure all fields are explicitly set
-                const normalizedCurrent = JSON.parse(JSON.stringify(currentData));
-                const normalizedOriginal = JSON.parse(JSON.stringify(originalData));
-                isDirty = JSON.stringify(normalizedCurrent) !== JSON.stringify(normalizedOriginal);
+                isDirty = !jPulse.utils.deepEqual(currentData, originalData);
                 updateButtonStates();
             }
 
@@ -397,12 +407,19 @@
             });
 
             // Cancel changes
-            cancelBtn.addEventListener('click', () => {
+            cancelBtn.addEventListener('click', async () => {
                 if (isDirty) {
-                    jPulse.UI.toast.warning(`{{i18n.view.admin.config.unsavedChanges}}`);
-                } else {
-                    window.location.href = '/admin/';
+                    const result = await jPulse.UI.confirmDialog({
+                        title: `{{i18n.view.admin.config.discardChangesTitle}}`,
+                        message: `{{i18n.view.admin.config.discardChangesMessage}}`,
+                        buttons: [`{{i18n.view.admin.config.backToEdit}}`, `{{i18n.view.admin.config.discardChanges}}`]
+                    });
+                    if (result.button === `{{i18n.view.admin.config.backToEdit}}`) {
+                        return;
+                    }
                 }
+                isDirty = false; // Prevent beforeunload from triggering
+                window.location.href = '/admin/';
             });
 
             // Clear error states on input

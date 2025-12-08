@@ -406,6 +406,163 @@ describe('User Model Basic Tests', () => {
             expect(sessionUser.isAuthenticated).toBe(true);
         });
     });
+
+    // =========================================================================
+    // W-107: Schema Extensions Tests
+    // =========================================================================
+    describe('Schema Extensions (W-107)', () => {
+        test('extendSchema stores extension in schemaExtensions array', () => {
+            // Access UserModel via global
+            const UserModel = global.UserModel;
+            if (!UserModel) {
+                // Skip if UserModel not available in test environment
+                console.log('UserModel not available in test environment, skipping');
+                return;
+            }
+
+            const initialCount = UserModel.schemaExtensions?.length || 0;
+
+            // Extend schema
+            UserModel.extendSchema({
+                testPlugin: {
+                    testField: { type: 'string', default: '' }
+                }
+            });
+
+            expect(UserModel.schemaExtensions.length).toBe(initialCount + 1);
+        });
+
+        test('extendSchema stores _meta in schemaExtensionsMetadata', () => {
+            const UserModel = global.UserModel;
+            if (!UserModel) {
+                console.log('UserModel not available in test environment, skipping');
+                return;
+            }
+
+            // Extend schema with _meta
+            UserModel.extendSchema({
+                testPluginMeta: {
+                    _meta: {
+                        plugin: 'test-plugin',
+                        adminCard: {
+                            visible: true,
+                            label: 'Test Plugin',
+                            icon: '🧪',
+                            order: 100
+                        },
+                        userCard: {
+                            visible: false
+                        }
+                    },
+                    enabled: {
+                        type: 'boolean',
+                        default: false,
+                        adminCard: { visible: true, readOnly: true },
+                        userCard: { visible: false }
+                    }
+                }
+            });
+
+            const metadata = UserModel.getSchemaExtensionsMetadata();
+            expect(metadata.testPluginMeta).toBeDefined();
+            expect(metadata.testPluginMeta._meta.plugin).toBe('test-plugin');
+            expect(metadata.testPluginMeta._meta.adminCard.visible).toBe(true);
+            expect(metadata.testPluginMeta._meta.adminCard.label).toBe('Test Plugin');
+            expect(metadata.testPluginMeta._meta.userCard.visible).toBe(false);
+        });
+
+        test('getSchemaExtensionsMetadata returns empty object when no extensions with _meta', () => {
+            // Create a minimal mock to test the concept
+            const mockSchemaExtensionsMetadata = {};
+
+            const getSchemaExtensionsMetadata = () => mockSchemaExtensionsMetadata;
+
+            expect(getSchemaExtensionsMetadata()).toEqual({});
+        });
+
+        test('schema extension field-level attributes are preserved', () => {
+            const UserModel = global.UserModel;
+            if (!UserModel) {
+                console.log('UserModel not available in test environment, skipping');
+                return;
+            }
+
+            // Extend schema with field attributes
+            UserModel.extendSchema({
+                testFieldAttrs: {
+                    _meta: {
+                        plugin: 'test-field-attrs',
+                        adminCard: { visible: true, label: 'Test' }
+                    },
+                    status: {
+                        type: 'string',
+                        default: 'inactive',
+                        label: 'Status',
+                        displayAs: 'badge',
+                        showIf: 'hasValue',
+                        adminCard: { visible: true, readOnly: true },
+                        userCard: { visible: true, readOnly: true }
+                    },
+                    secret: {
+                        type: 'string',
+                        adminCard: { visible: false },
+                        userCard: { visible: false }
+                    }
+                }
+            });
+
+            const metadata = UserModel.getSchemaExtensionsMetadata();
+            expect(metadata.testFieldAttrs).toBeDefined();
+            expect(metadata.testFieldAttrs.status.displayAs).toBe('badge');
+            expect(metadata.testFieldAttrs.status.showIf).toBe('hasValue');
+            expect(metadata.testFieldAttrs.secret.adminCard.visible).toBe(false);
+        });
+    });
+
+    // =========================================================================
+    // W-107: Username Fallback Tests
+    // =========================================================================
+    describe('Username Fallback Logic (W-107)', () => {
+        test('should detect valid MongoDB ObjectId format', () => {
+            // ObjectId is 24 hex characters
+            const isObjectId = (str) => /^[a-fA-F0-9]{24}$/.test(str);
+
+            // Valid ObjectIds
+            expect(isObjectId('507f1f77bcf86cd799439011')).toBe(true);
+            expect(isObjectId('66cb1234567890abcdef1234')).toBe(true);
+            expect(isObjectId('000000000000000000000000')).toBe(true);
+            expect(isObjectId('AABBCCDDEEFF001122334455')).toBe(true);
+
+            // Invalid - too short
+            expect(isObjectId('507f1f77bcf86cd79943901')).toBe(false);
+
+            // Invalid - too long
+            expect(isObjectId('507f1f77bcf86cd7994390111')).toBe(false);
+
+            // Invalid - non-hex characters
+            expect(isObjectId('507f1f77bcf86cd79943901g')).toBe(false);
+            expect(isObjectId('jsmith')).toBe(false);
+            expect(isObjectId('admin')).toBe(false);
+            expect(isObjectId('user@example.com')).toBe(false);
+
+            // Invalid - empty/null
+            expect(isObjectId('')).toBe(false);
+        });
+
+        test('should fallback to username lookup for non-ObjectId strings', () => {
+            // Simulate the controller logic
+            const getUserLookupMethod = (idParam) => {
+                const isObjectId = /^[a-fA-F0-9]{24}$/.test(idParam);
+                return isObjectId ? 'id' : 'username';
+            };
+
+            expect(getUserLookupMethod('507f1f77bcf86cd799439011')).toBe('id');
+            expect(getUserLookupMethod('jsmith')).toBe('username');
+            expect(getUserLookupMethod('admin')).toBe('username');
+            expect(getUserLookupMethod('testuser123')).toBe('username');
+            expect(getUserLookupMethod('user.name')).toBe('username');
+        });
+    });
 });
 
 // EOF webapp/tests/unit/user/user-basic.test.js

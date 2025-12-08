@@ -307,6 +307,82 @@ describe('HookManager', () => {
             expect(HookManager.getStats().hooksWithHandlers).toBe(0);
         });
     });
+
+    // W-109: Multi-step authentication hooks
+    describe('W-109: Multi-step authentication hooks', () => {
+        test('authGetRequiredStepsHook should be available', () => {
+            const hooks = HookManager.getAvailableHooks();
+            expect(hooks).toHaveProperty('authGetRequiredStepsHook');
+            expect(hooks.authGetRequiredStepsHook.description).toBeDefined();
+        });
+
+        test('authExecuteStepHook should be available', () => {
+            const hooks = HookManager.getAvailableHooks();
+            expect(hooks).toHaveProperty('authExecuteStepHook');
+            expect(hooks.authExecuteStepHook.description).toBeDefined();
+        });
+
+        test('authGetLoginWarningsHook should be available', () => {
+            const hooks = HookManager.getAvailableHooks();
+            expect(hooks).toHaveProperty('authGetLoginWarningsHook');
+            expect(hooks.authGetLoginWarningsHook.description).toBeDefined();
+        });
+
+        test('authGetRequiredStepsHook should accumulate requiredSteps from multiple plugins', async () => {
+            const handler1 = jest.fn().mockImplementation((context) => {
+                context.requiredSteps.push({ step: 'mfa', priority: 100 });
+                return context;
+            });
+            const handler2 = jest.fn().mockImplementation((context) => {
+                context.requiredSteps.push({ step: 'email-verify', priority: 50 });
+                return context;
+            });
+
+            HookManager.register('authGetRequiredStepsHook', 'mfa-plugin', handler1);
+            HookManager.register('authGetRequiredStepsHook', 'email-plugin', handler2);
+
+            const context = { user: { id: '123' }, completedSteps: [], requiredSteps: [] };
+            const result = await HookManager.execute('authGetRequiredStepsHook', context);
+
+            expect(result.requiredSteps).toHaveLength(2);
+            expect(result.requiredSteps.some(s => s.step === 'mfa')).toBe(true);
+            expect(result.requiredSteps.some(s => s.step === 'email-verify')).toBe(true);
+        });
+
+        test('authExecuteStepHook should set valid=true on successful step', async () => {
+            const handler = jest.fn().mockImplementation((context) => {
+                if (context.step === 'mfa' && context.stepData.code === '123456') {
+                    context.valid = true;
+                }
+                return context;
+            });
+
+            HookManager.register('authExecuteStepHook', 'mfa-plugin', handler);
+
+            const context = { step: 'mfa', stepData: { code: '123456' }, valid: false };
+            const result = await HookManager.execute('authExecuteStepHook', context);
+
+            expect(result.valid).toBe(true);
+        });
+
+        test('authGetLoginWarningsHook should accumulate warnings', async () => {
+            const handler = jest.fn().mockImplementation((context) => {
+                context.warnings.push({
+                    type: 'mfa-not-enabled',
+                    message: 'Please enable 2FA'
+                });
+                return context;
+            });
+
+            HookManager.register('authGetLoginWarningsHook', 'mfa-plugin', handler);
+
+            const context = { user: { id: '123' }, warnings: [] };
+            const result = await HookManager.execute('authGetLoginWarningsHook', context);
+
+            expect(result.warnings).toHaveLength(1);
+            expect(result.warnings[0].type).toBe('mfa-not-enabled');
+        });
+    });
 });
 
 // EOF webapp/tests/unit/utils/hook-manager.test.js

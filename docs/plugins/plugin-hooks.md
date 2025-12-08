@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Hooks v1.3.9
+# jPulse Docs / Plugins / Plugin Hooks v1.3.10
 
 Extend jPulse Framework behavior by hooking into authentication, user management, and other framework events.
 
@@ -211,27 +211,59 @@ static async authBeforeLoginHook(context) {
 
 ### Multi-Factor Authentication (MFA)
 
+Uses the W-109 multi-step authentication flow:
+
 ```javascript
 static hooks = {
-    authAfterPasswordValidationHook: {},
-    authRequireMfaHook: {},
-    authValidateMfaHook: {}
+    authGetRequiredStepsHook: { priority: 100 },
+    authExecuteStepHook: { priority: 100 },
+    authGetLoginWarningsHook: { priority: 100 }
 };
 
-static async authAfterPasswordValidationHook(context) {
-    if (await this.userHasMfaEnabled(context.user)) {
-        context.requireMfa = true;
-        context.mfaMethod = 'totp';
+// Check if MFA step is required for this user
+static async authGetRequiredStepsHook(context) {
+    const { user, requiredSteps } = context;
+
+    if (user.mfa?.enabled) {
+        requiredSteps.push({
+            step: 'mfa',
+            priority: 100,
+            data: { mfaMethod: user.mfa.method || 'totp' }
+        });
     }
     return context;
 }
 
-static async authValidateMfaHook(context) {
-    const isValid = await this.verifyTotpCode(
-        context.user,
-        context.code
-    );
-    context.isValid = isValid;
+// Validate MFA code when step is submitted
+static async authExecuteStepHook(context) {
+    const { step, stepData, pending } = context;
+
+    if (step !== 'mfa' && step !== 'mfa-backup') {
+        return context;  // Not our step
+    }
+
+    const { code } = stepData;
+    const user = await UserModel.findById(pending.userId);
+    const isValid = await this.verifyTotpCode(user, code);
+
+    context.valid = isValid;
+    if (!isValid) {
+        context.error = 'Invalid MFA code';
+    }
+    return context;
+}
+
+// Non-blocking warning if MFA policy requires but user hasn't enabled
+static async authGetLoginWarningsHook(context) {
+    const { user, warnings } = context;
+
+    if (!user.mfa?.enabled && await this.isMfaRequired(user)) {
+        warnings.push({
+            type: 'mfa-not-enabled',
+            message: 'Two-factor authentication is required. Please set up 2FA.',
+            link: '/jpulse-plugins/auth-mfa.shtml'
+        });
+    }
     return context;
 }
 ```

@@ -1,5 +1,5 @@
 /**
- * @name            jPulse Framework / Plugins / Hello World / Controller
+ * @name            jPulse Framework / Plugins / Hello World / WebApp / Controller / Hello Plugin
  * @tagline         Hello Plugin Controller
  * @description     Simple API controller demonstrating plugin structure
  * @file            plugins/hello-world/webapp/controller/helloPlugin.js

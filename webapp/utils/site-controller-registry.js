@@ -16,6 +16,8 @@ import fs from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import LogController from '../controller/log.js';
+import AuthController from '../controller/auth.js';
+import UserModel from '../model/user.js';
 
 /**
  * Site Controller Registry for Auto-Discovery (W-014)
@@ -90,7 +92,21 @@ class SiteControllerRegistry {
     static async _scanController(controllerPath, controllerName, source = 'site') {
         try {
             const content = fs.readFileSync(controllerPath, 'utf8');
-            const apiMethods = this._detectApiMethods(content);
+
+            // W-108: Check for static routes first (takes precedence over api* discovery)
+            const staticRoutes = this._detectStaticRoutes(content);
+            let apiMethods;
+
+            if (staticRoutes.length > 0) {
+                // Use static routes - these define custom paths and HTTP methods
+                apiMethods = staticRoutes;
+                LogController.logInfo(null, 'site-controller-registry',
+                    `${source} controller ${controllerName}: using ${staticRoutes.length} static route(s)`);
+            } else {
+                // Fall back to api* method discovery
+                apiMethods = this._detectApiMethods(content);
+            }
+
             const hasInitialize = /\bstatic\s+(?:async\s+)?initialize\(/.test(content);
 
             // W-045: Use unique key for plugins to avoid collisions, but keep framework/site controllers simple
@@ -102,6 +118,7 @@ class SiteControllerRegistry {
                 name: controllerName,
                 path: controllerPath,
                 apiMethods,
+                hasStaticRoutes: staticRoutes.length > 0,  // W-108: Track if using static routes
                 hasInitialize,
                 relativePath: `controller/${path.basename(controllerPath)}`,
                 source,  // W-045: Track source (framework, site, or plugin)
@@ -134,6 +151,44 @@ class SiteControllerRegistry {
         }
 
         this.registry.lastScan = new Date().toISOString();
+    }
+
+    /**
+     * Detect static routes array in controller source code (W-108)
+     * Format: static routes = [ { method: 'GET', path: '/api/1/...', handler: 'methodName' }, ... ]
+     * @param {string} content - Controller file content
+     * @returns {Array} Array of { name, method, fullPath } objects, or empty if not found
+     */
+    static _detectStaticRoutes(content) {
+        const routes = [];
+
+        // Match: static routes = [ ... ];
+        const routesMatch = content.match(/\bstatic\s+routes\s*=\s*\[([\s\S]*?)\];/);
+        if (!routesMatch) {
+            return routes;
+        }
+
+        const routesContent = routesMatch[1];
+
+        // Parse each route object: { method: '...', path: '...', handler: '...' }
+        const routeRegex = /\{\s*method\s*:\s*['"](\w+)['"]\s*,\s*path\s*:\s*['"]([^'"]+)['"]\s*,\s*handler\s*:\s*['"](\w+)['"](?:\s*,\s*auth\s*:\s*['"](\w+)['"])?\s*\}/g;
+        let match;
+
+        while ((match = routeRegex.exec(routesContent)) !== null) {
+            const httpMethod = match[1].toLowerCase();
+            const fullPath = match[2];
+            const handlerName = match[3];
+            const authLevel = match[4] || 'user';  // Default to 'user' if not specified
+
+            routes.push({
+                name: handlerName,
+                method: httpMethod,
+                fullPath: fullPath,  // Full custom path (not pathSuffix)
+                authLevel: authLevel
+            });
+        }
+
+        return routes;
     }
 
     /**
@@ -235,6 +290,27 @@ class SiteControllerRegistry {
     }
 
     /**
+     * Middleware to load full user object for authenticated requests
+     * Sets req.user with full user data from database
+     * @param {object} req - Express request
+     * @param {object} res - Express response
+     * @param {function} next - Next middleware
+     */
+    static async _loadFullUserMiddleware(req, res, next) {
+        try {
+            const userId = req.session?.user?.id;
+            if (userId) {
+                req.user = await UserModel.findById(userId);
+            }
+            next();
+        } catch (error) {
+            LogController.logError(req, 'site-controller-registry._loadFullUserMiddleware',
+                `Error loading user: ${error.message}`);
+            next(); // Continue even if user load fails - handler can check req.user
+        }
+    }
+
+    /**
      * Load a site controller dynamically
      * @param {string} name - Controller name
      * @returns {Object} Controller class
@@ -264,11 +340,19 @@ class SiteControllerRegistry {
             // Registry key might be 'hello-world:helloPlugin', but URL should be '/api/1/helloPlugin'
             const basePath = `/api/1/${controller.name}`;
 
+            // W-108: Determine path based on whether using static routes or auto-discovered
+            const getRoutePath = (apiMethod) => {
+                // Static routes have fullPath, auto-discovered have pathSuffix
+                return apiMethod.fullPath || (basePath + apiMethod.pathSuffix);
+            };
+
             // Sort API methods: specific routes (no :id) before parameterized routes
             // This ensures /search matches before /:id matches "search"
             const sortedMethods = [...controller.apiMethods].sort((a, b) => {
-                const aHasParam = a.pathSuffix.includes(':');
-                const bHasParam = b.pathSuffix.includes(':');
+                const aPath = getRoutePath(a);
+                const bPath = getRoutePath(b);
+                const aHasParam = aPath.includes(':');
+                const bHasParam = bPath.includes(':');
                 // If one has params and the other doesn't, put the one without params first
                 if (aHasParam && !bHasParam) return 1;
                 if (!aHasParam && bHasParam) return -1;
@@ -277,11 +361,29 @@ class SiteControllerRegistry {
             });
 
             for (const apiMethod of sortedMethods) {
-                const fullPath = basePath + apiMethod.pathSuffix;
+                const fullPath = getRoutePath(apiMethod);
                 const httpMethod = apiMethod.method.toLowerCase();
+                const authLevel = apiMethod.authLevel || 'user'; // Default to 'user'
 
-                // Register the route
-                router[httpMethod](fullPath, async (req, res) => {
+                // Build middleware chain based on authLevel
+                const middlewares = [];
+
+                if (authLevel === 'user') {
+                    // Require authentication
+                    middlewares.push(AuthController.requireAuthentication);
+                    // Load full user for plugin access
+                    middlewares.push(this._loadFullUserMiddleware);
+                } else if (authLevel === 'admin') {
+                    // Require authentication + admin role
+                    middlewares.push(AuthController.requireAuthentication);
+                    middlewares.push(this._loadFullUserMiddleware);
+                    const adminRoles = global.appConfig?.controller?.user?.adminRoles || ['admin', 'root'];
+                    middlewares.push(AuthController.requireRole(adminRoles));
+                }
+                // authLevel === 'none' - no middleware
+
+                // Final handler
+                const handler = async (req, res) => {
                     try {
                         const ControllerClass = await this._loadController(registryKey);
                         await ControllerClass[apiMethod.name](req, res);
@@ -293,7 +395,10 @@ class SiteControllerRegistry {
                         }
                         return res.status(500).json({ success: false, error: 'Site API error' });
                     }
-                });
+                };
+
+                // Register route with middleware chain
+                router[httpMethod](fullPath, ...middlewares, handler);
 
                 routeCount++;
                 LogController.logInfo(null, 'site-controller-registry',

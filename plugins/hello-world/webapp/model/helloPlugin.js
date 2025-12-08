@@ -1,11 +1,15 @@
 /**
- * @name            Hello World Plugin / Model
+ * @name            jPulse Framework / Plugins / Hello World / WebApp / Model / Hello Plugin
  * @tagline         Hello Plugin Data Model
  * @description     Simple data model demonstrating plugin structure
  * @file            plugins/hello-world/webapp/model/helloPlugin.js
  * @version         1.3.7
+ * @release         2025-12-04
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @author          jPulse Team, https://jpulse.net
- * @license         BSL 1.1
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
  */
 

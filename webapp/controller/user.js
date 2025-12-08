@@ -484,6 +484,14 @@ class UserController {
                 if (updateData.email !== undefined) filteredData.email = updateData.email;
                 if (updateData.roles !== undefined) filteredData.roles = updateData.roles;
                 if (updateData.status !== undefined) filteredData.status = updateData.status;
+
+                // W-107: Include plugin schema extension blocks (e.g., 'mfa')
+                const schemaExtensions = UserModel.getSchemaExtensionsMetadata();
+                for (const blockKey of Object.keys(schemaExtensions)) {
+                    if (updateData[blockKey] !== undefined) {
+                        filteredData[blockKey] = updateData[blockKey];
+                    }
+                }
             } else {
                 // Regular users can only update profile and preferences
                 if (updateData.profile) filteredData.profile = updateData.profile;

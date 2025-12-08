@@ -272,6 +272,18 @@
         let currentUserData = {}; // W-107: Current user data for plugin cards
         let pluginConfig = {};    // W-107: Plugin config from database
 
+        // Warn user when navigating away with unsaved changes
+        window.addEventListener('beforeunload', (event) => {
+            // Only warn if in edit mode AND there are actual changes
+            if (editMode && hasFormChanges()) {
+                event.preventDefault();
+                // Modern browsers ignore custom messages and show their own generic prompt
+                // Setting returnValue to any truthy value triggers the dialog
+                event.returnValue = true;
+                return true;
+            }
+        });
+
         // Enhanced profile management using jPulse utilities
         let securityCollapsible = null;
 
@@ -316,14 +328,8 @@
                     securityCollapsible.collapse();
                 }
 
-                // Store original values
-                originalValues = {
-                    firstName: document.getElementById('firstName').value,
-                    lastName: document.getElementById('lastName').value,
-                    nickName: document.getElementById('nickName').value,
-                    language: document.getElementById('language').value,
-                    theme: document.getElementById('theme').value
-                };
+                // Store original values at edit start (deep copy for comparison)
+                originalValues = JSON.parse(JSON.stringify(getCurrentFormValues()));
 
                 // Enable editing for profile fields
                 ['firstName', 'lastName', 'nickName'].forEach(id => {
@@ -348,7 +354,41 @@
             }
         }
 
-        function cancelEdit() {
+        // Get current form values as an object (for comparison)
+        function getCurrentFormValues() {
+            const values = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                nickName: document.getElementById('nickName').value,
+                language: document.getElementById('language').value,
+                theme: document.getElementById('theme').value
+            };
+            // Include plugin data
+            for (const key of Object.keys(schemaMetadata)) {
+                if (currentUserData[key] !== undefined) {
+                    values[key] = currentUserData[key];
+                }
+            }
+            return values;
+        }
+
+        function hasFormChanges() {
+            return !jPulse.utils.deepEqual(getCurrentFormValues(), originalValues);
+        }
+
+        async function cancelEdit() {
+            // Check if form has actual changes (only show dialog if there are changes)
+            if (editMode && hasFormChanges()) {
+                const result = await jPulse.UI.confirmDialog({
+                    title: `{{i18n.view.user.profile.discardChangesTitle}}`,
+                    message: `{{i18n.view.user.profile.discardChangesMessage}}`,
+                    buttons: [`{{i18n.view.user.profile.backToEdit}}`, `{{i18n.view.user.profile.discardChanges}}`]
+                });
+                if (result.button === `{{i18n.view.user.profile.backToEdit}}`) {
+                    return;
+                }
+            }
+
             editMode = false;
 
             // Remove edit mode class from container
@@ -763,14 +803,14 @@
 
             // Handle different action types
             if (action.setFields) {
+                // Enter edit mode FIRST to capture original values before modification
+                if (!editMode) {
+                    toggleEditMode();
+                }
+
                 // Apply setFields to currentUserData (local modification)
                 for (const [path, value] of Object.entries(action.setFields)) {
                     setNestedValue(currentUserData, path, value);
-                }
-
-                // Mark form as dirty (enable save button)
-                if (!editMode) {
-                    toggleEditMode();
                 }
 
                 // Re-render the card
@@ -784,11 +824,11 @@
                 // Check for unsaved changes
                 if (editMode) {
                     const result = await jPulse.UI.confirmDialog({
-                        title: 'Unsaved Changes',
-                        message: 'You have unsaved changes.',
-                        buttons: ['Cancel', 'Save and Continue']
+                        title: `{{i18n.view.user.profile.unsavedChangesTitle}}`,
+                        message: `{{i18n.view.user.profile.unsavedChangesMessage}}`,
+                        buttons: [`{{i18n.view.user.profile.cancel}}`, `{{i18n.view.user.profile.saveAndContinue}}`]
                     });
-                    if (result.button === 'Cancel') return;
+                    if (result.button === `{{i18n.view.user.profile.cancel}}`) return;
                     await saveProfile();
                 }
                 window.location.href = action.navigate;

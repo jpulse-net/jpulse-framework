@@ -2633,8 +2633,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - Full MFA functionality (v1.0.0)
     - Unit and integration tests
 
-### W-109: auth: multi-step login flow
-- status: 📋 SPEC_COMPLETE
+### W-109, v1.3.10, 2025-12-08: auth: multi-step login flow
+- status: 🚧 IN_PROGRESS
 - type: Feature
 - objective: Flexible, hook-based, multi-step authentication supporting MFA, email verification, OAuth2, LDAP, terms acceptance, and more
 - working doc: docs/dev/working/W-109-auth-multi-step-login.md
@@ -2662,11 +2662,11 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - estimated effort: ~9h
 
 
-questions:
-
-
-
-
+issues/questions:
+- is auth hook simple enough? don't make me think
+- plugins/auth-mfa/webapp/model/mfaAuth.js: // TODO: Create webapp/model/pluginConfig.js in framework
+- auth-mfa plugin: remove obsolete plugin.json settings
+- user profile edit: gets dirty without any change, such as edit, cancel
 
 
 
@@ -2684,6 +2684,7 @@ old pending:
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
 - add SiteControllerRegistry.getStats() to metrics api & system-status
 - /api/1/user/ptester10 -- make this work: 1. test _id, 2. fallback to username, else fail
+- site nav structure: flag to exclude item from site pulldown, e.g. only for breadcrumb: 🏠 Startseite ❯ ⚙️ Site-Administration ❯ Benutzer ❯ Benutzer Verwalten
 
 ### Potential next items:
 - W-068: view: create responsive sidebar

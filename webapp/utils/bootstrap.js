@@ -174,7 +174,12 @@ export async function bootstrap(options = {}) {
         global.CommonUtils = CommonUtils;
         bootstrapLog('✅ CommonUtils: Available globally');
 
-        // Step 13: Initialize site controller registry (W-014, W-045)
+        // Step 13: Make UserModel available globally for plugin schema extensions
+        // Plugins may call global.UserModel.extendSchema() during controller initialization
+        const UserModelModuleEarly = await import('../model/user.js');
+        global.UserModel = UserModelModuleEarly.default;
+
+        // Step 14: Initialize site controller registry (W-014, W-045)
         // Discovers site controllers and their API methods
         // W-045: Can now also discover plugin controllers since PluginManager is initialized
         let siteControllerRegistry = null;
@@ -186,31 +191,31 @@ export async function bootstrap(options = {}) {
             bootstrapLog(`✅ SiteControllerRegistry: ${registryStats.controllers} controllers, ${registryStats.apis} APIs`);
         }
 
-        // Step 14: Initialize context extensions (W-014)
+        // Step 15: Initialize context extensions (W-014)
         // Extends template context with site-specific data
         const ContextExtensionsModule = await import('./context-extensions.js');
         await ContextExtensionsModule.default.initialize();
         global.ContextExtensions = ContextExtensionsModule.default;
         bootstrapLog('✅ ContextExtensions: Initialized with providers');
 
-        // Step 15: Initialize model schemas (W-045 - after plugins loaded, so they can extend schemas)
-        const UserModelModule = await import('../model/user.js');
-        UserModelModule.default.initializeSchema();
+        // Step 16: Initialize UserModel schema (W-045 - after plugins loaded, so they can extend schemas)
+        // global.UserModel is already available from Step 12b
+        global.UserModel.initializeSchema();
         bootstrapLog('✅ UserModel: Schema initialized with plugin extensions');
 
-        // Step 16: Initialize ConfigController
+        // Step 17: Initialize ConfigController
         const ConfigControllerModule = await import('../controller/config.js');
         ConfigControllerModule.default.initialize();
         global.ConfigController = ConfigControllerModule.default;
         bootstrapLog(`✅ ConfigController: Initialized (defaultDocName: ${ConfigControllerModule.default.getDefaultDocName()})`);
 
-        // Step 17: Initialize HandlebarController (W-088)
+        // Step 18: Initialize HandlebarController (W-088)
         const HandlebarControllerModule = await import('../controller/handlebar.js');
         await HandlebarControllerModule.default.initialize();
         global.HandlebarController = HandlebarControllerModule.default;
         bootstrapLog('✅ HandlebarController: Initialized');
 
-        // Step 18: Initialize EmailController (W-087)
+        // Step 19: Initialize EmailController (W-087)
         const EmailControllerModule = await import('../controller/email.js');
         const emailReady = await EmailControllerModule.default.initialize();
         global.EmailController = EmailControllerModule.default;
@@ -220,7 +225,7 @@ export async function bootstrap(options = {}) {
             bootstrapLog('⚠️  EmailController: Not configured (email sending disabled)');
         }
 
-        // Step 19: Build viewRegistry for routes.js compatibility
+        // Step 20: Build viewRegistry for routes.js compatibility
         // Legacy global for routes.js to use
         global.viewRegistry = {
             viewList: global.ViewController.getViewList(),
@@ -228,7 +233,7 @@ export async function bootstrap(options = {}) {
         };
         bootstrapLog(`✅ viewRegistry: Built with ${global.viewRegistry.viewList.length} directories`);
 
-        // Step 20: Prepare WebSocketController (but don't initialize server yet)
+        // Step 21: Prepare WebSocketController (but don't initialize server yet)
         // Server initialization requires Express app and http.Server
         const WebSocketControllerModule = await import('../controller/websocket.js');
         global.WebSocketController = WebSocketControllerModule.default;

@@ -341,8 +341,10 @@ describe('AuthController', () => {
                     preferences: undefined,
                     roles: ['user']
                 });
+                // W-109: Login response includes nextStep and warnings
                 expect(mockRes.json).toHaveBeenCalledWith({
                     success: true,
+                    nextStep: null,  // W-109: null when login complete
                     data: {
                         user: {
                             isAuthenticated: true,
@@ -357,6 +359,7 @@ describe('AuthController', () => {
                             roles: ['user']
                         }
                     },
+                    warnings: [],  // W-109: empty when no warnings
                     message: 'Login successful',
                     elapsed: expect.any(Number)
                 });
@@ -522,6 +525,42 @@ describe('AuthController', () => {
                     AuthController.updateUserSession(mockReq, updatedData);
                 }).not.toThrow();
             });
+        });
+    });
+
+    // W-109: Multi-step login helpers
+    describe('W-109: Multi-step login helpers', () => {
+        test('AuthController should have _getRequiredSteps static method', () => {
+            expect(typeof AuthController._getRequiredSteps).toBe('function');
+        });
+
+        test('AuthController should have _completeLogin static method', () => {
+            expect(typeof AuthController._completeLogin).toBe('function');
+        });
+
+        test('login should accept step parameter in request body', async () => {
+            // Setup mock for login with step parameter
+            mockReq.body = {
+                step: 'credentials',
+                username: 'testuser',
+                password: 'testpass'
+            };
+            mockReq.session = {};
+
+            // Mock UserModel.authenticate to return null (invalid credentials)
+            // to test the basic flow without needing full integration
+            const UserModelMock = (await import('../../../model/user.js')).default;
+            UserModelMock.authenticate = jest.fn().mockResolvedValue(null);
+
+            // Mock HookManager
+            global.HookManager = {
+                execute: jest.fn().mockImplementation((hookName, context) => Promise.resolve(context))
+            };
+
+            await AuthController.login(mockReq, mockRes);
+
+            // Should call authenticate with username/password
+            expect(UserModelMock.authenticate).toHaveBeenCalledWith('testuser', 'testpass');
         });
     });
 });

@@ -439,6 +439,9 @@
             case 'checkbox-group':
                 return renderCheckboxGroup(field, name, value, disabled);
 
+            case 'multiselect':
+                return renderMultiselect(field, id, name, value, required, disabled);
+
             default:
                 return `<p style="color: var(--jp-color-danger);">Unknown field type: ${field.type}</p>`;
         }
@@ -560,6 +563,30 @@
     }
 
     /**
+     * Render multiselect (displayed as checkboxes for better UX)
+     */
+    function renderMultiselect(field, id, name, value, required, disabled) {
+        const values = Array.isArray(value) ? value : (value ? [value] : []);
+        let html = `<div class="local-config-multiselect" id="${id}">`;
+
+        field.options.forEach((option, index) => {
+            const optValue = typeof option === 'string' ? option : option.value;
+            const optLabel = typeof option === 'string' ? option : (option.label || option.value);
+            const checked = values.includes(optValue) ? 'checked' : '';
+            const optDisabled = (typeof option === 'object' && option.disabled) ? 'disabled' : '';
+            const checkboxId = `${name}-${index}`;
+
+            html += `<label for="${checkboxId}" style="display: block; margin-bottom: 8px; cursor: pointer;">`;
+            html += `<input type="checkbox" id="${checkboxId}" name="${name}[]" value="${jPulse.string.escapeHtml(optValue)}" ${checked} ${disabled} ${optDisabled} style="margin-right: 8px;">`;
+            html += jPulse.string.escapeHtml(optLabel);
+            html += '</label>';
+        });
+
+        html += '</div>';
+        return html;
+    }
+
+    /**
      * Collect form values
      */
     function collectFormValues() {
@@ -573,7 +600,7 @@
             if (field.type === 'boolean' || field.type === 'checkbox') {
                 const elem = document.getElementById(`field-${id}`);
                 values[id] = elem ? elem.checked : false;
-            } else if (field.type === 'checkbox-group') {
+            } else if (field.type === 'checkbox-group' || field.type === 'multiselect') {
                 const checkboxes = document.querySelectorAll(`input[name="${id}[]"]:checked`);
                 values[id] = Array.from(checkboxes).map(cb => cb.value);
             } else if (field.type === 'number') {

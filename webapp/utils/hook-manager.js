@@ -4,8 +4,8 @@
  * @description     Manages plugin hook registration, execution, and lifecycle.
  *                  Plugins declare hooks in static `hooks` object, PluginManager auto-registers.
  * @file            webapp/utils/hook-manager.js
- * @version         1.3.7
- * @release         2025-12-04
+ * @version         1.3.10
+ * @release         2025-12-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -214,12 +214,6 @@ class HookManager {
                 canModify: false,
                 canCancel: false
             },
-            authAfterPasswordValidationHook: {
-                description: 'After password check, MFA challenge point',
-                context: '{ req, user, isValid, requireMfa, mfaMethod }',
-                canModify: true,
-                canCancel: false
-            },
             authBeforeSessionCreateHook: {
                 description: 'Before session is created, can modify session data',
                 context: '{ req, user, sessionData }',
@@ -250,34 +244,26 @@ class HookManager {
                 canModify: false,
                 canCancel: false
             },
-            authRequireMfaHook: {
-                description: 'Check if MFA is required for user',
-                context: '{ req, user }',
-                canModify: false,
-                canCancel: false
-            },
-            authOnMfaChallengeHook: {
-                description: 'Issue MFA challenge',
-                context: '{ req, user, method }',
-                canModify: false,
-                canCancel: false
-            },
-            authValidateMfaHook: {
-                description: 'Validate MFA code',
-                context: '{ req, user, code, isValid }',
+
+            // ================================================================
+            // W-109: Multi-step authentication hooks
+            // ================================================================
+            authGetRequiredStepsHook: {
+                description: 'Return additional authentication steps required for this user',
+                context: '{ req, user, completedSteps, requiredSteps }',
                 canModify: true,
                 canCancel: false
             },
-            authOnMfaSuccessHook: {
-                description: 'After successful MFA validation',
-                context: '{ req, user }',
-                canModify: false,
+            authExecuteStepHook: {
+                description: 'Execute and validate a specific authentication step',
+                context: '{ req, step, stepData, pending, user, valid, error }',
+                canModify: true,
                 canCancel: false
             },
-            authOnMfaFailureHook: {
-                description: 'After failed MFA validation',
-                context: '{ req, user, attempts }',
-                canModify: false,
+            authGetLoginWarningsHook: {
+                description: 'Return non-blocking login warnings (nag messages)',
+                context: '{ req, user, warnings }',
+                canModify: true,
                 canCancel: false
             },
 

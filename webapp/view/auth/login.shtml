@@ -5,7 +5,7 @@
  * @description     Login form for internal authentication with support for LDAP/OAuth2 planning
  * @file            webapp/view/auth/login.shtml
  * @version         1.3.10
- * @release         2025-12-07
+ * @release         2025-12-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -341,14 +341,23 @@
                             // Login complete - show success and redirect
                             jPulse.UI.toast.success(`{{i18n.view.auth.login.loginSuccess}}`);
 
-                            // Store warnings in sessionStorage to show after redirect
-                            // (toasts would be lost during page navigation)
+                            // Check for MFA required warning - redirect to setup page
+                            let finalRedirectUrl = redirectUrl;
                             if (result.warnings && result.warnings.length > 0) {
-                                sessionStorage.setItem('jpulse_login_warnings', JSON.stringify(result.warnings));
+                                const mfaWarning = result.warnings.find(w => w.type === 'mfa-not-enabled');
+                                if (mfaWarning && mfaWarning.link) {
+                                    // Redirect to MFA setup page instead
+                                    finalRedirectUrl = mfaWarning.link;
+                                    // Store warning to show on setup page
+                                    sessionStorage.setItem('jpulse_login_warnings', JSON.stringify(result.warnings));
+                                } else {
+                                    // Store other warnings to show after redirect
+                                    sessionStorage.setItem('jpulse_login_warnings', JSON.stringify(result.warnings));
+                                }
                             }
 
                             setTimeout(() => {
-                                window.location.href = redirectUrl;
+                                window.location.href = finalRedirectUrl;
                             }, 1000);
                         }
                     } else {

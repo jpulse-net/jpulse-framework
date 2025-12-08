@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.3.9
- * @release         2025-12-06
+ * @version         1.3.10
+ * @release         2025-12-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -583,11 +583,11 @@ class UserModel {
      */
     static async create(data) {
         try {
-            // W-105: HOOK userBeforeSaveHook - can modify data before save
-            let saveContext = { data: { ...data }, isUpdate: false };
+            // Hook: onUserBeforeSave - can modify data before save
+            let saveContext = { req: null, userData: { ...data }, isCreate: true, isSignup: false };
             if (global.HookManager) {
-                saveContext = await global.HookManager.execute('userBeforeSaveHook', saveContext);
-                data = saveContext.data;
+                saveContext = await global.HookManager.execute('onUserBeforeSave', saveContext);
+                data = saveContext.userData;
             }
 
             // Validate data
@@ -621,11 +621,13 @@ class UserModel {
             const createdUser = await this.findById(userData._id);
             const { passwordHash, ...userWithoutPassword } = createdUser;
 
-            // W-105: HOOK userAfterSaveHook - post-save actions
+            // Hook: onUserAfterSave - post-save actions
             if (global.HookManager) {
-                await global.HookManager.execute('userAfterSaveHook', {
+                await global.HookManager.execute('onUserAfterSave', {
+                    req: null,
                     user: userWithoutPassword,
-                    isUpdate: false
+                    wasCreate: true,
+                    wasSignup: false
                 });
             }
 
@@ -644,11 +646,11 @@ class UserModel {
      */
     static async updateById(id, data) {
         try {
-            // W-105: HOOK userBeforeSaveHook - can modify data before save
-            let saveContext = { id, data: { ...data }, isUpdate: true };
+            // Hook: onUserBeforeSave - can modify data before save
+            let saveContext = { req: null, userData: { ...data }, isCreate: false, isSignup: false };
             if (global.HookManager) {
-                saveContext = await global.HookManager.execute('userBeforeSaveHook', saveContext);
-                data = saveContext.data;
+                saveContext = await global.HookManager.execute('onUserBeforeSave', saveContext);
+                data = saveContext.userData;
             }
 
             // Validate data for update
@@ -678,11 +680,13 @@ class UserModel {
             // Return updated document
             const updatedUser = await this.findById(id);
 
-            // W-105: HOOK userAfterSaveHook - post-save actions
+            // Hook: onUserAfterSave - post-save actions
             if (global.HookManager) {
-                await global.HookManager.execute('userAfterSaveHook', {
+                await global.HookManager.execute('onUserAfterSave', {
+                    req: null,
                     user: updatedUser,
-                    isUpdate: true
+                    wasCreate: false,
+                    wasSignup: false
                 });
             }
 

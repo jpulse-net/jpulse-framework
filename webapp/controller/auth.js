@@ -4,7 +4,7 @@
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
  * @version         1.3.10
- * @release         2025-12-07
+ * @release         2025-12-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -165,7 +165,7 @@ class AuthController {
             completedSteps,
             requiredSteps: []
         };
-        const result = await global.HookManager.execute('authGetRequiredStepsHook', context);
+        const result = await global.HookManager.execute('onAuthGetSteps', context);
 
         // Sort by priority (lower = first), filter already completed
         return result.requiredSteps
@@ -206,11 +206,11 @@ class AuthController {
 
         // Hook: modify session data
         let sessionContext = { req, user, sessionData };
-        sessionContext = await global.HookManager.execute('authBeforeSessionCreateHook', sessionContext);
+        sessionContext = await global.HookManager.execute('onAuthBeforeSession', sessionContext);
 
         // Hook: get non-blocking warnings
         const warningContext = { req, user, warnings: [] };
-        const warningResult = await global.HookManager.execute('authGetLoginWarningsHook', warningContext);
+        const warningResult = await global.HookManager.execute('onAuthGetWarnings', warningContext);
         global.LogController.logInfo(req, 'auth._completeLogin',
             `Warnings hook result: ${warningResult.warnings?.length || 0} warning(s)`);
 
@@ -219,7 +219,7 @@ class AuthController {
         delete req.session.pendingAuth;
 
         // Hook: post-login
-        await global.HookManager.execute('authAfterLoginSuccessHook', {
+        await global.HookManager.execute('onAuthAfterLogin', {
             req, user, session: req.session.user, authMethod
         });
 
@@ -293,7 +293,7 @@ class AuthController {
                     });
                 }
 
-                // W-105: HOOK authBeforeLoginHook - can skip password check for external auth
+                // Hook: onAuthBeforeLogin - can skip password check for external auth
                 let user = null;
                 let beforeLoginContext = {
                     req,
@@ -303,7 +303,7 @@ class AuthController {
                     user: null,
                     authMethod: 'internal'
                 };
-                beforeLoginContext = await global.HookManager.execute('authBeforeLoginHook', beforeLoginContext);
+                beforeLoginContext = await global.HookManager.execute('onAuthBeforeLogin', beforeLoginContext);
 
                 if (beforeLoginContext.skipPasswordCheck && beforeLoginContext.user) {
                     // External auth provided the user (LDAP, OAuth2, etc.)
@@ -314,8 +314,8 @@ class AuthController {
                 }
 
                 if (!user) {
-                    // W-105: HOOK authOnLoginFailureHook
-                    await global.HookManager.execute('authOnLoginFailureHook', {
+                    // Hook: login failure
+                    await global.HookManager.execute('onAuthFailure', {
                         req,
                         identifier,
                         reason: 'INVALID_CREDENTIALS',
@@ -442,7 +442,7 @@ class AuthController {
                 valid: false,
                 error: null
             };
-            const result = await global.HookManager.execute('authExecuteStepHook', stepContext);
+            const result = await global.HookManager.execute('onAuthValidateStep', stepContext);
 
             if (!result.valid) {
                 global.LogController.logError(req, 'auth.login',
@@ -506,11 +506,8 @@ class AuthController {
 
             global.LogController.logRequest(req, 'auth.logout', username);
 
-            // W-105: HOOK authBeforeLogoutHook
-            await global.HookManager.execute('authBeforeLogoutHook', {
-                req,
-                session: sessionData
-            });
+            // Note: Logout hooks removed in Phase 8 simplification
+            // If needed, logout auditing can be done via authAfterLogin tracking
 
             // Destroy session
             req.session.destroy(async (err) => {
@@ -523,12 +520,6 @@ class AuthController {
                         code: 'LOGOUT_ERROR'
                     });
                 }
-
-                // W-105: HOOK authAfterLogoutHook
-                await global.HookManager.execute('authAfterLogoutHook', {
-                    req,
-                    username
-                });
 
                 const elapsed = Date.now() - startTime;
                 global.LogController.logInfo(req, 'auth.logout', `success: User ${username} logged out, completed in ${elapsed}ms`);

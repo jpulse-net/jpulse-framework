@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.3.9
+# jPulse Docs / REST API Reference v1.3.10
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -72,6 +72,20 @@ AuthController.isAuthorized(req, roles)       // Returns boolean
 - `PUT /api/1/config/:id` - Configuration updates
 - `DELETE /api/1/config/:id` - Configuration deletion
 - `GET /api/1/log/search` - System log access
+
+#### Plugin-Added Endpoints
+Plugins can register additional API endpoints. See [Plugin API Reference](plugins/plugin-api-reference.md) for details.
+
+**Examples** (when auth-mfa plugin is enabled):
+- `GET /api/1/auth-mfa/status` - Get MFA status for current user
+- `POST /api/1/auth-mfa/setup` - Start MFA setup
+- `POST /api/1/auth-mfa/backup-codes` - Regenerate backup codes
+
+**Discovering Plugin Endpoints:**
+```bash
+# Check server startup logs for registered endpoints:
+# Registered: GET /api/1/auth-mfa/status → plugin:auth-mfa:mfaAuth.apiStatus
+```
 
 ### Session Management
 ```javascript

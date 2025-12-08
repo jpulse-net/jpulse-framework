@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.3.9
+# jPulse Docs / Plugins / Creating Plugins v1.3.10
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -292,7 +292,42 @@ export default class YourPluginModel {
 }
 ```
 
-## Step 5: Create Views (Optional)
+## Step 5: Add Plugin Hooks (Optional)
+
+Hooks let your plugin extend framework behavior (authentication, user lifecycle, etc.).
+
+**File**: `plugins/your-plugin/webapp/controller/yourPlugin.js`
+
+```javascript
+export default class YourPluginController {
+    // Declare hooks (auto-registered by PluginManager)
+    static hooks = {
+        onAuthAfterLogin: {},                    // React to successful login
+        onAuthBeforeSession: { priority: 50 },   // Modify session data
+        onUserAfterSave: {}                      // React to user changes
+    };
+
+    // Handler method name = hook name
+    static async onAuthAfterLogin(context) {
+        console.log(`User ${context.user.username} logged in`);
+        return context;  // Always return context
+    }
+
+    static async onAuthBeforeSession(context) {
+        // Add plugin data to session
+        context.sessionData.yourPlugin = { enabled: true };
+        return context;
+    }
+}
+```
+
+**Available Hooks:**
+- **Auth (7):** `onAuthBeforeLogin`, `onAuthBeforeSession`, `onAuthAfterLogin`, `onAuthFailure`, `onAuthGetSteps`, `onAuthValidateStep`, `onAuthGetWarnings`
+- **User (5):** `onUserBeforeSave`, `onUserAfterSave`, `onUserBeforeDelete`, `onUserAfterDelete`, `onUserSyncProfile`
+
+📖 **Full Documentation:** [Plugin Hooks](plugin-hooks.md) for context specs, examples, and best practices.
+
+## Step 6: Create Views (Optional)
 
 ### Application Page
 
@@ -357,7 +392,7 @@ export default class YourPluginModel {
 </html>
 ```
 
-## Step 6: Add CSS and JavaScript (Optional)
+## Step 7: Add CSS and JavaScript (Optional)
 
 ### Global CSS
 
@@ -472,7 +507,7 @@ window.jPulseNavigation.site.{sectionKey} = {
 }
 ```
 
-## Step 7: Add Documentation
+## Step 8: Add Documentation
 
 > 📚 **Markdown System Guide**: See [Markdown Documentation](../markdown-docs.md) for advanced features like dynamic content (`%DYNAMIC{}%`), file exclusion, and styling.
 

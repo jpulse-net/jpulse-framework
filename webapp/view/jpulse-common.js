@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.3.7
- * @release         2025-12-04
+ * @version         1.3.10
+ * @release         2025-12-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -5186,6 +5186,27 @@ window.jPulse = {
 jPulse.dom.ready(() => {
     jPulse.appCluster._isClusterMode = ('{{appCluster.available}}' === 'true');
     jPulse.UI.sourceCode.initAll();
+
+    // Display any login warnings stored in sessionStorage
+    const storedWarnings = sessionStorage.getItem('jpulse_login_warnings');
+    if (storedWarnings) {
+        try {
+            const warnings = JSON.parse(storedWarnings);
+            warnings.forEach(warning => {
+                // Use appropriate toast type based on warning
+                const message = warning.message || 'Unknown warning';
+                if (warning.type === 'mfa-not-enabled') {
+                    jPulse.UI.toast.warning(message, { duration: 8000 });
+                } else {
+                    jPulse.UI.toast.info(message, { duration: 5000 });
+                }
+            });
+            sessionStorage.removeItem('jpulse_login_warnings');
+        } catch (e) {
+            console.error('Error parsing login warnings:', e);
+            sessionStorage.removeItem('jpulse_login_warnings');
+        }
+    }
 });
 
 // ====================================================================

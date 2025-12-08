@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for HookManager
  * @description     Tests for plugin hook registration and execution system
  * @file            webapp/tests/unit/utils/hook-manager.test.js
- * @version         1.3.7
- * @release         2025-12-04
+ * @version         1.3.10
+ * @release         2025-12-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -33,20 +33,20 @@ describe('HookManager', () => {
     describe('register', () => {
         test('should register a hook handler', () => {
             const handler = jest.fn();
-            HookManager.register('authBeforeLoginHook', 'test-plugin', handler);
+            HookManager.register('onAuthBeforeLogin', 'test-plugin', handler);
 
-            expect(HookManager.hasHandlers('authBeforeLoginHook')).toBe(true);
+            expect(HookManager.hasHandlers('onAuthBeforeLogin')).toBe(true);
         });
 
         test('should register multiple handlers for same hook', () => {
             const handler1 = jest.fn();
             const handler2 = jest.fn();
 
-            HookManager.register('authBeforeLoginHook', 'plugin1', handler1);
-            HookManager.register('authBeforeLoginHook', 'plugin2', handler2);
+            HookManager.register('onAuthBeforeLogin', 'plugin1', handler1);
+            HookManager.register('onAuthBeforeLogin', 'plugin2', handler2);
 
             const registered = HookManager.getRegisteredHooks();
-            expect(registered['authBeforeLoginHook']).toHaveLength(2);
+            expect(registered['onAuthBeforeLogin']).toHaveLength(2);
         });
 
         test('should sort handlers by priority (lower = earlier)', () => {
@@ -54,22 +54,22 @@ describe('HookManager', () => {
             const handler2 = jest.fn();
             const handler3 = jest.fn();
 
-            HookManager.register('authBeforeLoginHook', 'plugin1', handler1, 200);
-            HookManager.register('authBeforeLoginHook', 'plugin2', handler2, 50);
-            HookManager.register('authBeforeLoginHook', 'plugin3', handler3, 100);
+            HookManager.register('onAuthBeforeLogin', 'plugin1', handler1, 200);
+            HookManager.register('onAuthBeforeLogin', 'plugin2', handler2, 50);
+            HookManager.register('onAuthBeforeLogin', 'plugin3', handler3, 100);
 
             const registered = HookManager.getRegisteredHooks();
-            expect(registered['authBeforeLoginHook'][0].plugin).toBe('plugin2');
-            expect(registered['authBeforeLoginHook'][1].plugin).toBe('plugin3');
-            expect(registered['authBeforeLoginHook'][2].plugin).toBe('plugin1');
+            expect(registered['onAuthBeforeLogin'][0].plugin).toBe('plugin2');
+            expect(registered['onAuthBeforeLogin'][1].plugin).toBe('plugin3');
+            expect(registered['onAuthBeforeLogin'][2].plugin).toBe('plugin1');
         });
 
         test('should use default priority 100 if not specified', () => {
             const handler = jest.fn();
-            HookManager.register('authBeforeLoginHook', 'test-plugin', handler);
+            HookManager.register('onAuthBeforeLogin', 'test-plugin', handler);
 
             const registered = HookManager.getRegisteredHooks();
-            expect(registered['authBeforeLoginHook'][0].priority).toBe(100);
+            expect(registered['onAuthBeforeLogin'][0].priority).toBe(100);
         });
 
         test('should warn when registering unknown hook', () => {
@@ -87,21 +87,21 @@ describe('HookManager', () => {
             const handler2 = jest.fn().mockImplementation(() => { executionOrder.push(2); });
             const handler3 = jest.fn().mockImplementation(() => { executionOrder.push(3); });
 
-            HookManager.register('authBeforeLoginHook', 'plugin1', handler1, 300);
-            HookManager.register('authBeforeLoginHook', 'plugin2', handler2, 100);
-            HookManager.register('authBeforeLoginHook', 'plugin3', handler3, 200);
+            HookManager.register('onAuthBeforeLogin', 'plugin1', handler1, 300);
+            HookManager.register('onAuthBeforeLogin', 'plugin2', handler2, 100);
+            HookManager.register('onAuthBeforeLogin', 'plugin3', handler3, 200);
 
-            await HookManager.execute('authBeforeLoginHook', {});
+            await HookManager.execute('onAuthBeforeLogin', {});
 
             expect(executionOrder).toEqual([2, 3, 1]);
         });
 
         test('should pass context to handlers', async () => {
             const handler = jest.fn();
-            HookManager.register('authBeforeLoginHook', 'test-plugin', handler);
+            HookManager.register('onAuthBeforeLogin', 'test-plugin', handler);
 
             const context = { user: 'test', password: '123' };
-            await HookManager.execute('authBeforeLoginHook', context);
+            await HookManager.execute('onAuthBeforeLogin', context);
 
             expect(handler).toHaveBeenCalledWith(context);
         });
@@ -110,10 +110,10 @@ describe('HookManager', () => {
             const handler = jest.fn().mockImplementation((ctx) => {
                 return { ...ctx, modified: true };
             });
-            HookManager.register('authBeforeLoginHook', 'test-plugin', handler);
+            HookManager.register('onAuthBeforeLogin', 'test-plugin', handler);
 
             const context = { user: 'test' };
-            const result = await HookManager.execute('authBeforeLoginHook', context);
+            const result = await HookManager.execute('onAuthBeforeLogin', context);
 
             expect(result.modified).toBe(true);
         });
@@ -122,10 +122,10 @@ describe('HookManager', () => {
             const handler1 = jest.fn().mockImplementation((ctx) => ({ ...ctx, step1: true }));
             const handler2 = jest.fn().mockImplementation((ctx) => ({ ...ctx, step2: true }));
 
-            HookManager.register('authBeforeLoginHook', 'plugin1', handler1, 50);
-            HookManager.register('authBeforeLoginHook', 'plugin2', handler2, 100);
+            HookManager.register('onAuthBeforeLogin', 'plugin1', handler1, 50);
+            HookManager.register('onAuthBeforeLogin', 'plugin2', handler2, 100);
 
-            const result = await HookManager.execute('authBeforeLoginHook', {});
+            const result = await HookManager.execute('onAuthBeforeLogin', {});
 
             expect(result.step1).toBe(true);
             expect(result.step2).toBe(true);
@@ -135,10 +135,10 @@ describe('HookManager', () => {
             const handler1 = jest.fn().mockImplementation(() => { throw new Error('Test error'); });
             const handler2 = jest.fn().mockImplementation((ctx) => ({ ...ctx, completed: true }));
 
-            HookManager.register('authBeforeLoginHook', 'plugin1', handler1, 50);
-            HookManager.register('authBeforeLoginHook', 'plugin2', handler2, 100);
+            HookManager.register('onAuthBeforeLogin', 'plugin1', handler1, 50);
+            HookManager.register('onAuthBeforeLogin', 'plugin2', handler2, 100);
 
-            const result = await HookManager.execute('authBeforeLoginHook', {});
+            const result = await HookManager.execute('onAuthBeforeLogin', {});
 
             expect(result.completed).toBe(true);
             expect(global.LogController.logError).toHaveBeenCalled();
@@ -146,7 +146,7 @@ describe('HookManager', () => {
 
         test('should return original context if no handlers registered', async () => {
             const context = { user: 'test' };
-            const result = await HookManager.execute('authBeforeLoginHook', context);
+            const result = await HookManager.execute('onAuthBeforeLogin', context);
 
             expect(result).toEqual(context);
         });
@@ -155,9 +155,9 @@ describe('HookManager', () => {
     describe('executeWithCancel', () => {
         test('should allow handlers to cancel operation', async () => {
             const handler = jest.fn().mockReturnValue(false);
-            HookManager.register('userBeforeDeleteHook', 'test-plugin', handler);
+            HookManager.register('onUserBeforeDelete', 'test-plugin', handler);
 
-            const result = await HookManager.executeWithCancel('userBeforeDeleteHook', {});
+            const result = await HookManager.executeWithCancel('onUserBeforeDelete', {});
 
             expect(result.cancelled).toBe(true);
             expect(result.cancelledBy).toBe('test-plugin');
@@ -167,10 +167,10 @@ describe('HookManager', () => {
             const handler1 = jest.fn().mockReturnValue(false);
             const handler2 = jest.fn();
 
-            HookManager.register('userBeforeDeleteHook', 'plugin1', handler1, 50);
-            HookManager.register('userBeforeDeleteHook', 'plugin2', handler2, 100);
+            HookManager.register('onUserBeforeDelete', 'plugin1', handler1, 50);
+            HookManager.register('onUserBeforeDelete', 'plugin2', handler2, 100);
 
-            await HookManager.executeWithCancel('userBeforeDeleteHook', {});
+            await HookManager.executeWithCancel('onUserBeforeDelete', {});
 
             expect(handler1).toHaveBeenCalled();
             expect(handler2).not.toHaveBeenCalled();
@@ -178,9 +178,9 @@ describe('HookManager', () => {
 
         test('should return cancelled=false if no handler cancels', async () => {
             const handler = jest.fn().mockReturnValue(undefined);
-            HookManager.register('userBeforeDeleteHook', 'test-plugin', handler);
+            HookManager.register('onUserBeforeDelete', 'test-plugin', handler);
 
-            const result = await HookManager.executeWithCancel('userBeforeDeleteHook', {});
+            const result = await HookManager.executeWithCancel('onUserBeforeDelete', {});
 
             expect(result.cancelled).toBe(false);
         });
@@ -192,11 +192,11 @@ describe('HookManager', () => {
             const handler2 = jest.fn().mockReturnValue('ldap');
             const handler3 = jest.fn().mockReturnValue('oauth2');
 
-            HookManager.register('authGetProviderHook', 'plugin1', handler1, 50);
-            HookManager.register('authGetProviderHook', 'plugin2', handler2, 100);
-            HookManager.register('authGetProviderHook', 'plugin3', handler3, 150);
+            HookManager.register('onAuthBeforeLogin', 'plugin1', handler1, 50);
+            HookManager.register('onAuthBeforeLogin', 'plugin2', handler2, 100);
+            HookManager.register('onAuthBeforeLogin', 'plugin3', handler3, 150);
 
-            const result = await HookManager.executeFirst('authGetProviderHook', {});
+            const result = await HookManager.executeFirst('onAuthBeforeLogin', {});
 
             expect(result).toBe('ldap');
             expect(handler3).not.toHaveBeenCalled();
@@ -204,9 +204,9 @@ describe('HookManager', () => {
 
         test('should return null if no handler returns value', async () => {
             const handler = jest.fn().mockReturnValue(null);
-            HookManager.register('authGetProviderHook', 'test-plugin', handler);
+            HookManager.register('onAuthBeforeLogin', 'test-plugin', handler);
 
-            const result = await HookManager.executeFirst('authGetProviderHook', {});
+            const result = await HookManager.executeFirst('onAuthBeforeLogin', {});
 
             expect(result).toBeNull();
         });
@@ -214,28 +214,28 @@ describe('HookManager', () => {
 
     describe('unregister', () => {
         test('should remove all hooks for a plugin', () => {
-            HookManager.register('authBeforeLoginHook', 'test-plugin', jest.fn());
-            HookManager.register('authAfterLoginSuccessHook', 'test-plugin', jest.fn());
-            HookManager.register('authBeforeLoginHook', 'other-plugin', jest.fn());
+            HookManager.register('onAuthBeforeLogin', 'test-plugin', jest.fn());
+            HookManager.register('onAuthAfterLogin', 'test-plugin', jest.fn());
+            HookManager.register('onAuthBeforeLogin', 'other-plugin', jest.fn());
 
             HookManager.unregister('test-plugin');
 
             const registered = HookManager.getRegisteredHooks();
-            expect(registered['authBeforeLoginHook']).toHaveLength(1);
-            expect(registered['authBeforeLoginHook'][0].plugin).toBe('other-plugin');
-            expect(registered['authAfterLoginSuccessHook']).toHaveLength(0);
+            expect(registered['onAuthBeforeLogin']).toHaveLength(1);
+            expect(registered['onAuthBeforeLogin'][0].plugin).toBe('other-plugin');
+            expect(registered['onAuthAfterLogin']).toHaveLength(0);
         });
     });
 
     describe('hasHandlers', () => {
         test('should return true if handlers registered', () => {
-            HookManager.register('authBeforeLoginHook', 'test-plugin', jest.fn());
+            HookManager.register('onAuthBeforeLogin', 'test-plugin', jest.fn());
 
-            expect(HookManager.hasHandlers('authBeforeLoginHook')).toBe(true);
+            expect(HookManager.hasHandlers('onAuthBeforeLogin')).toBe(true);
         });
 
         test('should return false if no handlers registered', () => {
-            expect(HookManager.hasHandlers('authBeforeLoginHook')).toBe(false);
+            expect(HookManager.hasHandlers('onAuthBeforeLogin')).toBe(false);
         });
     });
 
@@ -243,28 +243,28 @@ describe('HookManager', () => {
         test('should return all available hooks', () => {
             const hooks = HookManager.getAvailableHooks();
 
-            expect(hooks.authBeforeLoginHook).toBeDefined();
-            expect(hooks.authAfterLoginSuccessHook).toBeDefined();
-            expect(hooks.userBeforeSaveHook).toBeDefined();
+            expect(hooks.onAuthBeforeLogin).toBeDefined();
+            expect(hooks.onAuthAfterLogin).toBeDefined();
+            expect(hooks.onUserBeforeSave).toBeDefined();
         });
 
         test('should include description and context for each hook', () => {
             const hooks = HookManager.getAvailableHooks();
 
-            expect(hooks.authBeforeLoginHook.description).toBeDefined();
-            expect(hooks.authBeforeLoginHook.context).toBeDefined();
-            expect(hooks.authBeforeLoginHook.canModify).toBeDefined();
-            expect(hooks.authBeforeLoginHook.canCancel).toBeDefined();
+            expect(hooks.onAuthBeforeLogin.description).toBeDefined();
+            expect(hooks.onAuthBeforeLogin.context).toBeDefined();
+            expect(hooks.onAuthBeforeLogin.canModify).toBeDefined();
+            expect(hooks.onAuthBeforeLogin.canCancel).toBeDefined();
         });
     });
 
     describe('getHooksByNamespace', () => {
-        test('should filter hooks by namespace prefix', () => {
-            const authHooks = HookManager.getHooksByNamespace('auth');
-            const userHooks = HookManager.getHooksByNamespace('user');
+        test('should filter hooks by namespace prefix (Phase 8 naming)', () => {
+            const authHooks = HookManager.getHooksByNamespace('onAuth');
+            const userHooks = HookManager.getHooksByNamespace('onUser');
 
-            expect(Object.keys(authHooks).every(k => k.startsWith('auth'))).toBe(true);
-            expect(Object.keys(userHooks).every(k => k.startsWith('user'))).toBe(true);
+            expect(Object.keys(authHooks).every(k => k.startsWith('onAuth'))).toBe(true);
+            expect(Object.keys(userHooks).every(k => k.startsWith('onUser'))).toBe(true);
             expect(Object.keys(authHooks).length).toBeGreaterThan(0);
             expect(Object.keys(userHooks).length).toBeGreaterThan(0);
         });
@@ -272,8 +272,8 @@ describe('HookManager', () => {
 
     describe('isValidHook', () => {
         test('should return true for valid hook names', () => {
-            expect(HookManager.isValidHook('authBeforeLoginHook')).toBe(true);
-            expect(HookManager.isValidHook('userAfterSaveHook')).toBe(true);
+            expect(HookManager.isValidHook('onAuthBeforeLogin')).toBe(true);
+            expect(HookManager.isValidHook('onUserAfterSave')).toBe(true);
         });
 
         test('should return false for invalid hook names', () => {
@@ -284,9 +284,9 @@ describe('HookManager', () => {
 
     describe('getStats', () => {
         test('should return hook statistics', () => {
-            HookManager.register('authBeforeLoginHook', 'plugin1', jest.fn());
-            HookManager.register('authBeforeLoginHook', 'plugin2', jest.fn());
-            HookManager.register('userBeforeSaveHook', 'plugin1', jest.fn());
+            HookManager.register('onAuthBeforeLogin', 'plugin1', jest.fn());
+            HookManager.register('onAuthBeforeLogin', 'plugin2', jest.fn());
+            HookManager.register('onUserBeforeSave', 'plugin1', jest.fn());
 
             const stats = HookManager.getStats();
 
@@ -298,8 +298,8 @@ describe('HookManager', () => {
 
     describe('clear', () => {
         test('should remove all registered hooks', () => {
-            HookManager.register('authBeforeLoginHook', 'test-plugin', jest.fn());
-            HookManager.register('userBeforeSaveHook', 'test-plugin', jest.fn());
+            HookManager.register('onAuthBeforeLogin', 'test-plugin', jest.fn());
+            HookManager.register('onUserBeforeSave', 'test-plugin', jest.fn());
 
             HookManager.clear();
 
@@ -308,27 +308,27 @@ describe('HookManager', () => {
         });
     });
 
-    // W-109: Multi-step authentication hooks
-    describe('W-109: Multi-step authentication hooks', () => {
-        test('authGetRequiredStepsHook should be available', () => {
+    // Phase 8: Multi-step authentication hooks
+    describe('Phase 8: Multi-step authentication hooks', () => {
+        test('onAuthGetSteps should be available', () => {
             const hooks = HookManager.getAvailableHooks();
-            expect(hooks).toHaveProperty('authGetRequiredStepsHook');
-            expect(hooks.authGetRequiredStepsHook.description).toBeDefined();
+            expect(hooks).toHaveProperty('onAuthGetSteps');
+            expect(hooks.onAuthGetSteps.description).toBeDefined();
         });
 
-        test('authExecuteStepHook should be available', () => {
+        test('onAuthValidateStep should be available', () => {
             const hooks = HookManager.getAvailableHooks();
-            expect(hooks).toHaveProperty('authExecuteStepHook');
-            expect(hooks.authExecuteStepHook.description).toBeDefined();
+            expect(hooks).toHaveProperty('onAuthValidateStep');
+            expect(hooks.onAuthValidateStep.description).toBeDefined();
         });
 
-        test('authGetLoginWarningsHook should be available', () => {
+        test('onAuthGetWarnings should be available', () => {
             const hooks = HookManager.getAvailableHooks();
-            expect(hooks).toHaveProperty('authGetLoginWarningsHook');
-            expect(hooks.authGetLoginWarningsHook.description).toBeDefined();
+            expect(hooks).toHaveProperty('onAuthGetWarnings');
+            expect(hooks.onAuthGetWarnings.description).toBeDefined();
         });
 
-        test('authGetRequiredStepsHook should accumulate requiredSteps from multiple plugins', async () => {
+        test('onAuthGetSteps should accumulate requiredSteps from multiple plugins', async () => {
             const handler1 = jest.fn().mockImplementation((context) => {
                 context.requiredSteps.push({ step: 'mfa', priority: 100 });
                 return context;
@@ -338,18 +338,18 @@ describe('HookManager', () => {
                 return context;
             });
 
-            HookManager.register('authGetRequiredStepsHook', 'mfa-plugin', handler1);
-            HookManager.register('authGetRequiredStepsHook', 'email-plugin', handler2);
+            HookManager.register('onAuthGetSteps', 'mfa-plugin', handler1);
+            HookManager.register('onAuthGetSteps', 'email-plugin', handler2);
 
             const context = { user: { id: '123' }, completedSteps: [], requiredSteps: [] };
-            const result = await HookManager.execute('authGetRequiredStepsHook', context);
+            const result = await HookManager.execute('onAuthGetSteps', context);
 
             expect(result.requiredSteps).toHaveLength(2);
             expect(result.requiredSteps.some(s => s.step === 'mfa')).toBe(true);
             expect(result.requiredSteps.some(s => s.step === 'email-verify')).toBe(true);
         });
 
-        test('authExecuteStepHook should set valid=true on successful step', async () => {
+        test('onAuthValidateStep should set valid=true on successful step', async () => {
             const handler = jest.fn().mockImplementation((context) => {
                 if (context.step === 'mfa' && context.stepData.code === '123456') {
                     context.valid = true;
@@ -357,15 +357,15 @@ describe('HookManager', () => {
                 return context;
             });
 
-            HookManager.register('authExecuteStepHook', 'mfa-plugin', handler);
+            HookManager.register('onAuthValidateStep', 'mfa-plugin', handler);
 
             const context = { step: 'mfa', stepData: { code: '123456' }, valid: false };
-            const result = await HookManager.execute('authExecuteStepHook', context);
+            const result = await HookManager.execute('onAuthValidateStep', context);
 
             expect(result.valid).toBe(true);
         });
 
-        test('authGetLoginWarningsHook should accumulate warnings', async () => {
+        test('onAuthGetWarnings should accumulate warnings', async () => {
             const handler = jest.fn().mockImplementation((context) => {
                 context.warnings.push({
                     type: 'mfa-not-enabled',
@@ -374,10 +374,10 @@ describe('HookManager', () => {
                 return context;
             });
 
-            HookManager.register('authGetLoginWarningsHook', 'mfa-plugin', handler);
+            HookManager.register('onAuthGetWarnings', 'mfa-plugin', handler);
 
             const context = { user: { id: '123' }, warnings: [] };
-            const result = await HookManager.execute('authGetLoginWarningsHook', context);
+            const result = await HookManager.execute('onAuthGetWarnings', context);
 
             expect(result.warnings).toHaveLength(1);
             expect(result.warnings[0].type).toBe('mfa-not-enabled');

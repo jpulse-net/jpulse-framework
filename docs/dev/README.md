@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Development Guide v1.3.7
+# jPulse Docs / Dev / Development Guide v1.3.10
 
 **For Framework Contributors & Core Developers**
 

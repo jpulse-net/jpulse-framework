@@ -5,7 +5,7 @@
  *                  Plugins declare hooks in static `hooks` object, PluginManager auto-registers.
  * @file            webapp/utils/hook-manager.js
  * @version         1.3.10
- * @release         2025-12-07
+ * @release         2025-12-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -17,7 +17,7 @@
  * HookManager - Central hook registration and execution system
  *
  * Design principles:
- * - CamelCase hook names with Hook suffix (e.g., authBeforeLoginHook)
+ * - Phase 8 naming: onBucketAction (e.g., onAuthBeforeLogin, onUserAfterSave)
  * - Auto-registration via plugin static `hooks` object
  * - Method calls, not messages (synchronous within process)
  * - Minimal boilerplate for plugin developers
@@ -25,8 +25,8 @@
  * Hook declaration format (in plugin controller):
  * ```javascript
  * static hooks = {
- *     authBeforeLoginHook: { priority: 50 },  // Priority 50, method = authBeforeLoginHook
- *     userAfterCreateHook: {},                // Default priority 100, method = userAfterCreateHook
+ *     onAuthBeforeLogin: { priority: 50 },  // Priority 50, method = onAuthBeforeLogin
+ *     onUserAfterSave: {},                   // Default priority 100, method = onUserAfterSave
  * };
  * ```
  */
@@ -40,7 +40,7 @@ class HookManager {
 
     /**
      * Register a hook handler
-     * @param {string} hookName - Name of the hook (e.g., 'authBeforeLoginHook')
+     * @param {string} hookName - Name of the hook (e.g., 'onAuthBeforeLogin')
      * @param {string} pluginName - Plugin registering the handler
      * @param {Function} handler - Handler function (async, receives context, returns modified context)
      * @param {number} priority - Execution priority (lower = earlier, default 100)
@@ -122,7 +122,7 @@ class HookManager {
 
     /**
      * Execute hook handlers and return first non-null/undefined result
-     * Useful for hooks that return a value (e.g., authGetProviderHook)
+     * Useful for hooks that return a value
      * @param {string} hookName - Name of the hook
      * @param {object} context - Context object
      * @returns {Promise<any>} First non-null result, or null if no handler returns a value
@@ -194,145 +194,87 @@ class HookManager {
 
     /**
      * Get all available hooks that the framework supports
-     * All hook names use camelCase format with Hook suffix
+     * Phase 8: Simplified naming convention - onBucketAction (12 hooks total)
      * @returns {object} Map of hook names to descriptions
      */
     static getAvailableHooks() {
         return {
             // ================================================================
-            // Authentication hooks (auth*Hook)
+            // Authentication hooks (7)
             // ================================================================
-            authBeforeLoginHook: {
-                description: 'Before password validation, can provide external auth',
-                context: '{ req, identifier, password, skipPasswordCheck, user, authMethod }',
+            onAuthBeforeLogin: {
+                description: 'Before credential validation - external auth (LDAP/OAuth), captcha',
+                context: '{ req, identifier, password, captchaToken, skipPasswordCheck, user, authMethod }',
                 canModify: true,
                 canCancel: false
             },
-            authGetProviderHook: {
-                description: 'Return auth provider name',
-                context: '{ req, identifier }',
-                canModify: false,
-                canCancel: false
-            },
-            authBeforeSessionCreateHook: {
-                description: 'Before session is created, can modify session data',
+            onAuthBeforeSession: {
+                description: 'Before session is created - add data to session',
                 context: '{ req, user, sessionData }',
                 canModify: true,
                 canCancel: false
             },
-            authAfterLoginSuccessHook: {
-                description: 'After successful login and session creation',
-                context: '{ req, user, session }',
+            onAuthAfterLogin: {
+                description: 'After successful login - audit logging, notifications',
+                context: '{ req, user, session, authMethod }',
                 canModify: false,
                 canCancel: false
             },
-            authOnLoginFailureHook: {
-                description: 'When login fails',
+            onAuthFailure: {
+                description: 'On login failure - rate limiting, lockout',
                 context: '{ req, identifier, reason }',
                 canModify: false,
                 canCancel: false
             },
-            authBeforeLogoutHook: {
-                description: 'Before session is destroyed',
-                context: '{ req, session }',
-                canModify: false,
-                canCancel: false
-            },
-            authAfterLogoutHook: {
-                description: 'After successful logout',
-                context: '{ req, username }',
-                canModify: false,
-                canCancel: false
-            },
-
-            // ================================================================
-            // W-109: Multi-step authentication hooks
-            // ================================================================
-            authGetRequiredStepsHook: {
-                description: 'Return additional authentication steps required for this user',
+            onAuthGetSteps: {
+                description: 'Get required login steps (MFA, email verify, etc.)',
                 context: '{ req, user, completedSteps, requiredSteps }',
                 canModify: true,
                 canCancel: false
             },
-            authExecuteStepHook: {
-                description: 'Execute and validate a specific authentication step',
-                context: '{ req, step, stepData, pending, user, valid, error }',
+            onAuthValidateStep: {
+                description: 'Execute and validate a specific login step',
+                context: '{ req, user, step, stepData, pending, valid, error }',
                 canModify: true,
                 canCancel: false
             },
-            authGetLoginWarningsHook: {
-                description: 'Return non-blocking login warnings (nag messages)',
+            onAuthGetWarnings: {
+                description: 'Get non-blocking login warnings (nag messages)',
                 context: '{ req, user, warnings }',
                 canModify: true,
                 canCancel: false
             },
 
             // ================================================================
-            // User lifecycle hooks (user*Hook)
+            // User lifecycle hooks (5)
             // ================================================================
-            userBeforeSignupHook: {
-                description: 'Before signup validation',
-                context: '{ req, userData }',
-                canModify: true,
-                canCancel: false
-            },
-            userAfterSignupValidationHook: {
-                description: 'After validation, before user creation',
-                context: '{ req, userData }',
+            onUserBeforeSave: {
+                description: 'Before user create/update - validation, modification',
+                context: '{ req, userData, isCreate, isSignup }',
                 canModify: true,
                 canCancel: true
             },
-            userBeforeCreateHook: {
-                description: 'Before UserModel.create()',
-                context: '{ req, userData }',
-                canModify: true,
+            onUserAfterSave: {
+                description: 'After user create/update - notifications, sync',
+                context: '{ req, user, wasCreate, wasSignup }',
+                canModify: false,
                 canCancel: false
             },
-            userAfterCreateHook: {
-                description: 'After user is created',
+            onUserBeforeDelete: {
+                description: 'Before user deletion - can cancel',
+                context: '{ req, user }',
+                canModify: false,
+                canCancel: true
+            },
+            onUserAfterDelete: {
+                description: 'After user deletion - cleanup, audit',
                 context: '{ req, user }',
                 canModify: false,
                 canCancel: false
             },
-            userOnSignupCompleteHook: {
-                description: 'After signup response sent (async)',
-                context: '{ req, user }',
-                canModify: false,
-                canCancel: false
-            },
-            userBeforeSaveHook: {
-                description: 'Before user create or update',
-                context: '{ id, data, isUpdate }',
-                canModify: true,
-                canCancel: false
-            },
-            userAfterSaveHook: {
-                description: 'After user saved',
-                context: '{ user, isUpdate }',
-                canModify: false,
-                canCancel: false
-            },
-            userBeforeDeleteHook: {
-                description: 'Before user deletion',
-                context: '{ id }',
-                canModify: false,
-                canCancel: true
-            },
-            userAfterDeleteHook: {
-                description: 'After user deleted',
-                context: '{ id }',
-                canModify: false,
-                canCancel: false
-            },
-            userMapExternalProfileHook: {
-                description: 'Map external provider profile fields to user schema',
-                context: '{ externalProfile, provider }',
-                canModify: true,
-                canCancel: false
-            },
-            userSyncExternalProfileHook: {
-                description: 'Sync external profile into user document',
-                context: '{ user, externalData, provider }',
+            onUserSyncProfile: {
+                description: 'Sync external profile data (LDAP/OAuth)',
+                context: '{ req, user, externalProfile, provider }',
                 canModify: true,
                 canCancel: false
             }

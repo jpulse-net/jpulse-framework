@@ -1,6 +1,74 @@
-# jPulse Docs / Version History v1.3.9
+# jPulse Docs / Version History v1.3.10
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.10, W-109, 2025-12-08
+
+**Commit:** `W-109, v1.3.10: auth: multi-step login flow with hook simplification`
+
+**FEATURE RELEASE**: Flexible hook-based multi-step authentication framework supporting MFA, email verification, OAuth2, LDAP, and extensible plugins.
+
+**Objective**: Create a server-controlled, plugin-extensible authentication flow that handles multi-step login (credentials + MFA + verification) with both blocking steps and non-blocking warnings.
+
+**Implementation**:
+
+**Phase 8: Hook Simplification** (24 hooks → 12):
+- Consolidated redundant hooks into intuitive `onBucketAction` naming convention
+- Auth hooks (7): `onAuthBeforeLogin`, `onAuthBeforeSession`, `onAuthAfterLogin`, `onAuthFailure`, `onAuthGetSteps`, `onAuthValidateStep`, `onAuthGetWarnings`
+- User hooks (5): `onUserBeforeSave`, `onUserAfterSave`, `onUserBeforeDelete`, `onUserAfterDelete`, `onUserSyncProfile`
+- Cleaner API that follows "don't make me think" philosophy
+
+**Multi-Step Login Flow** (`webapp/controller/auth.js`):
+- Single `POST /api/1/auth/login` endpoint handles all steps
+- Server maintains `completedSteps` in pending auth session (never exposed to client)
+- `onAuthGetSteps`: Plugins return blocking steps required for user
+- `onAuthValidateStep`: Plugins validate step-specific data
+- `onAuthGetWarnings`: Plugins return non-blocking warnings (nag messages)
+- Response includes `nextStep` field when more steps required
+
+**MFA Policy Enforcement** (`webapp/view/auth/login.shtml`):
+- Detects `mfa-not-enabled` warning in login response
+- Auto-redirects to MFA setup page when policy requires MFA
+- Stores warnings in `sessionStorage` for cross-page display
+
+**Login Warnings Display** (`webapp/view/jpulse-common.js`):
+- Global handler reads `sessionStorage.jpulse_login_warnings`
+- Displays toast notifications on any page after login redirect
+- Extended duration (8s) for MFA-related warnings
+
+**Code Changes**:
+
+*Framework Core:*
+- `webapp/utils/hook-manager.js`: 12 simplified hooks
+- `webapp/controller/auth.js`: Multi-step login with new hooks
+- `webapp/controller/user.js`: Consolidated user hooks
+- `webapp/model/user.js`: Updated hook calls
+- `webapp/view/auth/login.shtml`: MFA redirect, warning storage
+- `webapp/view/jpulse-common.js`: Login warning display
+
+*Plugins Updated:*
+- `plugins/auth-mfa/webapp/controller/mfaAuth.js`: New hook names
+- `plugins/hello-world/webapp/controller/helloPlugin.js`: New hook names
+
+**Documentation**:
+- `docs/plugins/plugin-hooks.md`: Complete rewrite with new hook names
+- `docs/plugins/creating-plugins.md`: Added Step 5 for hooks
+- `docs/plugins/plugin-architecture.md`: Added hook registration in lifecycle
+- `docs/api-reference.md`: Added plugin-added endpoints section
+
+**Test Coverage**:
+- `webapp/tests/unit/utils/hook-manager.test.js`: Updated for new hooks
+- 924 unit tests passing
+
+**Files Modified**: 14
+- 6 framework core: hook-manager.js, auth.js, user.js, model/user.js, login.shtml, jpulse-common.js
+- 2 plugins: mfaAuth.js, helloPlugin.js
+- 5 documentation: plugin-hooks.md, creating-plugins.md, plugin-architecture.md, api-reference.md, work-items.md
+- 1 test: hook-manager.test.js
+
+**Breaking Changes**: None for applications
+- Plugin developers need to update hook names from old format to new `onBucketAction` naming
 
 ________________________________________________
 ## v1.3.9, W-107, 2025-12-07

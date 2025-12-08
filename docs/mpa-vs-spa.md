@@ -1,4 +1,4 @@
-# jPulse Docs / MPA vs. SPA: Architecture Comparison v1.3.7
+# jPulse Docs / MPA vs. SPA: Architecture Comparison v1.3.10
 
 Understanding the key differences between Multi-Page Applications (MPA) and Single Page Applications (SPA) helps you choose the right architecture for your web application.
 

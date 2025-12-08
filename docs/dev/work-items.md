@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.7
+# jPulse Docs / Dev / Work Items v1.3.10
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -2634,21 +2634,11 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - Unit and integration tests
 
 ### W-109, v1.3.10, 2025-12-08: auth: multi-step login flow
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: Flexible, hook-based, multi-step authentication supporting MFA, email verification, OAuth2, LDAP, terms acceptance, and more
 - working doc: docs/dev/working/W-109-auth-multi-step-login.md
 - depends on: W-105 (plugin hooks), W-108 (auth-mfa)
-- features:
-  - Single login endpoint: POST /api/1/auth/login
-  - Step-based flow with server-controlled chain
-  - Secure: completedSteps stored server-side only
-  - Dynamic steps: plugins add steps based on user context
-  - Non-blocking warnings for nag scenarios
-- new hooks:
-  - authGetRequiredSteps: plugins return blocking steps required
-  - authExecuteStep: plugins handle step-specific validation
-  - authGetLoginWarnings: plugins return non-blocking warnings
 - scenarios supported:
   - Simple login (no extra steps)
   - LDAP login (external identity)
@@ -2659,14 +2649,31 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - Terms of service acceptance
   - Multi-tenant selection
   - Captcha + multiple steps combined
-- estimated effort: ~9h
-
-
-issues/questions:
-- is auth hook simple enough? don't make me think
-- plugins/auth-mfa/webapp/model/mfaAuth.js: // TODO: Create webapp/model/pluginConfig.js in framework
-- auth-mfa plugin: remove obsolete plugin.json settings
-- user profile edit: gets dirty without any change, such as edit, cancel
+- features:
+  - Single login endpoint: POST /api/1/auth/login with step-based flow
+  - Server-controlled chain: completedSteps stored server-side only
+  - Dynamic steps: plugins add steps via onAuthGetSteps hook
+  - Non-blocking warnings: nag scenarios via onAuthGetWarnings hook
+  - Phase 8 Hook Simplification: 24 hooks → 12 with onBucketAction naming
+    - Auth hooks (7): onAuthBeforeLogin, onAuthBeforeSession, onAuthAfterLogin, onAuthFailure, onAuthGetSteps, onAuthValidateStep, onAuthGetWarnings
+    - User hooks (5): onUserBeforeSave, onUserAfterSave, onUserBeforeDelete, onUserAfterDelete, onUserSyncProfile
+  - MFA policy enforcement: auto-redirect to setup page when required
+  - Login warnings display: sessionStorage-based cross-page warnings
+- deliverables:
+  - webapp/utils/hook-manager.js: 12 simplified hooks with onBucketAction naming
+  - webapp/controller/auth.js: multi-step login flow with hook integration
+  - webapp/controller/user.js: consolidated user hooks (6→2)
+  - webapp/model/user.js: updated hook calls
+  - webapp/view/auth/login.shtml: MFA policy redirect, warning storage
+  - webapp/view/jpulse-common.js: login warning display
+  - plugins/auth-mfa: updated to use new hook names
+  - plugins/hello-world: updated to use new hook names
+  - docs/plugins/plugin-hooks.md: complete rewrite with new hook names
+  - docs/plugins/creating-plugins.md: added hooks section (Step 5)
+  - docs/plugins/plugin-architecture.md: added hook registration in lifecycle
+  - docs/api-reference.md: added plugin-added endpoints section
+  - webapp/tests/unit/utils/hook-manager.test.js: updated for new hooks
+  - 924 unit tests passing
 
 
 
@@ -2708,8 +2715,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-107, v1.3.9
-- update deliverables in W-107 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-109, v1.3.10
+- update deliverables in W-109 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -2726,12 +2733,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.7
+node bin/bump-version.js 1.3.10
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.7
+git tag v1.3.10
 git push origin main --tags
 
 === on failed package build on github ===

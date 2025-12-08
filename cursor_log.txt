@@ -3460,3 +3460,221 @@ Design and document hook simplification (Phase 8) for better DX
 
 
 ============================================================
+2025-12-07 19:45
+
+## User Request
+Implement Phase 8 hook simplification and run automated tests
+
+## Summary
+Phase 8 Hook Simplification - COMPLETE
+
+Refactored 24 hooks to 12 simplified hooks with consistent naming convention.
+
+### Changes Made
+
+**1. Core Framework (webapp/utils/hook-manager.js)**
+- Replaced 24 legacy hooks with 12 new hooks
+- New naming convention: onBucketAction (e.g., onAuthBeforeLogin, onUserAfterSave)
+
+**2. Auth Controller (webapp/controller/auth.js)**
+- Updated all hook calls to use new names:
+  - authGetRequiredStepsHook → onAuthGetSteps
+  - authBeforeSessionCreateHook → onAuthBeforeSession
+  - authGetLoginWarningsHook → onAuthGetWarnings
+  - authAfterLoginSuccessHook → onAuthAfterLogin
+  - authBeforeLoginHook → onAuthBeforeLogin
+  - authOnLoginFailureHook → onAuthFailure
+  - authExecuteStepHook → onAuthValidateStep
+- Removed logout hooks (authBeforeLogoutHook, authAfterLogoutHook)
+
+**3. User Controller & Model (webapp/controller/user.js, webapp/model/user.js)**
+- Consolidated 6 user hooks into 2:
+  - userBeforeSignupHook + userBeforeCreateHook + userBeforeSaveHook → onUserBeforeSave
+  - userAfterCreateHook + userAfterSaveHook + userOnSignupCompleteHook → onUserAfterSave
+- Added isCreate, isSignup, wasCreate, wasSignup flags
+
+**4. auth-mfa Plugin (plugins/auth-mfa/webapp/controller/mfaAuth.js)**
+- Updated hook declarations:
+  - authGetRequiredStepsHook → onAuthGetSteps
+  - authExecuteStepHook → onAuthValidateStep
+  - authGetLoginWarningsHook → onAuthGetWarnings
+- Renamed handler methods to match
+
+**5. hello-world Plugin (plugins/hello-world/webapp/controller/helloPlugin.js)**
+- Updated hook declarations:
+  - authAfterLoginSuccessHook → onAuthAfterLogin
+  - authBeforeSessionCreateHook → onAuthBeforeSession
+
+**6. Tests (webapp/tests/unit/utils/hook-manager.test.js)**
+- Updated all 35 tests to use new hook names
+- All tests pass (924 total)
+
+**7. Documentation (docs/plugins/plugin-hooks.md)**
+- Complete rewrite with new hook names
+- Updated all examples to use Phase 8 naming
+- Documented 7 auth hooks + 5 user hooks = 12 total
+
+### Test Results
+✅ 924 tests passed
+✅ 0 failures
+✅ 46 test suites passed
+
+## Status
+✅ ACCEPTED - Phase 8 implementation complete
+
+
+
+============================================================
+2025-12-07 19:55
+
+## User Request
+Fix issue with policy-enforced MFA: redirect user to MFA setup page after login when MFA is required but not set up.
+
+## Summary
+Implemented MFA policy redirect flow.
+
+### Changes Made
+
+**1. webapp/view/auth/login.shtml**
+- After successful login, check for `mfa-not-enabled` warning
+- If warning has a `link` property, redirect to that URL (MFA setup page) instead of the original redirect
+- Store warnings in sessionStorage for display after redirect
+
+**2. webapp/view/jpulse-common.js**
+- Added login warning display on page load
+- Reads warnings from `sessionStorage.jpulse_login_warnings`
+- Shows toast notifications for each warning
+- Clears sessionStorage after displaying
+- Works on any page (home, MFA setup, etc.)
+
+### Flow
+1. User logs in with valid credentials
+2. Server returns `warnings: [{ type: 'mfa-not-enabled', message: '...', link: '/jpulse-plugins/auth-mfa.shtml' }]`
+3. Login page detects MFA warning, redirects to setup page
+4. Setup page displays warning toast via jpulse-common.js
+5. User sees "Enable 2FA" button prominently
+
+## Status
+✅ ACCEPTED
+
+
+
+============================================================
+2025-12-07 20:15
+
+## User Request
+Review plugin docs for accuracy and improvements, check if API reference mentions plugin extensions, identify low-hanging fruit tests.
+
+## Summary
+Documentation review and improvements completed.
+
+### Documentation Changes
+
+**1. docs/api-reference.md**
+- Added "Plugin-Added Endpoints" section after Access Control Levels
+- Shows example endpoints from auth-mfa plugin
+- Explains how to discover plugin endpoints in server logs
+- Links to plugin-api-reference.md for details
+
+**2. docs/plugins/creating-plugins.md**
+- Added new "Step 5: Add Plugin Hooks (Optional)" section
+- Shows minimal hooks declaration example
+- Lists all 12 available hooks (7 auth + 5 user)
+- Links to plugin-hooks.md for full documentation
+- Renumbered Steps 6→7, 7→8
+
+**3. docs/plugins/plugin-architecture.md**
+- Added "Register hooks" step in initialization lifecycle
+- Now shows: controllers → hooks → models → views → css/js
+
+### Test Review
+- hook-manager.test.js already tests all Phase 8 hooks
+- 45 tests covering registration, execution, priority, cancellation
+- No missing low-hanging fruit tests identified
+- Client-side warning display was manual-tested
+
+## Status
+✅ ACCEPTED - Documentation improved
+
+
+
+============================================================
+2025-12-07 20:35
+
+## User Request
+Release prep for W-109, v1.3.10:
+- Update W-109 features/deliverables in work-items.md
+- Update README.md and docs/README.md (latest release highlights)
+- Update docs/CHANGELOG.md
+- Update commit-message.txt
+- Update cursor_log.txt
+
+## Summary
+Completed release preparation for W-109, v1.3.10.
+
+### Files Updated
+
+**1. docs/dev/work-items.md**
+- Updated W-109 features section with Phase 8 hook simplification
+- Added all 12 new hooks (7 auth + 5 user)
+- Added comprehensive deliverables list (14 files)
+- Documented MFA policy enforcement and login warnings
+
+**2. README.md (Latest Release Highlights)**
+- Added v1.3.10 entry at top
+- Multi-step authentication with hook simplification
+- 24→12 hooks with onBucketAction naming
+- MFA policy enforcement
+- Link to Plugin Hooks Guide
+
+**3. docs/README.md (Latest Release Highlights)**
+- Same v1.3.10 entry as README.md
+- Consistent messaging across docs
+
+**4. docs/CHANGELOG.md**
+- Added complete v1.3.10 section
+- Implementation details for Phase 8
+- Code changes (6 core + 2 plugins)
+- Documentation changes (5 files)
+- Test coverage (924 tests)
+- Breaking changes note (plugin hook names)
+
+**5. commit-message.txt**
+- Full commit message following format
+- Objective, Phase 8 changes, code changes
+- Plugin updates, documentation, tests
+- Version: v1.3.10, Date: 2025-12-08
+
+## Status
+✅ ACCEPTED - Ready for version bump and commit
+
+
+============================================================
+
+
+============================================================
+2025-12-08 12:45
+
+## User Request
+Verify dynamic hook tables match source of truth and remove LEGACY hard-coded tables.
+
+## Summary
+Verified %DYNAMIC{}% hook tables are generating correctly from hook-manager.js.
+
+### Verification
+- Auth hooks (7): All context specs, modify flags, cancel flags match ✅
+- User hooks (5): All context specs, modify flags, cancel flags match ✅
+- Dynamic tables sorted alphabetically (expected behavior)
+
+### Changes
+- docs/plugins/plugin-hooks.md: Removed LEGACY hard-coded hook tables
+- Dynamic generation now sole source for hook documentation
+
+### Benefits
+- Single source of truth (hook-manager.js)
+- No manual sync when hooks change
+- Always accurate with implementation
+
+## Status
+✅ ACCEPTED
+

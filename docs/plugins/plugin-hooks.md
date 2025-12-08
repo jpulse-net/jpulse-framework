@@ -11,6 +11,15 @@ Plugin hooks allow your plugin to:
 - **Cancel** operations based on custom validation
 - **Integrate** external systems (LDAP, OAuth2, MFA providers)
 
+## Naming Convention
+
+Hooks follow the simplified `onBucketAction` pattern:
+
+| Pattern | Examples | Description |
+|---------|----------|-------------|
+| `onAuth*` | `onAuthBeforeLogin`, `onAuthAfterLogin` | Authentication lifecycle |
+| `onUser*` | `onUserBeforeSave`, `onUserAfterSave` | User lifecycle |
+
 ## Quick Start
 
 ### 1. Declare Hooks in Your Controller
@@ -19,20 +28,22 @@ Plugin hooks allow your plugin to:
 class MyPluginController {
     // Declare which hooks your plugin implements
     static hooks = {
-        authBeforeLoginHook: { priority: 50 },  // Run early (lower = earlier)
-        userAfterCreateHook: {}                 // Default priority 100
+        onAuthBeforeLogin: { priority: 50 },  // Run early (lower = earlier)
+        onUserAfterSave: {}                   // Default priority 100
     };
 
     // Implement the hook handler (method name = hook name)
-    static async authBeforeLoginHook(context) {
+    static async onAuthBeforeLogin(context) {
         // Modify context or perform actions
         context.authMethod = 'my-plugin';
         return context;
     }
 
-    static async userAfterCreateHook(context) {
+    static async onUserAfterSave(context) {
         // React to user creation (e.g., send welcome email)
-        console.log(`New user created: ${context.user.username}`);
+        if (context.wasCreate) {
+            console.log(`New user created: ${context.user.username}`);
+        }
         return context;
     }
 }
@@ -65,13 +76,13 @@ static hooks = {
 ```javascript
 static hooks = {
     // Minimal: method name = hook name, priority = 100
-    authAfterLoginSuccessHook: {},
+    onAuthAfterLogin: {},
 
     // Custom priority (runs before default handlers)
-    authBeforeLoginHook: { priority: 50 },
+    onAuthBeforeLogin: { priority: 50 },
 
     // Custom handler method name
-    userBeforeSaveHook: { handler: 'validateUserData', priority: 75 }
+    onUserBeforeSave: { handler: 'validateUserData', priority: 75 }
 };
 ```
 
@@ -80,7 +91,7 @@ static hooks = {
 ### Modify Context
 
 ```javascript
-static async authBeforeSessionCreateHook(context) {
+static async onAuthBeforeSession(context) {
     // Add custom data to session
     context.sessionData.myPlugin = { enabled: true };
     return context;  // Always return context
@@ -90,9 +101,9 @@ static async authBeforeSessionCreateHook(context) {
 ### Cancel Operation
 
 ```javascript
-static async userAfterSignupValidationHook(context) {
-    if (context.userData.email.endsWith('@blocked.com')) {
-        return false;  // Cancel signup
+static async onUserBeforeSave(context) {
+    if (context.userData.email?.endsWith('@blocked.com')) {
+        return false;  // Cancel user save
     }
     return context;
 }
@@ -101,7 +112,7 @@ static async userAfterSignupValidationHook(context) {
 ### React to Events (No Modification)
 
 ```javascript
-static async authAfterLoginSuccessHook(context) {
+static async onAuthAfterLogin(context) {
     // Log to external system
     await ExternalAuditService.logLogin(context.user.username);
     return context;  // Return unchanged
@@ -111,7 +122,7 @@ static async authAfterLoginSuccessHook(context) {
 ### External Authentication (Skip Password Check)
 
 ```javascript
-static async authBeforeLoginHook(context) {
+static async onAuthBeforeLogin(context) {
     // Check if user should authenticate via LDAP
     if (await this.isLdapUser(context.identifier)) {
         const ldapUser = await this.authenticateWithLdap(
@@ -132,11 +143,37 @@ static async authBeforeLoginHook(context) {
 
 ### Authentication Hooks
 
-%DYNAMIC{plugins-hooks-list-table namespace="auth"}%
+%DYNAMIC{plugins-hooks-list-table namespace="onAuth"}%
+
+Total: %DYNAMIC{plugins-hooks-count namespace="onAuth"}% hooks
+
+<!-- Plugin hooks as of v1.3.10: (above dynamic list shows the current list)
+| Hook | Context | Can Modify | Can Cancel | Description |
+|------|---------|------------|------------|-------------|
+| `onAuthBeforeLogin` | `{ req, identifier, password, captchaToken, skipPasswordCheck, user, authMethod }` | ✅ | ❌ | Before credential validation - external auth (LDAP/OAuth), captcha |
+| `onAuthBeforeSession` | `{ req, user, sessionData }` | ✅ | ❌ | Before session is created - add data to session |
+| `onAuthAfterLogin` | `{ req, user, session, authMethod }` | ❌ | ❌ | After successful login - audit logging, notifications |
+| `onAuthFailure` | `{ req, identifier, reason }` | ❌ | ❌ | On login failure - rate limiting, lockout |
+| `onAuthGetSteps` | `{ req, user, completedSteps, requiredSteps }` | ✅ | ❌ | Get required login steps (MFA, email verify, etc.) |
+| `onAuthValidateStep` | `{ req, user, step, stepData, pending, valid, error }` | ✅ | ❌ | Execute and validate a specific login step |
+| `onAuthGetWarnings` | `{ req, user, warnings }` | ✅ | ❌ | Get non-blocking login warnings (nag messages) |
+-->
 
 ### User Lifecycle Hooks
 
-%DYNAMIC{plugins-hooks-list-table namespace="user"}%
+%DYNAMIC{plugins-hooks-list-table namespace="onUser"}%
+
+Total: %DYNAMIC{plugins-hooks-count namespace="onUser"}% hooks
+
+<!-- Plugin hooks as of v1.3.10: (above dynamic list shows the current list)
+| Hook | Context | Can Modify | Can Cancel | Description |
+|------|---------|------------|------------|-------------|
+| `onUserBeforeSave` | `{ req, userData, isCreate, isSignup }` | ✅ | ✅ | Before user create/update - validation, modification |
+| `onUserAfterSave` | `{ req, user, wasCreate, wasSignup }` | ❌ | ❌ | After user create/update - notifications, sync |
+| `onUserBeforeDelete` | `{ req, user }` | ❌ | ✅ | Before user deletion - can cancel |
+| `onUserAfterDelete` | `{ req, user }` | ❌ | ❌ | After user deletion - cleanup, audit |
+| `onUserSyncProfile` | `{ req, user, externalProfile, provider }` | ✅ | ❌ | Sync external profile data (LDAP/OAuth) |
+-->
 
 ## Hook Execution
 
@@ -145,9 +182,9 @@ static async authBeforeLoginHook(context) {
 Hooks are executed in priority order (lower numbers run first):
 
 ```
-Priority 50:  plugin-a.authBeforeLoginHook()
-Priority 100: plugin-b.authBeforeLoginHook()  (default)
-Priority 150: plugin-c.authBeforeLoginHook()
+Priority 50:  plugin-a.onAuthBeforeLogin()
+Priority 100: plugin-b.onAuthBeforeLogin()  (default)
+Priority 150: plugin-c.onAuthBeforeLogin()
 ```
 
 ### Context Flow
@@ -172,7 +209,7 @@ If a hook handler throws an error:
 - The framework operation proceeds with the last successful context
 
 ```javascript
-static async authAfterLoginSuccessHook(context) {
+static async onAuthAfterLogin(context) {
     try {
         await riskyOperation();
     } catch (error) {
@@ -189,12 +226,11 @@ static async authAfterLoginSuccessHook(context) {
 
 ```javascript
 static hooks = {
-    authBeforeLoginHook: { priority: 50 },
-    userMapExternalProfileHook: {},
-    userSyncExternalProfileHook: {}
+    onAuthBeforeLogin: { priority: 50 },
+    onUserSyncProfile: {}
 };
 
-static async authBeforeLoginHook(context) {
+static async onAuthBeforeLogin(context) {
     // Check for OAuth2 token in request
     const oauthToken = context.req.body.oauthToken;
     if (oauthToken) {
@@ -211,17 +247,17 @@ static async authBeforeLoginHook(context) {
 
 ### Multi-Factor Authentication (MFA)
 
-Uses the W-109 multi-step authentication flow:
+Uses the multi-step authentication flow:
 
 ```javascript
 static hooks = {
-    authGetRequiredStepsHook: { priority: 100 },
-    authExecuteStepHook: { priority: 100 },
-    authGetLoginWarningsHook: { priority: 100 }
+    onAuthGetSteps: { priority: 100 },
+    onAuthValidateStep: { priority: 100 },
+    onAuthGetWarnings: { priority: 100 }
 };
 
 // Check if MFA step is required for this user
-static async authGetRequiredStepsHook(context) {
+static async onAuthGetSteps(context) {
     const { user, requiredSteps } = context;
 
     if (user.mfa?.enabled) {
@@ -235,15 +271,14 @@ static async authGetRequiredStepsHook(context) {
 }
 
 // Validate MFA code when step is submitted
-static async authExecuteStepHook(context) {
-    const { step, stepData, pending } = context;
+static async onAuthValidateStep(context) {
+    const { step, stepData, user } = context;
 
     if (step !== 'mfa' && step !== 'mfa-backup') {
         return context;  // Not our step
     }
 
     const { code } = stepData;
-    const user = await UserModel.findById(pending.userId);
     const isValid = await this.verifyTotpCode(user, code);
 
     context.valid = isValid;
@@ -254,7 +289,7 @@ static async authExecuteStepHook(context) {
 }
 
 // Non-blocking warning if MFA policy requires but user hasn't enabled
-static async authGetLoginWarningsHook(context) {
+static async onAuthGetWarnings(context) {
     const { user, warnings } = context;
 
     if (!user.mfa?.enabled && await this.isMfaRequired(user)) {
@@ -272,25 +307,29 @@ static async authGetLoginWarningsHook(context) {
 
 ```javascript
 static hooks = {
-    userBeforeCreateHook: {},
-    userAfterCreateHook: {}
+    onUserBeforeSave: {},
+    onUserAfterSave: {}
 };
 
-static async userBeforeCreateHook(context) {
-    // Set user status to pending until email confirmed
-    context.userData.status = 'pending';
-    context.userData.confirmationToken = generateToken();
+static async onUserBeforeSave(context) {
+    if (context.isSignup) {
+        // Set user status to pending until email confirmed
+        context.userData.status = 'pending';
+        context.userData.confirmationToken = generateToken();
+    }
     return context;
 }
 
-static async userAfterCreateHook(context) {
-    // Send confirmation email (async, non-blocking)
-    setImmediate(async () => {
-        await EmailService.sendConfirmation(
-            context.user.email,
-            context.user.confirmationToken
-        );
-    });
+static async onUserAfterSave(context) {
+    if (context.wasSignup) {
+        // Send confirmation email (async, non-blocking)
+        setImmediate(async () => {
+            await EmailService.sendConfirmation(
+                context.user.email,
+                context.user.confirmationToken
+            );
+        });
+    }
     return context;
 }
 ```
@@ -299,12 +338,12 @@ static async userAfterCreateHook(context) {
 
 ```javascript
 static hooks = {
-    authAfterLoginSuccessHook: {},
-    authOnLoginFailureHook: {},
-    userAfterSaveHook: {}
+    onAuthAfterLogin: {},
+    onAuthFailure: {},
+    onUserAfterSave: {}
 };
 
-static async authAfterLoginSuccessHook(context) {
+static async onAuthAfterLogin(context) {
     await AuditLog.record({
         event: 'LOGIN_SUCCESS',
         user: context.user.username,
@@ -314,7 +353,7 @@ static async authAfterLoginSuccessHook(context) {
     return context;
 }
 
-static async authOnLoginFailureHook(context) {
+static async onAuthFailure(context) {
     await AuditLog.record({
         event: 'LOGIN_FAILURE',
         identifier: context.identifier,
@@ -333,11 +372,11 @@ static async authOnLoginFailureHook(context) {
 // In your plugin or via API
 const stats = global.HookManager.getStats();
 console.log(stats);
-// { available: 24, registered: 5, hooksWithHandlers: 3 }
+// { available: 12, registered: 5, hooksWithHandlers: 3 }
 
 const registered = global.HookManager.getRegisteredHooks();
 console.log(registered);
-// { authBeforeLoginHook: [{ plugin: 'my-plugin', priority: 50 }], ... }
+// { onAuthBeforeLogin: [{ plugin: 'my-plugin', priority: 50 }], ... }
 ```
 
 ### Dynamic Content for Documentation
@@ -349,7 +388,7 @@ Use these in your markdown documentation:
 | `%DYNAMIC{plugins-hooks-count}%` | Number of available hooks |
 | `%DYNAMIC{plugins-hooks-list}%` | Bullet list of hooks |
 | `%DYNAMIC{plugins-hooks-list-table}%` | Table with all hook details |
-| `%DYNAMIC{plugins-hooks-list-table namespace="auth"}%` | Table filtered by namespace |
+| `%DYNAMIC{plugins-hooks-list-table namespace="onAuth"}%` | Table filtered by namespace |
 
 ## Best Practices
 

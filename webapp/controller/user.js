@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.3.9
- * @release         2025-12-06
+ * @version         1.3.10
+ * @release         2025-12-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -42,9 +42,9 @@ class UserController {
                 return global.CommonUtils.sendError(req, res, 403, message, 'SIGNUP_DISABLED');
             }
 
-            // W-105: HOOK userBeforeSignupHook - can modify userData or add fields
-            let signupContext = { req, userData: { ...req.body } };
-            signupContext = await global.HookManager.execute('userBeforeSignupHook', signupContext);
+            // Hook: onUserBeforeSave - can modify userData or add fields (isCreate=true, isSignup=true)
+            let signupContext = { req, userData: { ...req.body }, isCreate: true, isSignup: true };
+            signupContext = await global.HookManager.execute('onUserBeforeSave', signupContext);
 
             const { firstName, lastName, username, email, password, confirmPassword, acceptTerms } = signupContext.userData;
 
@@ -69,16 +69,8 @@ class UserController {
                 return global.CommonUtils.sendError(req, res, 400, message, 'TERMS_NOT_ACCEPTED');
             }
 
-            // W-105: HOOK userAfterSignupValidationHook - can cancel signup with custom validation
-            const validationResult = await global.HookManager.executeWithCancel('userAfterSignupValidationHook', {
-                req,
-                userData: signupContext.userData
-            });
-            if (validationResult.cancelled) {
-                LogController.logError(req, 'user.signup', `error: signup cancelled by plugin ${validationResult.cancelledBy}`);
-                const message = global.i18n.translate(req, 'controller.user.signup.validationFailed', { details: 'Signup cancelled by plugin' });
-                return global.CommonUtils.sendError(req, res, 400, message, 'VALIDATION_ERROR');
-            }
+            // Note: Signup validation cancellation now handled by onUserBeforeSave returning false
+            // The executeWithCancel pattern is deprecated in Phase 8
 
             // Prepare user data
             let userData = {
@@ -99,18 +91,17 @@ class UserController {
                 status: 'active'
             };
 
-            // W-105: HOOK userBeforeCreateHook - can transform user data before creation
-            let createContext = { req, userData };
-            createContext = await global.HookManager.execute('userBeforeCreateHook', createContext);
-            userData = createContext.userData;
+            // Note: onUserBeforeSave already called above with isCreate=true
 
             // Create user
             const newUser = await UserModel.create(userData);
 
-            // W-105: HOOK userAfterCreateHook - post-create actions (email confirmation, etc.)
-            await global.HookManager.execute('userAfterCreateHook', {
+            // Hook: onUserAfterSave - post-create actions (wasCreate=true, wasSignup=true)
+            await global.HookManager.execute('onUserAfterSave', {
                 req,
-                user: newUser
+                user: newUser,
+                wasCreate: true,
+                wasSignup: true
             });
 
             const message = global.i18n.translate(req, 'controller.user.signup.accountCreated');
@@ -130,17 +121,7 @@ class UserController {
             const duration = Date.now() - startTime;
             LogController.logInfo(req, 'user.signup', `success: ${newUser.username} created successfully, completed in ${duration}ms`);
 
-            // W-105: HOOK userOnSignupCompleteHook - async, after response (fire and forget)
-            setImmediate(async () => {
-                try {
-                    await global.HookManager.execute('userOnSignupCompleteHook', {
-                        req,
-                        user: newUser
-                    });
-                } catch (err) {
-                    LogController.logError(req, 'user.signup', `userOnSignupCompleteHook error: ${err.message}`);
-                }
-            });
+            // Note: Async signup complete actions merged into onUserAfterSave in Phase 8
 
         } catch (error) {
             LogController.logError(req, 'user.signup', `error: ${error.message}`);

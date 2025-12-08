@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Architecture v1.3.9
+# jPulse Docs / Plugins / Plugin Architecture v1.3.10
 
 Understanding how the jPulse plugin system works under the hood.
 
@@ -57,6 +57,8 @@ Load plugin configuration from MongoDB
 Create symlinks (static assets + docs)
     ↓
 Register controllers (auto-discover api* methods)
+    ↓
+Register hooks (static hooks = {...} declarations)
     ↓
 Register models (extend schemas if needed)
     ↓

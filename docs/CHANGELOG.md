@@ -1,6 +1,43 @@
-# jPulse Docs / Version History v1.3.11
+# jPulse Docs / Version History v1.3.12
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.12, W-111, 2025-12-08
+
+**Commit:** `W-111, v1.3.12: deploy: bug fixes for plugin installations`
+
+**BUG FIX RELEASE**: Fixes critical issues preventing plugin installation on site deployments.
+
+**Objective**: Enable sites to successfully install plugins from npm packages.
+
+**Bug #1: Incorrect jPulse Version Detection** (`bin/plugin-manager-cli.js`):
+- **Problem**: `getFrameworkVersion()` was reading the dependency requirement (e.g., `^1.1.0`) from site's `package.json` instead of the actual installed version
+- **Symptom**: `Error: Plugin requires jPulse >=1.3.8, current version is 1.1.0` even when 1.3.11 was installed
+- **Fix**: Now reads actual version from `node_modules/@jpulse-net/jpulse-framework/package.json`
+
+**Bug #2: bump-version.js Fails for Plugin Projects** (`bin/bump-version.js`):
+- **Problem**: Script only looked for `site/webapp/bump-version.conf`, failing in plugin directories
+- **Symptom**: `Error: Configuration file not found: site/webapp/bump-version.conf`
+- **Fix**: Added plugin context detection (checks for `plugin.json`), uses `webapp/bump-version.conf` when in plugin directory
+- Updated error messages and instructions for plugin context
+
+**Documentation Updates** (`docs/plugins/creating-plugins.md`):
+- Added "Version Management" section
+- Documents `webapp/bump-version.conf` location for plugins
+- Shows `node ../../bin/bump-version.js 1.0.0` usage (not `npx jpulse`)
+- References `auth-mfa` plugin as working example
+
+**Code Changes**:
+- `bin/plugin-manager-cli.js`: Fixed `getFrameworkVersion()` to read from node_modules
+- `bin/bump-version.js`: Added `detectContext()` plugin detection, updated `findBumpConfig()`
+- `docs/plugins/creating-plugins.md`: Added version management documentation
+
+**Files Modified**: 3
+- 2 CLI scripts: plugin-manager-cli.js, bump-version.js
+- 1 documentation: creating-plugins.md
+
+**Breaking Changes**: None
 
 ________________________________________________
 ## v1.3.11, W-110, 2025-12-08

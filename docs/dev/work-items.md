@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.11
+# jPulse Docs / Dev / Work Items v1.3.12
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -241,7 +241,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-021, v0.3.0: fix user profile view to read from API
 - status: ✅ DONE
-- type: Bug
+- type: Bug Fix
 - user profile view now loads fresh data from /api/1/user/profile API endpoint
 - profile updates work correctly and increment saveCount properly
 - UserModel.updateById() now increments saveCount like ConfigModel
@@ -493,7 +493,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-042, v0.4.7: view: fix slide down message is not cleared bug
 - status: ✅ DONE
-- type: Bug
+- type: Bug Fix
 - in the signup page, error messages in the slide down are never cleared
 - this happens when you hit [submit] after a few seconds, rinds and repeat
 - e.g. this is not stacking of multiple messages in rapid succession, which is spec
@@ -938,7 +938,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-067, v0.8.3: regression bug: site/ directory is missing in published package
 - status: ✅ DONE
-- type: Bug
+- type: Bug Fix
 - note: this is a critical bug (Regression)
 - Problem: New sites installing the jPulse Framework with "npx jpulse-configure" miss the critical site/ directory and all site templates
 - Root Cause: package.json "files" array was missing "site/" entry, so site templates weren't published to npm
@@ -1766,7 +1766,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-089, v1.1.5: log: log proper external IP address when jPulse is behind a reverse proxy
 - status: ✅ DONE
-- type: Bug
+- type: Bug Fix
 - objective: log proper IP address behind a reverse proxy
 - deliverables:
   - webapp/utils/common.js -- IP address based on sequence: x-forwarded-for, x-real-ip, request ip
@@ -1794,7 +1794,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-091, v1.1.7: deploy: bug fixes for site deployments
 - status: ✅ DONE
-- type: Bug
+- type: Bug Fix
 - objective: better getting started experience
 - issues:
   - Bug 1: updated docs to use `npm install --registry` flag (KISS solution)
@@ -2074,7 +2074,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-099, v1.2.6: deploy: critical bug fixes for site installation and W-098 navigation
 - status: ✅ DONE
-- type: Bug
+- type: Bug Fix
 - objective: fix critical bugs discovered after v1.2.5 deployment affecting site installation and navigation deletion markers
 - issues:
   - bug 1: site/webapp/model/helloTodo.js missing in initial site install
@@ -2176,7 +2176,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-101, v1.3.2: architecture: additional bug fixes for W-045 add plugin infrastructure
 - status: ✅ DONE
-- type: Bug Fix (Patch Release)
+- type: Bug Fix
 - objective: fix four critical bugs discovered after v1.3.1 deployment affecting plugin updates, configuration UX, documentation access, and admin UI state
 - issues:
   - bug 1: jpulse-update.js missing plugin sync - production sites had stale plugins after framework update
@@ -2633,20 +2633,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/tests/unit/utils/hook-manager.test.js: updated for new hooks
   - 924 unit tests passing
 
-
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-110, v1.3.11, 2025-12-08: view: jPulse.url.redirect with toast messages queue
 - status: ✅ DONE
 - type: Feature
@@ -2675,35 +2661,71 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - MFA warnings define toastType: 'error'
     - optional nag for "MFA optional" policy
 
-### W-108: plugins: auth-mfa plugin for MFA (multi-factor authentication)
-- status: 🚧 IN_PROGRESS
+### W-108, v1.0.0, 2025-12-08: plugins: auth-mfa plugin for MFA (multi-factor authentication)
+- status: ✅ DONE
 - type: Feature
-- objective: Enterprise security via multi-factor authentication
+- objective: enterprise security via multi-factor authentication
+- repository: github.com/jpulse-net/plugin-auth-mfa (separate repo)
+- npm package: @jpulse-net/plugin-auth-mfa@1.0.0 (GitHub Package Registry)
+- depends on: W-109 (multi-step login), W-106 (plugin CLI)
 - working doc: docs/dev/working/W-108-auth-mfa-plugin.md
-- repository: github.com/jpulse-net/plugin-auth-mfa (separate repo, independent versioning)
-- depends on: W-106 (plugin CLI for install/publish)
 - features:
   - TOTP-based MFA using authenticator apps (Google Authenticator, Authy, etc.)
-  - SMS is out of scope (external service dependency)
-  - User schema extension for MFA fields
-  - API endpoints: setup, verify, backup codes
-  - Views: view/auth/mfa-setup.shtml, mfa-verify.shtml
-  - Hook implementations for login flow
-  - Bootstrap protection (root users exempt until MFA setup)
+  - backup codes for account recovery (10 codes, one-time use)
+  - flexible policy: optional, required, or role-based enforcement
   - autoEnable: false (requires configuration)
-  - MFA policy: optional, required, required-for-roles
+  - integration with jPulse multi-step login flow (W-109 hooks)
+  - user profile MFA management component
+  - admin lockout/reset capabilities
+  - bootstrap protection (root users exempt until MFA setup)
+  - QR code generation for authenticator app setup
+  - nag toast for optional MFA policy ("Secure your account...")
+  - SMS is out of scope (external service dependency)
 - npm dependency: otplib (~20KB)
-- deliverables v0.5.0:
-  - plugins/auth-mfa/plugin.json:
-    - Plugin scaffold with config schema (v0.5.0)
-  - FIXME what else?
-- deliverables v1.0.0:
-  - FIXME file:
-    - FIXME summary
-    - Full MFA functionality (v1.0.0)
-    - Unit and integration tests
+- deliverables:
+  - plugins/auth-mfa/plugin.json: plugin configuration and schema
+  - plugins/auth-mfa/webapp/controller/mfaAuth.js: MFA API controller
+  - plugins/auth-mfa/webapp/model/mfaAuth.js: MFA data model
+  - plugins/auth-mfa/webapp/view/auth/mfa-setup.shtml: MFA enrollment page
+  - plugins/auth-mfa/webapp/view/auth/mfa-verify.shtml: MFA verification page
+  - plugins/auth-mfa/webapp/view/jpulse-plugins/auth-mfa.shtml: user profile component
+  - plugins/auth-mfa/webapp/bump-version.conf: version management config
+  - docs/plugins/creating-plugins.md: version management section
+  - bin/bump-version.js: plugin context detection
 
 
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-111, v1.3.12, 2025-12-08: deploy: bug fixes for plugin installations
+- status: ✅ DONE
+- type: Bug Fix
+- objective: enable sites to install plugins from npm package
+- issues:
+  - bug 1: jPulse dependency check checks minimum required version, not actual version installed
+  - bug 2: bin/bump-version.js script does not work for plugin projects
+- deliverables:
+  - bin/plugin-manager-cli.js:
+    - fixed getFrameworkVersion() to read actual installed version from node_modules
+    - was incorrectly reading dependency requirement (^1.1.0) from site package.json
+    - now reads actual version from node_modules/@jpulse-net/jpulse-framework/package.json
+  - bin/bump-version.js:
+    - added plugin context detection (checks for plugin.json)
+    - looks for webapp/bump-version.conf when in plugin directory
+    - updated error messages and instructions for plugin context
+  - docs/plugins/creating-plugins.md:
+    - added "Version Management" section
+    - documents bump-version.conf location for plugins
+    - shows node ../../bin/bump-version.js usage (not npx)
 
 
 
@@ -2748,8 +2770,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-110, v1.3.11
-- update deliverables in W-110 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-111, v1.3.12
+- update deliverables in W-111 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -2766,13 +2788,25 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.11
+node bin/bump-version.js 1.3.12
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.11
+git tag v1.3.12
 git push origin main --tags
+
+=== plugin release & package build on github ===
+git diff
+git status
+node ../../bin/bump-version.js 1.0.0
+git diff
+git status
+git add .
+git commit -m "...."
+git tag v1.0.0
+git push origin main --tags
+npm publish
 
 === on failed package build on github ===
 git add .
@@ -2977,7 +3011,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 
 ### W-0: redis: fix bugs when redis is disabled
 - status: 🕑 PENDING
-- type: Bug
+- type: Bug Fix
 - prerequisite
   - W-076, v1.0.0: framework: redis infrastrucure for a scaleable jPulse Framework
 - /hello-websocket/, /hello-app-cluster/ should work properly on its own page, that is no messaging to other tabs with same page open

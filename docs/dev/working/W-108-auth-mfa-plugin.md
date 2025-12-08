@@ -1,7 +1,15 @@
 # W-108: plugins: auth-mfa plugin for MFA (multi-factor authentication)
 
 ## Status
-🔄 IN PROGRESS
+✅ COMPLETE (v1.0.0 released 2025-12-08)
+
+## Release Info
+- **Version:** 1.0.0
+- **Release Date:** 2025-12-08
+- **Repository:** github.com/jpulse-net/plugin-auth-mfa
+- **npm Package:** @jpulse-net/plugin-auth-mfa@1.0.0 (GitHub Package Registry)
+- **Install:** `npx jpulse plugin install auth-mfa`
+- **Compatibility:** jPulse Framework v1.3.10+
 
 ## Objective
 
@@ -13,6 +21,8 @@ Create an `auth-mfa` plugin that adds TOTP-based multi-factor authentication (MF
 
 ## Related Work Items
 
+- **W-110**: URL redirect with toast queue (complete) - provides deferred toast messages after login
+- **W-109**: Multi-step authentication (complete) - provides simplified hooks (onAuthGetSteps, onAuthValidateStep, onAuthGetWarnings)
 - **W-107**: Data-Driven User Profile Extensions - provides adminCard/userCard schema for plugin data in user profiles
 - **W-106**: Plugin CLI management (complete) - provides install/publish infrastructure
 - **W-105**: Plugin hooks for authentication (complete) - provides the MFA hook infrastructure
@@ -55,16 +65,13 @@ if (mfaContext.requireMfa) {
 }
 ```
 
-### Available MFA Hooks
+### Hooks Used (W-109 Simplified Naming)
 
 | Hook Name | Description | Context |
 |-----------|-------------|---------|
-| `authAfterPasswordValidationHook` | After password check, MFA challenge point | `{ req, user, isValid, requireMfa, mfaMethod }` |
-| `authRequireMfaHook` | Check if MFA is required for user | `{ req, user }` |
-| `authOnMfaChallengeHook` | Issue MFA challenge | `{ req, user, method }` |
-| `authValidateMfaHook` | Validate MFA code | `{ req, user, code, isValid }` |
-| `authOnMfaSuccessHook` | After successful MFA validation | `{ req, user }` |
-| `authOnMfaFailureHook` | After failed MFA validation | `{ req, user, attempts }` |
+| `onAuthGetSteps` | Return blocking authentication steps (MFA) | `{ req, user, completedSteps, requiredSteps }` |
+| `onAuthValidateStep` | Execute and validate MFA step | `{ req, step, stepData, pending, user, valid, error }` |
+| `onAuthGetWarnings` | Return non-blocking warnings (MFA nag) | `{ req, user, warnings }` |
 
 ---
 
@@ -280,31 +287,29 @@ UserModel.extendSchema({
 | GET  | `/api/1/mfa/backup-codes` | User | Generate new backup codes |
 | POST | `/api/1/mfa/verify-backup` | None | Verify backup code during login |
 
-### 4. MFA Login Flow
+### 4. MFA Login Flow (W-109 Multi-Step)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ MFA Login Flow                                                               │
+│ MFA Login Flow (W-109 Multi-Step Authentication)                             │
 └──────────────────────────────────────────────────────────────────────────────┘
 
-1. User submits username/password
-2. authBeforeLoginHook() → [no-op for MFA plugin]
-3. Password validated by UserModel.authenticate()
-4. authAfterPasswordValidationHook() → MFA plugin checks if user has MFA enabled
-   └─ If MFA enabled:
-      • Set context.requireMfa = true
-      • Set context.mfaMethod = 'totp'
-      • Store pending auth state (userId, timestamp) in session or temp token
-5. Auth controller returns: { success: true, requireMfa: true, mfaMethod: 'totp' }
-6. Frontend shows TOTP input form
-7. User submits 6-digit code to POST /api/1/mfa/verify
-8. authValidateMfaHook() → Validate TOTP code
+1. User submits username/password to POST /api/1/auth/login
+2. Password validated by UserModel.authenticate()
+3. onAuthGetSteps() → MFA plugin adds 'mfa' step if user.mfa.enabled
+4. Auth controller returns: { success: true, nextStep: 'mfa', pending: token }
+5. Frontend redirects to /auth/mfa-verify.shtml
+6. User enters 6-digit TOTP code
+7. User submits to POST /api/1/auth/login with { pending, step: 'mfa', code }
+8. onAuthValidateStep() → MFA plugin validates code
    └─ If valid:
-      • authOnMfaSuccessHook() → Log success
-      • Complete session creation
+      • Record successful verification
+      • Complete login, create session
    └─ If invalid:
-      • authOnMfaFailureHook() → Increment attempts, check lockout
+      • Record failed attempt
+      • Check lockout threshold
       • Return error
+9. onAuthGetWarnings() → Check for optional MFA nag messages
 ```
 
 ### 5. MFA Enrollment Flow
@@ -444,95 +449,92 @@ const isValid = authenticator.verify({ token: userCode, secret });
 
 ---
 
-## Hook Implementations
+## Hook Implementations (Actual - W-109 Naming)
 
 ```javascript
 // plugins/auth-mfa/webapp/controller/mfaAuth.js
 
 class MfaAuthController {
 
-    // Declare hooks for auto-registration
+    // Declare hooks for auto-registration (W-109 simplified naming)
     static hooks = {
-        authAfterPasswordValidationHook: { priority: 100 },
-        authValidateMfaHook: { priority: 100 },
-        authOnMfaSuccessHook: { priority: 100 },
-        authOnMfaFailureHook: { priority: 100 }
+        onAuthGetSteps: { priority: 100 },
+        onAuthValidateStep: { priority: 100 },
+        onAuthGetWarnings: { priority: 100 }
     };
 
     /**
-     * Check if user has MFA enabled after password validation
-     * Sets requireMfa = true to trigger MFA challenge
+     * Return MFA as required step if user has MFA enabled
      */
-    static async authAfterPasswordValidationHook(context) {
-        const { user } = context;
+    static async onAuthGetSteps(context) {
+        const { user, requiredSteps } = context;
 
-        // Check if user has MFA enabled
-        if (user.mfa?.enabled) {
-            context.requireMfa = true;
-            context.mfaMethod = 'totp';
-
-            // Store pending auth state (user ID, timestamp)
-            // This will be used to validate MFA without re-entering password
-            // Implementation: use session or signed JWT token
+        if (user?.mfa?.enabled) {
+            requiredSteps.push({
+                step: 'mfa',
+                method: 'totp',
+                plugin: 'auth-mfa'
+            });
         }
 
         return context;
     }
 
     /**
-     * Validate TOTP code during MFA verification
+     * Validate TOTP code during MFA step
      */
-    static async authValidateMfaHook(context) {
-        const { user, code } = context;
+    static async onAuthValidateStep(context) {
+        const { step, stepData, user } = context;
+
+        if (step !== 'mfa') return context;
 
         // Check lockout
-        if (user.mfa?.lockedUntil && new Date() < user.mfa.lockedUntil) {
-            context.isValid = false;
-            context.error = 'ACCOUNT_LOCKED';
+        if (user.mfa?.lockedUntil && new Date() < new Date(user.mfa.lockedUntil)) {
+            context.valid = false;
+            context.error = 'Account temporarily locked';
             return context;
         }
 
-        // Validate TOTP code
-        const isValid = authenticator.verify({
-            token: code,
-            secret: decrypt(user.mfa.secret)
-        });
+        // Validate TOTP or backup code
+        const { code } = stepData;
+        const isValid = await MfaAuthModel.verifyCode(user, code);
 
-        context.isValid = isValid;
-        return context;
-    }
-
-    /**
-     * After successful MFA - reset failed attempts, update lastUsedAt
-     */
-    static async authOnMfaSuccessHook(context) {
-        const { user } = context;
-
-        await UserModel.updateById(user._id, {
-            'mfa.lastUsedAt': new Date(),
-            'mfa.failedAttempts': 0,
-            'mfa.lockedUntil': null
-        });
-
-        return context;
-    }
-
-    /**
-     * After failed MFA - increment attempts, check lockout threshold
-     */
-    static async authOnMfaFailureHook(context) {
-        const { user } = context;
-        const config = await MfaAuthModel.getConfig();
-
-        const failedAttempts = (user.mfa?.failedAttempts || 0) + 1;
-        const updates = { 'mfa.failedAttempts': failedAttempts };
-
-        if (failedAttempts >= config.maxFailedAttempts) {
-            updates['mfa.lockedUntil'] = new Date(Date.now() + config.lockoutDuration * 60 * 1000);
+        context.valid = isValid;
+        if (!isValid) {
+            context.error = 'Invalid verification code';
+            await MfaAuthModel.recordFailedAttempt(user._id);
+        } else {
+            await MfaAuthModel.recordSuccessfulVerification(user._id);
         }
 
-        await UserModel.updateById(user._id, updates);
-        context.attempts = failedAttempts;
+        return context;
+    }
+
+    /**
+     * Return MFA nag warning if policy is optional and MFA not enabled
+     */
+    static async onAuthGetWarnings(context) {
+        const { user, warnings } = context;
+
+        const mfaRequired = await MfaAuthModel.isMfaRequired(user);
+
+        if (mfaRequired.required && !user?.mfa?.enabled) {
+            // MFA enforced but not set up - blocking warning
+            warnings.push({
+                type: 'mfa-not-enabled',
+                message: 'MFA is required but not set up',
+                blocking: true
+            });
+        } else if (mfaRequired.reason === 'optional' && !user?.mfa?.enabled) {
+            // MFA optional - soft nag with red toast
+            warnings.push({
+                type: 'mfa-recommended',
+                toastType: 'error',
+                message: 'Secure your account with two-factor authentication.',
+                link: '/jpulse-plugins/auth-mfa.shtml',
+                linkText: 'Enable 2FA'
+            });
+        }
 
         return context;
     }
@@ -582,49 +584,46 @@ Rendered automatically in `/admin/user-profile.shtml` using `adminCard` schema:
 
 ---
 
-## Testing Plan
+## Testing
 
-### Unit Tests
+### Manual Testing (Completed ✅)
 
-1. **TOTP Generation**
-   - Secret generation produces valid base32 strings
-   - QR code URI format is correct
+1. **MFA Policy: Required for All**
+   - ✅ Users must set up MFA before accessing system
+   - ✅ Login redirects to MFA setup if not enrolled
+   - ✅ Cannot bypass MFA requirement
 
-2. **TOTP Validation**
-   - Valid codes within time window are accepted
-   - Invalid codes are rejected
-   - Codes outside time window are rejected
+2. **MFA Policy: Required for Admin & Root**
+   - ✅ Admin/root users must have MFA
+   - ✅ Regular users can login without MFA
+   - ✅ Role-based enforcement works correctly
 
-3. **Backup Codes**
-   - Correct number of codes generated
-   - Each code is unique
-   - Used codes are invalidated
-   - Hash comparison works correctly
+3. **MFA Policy: Optional**
+   - ✅ Users can login without MFA
+   - ✅ Nag toast shown: "Secure your account..." (red, 8 sec, with link)
+   - ✅ Users can enable/disable MFA at will
 
-4. **Lockout Logic**
-   - Failed attempts increment correctly
-   - Lockout triggers at threshold
-   - Lockout expires after duration
-   - Successful login resets attempts
+4. **MFA Enrollment Flow**
+   - ✅ QR code displays correctly
+   - ✅ Manual secret entry works
+   - ✅ Valid code enables MFA
+   - ✅ Backup codes generated and displayed
 
-### Integration Tests
+5. **MFA Login Flow**
+   - ✅ Multi-step login works (W-109)
+   - ✅ TOTP verification successful
+   - ✅ Backup code verification works
+   - ✅ Failed attempts tracked
 
-1. **MFA Enrollment Flow**
-   - Setup returns valid QR code
-   - Valid verification code enables MFA
-   - Invalid code doesn't enable MFA
-   - Backup codes are returned after setup
+6. **Lockout & Recovery**
+   - ✅ Lockout triggers after max failed attempts
+   - ✅ Admin can unlock user
+   - ✅ Admin can reset user MFA
+   - ✅ Backup codes work for recovery
 
-2. **MFA Login Flow**
-   - Password-only login returns MFA challenge
-   - Valid TOTP completes login
-   - Invalid TOTP returns error
-   - Backup code works as alternative
+### Unit Tests (Deferred)
 
-3. **Hook Integration**
-   - Hooks are called in correct order
-   - Context modifications persist
-   - Multiple plugins can coexist
+Future work: Add unit tests for TOTP generation, validation, backup codes, and lockout logic.
 
 ---
 
@@ -641,38 +640,44 @@ Rendered automatically in `/admin/user-profile.shtml` using `adminCard` schema:
 
 ## Deliverables
 
-- [ ] Plugin structure (`plugins/auth-mfa/`)
-- [ ] Plugin manifest (`plugin.json`) with config schema
-- [ ] Controller with hook implementations (`webapp/controller/mfaAuth.js`)
-- [ ] Model with W-107 schema extension (`webapp/model/mfaAuth.js`)
-- [ ] API routes for MFA operations
-- [ ] Setup view (`webapp/view/auth/mfa-setup.shtml`)
-- [ ] Verify view (`webapp/view/auth/mfa-verify.shtml`)
-- [ ] Schema action handlers (`webapp/view/jpulse-common.js`)
-- [ ] User MFA page (`webapp/view/jpulse-plugins/auth-mfa.shtml`)
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Documentation (`docs/README.md`)
-- [ ] Translations (en, de)
+- [x] Plugin structure (`plugins/auth-mfa/`)
+- [x] Plugin manifest (`plugin.json`) with config schema
+- [x] Controller with hook implementations (`webapp/controller/mfaAuth.js`)
+- [x] Model with W-107 schema extension (`webapp/model/mfaAuth.js`)
+- [x] API routes for MFA operations
+- [x] Setup view (`webapp/view/auth/mfa-setup.shtml`)
+- [x] Verify view (`webapp/view/auth/mfa-verify.shtml`)
+- [x] Schema action handlers (`webapp/view/jpulse-common.js`)
+- [x] User MFA page (`webapp/view/jpulse-plugins/auth-mfa.shtml`)
+- [x] Version management (`webapp/bump-version.conf`)
+- [x] Documentation (`docs/README.md`)
+- [x] Translations (en, de)
+- [ ] Unit tests (deferred - manual testing complete)
+- [ ] Integration tests (deferred - manual testing complete)
 
 ---
 
-## Estimated Effort
+## Effort Summary
 
-| Component | Effort |
-|-----------|--------|
-| Plugin scaffold & config | 2h |
-| Controller & hooks | 4h |
-| Model with W-107 schema (adminCard/userCard) | 3h |
-| API endpoints | 3h |
-| UI views (setup, verify, jpulse-plugins) | 4h |
-| Schema action handlers (jpulse-common.js) | 1h |
-| Unit tests | 3h |
-| Integration tests | 3h |
-| Documentation | 2h |
-| **Total** | **~25h** |
+| Component | Estimated | Actual |
+|-----------|-----------|--------|
+| Plugin scaffold & config | 2h | 2h |
+| Controller & hooks | 4h | 5h |
+| Model with W-107 schema (adminCard/userCard) | 3h | 3h |
+| API endpoints | 3h | 3h |
+| UI views (setup, verify, jpulse-plugins) | 4h | 5h |
+| Schema action handlers (jpulse-common.js) | 1h | 1h |
+| W-109 hook integration | - | 3h |
+| W-110 toast queue integration | - | 1h |
+| Manual testing & bug fixes | - | 4h |
+| Version management (bump-version.conf) | - | 1h |
+| Documentation | 2h | 2h |
+| **Total** | **~19h** | **~30h** |
 
-**Note:** Admin MFA management (reset, unlock) is handled by W-107's data-driven cards - no separate admin page needed.
+**Notes:**
+- Admin MFA management (reset, unlock) handled by W-107's data-driven cards
+- Unit tests deferred - comprehensive manual testing completed
+- Additional effort for W-109/W-110 integration not in original estimate
 
 ---
 

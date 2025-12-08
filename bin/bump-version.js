@@ -5,7 +5,7 @@
  * @tagline         Version bump script for jPulse Framework
  * @description     Updates version numbers and release dates across all source files
  * @file            bin/bump-version.js
- * @version         1.3.11
+ * @version         1.3.12
  * @release         2025-12-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -26,6 +26,15 @@ function findBumpConfig() {
         const frameworkConfig = 'bin/bump-version.conf';
         if (fs.existsSync(frameworkConfig)) {
             return frameworkConfig;
+        }
+        return null; // Show instructions
+    }
+
+    // Plugin: has plugin.json in current directory
+    if (fs.existsSync('plugin.json')) {
+        const pluginConfig = 'webapp/bump-version.conf';
+        if (fs.existsSync(pluginConfig)) {
+            return pluginConfig;
         }
         return null; // Show instructions
     }
@@ -66,6 +75,10 @@ function detectContext() {
     if (fs.existsSync('bin/jpulse-framework.js')) {
         return 'framework';
     }
+    // Plugin: has plugin.json in current directory
+    if (fs.existsSync('plugin.json')) {
+        return 'plugin';
+    }
     // Site: everything else
     return 'site';
 }
@@ -75,7 +88,17 @@ function detectContext() {
  */
 function showConfigInstructions() {
     const context = detectContext();
-    const configPath = context === 'framework' ? 'bin/bump-version.conf' : 'site/webapp/bump-version.conf';
+    let configPath;
+    switch (context) {
+        case 'framework':
+            configPath = 'bin/bump-version.conf';
+            break;
+        case 'plugin':
+            configPath = 'webapp/bump-version.conf';
+            break;
+        default:
+            configPath = 'site/webapp/bump-version.conf';
+    }
 
     console.error(`\n❌ Configuration file not found: ${configPath}`);
     console.error('');
@@ -83,6 +106,9 @@ function showConfigInstructions() {
     if (context === 'site') {
         console.error('📖 See https://your-domain/jpulse/getting-started#version-management for configuration file format.');
         console.error(`💡 Or copy from template: cp node_modules/@jpulse-net/jpulse-framework/templates/webapp/bump-version.conf.tmpl ${configPath}`);
+    } else if (context === 'plugin') {
+        console.error('📖 See the hello-world plugin for an example configuration.');
+        console.error(`💡 Or copy from framework: cp ../../plugins/hello-world/webapp/bump-version.conf ${configPath}`);
     }
 }
 

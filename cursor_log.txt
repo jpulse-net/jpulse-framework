@@ -4026,3 +4026,217 @@ Document W-110 features in docs and jpulse-examples.
 ## Status
 ✅ ACCEPTED
 
+
+============================================================
+2025-12-07 23:50
+
+## User Request
+Enhance bin/bump-version.js to detect plugin context.
+
+## Changes
+
+**bin/bump-version.js**
+
+Updated `findBumpConfig()`:
+- Added plugin detection: checks for `plugin.json` in current directory
+- Plugin config path: `webapp/bump-version.conf`
+- Priority: framework > plugin > site
+
+Updated `detectContext()`:
+- Returns 'plugin' when `plugin.json` exists
+- Priority: framework > plugin > site
+
+Updated `showConfigInstructions()`:
+- Shows plugin-specific instructions
+- Suggests copying from hello-world plugin
+
+## Usage
+```bash
+# From plugin directory (has plugin.json)
+cd plugins/auth-mfa
+node ../../bin/bump-version.js 1.0.0
+
+# Will find: webapp/bump-version.conf
+```
+
+## Status
+✅ ACCEPTED
+
+
+============================================================
+2025-12-07 23:55
+
+## User Request
+Document plugin version management (bump script usage).
+
+## Changes
+
+**docs/plugins/creating-plugins.md**
+- Added "Version Management" section
+- Explains bump-version.conf location: `webapp/bump-version.conf`
+- Shows how to copy from hello-world plugin
+- Documents the `node ../../bin/bump-version.js` command
+- Notes that `npx jpulse bump` is for framework/site only
+
+## Plugin Bump Usage
+```bash
+cd plugins/your-plugin
+node ../../bin/bump-version.js 1.0.0
+```
+
+## Status
+✅ ACCEPTED
+
+
+============================================================
+2025-12-08 00:06
+
+## User Request
+Test plugin version bump after bin/bump-version.js enhancement.
+
+## Result
+Plugin version bump worked successfully!
+
+**Command:** node ../../bin/bump-version.js 0.9.1
+
+**Files Updated (12):**
+- README.md, package.json, plugin.json
+- webapp/bump-version.conf
+- webapp/controller/mfaAuth.js, webapp/model/mfaAuth.js
+- webapp/view/auth/mfa-setup.shtml, webapp/view/auth/mfa-verify.shtml
+- webapp/view/jpulse-common.css, webapp/view/jpulse-common.js
+- webapp/view/jpulse-navigation.js, webapp/view/jpulse-plugins/auth-mfa.shtml
+
+## Status
+ACCEPTED - Version bump working for plugins
+
+
+============================================================
+2025-12-08 00:25
+
+## User Request
+Release auth-mfa plugin v1.0.0
+
+## Release Steps Completed
+1. git add . (13 files staged)
+2. git commit -m "Release v1.0.0: Multi-factor authentication plugin"
+3. git tag v1.0.0
+4. git push origin main --tags
+5. npm publish (to GitHub Package Registry)
+
+## Published Package
+- Name: @jpulse-net/plugin-auth-mfa@1.0.0
+- Registry: GitHub Package Registry
+- Size: 23.9 kB (packed), 123.8 kB (unpacked)
+- Files: 13
+
+## Installation
+npx jpulse plugin install auth-mfa
+
+## Work Items Updated
+- W-108: status changed to DONE
+- Added full deliverables to DONE section
+
+## Status
+ACCEPTED - Plugin v1.0.0 released successfully
+
+
+============================================================
+2025-12-08 00:40
+
+## User Request
+Update W-108 working document for release status.
+
+## Changes to docs/dev/working/W-108-auth-mfa-plugin.md
+
+**Status Updated:**
+- Changed from "IN PROGRESS" to "COMPLETE (v1.0.0 released 2025-12-08)"
+- Added Release Info section with version, repo, npm package, install command
+
+**Hooks Updated (W-109 naming):**
+- Updated from old hook names to simplified W-109 naming
+- onAuthGetSteps, onAuthValidateStep, onAuthGetWarnings
+- Updated hook implementation examples
+
+**Login Flow Updated:**
+- Reflects W-109 multi-step authentication flow
+- Pending token mechanism documented
+
+**Related Work Items:**
+- Added W-110 (toast queue) and W-109 (multi-step auth)
+
+**Deliverables:**
+- Marked completed items with [x]
+- Added bump-version.conf
+- Noted unit/integration tests as deferred
+
+**Testing Section:**
+- Replaced planned unit tests with completed manual testing checklist
+- All MFA policies tested: required-all, admin-root, optional
+- Lockout, backup codes, admin reset all verified
+
+**Effort Summary:**
+- Added actual effort column
+- Total ~30h vs ~19h estimated (W-109/W-110 integration added)
+
+## Status
+ACCEPTED
+
+
+============================================================
+2025-12-08 01:10
+
+## Bug Fix
+Plugin CLI version detection bug (bin/plugin-manager-cli.js)
+
+## Problem
+getFrameworkVersion() was reading the dependency requirement from site 
+package.json (e.g., "^1.1.0") instead of the actual installed version.
+
+This caused: "Plugin requires jPulse >=1.3.8, current version is 1.1.0"
+Even though 1.3.11 was actually installed.
+
+## Fix
+Changed getFrameworkVersion() to read from:
+  node_modules/@jpulse-net/jpulse-framework/package.json
+
+Instead of extracting from site package.json dependencies.
+
+## Status
+ACCEPTED - Framework needs release/update for fix to reach sites
+
+
+============================================================
+2025-12-08 01:31
+
+## User Request
+Release prep for W-111, v1.3.12 (plugin installation bug fixes).
+
+## Changes
+
+**docs/dev/work-items.md**
+- Updated W-111 deliverables with actual fixes:
+  - bin/plugin-manager-cli.js: getFrameworkVersion() fix
+  - bin/bump-version.js: plugin context detection
+  - docs/plugins/creating-plugins.md: version management section
+
+**README.md**
+- Added v1.3.12 to Latest Release Highlights
+- Documents version detection fix and bump-version plugin support
+
+**docs/README.md**
+- Added v1.3.12 to Latest Release Highlights
+
+**docs/CHANGELOG.md**
+- Added full v1.3.12, W-111 section
+- Documents both bugs and fixes in detail
+
+**commit-message.txt**
+- Updated with W-111, v1.3.12 release notes
+- Follows standard format
+
+## Status
+ACCEPTED - Ready for version bump and release
+
+
+============================================================

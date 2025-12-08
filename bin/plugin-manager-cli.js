@@ -4,7 +4,7 @@
  * @tagline         Plugin management commands for jPulse Framework
  * @description     Handles plugin install, update, remove, enable, disable, list, info, publish
  * @file            bin/plugin-manager-cli.js
- * @version         1.3.11
+ * @version         1.3.12
  * @release         2025-12-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -447,15 +447,24 @@ function getFrameworkVersion(projectRoot) {
             if (pkg.name === '@jpulse-net/jpulse-framework') {
                 return pkg.version;
             }
-            // For sites, get from dependencies
-            const frameworkVersion = pkg.dependencies?.['@jpulse-net/jpulse-framework'];
-            if (frameworkVersion) {
-                return frameworkVersion.replace(/^[\^~]/, '');
+        } catch (error) {
+            // Ignore
+        }
+    }
+
+    // For sites, read actual installed version from node_modules
+    const installedPackageJson = path.join(projectRoot, 'node_modules', '@jpulse-net', 'jpulse-framework', 'package.json');
+    if (fs.existsSync(installedPackageJson)) {
+        try {
+            const pkg = JSON.parse(fs.readFileSync(installedPackageJson, 'utf8'));
+            if (pkg.version) {
+                return pkg.version;
             }
         } catch (error) {
             // Ignore
         }
     }
+
     return '1.3.8'; // Default fallback
 }
 

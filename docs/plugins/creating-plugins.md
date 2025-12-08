@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.3.11
+# jPulse Docs / Plugins / Creating Plugins v1.3.12
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -552,6 +552,34 @@ Note: Add additional pages as needed.
 5. **Configure settings**: `/admin/plugin-config.shtml?plugin=your-plugin`
 6. **Test API endpoints** in browser console
 7. **View plugin pages** in browser
+
+## Version Management
+
+Plugins can use the framework's bump-version script to update version numbers across all source files.
+
+### Configuration File
+
+Create `webapp/bump-version.conf` in your plugin directory with:
+
+- **filePatterns**: Glob patterns for files to process (e.g., `README.md`, `plugin.json`, `webapp/**/*.js`)
+- **fileUpdateRules**: Regex patterns for version strings in specific files (e.g., `"version": "x.x.x"`)
+- **headerUpdatePatterns**: Patterns for `@version` and `@release` in file headers
+
+See `plugins/auth-mfa/webapp/bump-version.conf` for a complete example.
+
+### Bumping Version
+
+From your plugin directory (must contain `plugin.json`):
+
+```bash
+cd plugins/your-plugin
+node ../../bin/bump-version.js 1.0.0
+node ../../bin/bump-version.js 1.0.1 2025-12-08  # with specific date
+```
+
+The script auto-detects plugin context and uses `webapp/bump-version.conf`.
+
+**Note:** The `npx jpulse bump` command is for framework and site use only. Plugins should use the direct `node` command as shown above.
 
 ## Next Steps
 

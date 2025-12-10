@@ -80,8 +80,7 @@ describe('AuthController', () => {
                     'controller.auth.loginSuccess': 'Login successful',
                     'controller.auth.loginInternalError': `Internal server error during login: ${context.error}`,
                     'controller.auth.logoutSuccessful': 'Logout successful',
-                    'controller.auth.logoutFailed': 'Failed to log out',
-                    'controller.auth.mfaRequired': 'Multi-factor authentication required'
+                    'controller.auth.logoutFailed': 'Failed to log out'
                 };
                 return translations[key] || key;
             })

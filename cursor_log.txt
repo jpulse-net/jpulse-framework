@@ -4240,3 +4240,163 @@ ACCEPTED - Ready for version bump and release
 
 
 ============================================================
+2025-12-08 12:58
+
+## Prompt
+Add hideInDropdown option to navigation items in jpulse-common.js to exclude items from app icon dropdown menu while keeping them in breadcrumbs.
+
+## Summary
+Added `hideInDropdown` property support to the jPulse navigation system:
+
+**webapp/view/jpulse-common.js**
+- Added `hideInDropdown` check in `_renderNavLevel` (desktop dropdown menu, ~line 2691)
+- Added `hideInDropdown` check in `_renderMobileNavLevel` (mobile hamburger menu, ~line 3210)
+- Items with `hideInDropdown: true` are skipped in both menus but still appear in breadcrumbs
+
+**Usage in jpulse-navigation.js**
+Navigation items that require URL parameters can now use:
+```javascript
+userProfile: {
+    label:          'User Profile',
+    url:            '/admin/user-profile.shtml',
+    icon:           '...',
+    hideInDropdown: true  // Show in breadcrumb only
+}
+```
+
+## Status
+ACCEPTED - Changes applied successfully
+
+
+============================================================
+2025-12-08 12:02
+
+## Prompt
+Update docs to document the new hideInDropdown field
+
+## Summary
+Updated `docs/site-navigation.md` to document the new `hideInDropdown` property:
+
+1. Added `hideInDropdown` to Optional Properties list
+2. Added new Pattern 6: "Breadcrumb-Only Pages (hideInDropdown)" with:
+   - Example code showing usage
+   - Use case explanation
+   - Behavior summary (appears in breadcrumbs, hidden from menus)
+3. Updated "Example with All Properties" to include `hideInDropdown`
+4. Renumbered Pattern 6 -> Pattern 7 (Complete Real-World Example)
+
+## Status
+ACCEPTED - Documentation updated
+
+
+============================================================
+2025-12-08 12:56
+
+## Bug Fix
+MFA disable fails with "data and hash must be strings"
+
+## Problem
+plugins/auth-mfa/webapp/controller/mfaAuth.js line 509:
+  verifyPassword(user, password) - WRONG
+
+Should be:
+  verifyPassword(password, user.passwordHash) - CORRECT
+
+UserModel.verifyPassword() expects (password, hash) not (user, password).
+
+## Fix
+Changed argument order in mfaAuth.apiDisable()
+
+## Status
+ACCEPTED
+
+
+============================================================
+2025-12-08 13:00
+
+## Bug Fix #2
+MFA disable shows conflicting UI (enabled + disabled buttons)
+
+## Problem
+After disabling MFA, loadMfaStatus() didn't properly reset all UI elements.
+Result: Both "Enable 2FA" and "Disable 2FA" buttons visible, stale info shown.
+
+## Fix
+plugins/auth-mfa/webapp/view/jpulse-plugins/auth-mfa.shtml:
+Changed success handler to reload page with deferred toast:
+
+  jPulse.url.redirect(window.location.href, {
+      toasts: [{ toastType: 'success', message: 'Two-factor authentication disabled' }]
+  });
+
+This ensures clean UI state after MFA disable.
+
+## Status
+ACCEPTED
+
+
+============================================================
+2025-12-08 13:37
+
+## Bug Fix
+hideInDropdown shows empty submenu with arrow
+
+## Problem
+When all child pages in a section have `hideInDropdown: true`, the parent item
+still shows an arrow (›) and renders an empty white submenu box.
+
+The `hasPages` check was done BEFORE filtering hidden items, so the arrow was
+added even though all children would be filtered out.
+
+## Fix
+webapp/view/jpulse-common.js:
+1. Added `_hasVisiblePages(pages)` helper function that checks if a pages
+   object has any visible items (excluding role-restricted and hideInDropdown items)
+2. Updated `_renderNavLevel` to use `_hasVisiblePages()` instead of just
+   checking if pages object exists
+3. Updated `_renderMobileNavLevel` to use the same helper
+
+## Status
+ACCEPTED
+
+
+============================================================
+2025-12-08 13:41
+
+## Bug Fix #3
+Admin can disable MFA even when policy requires it for admin role
+
+## Root Cause
+isMfaRequired() returned { required: true, reason: 'enabled' } when MFA was
+already enabled, WITHOUT checking the policy. This bypassed the policy check.
+
+Backend check: `mfaRequired.reason !== 'enabled'` was FALSE (allowed disable)
+
+## Fix
+plugins/auth-mfa/webapp/model/mfaAuth.js - isMfaRequired():
+- Check policy FIRST before checking if enabled
+- Return policy reason (role-required, policy-required) when policy applies
+- Only return reason: 'enabled' if policy is optional and MFA is on
+
+plugins/auth-mfa/webapp/view/jpulse-plugins/auth-mfa.shtml:
+- Hide disable button (display:none) instead of just disabling it
+
+## Status
+ACCEPTED
+
+
+============================================================
+2025-12-08 17:25
+
+## Auth-MFA Plugin: Documentation Update
+plugins/auth-mfa/README.md - Plugin Releases section
+
+Updated release notes with proper single-paragraph descriptions:
+- v1.0.1: Bug fixes (verifyPassword, UI refresh, policy bypass, hide button)
+- v1.0.0: Initial release features
+
+## Status
+ACCEPTED - Will be included in next plugin release
+
+
+============================================================

@@ -2670,6 +2670,28 @@ window.jPulse = {
             },
 
             /**
+             * Check if a pages object has any visible items (not hidden by role or hideInDropdown)
+             * @param {Object} pages - Pages object to check
+             * @returns {boolean} True if there are visible pages
+             */
+            _hasVisiblePages: (pages) => {
+                if (!pages || typeof pages !== 'object') {
+                    return false;
+                }
+                return Object.values(pages).some(page => {
+                    // Skip if role restriction not met
+                    if (page.role && !jPulse.UI.navigation._userRoles.includes(page.role)) {
+                        return false;
+                    }
+                    // Skip if hidden in dropdown
+                    if (page.hideInDropdown) {
+                        return false;
+                    }
+                    return true;
+                });
+            },
+
+            /**
              * Render a level of navigation hierarchy
              * @param {Object} navStructure - Navigation structure object
              * @param {number} depth - Current depth level
@@ -2688,9 +2710,15 @@ window.jPulse = {
                         return;  // Skip this item
                     }
 
+                    // Check hideInDropdown flag (breadcrumb-only items)
+                    if (item.hideInDropdown) {
+                        return;  // Skip this item in dropdown menu
+                    }
+
                     // Check for registered dynamic pages
                     const pages = jPulse.UI.navigation._registeredPages[key] || item.pages;
-                    const hasPages = pages && Object.keys(pages).length > 0;
+                    // Only show submenu arrow if there are visible pages (not all hidden)
+                    const hasPages = jPulse.UI.navigation._hasVisiblePages(pages);
 
                     // Build CSS classes
                     const classes = ['jp-nav-item'];
@@ -3206,7 +3234,13 @@ window.jPulse = {
                         return;
                     }
 
-                    const hasSubmenu = item.pages && Object.keys(item.pages).length > 0;
+                    // Check hideInDropdown flag (breadcrumb-only items)
+                    if (item.hideInDropdown) {
+                        return;  // Skip this item in mobile menu
+                    }
+
+                    // Only show submenu if there are visible pages (not all hidden)
+                    const hasSubmenu = jPulse.UI.navigation._hasVisiblePages(item.pages);
 
                     html += `<li class="jp-mobile-nav-item${hasSubmenu ? ' jp-has-submenu' : ''}">`;
 

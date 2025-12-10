@@ -243,7 +243,31 @@ window.jPulseNavigation.site.admin.pages.websocket = null;
 
 ---
 
-### Pattern 6: Complete Real-World Example
+### Pattern 6: Breadcrumb-Only Pages (hideInDropdown)
+
+Some pages require URL parameters and shouldn't appear in navigation menus, but should still show in breadcrumbs for the "where am I?" context:
+
+```javascript
+// Page requires URL parameters (e.g., /admin/user-profile.shtml?userId=123)
+// Hide from dropdown menu but show in breadcrumbs
+window.jPulseNavigation.site.admin.pages.users.pages.userProfile = {
+    label: 'User Profile',
+    url: '/admin/user-profile.shtml',
+    icon: '👤',
+    hideInDropdown: true  // Won't appear in menus, only in breadcrumbs
+};
+```
+
+**Use Case:** Detail pages that require parameters from a parent page (user profile, order details, etc.). Users navigate to these pages via links in parent pages, not through menu navigation.
+
+**Behavior:**
+- ✅ Appears in breadcrumbs: `Home > Admin > Users > User Profile`
+- ❌ Hidden from desktop dropdown menu
+- ❌ Hidden from mobile hamburger menu
+
+---
+
+### Pattern 7: Complete Real-World Example
 
 Typical production site configuration:
 
@@ -345,6 +369,7 @@ Each navigation item supports these properties:
 - `icon` (string) - Icon (emoji or SVG component)
 - `role` (string) - Required user role for visibility (e.g., 'admin', 'user')
 - `pages` (object) - Nested child pages
+- `hideInDropdown` (boolean) - Hide from dropdown/hamburger menu but show in breadcrumbs, default false
 
 ### Example with All Properties
 
@@ -354,10 +379,16 @@ mySection: {
     url: '/my-section/',                // Optional
     icon: '🚀',                         // Optional
     role: 'user',                       // Optional (visible to role only)
+    hideInDropdown: false,              // Optional (do not hide in dropdown, default)
     pages: {                            // Optional (nested pages)
         page1: {
             label: 'Page 1',
             url: '/my-section/page1.shtml'
+        },
+        detailPage: {
+            label: 'Detail Page',
+            url: '/my-section/detail.shtml',
+            hideInDropdown: true        // Requires URL params, hence show in breadcrumbs only
         }
     }
 }

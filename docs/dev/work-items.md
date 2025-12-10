@@ -2693,19 +2693,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/plugins/creating-plugins.md: version management section
   - bin/bump-version.js: plugin context detection
 
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-111, v1.3.12, 2025-12-08: deploy: bug fixes for plugin installations
 - status: ✅ DONE
 - type: Bug Fix
@@ -2733,6 +2720,67 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-112, v1.3.13, 2025-12-09: metrics: strategy to report vital statistics of components
+- status: 🕑 PENDING
+- type: Feature
+- objective: standard way for components to report vital statistics used by metrics
+- working document: docs/dev/working/W-112-metrics-get-stats-strategy.md
+- features:
+  - standardized `getStats()` method with consistent return structure (component, status, initialized, stats, meta, timestamp)
+  - field-level metadata system (visualize, global, sanitize, aggregate) with system defaults and opt-out model
+  - statsRegistry utility for dynamic component registration and auto-discovery
+  - cluster-wide aggregation of component stats with support for sum, avg, max, min, first, count, concat
+  - global fields support for database-backed stats (same across instances, use 'first' aggregation)
+  - component stats sanitization for non-admin users (field-level control)
+  - plugin stats registration via `onGetInstanceStats` hook
+  - integration with existing health metrics API and Redis broadcasting
+  - support for nested fields in stats objects
+  - historical stats windows (stats5m, stats1h) - Phase 2
+- deliverables:
+  - webapp/utils/stats-registry.js:
+    - statsRegistry class for component registration and discovery
+    - support for sync and async getStats() methods
+  - Updated components with getStats() method:
+    - webapp/utils/plugin-manager.js (replace getStatistics() with getStats())
+    - webapp/utils/hook-manager.js (update to new structure)
+    - webapp/utils/site-controller-registry.js (update to new structure)
+    - webapp/utils/context-extensions.js (update to new structure)
+    - webapp/utils/cache-manager.js (update to new structure)
+    - webapp/utils/redis-manager.js (new getStats() method)
+    - webapp/model/user.js (already has getStats(), update to new structure)
+  - webapp/controller/health.js:
+    - _collectComponentStats() method with dynamic discovery
+    - _aggregateComponentStats() method with field-level metadata support
+    - _sanitizeComponentStats() method with field-level control
+    - Integration into _getCurrentInstanceHealthData() and _buildClusterStatistics()
+  - webapp/utils/hook-manager.js:
+    - onGetInstanceStats hook definition
+  - plugins/auth-mfa:
+    - stats registration via onGetInstanceStats hook
+  - Documentation:
+    - API reference for getStats() convention
+    - plugin development guide with stats registration examples
+    - metrics API documentation updates
+
+
+
+
+
+
+To list in upcoming release:
+- site nav structure: hideInDropdown flag to exclude item from site pulldown, e.g. only for breadcrumb: 🏠 Startseite ❯ ⚙️ Site-Administration ❯ Benutzer ❯ Benutzer Verwalten
+
+
+
+
+
 ### Pending
 
 pending:
@@ -2740,13 +2788,10 @@ pending:
 
 old pending:
 - view controller: return unexpanded `{{handlebars}}` if not exist, instead of empty return
-- navigation.tmpl: remove jPulse Tabs Navigation comment help, add to docs
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
 - add SiteControllerRegistry.getStats() to metrics api & system-status
-- /api/1/user/ptester10 -- make this work: 1. test _id, 2. fallback to username, else fail
-- site nav structure: flag to exclude item from site pulldown, e.g. only for breadcrumb: 🏠 Startseite ❯ ⚙️ Site-Administration ❯ Benutzer ❯ Benutzer Verwalten
 
 ### Potential next items:
 - W-068: view: create responsive sidebar

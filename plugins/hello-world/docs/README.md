@@ -1,4 +1,4 @@
-# jPulse Docs / Installed Plugins / Hello World Plugin v1.3.12
+# jPulse Docs / Installed Plugins / Hello World Plugin v1.3.13
 
 Welcome to the Hello World plugin! This is a demonstration plugin that showcases the jPulse Framework's plugin architecture.
 

@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -495,9 +495,11 @@ class UserModel {
     /**
      * Get user statistics using MongoDB aggregation
      * Efficient single-query approach for dashboard stats
+     * Note: This method returns raw stats (not W-112 format)
+     * For W-112 metrics format, use UserController.getMetrics()
      * @returns {Promise<object>} User statistics
      */
-    static async getStats() {
+    static async getUserStats() {
         try {
             const collection = this.getCollection();
             const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];

@@ -3,8 +3,8 @@
  * @tagline         Redis connection management with cluster support and graceful fallback
  * @description     Manages Redis connections for sessions, WebSocket, broadcasting, and metrics
  * @file            webapp/utils/redis-manager.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -84,6 +84,21 @@ class RedisManager {
         }
 
         RedisManager.instance = RedisManager;
+
+        // Register metrics provider (W-112)
+        (async () => {
+            try {
+                const MetricsRegistry = (await import('./metrics-registry.js')).default;
+                MetricsRegistry.register('redis', () => RedisManager.getMetrics(), {
+                    async: false,
+                    category: 'util'
+                });
+            } catch (error) {
+                // MetricsRegistry might not be available yet, will be registered later
+                console.warn('RedisManager: Failed to register stats provider:', error.message);
+            }
+        })();
+
         return RedisManager.instance;
     }
 
@@ -792,6 +807,69 @@ class RedisManager {
         health.connections.metrics = await testConnection('metrics', RedisManager.connections.metrics);
 
         return health;
+    }
+
+    /**
+     * Get Redis statistics (standardized getStats() format)
+     * @returns {Object} Component stats with standardized structure
+     */
+    static getMetrics() {
+        // Count active connections
+        const connectionCounts = {
+            session: this.connections.session ? 1 : 0,
+            websocket: (this.connections.websocket?.publisher ? 1 : 0) +
+                      (this.connections.websocket?.subscriber ? 1 : 0),
+            broadcast: (this.connections.broadcast?.publisher ? 1 : 0) +
+                      (this.connections.broadcast?.subscriber ? 1 : 0),
+            metrics: this.connections.metrics ? 1 : 0
+        };
+        const activeConnections = Object.values(connectionCounts).reduce((a, b) => a + b, 0);
+
+        return {
+            component: 'RedisManager',
+            status: this.isAvailable ? 'ok' : 'error',
+            initialized: this.instance !== null,
+            stats: {
+                isAvailable: this.isAvailable,
+                mode: this.config?.mode || 'single',
+                activeConnections,
+                subscribedChannels: this.subscribedChannels.size,
+                messagesProcessed: this.recentlyProcessedMessages.size,
+                connectionDetails: connectionCounts,
+                config: this.config  // Sensitive, will be sanitized
+            },
+            meta: {
+                ttl: 30000,  // 30 seconds
+                category: 'util',
+                fields: {
+                    'isAvailable': {
+                        aggregate: 'count'  // Count instances with Redis
+                    },
+                    'mode': {
+                        aggregate: 'first'  // Same everywhere
+                    },
+                    'activeConnections': {
+                        aggregate: 'sum'    // Total connections cluster-wide
+                    },
+                    'subscribedChannels': {
+                        aggregate: 'first'  // Same channels
+                    },
+                    'messagesProcessed': {
+                        aggregate: 'sum'    // Total messages
+                    },
+                    'connectionDetails': {
+                        aggregate: false,   // Complex object, don't aggregate
+                        visualize: false    // Don't visualize in UI
+                    },
+                    'config': {
+                        aggregate: false,   // Complex object, don't aggregate
+                        sanitize: true,     // Override: sanitize config details
+                        visualize: false    // Override: don't show in UI
+                    }
+                }
+            },
+            timestamp: new Date().toISOString()
+        };
     }
 }
 

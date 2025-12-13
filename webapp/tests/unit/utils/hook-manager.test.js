@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for HookManager
  * @description     Tests for plugin hook registration and execution system
  * @file            webapp/tests/unit/utils/hook-manager.test.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -282,17 +282,17 @@ describe('HookManager', () => {
         });
     });
 
-    describe('getStats', () => {
-        test('should return hook statistics', () => {
+    describe('getMetrics', () => {
+        test('should return hook metrics', () => {
             HookManager.register('onAuthBeforeLogin', 'plugin1', jest.fn());
             HookManager.register('onAuthBeforeLogin', 'plugin2', jest.fn());
             HookManager.register('onUserBeforeSave', 'plugin1', jest.fn());
 
-            const stats = HookManager.getStats();
+            const metrics = HookManager.getMetrics();
 
-            expect(stats.available).toBeGreaterThan(0);
-            expect(stats.registered).toBe(3);
-            expect(stats.hooksWithHandlers).toBe(2);
+            expect(metrics.stats.available).toBeGreaterThan(0);
+            expect(metrics.stats.registered).toBe(3);
+            expect(metrics.stats.hooksWithHandlers).toBe(2);
         });
     });
 
@@ -303,8 +303,8 @@ describe('HookManager', () => {
 
             HookManager.clear();
 
-            expect(HookManager.getStats().registered).toBe(0);
-            expect(HookManager.getStats().hooksWithHandlers).toBe(0);
+            expect(HookManager.getMetrics().stats.registered).toBe(0);
+            expect(HookManager.getMetrics().stats.hooksWithHandlers).toBe(0);
         });
     });
 

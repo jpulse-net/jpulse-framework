@@ -3,8 +3,8 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -118,6 +118,20 @@ class WebSocketController {
 
             // Start health checks
             this._startHealthChecks();
+
+            // Register metrics provider (W-112)
+            (async () => {
+                try {
+                    const MetricsRegistry = (await import('../utils/metrics-registry.js')).default;
+                    MetricsRegistry.register('websocket', () => WebSocketController.getMetrics(), {
+                        async: false,
+                        category: 'controller'
+                    });
+                } catch (error) {
+                    // MetricsRegistry might not be available yet, will be registered later
+                    console.warn('WebSocketController: Failed to register metrics provider:', error.message);
+                }
+            })();
 
             LogController.logInfo(null, 'websocket.initialize', 'WebSocket server initialized successfully');
 
@@ -285,22 +299,28 @@ class WebSocketController {
         this._recordMessage(namespace);
     }
 
+
     /**
-     * Get all statistics for admin page
-     * @returns {Object} Complete statistics
+     * Get WebSocket metrics (standardized getMetrics() format for W-112)
+     * @returns {Object} Component metrics with standardized structure
      */
-    static getStats() {
-        const uptime = Date.now() - this.stats.startTime;
+    static getMetrics() {
+        // Convert to seconds for consistency
+        const uptime = Math.floor((Date.now() - this.stats.startTime) / 1000);
+        let totalConnections = 0;
         const namespaceStats = [];
 
         this.namespaces.forEach((namespace, path) => {
+            const clientCount = namespace.clients.size;
+            totalConnections += clientCount;
+
             // Calculate status
             const timeSinceActivity = Date.now() - namespace.stats.lastActivity;
             let status;
             const inactiveTimeout = global.appConfig?.controller?.websocket?.statusTimeouts?.inactive || 1800000;
             const warningTimeout = global.appConfig?.controller?.websocket?.statusTimeouts?.warning || 300000;
 
-            if (timeSinceActivity > inactiveTimeout || namespace.clients.size === 0) {
+            if (timeSinceActivity > inactiveTimeout || clientCount === 0) {
                 status = 'red';
             } else if (timeSinceActivity > warningTimeout) {
                 status = 'yellow';
@@ -308,7 +328,7 @@ class WebSocketController {
                 status = 'green';
             }
 
-            // Count active authenticated users
+            // Count active authenticated users (for admin status page)
             const activeUsers = new Set();
             namespace.clients.forEach((client) => {
                 if (client.user) {
@@ -319,19 +339,65 @@ class WebSocketController {
             namespaceStats.push({
                 path,
                 status,
-                clientCount: namespace.clients.size,
-                activeUsers: activeUsers.size,
-                messagesPerMin: this._calculateMessagesPerMinute(namespace),
+                clientCount,
                 totalMessages: namespace.stats.totalMessages,
-                lastActivity: new Date(namespace.stats.lastActivity).toISOString()
+                lastActivity: new Date(namespace.stats.lastActivity).toISOString(),
+                // Additional fields for admin status page (visualize: false)
+                activeUsers: activeUsers.size,
+                messagesPerMin: this._calculateMessagesPerMinute(namespace)
             });
         });
 
+        // Determine overall status based on namespaces
+        let overallStatus = 'ok';
+        const hasRedNamespaces = namespaceStats.some(ns => ns.status === 'red');
+        const hasYellowNamespaces = namespaceStats.some(ns => ns.status === 'yellow');
+        if (hasRedNamespaces) {
+            overallStatus = 'error';
+        } else if (hasYellowNamespaces) {
+            overallStatus = 'warning';
+        }
+
         return {
-            uptime,
-            totalMessages: this.stats.totalMessages,
-            namespaces: namespaceStats,
-            activityLog: this.stats.activityLog.slice(-(global.appConfig?.controller?.websocket?.activityLogMaxSize || 100))
+            component: 'WebSocketController',
+            status: overallStatus,
+            initialized: this.wss !== null,
+            stats: {
+                uptime,
+                totalConnections,
+                totalMessages: this.stats.totalMessages,
+                totalNamespaces: this.namespaces.size,
+                namespaces: namespaceStats,
+                // Additional field for admin status page (visualize: false)
+                activityLog: this.stats.activityLog.slice(-(global.appConfig?.controller?.websocket?.activityLogMaxSize || 100))
+            },
+            meta: {
+                ttl: 0,  // Fast, no caching needed
+                category: 'controller',
+                fields: {
+                    'uptime': {
+                        aggregate: 'max'  // Longest uptime across instances
+                    },
+                    'totalConnections': {
+                        aggregate: 'sum'  // Sum connections across instances
+                    },
+                    'totalMessages': {
+                        aggregate: 'sum'  // Sum messages across instances
+                    },
+                    'totalNamespaces': {
+                        aggregate: 'first'  // Same across instances
+                    },
+                    'namespaces': {
+                        aggregate: false,   // Complex object, don't aggregate
+                        visualize: false    // Don't visualize in UI (too complex)
+                    },
+                    'activityLog': {
+                        aggregate: false,   // Complex array, don't aggregate
+                        visualize: false    // Only for admin status page
+                    }
+                }
+            },
+            timestamp: new Date().toISOString()
         };
     }
 
@@ -342,7 +408,14 @@ class WebSocketController {
     static async websocketStatus(req, res) {
         LogController.logRequest(req, 'websocket.websocketStatus', '');
 
-        const stats = this.getStats();
+        const metrics = this.getMetrics();
+        // Extract stats in format expected by websocket-status.shtml
+        const stats = {
+            uptime: metrics.stats.uptime,
+            totalMessages: metrics.stats.totalMessages,
+            namespaces: metrics.stats.namespaces,
+            activityLog: metrics.stats.activityLog
+        };
 
         return ViewController.render(req, res, 'admin/websocket-status.shtml', {
             pageTitle: 'WebSocket Status',
@@ -695,8 +768,14 @@ class WebSocketController {
             requireAuth: true,
             requireRoles: global.appConfig?.user?.adminRoles || ['admin', 'root'],
             onConnect: (clientId, user) => {
-                // Send initial stats
-                const stats = this.getStats();
+                // Send initial stats (extract from metrics)
+                const metrics = this.getMetrics();
+                const stats = {
+                    uptime: metrics.stats.uptime,
+                    totalMessages: metrics.stats.totalMessages,
+                    namespaces: metrics.stats.namespaces,
+                    activityLog: metrics.stats.activityLog
+                };
                 this.sendToClient(clientId, '/api/1/ws/jpulse-ws-status', {
                     type: 'stats-update',
                     data: stats
@@ -711,7 +790,13 @@ class WebSocketController {
                         return;
                     }
 
-                    const stats = this.getStats();
+                    const metrics = this.getMetrics();
+                    const stats = {
+                        uptime: metrics.stats.uptime,
+                        totalMessages: metrics.stats.totalMessages,
+                        namespaces: metrics.stats.namespaces,
+                        activityLog: metrics.stats.activityLog
+                    };
                     this.sendToClient(clientId, '/api/1/ws/jpulse-ws-status', {
                         type: 'stats-update',
                         data: stats

@@ -3,8 +3,8 @@
  * @tagline         Jest Global Teardown
  * @description     Global teardown for Jest tests runs once after all tests complete
  * @file            webapp/tests/setup/global-teardown.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -68,6 +68,15 @@ async function cleanupRedisAndCache() {
             console.log('⏱️  Cache cleanup: CacheManager timers stopped successfully');
         } else {
             console.log('⏱️  Cache cleanup: No CacheManager timers to stop');
+        }
+
+        // Clean up TimeBasedCounter timers (W-112)
+        const { default: CounterManager } = await import('../../utils/time-based-counters.js');
+        if (CounterManager && typeof CounterManager.stopAllCleanup === 'function') {
+            CounterManager.stopAllCleanup();
+            console.log('⏱️  Counter cleanup: TimeBasedCounter timers stopped successfully');
+        } else {
+            console.log('⏱️  Counter cleanup: No TimeBasedCounter timers to stop');
         }
     } catch (error) {
         console.log('🧽 Redis/Cache cleanup: Ensuring all connections and timers are stopped');

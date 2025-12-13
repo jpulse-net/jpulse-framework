@@ -5,8 +5,8 @@
  *                  for non-admin users in the _sanitizeMetricsData() method!
  * @description     This is the health controller for the jPulse Framework WebApp
  * @file            webapp/controller/health.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -17,14 +17,25 @@
 import LogController from './log.js';
 import WebSocketController from './websocket.js';
 import AuthController from './auth.js';
+import HookManager from '../utils/hook-manager.js';
+import MetricsRegistry from '../utils/metrics-registry.js';
 import os from 'os';
 import process from 'process';
 
 /**
  * Health Controller - handles /api/1/health/status and /api/1/health/metrics REST API endpoints
  * W-076: Enhanced with Redis-based clustering for multi-instance health aggregation
+ * W-112: Component stats aggregation and sanitization
  */
 class HealthController {
+
+    // System defaults for component stats metadata (W-112)
+    static SYSTEM_DEFAULTS = {
+        visualize: true,    // Fields are visualized by default
+        global: false,       // Fields are instance-specific by default
+        sanitize: false,     // Fields are not sanitized by default
+        aggregate: 'sum'     // Fields are aggregated with 'sum' by default
+    };
 
     // Instance health data cache
     static instanceHealthCache = new Map();
@@ -51,61 +62,53 @@ class HealthController {
             cacheInterval: (healthConfig.cacheInterval || 15) * 1000,        // Convert seconds to ms
             instanceTTL: (healthConfig.instanceTTL || 45) * 1000,            // 45s = 1.5x broadcast interval (was 90s)
             enableBroadcasting: global.appConfig?.redis?.enabled !== false,   // Use Redis enabled status
-            omitStatusLogs: healthConfig.omitStatusLogs || false,
-            // W-087: Component health status providers (instance-specific)
-            componentProviders: healthConfig.componentProviders || [
-                { name: 'email', provider: 'EmailController', method: 'getHealthStatus' }
-            ]
+            omitStatusLogs: healthConfig.omitStatusLogs || false
+            // W-112: Component stats are now collected via StatsRegistry and _collectComponentStats()
+            // Removed componentProviders - no longer needed
         };
     }
 
+
     /**
-     * Add component health statuses to instance object
-     * @param {object} instance - Instance object to add components to
-     * @returns {object} Instance object with component health statuses added
+     * Collect component stats from all registered providers
+     * @returns {Promise<Object>} Components object with all component stats
      * @private
      */
-    static _addComponentHealthStatuses(instance) {
-        const timestamp = new Date().toISOString();
-        const componentProviders = this.config.componentProviders || [];
+    static async _collectComponentStats() {
+        const components = {};
 
-        componentProviders.forEach(component => {
+        // Collect from all registered providers
+        for (const [name, provider] of MetricsRegistry.providers) {
+            const startTime = Date.now();
             try {
-                const provider = global[component.provider];
-                if (provider && typeof provider[component.method] === 'function') {
-                    const healthStatus = provider[component.method]();
-                    // Normalize null values to empty string/object for easier parsing
-                    // Add timestamp from HealthController (not from component)
-                    instance[component.name] = {
-                        ...healthStatus,
-                        message: healthStatus.message ?? '',
-                        details: healthStatus.details ?? {},
-                        timestamp: timestamp
-                    };
+                if (provider.async) {
+                    components[name] = await provider.getMetrics();
                 } else {
-                    // Provider not available or method doesn't exist
-                    instance[component.name] = {
-                        status: 'not_configured',
-                        configured: false,
-                        message: `${component.provider} not initialized`,
-                        details: {}, // Empty object instead of null for easier parsing
-                        timestamp: timestamp
-                    };
+                    components[name] = provider.getMetrics();
+                }
+                // Add elapsed time to component object
+                if (components[name]) {
+                    components[name].elapsed = Date.now() - startTime;
                 }
             } catch (error) {
-                LogController.logError(null, 'health._addComponentHealthStatuses',
-                    `error: Failed to get health status for ${component.name}: ${error.message}`);
-                instance[component.name] = {
-                    status: 'error',
-                    configured: false,
-                    message: `Error getting ${component.name} health status: ${error.message}`,
-                    details: {}, // Empty object instead of null for easier parsing
-                    timestamp: timestamp
-                };
+                LogController.logError(null, 'health._collectComponentStats',
+                    `${name}.getMetrics() failed: ${error.message}`);
+                // Continue with other components even if one fails
             }
-        });
+        }
 
-        return instance;
+        // Plugin stats via hook (plugins register their own stats)
+        // HookManager.execute() already tracks elapsed time per plugin component
+        try {
+            let pluginContext = { stats: {}, instanceId: global.appConfig.system.instanceId };
+            pluginContext = await HookManager.execute('onGetInstanceStats', pluginContext);
+            Object.assign(components, pluginContext.stats);
+        } catch (error) {
+            LogController.logError(null, 'health._collectComponentStats',
+                `onGetInstanceStats hook failed: ${error.message}`);
+        }
+
+        return components;
     }
 
     /**
@@ -305,7 +308,19 @@ class HealthController {
 
             // Additional metrics for admin users
             if (isAuthorized) {
-                const wsStats = WebSocketController.getStats();
+                // Get WebSocket metrics in new format and extract stats for compatibility
+                const wsMetrics = WebSocketController.getMetrics();
+                const wsStats = {
+                    uptime: wsMetrics.stats.uptime,
+                    totalMessages: wsMetrics.stats.totalMessages,
+                    namespaces: wsMetrics.stats.namespaces.map(ns => ({
+                        path: ns.path,
+                        clientCount: ns.clientCount,
+                        totalMessages: ns.totalMessages,
+                        status: ns.status,
+                        lastActivity: ns.lastActivity
+                    }))
+                };
                 const systemInfo = {
                     platform: os.platform(),
                     arch: os.arch(),
@@ -316,7 +331,7 @@ class HealthController {
                     freeMemory: Math.round(os.freemem() / 1024 / 1024), // MB
                     totalMemory: Math.round(os.totalmem() / 1024 / 1024), // MB
                     uptime: Math.floor(os.uptime()),
-                    uptimeFormatted: HealthController._formatUptime(os.uptime())
+                    uptimeFormatted: global.CommonUtils.formatUptime(os.uptime())
                 };
 
                 // Get PM2 status
@@ -342,9 +357,12 @@ class HealthController {
                 HealthController._sanitizeMetricsData(baseMetrics.data);
             }
 
+            // Add total elapsed time to response
+            const duration = Date.now() - startTime;
+            baseMetrics.elapsed = duration;
+
             res.json(baseMetrics);
 
-            const duration = Date.now() - startTime;
             LogController.logInfo(req, 'health.metrics',
                 `success: completed in ${duration}ms (isAuthorized: ${isAuthorized})`);
 
@@ -393,14 +411,97 @@ class HealthController {
                     Object.keys(instance.processInfo.resourceUsage).forEach(key => {
                         instance.processInfo.resourceUsage[key] = 99999;
                     });
-                    // Sanitize component health statuses (W-087)
-                    // Email component: obfuscate adminEmail
-                    if (instance.email && instance.email.details && instance.email.details.adminEmail) {
-                        instance.email.details.adminEmail = '********@********';
+                    // W-112: Sanitize component stats (replaces old W-087 component health statuses)
+                    if (instance.components) {
+                        instance.components = this._sanitizeComponentStats(
+                            instance.components,
+                            false  // isAdmin = false for sanitization
+                        );
                     }
-                    // Note: handlebars and view components don't contain sensitive data
                 });
             });
+        }
+
+        // W-112: Also sanitize aggregated components in statistics
+        if (metricsData.statistics?.components) {
+            // Note: aggregated stats typically don't need sanitization
+            // but sanitize if any sensitive aggregated data exists
+            metricsData.statistics.components = this._sanitizeComponentStats(
+                metricsData.statistics.components,
+                false  // isAdmin = false for sanitization
+            );
+        }
+    }
+
+    /**
+     * W-112: Sanitize component stats for non-admin users
+     * @param {Object} components - Components object to sanitize
+     * @param {boolean} isAdmin - Whether the user is an admin
+     * @returns {Object} Sanitized components object
+     * @private
+     */
+    static _sanitizeComponentStats(components, isAdmin) {
+        if (isAdmin) return components;
+
+        const sanitized = JSON.parse(JSON.stringify(components)); // Deep clone
+
+        for (const [componentName, component] of Object.entries(sanitized)) {
+            const fieldsMeta = component.meta?.fields || {};
+            const componentMeta = component.meta || {};
+
+            // Recursively check all fields (including nested) in stats object
+            if (component.stats) {
+                this._sanitizeFields(sanitized[componentName].stats, fieldsMeta, componentMeta, '');
+            }
+        }
+
+        return sanitized;
+    }
+
+    /**
+     * W-112: Recursively sanitize fields in stats object
+     * @param {Object} statsObj - Stats object to sanitize
+     * @param {Object} fieldsMeta - Field metadata from component.meta.fields
+     * @param {Object} componentMeta - Component-level metadata
+     * @param {string} path - Current path prefix for nested fields
+     * @private
+     */
+    static _sanitizeFields(statsObj, fieldsMeta, componentMeta, path = '') {
+        // Iterate over all fields in stats object (not just meta.fields)
+        if (!statsObj || typeof statsObj !== 'object' || Array.isArray(statsObj)) {
+            return;
+        }
+
+        for (const [fieldName, fieldValue] of Object.entries(statsObj)) {
+            const fieldPath = path ? `${path}.${fieldName}` : fieldName;
+            const fieldMeta = fieldsMeta[fieldName] || {};
+
+            // Determine effective sanitize property based on inheritance (System -> Component -> Field)
+            const effectiveSanitize = fieldMeta.sanitize !== undefined ? fieldMeta.sanitize :
+                (componentMeta.sanitize !== undefined ? componentMeta.sanitize :
+                HealthController.SYSTEM_DEFAULTS.sanitize);
+
+            // Check if this field should be sanitized
+            if (effectiveSanitize === true) {
+                this._obfuscateField(statsObj, fieldName);
+            }
+
+            // Handle nested fields
+            if (fieldMeta.fields && typeof fieldValue === 'object' && !Array.isArray(fieldValue) && fieldValue !== null) {
+                this._sanitizeFields(fieldValue, fieldMeta.fields, componentMeta, fieldPath);
+            }
+        }
+    }
+
+    /**
+     * W-112: Obfuscate a field value in an object
+     * @param {Object} obj - Object containing the field
+     * @param {string} fieldName - Name of the field to obfuscate
+     * @private
+     */
+    static _obfuscateField(obj, fieldName) {
+        if (obj && obj[fieldName] !== undefined) {
+            obj[fieldName] = '********';
         }
     }
 
@@ -426,6 +527,8 @@ class HealthController {
 
             // Get all instance health data from cache
             const allInstances = this._getAllInstancesHealth();
+            LogController.logInfo(null, 'health._buildClusterStatistics',
+                `DEBUG: Building cluster statistics from ${allInstances.size} cached instance(s)`);
 
             // Aggregate statistics across all instances
             let totalServers = new Set();
@@ -441,6 +544,9 @@ class HealthController {
 
             // Include current instance using appConfig.system.instanceId for deduplication
             const currentInstanceData = await this._getCurrentInstanceHealthData(pm2Status, wsStats);
+            const currentInstanceHasComponents = currentInstanceData.components && Object.keys(currentInstanceData.components).length > 0;
+            LogController.logInfo(null, 'health._buildClusterStatistics',
+                `DEBUG: Current instance ${global.appConfig.system.instanceId} has components: ${currentInstanceHasComponents} (${currentInstanceHasComponents ? Object.keys(currentInstanceData.components || {}).length : 0} component(s))`);
             allInstances.set(global.appConfig.system.instanceId, currentInstanceData);
 
             // Aggregate data from all instances
@@ -492,6 +598,38 @@ class HealthController {
 
             totalWebSocketNamespaces = webSocketNamespacesArray.length;
 
+            // W-112: Aggregate component stats
+            const allInstancesComponents = Array.from(allInstances.values())
+                .map(instance => instance.components || {})
+                .filter(components => Object.keys(components).length > 0); // Only include instances with components
+
+            LogController.logInfo(null, 'health._buildClusterStatistics',
+                `DEBUG: Extracted components from ${allInstancesComponents.length} instance(s) out of ${allInstances.size} total`);
+
+            let aggregatedComponents = {};
+            if (allInstancesComponents.length > 0) {
+                try {
+                    aggregatedComponents = this._aggregateComponentStats(allInstancesComponents);
+                    LogController.logInfo(null, 'health._buildClusterStatistics',
+                        `DEBUG: Aggregation complete, result has ${Object.keys(aggregatedComponents).length} component(s)`);
+                } catch (error) {
+                    LogController.logError(null, 'health._buildClusterStatistics',
+                        `Component aggregation failed: ${error.message}`);
+                }
+            } else {
+                LogController.logInfo(null, 'health._buildClusterStatistics',
+                    'DEBUG: No instances with components to aggregate');
+            }
+
+            // W-112: Use WebSocket component stats if available (preferred over legacy calculation)
+            if (aggregatedComponents.websocket && aggregatedComponents.websocket.stats) {
+                const wsComponent = aggregatedComponents.websocket.stats;
+                totalWebSocketConnections = wsComponent.totalConnections || totalWebSocketConnections;
+                totalWebSocketMessages = wsComponent.totalMessages || totalWebSocketMessages;
+                totalWebSocketNamespaces = wsComponent.totalNamespaces || totalWebSocketNamespaces;
+                // Note: webSocketNamespaces array still uses legacy aggregation for namespace details
+            }
+
             return {
                 totalServers: totalServers.size,
                 totalInstances,
@@ -503,12 +641,288 @@ class HealthController {
                 totalWebSocketMessages,
                 totalWebSocketNamespaces,
                 webSocketNamespaces: webSocketNamespacesArray,
+                components: aggregatedComponents,
                 lastUpdated: timestamp
             };
 
         } catch (error) {
             LogController.logError(null, 'health._buildClusterStatistics', `error: ${error.message} - falling back to single-instance`);
             return this._buildStatistics(pm2Status, wsStats, timestamp);
+        }
+    }
+
+    /**
+     * W-112: Aggregate component stats across all instances
+     * @param {Array<Object>} allInstancesComponents - Array of component objects from each instance
+     * @returns {Object} Aggregated components object
+     * @private
+     */
+    static _aggregateComponentStats(allInstancesComponents) {
+        const aggregated = {};
+
+        if (!allInstancesComponents || allInstancesComponents.length === 0) {
+            LogController.logInfo(null, 'health._aggregateComponentStats', 'DEBUG: No instances with components to aggregate');
+            return aggregated;
+        }
+
+        const firstInstance = allInstancesComponents[0];
+        if (!firstInstance || Object.keys(firstInstance).length === 0) {
+            LogController.logInfo(null, 'health._aggregateComponentStats', 'DEBUG: First instance has no components');
+            return aggregated;
+        }
+
+        LogController.logInfo(null, 'health._aggregateComponentStats',
+            `DEBUG: Aggregating components from ${allInstancesComponents.length} instance(s), first instance has ${Object.keys(firstInstance).length} component(s): ${Object.keys(firstInstance).join(', ')}`);
+
+        // Sort component names alphabetically for consistent ordering
+        const sortedComponentNames = Object.keys(firstInstance).sort();
+
+        for (const componentName of sortedComponentNames) {
+            const componentData = firstInstance[componentName];
+            // Skip if componentData is not an object or doesn't have the expected structure
+            if (!componentData || typeof componentData !== 'object' || !componentData.stats) {
+                LogController.logInfo(null, 'health._aggregateComponentStats',
+                    `DEBUG: Skipping component ${componentName} - invalid structure (hasStats: ${!!componentData?.stats})`);
+                continue;
+            }
+
+            const fieldsMeta = componentData.meta?.fields || {};
+            const componentMeta = componentData.meta || {};
+            aggregated[componentName] = {};
+
+            // Find all stat windows present in at least one instance
+            // Component structure: { component: '...', status: '...', stats: {...}, meta: {...}, timestamp: '...' }
+            const statWindows = ['stats', 'stats5m', 'stats1h'].filter(window => {
+                return allInstancesComponents.some(instance => {
+                    const component = instance[componentName];
+                    return component && component[window] !== undefined && component[window] !== null;
+                });
+            });
+
+            // If no stat windows found, skip this component (shouldn't happen if components have stats)
+            if (statWindows.length === 0) {
+                LogController.logInfo(null, 'health._aggregateComponentStats',
+                    `DEBUG: Component ${componentName} has no stat windows (expected 'stats'), componentData.stats exists: ${!!componentData.stats}`);
+                delete aggregated[componentName];
+                continue;
+            }
+
+            LogController.logInfo(null, 'health._aggregateComponentStats',
+                `DEBUG: Component ${componentName} has stat windows: ${statWindows.join(', ')}`);
+
+            // For each stat window (stats, stats5m, stats1h)
+            for (const window of statWindows) {
+                aggregated[componentName][window] = {};
+
+                // Get all fields from stats object (not just meta.fields)
+                const statsObj = firstInstance[componentName]?.[window] || {};
+
+                if (!statsObj || Object.keys(statsObj).length === 0) {
+                    // Empty stats object - remove the window
+                    delete aggregated[componentName][window];
+                    continue;
+                }
+
+                // Recursively aggregate all fields (including those not in meta.fields)
+                try {
+                    this._aggregateFields(
+                        allInstancesComponents,
+                        componentName,
+                        window,
+                        statsObj,
+                        fieldsMeta,
+                        componentMeta,
+                        aggregated[componentName][window],
+                        ''
+                    );
+
+                    // If the window ended up empty after aggregation, log and remove it
+                    const aggregatedKeys = Object.keys(aggregated[componentName][window]);
+                    if (aggregatedKeys.length === 0) {
+                        LogController.logInfo(null, 'health._aggregateComponentStats',
+                            `DEBUG: Component ${componentName}.${window} ended up empty after aggregation. ` +
+                            `StatsObj had ${Object.keys(statsObj).length} fields: ${Object.keys(statsObj).join(', ')}`);
+                        delete aggregated[componentName][window];
+                    } else {
+                        LogController.logInfo(null, 'health._aggregateComponentStats',
+                            `DEBUG: Aggregated ${componentName}.${window}: ${aggregatedKeys.length} fields (${aggregatedKeys.slice(0, 5).join(', ')}${aggregatedKeys.length > 5 ? '...' : ''})`);
+                    }
+                } catch (error) {
+                    LogController.logError(null, 'health._aggregateComponentStats',
+                        `Failed to aggregate ${componentName}.${window}: ${error.message}`);
+                    delete aggregated[componentName][window];
+                }
+            }
+
+            // If component has no stat windows after processing, remove it
+            if (Object.keys(aggregated[componentName]).length === 0) {
+                delete aggregated[componentName];
+            }
+        }
+
+        return aggregated;
+    }
+
+    /**
+     * W-112: Recursively aggregate fields from all instances
+     * @param {Array<Object>} allInstances - Array of component objects from each instance
+     * @param {string} componentName - Name of the component
+     * @param {string} window - Stat window name ('stats', 'stats5m', 'stats1h')
+     * @param {Object} statsObj - Stats object to iterate over
+     * @param {Object} fieldsMeta - Field metadata from component.meta.fields
+     * @param {Object} componentMeta - Component-level metadata
+     * @param {Object} targetObj - Target object to write aggregated values to
+     * @param {string} pathPrefix - Path prefix for nested fields
+     * @private
+     */
+    static _aggregateFields(allInstances, componentName, window, statsObj, fieldsMeta, componentMeta, targetObj, pathPrefix) {
+        // Validate inputs
+        if (!statsObj || typeof statsObj !== 'object' || Array.isArray(statsObj)) {
+            LogController.logInfo(null, 'health._aggregateFields',
+                `DEBUG: Invalid statsObj for ${componentName}.${window}${pathPrefix ? '.' + pathPrefix : ''}: ${typeof statsObj}`);
+            return;
+        }
+
+        // Iterate over all fields in stats object (not just meta.fields)
+        for (const [fieldName, fieldValue] of Object.entries(statsObj)) {
+            const fieldPath = pathPrefix ? `${pathPrefix}.${fieldName}` : fieldName;
+            const fieldMeta = fieldsMeta[fieldName] || {};
+
+            // Skip if explicitly excluded from aggregation
+            if (fieldMeta.aggregate === false) {
+                continue;
+            }
+
+            // Determine effective properties based on inheritance (System -> Component -> Field)
+            const effectiveGlobal = fieldMeta.global !== undefined ? fieldMeta.global :
+                (componentMeta.global !== undefined ? componentMeta.global :
+                HealthController.SYSTEM_DEFAULTS.global);
+
+            // Extract values from all instances first (needed for auto-detection)
+            const values = allInstances
+                .map(instance => {
+                    const value = this._getValueByPath(
+                        instance[componentName]?.[window],
+                        fieldPath
+                    );
+                    return value;
+                })
+                .filter(v => v !== undefined && v !== null);
+
+            // Get aggregation type (check if global, then use field meta, then component meta, then system default)
+            let aggregateType = fieldMeta.aggregate;
+            if (effectiveGlobal === true) {
+                aggregateType = 'first';  // Override: global fields use 'first'
+            } else if (!aggregateType || aggregateType === true) {
+                aggregateType = componentMeta.aggregate || HealthController.SYSTEM_DEFAULTS.aggregate;
+            }
+
+            // Auto-detect: if all values are strings and using numeric aggregation, use 'first'
+            // This prevents string concatenation issues
+            if (values.length > 0 && typeof values[0] === 'string') {
+                if (aggregateType === 'sum' || aggregateType === 'avg' || aggregateType === 'max' || aggregateType === 'min') {
+                    aggregateType = 'first';
+                }
+            }
+
+            // Auto-detect: if value is an object (not array), use 'first' for numeric aggregations
+            if (values.length > 0 && typeof values[0] === 'object' && !Array.isArray(values[0]) && values[0] !== null) {
+                if (aggregateType === 'sum' || aggregateType === 'avg' || aggregateType === 'max' || aggregateType === 'min') {
+                    // Complex objects shouldn't be aggregated with numeric operations
+                    aggregateType = 'first';
+                }
+            }
+
+            if (values.length === 0) {
+                LogController.logInfo(null, 'health._aggregateFields',
+                    `DEBUG: No values found for ${componentName}.${window}${pathPrefix ? '.' + pathPrefix : ''}.${fieldName} from ${allInstances.length} instance(s)`);
+            }
+
+            if (values.length > 0) {
+                // Handle nested fields
+                if (fieldMeta.fields && typeof values[0] === 'object' && !Array.isArray(values[0]) && values[0] !== null) {
+                    targetObj[fieldName] = {};
+                    this._aggregateFields(
+                        allInstances,
+                        componentName,
+                        window,
+                        values[0],  // Use first instance's structure
+                        fieldMeta.fields,
+                        componentMeta,
+                        targetObj[fieldName],
+                        fieldPath
+                    );
+                    // If nested aggregation resulted in empty object, remove it
+                    if (Object.keys(targetObj[fieldName]).length === 0) {
+                        delete targetObj[fieldName];
+                    }
+                } else {
+                    // Aggregate primitive values
+                    const aggregatedValue = this._aggregate(values, aggregateType);
+                    if (aggregatedValue !== null && aggregatedValue !== undefined) {
+                        targetObj[fieldName] = aggregatedValue;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * W-112: Get value from object by dot-notation path
+     * @param {Object} obj - Object to get value from
+     * @param {string} path - Dot-notation path (e.g., 'field.nested.value')
+     * @returns {*} Value at path or undefined
+     * @private
+     */
+    static _getValueByPath(obj, path) {
+        return path.split('.').reduce((o, k) => o?.[k], obj);
+    }
+
+    /**
+     * W-112: Aggregate values using specified aggregation type
+     * @param {Array} values - Array of values to aggregate
+     * @param {string} type - Aggregation type ('sum', 'avg', 'max', 'min', 'first', 'count', 'concat')
+     * @returns {*} Aggregated value
+     * @private
+     */
+    static _aggregate(values, type) {
+        if (!values.length) return null;
+
+        switch (type) {
+            case 'sum':
+                // Only sum numeric values - if any value is not a number, return first value
+                const numericValues = values.filter(v => typeof v === 'number');
+                if (numericValues.length === values.length) {
+                    return numericValues.reduce((a, b) => (a || 0) + (b || 0), 0);
+                }
+                // Non-numeric values - use first (prevents string concatenation)
+                return values[0];
+            case 'avg':
+                const avgNumericValues = values.filter(v => typeof v === 'number');
+                if (avgNumericValues.length === values.length && avgNumericValues.length > 0) {
+                    return avgNumericValues.reduce((a, b) => (a || 0) + (b || 0), 0) / avgNumericValues.length;
+                }
+                return values[0];
+            case 'max':
+                const maxNumericValues = values.filter(v => typeof v === 'number');
+                if (maxNumericValues.length > 0) {
+                    return Math.max(...maxNumericValues);
+                }
+                return values[0];
+            case 'min':
+                const minNumericValues = values.filter(v => typeof v === 'number');
+                if (minNumericValues.length > 0) {
+                    return Math.min(...minNumericValues);
+                }
+                return values[0];
+            case 'first':
+                return values[0];
+            case 'count':
+                return values.filter(v => v).length;
+            case 'concat':
+                return [...new Set(values.flat())];
+            default:
+                return values[0];
         }
     }
 
@@ -571,7 +985,7 @@ class HealthController {
             // Add server uptime to each server
             serverMap.forEach(server => {
                 server.uptime = os.uptime();
-                server.uptimeFormatted = this._formatUptime(os.uptime());
+                server.uptimeFormatted = global.CommonUtils.formatUptime(os.uptime());
                 server.ip = this._getPrimaryIpAddress();
             });
 
@@ -640,6 +1054,14 @@ class HealthController {
         // Build instances array
         const instances = [];
 
+        // W-112: Collect component stats once (same for all instances)
+        const componentsRaw = await this._collectComponentStats();
+        // Sort components alphabetically for consistent ordering
+        const components = {};
+        Object.keys(componentsRaw).sort().forEach(key => {
+            components[key] = componentsRaw[key];
+        });
+
         if (pm2Status && pm2Status.processes) {
             // Multiple PM2 instances
             pm2Status.processes.forEach(p => {
@@ -697,11 +1119,10 @@ class HealthController {
                         ppid: process.ppid,
                         memoryUsage: memUsage,
                         resourceUsage: process.resourceUsage ? process.resourceUsage() : null
-                    }
+                    },
+                    // W-112: Component stats (collected via StatsRegistry)
+                    components: components
                 });
-
-                // W-087: Add component health statuses (instance-specific)
-                this._addComponentHealthStatuses(instances[instances.length - 1]);
             });
         } else {
             // Single instance (no PM2 or PM2 not available)
@@ -737,7 +1158,7 @@ class HealthController {
                 },
 
                 uptime: uptime,
-                uptimeFormatted: HealthController._formatUptime(uptime),
+                uptimeFormatted: global.CommonUtils.formatUptime(uptime),
                 memory: {
                     used: Math.round(memUsage.heapUsed / 1024 / 1024), // MB
                     total: Math.round(memUsage.heapTotal / 1024 / 1024) // MB
@@ -758,11 +1179,10 @@ class HealthController {
                     ppid: process.ppid,
                     memoryUsage: memUsage,
                     resourceUsage: process.resourceUsage ? process.resourceUsage() : null
-                }
+                },
+                // W-112: Component stats (collected via StatsRegistry)
+                components: components
             });
-
-            // W-087: Add component health statuses (instance-specific)
-            this._addComponentHealthStatuses(instances[instances.length - 1]);
         }
 
         return [{
@@ -771,7 +1191,7 @@ class HealthController {
             hostname: global.appConfig.system.hostname,
             ip: this._getPrimaryIpAddress(),
             uptime: os.uptime(),
-            uptimeFormatted: this._formatUptime(os.uptime()),
+            uptimeFormatted: global.CommonUtils.formatUptime(os.uptime()),
 
             // Server-level (hardware/OS only)
             platform: systemInfo.platform,
@@ -799,35 +1219,6 @@ class HealthController {
         // Extract number from hostname like 'web01' -> 1, 'app-server-3' -> 3
         const match = hostname.match(/(\d+)/);
         return match ? parseInt(match[1], 10) : 1;
-    }
-
-    /**
-     * Format uptime in human-readable format
-     * @param {number} seconds - Uptime in seconds
-     * @returns {string} Formatted uptime string
-     * @private
-     */
-    static _formatUptime(seconds) {
-        const years = Math.floor(seconds / 31536000);
-        const months = Math.floor((seconds % 31536000) / 2592000);
-        const days = Math.floor((seconds % 2592000) / 86400);
-        const hours = Math.floor((seconds % 86400) / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-
-        if (years > 0) {
-            return `${years}y ${months}mo`;
-        } else if (months > 0) {
-            return `${months}mo ${days}d`;
-        } else if (days > 0) {
-            return `${days}d ${hours}h`;
-        } else if (hours > 0) {
-            return `${hours}h ${minutes}m`;
-        } else if (minutes > 0) {
-            return `${minutes}m ${secs}s`;
-        } else {
-            return `${secs}s`;
-        }
     }
 
     /**
@@ -972,11 +1363,18 @@ class HealthController {
             }
         };
 
-        // Broadcast immediately and then on interval
-        broadcastHealth();
-        this.healthBroadcastInterval = setInterval(broadcastHealth, HealthController.config.broadcastInterval);
+        // Delay first broadcast to allow components to initialize and register with MetricsRegistry
+        // Components register during bootstrap, but HealthController.initialize() is called before
+        // all controllers (EmailController, ViewController, etc.) are initialized
+        const initialDelay = 5000; // 5 seconds - enough time for component initialization
+        setTimeout(() => {
+            broadcastHealth();
+            // Start regular interval after first broadcast
+            this.healthBroadcastInterval = setInterval(broadcastHealth, HealthController.config.broadcastInterval);
+        }, initialDelay);
 
-        LogController.logInfo(null, 'health._startHealthBroadcasting', `Started health broadcasting every ${HealthController.config.broadcastInterval}s (with ${HealthController.config.cacheInterval}s caching)`);
+        LogController.logInfo(null, 'health._startHealthBroadcasting',
+            `Started health broadcasting: first broadcast in ${initialDelay}ms, then every ${HealthController.config.broadcastInterval}s (with ${HealthController.config.cacheInterval}s caching)`);
     }
 
     /**
@@ -1019,7 +1417,19 @@ class HealthController {
 
         // Cache miss - fetch fresh data
         const pm2Status = await this._getPM2Status();
-        const wsStats = WebSocketController.getStats();
+        // Get WebSocket metrics in new format and extract stats for compatibility
+        const wsMetrics = WebSocketController.getMetrics();
+        const wsStats = {
+            uptime: wsMetrics.stats.uptime,
+            totalMessages: wsMetrics.stats.totalMessages,
+            namespaces: wsMetrics.stats.namespaces.map(ns => ({
+                path: ns.path,
+                clientCount: ns.clientCount,
+                totalMessages: ns.totalMessages,
+                status: ns.status,
+                lastActivity: ns.lastActivity
+            }))
+        };
         const healthData = await this._getCurrentInstanceHealthData(pm2Status, wsStats);
 
         // Cache locally
@@ -1141,6 +1551,14 @@ class HealthController {
         const memUsage = process.memoryUsage();
         const metrics = this._getMetrics();
 
+        // W-112: Collect component stats
+        const componentsRaw = await this._collectComponentStats();
+        // Sort components alphabetically for consistent ordering
+        const components = {};
+        Object.keys(componentsRaw).sort().forEach(key => {
+            components[key] = componentsRaw[key];
+        });
+
         if (pm2Status && pm2Status.processes) {
             // Running under PM2 - find THIS process in the PM2 status
             const thisProcess = pm2Status.processes.find(p => p.pid === process.pid);
@@ -1202,11 +1620,10 @@ class HealthController {
                         ppid: process.ppid,
                         memoryUsage: memUsage,
                         resourceUsage: process.resourceUsage ? process.resourceUsage() : null
-                    }
+                    },
+                    // W-112: Component stats (collected via StatsRegistry)
+                    components: components
                 });
-
-                // W-087: Add component health statuses (instance-specific)
-                this._addComponentHealthStatuses(instances[instances.length - 1]);
             }
         } else {
             // Single instance (no PM2 or PM2 not available)
@@ -1221,7 +1638,7 @@ class HealthController {
                 pm2Available: false,
                 reason: "PM2 not available",
                 uptime: uptime,
-                uptimeFormatted: this._formatUptime(uptime),
+                uptimeFormatted: global.CommonUtils.formatUptime(uptime),
                 memory: {
                     used: Math.round(memUsage.heapUsed / 1024 / 1024), // MB
                     total: Math.round(memUsage.heapTotal / 1024 / 1024), // MB
@@ -1264,11 +1681,10 @@ class HealthController {
                     ppid: process.ppid,
                     memoryUsage: memUsage,
                     resourceUsage: process.resourceUsage ? process.resourceUsage() : null
-                }
+                },
+                // W-112: Component stats (collected via StatsRegistry)
+                components: components
             });
-
-            // W-087: Add component health statuses (instance-specific)
-            this._addComponentHealthStatuses(instances[instances.length - 1]);
         }
 
         // Return data for THIS instance only - aggregation happens at the receiver
@@ -1290,7 +1706,8 @@ class HealthController {
             totalWebSocketConnections,
             totalWebSocketMessages: wsStats.totalMessages,
             webSocketNamespaces,
-            instances: instances,  // Array with single instance
+            instances: instances,   // Array with single instance
+            components: components, // W-112: Component stats (collected via StatsRegistry)
             timestamp: new Date().toISOString()
         };
     }
@@ -1345,7 +1762,7 @@ class HealthController {
                     instanceId: p.pm2_env.INSTANCE_ID || p.pm2_env.NODE_APP_INSTANCE || 0,
                     status: p.pm2_env.status,
                     uptime: Math.floor((now - p.pm2_env.pm_uptime) / 1000),
-                    uptimeFormatted: HealthController._formatUptime(Math.floor((now - p.pm2_env.pm_uptime) / 1000)),
+                    uptimeFormatted: global.CommonUtils.formatUptime(Math.floor((now - p.pm2_env.pm_uptime) / 1000)),
                     memory: p.monit ? Math.round(p.monit.memory / 1024 / 1024) : 0, // MB
                     cpu: p.monit ? p.monit.cpu : 0,
                     restarts: p.pm2_env.restart_time || 0

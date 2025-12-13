@@ -7,8 +7,8 @@
  *                  const cache = cacheManager.register(config, 'TemplateCa che');
  *                  const content = cache.getFileSync(filePath);
  * @file            webapp/utils/cache-manager.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -153,21 +153,21 @@ class CacheManager {
             const timer = setInterval(async () => {
                 try {
                     await this._refreshCache(cache);
-                    LogController.logInfo(null, 'cache-manager.refresh', 
+                    LogController.logInfo(null, 'cache-manager.refresh',
                         `${name}: Periodic refresh completed`);
                 } catch (error) {
-                    LogController.logError(null, 'cache-manager.refresh', 
+                    LogController.logError(null, 'cache-manager.refresh',
                         `${name}: Periodic refresh failed: ${error.message}`);
                 }
             }, intervalMs);
 
             this.registeredCaches.set(name, { cache, interval: intervalMs, timer });
-            
-            LogController.logInfo(null, 'cache-manager.register', 
+
+            LogController.logInfo(null, 'cache-manager.register',
                 `${name}: Registered for periodic refresh every ${Math.round(intervalMs/60000)} minutes (${intervalMs}ms)`);
         } else {
             this.registeredCaches.set(name, { cache, interval: 0, timer: null });
-            LogController.logInfo(null, 'cache-manager.register', 
+            LogController.logInfo(null, 'cache-manager.register',
                 `${name}: Registered without periodic refresh (disabled or invalid interval: ${intervalMinutes} min)`);
         }
 
@@ -185,7 +185,7 @@ class CacheManager {
         }
         if (entry) {
             this.registeredCaches.delete(name);
-            LogController.logInfo(null, 'cache-manager.unregister', 
+            LogController.logInfo(null, 'cache-manager.unregister',
                 `${name}: Unregistered and timer stopped`);
         }
     }
@@ -239,13 +239,13 @@ class CacheManager {
                     });
                     removedCount++;
                 } else {
-                    LogController.logError(null, 'cache-manager._refreshCache', 
+                    LogController.logError(null, 'cache-manager._refreshCache',
                         `${cache.name}: Error checking ${filePath}: ${error.message}`);
                 }
             }
         }
 
-        LogController.logInfo(null, 'cache-manager._refreshCache', 
+        LogController.logInfo(null, 'cache-manager._refreshCache',
             `${cache.name}: Smart refresh completed - ${refreshedCount} updated, ${removedCount} removed, ${unchangedCount} unchanged`);
     }
 
@@ -263,36 +263,72 @@ class CacheManager {
         if (filePath) {
             // Refresh specific file by removing it from cache
             entry.cache.fileCache.delete(filePath);
-            LogController.logInfo(null, 'cache-manager.refreshCache', 
+            LogController.logInfo(null, 'cache-manager.refreshCache',
                 `${name}: Refreshed file: ${filePath}`);
         } else {
             // Clear all cache
             entry.cache.clearAll();
-            LogController.logInfo(null, 'cache-manager.refreshCache', 
+            LogController.logInfo(null, 'cache-manager.refreshCache',
                 `${name}: Cleared all cache`);
         }
     }
 
     /**
-     * Get statistics for all registered caches
+     * Get metrics for all registered caches (standardized getMetrics() format)
+     * @returns {Object} Component metrics with standardized structure
      */
-    getStats() {
-        const stats = {
-            totalCaches: this.registeredCaches.size,
-            caches: {}
-        };
+    getMetrics() {
+        const totalCaches = this.registeredCaches.size;
+        let totalFilesCached = 0;
+        let totalDirectoriesCached = 0;
+        const caches = {};
 
         for (const [name, entry] of this.registeredCaches) {
-            stats.caches[name] = {
+            const fileCount = entry.cache.fileCache.size;
+            const directoryCount = entry.cache.directoryCache.size;
+            totalFilesCached += fileCount;
+            totalDirectoriesCached += directoryCount;
+
+            caches[name] = {
                 enabled: entry.cache.config.enabled,
                 interval: entry.interval,
-                fileCount: entry.cache.fileCache.size,
-                directoryCount: entry.cache.directoryCache.size,
+                fileCount,
+                directoryCount,
                 config: entry.cache.config
             };
         }
 
-        return stats;
+        return {
+            component: 'CacheManager',
+            status: 'ok',
+            initialized: true,
+            stats: {
+                totalCaches,
+                totalFilesCached,
+                totalDirectoriesCached,
+                caches
+            },
+            meta: {
+                ttl: 60000,  // 1 minute
+                category: 'util',
+                fields: {
+                    'totalCaches': {
+                        aggregate: 'first'  // Same everywhere
+                    },
+                    'totalFilesCached': {
+                        aggregate: 'sum'    // Each instance has own cache
+                    },
+                    'totalDirectoriesCached': {
+                        aggregate: 'sum'
+                    },
+                    'caches': {
+                        aggregate: false,   // Complex object, don't aggregate
+                        visualize: false    // Don't visualize in UI
+                    }
+                }
+            },
+            timestamp: new Date().toISOString()
+        };
     }
 
     /**
@@ -306,17 +342,17 @@ class CacheManager {
      * Graceful shutdown - stop all timers
      */
     shutdown() {
-        LogController.logInfo(null, 'cache-manager.shutdown', 
+        LogController.logInfo(null, 'cache-manager.shutdown',
             `Shutting down CacheManager with ${this.registeredCaches.size} registered caches`);
-        
+
         for (const [name, entry] of this.registeredCaches) {
             if (entry.timer) {
                 clearInterval(entry.timer);
             }
-            LogController.logInfo(null, 'cache-manager.shutdown', 
+            LogController.logInfo(null, 'cache-manager.shutdown',
                 `${name}: Timer stopped`);
         }
-        
+
         this.registeredCaches.clear();
         LogController.logInfo(null, 'cache-manager.shutdown', 'CacheManager shutdown complete');
     }
@@ -324,6 +360,21 @@ class CacheManager {
 
 // Create singleton instance
 const cacheManager = new CacheManager();
+
+// Register metrics provider (W-112)
+// Use dynamic import to avoid circular dependencies
+(async () => {
+    try {
+        const MetricsRegistry = (await import('./metrics-registry.js')).default;
+        MetricsRegistry.register('cache', () => cacheManager.getMetrics(), {
+            async: false,
+            category: 'util'
+        });
+    } catch (error) {
+        // MetricsRegistry might not be available yet, will be registered later
+        console.warn('CacheManager: Failed to register stats provider:', error.message);
+    }
+})();
 
 export default cacheManager;
 

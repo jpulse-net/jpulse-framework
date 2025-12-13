@@ -3,8 +3,8 @@
  * @tagline         Site Controller Registry and Auto-Discovery
  * @description     Discovers and registers site controller APIs at startup (W-014)
  * @file            webapp/utils/site-controller-registry.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -49,6 +49,13 @@ class SiteControllerRegistry {
             } else {
                 LogController.logInfo(null, 'site-controller-registry', 'Site controller directory not found - no site overrides to register');
             }
+
+            // Register metrics provider (W-112)
+            const MetricsRegistry = (await import('./metrics-registry.js')).default;
+            MetricsRegistry.register('controllers', () => SiteControllerRegistry.getMetrics(), {
+                async: false,
+                category: 'util'
+            });
 
             // W-045: Scan plugin controllers (if PluginManager is available)
             if (global.PluginManager && global.PluginManager.initialized) {
@@ -410,23 +417,76 @@ class SiteControllerRegistry {
     }
 
     /**
-     * Get registry statistics
-     * @returns {Object} Registry stats
+     * Get all controllers with API methods
+     * @returns {Array} Array of controller objects with API methods
      */
-    static getStats() {
+    static getApiControllers() {
+        return Array.from(this.registry.controllers.values())
+            .filter(c => c.apiMethods && c.apiMethods.length > 0);
+    }
+
+    /**
+     * Get all registered controllers
+     * @returns {Array} Array of all controller objects
+     */
+    static getControllers() {
+        return Array.from(this.registry.controllers.values());
+    }
+
+    /**
+     * Get registry metrics (standardized getMetrics() format)
+     * @returns {Object} Component metrics with standardized structure
+     */
+    static getMetrics() {
+        const totalControllers = this.registry.controllers.size;
+        const apiControllers = this.getApiControllers().length;
+        const totalApiMethods = Array.from(this.registry.controllers.values())
+            .reduce((sum, c) => sum + c.apiMethods.length, 0);
+
         return {
-            totalControllers: this.registry.controllers.size,
-            apiControllers: this.getApiControllers().length,
-            totalApiMethods: Array.from(this.registry.controllers.values())
-                .reduce((sum, c) => sum + c.apiMethods.length, 0),
-            lastScan: this.registry.lastScan,
-            scanPath: this.registry.scanPath,
-            controllers: this.getControllers().map(c => ({
-                name: c.name,
-                apiMethods: c.apiMethods.length,
-                hasInitialize: c.hasInitialize,
-                registeredAt: c.registeredAt
-            }))
+            component: 'SiteControllerRegistry',
+            status: 'ok',
+            initialized: true,
+            stats: {
+                totalControllers,
+                apiControllers,
+                totalApiMethods,
+                lastScan: this.registry.lastScan,
+                scanPath: this.registry.scanPath,
+                controllers: this.getControllers().map(c => ({
+                    name: c.name,
+                    apiMethods: c.apiMethods.length,
+                    hasInitialize: c.hasInitialize,
+                    registeredAt: c.registeredAt
+                }))
+            },
+            meta: {
+                ttl: 0,  // Fast, no caching needed
+                category: 'util',
+                fields: {
+                    'totalControllers': {
+                        aggregate: 'first'  // Same everywhere
+                    },
+                    'apiControllers': {
+                        aggregate: 'first'
+                    },
+                    'totalApiMethods': {
+                        aggregate: 'first'
+                    },
+                    'lastScan': {
+                        aggregate: 'first'  // Timestamp, use first value
+                    },
+                    'scanPath': {
+                        aggregate: 'first',  // Path, use first value
+                        visualize: false    // Hide from UI
+                    },
+                    'controllers': {
+                        aggregate: false,   // Complex object, don't aggregate
+                        visualize: false    // Don't visualize in UI
+                    }
+                }
+            },
+            timestamp: new Date().toISOString()
         };
     }
 }

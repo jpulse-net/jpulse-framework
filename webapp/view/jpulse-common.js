@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -420,11 +420,15 @@ window.jPulse = {
     date: {
         /**
          * Format date to local YYYY-MM-DD format
-         * @param {Date|string|number} date - Date to format
+         * @param {Date|string|number} date - Date to format (Date object, ISO string, or timestamp)
          * @returns {string} Formatted date string (YYYY-MM-DD)
+         *
+         * @example
+         * jPulse.date.formatLocalDate(new Date());           // Returns: "2025-12-11"
+         * jPulse.date.formatLocalDate('2025-12-11T10:30:00Z'); // Returns: "2025-12-11"
          */
         formatLocalDate: (date) => {
-            const d = new Date(date);
+            const d = date instanceof Date ? date : new Date(date);
             const year = d.getFullYear();
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
@@ -433,17 +437,38 @@ window.jPulse = {
 
         /**
          * Format date and time to local YYYY-MM-DD HH:MM format
-         * @param {Date|string|number} date - Date to format
+         * @param {Date|string|number} date - Date to format (Date object, ISO string, or timestamp)
          * @returns {string} Formatted date and time string (YYYY-MM-DD HH:MM)
+         *
+         * @example
+         * jPulse.date.formatLocalDateAndTime(new Date());           // Returns: "2025-12-11 10:30"
+         * jPulse.date.formatLocalDateAndTime('2025-12-11T10:30:00Z'); // Returns: "2025-12-11 10:30"
          */
         formatLocalDateAndTime: (date) => {
-            const d = new Date(date);
+            const d = date instanceof Date ? date : new Date(date);
             const year = d.getFullYear();
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
             const hours = String(d.getHours()).padStart(2, '0');
             const minutes = String(d.getMinutes()).padStart(2, '0');
             return `${year}-${month}-${day} ${hours}:${minutes}`;
+        },
+
+        /**
+         * Format time to local HH:MM:SS format
+         * @param {Date|string|number} date - Date to format (Date object, ISO string, or timestamp)
+         * @returns {string} Formatted time string (HH:MM:SS)
+         *
+         * @example
+         * jPulse.date.formatLocalTime(new Date());           // Returns: "10:30:45"
+         * jPulse.date.formatLocalTime('2025-12-11T10:30:45Z'); // Returns: "10:30:45"
+         */
+        formatLocalTime: (date) => {
+            const d = date instanceof Date ? date : new Date(date);
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            const seconds = String(d.getSeconds()).padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
         }
     },
 
@@ -5220,6 +5245,74 @@ window.jPulse = {
     // ========================================
 
     utils: {
+        /**
+         * Format uptime in human-readable format
+         * @param {number} seconds - Uptime in seconds
+         * @param {number} maxLevels - Maximum number of time units to show (default: 2)
+         * @returns {string} Formatted uptime string (e.g., "2mo 4d", "1h 30m", "45s")
+         *
+         * @example
+         * jPulse.utils.formatUptime(473346);     // Returns: "5d 11h"
+         * jPulse.utils.formatUptime(473346, 3);  // Returns: "5d 11h 29m"
+         * jPulse.utils.formatUptime(3600);       // Returns: "1h 0m"
+         * jPulse.utils.formatUptime(45);         // Returns: "45s"
+         */
+        formatUptime: (seconds, maxLevels = 2) => {
+            if(typeof seconds !== 'number') {
+                seconds = Number(seconds) || 0;
+            }
+            const years = Math.floor(seconds / 31536000);
+            const months = Math.floor((seconds % 31536000) / 2592000);
+            const days = Math.floor((seconds % 2592000) / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+
+            const parts = [];
+            let levels = 0;
+
+            if (years > 0 && levels < maxLevels) {
+                parts.push(`${years}y`);
+                levels++;
+                if (months > 0 && levels < maxLevels) {
+                    parts.push(`${months}mo`);
+                    levels++;
+                }
+            } else if (months > 0 && levels < maxLevels) {
+                parts.push(`${months}mo`);
+                levels++;
+                if (days > 0 && levels < maxLevels) {
+                    parts.push(`${days}d`);
+                    levels++;
+                }
+            } else if (days > 0 && levels < maxLevels) {
+                parts.push(`${days}d`);
+                levels++;
+                if (hours > 0 && levels < maxLevels) {
+                    parts.push(`${hours}h`);
+                    levels++;
+                }
+            } else if (hours > 0 && levels < maxLevels) {
+                parts.push(`${hours}h`);
+                levels++;
+                if (minutes > 0 && levels < maxLevels) {
+                    parts.push(`${minutes}m`);
+                    levels++;
+                }
+            } else if (minutes > 0 && levels < maxLevels) {
+                parts.push(`${minutes}m`);
+                levels++;
+                if (secs > 0 && levels < maxLevels) {
+                    parts.push(`${secs}s`);
+                    levels++;
+                }
+            } else if (secs > 0 || parts.length === 0) {
+                parts.push(`${secs}s`);
+            }
+
+            return parts.join(' ');
+        },
+
         /**
          * Deep equality comparison for objects, arrays, and primitives.
          * Compares objects regardless of property order.

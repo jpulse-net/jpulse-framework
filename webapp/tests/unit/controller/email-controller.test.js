@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Email Controller
  * @description     Minimal unit tests for EmailController basic functionality
  * @file            webapp/tests/unit/controller/email-controller.test.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -93,37 +93,8 @@ describe('EmailController', () => {
         });
     });
 
-    describe('getHealthStatus()', () => {
-        test('should return not_configured when not initialized', () => {
-            const status = EmailController.getHealthStatus();
-            expect(status.status).toBe('not_configured');
-            expect(status.configured).toBe(false);
-            expect(typeof status.configured).toBe('boolean');
-            expect(status.message).toBe('Email service is not configured');
-            expect(status.details).toEqual({});
-        });
-
-        test('should return ok when configured', () => {
-            EmailController.initialized = true;
-            EmailController.config = {
-                adminEmail: 'admin@example.com',
-                adminName: 'Admin',
-                smtpServer: 'smtp.example.com',
-                smtpPort: 587,
-                useTls: true
-            };
-            EmailController.transporter = {};
-
-            const status = EmailController.getHealthStatus();
-            expect(status.status).toBe('ok');
-            expect(status.configured).toBe(true);
-            expect(typeof status.configured).toBe('boolean');
-            expect(status.message).toBe('');
-            expect(status.details.adminEmail).toBe('admin@example.com');
-            expect(status.details.smtpServer).toBe('smtp.example.com');
-            expect(status.details.smtpPort).toBe(587);
-        });
-    });
+    // W-112: getHealthStatus() removed - replaced by getMetrics() for metrics API
+    // The /api/1/health/status endpoint (for load balancers) doesn't use getHealthStatus()
 
     describe('_getI18nKey()', () => {
         test('should map error codes to i18n keys', () => {

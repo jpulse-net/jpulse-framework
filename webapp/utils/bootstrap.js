@@ -3,8 +3,8 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -225,7 +225,13 @@ export async function bootstrap(options = {}) {
             bootstrapLog('⚠️  EmailController: Not configured (email sending disabled)');
         }
 
-        // Step 20: Build viewRegistry for routes.js compatibility
+        // Step 20: Initialize UserController (W-112 - register metrics provider)
+        const UserControllerModule = await import('../controller/user.js');
+        await UserControllerModule.default.initialize();
+        global.UserController = UserControllerModule.default;
+        bootstrapLog('✅ UserController: Initialized with metrics provider');
+
+        // Step 21: Build viewRegistry for routes.js compatibility
         // Legacy global for routes.js to use
         global.viewRegistry = {
             viewList: global.ViewController.getViewList(),
@@ -233,7 +239,7 @@ export async function bootstrap(options = {}) {
         };
         bootstrapLog(`✅ viewRegistry: Built with ${global.viewRegistry.viewList.length} directories`);
 
-        // Step 21: Prepare WebSocketController (but don't initialize server yet)
+        // Step 22: Prepare WebSocketController (but don't initialize server yet)
         // Server initialization requires Express app and http.Server
         const WebSocketControllerModule = await import('../controller/websocket.js');
         global.WebSocketController = WebSocketControllerModule.default;

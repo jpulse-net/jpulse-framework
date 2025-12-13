@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,6 +18,7 @@ import LogController from './log.js';
 import CommonUtils from '../utils/common.js';
 import PathResolver from '../utils/path-resolver.js';
 import cacheManager from '../utils/cache-manager.js';
+import CounterManager from '../utils/time-based-counters.js';
 
 class ViewController {
     // Static properties for state (like HealthController, WebSocketController)
@@ -25,6 +26,12 @@ class ViewController {
     static viewDirectories = null;      // built by _buildViewRegistry()
     static viewRouteRE = null;          // built by _buildViewRegistry()
     static spaCache = new Map();        // built by _buildViewRegistry()
+
+    // Time-based counters for metrics by file extension (W-112)
+    static cssCounter = CounterManager.getCounter('view', 'css');
+    static jsCounter = CounterManager.getCounter('view', 'js');
+    static tmplCounter = CounterManager.getCounter('view', 'tmpl');
+    static shtmlCounter = CounterManager.getCounter('view', 'shtml');
 
     /**
      * Initialize view controller
@@ -44,6 +51,18 @@ class ViewController {
         this._buildViewRegistry();
         LogController.logInfo(null, 'view.initialize',
             `View registry: [${this.viewDirectories.join(', ')}], regex: ${this.viewRouteRE}`);
+
+        // Register metrics provider (W-112)
+        try {
+            const MetricsRegistry = (await import('../utils/metrics-registry.js')).default;
+            MetricsRegistry.register('view', () => ViewController.getMetrics(), {
+                async: false,
+                category: 'controller'
+            });
+        } catch (error) {
+            // MetricsRegistry might not be available yet
+            LogController.logWarning(null, 'view.initialize', `Failed to register metrics provider: ${error.message}`);
+        }
     }
 
     static getViewList() {
@@ -52,6 +71,125 @@ class ViewController {
 
     static getViewRouteRE() {
         return this.viewRouteRE;
+    }
+
+    /**
+     * Get view controller metrics (W-112)
+     * @returns {Object} Component metrics with standardized structure
+     */
+    static getMetrics() {
+        const isConfigured = this.templateCache !== null && this.viewDirectories !== null;
+        const templateCacheStats = this.templateCache ? this.templateCache.getStats() : {
+            name: 'TemplateCache',
+            fileCount: 0,
+            directoryCount: 0,
+            config: { enabled: false }
+        };
+        const viewStats = CounterManager.getGroupStats('view');
+
+        return {
+            component: 'ViewController',
+            status: isConfigured ? 'ok' : 'error',
+            initialized: isConfigured,
+            stats: {
+                configured: isConfigured,
+                viewDirectories: this.viewDirectories?.length || 0,
+                viewDirectoriesList: this.viewDirectories || [],
+                cachedFiles: templateCacheStats.fileCount || 0,
+                servedLast24h:
+                    (viewStats.css?.last24h || 0) +
+                    (viewStats.js?.last24h || 0) +
+                    (viewStats.tmpl?.last24h || 0) +
+                    (viewStats.shtml?.last24h || 0),
+                templateCache: {
+                    enabled: templateCacheStats.config?.enabled || false,
+                    fileCount: templateCacheStats.fileCount || 0,
+                    directoryCount: templateCacheStats.directoryCount || 0
+                },
+                pagesServedLastHour: {
+                    css: viewStats.css?.lastHour || 0,
+                    js: viewStats.js?.lastHour || 0,
+                    tmpl: viewStats.tmpl?.lastHour || 0,
+                    shtml: viewStats.shtml?.lastHour || 0
+                },
+                pagesServedLast24h: {
+                    css: viewStats.css?.last24h || 0,
+                    js: viewStats.js?.last24h || 0,
+                    tmpl: viewStats.tmpl?.last24h || 0,
+                    shtml: viewStats.shtml?.last24h || 0
+                },
+                pagesServedTotal: {
+                    css: viewStats.css?.total || 0,
+                    js: viewStats.js?.total || 0,
+                    tmpl: viewStats.tmpl?.total || 0,
+                    shtml: viewStats.shtml?.total || 0
+                }
+            },
+            meta: {
+                ttl: 60000,  // 1 minute - view registry doesn't change often
+                category: 'controller',
+                fields: {
+                    'configured': {
+                        aggregate: 'first'  // Same across instances
+                    },
+                    'viewDirectories': {
+                        aggregate: 'first'  // Same across instances
+                    },
+                    'viewDirectoriesList': {
+                        aggregate: false,   // Complex array, don't aggregate
+                        visualize: false   // Hide from UI (too verbose)
+                    },
+                    'cachedFiles': {
+                        aggregate: 'sum'  // Sum across instances
+                    },
+                    'servedLast24h': {
+                        aggregate: 'sum'  // Sum across instances
+                    },
+                    'templateCache': {
+                        aggregate: false,   // Complex object, don't aggregate
+                        fields: {
+                            'enabled': {
+                                aggregate: 'first'
+                            },
+                            'fileCount': {
+                                aggregate: 'sum'  // Sum across instances
+                            },
+                            'directoryCount': {
+                                aggregate: 'sum'  // Sum across instances
+                            }
+                        }
+                    },
+                    'pagesServedLastHour': {
+                        aggregate: false,   // Complex object, don't aggregate
+                        fields: {
+                            'css': { aggregate: 'sum' },
+                            'js': { aggregate: 'sum' },
+                            'tmpl': { aggregate: 'sum' },
+                            'shtml': { aggregate: 'sum' }
+                        }
+                    },
+                    'pagesServedLast24h': {
+                        aggregate: false,   // Complex object, don't aggregate
+                        fields: {
+                            'css': { aggregate: 'sum' },
+                            'js': { aggregate: 'sum' },
+                            'tmpl': { aggregate: 'sum' },
+                            'shtml': { aggregate: 'sum' }
+                        }
+                    },
+                    'pagesServedTotal': {
+                        aggregate: false,   // Complex object, don't aggregate
+                        fields: {
+                            'css': { aggregate: 'sum' },
+                            'js': { aggregate: 'sum' },
+                            'tmpl': { aggregate: 'sum' },
+                            'shtml': { aggregate: 'sum' }
+                        }
+                    }
+                }
+            },
+            timestamp: new Date().toISOString()
+        };
     }
 
     static isSPA(namespace) {
@@ -83,40 +221,6 @@ class ViewController {
         return result;
     }
 
-    /**
-     * Get health status (standardized format)
-     * Returns hard-coded English message (like HealthController)
-     * @returns {object} Health status object
-     */
-    static getHealthStatus() {
-        const isConfigured = this.templateCache !== null && this.viewDirectories !== null;
-
-        const cacheStats = {
-            template: this.templateCache ? this.templateCache.getStats() : {
-                name: 'TemplateCache',
-                fileCount: 0,
-                directoryCount: 0,
-                config: { enabled: false }
-            }
-        };
-        const templateCacheStats = cacheStats.template || {};
-
-        return {
-            status: isConfigured ? 'ok' : 'not_configured',
-            configured: isConfigured,
-            message: isConfigured ? '' : 'ViewController not initialized', // Hard-coded English
-            details: isConfigured ? {
-                viewDirectories: this.viewDirectories?.length || 0,
-                viewDirectoriesList: this.viewDirectories || [],
-                templateCache: {
-                    enabled: templateCacheStats.config?.enabled || false,
-                    fileCount: templateCacheStats.fileCount || 0,
-                    directoryCount: templateCacheStats.directoryCount || 0
-                }
-            } : {} // Empty object instead of null for easier parsing
-            // Note: timestamp is added by HealthController._addComponentHealthStatuses()
-        };
-    }
 
     /**
      * Refresh view directory registry (W-079 pattern)
@@ -288,14 +392,25 @@ class ViewController {
             const fileExtension = path.extname(pathForContentType).toLowerCase();
             let contentType = 'text/html';
 
-            if (fileExtension === '.css') {
-                contentType = 'text/css';
-            } else if (fileExtension === '.js') {
-                contentType = 'application/javascript';
-            } else if (fileExtension === '.tmpl') {
-                contentType = 'text/html';
-            } // no other content types here, regular files are in webapp/static directory
-
+            // Set content type and increment counter by file extension (W-112)
+            switch (fileExtension) {
+                case '.css':
+                    this.cssCounter.increment();
+                    contentType = 'text/css';
+                    break;
+                case '.js':
+                    this.jsCounter.increment();
+                    contentType = 'application/javascript';
+                    break;
+                case '.tmpl':
+                    this.tmplCounter.increment();
+                    contentType = 'text/html';
+                    break;
+                case '.shtml':
+                    this.shtmlCounter.increment();
+                    break;
+                // default: no other content types here, regular files are in webapp/static directory
+            }
             res.set('Content-Type', contentType);
             res.send(content);
 

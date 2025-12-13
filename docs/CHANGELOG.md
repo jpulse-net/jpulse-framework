@@ -1,6 +1,111 @@
-# jPulse Docs / Version History v1.3.12
+# jPulse Docs / Version History v1.3.13
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.13, W-112, 2025-12-13
+
+**Commit:** `W-112, v1.3.13: metrics: strategy to report vital statistics of components`
+
+**FEATURE RELEASE**: Standardized metrics collection system for framework components with cluster-wide aggregation, time-based counters, and comprehensive admin dashboard integration.
+
+**Objective**: Provide a standardized way for all framework components (utils, models, controllers) to report vital statistics, enabling centralized metrics collection, cluster-wide aggregation, and enhanced system monitoring.
+
+**Key Features**:
+
+**Standardized getMetrics() Method**:
+- Consistent return structure: `{ component, status, initialized, stats, meta, timestamp }`
+- Field-level metadata system (`visualize`, `global`, `sanitize`, `aggregate`) with system defaults
+- Opt-out model: fields not explicitly listed inherit all defaults
+- Support for nested fields and complex objects
+
+**MetricsRegistry for Dynamic Discovery**:
+- Centralized component registration and auto-discovery
+- Support for sync and async `getMetrics()` methods
+- Components register themselves at initialization time
+- No hardcoded component lists required
+
+**Cluster-Wide Aggregation**:
+- Automatic aggregation of component stats across multiple instances
+- Aggregation types: `sum`, `avg`, `max`, `min`, `first`, `count`, `concat`
+- Global fields support for database-backed stats (same across instances)
+- Field-level aggregation rules via metadata
+
+**Time-Based Counters** (`webapp/utils/time-based-counters.js`):
+- New utility for in-memory event tracking with rolling time windows
+- Tracks: last hour, last 24h, and total counts
+- Automatic cleanup of old timestamps to prevent memory growth
+- Centralized `CounterManager` for cross-component counter management
+- Used by EmailController, ViewController, LogController for activity tracking
+
+**Component Metrics Implementations**:
+- **PluginManager**: Plugin counts, load order, errors
+- **HookManager**: Available hooks, registered handlers
+- **SiteControllerRegistry**: Controller counts, scan info
+- **ContextExtensions**: Provider counts, cache size
+- **CacheManager**: Cache counts, file/directory stats
+- **RedisManager**: Connection status, mode, activity
+- **EmailController**: Configuration, sent/failed counters (last hour, last 24h, total)
+- **HandlebarController**: Configuration, handlebar counts, cache stats
+- **ViewController**: Configuration, pages served by extension (css/js/tmpl/shtml), cache stats
+- **LogController**: Database-backed stats (entries, docs created/updated/deleted by action and docType)
+- **UserController**: User counts by status and role, recent logins
+- **WebSocketController**: Connections, messages, namespaces, uptime
+
+**Plugin Integration**:
+- `onGetInstanceStats` hook for plugin metrics registration
+- Auth-MFA plugin example: user counts, TOTP status, recovery codes
+- Static `hooks = {}` pattern for plugin hook registration
+
+**Admin Dashboard Enhancements** (`webapp/view/admin/system-status.shtml`):
+- Component Health section with aggregated metrics
+- Per-instance component details with full metrics
+- Respects `visualize: false` flag to hide internal metrics
+- Color-coded status indicators (replacing text badges)
+- Uptime formatting for component metrics
+- Flattened component display structure for better readability
+- Component sorting for consistent display
+
+**Security & Sanitization**:
+- Field-level sanitization control via `sanitize: true` metadata
+- Non-admin users see sanitized stats (sensitive data obfuscated)
+- Admin users see full detailed metrics
+
+**Performance Optimizations**:
+- Component-level caching based on `meta.ttl`
+- Elapsed time tracking for component metrics collection
+- 5-second delay for initial health broadcast to allow component initialization
+- Efficient MongoDB aggregation for database-backed stats
+
+**Code Quality**:
+- Comprehensive unit tests for TimeBasedCounter and CounterManager
+- Unit tests for LogModel.getLogStats() and LogController.getMetrics()
+- Integration tests for health API with component metrics
+- Removed obsolete `getHealthStatus()` methods (replaced by `getMetrics()`)
+- Removed `getMetricsLegacy()` from WebSocketController
+
+**Breaking Changes**:
+- `getHealthStatus()` methods removed from all components (replaced by `getMetrics()`)
+- `health.componentProviders` removed from `app.conf` (replaced by MetricsRegistry)
+- `StatsRegistry` renamed to `MetricsRegistry`
+- `UserModel.getMetrics()` renamed to `UserModel.getUserStats()` (W-112 format now in `UserController.getMetrics()`)
+
+**Files Modified**: 30+
+- New: `webapp/utils/metrics-registry.js`, `webapp/utils/time-based-counters.js`
+- Updated: All component files with `getMetrics()` implementations
+- Updated: `webapp/controller/health.js` with aggregation and sanitization
+- Updated: `webapp/view/admin/system-status.shtml` with enhanced UI
+- Tests: New unit and integration tests for metrics system
+
+**Documentation**:
+- `docs/dev/working/W-112-metrics-get-stats-strategy.md` - Complete strategy document
+- API reference updates for metrics endpoint
+- Plugin development guide with metrics registration examples
+
+**Site Navigation Enhancement**:
+- `hideInDropdown` flag added to navigation items (already documented in `docs/site-navigation.md`)
+- Allows items to appear in breadcrumbs but not in dropdown/hamburger menu
+- Useful for detail pages that require URL parameters
 
 ________________________________________________
 ## v1.3.12, W-111, 2025-12-08

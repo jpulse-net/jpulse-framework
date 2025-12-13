@@ -3,8 +3,8 @@
  * @tagline         Log Model for jPulse Framework WebApp
  * @description     This is the log model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/log.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -341,6 +341,92 @@ class LogModel {
             createdBy
         };
         return await LogModel.create(logData);
+    }
+
+    /**
+     * Get log statistics using MongoDB aggregation
+     * Efficient single-query approach for dashboard stats
+     * Note: This method returns raw stats (not W-112 format)
+     * For W-112 metrics format, use LogController.getMetrics()
+     * @returns {Promise<object>} Log statistics
+     */
+    static async getLogStats() {
+        try {
+            const collection = this.getCollection();
+            const now = new Date();
+            const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+            // Single aggregation with $facet for parallel pipelines
+            const result = await collection.aggregate([
+                {
+                    $facet: {
+                        total: [{ $count: 'count' }],
+                        last24h: [
+                            { $match: { createdAt: { $gte: last24h } } },
+                            { $count: 'count' }
+                        ],
+                        byAction: [
+                            { $group: { _id: '$data.action', count: { $sum: 1 } } }
+                        ],
+                        byActionLast24h: [
+                            { $match: { createdAt: { $gte: last24h } } },
+                            { $group: { _id: '$data.action', count: { $sum: 1 } } }
+                        ],
+                        byDocType: [
+                            { $group: { _id: '$data.docType', count: { $sum: 1 } } }
+                        ],
+                        byDocTypeLast24h: [
+                            { $match: { createdAt: { $gte: last24h } } },
+                            { $group: { _id: '$data.docType', count: { $sum: 1 } } }
+                        ]
+                    }
+                }
+            ]).toArray();
+
+            const data = result[0];
+
+            // Transform aggregation result into clean stats object
+            const stats = {
+                total: data.total[0]?.count || 0,
+                last24h: data.last24h[0]?.count || 0,
+                byAction: {},
+                byActionLast24h: {},
+                byDocType: {},
+                byDocTypeLast24h: {}
+            };
+
+            // Convert byAction array to object
+            data.byAction.forEach(item => {
+                if (item._id) {
+                    stats.byAction[item._id] = item.count;
+                }
+            });
+
+            // Convert byActionLast24h array to object
+            data.byActionLast24h.forEach(item => {
+                if (item._id) {
+                    stats.byActionLast24h[item._id] = item.count;
+                }
+            });
+
+            // Convert byDocType array to object
+            data.byDocType.forEach(item => {
+                if (item._id) {
+                    stats.byDocType[item._id] = item.count;
+                }
+            });
+
+            // Convert byDocTypeLast24h array to object
+            data.byDocTypeLast24h.forEach(item => {
+                if (item._id) {
+                    stats.byDocTypeLast24h[item._id] = item.count;
+                }
+            });
+
+            return stats;
+        } catch (error) {
+            throw new Error(`Failed to get log stats: ${error.message}`);
+        }
     }
 }
 

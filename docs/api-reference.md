@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.3.12
+# jPulse Docs / REST API Reference v1.3.13
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -1448,6 +1448,76 @@ Get comprehensive system metrics with role-based access control.
     }
 }
 ```
+
+**Component Metrics (Admin Only, v1.3.13+):**
+The metrics endpoint includes a `components` object with standardized metrics from all framework components:
+
+```json
+{
+    "success": true,
+    "data": {
+        "statistics": {
+            "components": {
+                "cache": {
+                    "stats": {
+                        "totalCaches": 3,
+                        "totalFilesCached": 4,
+                        "totalDirectoriesCached": 0
+                    }
+                },
+                "email": {
+                    "stats": {
+                        "configured": true,
+                        "sentLast24h": 42,
+                        "failedLast24h": 2
+                    }
+                },
+                "log": {
+                    "stats": {
+                        "entriesLast24h": 150,
+                        "docsCreated24h": 25,
+                        "docsUpdated24h": 30,
+                        "docsDeleted24h": 5
+                    }
+                }
+            }
+        },
+        "servers": [
+            {
+                "instances": [
+                    {
+                        "components": {
+                            "cache": {
+                                "component": "CacheManager",
+                                "status": "ok",
+                                "initialized": true,
+                                "stats": { ... },
+                                "elapsed": 5
+                            }
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+
+**Component Metrics Structure:**
+- `component` (string) - Component display name
+- `status` (string) - Component status: `'ok'`, `'error'`, `'warning'`
+- `initialized` (boolean) - Whether component is initialized
+- `stats` (object) - Component-specific statistics
+- `meta` (object) - Metadata for aggregation, visualization, sanitization
+- `timestamp` (string) - ISO timestamp of metrics collection
+- `elapsed` (number) - Execution time in milliseconds (per-instance only)
+
+**Component Metrics Features:**
+- **Aggregation**: Cluster-wide aggregation with field-level rules (`sum`, `avg`, `max`, `min`, `first`, `count`)
+- **Global Fields**: Database-backed stats marked as `global: true` (same across instances)
+- **Sanitization**: Sensitive fields automatically sanitized for non-admin users
+- **Visualization Control**: Fields with `visualize: false` hidden from UI but available in API
+- **Time-Based Counters**: Activity tracking with rolling windows (last hour, last 24h, total)
 
 **Memory Values:**
 - All memory values are in megabytes (MB)

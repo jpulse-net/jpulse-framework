@@ -3,8 +3,8 @@
  * @tagline         Integration tests for Health API endpoints
  * @description     Integration tests for health and metrics API endpoints
  * @file            webapp/tests/integration/health-api.test.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -46,21 +46,21 @@ describe('Health API Integration Tests', () => {
             expect(HealthController).toBeDefined();
             expect(typeof HealthController.status).toBe('function');
             expect(typeof HealthController.metrics).toBe('function');
-            expect(typeof HealthController._formatUptime).toBe('function');
+            // Note: _formatUptime was removed, now using CommonUtils.formatUptime
         });
 
         test('should format uptime correctly', async () => {
-            const HealthController = (await import('../../controller/health.js')).default;
+            const CommonUtils = (await import('../../utils/common.js')).default;
 
-            // Test basic formatting (exact values depend on implementation)
-            expect(HealthController._formatUptime(30)).toBe('30s');
-            expect(HealthController._formatUptime(90)).toBe('1m 30s');
-            expect(HealthController._formatUptime(3661)).toBe('1h 1m');
+            // Test basic formatting (formatUptime takes seconds, maxLevels defaults to 2)
+            expect(CommonUtils.formatUptime(30)).toBe('30s');
+            expect(CommonUtils.formatUptime(90)).toBe('1m 30s');
+            expect(CommonUtils.formatUptime(3661)).toBe('1h 1m');
 
             // Test that the function works without checking exact format
-            expect(typeof HealthController._formatUptime(60)).toBe('string');
-            expect(typeof HealthController._formatUptime(3600)).toBe('string');
-            expect(typeof HealthController._formatUptime(86400)).toBe('string');
+            expect(typeof CommonUtils.formatUptime(60)).toBe('string');
+            expect(typeof CommonUtils.formatUptime(3600)).toBe('string');
+            expect(typeof CommonUtils.formatUptime(86400)).toBe('string');
         });
 
         test('should have proper global app config structure', () => {
@@ -243,6 +243,47 @@ describe('Health API Integration Tests', () => {
             const content = fs.readFileSync(componentPath, 'utf8');
             expect(content).toContain('jpIcons.systemStatusSvg');
             expect(content).toContain('<svg');
+        });
+    });
+
+    describe('Metrics API - Log Component', () => {
+        test('should include log component in metrics response', async () => {
+            const LogController = (await import('../../controller/log.js')).default;
+            const MetricsRegistry = (await import('../../utils/metrics-registry.js')).default;
+
+            // Ensure LogController is initialized (registers metrics provider)
+            // Initialize will register the metrics provider if not already registered
+            await LogController.initialize();
+
+            // Check that log component is registered
+            expect(MetricsRegistry.isRegistered('log')).toBe(true);
+        });
+
+        test('should have log metrics structure', async () => {
+            const LogController = (await import('../../controller/log.js')).default;
+            const metrics = await LogController.getMetrics();
+
+            expect(metrics.component).toBe('LogController');
+            expect(metrics.status).toBeDefined(); // May be 'ok' or 'error' depending on DB
+            expect(metrics.initialized).toBe(true);
+            expect(metrics.stats).toBeDefined();
+            expect(metrics.meta).toBeDefined();
+            expect(metrics.meta.category).toBe('controller');
+
+            // Check for expected stats fields (may be undefined if DB query failed)
+            // In test environment, DB might not be available, so we check structure only
+            expect(typeof metrics.stats).toBe('object');
+            // If status is 'ok', these fields should exist
+            if (metrics.status === 'ok') {
+                expect(metrics.stats).toHaveProperty('entriesLast24h');
+                expect(metrics.stats).toHaveProperty('entriesTotal');
+                expect(metrics.stats).toHaveProperty('docsCreated24h');
+                expect(metrics.stats).toHaveProperty('docsUpdated24h');
+                expect(metrics.stats).toHaveProperty('docsDeleted24h');
+            } else {
+                // If DB failed, at least counter stats should be available
+                expect(metrics.stats).toHaveProperty('entriesLastHour');
+            }
         });
     });
 });

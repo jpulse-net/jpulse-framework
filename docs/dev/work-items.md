@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.12
+# jPulse Docs / Dev / Work Items v1.3.13
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -2501,7 +2501,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - `_convertCursorValue()` - private Date/ObjectId type restoration
   - webapp/model/user.js:
     - updated `search()` to use `CommonUtils.paginatedSearch()`
-    - `getStats()` - aggregation-based statistics (total, byStatus, byRole, admins, recentLogins)
+    - `getMetrics()` - aggregation-based statistics (total, byStatus, byRole, admins, recentLogins)
   - webapp/model/log.js:
     - updated `search()` to use `CommonUtils.paginatedSearch()`
   - webapp/controller/user.js:
@@ -2727,13 +2727,13 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-112, v1.3.13, 2025-12-09: metrics: strategy to report vital statistics of components
-- status: 🕑 PENDING
+### W-112, v1.3.13, 2025-12-13: metrics: strategy to report vital statistics of components
+- status: 🚧 IN_PROGRESS
 - type: Feature
 - objective: standard way for components to report vital statistics used by metrics
 - working document: docs/dev/working/W-112-metrics-get-stats-strategy.md
 - features:
-  - standardized `getStats()` method with consistent return structure (component, status, initialized, stats, meta, timestamp)
+  - standardized `getMetrics()` method with consistent return structure (component, status, initialized, stats, meta, timestamp)
   - field-level metadata system (visualize, global, sanitize, aggregate) with system defaults and opt-out model
   - statsRegistry utility for dynamic component registration and auto-discovery
   - cluster-wide aggregation of component stats with support for sum, avg, max, min, first, count, concat
@@ -2744,38 +2744,86 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - support for nested fields in stats objects
   - historical stats windows (stats5m, stats1h) - Phase 2
 - deliverables:
-  - webapp/utils/stats-registry.js:
-    - statsRegistry class for component registration and discovery
-    - support for sync and async getStats() methods
-  - Updated components with getStats() method:
-    - webapp/utils/plugin-manager.js (replace getStatistics() with getStats())
-    - webapp/utils/hook-manager.js (update to new structure)
-    - webapp/utils/site-controller-registry.js (update to new structure)
-    - webapp/utils/context-extensions.js (update to new structure)
-    - webapp/utils/cache-manager.js (update to new structure)
-    - webapp/utils/redis-manager.js (new getStats() method)
-    - webapp/model/user.js (already has getStats(), update to new structure)
+  - webapp/utils/metrics-registry.js:
+    - MetricsRegistry class for component registration and discovery (renamed from StatsRegistry)
+    - support for sync and async getMetrics() methods
+    - dynamic component discovery via registration at initialization
+  - updated components with getMetrics() method:
+    - webapp/utils/plugin-manager.js (replaced getStatistics() with getMetrics(), removed getHealthStatus())
+    - webapp/utils/hook-manager.js (updated to new structure, removed getHealthStatus())
+    - webapp/utils/site-controller-registry.js (updated to new structure, removed getHealthStatus())
+    - webapp/utils/context-extensions.js (updated to new structure)
+    - webapp/utils/cache-manager.js (updated to new structure)
+    - webapp/utils/redis-manager.js (new getMetrics() method)
+    - webapp/controller/email.js (new getMetrics() with time-based counters)
+    - webapp/controller/handlebar.js (new getMetrics(), removed getHealthStatus())
+    - webapp/controller/view.js (new getMetrics() with time-based counters, removed getHealthStatus())
+    - webapp/controller/log.js (new getMetrics() with database aggregation and time-based counters)
+    - webapp/controller/user.js (new getMetrics() wrapping UserModel.getUserStats())
+    - webapp/controller/websocket.js (updated getMetrics() to standardized format, removed getMetricsLegacy())
+    - webapp/model/user.js (renamed getMetrics() to getUserStats() for clarity)
+  - webapp/utils/time-based-counters.js (NEW):
+    - timeBasedCounter class for in-memory event tracking with rolling time windows
+    - counterManager for centralized counter management across components
+    - supports last hour, last 24h, and total counts with automatic cleanup
+  - webapp/model/log.js:
+    - getLogStats() method using MongoDB aggregation for efficient database-backed stats
   - webapp/controller/health.js:
-    - _collectComponentStats() method with dynamic discovery
+    - _collectComponentStats() method with dynamic discovery via MetricsRegistry
     - _aggregateComponentStats() method with field-level metadata support
     - _sanitizeComponentStats() method with field-level control
-    - Integration into _getCurrentInstanceHealthData() and _buildClusterStatistics()
+    - integration into _getCurrentInstanceHealthData() and _buildClusterStatistics()
+    - component sorting for consistent display
+    - elapsed time tracking for component metrics collection
+    - 5-second delay for initial health broadcast to allow component initialization
   - webapp/utils/hook-manager.js:
     - onGetInstanceStats hook definition
+    - add elapsed time tracking for plugin hook execution
   - plugins/auth-mfa:
-    - stats registration via onGetInstanceStats hook
-  - Documentation:
-    - API reference for getStats() convention
+    - stats registration via onGetInstanceStats hook (using static hooks = {} pattern)
+  - webapp/view/admin/system-status.shtml:
+    - Enhanced UI for aggregated and per-instance component metrics
+    - Respects visualize flag from meta.fields
+    - Uptime formatting for component metrics
+    - Color-coded status indicators
+    - Flattened component display structure
+  - webapp/view/jpulse-common.js:
+    - formatUptime() utility with maxLevels parameter
+    - Enhanced date formatting functions (formatLocalDate, formatLocalDateAndTime, formatLocalTime)
+  - webapp/utils/common.js:
+    - formatUptime() server-side utility with maxLevels parameter
+  - webapp/tests/unit/utils/time-based-counters.test.js (NEW):
+    - Comprehensive unit tests for TimeBasedCounter and CounterManager
+  - webapp/tests/unit/log/log-basic.test.js:
+    - Unit tests for LogModel.getLogStats() and LogController.getMetrics()
+  - webapp/tests/integration/health-api.test.js:
+    - Integration tests for log component metrics
+  - webapp/tests/setup/global-teardown.js:
+    - CounterManager cleanup to prevent test hangs
+  - removed getHealthStatus() methods from:
+    - webapp/utils/plugin-manager.js
+    - webapp/controller/email.js
+    - webapp/controller/handlebar.js
+    - webapp/controller/view.js
+    - webapp/controller/plugin.js
+  - webapp/app.conf:
+    - removed health.componentProviders (replaced by MetricsRegistry)
+  - documentation:
+    - API reference for getMetrics() convention (W-112-metrics-get-stats-strategy.md)
     - plugin development guide with stats registration examples
-    - metrics API documentation updates
+    - metrics API documentation updates (api-reference.md)
+  - site navigation enhancement:
+    - hideInDropdown flag added to navigation items, documented in docs/site-navigation.md
+    - allows items to appear in breadcrumbs but not in dropdown/hamburger menu
+    - useful for detail pages that require URL parameters
+    - implemented in webapp/view/jpulse-common.js with _hasVisiblePages() helper
+    - framework navigation updated: pluginConfig and userProfile use hideInDropdown: true
 
 
 
 
 
 
-To list in upcoming release:
-- site nav structure: hideInDropdown flag to exclude item from site pulldown, e.g. only for breadcrumb: 🏠 Startseite ❯ ⚙️ Site-Administration ❯ Benutzer ❯ Benutzer Verwalten
 
 
 
@@ -2791,7 +2839,6 @@ old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
-- add SiteControllerRegistry.getStats() to metrics api & system-status
 
 ### Potential next items:
 - W-068: view: create responsive sidebar
@@ -2815,8 +2862,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-111, v1.3.12
-- update deliverables in W-111 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-112, v1.3.13
+- update deliverables in W-112 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -2833,12 +2880,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.12
+node bin/bump-version.js 1.3.13
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.12
+git tag v1.3.13
 git push origin main --tags
 
 === plugin release & package build on github ===

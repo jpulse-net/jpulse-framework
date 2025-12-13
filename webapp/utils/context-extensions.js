@@ -3,8 +3,8 @@
  * @tagline         Handlebars Context Extension System
  * @description     Allows site controllers to extend handlebars context (W-014)
  * @file            webapp/utils/context-extensions.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -122,20 +122,45 @@ class ContextExtensions {
     }
 
     /**
-     * Get extension statistics
-     * @returns {Object} Extension stats
+     * Get extension metrics (standardized getMetrics() format)
+     * @returns {Object} Component metrics with standardized structure
      */
-    static getStats() {
+    static getMetrics() {
         return {
-            providers: this.extensions.providers.size,
-            cacheSize: this.extensions.cache.size,
-            lastUpdate: this.extensions.lastUpdate,
-            providerList: Array.from(this.extensions.providers.values()).map(p => ({
-                name: p.name,
-                priority: p.priority,
-                cache: p.cache,
-                registeredAt: p.registeredAt
-            }))
+            component: 'ContextExtensions',
+            status: 'ok',
+            initialized: true,
+            stats: {
+                providers: this.extensions.providers.size,
+                cacheSize: this.extensions.cache.size,
+                lastUpdate: this.extensions.lastUpdate,
+                providerList: Array.from(this.extensions.providers.values()).map(p => ({
+                    name: p.name,
+                    priority: p.priority,
+                    cache: p.cache,
+                    registeredAt: p.registeredAt
+                }))
+            },
+            meta: {
+                ttl: 0,  // Fast, no caching needed
+                category: 'util',
+                fields: {
+                    'providers': {
+                        aggregate: 'first'  // Same everywhere
+                    },
+                    'cacheSize': {
+                        aggregate: 'first'
+                    },
+                    'lastUpdate': {
+                        aggregate: 'first'  // Timestamp, use first value
+                    },
+                    'providerList': {
+                        aggregate: false,   // Complex object, don't aggregate
+                        visualize: false    // Don't visualize in UI
+                    }
+                }
+            },
+            timestamp: new Date().toISOString()
         };
     }
 
@@ -143,6 +168,13 @@ class ContextExtensions {
      * Initialize with default site provider
      */
     static async initialize() {
+        // Register metrics provider (W-112)
+        const MetricsRegistry = (await import('./metrics-registry.js')).default;
+        MetricsRegistry.register('contextExtensions', () => this.getMetrics(), {
+            async: false,
+            category: 'util'
+        });
+
         // Register default site provider (looks for site context extensions)
         this.registerProvider('site', async (baseContext, req) => {
             try {

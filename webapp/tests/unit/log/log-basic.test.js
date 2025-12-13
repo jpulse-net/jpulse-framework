@@ -3,8 +3,8 @@
  * @tagline         Unit tests for log model and controller basic functionality
  * @description     This file contains unit tests for the log model and controller
  * @file            webapp/tests/unit/log/log-basic.test.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -12,11 +12,12 @@
  * @genai           80%, Cursor 1.7, Claude Sonnet 4
  */
 
-import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach, beforeAll, jest } from '@jest/globals';
 import LogModel from '../../../model/log.js';
 import CommonUtils from '../../../utils/common.js';
 import LogController from '../../../controller/log.js';
 import TestUtils from '../../helpers/test-utils.js';
+import CounterManager from '../../../utils/time-based-counters.js';
 
 // Set up global appConfig for tests
 global.appConfig = {
@@ -301,7 +302,108 @@ describe('Schema-Based Query Builder', () => {
     });
 });
 
-describe('Date Query Building', () => {
+    describe('getLogStats()', () => {
+        test('should return stats with correct structure', async () => {
+            const mockCollection = {
+                aggregate: jest.fn().mockReturnValue({
+                    toArray: jest.fn().mockResolvedValue([{
+                        total: [{ count: 100 }],
+                        last24h: [{ count: 25 }],
+                        byAction: [
+                            { _id: 'create', count: 40 },
+                            { _id: 'update', count: 50 },
+                            { _id: 'delete', count: 10 }
+                        ],
+                        byActionLast24h: [
+                            { _id: 'create', count: 10 },
+                            { _id: 'update', count: 12 },
+                            { _id: 'delete', count: 3 }
+                        ],
+                        byDocType: [
+                            { _id: 'config', count: 30 },
+                            { _id: 'user', count: 70 }
+                        ],
+                        byDocTypeLast24h: [
+                            { _id: 'config', count: 8 },
+                            { _id: 'user', count: 17 }
+                        ]
+                    }])
+                })
+            };
+
+            const originalGetCollection = LogModel.getCollection;
+            LogModel.getCollection = jest.fn(() => mockCollection);
+
+            try {
+                const stats = await LogModel.getLogStats();
+
+                expect(stats.total).toBe(100);
+                expect(stats.last24h).toBe(25);
+                expect(stats.byAction.create).toBe(40);
+                expect(stats.byAction.update).toBe(50);
+                expect(stats.byAction.delete).toBe(10);
+                expect(stats.byActionLast24h.create).toBe(10);
+                expect(stats.byActionLast24h.update).toBe(12);
+                expect(stats.byActionLast24h.delete).toBe(3);
+                expect(stats.byDocType.config).toBe(30);
+                expect(stats.byDocType.user).toBe(70);
+                expect(stats.byDocTypeLast24h.config).toBe(8);
+                expect(stats.byDocTypeLast24h.user).toBe(17);
+            } finally {
+                LogModel.getCollection = originalGetCollection;
+            }
+        });
+
+        test('should handle empty results', async () => {
+            const mockCollection = {
+                aggregate: jest.fn().mockReturnValue({
+                    toArray: jest.fn().mockResolvedValue([{
+                        total: [],
+                        last24h: [],
+                        byAction: [],
+                        byActionLast24h: [],
+                        byDocType: [],
+                        byDocTypeLast24h: []
+                    }])
+                })
+            };
+
+            const originalGetCollection = LogModel.getCollection;
+            LogModel.getCollection = jest.fn(() => mockCollection);
+
+            try {
+                const stats = await LogModel.getLogStats();
+
+                expect(stats.total).toBe(0);
+                expect(stats.last24h).toBe(0);
+                expect(stats.byAction).toEqual({});
+                expect(stats.byActionLast24h).toEqual({});
+                expect(stats.byDocType).toEqual({});
+                expect(stats.byDocTypeLast24h).toEqual({});
+            } finally {
+                LogModel.getCollection = originalGetCollection;
+            }
+        });
+
+        test('should handle database errors', async () => {
+            const mockCollection = {
+                aggregate: jest.fn().mockReturnValue({
+                    toArray: jest.fn().mockRejectedValue(new Error('Database connection failed'))
+                })
+            };
+
+            const originalGetCollection = LogModel.getCollection;
+            LogModel.getCollection = jest.fn(() => mockCollection);
+
+            try {
+                await expect(LogModel.getLogStats()).rejects.toThrow('Failed to get log stats');
+            } finally {
+                LogModel.getCollection = originalGetCollection;
+            }
+        });
+    });
+
+    describe('Date Query Building', () => {
     test('should handle year-only queries', () => {
         const query = CommonUtils.buildDateQuery('2025');
         expect(query.$gte).toEqual(new Date(2025, 0, 1));
@@ -425,6 +527,253 @@ describe('Log Controller Context Extraction', () => {
     test('should format timestamp correctly', () => {
         const timestamp = CommonUtils.formatTimestamp();
         expect(timestamp).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+    });
+
+    describe('getMetrics()', () => {
+        let getLogStatsSpy, getGroupStatsSpy;
+        let mockCollection;
+        let originalGetCollection;
+
+        beforeEach(() => {
+            // Mock database collection for getLogStats (in case spies don't work)
+            mockCollection = {
+                aggregate: jest.fn().mockReturnValue({
+                    toArray: jest.fn().mockResolvedValue([{
+                        total: [{ count: 0 }],
+                        last24h: [{ count: 0 }],
+                        byAction: [],
+                        byActionLast24h: [],
+                        byDocType: [],
+                        byDocTypeLast24h: []
+                    }])
+                })
+            };
+            originalGetCollection = LogModel.getCollection;
+            LogModel.getCollection = jest.fn(() => mockCollection);
+        });
+
+        afterEach(() => {
+            // Restore spies
+            if (getLogStatsSpy) {
+                getLogStatsSpy.mockRestore();
+                getLogStatsSpy = null;
+            }
+            if (getGroupStatsSpy) {
+                getGroupStatsSpy.mockRestore();
+                getGroupStatsSpy = null;
+            }
+            // Restore getCollection
+            if (originalGetCollection) {
+                LogModel.getCollection = originalGetCollection;
+            }
+        });
+
+        test('should return metrics in W-112 format', async () => {
+            // Ensure methods exist before spying
+            expect(typeof LogModel.getLogStats).toBe('function');
+            expect(typeof CounterManager.getGroupStats).toBe('function');
+
+            // Spy on LogModel.getLogStats - use the same instance that LogController uses
+            getLogStatsSpy = jest.spyOn(LogModel, 'getLogStats').mockResolvedValue({
+                total: 100,
+                last24h: 25,
+                byAction: {
+                    create: 40,
+                    update: 50,
+                    delete: 10
+                },
+                byActionLast24h: {
+                    create: 10,
+                    update: 12,
+                    delete: 3
+                },
+                byDocType: {
+                    config: 30,
+                    user: 70
+                },
+                byDocTypeLast24h: {
+                    config: 8,
+                    user: 17
+                }
+            });
+
+            // Spy on CounterManager.getGroupStats - use the same instance that LogController uses
+            getGroupStatsSpy = jest.spyOn(CounterManager, 'getGroupStats').mockReturnValue({
+                entries: {
+                    lastHour: 5,
+                    last24h: 20,
+                    total: 80
+                }
+            });
+
+            const metrics = await LogController.getMetrics();
+
+            // Verify spies were called
+            expect(getLogStatsSpy).toHaveBeenCalled();
+            expect(getGroupStatsSpy).toHaveBeenCalledWith('log');
+
+            expect(metrics).toHaveProperty('component', 'LogController');
+            expect(metrics).toHaveProperty('status', 'ok');
+            expect(metrics).toHaveProperty('initialized', true);
+            expect(metrics).toHaveProperty('stats');
+            expect(metrics).toHaveProperty('meta');
+            expect(metrics).toHaveProperty('timestamp');
+        });
+
+        test('should include correct stats from database', async () => {
+            // Spy on LogModel.getLogStats
+            getLogStatsSpy = jest.spyOn(LogModel, 'getLogStats').mockResolvedValue({
+                total: 100,
+                last24h: 25,
+                byAction: {
+                    create: 40,
+                    update: 50,
+                    delete: 10
+                },
+                byActionLast24h: {
+                    create: 10,
+                    update: 12,
+                    delete: 3
+                },
+                byDocType: {
+                    config: 30,
+                    user: 70
+                },
+                byDocTypeLast24h: {
+                    config: 8,
+                    user: 17
+                }
+            });
+
+            // Spy on CounterManager.getGroupStats
+            getGroupStatsSpy = jest.spyOn(CounterManager, 'getGroupStats').mockReturnValue({
+                entries: {
+                    lastHour: 5,
+                    last24h: 20,
+                    total: 80
+                }
+            });
+
+            const metrics = await LogController.getMetrics();
+
+            expect(metrics.stats.entriesLast24h).toBe(25);
+            expect(metrics.stats.entriesTotal).toBe(100);
+            expect(metrics.stats.docsCreated24h).toBe(10);
+            expect(metrics.stats.docsUpdated24h).toBe(12);
+            expect(metrics.stats.docsDeleted24h).toBe(3);
+            expect(metrics.stats.docsCreatedTotal).toBe(40);
+            expect(metrics.stats.docsUpdatedTotal).toBe(50);
+            expect(metrics.stats.docsDeletedTotal).toBe(10);
+        });
+
+        test('should include counter stats', async () => {
+            // Spy on LogModel.getLogStats
+            getLogStatsSpy = jest.spyOn(LogModel, 'getLogStats').mockResolvedValue({
+                total: 100,
+                last24h: 25,
+                byAction: {},
+                byActionLast24h: {},
+                byDocType: {},
+                byDocTypeLast24h: {}
+            });
+
+            // Spy on CounterManager.getGroupStats
+            getGroupStatsSpy = jest.spyOn(CounterManager, 'getGroupStats').mockReturnValue({
+                entries: {
+                    lastHour: 5,
+                    last24h: 20,
+                    total: 80
+                }
+            });
+
+            const metrics = await LogController.getMetrics();
+
+            expect(metrics.stats.entriesLastHour).toBe(5);
+        });
+
+        test('should include byDocType stats', async () => {
+            // Spy on LogModel.getLogStats
+            getLogStatsSpy = jest.spyOn(LogModel, 'getLogStats').mockResolvedValue({
+                total: 100,
+                last24h: 25,
+                byAction: {},
+                byActionLast24h: {},
+                byDocType: {
+                    config: 30,
+                    user: 70
+                },
+                byDocTypeLast24h: {
+                    config: 8,
+                    user: 17
+                }
+            });
+
+            // Spy on CounterManager.getGroupStats
+            getGroupStatsSpy = jest.spyOn(CounterManager, 'getGroupStats').mockReturnValue({
+                entries: {
+                    lastHour: 0,
+                    last24h: 0,
+                    total: 0
+                }
+            });
+
+            const metrics = await LogController.getMetrics();
+
+            expect(metrics.stats.byDocType).toEqual({
+                config: 8,
+                user: 17
+            });
+        });
+
+        test('should have correct meta structure', async () => {
+            // Spy on LogModel.getLogStats
+            getLogStatsSpy = jest.spyOn(LogModel, 'getLogStats').mockResolvedValue({
+                total: 100,
+                last24h: 25,
+                byAction: {},
+                byActionLast24h: {},
+                byDocType: {},
+                byDocTypeLast24h: {}
+            });
+
+            // Spy on CounterManager.getGroupStats
+            getGroupStatsSpy = jest.spyOn(CounterManager, 'getGroupStats').mockReturnValue({
+                entries: {
+                    lastHour: 0,
+                    last24h: 0,
+                    total: 0
+                }
+            });
+
+            const metrics = await LogController.getMetrics();
+
+            expect(metrics.meta.ttl).toBe(60000);
+            expect(metrics.meta.category).toBe('controller');
+            expect(metrics.meta.fields).toBeDefined();
+            expect(metrics.meta.fields.entriesLast24h).toEqual({
+                global: true,
+                aggregate: 'first'
+            });
+        });
+
+        test('should handle database errors gracefully', async () => {
+            // Spy on LogModel.getLogStats to fail
+            getLogStatsSpy = jest.spyOn(LogModel, 'getLogStats').mockRejectedValue(new Error('Database error'));
+
+            // Spy on CounterManager.getGroupStats
+            getGroupStatsSpy = jest.spyOn(CounterManager, 'getGroupStats').mockReturnValue({
+                entries: {
+                    lastHour: 5,
+                    last24h: 20,
+                    total: 80
+                }
+            });
+
+            const metrics = await LogController.getMetrics();
+
+            expect(metrics.status).toBe('error');
+            expect(metrics.stats.entriesLastHour).toBe(5); // Counter still works
+        });
     });
 });
 

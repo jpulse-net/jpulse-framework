@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -27,6 +27,33 @@ class HandlebarController {
     // Static properties for state
     static includeCache = null;     // initialized by initialize()
     static globalConfig = null;     // initialized by initialize()
+
+    // Regular handlebars: {{file.*}}, {{let}}, and internal top level context variables
+    // ATTENTION: Keep this in sync with case in _buildInternalContext()
+    static REGULAR_HANDLEBARS = [
+        'app',
+        'appCluster',
+        'appConfig',
+        'components',
+        'config',
+        'file',     // {{file.*}} helper, not a context variable
+        'i18n',
+        'let',
+        'url',
+        'user',
+        'vars'      // Populated by {{let}}
+    ];
+
+    // Block handlebars: helpers that can be used as {{#helper}}...{{/helper}}
+    // ATTENTION: Keep this in sync with case in _evaluateBlockHandlebar()
+    static BLOCK_HANDLEBARS = [
+        'component',
+        'each',
+        'if',
+        'let',
+        'unless',
+        'with'
+    ];
 
     /**
      * Initialize handlebar controller
@@ -73,6 +100,98 @@ class HandlebarController {
         if (global.ContextExtensions) {
             ContextExtensions = global.ContextExtensions;
         }
+
+        // Register metrics provider (W-112)
+        try {
+            const MetricsRegistry = (await import('../utils/metrics-registry.js')).default;
+            MetricsRegistry.register('handlebars', () => HandlebarController.getMetrics(), {
+                async: false,
+                category: 'controller'
+            });
+        } catch (error) {
+            // MetricsRegistry might not be available yet
+            LogController.logWarning(null, 'handlebar.initialize', `Failed to register metrics provider: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get handlebar controller metrics (W-112)
+     * @returns {Object} Component metrics with standardized structure
+     */
+    static getMetrics() {
+        const isConfigured = this.includeCache !== null && this.globalConfig !== null;
+        const includeCacheStats = this.includeCache ? this.includeCache.getStats() : {
+            name: 'IncludeCache',
+            fileCount: 0,
+            directoryCount: 0,
+            config: { enabled: false }
+        };
+        const defaultDocName = global.ConfigController?.getDefaultDocName() || '';
+
+        return {
+            component: 'HandlebarController',
+            status: (isConfigured && this.globalConfig !== null) ? 'ok' : 'error',
+            initialized: isConfigured,
+            stats: {
+                configured: isConfigured,
+                configDocument: defaultDocName,
+                configLoaded: this.globalConfig !== null,
+                regularHandlebars: HandlebarController.REGULAR_HANDLEBARS.length,
+                regularHandlebarsList: HandlebarController.REGULAR_HANDLEBARS, // Hidden metric
+                blockHandlebars: HandlebarController.BLOCK_HANDLEBARS.length,
+                blockHandlebarsList: HandlebarController.BLOCK_HANDLEBARS, // Hidden metric
+                includeCache: {
+                    enabled: includeCacheStats.config?.enabled || false,
+                    fileCount: includeCacheStats.fileCount || 0,
+                    directoryCount: includeCacheStats.directoryCount || 0
+                }
+            },
+            meta: {
+                ttl: 60000,  // 1 minute - config doesn't change often
+                category: 'controller',
+                fields: {
+                    'configured': {
+                        aggregate: 'first'  // Same across instances (if same version)
+                    },
+                    'configDocument': {
+                        aggregate: 'first',  // Same across instances
+                        visualize: false     // Hide from UI
+                    },
+                    'configLoaded': {
+                        aggregate: 'first'  // Same across instances
+                    },
+                    'regularHandlebars': {
+                        aggregate: 'first'  // May differ across jPulse versions
+                    },
+                    'blockHandlebars': {
+                        aggregate: 'first'  // May differ across jPulse versions
+                    },
+                    'regularHandlebarsList': {
+                        aggregate: false,   // Complex array, don't aggregate
+                        visualize: false    // Hide from UI
+                    },
+                    'blockHandlebarsList': {
+                        aggregate: false,   // Complex array, don't aggregate
+                        visualize: false    // Hide from UI
+                    },
+                    'includeCache': {
+                        aggregate: false,   // Complex object, don't aggregate
+                        fields: {
+                            'enabled': {
+                                aggregate: 'first'
+                            },
+                            'fileCount': {
+                                aggregate: 'sum'  // Sum across instances
+                            },
+                            'directoryCount': {
+                                aggregate: 'sum'  // Sum across instances
+                            }
+                        }
+                    }
+                }
+            },
+            timestamp: new Date().toISOString()
+        };
     }
 
     /**
@@ -95,6 +214,7 @@ class HandlebarController {
 
     /**
      * Build internal context for handlebars processing
+     * ATTENTION: Keep this in sync with static property REGULAR_HANDLEBARS
      * @param {object} req - Express request object
      * @returns {object} Internal context with app, user, config, etc.
      */
@@ -379,6 +499,7 @@ class HandlebarController {
 
         /**
          * Evaluate a block handlebars expression ({{#type}}...{{/type}})
+         * ATTENTION: Keep this in sync with static property BLOCK_HANDLEBARS
          */
         async function _evaluateBlockHandlebar(blockType, params, blockContent, currentContext) {
             switch (blockType) {
@@ -1430,41 +1551,6 @@ class HandlebarController {
         return args;
     }
 
-    /**
-     * Get health status (standardized format)
-     * Returns hard-coded English message (like HealthController)
-     * @returns {object} Health status object
-     */
-    static getHealthStatus() {
-        const isConfigured = this.includeCache !== null && this.globalConfig !== null;
-
-        const cacheStats = {
-            include: this.includeCache ? this.includeCache.getStats() : {
-                name: 'IncludeCache',
-                fileCount: 0,
-                directoryCount: 0,
-                config: { enabled: false }
-            }
-        };
-        const includeCacheStats = cacheStats.include || {};
-        const defaultDocName = global.ConfigController?.getDefaultDocName() || '';
-
-        return {
-            status: isConfigured ? 'ok' : 'not_configured',
-            configured: isConfigured,
-            message: isConfigured ? '' : 'HandlebarController not initialized', // Hard-coded English
-            details: isConfigured ? {
-                configDocument: defaultDocName,
-                configLoaded: this.globalConfig !== null,
-                includeCache: {
-                    enabled: includeCacheStats.config?.enabled || false,
-                    fileCount: includeCacheStats.fileCount || 0,
-                    directoryCount: includeCacheStats.directoryCount || 0
-                }
-            } : {} // Empty object instead of null for easier parsing
-            // Note: timestamp is added by HealthController._addComponentHealthStatuses()
-        };
-    }
 
     /**
      * API endpoint: POST /api/1/handlebar/expand

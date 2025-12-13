@@ -4,8 +4,8 @@
  * @description     Manages plugin hook registration, execution, and lifecycle.
  *                  Plugins declare hooks in static `hooks` object, PluginManager auto-registers.
  * @file            webapp/utils/hook-manager.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -74,12 +74,20 @@ class HookManager {
      */
     static async execute(hookName, context) {
         const handlers = this.hooks.get(hookName) || [];
+        const isStatsHook = hookName === 'onGetInstanceStats';
 
         for (const { handler, pluginName } of handlers) {
+            const startTime = isStatsHook ? Date.now() : null;
+
             try {
                 const result = await handler(context);
                 if (result !== undefined) {
                     context = result;
+                }
+
+                // For onGetInstanceStats hook, track elapsed time per plugin component
+                if (isStatsHook && startTime !== null && context.stats?.[pluginName]) {
+                    context.stats[pluginName].elapsed = Date.now() - startTime;
                 }
             } catch (error) {
                 global.LogController?.logError(null, `hook.${hookName}`,
@@ -277,6 +285,16 @@ class HookManager {
                 context: '{ req, user, externalProfile, provider }',
                 canModify: true,
                 canCancel: false
+            },
+
+            // ================================================================
+            // System/Metrics hooks (1)
+            // ================================================================
+            onGetInstanceStats: {
+                description: 'Collect component stats for metrics API - plugins can register their stats',
+                context: '{ stats: {}, instanceId: string }',
+                canModify: true,
+                canCancel: false
             }
         };
     }
@@ -303,19 +321,41 @@ class HookManager {
     }
 
     /**
-     * Get hook count by status
-     * @returns {object} { total, registered, available }
+     * Get hook metrics (standardized getMetrics() format)
+     * @returns {object} Component metrics with standardized structure
      */
-    static getStats() {
+    static getMetrics() {
         const available = Object.keys(this.getAvailableHooks()).length;
         let registered = 0;
         for (const handlers of this.hooks.values()) {
             registered += handlers.length;
         }
+
         return {
-            available,
-            registered,
-            hooksWithHandlers: this.hooks.size
+            component: 'HookManager',
+            status: 'ok',
+            initialized: true,
+            stats: {
+                available,
+                registered,
+                hooksWithHandlers: this.hooks.size
+            },
+            meta: {
+                ttl: 0,  // Fast, no caching needed
+                category: 'util',
+                fields: {
+                    'available': {
+                        aggregate: 'first'  // Same everywhere
+                    },
+                    'registered': {
+                        aggregate: 'max'    // Max across instances
+                    },
+                    'hooksWithHandlers': {
+                        aggregate: 'max'
+                    }
+                }
+            },
+            timestamp: new Date().toISOString()
         };
     }
 
@@ -326,6 +366,21 @@ class HookManager {
         this.hooks.clear();
     }
 }
+
+// Register metrics provider (W-112)
+// Use dynamic import to avoid circular dependencies
+(async () => {
+    try {
+        const MetricsRegistry = (await import('./metrics-registry.js')).default;
+        MetricsRegistry.register('hooks', () => HookManager.getMetrics(), {
+            async: false,
+            category: 'util'
+        });
+    } catch (error) {
+        // MetricsRegistry might not be available yet, will be registered later
+        console.warn('HookManager: Failed to register metrics provider:', error.message);
+    }
+})();
 
 export default HookManager;
 

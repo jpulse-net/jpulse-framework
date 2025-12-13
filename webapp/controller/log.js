@@ -3,8 +3,8 @@
  * @tagline         Log Controller for jPulse Framework WebApp
  * @description     This is the log controller for the jPulse Framework WebApp
  * @file            webapp/controller/log.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,6 +15,7 @@
 import LogModel from '../model/log.js';
 import CommonUtils from '../utils/common.js';
 import os from 'os';
+import CounterManager from '../utils/time-based-counters.js';
 
 /**
  * Log Controller - handles /api/1/log/* REST API endpoints and logging utilities
@@ -28,6 +29,9 @@ class LogController {
         ttl: 300000 // 5 minutes
     };
 
+    // Time-based counter for log entries (W-112)
+    static entriesCounter = null;
+
     /**
      * Initialize LogController
      * @returns {object} LogController instance
@@ -38,6 +42,21 @@ class LogController {
         console.log(CommonUtils.formatLogMessage('LogController', 'Initialized and ready'));
 
         // Note: docTypes population happens later in postInitialize() after database is ready
+
+        // Initialize time-based counter for log entries (W-112)
+        this.entriesCounter = CounterManager.getCounter('log', 'entries');
+
+        // Register metrics provider (W-112)
+        try {
+            const MetricsRegistry = (await import('../utils/metrics-registry.js')).default;
+            MetricsRegistry.register('log', () => LogController.getMetrics(), {
+                async: true,
+                category: 'controller'
+            });
+        } catch (error) {
+            // MetricsRegistry might not be available yet
+            console.warn('LogController: Failed to register metrics provider:', error.message);
+        }
 
         return LogController;
     }
@@ -297,6 +316,118 @@ class LogController {
     }
 
     /**
+     * Get log controller metrics (W-112)
+     * @returns {Promise<Object>} Component metrics with standardized structure
+     */
+    static async getMetrics() {
+        try {
+            const logStats = await LogModel.getLogStats();
+            const logCounterStats = CounterManager.getGroupStats('log');
+
+            return {
+                component: 'LogController',
+                status: 'ok',
+                initialized: true,
+                stats: {
+                    entriesLast24h: logStats.last24h || 0,
+                    entriesLastHour: logCounterStats.entries?.lastHour || 0,
+                    entriesTotal: logStats.total || 0,
+                    docsCreated24h: logStats.byActionLast24h?.create || 0,
+                    docsUpdated24h: logStats.byActionLast24h?.update || 0,
+                    docsDeleted24h: logStats.byActionLast24h?.delete || 0,
+                    docsCreatedTotal: logStats.byAction?.create || 0,
+                    docsUpdatedTotal: logStats.byAction?.update || 0,
+                    docsDeletedTotal: logStats.byAction?.delete || 0,
+                    byDocType: logStats.byDocTypeLast24h || {},
+                    // Hidden metrics (visualize: false)
+                    byDocTypeAll: logStats.byDocType || {}
+                },
+                meta: {
+                    ttl: 60000,  // 1 minute - database query
+                    category: 'controller',
+                    fields: {
+                        'entriesLast24h': {
+                            global: true,        // Database-backed, same across instances
+                            aggregate: 'first'   // Use DB value (accurate)
+                        },
+                        'entriesLastHour': {
+                            aggregate: 'sum',    // Sum counter across instances (per-instance tracking)
+                            visualize: false     // Hide counter (use DB value instead)
+                        },
+                        'entriesTotal': {
+                            global: true,
+                            aggregate: 'first',
+                            visualize: false     // Hide total (too large)
+                        },
+                        'docsCreated24h': {
+                            global: true,
+                            aggregate: 'first'   // Database-backed, same across instances
+                        },
+                        'docsUpdated24h': {
+                            global: true,
+                            aggregate: 'first'   // Database-backed, same across instances
+                        },
+                        'docsDeleted24h': {
+                            global: true,
+                            aggregate: 'first'   // Database-backed, same across instances
+                        },
+                        'docsCreatedTotal': {
+                            global: true,
+                            aggregate: 'first',
+                            visualize: false     // Hide total
+                        },
+                        'docsUpdatedTotal': {
+                            global: true,
+                            aggregate: 'first',
+                            visualize: false     // Hide total
+                        },
+                        'docsDeletedTotal': {
+                            global: true,
+                            aggregate: 'first',
+                            visualize: false     // Hide total
+                        },
+                        'byDocType': {
+                            global: true,
+                            aggregate: false,   // Complex object, don't aggregate
+                            // Dynamic fields - each docType gets sum aggregation
+                        },
+                        'byActionAll': {
+                            global: true,
+                            aggregate: false,
+                            visualize: false    // Hide (use byAction instead)
+                        },
+                        'byDocTypeAll': {
+                            global: true,
+                            aggregate: false,
+                            visualize: false    // Hide (use byDocType instead)
+                        }
+                    }
+                },
+                timestamp: new Date().toISOString()
+            };
+        } catch (error) {
+            // If database query fails, return basic stats from counter only
+            const logCounterStats = CounterManager.getGroupStats('log');
+            return {
+                component: 'LogController',
+                status: 'error',
+                initialized: true,
+                stats: {
+                    entriesLastHour: logCounterStats.entries?.lastHour || 0
+                },
+                meta: {
+                    ttl: 60000,
+                    category: 'controller',
+                    fields: {
+                        'entriesLastHour': { aggregate: 'sum' }
+                    }
+                },
+                timestamp: new Date().toISOString()
+            };
+        }
+    }
+
+    /**
      * Log document changes to database
      * @param {object} req - Express request object
      * @param {string} docType - Document type ('config', 'user', etc.)
@@ -313,6 +444,9 @@ class LogController {
 
             // Log to database
             const logEntry = await LogModel.logChange(docType, action, docId, oldDoc, newDoc, createdBy);
+
+            // Increment counter for metrics (W-112)
+            this.entriesCounter.increment();
 
             // Refresh docTypes cache if needed (new docType might have been added)
             await LogController.refreshDocTypesCache();

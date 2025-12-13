@@ -5,11 +5,11 @@
 
 ## Overview
 
-Standardize `getStats()` method across utils, models, and controllers to provide vital component statistics for the metrics API. Components report per-instance stats, with optional cluster-wide aggregation.
+Standardize `getMetrics()` method across utils, models, and controllers to provide vital component metrics for the metrics API. Components report per-instance metrics, with optional cluster-wide aggregation.
 
 ## Current State
 
-### Existing `getStats()` Implementations
+### Existing `getMetrics()` Implementations
 
 | Component | Type | Location | Current Stats |
 |-----------|------|----------|---------------|
@@ -21,11 +21,11 @@ Standardize `getStats()` method across utils, models, and controllers to provide
 | **ContextExtensions** | Util | `webapp/utils/context-extensions.js` | `providers`, `cacheSize`, `lastUpdate` |
 | **UserModel** | Model | `webapp/model/user.js` | `total`, `byStatus{}`, `byRole{}`, `admins`, `recentLogins` |
 
-### Components Needing `getStats()`
+### Components Needing `getMetrics()`
 
 | Component | Type | Priority | Potential Stats |
 |-----------|------|----------|-----------------|
-| **PluginManager** | Util | High | ⚠️ Has `getStatistics()` - rename to `getStats()` |
+| **PluginManager** | Util | High | ⚠️ Has `getMetrics()` - rename to `getMetrics()` |
 | **RedisManager** | Util | High | `isAvailable`, `connectionCounts`, `subscribedChannels` |
 | **LogModel** | Model | Medium | `totalEntries`, `byDocType{}`, `byAction{}`, `entriesLast24h` |
 | **EmailController** | Controller | Medium | `emailsSent`, `emailsFailed`, `isConfigured`, `smtpStatus` |
@@ -38,7 +38,7 @@ Standardize `getStats()` method across utils, models, and controllers to provide
 ### Standard Return Structure
 
 ```javascript
-static getStats() {
+static getMetrics() {
     return {
         // Identity
         component: 'ComponentName',           // String identifier
@@ -67,7 +67,7 @@ static getStats() {
             // global: false,                   // Override system default (default: false)
             // sanitize: false,                 // Override system default (default: false)
             // aggregate: 'sum',                // Override system default (default: 'sum')
-  
+
             // Field-specific overrides (only specify when different from defaults)
             fields: {
                 'total': {
@@ -119,7 +119,7 @@ static getStats() {
 
 ### System Defaults
 
-All components inherit these system-level defaults (defined in HealthController or StatsRegistry):
+All components inherit these system-level defaults (defined in HealthController or MetricsRegistry):
 
 ```javascript
 const SYSTEM_DEFAULTS = {
@@ -201,19 +201,19 @@ meta: {
 
 **Behavior**: When aggregating, fields with `global: true` will use `'first'` aggregation type instead of the specified type, since all instances return the same value.
 
-**Example**: `UserModel.getStats()` returns user counts from the database. All instances query the same DB, so `total: 100` is identical across instances. Aggregation should use `'first'` not `'sum'` to avoid incorrect totals.
+**Example**: `UserModel.getMetrics()` returns user counts from the database. All instances query the same DB, so `total: 100` is identical across instances. Aggregation should use `'first'` not `'sum'` to avoid incorrect totals.
 
 ### Sync vs Async
 
-- **Sync `getStats()`**: For in-memory stats (caches, registries, hooks)
-- **Async `getStats()`**: For database-backed stats (UserModel, LogModel)
+- **Sync `getMetrics()`**: For in-memory metrics (caches, registries, hooks)
+- **Async `getMetrics()`**: For database-backed metrics (UserModel, LogModel)
 
 ```javascript
 // Sync example (util)
-static getStats() { return { ... }; }
+static getMetrics() { return { ... }; }
 
 // Async example (model)
-static async getStats() { return { ... }; }
+static async getMetrics() { return { ... }; }
 ```
 
 ## Examples
@@ -221,8 +221,8 @@ static async getStats() { return { ... }; }
 ### PluginManager
 
 ```javascript
-static getStats() {
-    // Inline existing getStatistics() logic
+static getMetrics() {
+    // Inline existing getMetrics() logic
     const total = this.registry.plugins.length;
     const enabled = this.registry.plugins.filter(p => p.enabled).length;
     const disabled = this.registry.plugins.filter(p => !p.enabled).length;
@@ -250,7 +250,7 @@ static getStats() {
                     visualize: false,  // Exclude from visualization
                     aggregate: false   // Exclude from aggregation
                 }
-                // All other fields (total, enabled, disabled, errors, missing) 
+                // All other fields (total, enabled, disabled, errors, missing)
                 // use system defaults automatically
             }
         },
@@ -262,7 +262,7 @@ static getStats() {
 ### RedisManager
 
 ```javascript
-static getStats() {
+static getMetrics() {
     return {
         component: 'RedisManager',
         status: this.isAvailable ? 'ok' : 'error',
@@ -309,13 +309,13 @@ static getStats() {
 ### HookManager
 
 ```javascript
-static getStats() {
+static getMetrics() {
     const available = Object.keys(this.getAvailableHooks()).length;
     let registered = 0;
     for (const handlers of this.hooks.values()) {
         registered += handlers.length;
     }
-    
+
     return {
         component: 'HookManager',
         status: 'ok',
@@ -361,12 +361,17 @@ No additional storage mechanism needed - component stats are part of the health 
 
 ### Current Structure
 
-Metrics API currently returns:
+Metrics API (`/api/1/health/metrics`) currently returns:
 - `statistics`: Cluster-wide aggregates (WebSocket stats)
 - `servers[]`: Per-server data
   - `instances[]`: Per-instance data
     - `websockets`: WebSocket stats per instance
-    - `email`, `handlebars`, `view`: Component health
+    - `email`, `handlebars`, `view`: Component health (from `getHealthStatus()` via `_addComponentHealthStatuses()`)
+
+**Note**:
+- The `/api/1/health/status` endpoint (for load balancers) returns simple data (version, uptime, environment, database) and does NOT use `getHealthStatus()` methods.
+- `getHealthStatus()` is currently used by `/api/1/health/metrics` via `_addComponentHealthStatuses()`, but this will be replaced by `getMetrics()` in W-112.
+- **Decision**: Remove `getHealthStatus()` completely - all methods will be deleted once W-112 is complete. Metrics endpoint will use `getMetrics()` instead.
 
 ### New Structure
 
@@ -379,7 +384,7 @@ Add `components` section to each instance:
       "pid": 82481,
       "port": 8086,
       // ... existing fields ...
-      
+
       "components": {
         "cache": {
           "component": "CacheManager",
@@ -397,7 +402,7 @@ Add `components` section to each instance:
   }],
   "statistics": {
     // ... existing WebSocket aggregates ...
-    
+
     "components": {
       "plugins": {
         "stats": { "total": 10, "enabled": 8, "disabled": 2, "errors": 0 }
@@ -426,7 +431,7 @@ static _aggregateComponentStats(allInstancesComponents) {
 
         // Find all stat windows present in at least one instance
         const statWindows = ['stats', 'stats5m', 'stats1h'].filter(window => {
-            return allInstancesComponents.some(instance => 
+            return allInstancesComponents.some(instance =>
                 instance[componentName]?.[window]
             );
         });
@@ -437,7 +442,7 @@ static _aggregateComponentStats(allInstancesComponents) {
 
             // Get all fields from stats object (not just meta.fields)
             const statsObj = firstInstance[componentName]?.[window] || {};
-            
+
             // Recursively aggregate all fields (including those not in meta.fields)
             this._aggregateFields(
                 allInstancesComponents,
@@ -459,12 +464,12 @@ static _aggregateFields(allInstances, componentName, window, statsObj, fieldsMet
     for (const [fieldName, fieldValue] of Object.entries(statsObj)) {
         const fieldPath = pathPrefix ? `${pathPrefix}.${fieldName}` : fieldName;
         const fieldMeta = fieldsMeta[fieldName] || {};
-        
+
         // Skip if explicitly excluded from aggregation
         if (fieldMeta.aggregate === false) {
             continue;
         }
-        
+
         // Get aggregation type (check if global, then use field meta, then system default)
         let aggregateType = fieldMeta.aggregate;
         if (fieldMeta.global === true) {
@@ -540,7 +545,7 @@ Plugins can register their stats via hook:
 ```javascript
 // In plugin's initialize() method
 HookManager.register('onGetInstanceStats', 'auth-mfa', async (context) => {
-    const mfaStats = await MfaAuthModel.getStats(); // Database-backed
+    const mfaStats = await MfaAuthModel.getMetrics(); // Database-backed
     context.stats['auth-mfa'] = {
         component: 'auth-mfa',
         status: 'ok',
@@ -587,7 +592,7 @@ static _sanitizeComponentStats(components, isAdmin) {
 
     for (const [componentName, component] of Object.entries(sanitized)) {
         const fields = component.meta?.fields || {};
-        
+
         // Recursively check all fields (including nested)
         this._sanitizeFields(sanitized[componentName].stats, fields);
     }
@@ -600,12 +605,12 @@ static _sanitizeFields(statsObj, fieldsMeta, path = '') {
     for (const [fieldName, fieldValue] of Object.entries(statsObj)) {
         const fieldPath = path ? `${path}.${fieldName}` : fieldName;
         const fieldMeta = fieldsMeta[fieldName] || {};
-        
+
         // Check if this field should be sanitized
         if (fieldMeta.sanitize === true) {
             this._obfuscateField(statsObj, fieldPath);
         }
-        
+
         // Handle nested fields
         if (typeof fieldValue === 'object' && !Array.isArray(fieldValue) && fieldValue !== null) {
             const nestedFieldsMeta = fieldMeta.fields || {};
@@ -674,14 +679,14 @@ Aggregated output structure:
 
 | Priority | Task | Effort |
 |----------|------|--------|
-| 1 | Rename `PluginManager.getStatistics()` → `getStats()` with new structure | Low |
-| 2 | Add `RedisManager.getStats()` | Medium |
+| 1 | Rename `PluginManager.getMetrics()` → `getMetrics()` with new structure | Low |
+| 2 | Add `RedisManager.getMetrics()` | Medium |
 | 3 | Create `onGetInstanceStats` hook definition | Low |
 | 4 | Update `HealthController._getCurrentInstanceHealthData()` to collect components | Medium |
 | 5 | Implement `_aggregateComponentStats()` in HealthController | Medium |
 | 6 | Update `HealthController._sanitizeMetricsData()` to handle component sanitize arrays | Medium |
 | 7 | Add auth-mfa plugin stats registration | Medium |
-| 8 | (Optional) Add `LogModel.getStats()` | Medium |
+| 8 | (Optional) Add `LogModel.getMetrics()` | Medium |
 
 ## Visualization
 
@@ -699,6 +704,7 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
 - ✅ **Caching**: Component-level hints via `meta.ttl`, consumer decides
 - ✅ **Sanitization**: Component declares sensitive fields, consumer applies
 - ✅ **Plugin stats**: Via `onGetInstanceStats` hook
+- ✅ **getHealthStatus() removal**: `getHealthStatus()` is currently used by `/api/1/health/metrics` via `_addComponentHealthStatuses()`, but will be completely removed and replaced by `getMetrics()`. The `/api/1/health/status` endpoint (load balancers) doesn't use `getHealthStatus()` - it returns simple hardcoded data. All `getHealthStatus()` methods will be removed once W-112 is complete.
 - ⏳ **Historical data**: Phase 2, complexity TBD
 - ⏳ **Cluster aggregates**: Some components may need cross-instance aggregation (e.g., WebSocket already does this)
 
@@ -710,25 +716,25 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
 **Files**: `webapp/utils/hook-manager.js`, `webapp/utils/site-controller-registry.js`, `webapp/utils/context-extensions.js`, `webapp/utils/cache-manager.js`
 
 **Tasks**:
-1. Update `HookManager.getStats()` to return new structure:
+1. Update `HookManager.getMetrics()` to return new structure:
    - Wrap existing stats in `stats` object
    - Add `component`, `status`, `initialized`, `meta`, `timestamp`
    - Add `meta.fields` with field-level metadata
 
-2. Update `SiteControllerRegistry.getStats()`:
+2. Update `SiteControllerRegistry.getMetrics()`:
    - Same structure transformation
    - Determine aggregation rules (likely `first` for most fields)
 
-3. Update `ContextExtensions.getStats()`:
+3. Update `ContextExtensions.getMetrics()`:
    - Same structure transformation
    - Consider if visualization needed
 
-4. Update `CacheManager.getStats()`:
+4. Update `CacheManager.getMetrics()`:
    - Transform `caches` object structure
    - Add aggregation rules for cache counts
 
 **Testing**:
-- Unit tests for each component's `getStats()` method
+- Unit tests for each component's `getMetrics()` method
 - Verify backward compatibility (if any code depends on old structure)
 - Verify all required fields present
 
@@ -736,15 +742,15 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
 
 ---
 
-#### Step 1.2: Rename PluginManager.getStatistics() → getStats()
+#### Step 1.2: Rename PluginManager.getMetrics() → getMetrics()
 **File**: `webapp/utils/plugin-manager.js`
 
 **Tasks**:
-1. Rename method `getStatistics()` → `getStats()`
+1. Rename method `getMetrics()` → `getMetrics()`
 2. Transform return structure to new format:
    ```javascript
-   static getStats() {
-       const oldStats = this.getStatistics(); // Keep internal method or inline
+   static getMetrics() {
+       const oldStats = this.getMetrics(); // Keep internal method or inline
        return {
            component: 'PluginManager',
            status: oldStats.errors > 0 ? 'warning' : 'ok',
@@ -782,13 +788,14 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
        };
    }
    ```
-3. Update all callers of `getStatistics()` to use `getStats()`
-4. Check if `getHealthStatus()` also needs updating
+3. Update all callers of `getMetrics()` to use `getMetrics()`
 
-**Note:** Better refactor `getStatistics()` into `getStats()`, e.g. remove `getStatistics()`
+**Note:**
+- Better refactor `getMetrics()` into `getMetrics()`, e.g. remove `getMetrics()`
+- `getHealthStatus()` is separate and not part of W-112 scope (used by `/api/1/health/status` for load balancers)
 
 **Testing**:
-- Search codebase for `getStatistics()` calls
+- Search codebase for `getMetrics()` calls
 - Update tests to use new method name
 - Verify plugin discovery still works
 
@@ -796,22 +803,22 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
 
 ---
 
-#### Step 1.3: Add RedisManager.getStats()
+#### Step 1.3: Add RedisManager.getMetrics()
 **File**: `webapp/utils/redis-manager.js`
 
 **Tasks**:
-1. Implement `getStats()` method:
+1. Implement `getMetrics()` method:
    ```javascript
-   static getStats() {
+   static getMetrics() {
        const connectionCounts = {
            session: this.connections.session ? 1 : 0,
-           websocket: (this.connections.websocket?.publisher ? 1 : 0) + 
+           websocket: (this.connections.websocket?.publisher ? 1 : 0) +
                       (this.connections.websocket?.subscriber ? 1 : 0),
-           broadcast: (this.connections.broadcast?.publisher ? 1 : 0) + 
+           broadcast: (this.connections.broadcast?.publisher ? 1 : 0) +
                       (this.connections.broadcast?.subscriber ? 1 : 0),
            metrics: this.connections.metrics ? 1 : 0
        };
-       
+
        return {
            component: 'RedisManager',
            status: this.isAvailable ? 'ok' : 'error',
@@ -889,16 +896,16 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
 ### Phase 2: HealthController Integration (Priority 4-6)
 
 #### Step 2.1: Create Component Stats Registry and Collection Method
-**Files**: `webapp/utils/stats-registry.js` (new), `webapp/controller/health.js`
+**Files**: `webapp/utils/metrics-registry.js` (new), `webapp/controller/health.js`
 
 **Tasks**:
-1. **Create StatsRegistry utility** (`webapp/utils/stats-registry.js`):
+1. **Create MetricsRegistry utility** (`webapp/utils/metrics-registry.js`):
    ```javascript
    /**
     * Stats Registry - Centralized registration for component stats providers
-    * Components register their getStats() method during initialization
+    * Components register their getMetrics() method during initialization
     */
-   class StatsRegistry {
+   class MetricsRegistry {
        static providers = new Map(); // componentName -> { getStats, async, category }
 
        /**
@@ -913,7 +920,7 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
                async: options.async || false,
                category: options.category || 'other'
            });
-           LogController.logInfo(null, 'stats-registry.register', 
+           LogController.logInfo(null, 'metrics-registry.register',
                `Registered stats provider: ${name} (${options.async ? 'async' : 'sync'}, ${options.category})`);
        }
 
@@ -923,7 +930,7 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
         */
        static unregister(name) {
            if (this.providers.delete(name)) {
-               LogController.logInfo(null, 'stats-registry.unregister', 
+               LogController.logInfo(null, 'metrics-registry.unregister',
                    `Unregistered stats provider: ${name}`);
            }
        }
@@ -937,7 +944,7 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
        }
    }
 
-   export default StatsRegistry;
+   export default MetricsRegistry;
    ```
 
 2. **Update component initialization** to register themselves:
@@ -955,16 +962,16 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
        const components = {};
 
        // Collect from all registered providers
-       for (const [name, provider] of StatsRegistry.providers) {
+       for (const [name, provider] of MetricsRegistry.providers) {
            try {
                if (provider.async) {
-                   components[name] = await provider.getStats();
+                   components[name] = await provider.getMetrics();
                } else {
-                   components[name] = provider.getStats();
+                   components[name] = provider.getMetrics();
                }
            } catch (error) {
-               LogController.logError(null, 'health._collectComponentStats', 
-                   `${name}.getStats() failed: ${error.message}`);
+               LogController.logError(null, 'health._collectComponentStats',
+                   `${name}.getMetrics() failed: ${error.message}`);
                // Continue with other components even if one fails
            }
        }
@@ -975,7 +982,7 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
            pluginContext = await HookManager.execute('onGetInstanceStats', pluginContext);
            Object.assign(components, pluginContext.stats);
        } catch (error) {
-           LogController.logError(null, 'health._collectComponentStats', 
+           LogController.logError(null, 'health._collectComponentStats',
                `onGetInstanceStats hook failed: ${error.message}`);
        }
 
@@ -986,24 +993,24 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
 4. **Example registration in components**:
    ```javascript
    // In CacheManager constructor or initialization
-   import StatsRegistry from '../utils/stats-registry.js';
-   
+   import MetricsRegistry from '../utils/metrics-registry.js';
+
    constructor() {
        // ... existing code ...
-       StatsRegistry.register('cache', () => this.getStats(), { 
-           async: false, 
-           category: 'util' 
+       MetricsRegistry.register('cache', () => this.getMetrics(), {
+           async: false,
+           category: 'util'
        });
    }
 
    // In UserModel (during bootstrap)
-   import StatsRegistry from '../utils/stats-registry.js';
-   
+   import MetricsRegistry from '../utils/metrics-registry.js';
+
    static async initialize() {
        // ... existing initialization ...
-       StatsRegistry.register('users', () => UserModel.getStats(), { 
-           async: true, 
-           category: 'model' 
+       MetricsRegistry.register('users', () => UserModel.getMetrics(), {
+           async: true,
+           category: 'model'
        });
    }
    ```
@@ -1038,12 +1045,28 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
    }
    ```
 
-2. Verify components are included in health broadcast
-3. Verify components are cached in Redis
+2. **Remove `_addComponentHealthStatuses()` completely** - replace with `getMetrics()` collection:
+   - Remove all calls to `this._addComponentHealthStatuses(instance)` in `_getCurrentInstanceHealthData()` and related methods
+   - Remove the `_addComponentHealthStatuses()` method entirely
+   - Remove `componentProviders` config from HealthController (no longer needed)
+   - Component stats are now collected via `_collectComponentStats()` and included in `instance.components`
+   - The old `email`, `handlebars`, `view` fields (from `getHealthStatus()`) will be replaced by `components` object
+   - Note: `/api/1/health/status` endpoint doesn't use `getHealthStatus()` - it returns simple hardcoded data
+
+3. **Remove all `getHealthStatus()` methods** from components (after migration is complete):
+   - Remove `EmailController.getHealthStatus()`
+   - Remove `HandlebarController.getHealthStatus()`
+   - Remove `ViewController.getHealthStatus()`
+   - Remove `PluginController.getHealthStatus()` (which calls `PluginManager.getHealthStatus()`)
+   - Remove `PluginManager.getHealthStatus()`
+
+4. Verify components are included in health broadcast
+5. Verify components are cached in Redis
 
 **Testing**:
 - Call `/api/1/health/metrics` and verify `components` in response
 - Verify components appear in each instance
+- Verify old `email`, `handlebars`, `view` fields are replaced by `components` object
 - Check Redis cache contains components
 
 **Dependencies**: Step 2.1
@@ -1111,7 +1134,7 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
                server.instances.forEach(instance => {
                    if (instance.components) {
                        instance.components = this._sanitizeComponentStats(
-                           instance.components, 
+                           instance.components,
                            false  // isAdmin = false for sanitization
                        );
                    }
@@ -1157,7 +1180,7 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
    // In plugin's initialize() or bootstrap
    HookManager.register('onGetInstanceStats', 'auth-mfa', async (context) => {
        try {
-           const mfaStats = await MfaAuthModel.getStats(); // Create this method
+           const mfaStats = await MfaAuthModel.getMetrics(); // Create this method
            context.stats['auth-mfa'] = {
                component: 'auth-mfa',
                status: 'ok',
@@ -1186,16 +1209,16 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
            };
        } catch (error) {
            // Log error but don't break metrics
-           LogController.logError(null, 'auth-mfa.onGetInstanceStats', 
+           LogController.logError(null, 'auth-mfa.onGetInstanceStats',
                `Failed to get stats: ${error.message}`);
        }
        return context;
    });
    ```
 
-2. Create `MfaAuthModel.getStats()` if needed:
+2. Create `MfaAuthModel.getMetrics()` if needed:
    ```javascript
-   static async getStats() {
+   static async getMetrics() {
        const collection = this.getCollection();
        const total = await collection.countDocuments({});
        const withMfa = await collection.countDocuments({ mfaEnabled: true });
@@ -1227,13 +1250,13 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
 
 ### Phase 4: Optional Enhancements (Priority 8+)
 
-#### Step 4.1: Add LogModel.getStats() (Optional)
+#### Step 4.1: Add LogModel.getMetrics() (Optional)
 **File**: `webapp/model/log.js`
 
 **Tasks**:
-1. Implement async `getStats()` method:
+1. Implement async `getMetrics()` method:
    ```javascript
-   static async getStats() {
+   static async getMetrics() {
        try {
            const collection = this.getCollection();
            const now = new Date();
@@ -1302,7 +1325,7 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
    }
    ```
 
-2. Register in StatsRegistry during bootstrap (see Step 2.1)
+2. Register in MetricsRegistry during bootstrap (see Step 2.1)
 
 **Testing**:
 - Test with log entries in database
@@ -1321,7 +1344,7 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
 **Files**: `webapp/tests/unit/utils/*.test.js`, `webapp/tests/unit/model/*.test.js`
 
 **Tasks**:
-1. Add/update tests for each component's `getStats()`:
+1. Add/update tests for each component's `getMetrics()`:
    - Test return structure
    - Test all required fields present
    - Test status calculation
@@ -1359,7 +1382,7 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
 **Files**: API docs, plugin docs
 
 **Tasks**:
-1. Document `getStats()` convention in API reference
+1. Document `getMetrics()` convention in API reference
 2. Document `onGetInstanceStats` hook for plugins
 3. Update metrics API documentation
 4. Add examples to plugin development guide
@@ -1387,7 +1410,7 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
        if (cached && (now - cached.timestamp) < 60000) {
            components.users = cached.data;
        } else {
-           components.users = await UserModel.getStats();
+           components.users = await UserModel.getMetrics();
            this.componentStatsCache.set(cacheKey, { data: components.users, timestamp: now });
        }
        // ... repeat for other components
@@ -1403,15 +1426,15 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
 ### Implementation Checklist
 
 - [ ] Phase 1.1: Update existing components (HookManager, SiteControllerRegistry, ContextExtensions, CacheManager)
-- [ ] Phase 1.2: Rename PluginManager.getStatistics() → getStats()
-- [ ] Phase 1.3: Add RedisManager.getStats()
+- [ ] Phase 1.2: Rename PluginManager.getMetrics() → getMetrics()
+- [ ] Phase 1.3: Add RedisManager.getMetrics()
 - [ ] Phase 1.4: Create onGetInstanceStats hook
 - [ ] Phase 2.1: Create _collectComponentStats() method
 - [ ] Phase 2.2: Integrate components into health data
 - [ ] Phase 2.3: Implement component stats aggregation
 - [ ] Phase 2.4: Implement component stats sanitization
 - [ ] Phase 3.1: Add auth-mfa plugin stats
-- [ ] Phase 4.1: (Optional) Add LogModel.getStats()
+- [ ] Phase 4.1: (Optional) Add LogModel.getMetrics()
 - [ ] Phase 5.1: Unit tests
 - [ ] Phase 5.2: Integration tests
 - [ ] Phase 5.3: Documentation updates
@@ -1428,13 +1451,14 @@ The nested structure (`stats`, `stats5m`, `stats1h`) makes it easy to toggle bet
 
 ### Risk Mitigation
 
-- **Backward compatibility**: Old `getStatistics()` calls may break → Search and update all callers
+- **Backward compatibility**: Old `getMetrics()` calls may break → Search and update all callers
 - **Performance**: Too many DB queries → Implement caching based on `meta.ttl`
 - **Error handling**: Component failure breaks metrics → Wrap each component in try/catch
 - **Memory**: Large component stats → Monitor memory usage, consider pagination if needed
+- **getHealthStatus() removal**: `getHealthStatus()` methods are currently used by `/api/1/health/metrics` via `_addComponentHealthStatuses()`, but will be completely removed and replaced by `getMetrics()`. The `/api/1/health/status` endpoint doesn't use `getHealthStatus()` - it returns simple hardcoded data. All `getHealthStatus()` methods and `_addComponentHealthStatuses()` will be removed once W-112 is complete.
 
 ## References
 
 - Current metrics endpoint: `/api/1/health/metrics`
 - HealthController: `webapp/controller/health.js`
-- WebSocketController.getStats(): `webapp/controller/websocket.js`
+- WebSocketController.getMetrics(): `webapp/controller/websocket.js`

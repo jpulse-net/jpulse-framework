@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.3.12
+# jPulse Docs / Site Administrator & Developer Documentation v1.3.13
 
 **For Site Administrators & Site Developers**
 
@@ -68,6 +68,12 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - Complete request lifecycle logging (start → success/error)
 - Enhanced message truncation for large payloads
 - Analytics-ready log format for monitoring tools
+- **Standardized Component Metrics** (v1.3.13):
+  - Unified `getMetrics()` interface for all framework components
+  - Cluster-wide metrics aggregation across multiple instances
+  - Time-based counters for activity tracking (last hour, last 24h, total)
+  - Field-level metadata for visualization, aggregation, and sanitization
+  - Comprehensive admin dashboard with component health monitoring
 
 ## 🤖 **AI-Assisted Development**
 
@@ -204,6 +210,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.3.13 - Standardized Component Metrics System & Navigation Enhancement**: Comprehensive metrics collection framework with standardized `getMetrics()` interface for all framework components. Features cluster-wide aggregation across multiple instances, time-based counters for activity tracking (last hour, last 24h, total), field-level metadata for visualization/aggregation/sanitization, and enhanced admin dashboard with component health monitoring. New `TimeBasedCounter` utility for in-memory event tracking with automatic cleanup. Components report metrics via `MetricsRegistry` for dynamic discovery. Database-backed stats marked as `global: true` for accurate cluster-wide aggregation. Sensitive fields automatically sanitized for non-admin users. Enhanced `/admin/system-status.shtml` with color-coded status indicators and flattened component display. Added `hideInDropdown` flag to navigation items, allowing items to appear in breadcrumbs but not in dropdown/hamburger menu (useful for detail pages requiring URL parameters). Removed obsolete `getHealthStatus()` methods. No breaking changes for applications.
 - ✅ **Version 1.3.12 - Plugin Installation Bug Fixes**: Fixed critical bug where plugin install failed due to incorrect jPulse version detection. `getFrameworkVersion()` now reads actual installed version from `node_modules/@jpulse-net/jpulse-framework/package.json` instead of dependency requirement. Also fixed `bump-version.js` to work for plugin projects by detecting plugin context and using `webapp/bump-version.conf`. Documentation updated for plugin version management.
 - ✅ **Version 1.3.11 - Toast Queue for Page Redirects**: New `jPulse.url.redirect(url, options)` utility for redirecting with queued toast messages. Messages stored in `jpulse_toast_queue` sessionStorage and displayed after page load. Features `options.delay` for timed redirects, `options.toasts` array for message queue, and `jPulse.url.isInternal(url)` to detect external URLs (clears queue to prevent orphaned messages). Toast API enhanced with link support: `{ toastType, message, link?, linkText?, duration? }`. Error toasts default to 8 seconds. Plugin-defined toast styling (plugins specify `toastType`). Login page uses instant redirect with deferred success toast. No breaking changes.
 - ✅ **Version 1.3.10 - Multi-Step Authentication & Hook Simplification**: Flexible hook-based multi-step login flow supporting MFA, email verification, OAuth2, LDAP, and more. Single `POST /api/1/auth/login` endpoint with server-controlled step chain. **Phase 8 Hook Simplification**: Reduced 24 hooks to 12 with intuitive `onBucketAction` naming (`onAuthBeforeLogin`, `onUserAfterSave`). Auth hooks (7): `onAuthBeforeLogin`, `onAuthBeforeSession`, `onAuthAfterLogin`, `onAuthFailure`, `onAuthGetSteps`, `onAuthValidateStep`, `onAuthGetWarnings`. User hooks (5): `onUserBeforeSave`, `onUserAfterSave`, `onUserBeforeDelete`, `onUserAfterDelete`, `onUserSyncProfile`. MFA policy enforcement auto-redirects to setup page when required. Login warnings displayed via sessionStorage across page redirects. See [Plugin Hooks Guide](plugins/plugin-hooks.md). 924 unit tests passing. No breaking changes for applications; plugin developers update hook names.

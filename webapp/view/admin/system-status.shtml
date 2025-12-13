@@ -4,8 +4,8 @@
  * @tagline         Admin system status interface
  * @description     System monitoring and health dashboard for site administrators
  * @file            webapp/view/admin/system-status.shtml
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,12 +21,21 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         /* Page-specific styles only - common styles are in jpulse-common.css */
-
-        /* Page-specific styles only - status/metrics styles moved to jpulse-common.css */
-
+        .local-components-title {
+            margin: 1rem 0 0.5rem 0;
+        }
+        .local-component-header {
+            border-top: 1px solid #c0c0c0;
+            padding-top: 0.25rem;
+            background-image: linear-gradient(to bottom, #f6f6f6 0%, white 100%);
+        }
+        .local-component-header .jp-status-indicator {
+            display: inline-block;
+            vertical-align: middle;
+        }
         .local-refresh-info {
             text-align: center;
-            color: #666;
+            color: #aaa;
             font-size: 0.9em;
             margin-top: 20px;
             padding: 15px;
@@ -67,6 +76,12 @@
                     <div id="clusterHealthGrid" class="jp-stats-grid">
                         <!-- Populated by JavaScript -->
                     </div>
+                </div>
+
+                <!-- 1.5. Component Health (Aggregated) -->
+                <h2>{{i18n.view.admin.systemStatus.componentHealth.title}}</h2>
+                <div id="componentHealthGrid" class="jp-status-grid">
+                    <!-- Populated by JavaScript -->
                 </div>
 
                 <!-- 2. Server Summary Cards -->
@@ -130,6 +145,7 @@
                 this.elements.errorMessage = document.getElementById('errorMessage');
                 this.elements.statusContent = document.getElementById('statusContent');
                 this.elements.clusterHealthGrid = document.getElementById('clusterHealthGrid');
+                this.elements.componentHealthGrid = document.getElementById('componentHealthGrid');
                 this.elements.serverSummariesGrid = document.getElementById('serverSummariesGrid');
                 this.elements.serverTabContent = document.getElementById('serverTabContent');
             },
@@ -149,7 +165,7 @@
                 if (this.timers.refresh) {
                     clearInterval(this.timers.refresh);
                 }
-                this.timers.refresh = setInterval(() => this.loadStatus(), this.config.refreshIntervalMs);
+        //        this.timers.refresh = setInterval(() => this.loadStatus(), this.config.refreshIntervalMs);
                 this.loadStatus();
             },
 
@@ -186,6 +202,7 @@
 
             render() {
                 this.renderClusterHealth();
+                this.renderComponentHealth();
                 this.renderServerSummaries();
                 this.renderServerDetails();
             },
@@ -197,12 +214,8 @@
                 const cards = [
                     { label: `{{i18n.view.admin.systemStatus.clusterHealth.totalServers}}`, value: this.data.servers?.length || 0 },
                     { label: `{{i18n.view.admin.systemStatus.clusterHealth.totalInstances}}`, value: stats.totalInstances || 0 },
-                    { label: `{{i18n.view.admin.systemStatus.clusterHealth.running}}`, value: stats.runningProcesses || 0 },
                     { label: `{{i18n.view.admin.systemStatus.clusterHealth.stopped}}`, value: stats.stoppedProcesses || 0 },
-                    { label: `{{i18n.view.admin.systemStatus.clusterHealth.errored}}`, value: stats.erroredProcesses || 0 },
-                    { label: `{{i18n.view.admin.systemStatus.clusterHealth.wsConnections}}`, value: stats.totalWebSocketConnections || 0 },
-                    { label: `{{i18n.view.admin.systemStatus.clusterHealth.wsMessages}}`, value: stats.totalWebSocketMessages || 0 },
-                    { label: `{{i18n.view.admin.systemStatus.clusterHealth.wsNamespaces}}`, value: stats.totalWebSocketNamespaces || 0 }
+                    { label: `{{i18n.view.admin.systemStatus.clusterHealth.errored}}`, value: stats.erroredProcesses || 0 }
                 ];
 
                 this.elements.clusterHealthGrid.innerHTML = cards.map(card => `
@@ -211,6 +224,104 @@
                         <div class="jp-stat-label">${card.label}</div>
                     </div>
                 `).join('');
+            },
+
+            renderComponentHealth() {
+                if (!this.data || !this.data.statistics || !this.data.statistics.components) {
+                    this.elements.componentHealthGrid.innerHTML = '<p>{{i18n.view.admin.systemStatus.componentHealth.noComponents}}</p>';
+                    return;
+                }
+
+                const components = this.data.statistics.components;
+                this.elements.componentHealthGrid.innerHTML = '';
+
+                // Get component data from first instance
+                const getComponentFromInstance = (componentName) => {
+                    if (!this.data.servers || this.data.servers.length === 0) return null;
+                    for (const server of this.data.servers) {
+                        if (server.instances && server.instances.length > 0) {
+                            for (const instance of server.instances) {
+                                if (instance.components && instance.components[componentName]) {
+                                    return instance.components[componentName];
+                                }
+                            }
+                        }
+                    }
+                    return null;
+                };
+
+                Object.entries(components).forEach(([componentName, component]) => {
+                    const stats = component.stats || {};
+                    const instanceComponent = getComponentFromInstance(componentName);
+                    const status = instanceComponent?.status || 'unknown';
+                    const statusClass = status === 'ok' ? 'success' : status === 'warning' ? 'warning' : 'danger';
+                    const componentMeta = instanceComponent?.meta || {};
+                    const fieldsMeta = componentMeta.fields || {};
+
+                    const card = document.createElement('div');
+                    card.className = `jp-card jp-status-card jp-status-${status}`;
+
+                    // Helper to check if field should be visualized
+                    const shouldVisualize = (fieldName) => {
+                        const fieldMeta = fieldsMeta[fieldName] || {};
+                        const effectiveVisualize = fieldMeta.visualize !== undefined ? fieldMeta.visualize :
+                            (componentMeta.visualize !== undefined ? componentMeta.visualize : true);
+                        return effectiveVisualize !== false;
+                    };
+
+                    // Get all key stats to display (filter out complex objects/arrays and non-visualized fields)
+                    const keyStats = Object.entries(stats)
+                        .filter(([key, value]) => {
+                            // Only show simple values (not objects/arrays) and fields that should be visualized
+                            return (typeof value !== 'object' || value === null) && shouldVisualize(key);
+                        })
+                        .map(([key, value]) => {
+                            // Format the value - handle timestamps and uptime
+                            let displayValue = value;
+                            if (typeof value === 'number') {
+                                // Special handling for uptime (in seconds) - format directly
+                                if (key === 'uptime') {
+                                    displayValue = jPulse.utils.formatUptime(value);
+                                } else {
+                                    displayValue = value.toLocaleString();
+                                }
+                            } else if (typeof value === 'boolean') {
+                                displayValue = value ? '{{i18n.view.admin.systemStatus.yes}}' : '{{i18n.view.admin.systemStatus.no}}';
+                            } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+                                // ISO timestamp - format it
+                                displayValue = jPulse.date.formatLocalDateAndTime(value);
+                            }
+                            return { key, value: displayValue };
+                        });
+
+                    const indicatorClass = status === 'ok' ? '' : status === 'warning' ? 'jp-warning' : 'jp-error';
+                    const compDisplayName = instanceComponent?.component || componentName;
+                    card.innerHTML = `
+                        <div class="jp-status-header">
+                            <h3 class="jp-status-title">${compDisplayName}</h3>
+                            <span class="jp-status-indicator ${indicatorClass}"></span>
+                        </div>
+                        <div class="jp-status-metrics">
+                            ${keyStats.map(stat => `
+                                <div class="jp-metric-row">
+                                    <span class="jp-metric-label">${this.formatFieldName(stat.key)}</span>
+                                    <span class="jp-metric-value">${stat.value}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    this.elements.componentHealthGrid.appendChild(card);
+                });
+            },
+
+            formatFieldName(name) {
+                // Convert camelCase to Title Case
+                // Add space before capital letters and before numbers after letters
+                return name
+                    .replace(/([A-Z])/g, ' $1')
+                    .replace(/([a-zA-Z])(\d)/g, '$1 $2')  // Add space before numbers after letters
+                    .replace(/^./, str => str.toUpperCase())
+                    .trim();
             },
 
             renderServerSummaries() {
@@ -341,11 +452,85 @@
                             </div>
                         </div>
 
-                        <h3 style="margin-top: 2rem;">{{i18n.view.admin.systemStatus.instanceDetails.heading}}</h3>
-                        <div class="jp-status-grid" style="gap: 1.5rem; margin-bottom: 2rem;">
+                        <h3 class="jp-title">{{i18n.view.admin.systemStatus.instanceDetails.heading}}</h3>
+                        <div class="jp-status-grid">
                             ${ (server.instances || []).sort((a, b) => {
                                 return a.instanceId.localeCompare(b.instanceId);
-                            }).map(inst => `
+                            }).map(inst => {
+                                const instanceComponents = inst.components || {};
+                                const formatField = (name) => {
+                                    // Convert camelCase to Title Case
+                                    // Add space before capital letters and before numbers after letters
+                                    return name
+                                        .replace(/([A-Z])/g, ' $1')
+                                        .replace(/([a-zA-Z])(\d)/g, '$1 $2')  // Add space before numbers after letters
+                                        .replace(/^./, str => str.toUpperCase())
+                                        .trim();
+                                };
+
+                                // Build component metrics as jp-metric-row elements
+                                const componentMetrics = Object.keys(instanceComponents).length > 0 ?
+                                    Object.entries(instanceComponents).flatMap(([compName, comp]) => {
+                                        const compStats = comp.stats || {};
+                                        const compStatus = comp.status || 'unknown';
+                                        const compMeta = comp.meta || {};
+                                        const fieldsMeta = compMeta.fields || {};
+
+                                        // Helper to check if field should be visualized
+                                        const shouldVisualize = (fieldName) => {
+                                            const fieldMeta = fieldsMeta[fieldName] || {};
+                                            const effectiveVisualize = fieldMeta.visualize !== undefined ? fieldMeta.visualize :
+                                                (compMeta.visualize !== undefined ? compMeta.visualize : true);
+                                            return effectiveVisualize !== false;
+                                        };
+
+                                        // Get all key stats (filter out complex objects/arrays and non-visualized fields)
+                                        const keyStats = Object.entries(compStats)
+                                            .filter(([key, value]) => {
+                                                return (typeof value !== 'object' || value === null) && shouldVisualize(key);
+                                            })
+                                            .map(([key, value]) => {
+                                                let displayValue = value;
+                                                if (typeof value === 'number') {
+                                                    // Special handling for uptime (in seconds) - format directly
+                                                    if (key === 'uptime') {
+                                                        displayValue = jPulse.utils.formatUptime(value);
+                                                    } else {
+                                                        displayValue = value.toLocaleString();
+                                                    }
+                                                } else if (typeof value === 'boolean') {
+                                                    displayValue = value ? '{{i18n.view.admin.systemStatus.yes}}' : '{{i18n.view.admin.systemStatus.no}}';
+                                                } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+                                                    // ISO timestamp - format it
+                                                    displayValue = jPulse.date.formatLocalDateAndTime(value);
+                                                }
+                                                return { key, value: displayValue };
+                                            });
+
+                                        // Return component header row and metric rows
+                                        // Status indicator: ok = green (default), warning = yellow, error/unknown = red
+                                        const indicatorClass = compStatus === 'ok' ? '' : compStatus === 'warning' ? 'jp-warning' : 'jp-error';
+                                        const compDisplayName = comp.component || compName;
+                                        const rows = [
+                                            `<div class="jp-metric-row local-component-header">
+                                                <span class="jp-metric-label"><strong>${compDisplayName}</strong></span>
+                                                <span class="jp-metric-value"><span class="jp-status-indicator ${indicatorClass}"></span></span>
+                                            </div>`
+                                        ];
+
+                                        keyStats.forEach(stat => {
+                                            rows.push(`
+                                                <div class="jp-metric-row">
+                                                    <span class="jp-metric-label">${formatField(stat.key)}</span>
+                                                    <span class="jp-metric-value">${stat.value}</span>
+                                                </div>
+                                            `);
+                                        });
+
+                                        return rows;
+                                    }).join('') : '';
+
+                                return `
                                 <div class="jp-card">
                                     <h4 class="jp-status-title">${ `{{i18n.view.admin.systemStatus.instanceDetails.title}}`.replace('%INSTANCEID%', inst.instanceId).replace('%PID%', inst.pid) }</h4>
                                     ${this.generateMetricRows([
@@ -361,8 +546,10 @@
                                         ['Errors/min', inst.metrics?.errorsPerMin !== undefined ? inst.metrics.errorsPerMin : unknown],
                                         ['Error Rate', inst.metrics?.errorRate !== undefined ? `${inst.metrics.errorRate}%` : unknown],
                                     ])}
+                                    ${componentMetrics ? `<h4 class="jp-status-title local-components-title">{{i18n.view.admin.systemStatus.instanceDetails.components}}</h4>${componentMetrics}` : ''}
                                 </div>
-                            `).join('')}
+                            `;
+                            }).join('')}
                         </div>
 
                         <h3 style="margin-top: 2rem;">{{i18n.view.admin.systemStatus.pm2Instances.heading}}</h3>
@@ -414,11 +601,6 @@
                     }
                     return '';
                 }).join('');
-            },
-
-            formatDateTime(isoString) {
-                if (!isoString) return `{{i18n.view.admin.systemStatus.unknown}}`;
-                return new Date(isoString).toLocaleString();
             },
 
             formatBytes(bytes) {

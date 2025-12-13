@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -561,6 +561,74 @@ class CommonUtils {
     }
 
     /**
+     * Format uptime in human-readable format
+     * @param {number} seconds - Uptime in seconds
+     * @param {number} maxLevels - Maximum number of time units to show (default: 2)
+     * @returns {string} Formatted uptime string (e.g., "2mo 4d", "1h 30m", "45s")
+     *
+     * @example
+     * CommonUtils.formatUptime(473346);     // Returns: "5d 11h"
+     * CommonUtils.formatUptime(473346, 3);  // Returns: "5d 11h 29m"
+     * CommonUtils.formatUptime(3600);       // Returns: "1h 0m"
+     * CommonUtils.formatUptime(45);         // Returns: "45s"
+     */
+    static formatUptime(seconds, maxLevels = 2) {
+        if(typeof seconds !== 'number') {
+            seconds = Number(seconds) || 0;
+        }
+        const years = Math.floor(seconds / 31536000);
+        const months = Math.floor((seconds % 31536000) / 2592000);
+        const days = Math.floor((seconds % 2592000) / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+
+        const parts = [];
+        let levels = 0;
+
+        if (years > 0 && levels < maxLevels) {
+            parts.push(`${years}y`);
+            levels++;
+            if (months > 0 && levels < maxLevels) {
+                parts.push(`${months}mo`);
+                levels++;
+            }
+        } else if (months > 0 && levels < maxLevels) {
+            parts.push(`${months}mo`);
+            levels++;
+            if (days > 0 && levels < maxLevels) {
+                parts.push(`${days}d`);
+                levels++;
+            }
+        } else if (days > 0 && levels < maxLevels) {
+            parts.push(`${days}d`);
+            levels++;
+            if (hours > 0 && levels < maxLevels) {
+                parts.push(`${hours}h`);
+                levels++;
+            }
+        } else if (hours > 0 && levels < maxLevels) {
+            parts.push(`${hours}h`);
+            levels++;
+            if (minutes > 0 && levels < maxLevels) {
+                parts.push(`${minutes}m`);
+                levels++;
+            }
+        } else if (minutes > 0 && levels < maxLevels) {
+            parts.push(`${minutes}m`);
+            levels++;
+            if (secs > 0 && levels < maxLevels) {
+                parts.push(`${secs}s`);
+                levels++;
+            }
+        } else if (secs > 0 || parts.length === 0) {
+            parts.push(`${secs}s`);
+        }
+
+        return parts.join(' ');
+    }
+
+    /**
      * Format log message with timestamp and context in TSV format
      * @param {string} scope - Functional scope (required)
      * @param {string} message - Log message (required)
@@ -924,6 +992,7 @@ export const {
     getLogContext,
     formatTimestamp,
     formatLogMessage,
+    formatUptime,
     paginatedSearch
 } = CommonUtils;
 

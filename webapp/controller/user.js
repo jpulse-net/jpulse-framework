@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -256,7 +256,7 @@ class UserController {
         try {
             LogController.logRequest(req, 'user.stats', '');
 
-            const stats = await UserModel.getStats();
+            const stats = await UserModel.getUserStats();
             const elapsed = Date.now() - startTime;
 
             LogController.logInfo(req, 'user.stats', `success: stats retrieved in ${elapsed}ms`);
@@ -270,6 +270,100 @@ class UserController {
             LogController.logError(req, 'user.stats', `error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.user.stats.internalError', { details: error.message });
             return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
+     * Initialize user controller (called during bootstrap)
+     * Registers metrics provider for W-112 health metrics system
+     */
+    static async initialize() {
+        // Register metrics provider (W-112)
+        try {
+            const MetricsRegistry = (await import('../utils/metrics-registry.js')).default;
+            MetricsRegistry.register('users', () => UserController.getMetrics(), {
+                async: true,  // getMetrics() is async
+                category: 'model'
+            });
+        } catch (error) {
+            // MetricsRegistry might not be available yet
+            LogController.logWarning(null, 'user.initialize', `Failed to register metrics provider: ${error.message}`);
+        }
+    }
+
+    /**
+     * Get user metrics in W-112 standardized format (W-112)
+     * @returns {Promise<Object>} Component metrics with standardized structure
+     */
+    static async getMetrics() {
+        try {
+            // Get raw stats from UserModel
+            const userStats = await UserModel.getUserStats();
+
+            return {
+                component: 'UserModel',
+                status: 'ok',
+                initialized: true,
+                stats: {
+                    total: userStats.total,
+                    admins: userStats.admins,
+                    byStatus: userStats.byStatus,
+                    byRole: userStats.byRole,
+                    recentLogins: userStats.recentLogins
+                },
+                meta: {
+                    ttl: 300000,                // 5 minutes - user stats don't change frequently
+                    category: 'model',
+                    fields: {
+                        'total': {
+                            global: true,       // Same across all instances (database is shared)
+                            aggregate: 'first'
+                        },
+                        'admins': {
+                            global: true,       // Same across all instances
+                            aggregate: 'first'
+                        },
+                        'byStatus': {
+                            global: true,       // Same across all instances
+                            aggregate: false    // Complex object, don't aggregate
+                        },
+                        'byRole': {
+                            global: true,       // Same across all instances
+                            aggregate: false    // Complex object, don't aggregate
+                        },
+                        'recentLogins': {
+                            global: true,       // Same across all instances
+                            aggregate: false,   // Complex object, don't aggregate
+                            fields: {
+                                'last24h': {
+                                    aggregate: 'first'
+                                },
+                                'last7d': {
+                                    aggregate: 'first'
+                                },
+                                'last30d': {
+                                    aggregate: 'first'
+                                }
+                            }
+                        }
+                    }
+                },
+                timestamp: new Date().toISOString()
+            };
+        } catch (error) {
+            // Return error status if stats collection fails
+            return {
+                component: 'UserModel',
+                status: 'error',
+                initialized: true,
+                stats: {},
+                meta: {
+                    ttl: 60000,
+                    category: 'model'
+                },
+                timestamp: new Date().toISOString(),
+                error: error.message
+            };
         }
     }
 

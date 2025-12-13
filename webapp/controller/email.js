@@ -3,8 +3,8 @@
  * @tagline         Email Controller for jPulse Framework
  * @description     Provides email sending capability and API endpoint for jPulse Framework
  * @file            webapp/controller/email.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,6 +20,7 @@ import ConfigModel from '../model/config.js';
 import ConfigController from './config.js';
 import HandlebarController from './handlebar.js';
 import PathResolver from '../utils/path-resolver.js';
+import CounterManager from '../utils/time-based-counters.js';
 
 /**
  * Email Controller - handles email sending and API endpoints
@@ -29,6 +30,10 @@ class EmailController {
     static transporter = null;
     static config = null;
     static initialized = false;
+
+    // Time-based counters for metrics (W-112)
+    static sentCounter = CounterManager.getCounter('email', 'sent');
+    static failedCounter = CounterManager.getCounter('email', 'failed');
 
     /**
      * Initialize email controller (called during app bootstrap)
@@ -121,6 +126,19 @@ class EmailController {
             });
 
             this.initialized = true;
+
+            // Register metrics provider (W-112)
+            try {
+                const MetricsRegistry = (await import('../utils/metrics-registry.js')).default;
+                MetricsRegistry.register('email', () => EmailController.getMetrics(), {
+                    async: false,
+                    category: 'controller'
+                });
+            } catch (error) {
+                // MetricsRegistry might not be available yet
+                LogController.logWarning(null, 'email.initialize', `Failed to register metrics provider: ${error.message}`);
+            }
+
             return true;
 
         } catch (error) {
@@ -140,25 +158,84 @@ class EmailController {
     }
 
     /**
-     * Get health status (standardized format)
-     * Returns hard-coded English message (like HealthController)
-     * @returns {object} Health status object
+     * Get email controller metrics (W-112)
+     * @returns {Object} Component metrics with standardized structure
      */
-    static getHealthStatus() {
+    static getMetrics() {
         const isConfigured = this.isConfigured();
+        const emailStats = CounterManager.getGroupStats('email');
 
         return {
-            status: isConfigured ? 'ok' : 'not_configured',
-            configured: isConfigured,
-            message: isConfigured ? '' : 'Email service is not configured', // Hard-coded English
-            details: isConfigured ? {
-                smtpServer: this.config.smtpServer,
-                smtpPort: this.config.smtpPort,
-                adminEmail: this.config.adminEmail,
-                adminName: this.config.adminName,
-                useTls: this.config.useTls
-            } : {} // Empty object instead of null for easier parsing
-            // Note: timestamp is added by HealthController._addComponentHealthStatuses()
+            component: 'EmailController',
+            status: isConfigured ? 'ok' : 'error',
+            initialized: this.initialized,
+            stats: {
+                configured: isConfigured,
+                smtpServer: this.config?.smtpServer || null,
+                smtpPort: this.config?.smtpPort || null,
+                adminEmail: this.config?.adminEmail || null,
+                adminName: this.config?.adminName || null,
+                useTls: this.config?.useTls || false,
+                sentLastHour: emailStats.sent?.lastHour || 0,
+                sentLast24h: emailStats.sent?.last24h || 0,
+                sentTotal: emailStats.sent?.total || 0,
+                failedLastHour: emailStats.failed?.lastHour || 0,
+                failedLast24h: emailStats.failed?.last24h || 0,
+                failedTotal: emailStats.failed?.total || 0
+            },
+            meta: {
+                ttl: 60000,  // 1 minute - config doesn't change often
+                category: 'controller',
+                fields: {
+                    'configured': {
+                        aggregate: 'first'  // Same across instances
+                    },
+                    'smtpServer': {
+                        sanitize: true,     // Sensitive - hide from non-admins
+                        aggregate: 'first'
+                    },
+                    'smtpPort': {
+                        sanitize: true,     // Sensitive - hide from non-admins
+                        aggregate: 'first'
+                    },
+                    'adminEmail': {
+                        sanitize: true,     // Sensitive - hide from non-admins
+                        visualize: false,   // Hide from UI
+                        aggregate: 'first'
+                    },
+                    'adminName': {
+                        sanitize: true,     // Sensitive - hide from non-admins
+                        visualize: false,   // Hide from UI
+                        aggregate: 'first'
+                    },
+                    'useTls': {
+                        aggregate: 'first'
+                    },
+                    'sentLastHour': {
+                        aggregate: 'sum',  // Sum across instances
+                        visualize: false
+                    },
+                    'sentLast24h': {
+                        aggregate: 'sum'
+                    },
+                    'sentTotal': {
+                        aggregate: 'sum',
+                        visualize: false
+                    },
+                    'failedLastHour': {
+                        aggregate: 'sum',
+                        visualize: false
+                    },
+                    'failedLast24h': {
+                        aggregate: 'sum'
+                    },
+                    'failedTotal': {
+                        aggregate: 'sum',
+                        visualize: false
+                    }
+                }
+            },
+            timestamp: new Date().toISOString()
         };
     }
 
@@ -238,6 +315,9 @@ class EmailController {
             LogController.logInfo(null, 'email.sendEmail',
                 `Email sent to ${options.to}: ${info.messageId}`);
 
+            // Increment sent counter (W-112)
+            this.sentCounter.increment();
+
             return {
                 success: true,
                 messageId: info.messageId,
@@ -248,6 +328,9 @@ class EmailController {
         } catch (error) {
             LogController.logError(null, 'email.sendEmail',
                 `error: Failed to send email to ${options.to}: ${error.message}`);
+
+            // Increment failed counter (W-112)
+            this.failedCounter.increment();
 
             return {
                 success: false,

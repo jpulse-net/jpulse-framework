@@ -3,8 +3,8 @@
  * @tagline         Unit tests for CacheManager utility
  * @description     Tests for centralized cache management with periodic refresh
  * @file            webapp/tests/unit/utils/cache-manager.test.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -229,10 +229,10 @@ describe('CacheManager', () => {
             expect(cacheNames).toContain('TestCache');
         });
 
-        it('should return global stats', () => {
-            const globalStats = cacheManager.getStats();
-            expect(globalStats.totalCaches).toBeGreaterThan(0);
-            expect(globalStats.caches.TestCache).toBeDefined();
+        it('should return global metrics', () => {
+            const globalMetrics = cacheManager.getMetrics();
+            expect(globalMetrics.stats.totalCaches).toBeGreaterThan(0);
+            expect(globalMetrics.stats.caches.TestCache).toBeDefined();
         });
 
         it('should refresh cache manually', async () => {

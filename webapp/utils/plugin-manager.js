@@ -3,8 +3,8 @@
  * @tagline         Plugin Discovery and Lifecycle Management
  * @description     Manages plugin discovery, validation, dependencies, and lifecycle
  * @file            webapp/utils/plugin-manager.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -49,7 +49,7 @@ class PluginManager {
      */
     static async initialize() {
         if (this.initialized) {
-            return this.getStatistics();
+            return this.getMetrics();
         }
 
         const projectRoot = global.appConfig.system.projectRoot;
@@ -92,7 +92,14 @@ class PluginManager {
 
         this.initialized = true;
 
-        return this.getStatistics();
+        // Register metrics provider
+        const MetricsRegistry = (await import('./metrics-registry.js')).default;
+        MetricsRegistry.register('plugins', () => this.getMetrics(), {
+            async: false,
+            category: 'util'
+        });
+
+        return this.getMetrics();
     }
 
     /**
@@ -482,10 +489,11 @@ class PluginManager {
     }
 
     /**
-     * Get plugin statistics
-     * @returns {object} Statistics
+     * Get plugin metrics (standardized getMetrics() format)
+     * @returns {object} Component metrics with standardized structure
      */
-    static getStatistics() {
+    static getMetrics() {
+        // Inline existing getStatistics() logic
         const total = this.registry.plugins.length;
         const enabled = this.registry.plugins.filter(p => p.enabled).length;
         const disabled = this.registry.plugins.filter(p => !p.enabled).length;
@@ -493,42 +501,37 @@ class PluginManager {
         const missing = this.registry.plugins.filter(p => p.status === 'missing').length;
 
         return {
-            total,
-            enabled,
-            disabled,
-            errors,
-            missing,
-            discovered: this.discovered.size,
-            loadOrder: this.registry.loadOrder
+            component: 'PluginManager',
+            status: errors > 0 ? 'warning' : 'ok',
+            initialized: this.initialized,
+            stats: {
+                total,
+                enabled,
+                disabled,
+                errors,
+                missing,
+                loadOrder: this.registry.loadOrder
+            },
+            meta: {
+                ttl: 300000,  // 5 minutes
+                category: 'util',
+                fields: {
+                    // Only specify fields that need overrides or exclusions
+                    'loadOrder': {
+                        visualize: false,  // Exclude from visualization
+                        aggregate: false   // Exclude from aggregation
+                    },
+                    'missing': {
+                        visualize: false   // Hide from UI
+                    }
+                    // All other fields (total, enabled, disabled, errors)
+                    // use system defaults automatically
+                }
+            },
+            timestamp: new Date().toISOString()
         };
     }
 
-    /**
-     * Get health status (standardized format for HealthController)
-     * @returns {object} Health status
-     */
-    static getHealthStatus() {
-        const stats = this.getStatistics();
-
-        let status = 'ok';
-        if (stats.errors > 0 || stats.missing > 0) {
-            status = 'warning';
-        }
-
-        const message = stats.errors > 0 || stats.missing > 0
-            ? `${stats.errors} plugins with errors, ${stats.missing} missing`
-            : '';
-
-        return {
-            status: status,
-            pluginCount: stats.total,
-            enabled: stats.enabled,
-            disabled: stats.disabled,
-            errors: stats.errors,
-            missing: stats.missing,
-            message: message
-        };
-    }
 
     /**
      * Get plugin by name

@@ -3,8 +3,8 @@
  * @tagline         Integration tests for Email API endpoints
  * @description     Minimal integration tests for email API endpoint
  * @file            webapp/tests/integration/email-api.test.js
- * @version         1.3.12
- * @release         2025-12-08
+ * @version         1.3.13
+ * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -54,7 +54,8 @@ describe('Email API Integration Tests', () => {
         test('should have required static methods', () => {
             expect(typeof EmailController.initialize).toBe('function');
             expect(typeof EmailController.isConfigured).toBe('function');
-            expect(typeof EmailController.getHealthStatus).toBe('function');
+            // W-112: getHealthStatus() removed - replaced by getMetrics() for metrics API
+            // expect(typeof EmailController.getHealthStatus).toBe('function');
             expect(typeof EmailController.sendEmail).toBe('function');
             expect(typeof EmailController.sendEmailFromTemplate).toBe('function');
             expect(typeof EmailController.sendAdminNotification).toBe('function');
@@ -63,26 +64,8 @@ describe('Email API Integration Tests', () => {
         });
     });
 
-    describe('Health Status Integration', () => {
-        test('should return proper health status structure', () => {
-            const status = EmailController.getHealthStatus();
-            
-            expect(status).toHaveProperty('status');
-            expect(status).toHaveProperty('configured');
-            expect(status).toHaveProperty('message');
-            expect(status).toHaveProperty('details');
-            
-            expect(typeof status.status).toBe('string');
-            expect(typeof status.configured).toBe('boolean');
-            expect(typeof status.message).toBe('string');
-            expect(typeof status.details).toBe('object');
-        });
-
-        test('should have configured as boolean (not string)', () => {
-            const status = EmailController.getHealthStatus();
-            expect(typeof status.configured).toBe('boolean');
-        });
-    });
+    // W-112: getHealthStatus() removed - replaced by getMetrics() for metrics API
+    // The /api/1/health/status endpoint (for load balancers) doesn't use getHealthStatus()
 
     describe('Error Code Mapping', () => {
         test('should map all known error codes', () => {

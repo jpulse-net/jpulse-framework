@@ -4190,7 +4190,7 @@ ACCEPTED
 Plugin CLI version detection bug (bin/plugin-manager-cli.js)
 
 ## Problem
-getFrameworkVersion() was reading the dependency requirement from site 
+getFrameworkVersion() was reading the dependency requirement from site
 package.json (e.g., "^1.1.0") instead of the actual installed version.
 
 This caused: "Plugin requires jPulse >=1.3.8, current version is 1.1.0"
@@ -4397,6 +4397,882 @@ Updated release notes with proper single-paragraph descriptions:
 
 ## Status
 ACCEPTED - Will be included in next plugin release
+
+
+============================================================
+2025-12-09 23:50
+
+W-112 Phase 1 Implementation: Standardized getStats() for metrics
+
+Completed Phase 1 of W-112 metrics strategy:
+- Step 1.4: Added onGetInstanceStats hook to HookManager
+- Step 1.2: Replaced PluginManager.getStatistics() with getStats() using new standardized structure
+- Step 1.1: Updated existing components to new getStats() structure:
+  * HookManager: Added component, status, initialized, meta, timestamp fields
+  * SiteControllerRegistry: Updated to new structure with field metadata
+  * ContextExtensions: Updated to new structure
+  * CacheManager: Updated to new structure with aggregation rules
+- Step 1.3: Added RedisManager.getStats() method with connection stats
+
+All components now return standardized structure:
+- component: string identifier
+- status: 'ok' | 'warning' | 'error'
+- initialized: boolean
+- stats: object with component-specific data
+- meta: object with ttl, category, fields (opt-out model)
+- timestamp: ISO string
+
+Files modified:
+- webapp/utils/hook-manager.js (added hook, updated getStats())
+- webapp/utils/plugin-manager.js (replaced getStatistics() with getStats())
+- webapp/utils/site-controller-registry.js (updated getStats())
+- webapp/utils/context-extensions.js (updated getStats())
+- webapp/utils/cache-manager.js (updated getStats())
+- webapp/utils/redis-manager.js (added getStats())
+
+## Status
+IN PROGRESS - Phase 1 complete, ready for Phase 2 (HealthController integration)
+
+
+
+============================================================
+2025-12-10 00:25
+
+W-112 Phase 3 Implementation: Plugin Integration
+
+Completed Phase 3 of W-112 metrics strategy:
+- Step 3.1: Added auth-mfa plugin stats registration
+  * Added MfaAuthModel.getStats() method with MongoDB aggregation
+  * Registered onGetInstanceStats hook in MfaAuthController.initialize()
+  * Stats include: usersWithMfa, totpEnabled, recoveryCodesGenerated, locked, total
+  * All fields marked as global: true (database-backed, same across instances)
+
+Files modified:
+- plugins/auth-mfa/webapp/model/mfaAuth.js (added getStats() method)
+- plugins/auth-mfa/webapp/controller/mfaAuth.js (registered hook)
+
+## Status
+IN PROGRESS - Phase 3 complete, ready for testing
+
+
+============================================================
+2025-12-10 00:50
+
+W-112 Verification: Logged-in metrics response
+
+Verified logged-in case for /api/1/health/metrics:
+- Per-instance components are present and correct
+- statistics.components is empty {} - needs investigation
+- All registered components appear in instance data:
+  * cache (CacheManager)
+  * hooks (HookManager)
+  * plugins (PluginManager)
+  * redis (RedisManager)
+  * controllers (SiteControllerRegistry)
+  * contextExtensions (ContextExtensions)
+  * auth-mfa (plugin stats via hook)
+
+Issue: statistics.components aggregation returning empty object
+Need to verify aggregation logic is working correctly
+
+
+============================================================
+2025-12-10 01:00
+
+W-112 Verification: Component aggregation issue
+
+Issue: statistics.components is empty {} despite per-instance components being present
+
+Observations:
+- Per-instance components are present and correct
+- Only one instance (pid 40902) has components in logged-in case
+- Aggregation should still work with single instance
+
+Added error handling and validation to aggregation logic
+Need to verify if aggregation is being called and if there are silent failures
+
+
+============================================================
+2025-12-10 23:24
+
+W-112 Fix: Aggregation issues resolved
+
+Fixed aggregation issues:
+- redis.stats.config: Now correctly excluded (aggregate: false)
+- controllers.stats.lastScan: Now shows single timestamp (aggregate: 'first')
+- controllers.stats.scanPath: Now shows single path (aggregate: 'first')
+- Fixed _aggregate() to handle non-numeric values correctly
+- Added auto-detection for string/object fields
+
+Note: contextExtensions missing from aggregated output - added debug logging to investigate
+
+
+============================================================
+2025-12-10 23:27
+
+W-112 Success: All aggregation issues resolved
+
+All 7 components now aggregating correctly:
+- cache, hooks, plugins, redis, controllers, contextExtensions, auth-mfa
+
+Fixed issues:
+- redis.stats.config: Correctly excluded (aggregate: false)
+- controllers.stats.lastScan: Single timestamp (aggregate: 'first')
+- controllers.stats.scanPath: Single path (aggregate: 'first')
+- contextExtensions.stats.lastUpdate: Single timestamp (aggregate: 'first')
+
+Changes accepted: Yes
+
+
+============================================================
+2025-12-10 23:45
+
+W-112: Hide fields in getStats() and discuss naming
+
+Changes:
+- Added visualize: false for plugins.missing in PluginManager.getStats()
+- Added visualize: false for controllers.scanPath in SiteControllerRegistry.getStats()
+- Updated system-status.shtml to respect visualize flag in both aggregated and per-instance views
+
+Naming discussion:
+- getStats() is concise and clear
+- Alternatives: getMetrics(), getStatistics(), getHealthStats(), getOperationalStats()
+- Recommendation: Keep getStats() unless emphasizing health context
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-10 10:15
+
+W-112: Renamed getStats() to getMetrics() for consistency
+
+Renamed for health metrics API:
+- StatsRegistry → MetricsRegistry
+- All framework component getStats() → getMetrics()
+- HookManager, PluginManager, SiteControllerRegistry, ContextExtensions
+- CacheManager, RedisManager, UserModel, MfaAuthModel
+- WebSocketController (used by health API)
+
+Kept getStats() for application-level stats:
+- Individual cache instances (Cache.getStats())
+- WebSocket namespace handles (wsHandle.getStats())
+- Site/plugin models (HelloTodoModel.getStats())
+
+Updated files:
+- webapp/utils/metrics-registry.js (renamed from stats-registry.js)
+- All framework components and models
+- HealthController
+- Plugin hook (onGetInstanceStats)
+- Documentation (W-112 strategy doc, work-items.md)
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-11 00:15
+
+W-112: Fixed missing getMetrics() reference in HealthController
+
+Fixed:
+- Line 1403: WebSocketController.getStats() → getMetrics()
+- This was in _getOptimizedHealthData() method
+
+All references to getStats() for health metrics have been updated to getMetrics()
+
+Changes accepted: Yes
+
+
+============================================================
+2025-12-11 00:20
+
+W-112: Metrics endpoint verification - SUCCESS
+
+Verified /api/1/health/metrics endpoint:
+- All components reporting correctly with getMetrics()
+- Aggregated components in statistics.components:
+  * cache, hooks, plugins, redis, controllers, contextExtensions, auth-mfa
+- Per-instance components in servers[].instances[].components
+- All components have correct structure:
+  * component, status, initialized, stats, meta, timestamp
+- Field-level metadata working (visualize, aggregate, etc.)
+- Aggregation working correctly (sum, first, max, etc.)
+
+Rename from getStats() to getMetrics() complete and verified!
+
+Changes accepted: Yes
+
+
+============================================================
+2025-12-11 00:30
+
+W-112: Convert WebSocket to component metrics
+
+Changes:
+- Updated WebSocketController.getMetrics() to return standardized format
+- Added getMetricsLegacy() for backward compatibility
+- Registered WebSocketController with MetricsRegistry
+- WebSocket now appears in Component Health section
+- Cluster statistics use aggregated WebSocket component stats
+
+WebSocket component structure:
+- component: WebSocketController
+- stats: uptime, totalConnections, totalMessages, totalNamespaces
+- meta: aggregation rules (sum for connections/messages, max for uptime)
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-11 00:45
+
+W-112: Added MetricsRegistry registration for WebSocket
+
+Fixed:
+- Added MetricsRegistry.register('websocket', ...) in WebSocketController.initialize()
+- WebSocket component will now appear in Component Health section
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-11 01:00
+
+W-112: Remove Running card, WebSocket cards, add uptime formatting, remove getMetricsLegacy()
+
+Changes:
+1. Removed 'Running' card and 3 WebSocket cards from cluster health (now 2x2 grid)
+2. Added uptime formatting for instance-level component metrics
+3. Replaced all getMetricsLegacy() calls with getMetrics()
+4. Added _convertToLegacyFormat() helper for backward compatibility
+5. Removed getMetricsLegacy() method definition
+
+Uptime formatting:
+- Added formatUptime() method to SystemStatus class
+- Detects 'uptime' field and converts milliseconds to formatted string
+- Format: '2mo 4d', '1h 30m', etc.
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-11 01:15
+
+W-112: Move formatUptime to common.js, fix uptime formatting, enhance getMetrics() superset
+
+Changes:
+1. Moved formatUptime() to CommonUtils (common.js)
+2. Updated health.js to use CommonUtils.formatUptime()
+3. Fixed uptime formatting in aggregated component health section
+4. Enhanced getMetrics() to include all fields (superset approach):
+   - Added activeUsers and messagesPerMin to namespaces
+   - Added activityLog to stats
+   - All extra fields marked with visualize: false
+5. Removed _convertToLegacyFormat() method
+6. Updated websocketStatus() and WebSocket updates to extract from metrics directly
+
+Benefits:
+- Single source of truth: getMetrics() contains all fields
+- No format conversion needed, just extract what's needed
+- Extra fields hidden from UI via visualize: false
+- formatUptime() now available as utility function
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-11 01:30
+
+W-112: Add jPulse.utils.formatUptime() to client-side, update format to max 2 levels
+
+Changes:
+1. Updated CommonUtils.formatUptime() to support maxLevels parameter (default: 2)
+2. Added jPulse.utils.formatUptime() to jpulse-common.js with same logic
+3. Updated system-status.shtml to use jPulse.utils.formatUptime()
+4. Kept server-side wrapper in health.js (still used in multiple places)
+
+Benefits:
+- Consistent uptime formatting: max 2 levels (e.g., '5d 11h' instead of '5d 11h 29m 6s')
+- Client-side utility available for all views
+- Server-side still available via CommonUtils.formatUptime()
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-11 01:45
+
+W-112: Fix uptime formatting - API returns milliseconds, convert to seconds
+
+User fixes:
+1. Removed check for value > 86400000 (now formats all uptime values)
+2. Use jPulse.utils.formatUptime() directly (removed local formatUptime method)
+3. Added type checking to formatUptime() in both common.js and jpulse-common.js
+4. Removed _formatUptime wrapper from health.js
+
+Result:
+- Uptime now correctly formatted in both aggregated and instance-level components
+- API returns uptime in milliseconds, converted to seconds before formatting
+- Cleaner code: no unnecessary wrappers
+
+Changes accepted: Confirmed working
+
+
+============================================================
+2025-12-11 02:00
+
+W-112: Standardize uptime to seconds - WebSocketController consistency fix
+
+Changes:
+1. Changed WebSocketController.getMetrics() to return uptime in seconds
+   - Changed: const uptime = Date.now() - this.stats.startTime;
+   - To: const uptime = Math.floor((Date.now() - this.stats.startTime) / 1000);
+2. Updated system-status.shtml to remove milliseconds-to-seconds conversion
+   - Removed: const seconds = Math.floor(value / 1000);
+   - Now: displayValue = jPulse.utils.formatUptime(value);
+   - Updated in both aggregated and instance-level component sections
+
+Result:
+- All uptime values now consistently in seconds
+- WebSocketController matches server/process uptime format
+- Frontend no longer needs conversion logic
+- websocket-status.shtml already expects seconds, no change needed
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-11 02:15
+
+W-112: Consolidate date formatting functions into jpulse-common.js
+
+Changes:
+1. Enhanced formatLocalDate() to accept Date or String (ISO format)
+2. Enhanced formatLocalDateAndTime() to accept Date or String (ISO format)
+3. Created formatLocalTime() function that returns HH:MM:SS format
+4. Removed formatTimestamp() from websocket-status.shtml
+5. Updated websocket-status.shtml to use jPulse.date.formatLocalTime()
+
+Benefits:
+- All date formatting functions centralized in jpulse-common.js
+- Consistent API: all functions accept Date or ISO string
+- Reusable formatLocalTime() for time-only display
+- Reduced code duplication
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 02:25
+
+# W-112 Implementation Status
+
+## ✅ COMPLETED
+
+### Phase 1: Foundation & Core Components
+- ✅ **MetricsRegistry** (`webapp/utils/metrics-registry.js`) - Created and working
+- ✅ **All core components have getMetrics()**:
+  - PluginManager ✅
+  - HookManager ✅
+  - SiteControllerRegistry ✅
+  - ContextExtensions ✅
+  - CacheManager ✅
+  - RedisManager ✅
+  - WebSocketController ✅
+  - UserModel ✅
+- ✅ **onGetInstanceStats hook** - Implemented and working
+- ✅ **Plugin stats registration** - auth-mfa plugin registered via hook
+
+### Phase 2: HealthController Integration
+- ✅ **_collectComponentStats()** - Collects from MetricsRegistry + hooks
+- ✅ **_aggregateComponentStats()** - Aggregates across instances
+- ✅ **_aggregateFields()** - Field-level aggregation with metadata support
+- ✅ **_sanitizeComponentStats()** - Sanitization for non-admin users
+- ✅ **_sanitizeFields()** - Field-level sanitization
+- ✅ **Integration into metrics API** - `/api/1/health/metrics` endpoint working
+
+### Phase 3: Frontend Integration
+- ✅ **system-status.shtml** - Displays aggregated and per-instance components
+- ✅ **WebSocket uptime standardization** - Consistent seconds format
+- ✅ **Date formatting consolidation** - All in jpulse-common.js
+
+## ❌ REMAINING (besides tests & docs)
+
+### Cleanup Tasks
+1. **Remove getHealthStatus() methods** (still exist in):
+   - `webapp/utils/plugin-manager.js` (line 539)
+   - `webapp/controller/view.js` (line 91)
+   - `webapp/controller/plugin.js` (line 660)
+   - `webapp/controller/handlebar.js` (line 1438)
+   - `webapp/controller/email.js` (line 147)
+   - Test files referencing getHealthStatus()
+
+2. **Remove _addComponentHealthStatuses()** - Check if still exists in health.js
+
+3. **Remove componentProviders from app.conf** - Check if still referenced
+
+### Optional (Phase 2)
+- Historical stats windows (stats5m, stats1h) - Nice to have, not critical
+
+## 📊 Summary
+- **Core Implementation**: ~95% complete
+- **Cleanup**: ~5% remaining (getHealthStatus removal)
+- **Tests**: Not started
+- **Documentation**: Not started
+
+
+============================================================
+2025-12-12 10:30
+
+W-112: Cleanup - Remove getHealthStatus() methods and componentProviders
+
+Removed getHealthStatus() methods from:
+- webapp/utils/plugin-manager.js
+- webapp/controller/plugin.js
+- webapp/controller/email.js
+- webapp/controller/view.js
+- webapp/controller/handlebar.js
+
+Removed componentProviders from:
+- webapp/app.conf (health.componentProviders array)
+
+Updated test files:
+- webapp/tests/unit/controller/email-controller.test.js (removed getHealthStatus tests)
+- webapp/tests/integration/email-api.test.js (removed getHealthStatus tests)
+
+Note: getHealthStatus() was replaced by getMetrics() for W-112.
+The /api/1/health/status endpoint (for load balancers) doesn't use getHealthStatus().
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 10:45
+
+W-112: Add getMetrics() to EmailController, ViewController, HandlebarController
+
+Added getMetrics() methods to:
+- webapp/controller/email.js
+  - Reports: configured, smtpServer, smtpPort, adminEmail, adminName, useTls
+  - Sanitizes sensitive fields (smtpServer, smtpPort, adminEmail, adminName)
+  - Registered with MetricsRegistry in initialize()
+
+- webapp/controller/view.js
+  - Reports: configured, viewDirectories count, viewDirectoriesList, templateCache stats
+  - Registered with MetricsRegistry in initialize()
+
+- webapp/controller/handlebar.js
+  - Reports: configured, configDocument, configLoaded, includeCache stats
+  - Registered with MetricsRegistry in initialize()
+
+All methods follow W-112 standardized format:
+- component, status, initialized, stats, meta, timestamp
+- Field-level metadata for aggregation and sanitization
+- Proper category: 'controller'
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 11:15
+
+W-112: Enhanced component metrics
+
+Changes:
+- health.js: Sort components by component name alphabetically
+- handlebar.js: Hide configDocument from UI, add regularHandlebars and blockHandlebars counts
+  - Used programmatic counting via REGULAR_HANDLEBARS and BLOCK_HANDLEBARS constants
+- email.js: Hide adminEmail and adminName from UI (visualize: false)
+
+Questions noted (not implemented):
+- email.js: Counter of emails sent since app start / last 24h
+- view.js: Counter of pages served since app start / last 24h
+- user.js: getMetrics() format difference (used by user controller endpoint)
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 11:30
+
+W-112: Refined handlebar metrics and answered questions
+
+UserModel.getMetrics() usage:
+- Used by UserController.stats() endpoint: GET /api/1/user/stats
+- Used in webapp/view/admin/users.shtml for user statistics display
+- Not part of health metrics system (dedicated endpoint)
+
+handlebar.js improvements:
+- Changed regularHandlebars count to: Object.keys(context) + 2
+  - Base context has 9 keys: app, user, config, appConfig, appCluster, url, i18n, components, vars
+  - +2 for file.* (counted as 1) and let
+- Added regularHandlebarsList and blockHandlebarsList as hidden metrics (visualize: false)
+- Updated aggregation comments: 'May differ across jPulse versions'
+- Removed REGULAR_HANDLEBARS constant (replaced with programmatic counting)
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 11:45
+
+W-112: UserModel metrics and instance-level component sorting
+
+Changes:
+- UserModel.getMetrics() renamed to getUserStats() to avoid confusion
+- UserController.getMetrics() added (W-112 standardized format)
+- UserController.initialize() added to register with MetricsRegistry
+- UserController.stats() updated to use UserModel.getUserStats()
+- bootstrap.js: Added UserController.initialize() call
+- health.js: Sort instance-level components alphabetically
+
+User metrics now available in system status dashboard via /api/1/health/metrics
+UserController.stats() endpoint still works with raw stats format
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 21:00
+
+W-112: Added elapsed time tracking for component metrics
+
+Changes:
+- health.js: Track elapsed time for each getMetrics() call
+  - Added componentElapsed tracking in _collectComponentStats()
+  - Elapsed time stored in component.meta.elapsed
+  - Added total elapsed time to metrics endpoint response (baseMetrics.elapsed)
+- user.js: search endpoint already has elapsed field (verified)
+
+Each component now includes meta.elapsed showing how long its getMetrics() took
+Total endpoint elapsed time included in response
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 21:15
+
+W-112: Simplified elapsed time tracking
+
+Changes:
+- health.js: Simplified _collectComponentStats() elapsed tracking
+  - Simple start/end time calculation for each component
+  - elapsed added directly to component object (not in meta)
+  - Plugin components get hook execution elapsed time
+- health.js: Total elapsed already added to baseMetrics.elapsed
+- user.js: search endpoint already has elapsed field
+
+Component structure now includes:
+  - component, status, initialized, stats, meta, elapsed, timestamp
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 21:30
+
+W-112: Fixed elapsed time tracking for plugin components
+
+Changes:
+- hook-manager.js: Track elapsed time per plugin handler in execute()
+  - For onGetInstanceStats hook, track start/end time per handler
+  - Add elapsed time to components newly added by each handler
+- health.js: Simplified plugin stats collection
+  - Removed manual elapsed time calculation (now done in HookManager)
+  - Just use elapsed times already in component data
+
+Each plugin component now has accurate elapsed time from its handler execution
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 21:35
+
+W-112: Simplified elapsed time tracking (user feedback)
+
+Changes:
+- hook-manager.js: Simplified elapsed time tracking
+  - Removed complex before/after Set tracking
+  - Directly access context.stats[pluginName] after handler execution
+  - Much simpler and cleaner implementation
+
+Since context.stats is already initialized and plugins add to
+context.stats[pluginName], we can directly access it by plugin name.
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 1210:40
+
+W-112: Updated view to show component.component instead of name
+
+Changes:
+- system-status.shtml: Use component.component for display name
+  - Aggregated component health section
+  - Instance details component section
+  - Falls back to componentName if component.component not available
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 21:45
+
+W-112: Fixed component name formatting in instance details
+
+Changes:
+- system-status.shtml: Enhanced formatComponentName() and formatCompName()
+  - Handle all-uppercase parts (e.g., 'MFA' -> 'Mfa' not 'M F A')
+  - Properly format hyphenated names (e.g., 'Auth-MFA' -> 'Auth Mfa')
+  - Maintain camelCase/PascalCase handling
+
+Fixes strange spacing issue where 'Auth-MFA' was displayed as 'Auth- M F A'
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 22:00
+
+W-112: Fixed component display name in aggregation section
+
+Changes:
+- system-status.shtml: Get component display name from instance data
+  - Consolidated getComponentStatus() and getComponentMeta() into getComponentFromInstance()
+  - Extract component.component, status, and meta from first instance
+  - Aggregated components only contain stats, not component field
+
+Aggregated component health section now shows proper display names
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 22:15
+
+W-112: Created centralized TimeBasedCounter utility
+
+Changes:
+- webapp/utils/time-based-counters.js: New utility class
+  - TimeBasedCounter: Individual counter with rolling time windows
+  - CounterManager: Centralized manager for multiple counters
+  - Features: lastHour, last24h, total counts
+  - Automatic cleanup of old timestamps
+  - Efficient in-memory storage
+
+Usage example:
+  import CounterManager from '../utils/time-based-counters.js';
+  const sentCounter = CounterManager.getCounter('email', 'sent');
+  sentCounter.increment();
+  const stats = sentCounter.getStats(); // { lastHour, last24h, total }
+
+Ready for integration into EmailController, ViewController, etc.
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 22:30
+
+W-112: Integrated time-based counters into EmailController and ViewController
+
+Changes:
+- EmailController:
+  - Added CounterManager import
+  - Created sent/failed counters
+  - Increment counters in sendEmail() method
+  - Added email stats to getMetrics() (lastHour, last24h, total)
+  - Added aggregation metadata for sum across instances
+- ViewController:
+  - Added CounterManager import
+  - Created counters for css, js, tmpl, shtml file extensions
+  - Increment counters in load() method based on file extension
+  - Added page stats to getMetrics() grouped by extension
+  - Added aggregation metadata for nested objects
+
+Counters track:
+  - Email: sent, failed (lastHour, last24h, total)
+  - View: css, js, tmpl, shtml (lastHour, last24h, total)
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 22:45
+
+W-112: Fixed component metrics delay after app restart
+
+Changes:
+- health.js: Added 5-second delay before first health broadcast
+  - Allows components to initialize and register with MetricsRegistry
+  - HealthController.initialize() is called before all controllers are ready
+  - First broadcast now waits 5 seconds, then regular 30s interval
+
+Issue: Components took ~30 seconds to appear after restart
+Root cause: First broadcast happened immediately, before components registered
+Solution: 5-second initial delay allows component initialization
+
+30-second broadcast interval confirmed as acceptable
+
+Changes accepted: Confirmed by user
+
+
+============================================================
+2025-12-12 23:00
+
+W-112: Added LogController metrics with time-based counters
+
+Changes:
+- log.js (model): Added getLogStats() method
+  - MongoDB aggregation for total, last24h, byAction, byDocType
+  - Efficient single-query approach using $facet
+- log.js (controller): Added getMetrics() method
+  - W-112 standardized format
+  - Combines MongoDB stats with time-based counter stats
+  - Visible: entriesLast24h, entriesLastHour, byAction, byDocType
+  - Hidden: entriesTotal, entriesLast24hCounter, entriesTotalCounter, byActionAll, byDocTypeAll
+  - Registered with MetricsRegistry in initialize()
+- log.js (controller): Added entriesCounter
+  - Increments in logChange() after successful log entry creation
+  - Tracks lastHour, last24h, total
+
+Metrics provided:
+  - entriesLast24h: MongoDB count (visible, global, first)
+  - entriesLastHour: Counter count (visible, sum)
+  - byAction: {create, update, delete} last 24h (visible, global, sum)
+  - byDocType: {config, user, ...} last 24h (visible, global, sum)
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 23:15
+
+W-112: Refactored LogController counter to follow ViewController pattern
+
+Changes:
+- log.js (controller): Moved counter initialization to initialize()
+  - Counter now created in initialize() using CounterManager.getCounter()
+  - Counter increment remains in logChange() after successful log entry
+  - Matches pattern used in ViewController and HandlebarController
+
+Pattern consistency:
+  - Counter initialized in initialize() method
+  - Counter incremented in controller method (not model)
+  - Follows same architecture as ViewController.cssCounter, etc.
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 23:30
+
+W-112: Fixed test hanging and failing integration tests
+
+Changes:
+- time-based-counters.js: Disabled cleanup timers in test mode
+  - Detects test mode via NODE_ENV or global.jest
+  - Sets cleanupInterval to 0 in tests to prevent hanging
+- global-teardown.js: Added CounterManager.stopAllCleanup()
+  - Stops any existing cleanup timers during teardown
+- health-api.test.js: Updated to use CommonUtils.formatUptime
+  - Removed check for HealthController._formatUptime (removed method)
+  - Updated test to use CommonUtils.formatUptime directly
+
+Issue: Tests were hanging due to setInterval timers in TimeBasedCounter
+Solution: Disable timers in test mode, stop all timers in teardown
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-12 23:45
+
+W-112: Added unit and integration tests for new features
+
+New test files:
+- time-based-counters.test.js: Unit tests for TimeBasedCounter and CounterManager
+  - Tests constructor, increment, getStats, reset, getSize, stopCleanup
+  - Tests CounterManager getCounter, getGroupStats, resetGroup, resetAll
+
+Updated test files:
+- log-basic.test.js: Added getMetrics() tests
+  - Tests W-112 metrics format structure
+  - Tests database stats and counter stats
+  - Tests error handling
+- health-api.test.js: Added integration tests for log metrics
+  - Tests log component registration
+  - Tests log metrics structure in metrics API
+
+Changes accepted: Pending user confirmation
+
+
+============================================================
+2025-12-13 00:05
+
+W-112: Release preparation - Documentation updates
+
+Summary:
+Updated all documentation files for W-112 v1.3.13 release, documenting the standardized component metrics system and site navigation enhancements.
+
+Documentation Updates:
+
+1. work-items.md:
+   - Updated W-112 deliverables to reflect all implemented features
+   - Documented all components with getMetrics() implementations
+   - Added TimeBasedCounter and CounterManager utilities
+   - Listed all test files and enhancements
+   - Updated release date to 2025-12-13
+
+2. CHANGELOG.md:
+   - Added comprehensive v1.3.13 release entry
+   - Documented all key features: getMetrics(), MetricsRegistry, aggregation, time-based counters
+   - Listed all component implementations
+   - Documented breaking changes
+   - Updated release date to 2025-12-13
+
+3. README.md (docs/):
+   - Added v1.3.13 to "Latest Release Highlights"
+   - Updated "Analytics & Monitoring" section with component metrics details
+
+4. api-reference.md:
+   - Added component metrics documentation to Metrics Endpoint section
+   - Documented component metrics structure, aggregation, global fields, sanitization
+
+5. commit-message.txt:
+   - Created comprehensive commit message following W-111 format
+   - Documented all features, code changes, breaking changes
+   - Ready for release commit
+
+6. site-navigation.md:
+   - Confirmed hideInDropdown flag already documented (line 372)
+   - No changes needed
+
+Features Documented:
+- Standardized getMetrics() method with consistent structure
+- MetricsRegistry for dynamic component discovery
+- Cluster-wide aggregation with field-level metadata
+- TimeBasedCounter utility for activity tracking
+- All component implementations (11 components)
+- Plugin integration via onGetInstanceStats hook
+- Admin dashboard enhancements
+- Security and sanitization features
+- Performance optimizations
+- Comprehensive test coverage
+
+Breaking Changes Documented:
+- getHealthStatus() methods removed
+- health.componentProviders removed from app.conf
+- StatsRegistry renamed to MetricsRegistry
+- UserModel.getMetrics() renamed to getUserStats()
+
+Status: ✅ COMPLETED
+Files Modified: 5 documentation files
+Release: W-112, v1.3.13, 2025-12-13
+Changes accepted: Yes
 
 
 ============================================================

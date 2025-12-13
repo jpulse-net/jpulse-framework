@@ -3,7 +3,7 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.3.13
+ * @version         1.3.14
  * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -570,6 +570,55 @@ class UserModel {
                     stats.byRole[item._id] = item.count;
                 }
             });
+
+            // Get user-related log entries (create/update/delete) from last 24h
+            try {
+                const db = global.Database?.getDb();
+                if (db) {
+                    const logCollection = db.collection('logs');
+                    const logStats = await logCollection.aggregate([
+                        {
+                            $match: {
+                                'data.docType': 'user',
+                                'data.action': { $in: ['create', 'update', 'delete'] },
+                                createdAt: { $gte: last24h }
+                            }
+                        },
+                        {
+                            $group: {
+                                _id: '$data.action',
+                                count: { $sum: 1 }
+                            }
+                        }
+                    ]).toArray();
+
+                    // Initialize counts
+                    stats.docsCreated24h = 0;
+                    stats.docsUpdated24h = 0;
+                    stats.docsDeleted24h = 0;
+
+                    // Populate counts from aggregation
+                    logStats.forEach(item => {
+                        if (item._id === 'create') {
+                            stats.docsCreated24h = item.count;
+                        } else if (item._id === 'update') {
+                            stats.docsUpdated24h = item.count;
+                        } else if (item._id === 'delete') {
+                            stats.docsDeleted24h = item.count;
+                        }
+                    });
+                } else {
+                    // Database not available, set defaults
+                    stats.docsCreated24h = 0;
+                    stats.docsUpdated24h = 0;
+                    stats.docsDeleted24h = 0;
+                }
+            } catch (logError) {
+                // Log collection query failed, set defaults
+                stats.docsCreated24h = 0;
+                stats.docsUpdated24h = 0;
+                stats.docsDeleted24h = 0;
+            }
 
             return stats;
         } catch (error) {

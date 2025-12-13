@@ -5,7 +5,7 @@
  *                  for non-admin users in the _sanitizeMetricsData() method!
  * @description     This is the health controller for the jPulse Framework WebApp
  * @file            webapp/controller/health.js
- * @version         1.3.13
+ * @version         1.3.14
  * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -297,6 +297,11 @@ class HealthController {
             const requiredRoles = global.appConfig.controller?.health?.requiredRoles?.metrics || [ 'admin', 'root' ];
             const isAuthorized = AuthController.isAuthorized(req, requiredRoles);
 
+            // Check if user is actually an admin (for sanitization purposes)
+            // This is separate from isAuthorized because config might allow public access
+            const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+            const isAdmin = AuthController.isAuthorized(req, adminRoles);
+
             // Base metrics available to all users (framework level only)
             const baseMetrics = {
                 success: true,
@@ -306,7 +311,7 @@ class HealthController {
                 }
             };
 
-            // Additional metrics for admin users
+            // Additional metrics for authorized users (may include public access)
             if (isAuthorized) {
                 // Get WebSocket metrics in new format and extract stats for compatibility
                 const wsMetrics = WebSocketController.getMetrics();
@@ -350,11 +355,11 @@ class HealthController {
                 baseMetrics.message = 'Not authorized to see more jPulse Framework metrics data';
             }
 
-            const isAdmin = AuthController.isAuthorized(req, [ 'admin', 'root' ]);
+            // Sanitize data for non-admin users (even if they're authorized via public access)
             if(!isAdmin) {
                 // Obfuscate sensitive metrics data for non-admin users
                 // ATTENTION: When new sensitive metrics data is added, it needs to be sanitized as well
-                HealthController._sanitizeMetricsData(baseMetrics.data);
+                HealthController._sanitizeMetricsData(baseMetrics.data, isAdmin);
             }
 
             // Add total elapsed time to response
@@ -379,12 +384,11 @@ class HealthController {
      * Build cluster-wide statistics (legacy method for single-instance fallback)
      * ATTENTION: When new sensitive metrics data is added, it needs to be sanitized as well
      * @param {Object} metricsData - Metrics data to sanitize
-     * @param {Object} wsStats - WebSocket statistics
-     * @param {string} timestamp - Current timestamp
+     * @param {boolean} isAdmin - Whether the user is an admin (for component sanitization)
      * @returns {Object} Statistics object
      * @private
      */
-    static _sanitizeMetricsData(metricsData) {
+    static _sanitizeMetricsData(metricsData, isAdmin = false) {
         if(Array.isArray(metricsData.servers)) {
             metricsData.servers.forEach(server => {
                 server.serverName = '********';
@@ -415,7 +419,7 @@ class HealthController {
                     if (instance.components) {
                         instance.components = this._sanitizeComponentStats(
                             instance.components,
-                            false  // isAdmin = false for sanitization
+                            isAdmin
                         );
                     }
                 });
@@ -428,7 +432,7 @@ class HealthController {
             // but sanitize if any sensitive aggregated data exists
             metricsData.statistics.components = this._sanitizeComponentStats(
                 metricsData.statistics.components,
-                false  // isAdmin = false for sanitization
+                isAdmin
             );
         }
     }
@@ -449,9 +453,18 @@ class HealthController {
             const fieldsMeta = component.meta?.fields || {};
             const componentMeta = component.meta || {};
 
-            // Recursively check all fields (including nested) in stats object
+            // Handle aggregated structure: { stats: {...}, meta: {...} } or { stats5m: {...}, meta: {...} }
+            // Also handle per-instance structure: { component: '...', stats: {...}, meta: {...} }
             if (component.stats) {
+                // Per-instance structure
                 this._sanitizeFields(sanitized[componentName].stats, fieldsMeta, componentMeta, '');
+            } else {
+                // Aggregated structure: check all stat windows (stats, stats5m, stats1h)
+                for (const window of ['stats', 'stats5m', 'stats1h']) {
+                    if (component[window]) {
+                        this._sanitizeFields(sanitized[componentName][window], fieldsMeta, componentMeta, '');
+                    }
+                }
             }
         }
 
@@ -674,11 +687,38 @@ class HealthController {
         LogController.logInfo(null, 'health._aggregateComponentStats',
             `DEBUG: Aggregating components from ${allInstancesComponents.length} instance(s), first instance has ${Object.keys(firstInstance).length} component(s): ${Object.keys(firstInstance).join(', ')}`);
 
-        // Sort component names alphabetically for consistent ordering
-        const sortedComponentNames = Object.keys(firstInstance).sort();
+        // Collect component names from ALL instances (not just first)
+        // This ensures components appear in aggregation as soon as at least one instance has them
+        const allComponentNames = new Set();
+        for (const instance of allInstancesComponents) {
+            if (instance && typeof instance === 'object') {
+                Object.keys(instance).forEach(name => allComponentNames.add(name));
+            }
+        }
+
+        // Sort by display name (component.component || componentName) instead of key
+        const sortedComponentNames = Array.from(allComponentNames).sort((a, b) => {
+            // Find component data from any instance to get display name
+            let displayNameA = a;
+            let displayNameB = b;
+            for (const instance of allInstancesComponents) {
+                if (instance[a]?.component) displayNameA = instance[a].component;
+                if (instance[b]?.component) displayNameB = instance[b].component;
+            }
+            return displayNameA.localeCompare(displayNameB);
+        });
 
         for (const componentName of sortedComponentNames) {
-            const componentData = firstInstance[componentName];
+            // Find component data from any instance (not just first)
+            // This handles cases where component exists in instance 2 but not instance 1
+            let componentData = null;
+            for (const instance of allInstancesComponents) {
+                if (instance[componentName] && typeof instance[componentName] === 'object') {
+                    componentData = instance[componentName];
+                    break; // Use first valid instance found
+                }
+            }
+
             // Skip if componentData is not an object or doesn't have the expected structure
             if (!componentData || typeof componentData !== 'object' || !componentData.stats) {
                 LogController.logInfo(null, 'health._aggregateComponentStats',
@@ -688,7 +728,11 @@ class HealthController {
 
             const fieldsMeta = componentData.meta?.fields || {};
             const componentMeta = componentData.meta || {};
-            aggregated[componentName] = {};
+
+            // Preserve meta structure in aggregated output for sanitization
+            aggregated[componentName] = {
+                meta: componentMeta  // Preserve meta so sanitization can work
+            };
 
             // Find all stat windows present in at least one instance
             // Component structure: { component: '...', status: '...', stats: {...}, meta: {...}, timestamp: '...' }
@@ -714,8 +758,15 @@ class HealthController {
             for (const window of statWindows) {
                 aggregated[componentName][window] = {};
 
-                // Get all fields from stats object (not just meta.fields)
-                const statsObj = firstInstance[componentName]?.[window] || {};
+                // Get all fields from stats object from any instance that has this component
+                // Find first instance that has this component and window
+                let statsObj = {};
+                for (const instance of allInstancesComponents) {
+                    if (instance[componentName]?.[window]) {
+                        statsObj = instance[componentName][window];
+                        break; // Use first valid instance found
+                    }
+                }
 
                 if (!statsObj || Object.keys(statsObj).length === 0) {
                     // Empty stats object - remove the window
@@ -1056,9 +1107,13 @@ class HealthController {
 
         // W-112: Collect component stats once (same for all instances)
         const componentsRaw = await this._collectComponentStats();
-        // Sort components alphabetically for consistent ordering
+        // Sort components by display name (component.component || key) for consistent ordering
         const components = {};
-        Object.keys(componentsRaw).sort().forEach(key => {
+        Object.keys(componentsRaw).sort((a, b) => {
+            const displayNameA = componentsRaw[a]?.component || a;
+            const displayNameB = componentsRaw[b]?.component || b;
+            return displayNameA.localeCompare(displayNameB);
+        }).forEach(key => {
             components[key] = componentsRaw[key];
         });
 
@@ -1553,9 +1608,13 @@ class HealthController {
 
         // W-112: Collect component stats
         const componentsRaw = await this._collectComponentStats();
-        // Sort components alphabetically for consistent ordering
+        // Sort components by display name (component.component || key) for consistent ordering
         const components = {};
-        Object.keys(componentsRaw).sort().forEach(key => {
+        Object.keys(componentsRaw).sort((a, b) => {
+            const displayNameA = componentsRaw[a]?.component || a;
+            const displayNameB = componentsRaw[b]?.component || b;
+            return displayNameA.localeCompare(displayNameB);
+        }).forEach(key => {
             components[key] = componentsRaw[key];
         });
 
@@ -1579,8 +1638,8 @@ class HealthController {
                     uptimeFormatted: thisProcess.uptimeFormatted,
                     memory: {
                         used: thisProcess.memory,
-                        total: Math.round(memUsage.heapTotal / 1024 / 1024), // MB
-                        percentage: Math.round((thisProcess.memory / Math.round(memUsage.heapTotal / 1024 / 1024)) * 100)
+                        total: Math.round(memUsage.heapTotal / 1024 / 1024), // MB (heap total)
+                        percentage: Math.round((thisProcess.memory / Math.round(os.totalmem() / 1024 / 1024)) * 100) // Percentage of total system memory
                     },
                     cpu: thisProcess.cpu,
                     restarts: thisProcess.restarts,

@@ -6,7 +6,7 @@
  #                  - Run with environment: source .env && ./bin/mongodb-setup.sh
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/mongodb-setup.sh
- # @version         1.3.13
+ # @version         1.3.14
  # @release         2025-12-13
  # @repository      https://github.com/jpulse-net/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

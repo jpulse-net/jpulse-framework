@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.13
+# jPulse Docs / Dev / Work Items v1.3.14
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -2714,21 +2714,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - documents bump-version.conf location for plugins
     - shows node ../../bin/bump-version.js usage (not npx)
 
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-112, v1.3.13, 2025-12-13: metrics: strategy to report vital statistics of components
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: standard way for components to report vital statistics used by metrics
 - working document: docs/dev/working/W-112-metrics-get-stats-strategy.md
@@ -2829,6 +2816,41 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-113, v1.3.14, 2025-12-13: metrics: bug fixes for reporting vital statistics of components
+- status: ✅ DONE
+- type: Bug Fix
+- objective: fix bugs discovered after W-112, v1.3.13 release
+- issues:
+  - bug 1: Aggregated components showing unsanitized data (e.g., smtpServer) even when sanitize: true is set
+  - bug 2: InstanceId showing sanitized data (999:0:99999) when logged in as admin
+  - bug 3: Memory percentage showing 255% (incorrect calculation using heap size instead of total system memory)
+  - bug 4: Aggregation waiting for all instances to have components before showing them in aggregated section
+- enhancements:
+  - in user controller, add docsCreated24h, docsUpdated24h, docsDeleted24h metrics
+  - component sorting by display name (component.component || componentName) instead of key
+- deliverables:
+  - webapp/controller/health.js:
+    - Fixed sanitization in aggregated components: preserve meta structure in aggregation, handle both per-instance and aggregated structures in _sanitizeComponentStats()
+    - Fixed admin sanitization: use isAdmin parameter instead of hardcoded false, check admin status separately from authorization
+    - Fixed memory percentage calculation: use total system memory (os.totalmem()) instead of heap size for percentage calculation
+    - Fixed aggregation logic: collect component names from ALL instances, not just first, so components appear as soon as one instance has them
+    - Fixed component sorting: sort by display name (component.component || componentName) in aggregation, _buildServersArray(), and _getCurrentInstanceHealthData()
+  - webapp/controller/user.js:
+    - Added user document metrics: docsCreated24h, docsUpdated24h, docsDeleted24h to UserController.getMetrics() by querying log collection
+  - webapp/model/user.js:
+    - Added aggregation for user document changes: MongoDB aggregation pipeline querying log collection for user document changes (docsCreated24h, docsUpdated24h, docsDeleted24h)
+
+
+
+
+
+
+
+
+
 ### Pending
 
 pending:
@@ -2843,6 +2865,8 @@ old pending:
 ### Potential next items:
 - W-068: view: create responsive sidebar
 - W-0: view: headings with anchor links for copy & paste in browser URL bar
+- W-0: view: broadcast message
+- W-0: view: create tooltip on any element with jp-tooltip class
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-037: view: create themes
 - W-0: markdown docs: a way to define the sequence of docs
@@ -2862,8 +2886,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-112, v1.3.13
-- update deliverables in W-112 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-113, v1.3.14
+- update deliverables in W-114 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -2880,12 +2904,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.13
+node bin/bump-version.js 1.3.14
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.13
+git tag v1.3.14
 git push origin main --tags
 
 === plugin release & package build on github ===

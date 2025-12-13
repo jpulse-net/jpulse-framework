@@ -5276,3 +5276,84 @@ Changes accepted: Yes
 
 
 ============================================================
+2025-12-13 14:39
+
+W-113: Release preparation - Bug fixes and enhancements for metrics system
+
+Summary:
+Updated all documentation files for W-113 v1.3.14 release, documenting bug fixes
+for metrics aggregation, sanitization, memory calculation, and component sorting
+enhancements.
+
+Bug Fixes Documented:
+
+1. Aggregated Components Showing Unsanitized Data:
+   - Fixed by preserving meta structure in _aggregateComponentStats()
+   - Updated _sanitizeComponentStats() to handle both per-instance and aggregated structures
+   - Ensures sensitive fields (e.g., smtpServer) are properly sanitized in aggregated view
+
+2. Admin Users Seeing Sanitized Data:
+   - Fixed by using separate isAdmin parameter based on ['admin', 'root'] roles
+   - Check admin status separately from authorization
+   - Ensures admins see full data (e.g., instanceId not obfuscated)
+
+3. Memory Percentage Showing 255%:
+   - Fixed by using os.totalmem() (total system memory) instead of heapTotal
+   - Changed calculation in _getPM2Status() to use total system memory for percentage
+   - Prevents unrealistic memory percentage displays
+
+4. Aggregation Waiting for All Instances:
+   - Fixed by collecting component names from ALL instances (using Set)
+   - Find componentData from any instance that has them
+   - Components now appear in aggregation as soon as at least one instance has them
+
+Enhancements Documented:
+
+1. User Document Metrics:
+   - Added docsCreated24h, docsUpdated24h, docsDeleted24h to UserController.getMetrics()
+   - Uses MongoDB aggregation querying log collection for user document changes
+   - Marked as global: true and aggregate: 'first' (database-backed, same across instances)
+
+2. Component Sorting by Display Name:
+   - Changed sorting to use display name (component.component || componentName) instead of key
+   - Updated in _aggregateComponentStats(), _buildServersArray(), and _getCurrentInstanceHealthData()
+   - Components now appear in user-friendly alphabetical order
+
+Documentation Updates:
+
+1. work-items.md:
+   - Updated W-113 with bugs, enhancements, and deliverables
+   - Documented all 4 bug fixes and 2 enhancements
+   - Listed all code changes and file modifications
+
+2. CHANGELOG.md:
+   - Added comprehensive v1.3.14 release entry
+   - Documented all bug fixes with problem, symptom, and fix details
+   - Documented enhancements with implementation details
+   - Updated version header to v1.3.14
+
+3. README.md:
+   - Added v1.3.14 to "Latest Release Highlights"
+   - Summarized bug fixes and enhancements
+
+4. docs/README.md:
+   - Added v1.3.14 to "Latest Release Highlights"
+   - Summarized bug fixes and enhancements
+
+5. commit-message.txt:
+   - Created comprehensive commit message following W-112 format
+   - Documented all bug fixes, enhancements, code changes
+   - Ready for release commit
+
+Code Changes:
+- webapp/controller/health.js: Sanitization fixes, aggregation fixes, memory calculation fix, component sorting
+- webapp/controller/user.js: Added user document metrics
+- webapp/model/user.js: Added aggregation for user document changes
+
+Status: ✅ COMPLETED
+Files Modified: 5 documentation files (work-items.md, CHANGELOG.md, README.md, docs/README.md, commit-message.txt)
+Release: W-113, v1.3.14, 2025-12-13
+Changes accepted: Pending user confirmation
+
+
+============================================================

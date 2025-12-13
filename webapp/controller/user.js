@@ -3,7 +3,7 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.3.13
+ * @version         1.3.14
  * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -309,7 +309,10 @@ class UserController {
                     admins: userStats.admins,
                     byStatus: userStats.byStatus,
                     byRole: userStats.byRole,
-                    recentLogins: userStats.recentLogins
+                    recentLogins: userStats.recentLogins,
+                    docsCreated24h: userStats.docsCreated24h || 0,
+                    docsUpdated24h: userStats.docsUpdated24h || 0,
+                    docsDeleted24h: userStats.docsDeleted24h || 0
                 },
                 meta: {
                     ttl: 300000,                // 5 minutes - user stats don't change frequently
@@ -345,6 +348,18 @@ class UserController {
                                     aggregate: 'first'
                                 }
                             }
+                        },
+                        'docsCreated24h': {
+                            global: true,       // Database-backed, same across instances
+                            aggregate: 'first'   // Database-backed, same across instances
+                        },
+                        'docsUpdated24h': {
+                            global: true,       // Database-backed, same across instances
+                            aggregate: 'first'   // Database-backed, same across instances
+                        },
+                        'docsDeleted24h': {
+                            global: true,       // Database-backed, same across instances
+                            aggregate: 'first'   // Database-backed, same across instances
                         }
                     }
                 },

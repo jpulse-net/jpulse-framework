@@ -3,7 +3,7 @@
  * @tagline         Centralized registration for component metrics providers
  * @description     Manages registration and discovery of component getMetrics() methods
  * @file            webapp/utils/metrics-registry.js
- * @version         1.3.13
+ * @version         1.3.14
  * @release         2025-12-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

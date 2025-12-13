@@ -1,6 +1,82 @@
-# jPulse Docs / Version History v1.3.13
+# jPulse Docs / Version History v1.3.14
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.14, W-113, 2025-12-13
+
+**Commit:** `W-113, v1.3.14: metrics: bug fixes for reporting vital statistics of components`
+
+**BUG FIX RELEASE**: Fixes critical issues discovered after W-112 deployment affecting metrics display, security, and user experience.
+
+**Objective**: Fix bugs in metrics aggregation, sanitization, and display discovered during W-112 production use.
+
+**Bug Fixes**:
+
+**Bug #1: Aggregated Components Showing Unsanitized Data**:
+- **Problem**: Aggregated components (e.g., `smtpServer` in EmailController) showed unsanitized data even when `sanitize: true` was set in metadata
+- **Symptom**: Sensitive data visible in aggregated section when logged out
+- **Fix**: Preserve `meta` structure in `_aggregateComponentStats()` to allow `_sanitizeComponentStats()` to correctly identify fields marked for sanitization. Updated `_sanitizeComponentStats()` to handle both per-instance and aggregated component structures.
+
+**Bug #2: Admin Users Seeing Sanitized Data**:
+- **Problem**: InstanceId showing sanitized data (999:0:99999) when logged in as admin
+- **Symptom**: Admin users saw obfuscated instance IDs in PM2 instances table
+- **Fix**: Use separate `isAdmin` parameter (based on `['admin', 'root']` roles) instead of hardcoded `false`. Check admin status separately from authorization to ensure admins see full data.
+
+**Bug #3: Memory Percentage Showing 255%**:
+- **Problem**: Memory percentage calculation using heap size instead of total system memory
+- **Symptom**: Memory percentage displayed as 255% or other unrealistic values
+- **Fix**: Changed calculation in `_getPM2Status()` to use `os.totalmem()` (total system memory) instead of `heapTotal` for percentage calculation: `Math.round((thisProcess.memory / (os.totalmem() / 1024 / 1024)) * 100)`
+
+**Bug #4: Aggregation Waiting for All Instances**:
+- **Problem**: Components only appeared in aggregated section after all instances had them
+- **Symptom**: Components missing from aggregation even when one instance had them
+- **Fix**: Updated `_aggregateComponentStats()` to collect component names from ALL instances (using a `Set`) and find `componentData` from any instance that has them. Components now appear in aggregation as soon as at least one instance has them.
+
+**Enhancements**:
+
+**Enhancement #1: User Document Metrics**:
+- Added `docsCreated24h`, `docsUpdated24h`, `docsDeleted24h` metrics to `UserController.getMetrics()`
+- Metrics retrieved via MongoDB aggregation querying log collection for user document changes
+- Uses same pattern as `LogController.getMetrics()` for consistency
+- Marked as `global: true` and `aggregate: 'first'` (database-backed, same across instances)
+
+**Enhancement #2: Component Sorting by Display Name**:
+- Changed component sorting to use display name (`component.component || componentName`) instead of internal key
+- Updated in three locations:
+  - `_aggregateComponentStats()`: Sort aggregated components by display name from any instance
+  - `_buildServersArray()`: Sort instance-level components by display name
+  - `_getCurrentInstanceHealthData()`: Sort instance-level components by display name
+- Components now appear in user-friendly alphabetical order (e.g., "EmailController", "HandlebarController") instead of internal keys (e.g., "email", "handlebars")
+
+**Code Changes**:
+
+**webapp/controller/health.js**:
+- `_aggregateComponentStats()`: Preserve `meta` object in aggregated output, collect component names from all instances
+- `_sanitizeComponentStats()`: Handle both per-instance and aggregated structures, accept `isAdmin` parameter
+- `metrics()`: Use separate `isAdmin` check based on roles
+- `_getPM2Status()`: Fix memory percentage calculation to use total system memory
+- Component sorting: Sort by display name in aggregation, `_buildServersArray()`, and `_getCurrentInstanceHealthData()`
+
+**webapp/controller/user.js**:
+- `getMetrics()`: Added `docsCreated24h`, `docsUpdated24h`, `docsDeleted24h` fields
+- Metadata: Added field definitions for new metrics with `global: true` and `aggregate: 'first'`
+
+**webapp/model/user.js**:
+- `getUserStats()`: Added MongoDB aggregation pipeline for user document changes from log collection
+- Uses `$facet` for parallel aggregations (docsCreated24h, docsUpdated24h, docsDeleted24h)
+
+**Files Modified**: 3
+- `webapp/controller/health.js`: Sanitization fixes, aggregation fixes, memory calculation fix, component sorting
+- `webapp/controller/user.js`: Added user document metrics
+- `webapp/model/user.js`: Added aggregation for user document changes
+
+**Breaking Changes**: None
+
+**Documentation**:
+- Updated `docs/dev/work-items.md` with W-113 bugs, enhancements, and deliverables
+- Updated `README.md` and `docs/README.md` with latest release highlights
+- Updated `docs/CHANGELOG.md` with v1.3.14 entry
 
 ________________________________________________
 ## v1.3.13, W-112, 2025-12-13

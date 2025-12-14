@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.3.14
+# jPulse Docs / Handlebars Templating v1.3.15
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -7,6 +7,58 @@ The jPulse Framework uses server-side Handlebars templating to create dynamic we
 ## Overview
 
 Handlebars is a semantic templating language that allows you to build dynamic HTML pages by embedding expressions within your templates. The jPulse Framework processes these templates server-side, so the browser receives fully rendered HTML.
+
+There are two types of handlebars:
+- **Regular handlebars**: Single-line expressions that output values or perform operations, such as `{{user.firstName}}`, `{{and a b}}`
+- **Block handlebars**: Multi-line expressions with opening and closing tags that control flow and rendering such as `{{#if condition}}...{{/if}}`, `{{#each items}}...{{/each}}`
+
+### Summary of Block and Regular Handlebars
+
+| Regular Handlebars with Examples | What it does |
+|----------------------------------|--------------|
+| `{{and user.isAuthenticated user.isAdmin}}` | Logical AND, returns "true" or "false" (1+ arguments) |
+| `{{app.site.name}} v{{app.site.version}}` | Application context (app.jPulse.*, app.site.*) |
+| `{{appCluster.*}}` | Redis cluster availability information |
+| `{{appConfig.*}}` | Full application configuration (filtered based on auth) |
+| `{{components.jpIcons.configSvg size="64"}}` | Reusable component call with parameters |
+| `{{config.email.adminEmail}}` | Configuration values from webapp/model/config.js |
+| `{{eq user.role "admin"}}` | Equality comparison, returns "true" or "false" (2 arguments) |
+| `{{file.include "template.tmpl"}}` | Include another template file |
+| `{{file.exists "file.tmpl"}}` | Check if file exists, returns "true" or "false" |
+| `{{file.list "admin/*.shtml"}}` | List files matching glob pattern |
+| `{{file.timestamp "file.css"}}` | Get file last modified timestamp |
+| `{{gt user.score 100}}` | Greater than comparison, returns "true" or "false" (2 arguments) |
+| `{{gte user.count 10}}` | Greater than or equal comparison, returns "true" or "false" (2 arguments) |
+| `{{i18n.view.home.introduction}}` | Internationalization messages from translation files |
+| `{{let pageTitle="Dashboard" maxItems=10}}` | Define custom variables (accessed via `{{vars.*}}`) |
+| `{{lt user.age 18}}` | Less than comparison, returns "true" or "false" (2 arguments) |
+| `{{lte user.items 5}}` | Less than or equal comparison, returns "true" or "false" (2 arguments) |
+| `{{ne user.role "guest"}}` | Not equal comparison, returns "true" or "false" (2 arguments) |
+| `{{not user.isGuest}}` | Logical NOT, returns "true" or "false" (1 argument) |
+| `{{or user.isPremium user.isTrial}}` | Logical OR, returns "true" or "false" (1+ arguments) |
+| `{{url.protocol}}://{{url.hostname}}{{url.pathname}}` | URL context (protocol, hostname, port, pathname, search, domain, param.*) |
+| `{{user.firstName}} {{user.email}}` | User context (username, loginId, firstName, lastName, email, roles, isAuthenticated, isAdmin) |
+| `{{vars.pageTitle}}` | Custom variables defined with `{{let}}` or `{{#let}}` |
+
+### Summary of Block Handlebars
+
+| Block Handlebars with Examples | What it does |
+|--------------------------------|--------------|
+| `{{#and user.isAuthenticated user.isAdmin}} admin {{else}} not admin {{/and}}` | Logical AND block, renders true or else part (1+ arguments) |
+| `{{#component "widgets.button" text="Click"}}...{{/component}}` | Define reusable component with parameters |
+| `{{#each users}}...{{/each}}` | Iterate over array or object properties |
+| `{{#eq user.status "active"}} active {{else}} inactive {{/eq}}` | Equality block, renders true or else part (2 arguments) |
+| `{{#gt user.score 100}} high score {{else}} low score {{/gt}}` | Greater than block, renders true or else part (2 arguments) |
+| `{{#gte user.count 10}} enough {{else}} not enough {{/gte}}` | Greater than or equal block, renders true or else part (2 arguments) |
+| `{{#if user.isAuthenticated}} welcome {{else}} login {{/if}}` | Conditional rendering based on truthy value |
+| `{{#let inner="inner"}}...{{/let}}` | Block-scoped custom variables (accessed via `{{vars.*}}`) |
+| `{{#lt user.age 18}} minor {{else}} adult {{/lt}}` | Less than block, renders true or else part (2 arguments) |
+| `{{#lte user.items 5}} few items {{else}} many items {{/lte}}` | Less than or equal block, renders true or else part (2 arguments) |
+| `{{#ne user.role "guest"}} registered {{else}} guest {{/ne}}` | Not equal block, renders true or else part (2 arguments) |
+| `{{#not user.isGuest}} registered {{else}} guest {{/not}}` | Logical NOT block, renders true or else part (1 argument) |
+| `{{#or user.isPremium user.isTrial}} limited {{else}} full {{/or}}` | Logical OR block, renders true or else part (1+ arguments) |
+| `{{#unless user.isAuthenticated}} login {{else}} welcome {{/unless}}` | Inverse conditional rendering (when condition is false) |
+| `{{#with user}} {{firstName}} {{lastName}} {{/with}}` | Switch context to object's properties |
 
 ## Basic Syntax
 
@@ -32,24 +84,141 @@ Use `#unless` blocks for inverse conditional rendering (when condition is false)
 ```handlebars
 {{#unless user.isAuthenticated}}
     <p>Please log in to continue.</p>
+{{else}}
+    <p>Welcome back, {{user.firstName}}!</p>
 {{/unless}}
 ```
 
-**Note:** The `{{#unless}}` helper does not support `{{else}}` blocks. If you need else functionality, use `{{#if}}` with `{{else}}` instead:
+### Logical and Comparison Helpers (v1.3.15+)
+
+The jPulse Framework provides logical and comparison helpers that work in three contexts: standalone helpers, subexpressions in conditions, and block helpers.
+
+#### Standalone Helpers
+
+Use logical and comparison helpers to return explicit `"true"` or `"false"` values:
 
 ```handlebars
-{{!-- Using unless (no else support) --}}
-{{#unless user.isAuthenticated}}
-    <p>Please log in to continue.</p>
+<!-- Logical helpers -->
+{{and user.isAdmin user.isActive}}        <!-- Returns "true" or "false" -->
+{{or user.isPremium user.isTrial}}        <!-- Returns "true" or "false" -->
+{{not user.isGuest}}                      <!-- Returns "true" or "false" -->
+
+<!-- Comparison helpers -->
+{{eq user.role "admin"}}                  <!-- Returns "true" or "false" -->
+{{ne user.role "guest"}}                  <!-- Returns "true" or "false" -->
+{{gt user.score 100}}                     <!-- Returns "true" or "false" -->
+{{gte user.count 10}}                     <!-- Returns "true" or "false" -->
+{{lt user.age 18}}                        <!-- Returns "true" or "false" -->
+{{lte user.items 5}}                      <!-- Returns "true" or "false" -->
+```
+
+#### Subexpressions in Conditions
+
+Use subexpressions (Polish notation) to create complex conditional logic in `{{#if}}` and `{{#unless}}`:
+
+```handlebars
+<!-- Simple subexpressions -->
+{{#if (and user.isAdmin user.isActive)}}
+    Active admin!
+{{/if}}
+
+{{#if (gt user.score 100)}}
+    High score!
+{{/if}}
+
+{{#if (eq user.status "active")}}
+    User is active
+{{/if}}
+
+<!-- Nested subexpressions -->
+{{#if (and (gt user.score 100) (eq user.status "active"))}}
+    Active high scorer!
+{{/if}}
+
+{{#if (or (eq user.role "admin") (and (gt user.score 1000) user.isPremium))}}
+    Special access!
+{{/if}}
+
+{{#unless (or (eq user.role "guest") (lt user.score 10))}}
+    Regular user content
 {{/unless}}
 
-{{!-- Equivalent using if/else --}}
-{{#if user.isAuthenticated}}
-    <p>Welcome back, {{user.firstName}}!</p>
-{{else}}
-    <p>Please log in to continue.</p>
+{{#if (not user.isGuest)}}
+    Registered user
 {{/if}}
 ```
+
+**Quoted strings with parentheses:** Parentheses inside quoted strings are preserved as literal characters:
+```handlebars
+{{#if (and (eq user.firstName "James (Jim)") user.isActive)}}
+    Active user with nickname in name
+{{/if}}
+```
+
+#### Block Helpers
+
+Use block helpers for cleaner syntax with `{{else}}` support:
+
+```handlebars
+<!-- Logical block helpers -->
+{{#and user.isAdmin user.isActive}}
+    Active admin!
+{{else}}
+    Not an active admin
+{{/and}}
+
+{{#or user.isGuest user.isTrial}}
+    Limited access user
+{{else}}
+    Full access user
+{{/or}}
+
+{{#not user.isGuest}}
+    Registered user
+{{else}}
+    Guest user
+{{/not}}
+
+<!-- Comparison block helpers -->
+{{#gt user.score 100}}
+    High score: {{user.score}}
+{{else}}
+    Score too low
+{{/gt}}
+
+{{#eq user.status "active"}}
+    User is active
+{{else}}
+    User is inactive
+{{/eq}}
+
+<!-- Nested subexpressions in block helpers -->
+{{#and (gt user.score 100) (eq user.status "active")}}
+    Active high scorer!
+{{else}}
+    Doesn't meet criteria
+{{/and}}
+```
+
+#### Helper Reference
+
+**Logical Helpers:**
+- `{{and arg1 arg2 ...}}` - Returns `"true"` if all arguments are truthy (1+ arguments)
+- `{{or arg1 arg2 ...}}` - Returns `"true"` if any argument is truthy (1+ arguments)
+- `{{not arg}}` - Returns `"true"` if argument is falsy (exactly 1 argument)
+
+**Comparison Helpers:**
+- `{{eq a b}}` - Returns `"true"` if values are equal with type coercion (exactly 2 arguments)
+- `{{ne a b}}` - Returns `"true"` if values are not equal with type coercion (exactly 2 arguments)
+- `{{gt a b}}` - Returns `"true"` if `a > b` with type coercion (exactly 2 arguments)
+- `{{gte a b}}` - Returns `"true"` if `a >= b` with type coercion (exactly 2 arguments)
+- `{{lt a b}}` - Returns `"true"` if `a < b` with type coercion (exactly 2 arguments)
+- `{{lte a b}}` - Returns `"true"` if `a <= b` with type coercion (exactly 2 arguments)
+
+**Type Coercion:**
+- Numbers and numeric strings are compared numerically: `{{gt "10" 5}}` → `"true"`
+- Strings are compared lexicographically: `{{gt "2025-12-14" "2025-12-13"}}` → `"true"`
+- Loose equality for comparisons: `{{eq 1 "1"}}` → `"true"`
 
 ### Loops
 Use `#each` blocks to iterate over different data structures:
@@ -145,6 +314,137 @@ The `{{#each}}` helper provides special variables within the iteration context:
 | `{{@last}}` | Boolean | `true` if this is the last iteration | `true` or `false` |
 | `{{@key}}` | String | Property name (object iteration only) | `'theme', 'language'` |
 
+### Logical and Comparison Helpers (v1.3.15+)
+
+The jPulse Framework provides logical and comparison helpers that work in three contexts: standalone helpers, subexpressions in conditions, and block helpers.
+
+#### Standalone Helpers
+
+Use logical and comparison helpers to return explicit `"true"` or `"false"` values:
+
+```handlebars
+<!-- Logical helpers -->
+{{and user.isAdmin user.isActive}}        <!-- Returns "true" or "false" -->
+{{or user.isPremium user.isTrial}}        <!-- Returns "true" or "false" -->
+{{not user.isGuest}}                      <!-- Returns "true" or "false" -->
+
+<!-- Comparison helpers -->
+{{eq user.role "admin"}}                  <!-- Returns "true" or "false" -->
+{{ne user.role "guest"}}                  <!-- Returns "true" or "false" -->
+{{gt user.score 100}}                     <!-- Returns "true" or "false" -->
+{{gte user.count 10}}                     <!-- Returns "true" or "false" -->
+{{lt user.age 18}}                        <!-- Returns "true" or "false" -->
+{{lte user.items 5}}                      <!-- Returns "true" or "false" -->
+```
+
+#### Subexpressions in Conditions
+
+Use subexpressions (Polish notation) to create complex conditional logic in `{{#if}}` and `{{#unless}}`:
+
+```handlebars
+<!-- Simple subexpressions -->
+{{#if (and user.isAdmin user.isActive)}}
+    Active admin!
+{{/if}}
+
+{{#if (gt user.score 100)}}
+    High score!
+{{/if}}
+
+{{#if (eq user.status "active")}}
+    User is active
+{{/if}}
+
+<!-- Nested subexpressions -->
+{{#if (and (gt user.score 100) (eq user.status "active"))}}
+    Active high scorer!
+{{/if}}
+
+{{#if (or (eq user.role "admin") (and (gt user.score 1000) user.isPremium))}}
+    Special access!
+{{/if}}
+
+{{#unless (or (eq user.role "guest") (lt user.score 10))}}
+    Regular user content
+{{/unless}}
+
+{{#if (not user.isGuest)}}
+    Registered user
+{{/if}}
+```
+
+**Quoted strings with parentheses:** Parentheses inside quoted strings are preserved as literal characters:
+```handlebars
+{{#if (and (eq user.firstName "James (Jim)") user.isActive)}}
+    Active user with nickname in name
+{{/if}}
+```
+
+#### Block Helpers
+
+Use block helpers for cleaner syntax with `{{else}}` support:
+
+```handlebars
+<!-- Logical block helpers -->
+{{#and user.isAdmin user.isActive}}
+    Active admin!
+{{else}}
+    Not an active admin
+{{/and}}
+
+{{#or user.isGuest user.isTrial}}
+    Limited access user
+{{else}}
+    Full access user
+{{/or}}
+
+{{#not user.isGuest}}
+    Registered user
+{{else}}
+    Guest user
+{{/not}}
+
+<!-- Comparison block helpers -->
+{{#gt user.score 100}}
+    High score: {{user.score}}
+{{else}}
+    Score too low
+{{/gt}}
+
+{{#eq user.status "active"}}
+    User is active
+{{else}}
+    User is inactive
+{{/eq}}
+
+<!-- Nested subexpressions in block helpers -->
+{{#and (gt user.score 100) (eq user.status "active")}}
+    Active high scorer!
+{{else}}
+    Doesn't meet criteria
+{{/and}}
+```
+
+#### Helper Reference
+
+**Logical Helpers:**
+- `{{and arg1 arg2 ...}}` - Returns `"true"` if all arguments are truthy (1+ arguments)
+- `{{or arg1 arg2 ...}}` - Returns `"true"` if any argument is truthy (1+ arguments)
+- `{{not arg}}` - Returns `"true"` if argument is falsy (exactly 1 argument)
+
+**Comparison Helpers:**
+- `{{eq a b}}` - Returns `"true"` if values are equal with type coercion (exactly 2 arguments)
+- `{{ne a b}}` - Returns `"true"` if values are not equal with type coercion (exactly 2 arguments)
+- `{{gt a b}}` - Returns `"true"` if `a > b` with type coercion (exactly 2 arguments)
+- `{{gte a b}}` - Returns `"true"` if `a >= b` with type coercion (exactly 2 arguments)
+- `{{lt a b}}` - Returns `"true"` if `a < b` with type coercion (exactly 2 arguments)
+- `{{lte a b}}` - Returns `"true"` if `a <= b` with type coercion (exactly 2 arguments)
+
+**Type Coercion:**
+- Numbers and numeric strings are compared numerically: `{{gt "10" 5}}` → `"true"`
+- Strings are compared lexicographically: `{{gt "2025-12-14" "2025-12-13"}}` → `"true"`
+- Loose equality for comparisons: `{{eq 1 "1"}}` → `"true"`
+
 ### Nested Conditionals
 You can nest conditionals for complex logic (v0.7.20+):
 ```handlebars
@@ -161,6 +461,20 @@ You can nest conditionals for complex logic (v0.7.20+):
     {{else}}
         <p>Regular user - limited access</p>
     {{/if}}
+{{/if}}
+```
+
+**With subexpressions (v1.3.15+):**
+```handlebars
+{{#if (and user.isAuthenticated user.isAdmin)}}
+    <div class="jp-info-box">
+        <p>Admin Panel Access:</p>
+        {{#if (eq config.features.adminPanel true)}}
+            <p>✅ Admin panel is enabled</p>
+        {{else}}
+            <p>❌ Admin panel is disabled</p>
+        {{/if}}
+    </div>
 {{/if}}
 ```
 
@@ -786,17 +1100,23 @@ Always consider what happens when data might be missing:
 ```
 
 ### 3. Keep Templates Clean
-Avoid complex logic in templates. Use the controller to prepare data:
+Use logical and comparison helpers for complex conditions (v1.3.15+):
 ```handlebars
-{{!-- Good --}}
-{{#if user.isAdmin}}
+{{!-- Good - use subexpressions for complex logic --}}
+{{#if (and user.isAuthenticated user.isAdmin)}}
     <div class="admin-panel">...</div>
 {{/if}}
 
-{{!-- Avoid complex conditions in templates, currenty not supported --}}
-{{#if and: user.isAuthenticated user.isAdmin}}
-    <div class="admin-panel">...</div>
+{{#if (or user.isPremium (gt user.score 1000))}}
+    <div class="premium-content">...</div>
 {{/if}}
+
+{{!-- Also good - use block helpers for cleaner syntax --}}
+{{#and user.isAuthenticated user.isAdmin}}
+    <div class="admin-panel">...</div>
+{{else}}
+    <div class="access-denied">...</div>
+{{/and}}
 ```
 
 ### 4. Use Consistent Naming

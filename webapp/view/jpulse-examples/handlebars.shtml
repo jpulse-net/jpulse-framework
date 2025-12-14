@@ -4,8 +4,8 @@
  * @tagline         Comprehensive Handlebars templating examples
  * @description     Interactive examples and source code for Handlebars templating in jPulse
  * @file            webapp/view/jpulse-examples/handlebars.shtml
- * @version         1.3.14
- * @release         2025-12-13
+ * @version         1.3.15
+ * @release         2025-12-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -148,10 +148,25 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                         <p>👋 Hello, guest! Please <a href="/auth/login.shtml">log in</a> to access more features.</p>
                     {{/if}}
                 </div>
+
+                <div class="jp-info-box">
+                    <h4>Complex Conditions with Subexpressions (v1.3.15+)</h4>
+                    {{#if (and user.isAuthenticated user.isAdmin)}}
+                        <p>✅ Authenticated admin user (using subexpression)</p>
+                    {{else}}
+                        <p>❌ Not authenticated user, or a user without admin role</p>
+                    {{/if}}
+                    {{#if (and user.isAuthenticated (gt user.roles.length 1))}}
+                        <p>✅ Authenticated user with more than one role</p>
+                    {{else}}
+                        <p>❌ Not authenticated user or a user with only one role</p>
+                    {{/if}}
+                </div>
             </div>
 
             <div id="conditionals-source-panel" class="jp-panel">
                 <div class="jp-source-code" data-lang="html">
+&lt;!-- Basic Conditional --&gt;
 &#123;&#123;#if user.isAuthenticated&#125;&#125;
     &lt;p&gt;✅ Welcome back, &#123;&#123;user.firstName&#125;&#125;!&lt;/p&gt;
     &lt;p&gt;Your roles: &#123;&#123;user.roles&#125;&#125;&lt;/p&gt;
@@ -160,6 +175,19 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
     &#123;&#123;/if&#125;&#125;
 &#123;&#123;else&#125;&#125;
     &lt;p&gt;👋 Hello, guest! Please &lt;a href="/auth/login.shtml"&gt;log in&lt;/a&gt; to access more features.&lt;/p&gt;
+&#123;&#123;/if&#125;&#125;
+
+&lt;!-- Complex Conditions with Subexpressions (v1.3.15+) --&gt;
+&#123;&#123;#if (and user.isAuthenticated user.isAdmin)&#125;&#125;
+    &lt;p&gt;✅ Authenticated admin user (using subexpression)&lt;/p&gt;
+&#123;&#123;else&#125;&#125;
+    &lt;p&gt;❌ Not authenticated user, or a user without admin role&lt;/p&gt;
+&#123;&#123;/if&#125;&#125;
+
+&#123;&#123;#if (and user.isAuthenticated (gt user.roles.length 1))&#125;&#125;
+    &lt;p&gt;✅ Authenticated user with more than one role&lt;/p&gt;
+&#123;&#123;else&#125;&#125;
+    &lt;p&gt;❌ Not authenticated user or a user with only one role&lt;/p&gt;
 &#123;&#123;/if&#125;&#125;
                 </div>
             </div>
@@ -466,6 +494,106 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
             </div>
         </div>
 
+        <!-- Logical and Comparison Helpers (v1.3.15+) -->
+        <div class="jp-card">
+            <h2 class="jp-card-dialog-heading">Logical and Comparison Helpers</h2>
+            <!-- Tab interface for example/source -->
+            <div id="logical-tabs" class="jp-tabs"></div>
+            <div id="logical-example-panel" class="jp-panel">
+                {{#unless user.isAuthenticated}}
+                <div class="jp-info-box">
+                    <p><em>💡 Note: <a href="/auth/login.shtml">Log in</a> to see examples with user data.</em></p>
+                </div>
+                {{/unless}}
+
+                <div class="jp-info-box">
+                    <h4>Standalone Helpers</h4>
+                    <p><strong>Logical AND:</strong> {{and user.isAdmin user.isActive}}</p>
+                    <p><strong>Logical OR:</strong> {{or user.isPremium user.isActive}}</p>
+                    <p><strong>Logical NOT:</strong> {{not user.isPremium}}</p>
+                    <p><strong>Equality:</strong> {{eq user.role "admin"}}</p>
+                    <p><strong>Greater Than:</strong> {{gt user.count 3}}</p>
+                </div>
+
+                <div class="jp-warning-box">
+                    <h4>Subexpressions in {{#if}}</h4>
+                    {{#if (and user.isAdmin user.isActive)}}
+                        <p>✅ Active admin (using subexpression)</p>
+                    {{/if}}
+                    {{#if (gt user.count 3)}}
+                        <p>✅ Count is greater than 3</p>
+                    {{/if}}
+                    {{#if (eq user.role "admin")}}
+                        <p>✅ User role is "admin"</p>
+                    {{/if}}
+                </div>
+
+                <div class="jp-info-box">
+                    <h4>Block Helpers with {{else}}</h4>
+                    {{#and user.isAdmin user.isActive}}
+                        <p>✅ Active admin (block helper)</p>
+                    {{else}}
+                        <p>❌ Not an active admin</p>
+                    {{/and}}
+
+                    {{#gt user.count 3}}
+                        <p>✅ Count is greater than 3</p>
+                    {{else}}
+                        <p>❌ Count is 3 or less</p>
+                    {{/gt}}
+                </div>
+
+                <div class="jp-warning-box">
+                    <h4>Nested Subexpressions</h4>
+                    {{#if (and (eq user.role "admin") (gt user.count 3))}}
+                        <p>✅ Admin with count > 3</p>
+                    {{else}}
+                        <p>❌ Not admin or count <= 3</p>
+                    {{/if}}
+                </div>
+            </div>
+
+            <div id="logical-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
+&lt;!-- Standalone Helpers --&gt;
+&#123;&#123;and user.isAdmin user.isActive&#125;&#125;
+&#123;&#123;or user.isPremium user.isActive&#125;&#125;
+&#123;&#123;not user.isPremium&#125;&#125;
+&#123;&#123;eq user.role "admin"&#125;&#125;
+&#123;&#123;gt user.count 3&#125;&#125;
+
+&lt;!-- Subexpressions in {{#if}} --&gt;
+&#123;&#123;#if (and user.isAdmin user.isActive)&#125;&#125;
+    &lt;p&gt;✅ Active admin&lt;/p&gt;
+&#123;&#123;/if&#125;&#125;
+
+&#123;&#123;#if (gt user.count 3)&#125;&#125;
+    &lt;p&gt;✅ Count is greater than 3&lt;/p&gt;
+&#123;&#123;/if&#125;&#125;
+
+&lt;!-- Block Helpers with {{else}} --&gt;
+&#123;&#123;#and user.isAdmin user.isActive&#125;&#125;
+    &lt;p&gt;✅ Active admin&lt;/p&gt;
+&#123;&#123;else&#125;&#125;
+    &lt;p&gt;❌ Not an active admin&lt;/p&gt;
+&#123;&#123;/and&#125;&#125;
+
+&#123;&#123;#gt user.count 3&#125;&#125;
+    &lt;p&gt;✅ Count is greater than 3&lt;/p&gt;
+&#123;&#123;else&#125;&#125;
+    &lt;p&gt;❌ Count is 3 or less&lt;/p&gt;
+&#123;&#123;/gt&#125;&#125;
+
+&lt;!-- Nested Subexpressions --&gt;
+&#123;&#123;#if (and (eq user.role "admin") (gt user.count 3))&#125;&#125;
+    &lt;p&gt;✅ Admin with count &gt; 3&lt;/p&gt;
+&#123;&#123;else&#125;&#125;
+    &lt;p&gt;❌ Not admin or count &lt;= 3&lt;/p&gt;
+&#123;&#123;/if&#125;&#125;
+                </div>
+            </div>
+        </div>
+
         <!-- Block-Scoped Variables with #let handlebars -->
         <div class="jp-card">
             <h2 class="jp-card-dialog-heading">Block-Scoped Variables with &#123;&#123;#let&#125;&#125;</h2>
@@ -743,6 +871,72 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     </table>
                 </div>
 
+                <div class="jp-info-box">
+                    <h4>Logical and Comparison Helpers (v1.3.15+)</h4>
+                    <table class="jp-table">
+                        <tr>
+                            <th>Helper</th>
+                            <th>Handlebar</th>
+                            <th>Description</th>
+                        </tr>
+                        <tr>
+                            <td>Logical AND</td>
+                            <td><code>&#123;&#123;and cond1 cond2&#125;&#125;</code></td>
+                            <td>Returns "true" if all conditions are truthy</td>
+                        </tr>
+                        <tr>
+                            <td>Logical OR</td>
+                            <td><code>&#123;&#123;or cond1 cond2&#125;&#125;</code></td>
+                            <td>Returns "true" if any condition is truthy</td>
+                        </tr>
+                        <tr>
+                            <td>Logical NOT</td>
+                            <td><code>&#123;&#123;not cond&#125;&#125;</code></td>
+                            <td>Returns "true" if condition is falsy</td>
+                        </tr>
+                        <tr>
+                            <td>Equal</td>
+                            <td><code>&#123;&#123;eq a b&#125;&#125;</code></td>
+                            <td>Returns "true" if values are equal (type coercion)</td>
+                        </tr>
+                        <tr>
+                            <td>Not equal</td>
+                            <td><code>&#123;&#123;ne a b&#125;&#125;</code></td>
+                            <td>Returns "true" if values are not equal (type coercion)</td>
+                        </tr>
+                        <tr>
+                            <td>Greater than</td>
+                            <td><code>&#123;&#123;gt a b&#125;&#125;</code></td>
+                            <td>Returns "true" if a > b (type coercion)</td>
+                        </tr>
+                        <tr>
+                            <td>Greater or equal</td>
+                            <td><code>&#123;&#123;gte a b&#125;&#125;</code></td>
+                            <td>Returns "true" if a >= b (type coercion)</td>
+                        </tr>
+                        <tr>
+                            <td>Less than</td>
+                            <td><code>&#123;&#123;lt a b&#125;&#125;</code></td>
+                            <td>Returns "true" if a < b (type coercion)</td>
+                        </tr>
+                        <tr>
+                            <td>Less or equal</td>
+                            <td><code>&#123;&#123;lte a b&#125;&#125;</code></td>
+                            <td>Returns "true" if a <= b (type coercion)</td>
+                        </tr>
+                        <tr>
+                            <td>Subexpressions</td>
+                            <td><code>&#123;&#123;#if (and cond1 cond2)&#125;&#125;...&#123;&#123;/if&#125;&#125;</code></td>
+                            <td>Use in {{#if}}, {{#unless}}, and block helpers</td>
+                        </tr>
+                        <tr>
+                            <td>Block helpers</td>
+                            <td><code>&#123;&#123;#and cond1 cond2&#125;&#125;...&#123;&#123;else&#125;&#125;...&#123;&#123;/and&#125;&#125;</code></td>
+                            <td>All helpers support {{else}} blocks</td>
+                        </tr>
+                    </table>
+                </div>
+
                 <div class="jp-warning-box">
                     <h4>Custom Variables</h4>
                     <table class="jp-table">
@@ -830,7 +1024,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'interactive-example-tab', label: 'Interactive Form', panelId: 'interactive-example-panel' },
                     { id: 'interactive-source-tab', label: 'Source Code', panelId: 'interactive-source-panel' }
                 ],
-                panelHeight: '23rem',
+                panelHeight: '27rem',
                 slideAnimation: true
             }, 'interactive-example-tab');
 
@@ -850,7 +1044,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'conditionals-example-tab', label: 'Example', panelId: 'conditionals-example-panel' },
                     { id: 'conditionals-source-tab', label: 'Source Code', panelId: 'conditionals-source-panel' }
                 ],
-                panelHeight: '16rem',
+                panelHeight: '22rem',
                 slideAnimation: true
             }, 'conditionals-example-tab');
 
@@ -919,6 +1113,15 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                 ],
                 slideAnimation: true
             }, 'let-block-example');
+
+            // Logical and comparison helpers example tabs
+            jPulse.UI.tabs.register('logical-tabs', {
+                tabs: [
+                    { id: 'logical-example', label: 'Example', panelId: 'logical-example-panel' },
+                    { id: 'logical-source', label: 'Source Code', panelId: 'logical-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'logical-example');
 
             document.getElementById('handlebarButton').addEventListener('click', async () => {
                 const $resultElem = document.getElementById('handlebarResult');

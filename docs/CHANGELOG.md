@@ -1,6 +1,92 @@
-# jPulse Docs / Version History v1.3.14
+# jPulse Docs / Version History v1.3.15
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.15, W-114, 2025-12-14
+
+**Commit:** `W-114, v1.3.15: handlebars: add logical and comparison helpers with subexpressions and block helpers`
+
+**FEATURE RELEASE**: Enhanced Handlebars templating with logical and comparison helpers supporting standalone usage, subexpressions in conditions, and block helpers with `{{else}}` support.
+
+**Objective**: Provide more flexible and powerful conditional logic in templates using Polish notation (operator-first syntax), enabling complex conditions like `{{#if (and user.isAdmin (gt user.score 100))}}`.
+
+**Key Features**:
+
+**New Regular Helpers (9 total)**:
+- Logical helpers: `{{and}}`, `{{or}}`, `{{not}}` - return `"true"` or `"false"` strings
+- Comparison helpers: `{{eq}}`, `{{ne}}`, `{{gt}}`, `{{gte}}`, `{{lt}}`, `{{lte}}` - return `"true"` or `"false"` strings
+- Arity: `and`/`or` (1+ arguments), `not` (exactly 1), comparisons (exactly 2)
+- Permissive type coercion: `{{gt "10" 5}}` → `"true"` (string "10" coerced to number 10)
+- Lexicographical string comparison: `{{gt "2025-12-14" "2025-12-13"}}` → `"true"`
+
+**New Block Helpers (9 total)**:
+- `{{#and}}`, `{{#or}}`, `{{#not}}`, `{{#eq}}`, `{{#ne}}`, `{{#gt}}`, `{{#gte}}`, `{{#lt}}`, `{{#lte}}`
+- All support `{{else}}` blocks for cleaner conditional rendering
+- Example: `{{#and user.isAdmin user.isActive}} admin {{else}} not admin {{/and}}`
+
+**Subexpression Support**:
+- Polish notation syntax: `{{#if (and user.isAdmin (gt user.score 100))}}`
+- Works in `{{#if}}` and `{{#unless}}` conditions
+- Supports nested subexpressions: `{{#if (and (gt score 100) (eq status "active"))}}`
+- Quoted strings with parentheses preserved: `{{#if (and (eq user.firstName "James (Jim)") user.isActive)}}`
+- Subexpressions in all helper arguments: `{{#component (vars.name) order=(vars.order)}}`
+
+**Enhanced Argument Parsing**:
+- Renamed `_parseArguments()` → `_parseAndEvaluateArguments()` (async)
+- Multi-phase parsing algorithm:
+  - Phase 1: Extract helper name
+  - Phase 2: Escape quotes and parentheses inside quoted strings
+  - Phase 3: Annotate parentheses with nesting levels
+  - Phase 4: Recursively evaluate subexpressions
+  - Phase 5: Clean up expression text
+  - Phase 6: Parse all arguments (positional and key=value pairs) with type coercion
+- Supports both double quotes `"..."` and single quotes `'...'`
+- Supports escaped quotes: `"James \"Jim\""`
+
+**Additional Enhancements**:
+- Added `{{else}}` support to `{{#unless}}` blocks (matching `{{#if}}` behavior)
+- Simplified `_evaluateCondition()` logic (removed undocumented `!` negation)
+- Unified comparison helpers into single `_handleComparison()` function using function map
+- Unified block helper handler `_handleLogicalBlockHelper()` for all 9 logical/comparison block helpers
+
+**Code Changes**:
+
+**webapp/controller/handlebar.js**:
+- `_parseAndEvaluateArguments()`: Complete rewrite with multi-phase parsing, subexpression evaluation, quoted string handling
+- `_handleAnd()`, `_handleOr()`, `_handleNot()`: Logical helper functions with string "true"/"false" normalization
+- `_handleComparison()`: Unified comparison function for all 6 operators (eq, ne, gt, gte, lt, lte)
+- `_handleLogicalBlockHelper()`: Unified block helper handler for all 9 logical/comparison helpers
+- `_evaluateRegularHandlebar()`: Added cases for all 9 new regular helpers
+- `_evaluateBlockHandlebar()`: Added cases for all 9 new block helpers
+- `_evaluateCondition()`: Enhanced to detect and evaluate subexpressions recursively
+- `_handleBlockIf()`, `_handleBlockUnless()`: Made async, added `{{else}}` to `{{#unless}}`
+- `REGULAR_HANDLEBARS` array: Added `not`, `gt`, `gte`, `lt`, `lte`, `ne`
+- `BLOCK_HANDLEBARS` array: Added all 9 new block helpers
+
+**webapp/tests/unit/controller/handlebar-logical-helpers.test.js**:
+- 63 comprehensive unit tests covering:
+  - Standalone helpers (all 9 helpers)
+  - Subexpressions in `{{#if}}` and `{{#unless}}`
+  - Block helpers with `{{else}}` support
+  - Type coercion (numeric strings, loose equality)
+  - Quoted strings with parentheses
+  - Nested subexpressions
+  - Edge cases (null, undefined, empty strings)
+
+**Files Modified**: 4
+- `webapp/controller/handlebar.js`: Core implementation (subexpression parser, 9 helpers, block helpers)
+- `webapp/tests/unit/controller/handlebar-logical-helpers.test.js`: Comprehensive test suite
+- `docs/handlebars.md`: Complete documentation with examples
+- `webapp/view/jpulse-examples/handlebars.shtml`: Interactive examples
+
+**Breaking Changes**: None
+
+**Documentation**:
+- Updated `docs/dev/work-items.md` with W-114 deliverables
+- Updated `docs/handlebars.md` with comprehensive "Logical and Comparison Helpers" section
+- Updated `webapp/view/jpulse-examples/handlebars.shtml` with interactive examples
+- Updated `docs/dev/working/W-114-handlebars-logical-subexpressions.md` with complete design decisions
 
 ________________________________________________
 ## v1.3.14, W-113, 2025-12-13

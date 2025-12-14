@@ -3,8 +3,8 @@
  * @tagline         Signup tests for User Model and Controller
  * @description     Unit tests for user registration/signup functionality
  * @file            webapp/tests/unit/user/user-signup.test.js
- * @version         1.3.14
- * @release         2025-12-13
+ * @version         1.3.15
+ * @release         2025-12-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

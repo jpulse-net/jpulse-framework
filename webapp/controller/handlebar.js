@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.3.14
- * @release         2025-12-13
+ * @version         1.3.15
+ * @release         2025-12-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -31,14 +31,23 @@ class HandlebarController {
     // Regular handlebars: {{file.*}}, {{let}}, and internal top level context variables
     // ATTENTION: Keep this in sync with case in _buildInternalContext()
     static REGULAR_HANDLEBARS = [
+        'and',
         'app',
         'appCluster',
         'appConfig',
         'components',
         'config',
+        'eq',
         'file',     // {{file.*}} helper, not a context variable
+        'gt',
+        'gte',
         'i18n',
         'let',
+        'lt',
+        'lte',
+        'ne',
+        'not',
+        'or',
         'url',
         'user',
         'vars'      // Populated by {{let}}
@@ -47,10 +56,19 @@ class HandlebarController {
     // Block handlebars: helpers that can be used as {{#helper}}...{{/helper}}
     // ATTENTION: Keep this in sync with case in _evaluateBlockHandlebar()
     static BLOCK_HANDLEBARS = [
+        'and',      // W-114: Logical block helper
         'component',
         'each',
+        'eq',       // W-114: Comparison block helper
+        'gt',       // W-114: Comparison block helper
+        'gte',      // W-114: Comparison block helper
         'if',
         'let',
+        'lt',       // W-114: Comparison block helper
+        'lte',      // W-114: Comparison block helper
+        'ne',       // W-114: Comparison block helper
+        'not',      // W-114: Logical block helper
+        'or',       // W-114: Logical block helper
         'unless',
         'with'
     ];
@@ -214,7 +232,6 @@ class HandlebarController {
 
     /**
      * Build internal context for handlebars processing
-     * ATTENTION: Keep this in sync with static property REGULAR_HANDLEBARS
      * @param {object} req - Express request object
      * @returns {object} Internal context with app, user, config, etc.
      */
@@ -503,10 +520,26 @@ class HandlebarController {
          */
         async function _evaluateBlockHandlebar(blockType, params, blockContent, currentContext) {
             switch (blockType) {
+                // W-114: Logical block helpers
+                case 'and':
+                case 'or':
+                case 'not':
+                    return await _handleLogicalBlockHelper(blockType, params, blockContent, currentContext);
+
+                // W-114: Comparison block helpers
+                case 'eq':
+                case 'ne':
+                case 'gt':
+                case 'gte':
+                case 'lt':
+                case 'lte':
+                    return await _handleLogicalBlockHelper(blockType, params, blockContent, currentContext);
+
+                // Existing block helpers
                 case 'if':
-                    return _handleBlockIf(params, blockContent, currentContext);
+                    return await _handleBlockIf(params, blockContent, currentContext);
                 case 'unless':
-                    return _handleBlockUnless(params, blockContent, currentContext);
+                    return await _handleBlockUnless(params, blockContent, currentContext);
                 case 'each':
                     return await _handleBlockEach(params, blockContent, currentContext);
                 case 'component':
@@ -522,9 +555,10 @@ class HandlebarController {
 
         /**
          * Evaluate a single handlebars expression
+         * ATTENTION: Keep this in sync with static property REGULAR_HANDLEBARS
          */
-        async function _evaluateHandlebar(expression, currentContext) {
-            const parsedArgs = _parseArguments(expression);
+        async function _evaluateRegularHandlebar(expression, currentContext) {
+            const parsedArgs = await _parseAndEvaluateArguments(expression, currentContext);
             const helper = parsedArgs._helper;
 
             // W-102: Handle components.* pattern (with or without parameters)
@@ -535,6 +569,24 @@ class HandlebarController {
 
             // Handle helper functions first (before property access)
             switch (helper) {
+                // W-114: Logical helpers
+                case 'and':
+                    return _handleAnd(parsedArgs, currentContext);
+                case 'or':
+                    return _handleOr(parsedArgs, currentContext);
+                case 'not':
+                    return _handleNot(parsedArgs, currentContext);
+
+                // W-114: Comparison helpers (all use unified function)
+                case 'eq':
+                case 'ne':
+                case 'gt':
+                case 'gte':
+                case 'lt':
+                case 'lte':
+                    return _handleComparison(parsedArgs, currentContext, helper);
+
+                // File helpers
                 case 'file.include':
                     return await _handleFileInclude(parsedArgs, currentContext);
                 case 'file.includeComponents':
@@ -545,6 +597,8 @@ class HandlebarController {
                     return _handleFileExists(parsedArgs._target);
                 case 'file.list':
                     return _handleFileList(parsedArgs, currentContext);
+
+                // Variable helpers
                 case 'let':
                     return _handleLet(expression, currentContext);
                 default:
@@ -575,39 +629,203 @@ class HandlebarController {
         }
 
         /**
-         * Parse handlebars arguments (space-separated, quoted strings preserved)
+         * Parse handlebars arguments (space-separated, quoted strings preserved),
+         * resolve subexpressions, and return parsed arguments as an object.
+         * @param {string} expression - Expression to parse and evaluate
+         * @param {object} currentContext - Current context for evaluation
+         * @returns {Promise<object>} Parsed arguments with _helper, _target, and key=value pairs
+         * @examples
+         * _parseAndEvaluateArguments('helper "target" arg1="value1" arg2="value2"')
+         * // returns { _helper: 'helper', _target: 'target', arg1: 'value1', arg2: 'value2' }
+         * _parseAndEvaluateArguments('helper (subexpression arg2 arg3)')
+         * // returns { _helper: 'helper', _target: 'result of subexpression arg2 arg3' }
+         * _parseAndEvaluateArguments('helper arg1=(subexpression arg2 arg3)')
+         * // returns { _helper: 'helper', arg1: 'result of subexpression arg2 arg3' }
+         * _parseAndEvaluateArguments('helper arg1=(subexpression arg2 arg3) arg4=value4')
+         * // returns { _helper: 'helper', arg1: 'result of subexpression arg2 arg3', arg4: 'value4' }
+         * _parseAndEvaluateArguments('helper (subexpression arg1.1 (subsubexpression arg2.1 arg2.2) arg1.2 ...) arg3=value3 arg4=value4')
+         * // returns { _helper: 'helper', _target: 'result of complete subsubexpression evaluation', arg3: 'value3', arg4: 'value4' }
          */
-        function _parseArguments(expression) {
-            const args = {};
-            // Updated regex to handle: helper "target" param1="value1" param2="value2"
-            // or: helper "target" param1=value1 param2=value2
-            const parts = expression.trim().match(/^([^ ]+)(?: *"?([^"]*)"?(?: (.*))?)?$/);
-            args._helper = parts?.[1];
-            args._target = parts?.[2];
-            if(parts?.[3]) {
-                parts[3].replace(/ *(\w+)=(?:(['"])(.*?)\2|([^ ]*))/g, (m, key, q1, sVal, val) => {
-                    if(!q1) {
-                        if(val === 'true') {
-                            val = true;
-                        } else if(val === 'false') {
-                            val = false;
-                        } else {
-                            val = Number(val);
-                        }
-                    } else {
-                        val = sVal;
-                    }
-                    args[key] = val;
+        async function _parseAndEvaluateArguments(expression, currentContext) {
+            const escChar = '\x00';
+
+            function _encodeChars(str) {
+                return str.replace(/['"\(\)]/g, (match) => `${escChar}_ESC_:${match.charCodeAt(0)}${escChar}`);
+            }
+
+            function _restoreChars(str) {
+                return str.replace(new RegExp(`${escChar}_ESC_:(\\d+)${escChar}`, 'g'), (match, code) => {
+                    return String.fromCharCode(parseInt(code));
                 });
             }
+
+            function _cleanupExpressionText(str) {
+                // Remove unbalanced parenthesis markers, but DON'T restore encoded chars yet
+                const regex = new RegExp(`${escChar}_P_(OPEN|CLOSE)_:(\\d+)${escChar}`, 'gs');
+                return str.replace(regex, '<!-- Error: Unbalanced subexpression removed -->');
+            }
+
+            async function _resolveSubexpression(subExpr, ctx) {
+                // Create regex for this level to find nested subexpressions
+                const nestedRegex = new RegExp(`${escChar}_P_OPEN_:(\\d+)${escChar}(.*?)${escChar}_P_CLOSE_:\\1${escChar}`, 'gs');
+                const nestedMatches = [...subExpr.matchAll(nestedRegex)];
+
+                // Process nested subexpressions sequentially
+                for (const match of nestedMatches) {
+                    const [fullMatch, level, content] = match;
+                    const replacement = await _resolveSubexpression(content, ctx);
+                    subExpr = subExpr.replace(fullMatch, replacement);
+                }
+
+                // Clean up and evaluate
+                subExpr = _cleanupExpressionText(subExpr);
+                return await _evaluateRegularHandlebar(subExpr, ctx);
+            }
+
+            // Phase 1: Extract helper name and check for arguments
+            const args = {};
+            let parts = expression.trim().match(/^([^ ]+)(?: (.*))?$/);
+            if (!parts) {
+                return args;
+            }
+
+            args._helper = parts[1];
+            if (!parts[2]) {
+                return args; // No arguments, just helper name
+            }
+
+            // Phase 2: Escape quotes and parentheses inside quoted strings, normalize to double quotes
+            // Example: arg='Hello (\'world\')' → "Hello (world)" with chars encoded
+            let processedExpr = parts[2];
+            processedExpr = processedExpr.replace(/(['"])((?:(?!\1)[^\\]|\\.)*)\1/g, (match, quote, content) => {
+                // Unescape any escaped quotes, then encode all special chars
+                const unescaped = content.replace(/\\(['"])/g, '$1');
+                return _encodeChars('"' + unescaped + '"');
+            });
+
+            // Phase 3: Annotate parentheses with nesting level
+            let level = 0;
+            processedExpr = processedExpr.replace(/([\(\)])/gs, (match, paren) => {
+                if (paren === '(') {
+                    const result = `${escChar}_P_OPEN_:${level}${escChar}`;
+                    level++;
+                    return result;
+                } else {
+                    level--;
+                    return `${escChar}_P_CLOSE_:${level}${escChar}`;
+                }
+            });
+
+            // Phase 4: Recursively evaluate subexpressions by nesting level
+            const subRegex = new RegExp(`${escChar}_P_OPEN_:(\\d+)${escChar}(.*?)${escChar}_P_CLOSE_:\\1${escChar}`, 'gs');
+            const matches = [...processedExpr.matchAll(subRegex)];
+
+            for (const match of matches) {
+                const [fullMatch, matchLevel, content] = match;
+                const replacement = await _resolveSubexpression(content, currentContext);
+                processedExpr = processedExpr.replace(fullMatch, replacement);
+            }
+
+            // Phase 5: Clean up any remaining unbalanced subexpressions
+            processedExpr = _cleanupExpressionText(processedExpr);
+
+            // Phase 6: Parse all arguments - positional and key=value pairs
+            if (!processedExpr || !processedExpr.trim()) {
+                return args;  // No arguments
+            }
+
+            const encodedQuote = `${escChar}_ESC_:34${escChar}`;
+            const positionalArgs = [];
+
+            // Split by spaces, but respecting quoted strings and key=value pairs
+            let remainingExpr = processedExpr.trim();
+
+            while (remainingExpr) {
+                // Try to match key=value pair first
+                const kvMatch = remainingExpr.match(new RegExp(`^(\\w+)=(${encodedQuote}(.*?)${encodedQuote}|([^ ]+))(?: |$)`));
+
+                if (kvMatch) {
+                    // It's a key=value pair
+                    const key = kvMatch[1];
+                    let value;
+
+                    if (kvMatch[3] !== undefined) {
+                        // Quoted string value
+                        value = _restoreChars(kvMatch[3]);
+                    } else {
+                        // Unquoted value - type coerce
+                        const rawValue = kvMatch[4];
+                        if (rawValue === 'true') {
+                            value = true;
+                        } else if (rawValue === 'false') {
+                            value = false;
+                        } else if (!isNaN(rawValue) && rawValue !== '') {
+                            value = Number(rawValue);
+                        } else {
+                            value = _restoreChars(rawValue);
+                        }
+                    }
+
+                    args[key] = value;
+                    remainingExpr = remainingExpr.substring(kvMatch[0].length).trim();
+                } else {
+                    // It's a positional argument
+                    // Match quoted string or unquoted token
+                    const posMatch = remainingExpr.match(new RegExp(`^(?:${encodedQuote}(.*?)${encodedQuote}|([^ ]+))(?: |$)`));
+
+                    if (posMatch) {
+                        let value;
+
+                        if (posMatch[1] !== undefined) {
+                            // Quoted string
+                            value = _restoreChars(posMatch[1]);
+                        } else {
+                            // Unquoted token - type coerce and resolve properties
+                            const rawValue = _restoreChars(posMatch[2]);
+                            if (rawValue === 'true') {
+                                value = true;
+                            } else if (rawValue === 'false') {
+                                value = false;
+                            } else if (!isNaN(rawValue) && rawValue !== '') {
+                                value = Number(rawValue);
+                            } else {
+                                // Try to resolve as property access
+                                if (rawValue.includes('.')) {
+                                    value = getNestedProperty(currentContext, rawValue);
+                                } else {
+                                    value = currentContext[rawValue];
+                                }
+                                // If property doesn't exist, use the string as-is
+                                if (value === undefined) {
+                                    value = rawValue;
+                                }
+                            }
+                        }
+
+                        positionalArgs.push(value);
+                        remainingExpr = remainingExpr.substring(posMatch[0].length).trim();
+                    } else {
+                        // Shouldn't happen, but break to avoid infinite loop
+                        break;
+                    }
+                }
+            }
+
+            // Store positional arguments
+            if (positionalArgs.length > 0) {
+                args._target = positionalArgs[0];  // First positional arg (backward compat)
+                args._args = positionalArgs;       // All positional args as array
+            }
+
             return args;
         }
 
         /**
          * Handle {{#if}} blocks
+         * W-114: Made async to support subexpressions in conditions
          */
-        function _handleBlockIf(params, blockContent, currentContext) {
-            const condition = _evaluateCondition(params, currentContext);
+        async function _handleBlockIf(params, blockContent, currentContext) {
+            const condition = await _evaluateCondition(params, currentContext);
             const parts = blockContent
                 .replace(/\{\{#if:~(\d+)~.*?\{\{\/if:~\1~\}\}/gs, (m) => {  // match nested {{#if}} ... {{/if}}
                     return m.replace(/\{\{else\}\}/g, '{~{~else~}~}');      // escape {{else}} in nested {{#if}}
@@ -621,11 +839,65 @@ class HandlebarController {
 
         /**
          * Handle {{#unless}} blocks
+         * W-114: Added {{else}} support, made async to support subexpressions
          */
-        function _handleBlockUnless(params, blockContent, currentContext) {
-            const condition = _evaluateCondition(params, currentContext);
-            // no {{else}}
-            return condition ? '' : blockContent;
+        async function _handleBlockUnless(params, blockContent, currentContext) {
+            const condition = await _evaluateCondition(params, currentContext);
+            const parts = blockContent
+                .replace(/\{\{#unless:~(\d+)~.*?\{\{\/unless:~\1~\}\}/gs, (m) => {  // match nested {{#unless}} ... {{/unless}}
+                    return m.replace(/\{\{else\}\}/g, '{~{~else~}~}');      // escape {{else}} in nested {{#unless}}
+                })
+                .split('{{else}}')                                          // split at {{else}} outside nested {{#unless}}
+                .map(part => part.replace(/\{~\{~else~\}~\}/g, '{{else}}')); // restore {{else}} in nested {{#unless}}
+            const unlessContent = parts[0] || '';
+            const elseContent = parts[1] || '';
+            return condition ? elseContent : unlessContent;
+        }
+
+        /**
+         * W-114: Unified block helper for logical and comparison helpers
+         * Handles {{#and}}, {{#or}}, {{#not}}, {{#eq}}, {{#ne}}, {{#gt}}, {{#gte}}, {{#lt}}, {{#lte}}
+         * All support {{else}} blocks
+         * @param {string} helperType - Helper type: 'and', 'or', 'not', 'eq', 'ne', 'gt', 'gte', 'lt', 'lte'
+         * @param {string} params - Parameters for the helper
+         * @param {string} blockContent - Content between opening and closing tags
+         * @param {object} currentContext - Current context
+         * @returns {Promise<string>} Rendered content
+         */
+        async function _handleLogicalBlockHelper(helperType, params, blockContent, currentContext) {
+            // Parse and evaluate the helper to get boolean result
+            const expression = `${helperType} ${params}`;
+            const parsedArgs = await _parseAndEvaluateArguments(expression, currentContext);
+
+            let result;
+            if (helperType === 'and' || helperType === 'or' || helperType === 'not') {
+                // Logical helpers
+                if (helperType === 'and') {
+                    result = _handleAnd(parsedArgs, currentContext);
+                } else if (helperType === 'or') {
+                    result = _handleOr(parsedArgs, currentContext);
+                } else if (helperType === 'not') {
+                    result = _handleNot(parsedArgs, currentContext);
+                }
+            } else {
+                // Comparison helpers
+                result = _handleComparison(parsedArgs, currentContext, helperType);
+            }
+
+            // Check if condition is truthy (result is 'true' string)
+            const condition = result === 'true';
+
+            // Handle {{else}} blocks (similar to {{#if}})
+            const parts = blockContent
+                .replace(/\{\{#\w+:~(\d+)~.*?\{\{\/\w+:~\1~\}\}/gs, (m) => {  // match nested block helpers
+                    return m.replace(/\{\{else\}\}/g, '{~{~else~}~}');      // escape {{else}} in nested blocks
+                })
+                .split('{{else}}')                                          // split at {{else}} outside nested blocks
+                .map(part => part.replace(/\{~\{~else~\}~\}/g, '{{else}}')); // restore {{else}} in nested blocks
+            const ifContent = parts[0] || '';
+            const elseContent = parts[1] || '';
+
+            return condition ? ifContent : elseContent;
         }
 
         /**
@@ -638,7 +910,7 @@ class HandlebarController {
 
             // W-094: Check if params is file.list helper call
             if (params.trim().startsWith('file.list ')) {
-                const parsedArgs = _parseArguments(params.trim());
+                const parsedArgs = _parseAndEvaluateArguments(params.trim(), currentContext);
                 if (parsedArgs._helper === 'file.list') {
                     // Get the file list
                     const listResult = _handleFileList(parsedArgs, currentContext);
@@ -1047,6 +1319,163 @@ class HandlebarController {
         }
 
         /**
+         * W-114: Handle {{and}} logical helper
+         * Returns 'true' if all arguments are truthy, 'false' otherwise
+         * Accepts 1 or more arguments (variadic)
+         * @param {object} parsedArgs - Parsed arguments with _args array
+         * @param {object} currentContext - Current context for property evaluation
+         * @returns {string} 'true' or 'false'
+         * @examples
+         * {{and user.isAdmin}} → 'true' if user.isAdmin is truthy
+         * {{and user.isAdmin user.isActive}} → 'true' if both are truthy
+         * {{and val1 val2 val3}} → 'true' if all three are truthy
+         */
+        function _handleAnd(parsedArgs, currentContext) {
+            const args = parsedArgs._args || [];
+
+            // Require at least 1 argument
+            if (args.length === 0) {
+                LogController.logWarning(req, 'handlebar.and', 'No arguments provided');
+                return 'false';
+            }
+
+            // Convert string 'false' to boolean false (from subexpressions)
+            const normalizedArgs = args.map(arg => {
+                if (arg === 'false') return false;
+                if (arg === 'true') return true;
+                return arg;
+            });
+
+            // Return 'true' only if all arguments are truthy
+            return normalizedArgs.every(arg => arg) ? 'true' : 'false';
+        }
+
+        /**
+         * W-114: Handle {{or}} logical helper
+         * Returns 'true' if any argument is truthy, 'false' otherwise
+         * Accepts 1 or more arguments (variadic)
+         * @param {object} parsedArgs - Parsed arguments with _args array
+         * @param {object} currentContext - Current context for property evaluation
+         * @returns {string} 'true' or 'false'
+         * @examples
+         * {{or user.isPremium}} → 'true' if user.isPremium is truthy
+         * {{or user.isPremium user.isTrial}} → 'true' if either is truthy
+         * {{or val1 val2 val3}} → 'true' if any is truthy
+         */
+        function _handleOr(parsedArgs, currentContext) {
+            const args = parsedArgs._args || [];
+
+            // Require at least 1 argument
+            if (args.length === 0) {
+                LogController.logWarning(req, 'handlebar.or', 'No arguments provided');
+                return 'false';
+            }
+
+            // Convert string 'false' to boolean false (from subexpressions)
+            const normalizedArgs = args.map(arg => {
+                if (arg === 'false') return false;
+                if (arg === 'true') return true;
+                return arg;
+            });
+
+            // Return 'true' if any argument is truthy
+            return normalizedArgs.some(arg => arg) ? 'true' : 'false';
+        }
+
+        /**
+         * W-114: Handle {{not}} logical helper
+         * Returns 'true' if argument is falsy, 'false' otherwise
+         * Accepts exactly 1 argument
+         * @param {object} parsedArgs - Parsed arguments with _args array
+         * @param {object} currentContext - Current context for property evaluation
+         * @returns {string} 'true' or 'false'
+         * @examples
+         * {{not user.isPremium}} → 'true' if user.isPremium is falsy
+         * {{not (eq user.role "admin")}} → 'true' if user.role is not "admin"
+         */
+        function _handleNot(parsedArgs, currentContext) {
+            const args = parsedArgs._args || [];
+
+            // Require exactly 1 argument
+            if (args.length !== 1) {
+                LogController.logWarning(req, 'handlebar.not',
+                    `Expected 1 argument, got ${args.length}`);
+                return 'false';
+            }
+
+            // Convert string 'false'/'true' to boolean (from subexpressions)
+            let value = args[0];
+            if (value === 'false') value = false;
+            else if (value === 'true') value = true;
+
+            // Return negation
+            return value ? 'false' : 'true';
+        }
+
+        /**
+         * W-114: Unified comparison helper for all comparison operators
+         * Returns 'true' if comparison is true (with type coercion), 'false' otherwise
+         * Accepts exactly 2 arguments
+         * @param {object} parsedArgs - Parsed arguments with _args array
+         * @param {object} currentContext - Current context for property evaluation
+         * @param {string} operator - Comparison operator: 'eq', 'ne', 'gt', 'gte', 'lt', 'lte'
+         * @returns {string} 'true' or 'false'
+         * @examples
+         * _handleComparison(parsedArgs, context, 'eq') → 'true' if args[0] == args[1]
+         * _handleComparison(parsedArgs, context, 'gt') → 'true' if args[0] > args[1]
+         */
+        function _handleComparison(parsedArgs, currentContext, operator) {
+            const args = parsedArgs._args || [];
+
+            // Require exactly 2 arguments
+            if (args.length !== 2) {
+                LogController.logWarning(req, `handlebar.${operator}`,
+                    `Expected 2 arguments, got ${args.length}`);
+                return 'false';
+            }
+
+            const [left, right] = args;
+
+            // Function map for comparison operators (with type coercion)
+            const operators = {
+                eq: (a, b) => {
+                    // eslint-disable-next-line eqeqeq
+                    return a == b;
+                },
+                ne: (a, b) => {
+                    // eslint-disable-next-line eqeqeq
+                    return a != b;
+                },
+                gt: (a, b) => {
+                    // eslint-disable-next-line eqeqeq
+                    return a > b;
+                },
+                gte: (a, b) => {
+                    // eslint-disable-next-line eqeqeq
+                    return a >= b;
+                },
+                lt: (a, b) => {
+                    // eslint-disable-next-line eqeqeq
+                    return a < b;
+                },
+                lte: (a, b) => {
+                    // eslint-disable-next-line eqeqeq
+                    return a <= b;
+                }
+            };
+
+            const compareFn = operators[operator];
+            if (!compareFn) {
+                LogController.logWarning(req, `handlebar.${operator}`,
+                    `Unknown comparison operator: ${operator}`);
+                return 'false';
+            }
+
+            const result = compareFn(left, right);
+            return result ? 'true' : 'false';
+        }
+
+        /**
          * Handle file.exists helper (synchronous with caching)
          */
         function _handleFileExists(filePath) {
@@ -1427,17 +1856,23 @@ class HandlebarController {
         }
 
         /**
-         * Evaluate condition for {{#if}} blocks
+         * Evaluate condition for {{#if}} and {{#unless}} blocks
+         * W-114: Enhanced to support subexpressions like (and ...), (gt ...), etc.
+         * Uses same unified approach as block helpers for consistency.
          */
-        function _evaluateCondition(params, currentContext) {
+        async function _evaluateCondition(params, currentContext) {
             const trimmed = params.trim();
 
-            // Handle negation
-            if (trimmed.startsWith('!')) {
-                return !_evaluateCondition(trimmed.substring(1), currentContext);
+            // W-114: Handle subexpressions: (helper arg1 arg2 ...)
+            // Use same evaluation approach as block helpers - just evaluate as regular handlebar
+            if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
+                const subExpr = trimmed.substring(1, trimmed.length - 1).trim();
+                const result = await _evaluateRegularHandlebar(subExpr, currentContext);
+                // Logical/comparison helpers return 'true'/'false' strings
+                return result === 'true';
             }
 
-            // Handle helper functions
+            // Handle helper functions (file.exists, etc.)
             if (trimmed.startsWith('file.exists ')) {
                 const filePath = trimmed.substring('file.exists '.length).trim();
                 const result = _handleFileExists(filePath);
@@ -1468,7 +1903,7 @@ class HandlebarController {
             } else if (regularHandlebar) {
                 // Regular handlebars: {{name params}}
                 try {
-                    return await _evaluateHandlebar(regularHandlebar, currentContext);
+                    return await _evaluateRegularHandlebar(regularHandlebar, currentContext);
                 } catch (error) {
                     LogController.logError(req, 'handlebar.expandHandlebars', `error: Handlebar "${regularHandlebar}": ${error.message}`);
                     return `<!-- Error: Handlebar "${regularHandlebar}": ${error.message} -->`;

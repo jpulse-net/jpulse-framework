@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.14
+# jPulse Docs / Dev / Work Items v1.3.15
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -2806,19 +2806,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - implemented in webapp/view/jpulse-common.js with _hasVisiblePages() helper
     - framework navigation updated: pluginConfig and userProfile use hideInDropdown: true
 
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-113, v1.3.14, 2025-12-13: metrics: bug fixes for reporting vital statistics of components
 - status: ✅ DONE
 - type: Bug Fix
@@ -2851,9 +2838,129 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-114, v1.3.15, 2025-12-14: handlebars: add logical and comparison helpers with subexpressions and block helpers
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: more flexible handlebars
+- note on syntax:
+  - it follows the Polish notation, also called Łukasiewicz notation
+  - normal notation: A and B
+  - Polish notation: and, A, B
+  - reverse Polish notation: A, B, and
+- syntax with subexpressions (nested helpers):
+  - block handlebars that expect a boolean parameter support nested regular helpers:
+  - `{{#if}}` and `{{#unless}}` accept `(nested helpers)`:
+    - `{{#if (<operator> <operand1> <operand2> <operand3>...)}} ... {{else}} ... {{/if}}`
+    - `{{#unless (<operator> <operand1> <operand2> <operand3>...)}} ... {{/unless}}`
+  - example without operator:
+    - `{{#if some.condition}} true block {{else}} false block {{/if}}`
+  - examples with operator and operands:
+    - `{{#if (and some.condition other.condition)}} true block {{else}} false block {{/if}}`
+    - `{{#if (or some.val other.val etc.val)}} true block {{else}} false block {{/if}}`
+    - `{{#if (not user.isGuest)}} registered user {{else}} guest user {{/if}}`
+    - `{{#if (eq some.string "DONE")}} true block {{else}} false block {{/if}}`
+    - `{{#if (gt some.val 1)}} true block {{else}} false block {{/if}}`
+    - `{{#if (and (gt some.val 1) (gt other.val 1))}} true block {{else}} false block {{/if}}`
+- features:
+    - new regular helpers: `{{and}}`, `{{or}}`, `{{not}}`, `{{gt}}`, `{{gte}}`, `{{lt}}`, `{{lte}}`, `{{eq}}`, `{{ne}}`
+    - new block helpers: `{{#and}}`, `{{#or}}`, `{{#not}}`, `{{#gt}}`, `{{#gte}}`, `{{#lt}}`, `{{#lte}}`, `{{#eq}}`, `{{#ne}}`
+    - evaluate handlebar subexpressions in `{{#if}}`, `{{#unless}}`, and all new handlebars
+    - add `{{else}}` to `{{#unless}}` ... `{{/unless}}`
+- deliverables:
+  - webapp/controller/handlebar.js -- add logical and comparison helpers with subexpression support
+    - enhanced `_parseArguments()` → `_parseAndEvaluateArguments()` (async) with multi-phase parsing:
+      - Phase 1: Extract helper name and set `args._helper`
+      - Phase 2: Escape quotes and parentheses inside quoted strings to preserve literals
+      - Phase 3: Annotate parentheses with nesting levels for subexpression detection
+      - Phase 4: Recursively evaluate subexpressions using `_resolveSubexpression()` helper
+      - Phase 5: Clean up expression text (remove annotations, preserve encoded characters)
+      - Phase 6: Parse all arguments (positional and key=value pairs) with type coercion and property resolution
+      - Supports quoted strings with parentheses: `"James (Jim)"` preserved as literal
+      - Supports subexpressions in all helper arguments: `{{#component (vars.name) order=(vars.order)}}`
+    - implemented 3 logical helper functions:
+      - `_handleAnd(parsedArgs, currentContext)` - returns "true" if all args truthy (1+ arguments)
+      - `_handleOr(parsedArgs, currentContext)` - returns "true" if any arg truthy (1+ arguments)
+      - `_handleNot(parsedArgs, currentContext)` - returns negation (exactly 1 argument)
+      - All normalize string "true"/"false" to booleans for proper evaluation
+    - implemented unified comparison helper:
+      - `_handleComparison(parsedArgs, currentContext, operator)` - handles all 6 comparison operators
+      - Supports: `eq`, `ne`, `gt`, `gte`, `lt`, `lte` (exactly 2 arguments each)
+      - Uses function map for dynamic operator application
+      - Permissive type coercion (numeric strings → numbers, lexicographical string comparison)
+    - enhanced `_evaluateRegularHandlebar()` to support standalone helpers:
+      - Added cases for `and`, `or`, `not` (logical helpers)
+      - Added fall-through cases for `eq`, `ne`, `gt`, `gte`, `lt`, `lte` → `_handleComparison()`
+      - Updated `REGULAR_HANDLEBARS` array to include all 9 new helpers
+    - enhanced `_evaluateCondition()` (async) to support subexpressions:
+      - Simplified evaluation logic (removed undocumented `!` negation)
+      - Detects subexpressions using regex pattern `^\([^)]+\)$`
+      - Recursively evaluates subexpressions via `await _evaluateRegularHandlebar(subExpr, currentContext)`
+      - Checks for "true" result (consistent with block helpers)
+    - enhanced `_handleBlockIf()` and `_handleBlockUnless()` (async):
+      - Made async to await `_evaluateCondition()`
+      - Added `{{else}}` support to `{{#unless}}` blocks (matching `{{#if}}` behavior)
+    - implemented unified block helper handler:
+      - `_handleLogicalBlockHelper(helperType, params, blockContent, currentContext)` (async)
+      - Handles all 9 logical/comparison block helpers: `{{#and}}`, `{{#or}}`, `{{#not}}`, `{{#eq}}`, `{{#ne}}`, `{{#gt}}`, `{{#gte}}`, `{{#lt}}`, `{{#lte}}`
+      - Parses params using `_parseAndEvaluateArguments()`
+      - Evaluates condition using respective standalone helper functions
+      - Supports `{{else}}` blocks using regex-based split
+    - updated `_evaluateBlockHandlebar()`:
+      - Added all 9 new helpers to `BLOCK_HANDLEBARS` array
+      - Added fall-through cases for logical/comparison helpers → `_handleLogicalBlockHelper()`
+    - comprehensive error handling:
+      - Unbalanced parentheses detection in subexpression parsing
+      - Arity validation (1+ for `and`/`or`, exactly 1 for `not`, exactly 2 for comparisons)
+      - Unknown helper detection
+  - webapp/tests/unit/controller/handlebar-logical-helpers.test.js -- comprehensive unit tests
+    - 63 passing tests covering:
+      - Standalone helpers: `{{and}}`, `{{or}}`, `{{not}}`, `{{eq}}`, `{{ne}}`, `{{gt}}`, `{{gte}}`, `{{lt}}`, `{{lte}}`
+      - Subexpressions in `{{#if}}` and `{{#unless}}` conditions
+      - Block helpers with `{{else}}` support
+      - Type coercion (numeric strings, loose equality)
+      - Quoted strings with parentheses: `"James (Jim)"`
+      - Nested subexpressions
+      - Edge cases (null, undefined, empty strings)
+  - docs/handlebars.md -- updated documentation
+    - Added "Logical and Comparison Helpers (v1.3.15+)" section with:
+      - Standalone helper examples
+      - Subexpressions in conditions examples
+      - Block helper examples with `{{else}}`
+      - Complete helper reference table
+      - Type coercion documentation
+    - Updated `{{#unless}}` section to note `{{else}}` support (v1.3.15+)
+    - Updated "Nested Conditionals" section with subexpression examples
+    - Updated "Best Practices" section with examples using new helpers
+    - Added comprehensive summary tables for all regular and block handlebars
+  - webapp/view/jpulse-examples/handlebars.shtml -- interactive examples
+    - Added "Logical and Comparison Helpers" example card with:
+      - Standalone helpers demo
+      - Subexpressions in `{{#if}}` demo
+      - Block helpers with `{{else}}` demo
+      - Nested subexpressions demo
+      - Complete source code examples
+    - Added helper reference table to "Available Context Variables" section
+    - Enhanced "Conditional Rendering" section with subexpression examples
+  - docs/dev/working/W-114-handlebars-logical-subexpressions.md -- working document
+    - Complete brainstorming, requirements, design decisions, and implementation plan
+
+
+
+
+
+
+
+
+
+
+
 ### Pending
 
-pending:
 
 
 old pending:
@@ -2886,7 +2993,7 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-113, v1.3.14
+- assume release: W-114, v1.3.15
 - update deliverables in W-114 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -2904,12 +3011,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.14
+node bin/bump-version.js 1.3.15
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.14
+git tag v1.3.15
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -2963,7 +3070,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - type: Feature
 - objective: automated setup for load-balanced multi-server deployments
 - prerequisits:
-  - W-053, v0.7.3: deployment: configuration templates and validation - ✅ DONE
+  - W-053, v0.7.3: deployment: configuration templates and validation - DONE
   - W-078: app api: provide health and metrics endpoints
 - deliverables:
   - nginx load balancer configuration templates
@@ -3131,30 +3238,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - prerequisite
   - W-076, v1.0.0: framework: redis infrastrucure for a scaleable jPulse Framework
 - /hello-websocket/, /hello-app-cluster/ should work properly on its own page, that is no messaging to other tabs with same page open
-
-### W-0: handlebars: enhance `{{#if}}` and `{{#unless}}` with and, or, gt, gte, lt, lte, eq, ne
-- status: 🕑 PENDING
-- type: Feature
-- objective: more flexible handlebars
-- note on syntax:
-  - it follows the Polish notation, also called Łukasiewicz notation
-  - normal notation: A and B
-  - Polish notation: and, A, B
-  - reverse Polish notation: A, B, and
-- syntax:
-  - block handlebars that expect a boolean parameter support operators:
-  - `{{#if}}` and `{{#unless}}` accept an optional operator identified by a trailing colon, followed by operands:
-    - `{{#if <operator>: <operand1> <operand2> <operand3>...}} ... {{else}} ... {{/if}}`
-    - `{{#unless <operator>: <operand1> <operand2> <operand3>...}} ... {{/unless}}`
-  - example without operator:
-    - `{{#if some.condition}} true block {{else}} false block {{/if}}`
-  - examples with operator and operands:
-    - `{{#if and: some.condition other.condition}} true block {{else}} false block {{/if}}`
-    - `{{#if or: some.val other.val etc.val}} true block {{else}} false block {{/if}}`
-    - `{{#if eq: some.string "DONE"}} true block {{else}} false block {{/if}}`
-    - `{{#if gt: some.val 1}} true block {{else}} false block {{/if}}`
-- deliverables:
-  - webapp/controller/handlebar.js -- enhanced `{{#if}}` and `{{#unless}}` block handlebars
 
 ### W-0: handlebars: block components with content slots
 - status: 🕑 PENDING

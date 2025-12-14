@@ -5357,3 +5357,476 @@ Changes accepted: Pending user confirmation
 
 
 ============================================================
+2025-12-13 17:10
+
+User: brainstorming on handlebars with subexpressions - see @work-items.md (3135-3172) - two options: option 1: <operator>: <operand1> <operand2>, option 2: (<operator> <operand1> <operand2>)
+
+Summary: Analyzed two syntax options for W-114 handlebars logical/comparison helpers. Recommended Option 2 (subexpressions) for better nesting and extensibility. User confirmed Option 2 and clarified requirements:
+- All logical helpers support subexpressions as arguments
+- Arity: 1 to many for logical helpers, exactly 2 for comparison helpers
+- Type coercion: permissive
+- Null/undefined: standard JS truthy/falsy
+- String comparison: lexicographic
+- Return values: "true"/"false" strings (matches file.exists pattern)
+- Block helpers: implement {{#and}}, {{#or}}, {{#gt}}, etc. with {{else}} support
+
+Created comprehensive working document: docs/dev/working/W-114-handlebars-logical-subexpressions.md
+- Detailed requirements
+- Complete implementation plan (5 phases)
+- Syntax examples for all three usage contexts
+- Design decisions and rationale
+- File changes needed
+- Testing strategy
+
+Status: Documentation complete, waiting for implementation approval
+
+
+============================================================
+2025-12-13 21:49
+
+User: I implemented the key feature of finding and resolving subexpressions: @handlebar.js (576-684) - there are likely bugs, but it is the proper algorithm using regex power I think - please verify and fix
+
+AI: Analyzing implementation of _parseAndEvaluateArguments function for subexpression parsing. Identified 7 critical bugs:
+
+1. Function not declared as async (must be async to use await)
+2. _helper never extracted/set in returned args
+3. _resolveSubexpression references wrong variables from outer scope
+4. Phase 6 incorrectly sets _target to helper name
+5. Encoded characters not restored in final values
+6. Regex doesn't handle encoded quotes properly
+7. Need to parse target vs key=value pairs correctly
+
+Fixed all issues in webapp/controller/handlebar.js:
+- Added async keyword to function declaration
+- Phase 1: Extract and set args._helper immediately
+- Phase 2-5: Work on parts[2] (arguments only, not including helper)
+- _resolveSubexpression: Fixed to use parameters (subExpr, ctx) instead of outer scope
+- Phase 6: Properly parse target as first non-key=value token
+- Phase 6: Parse key=value pairs with encoded quote detection
+- All values: Restore encoded characters before returning
+- Type coercion: true/false → boolean, numbers → Number, else → string
+- Updated JSDoc to show async function signature
+
+The algorithm approach is solid - using escape char encoding for literal strings, nesting level annotation for parentheses, and recursive resolution from innermost to outermost.
+
+Status: Fixed and ready for testing
+
+
+============================================================
+2025-12-13 21:55
+
+User: yes, first {{and}}, {{or}}, {{eq}}
+
+AI: Implemented three basic logical/comparison helpers in webapp/controller/handlebar.js:
+
+1. _handleAnd (lines 1193-1225):
+   - Accepts 1+ arguments (variadic)
+   - Returns 'true' if all arguments are truthy
+   - Uses JavaScript's truthy/falsy evaluation
+
+2. _handleOr (lines 1227-1259):
+   - Accepts 1+ arguments (variadic)
+   - Returns 'true' if any argument is truthy
+   - Uses JavaScript's truthy/falsy evaluation
+
+3. _handleEq (lines 1261-1299):
+   - Accepts exactly 2 arguments
+   - Returns 'true' if equal with type coercion (==)
+   - Example: "10" == 10 → true
+
+Integration changes:
+- Added 'and', 'or', 'eq' cases to switch statement in _evaluateRegularHandlebar
+- Fixed critical bug: Added await to _parseAndEvaluateArguments call (it's async)
+- Organized switch statement with comments (logical, file, variable helpers)
+
+Next step: Test these helpers work standalone and in subexpressions
+
+
+============================================================
+2025-12-13 23:28
+
+Testing and Debugging: {{and}}, {{or}}, {{eq}} Implementation
+
+Successfully implemented and tested three logical/comparison helpers with full subexpression support!
+
+Key Bugs Fixed:
+1. Missing `await` in _evaluateRegularHandlebar when calling _parseAndEvaluateArguments
+2. Argument parsing only captured first positional arg (_target), not all args
+3. Property resolution missing - unquoted tokens weren't evaluated from context
+4. String 'false' treated as truthy - needed normalization in logical helpers
+5. _cleanupExpressionText was restoring encoded chars too early in Phase 5
+
+Final Implementation:
+- _parseAndEvaluateArguments: Parses all positional args + key=value pairs, evaluates properties, resolves subexpressions
+- Returns: { _helper, _target, _args: [...], key1: val1, ... }
+- Phase 6 keeps quotes encoded until final parsing
+- Logical helpers normalize 'true'/'false' strings to booleans
+- Property access works: user.role, user.count, vars.name, etc.
+
+Test Results: **28/28 passing** ✓
+
+Test Coverage:
+- {{and}} standalone and variadic (1-N args)
+- {{or}} standalone and variadic (1-N args)
+- {{eq}} with type coercion (exactly 2 args)
+- Nested subexpressions: {{and (eq x y) z}}
+- Quoted parentheses preserved: "James (Jim)"
+- Mixed: subexpressions + quoted parentheses
+- Property resolution from context
+- Boolean/number/string type coercion
+
+Next steps: Implement remaining 6 helpers (not, gt, gte, lt, lte, ne)
+
+Status: Phase 1 complete - core parsing + 3 helpers working perfectly!
+
+
+============================================================
+2025-12-13 23:35
+
+User: yes - would it make sense to consolidate the comparison helpers into one function, passing along the operator?
+
+AI: Excellent idea! Refactored comparison helpers to use unified _handleComparison function.
+
+Benefits:
+- Single source of truth for comparison logic
+- Consistent behavior across all operators
+- Easier maintenance (fix bugs once)
+- Simple to add new comparison operators
+
+Implementation:
+- Created _handleComparison(parsedArgs, currentContext, operator)
+- Supports: 'eq', 'ne', 'gt', 'gte', 'lt', 'lte'
+- All comparison helpers now call unified function:
+  - _handleEq → _handleComparison(..., 'eq')
+  - _handleNe → _handleComparison(..., 'ne')
+  - _handleGt → _handleComparison(..., 'gt')
+  - _handleGte → _handleComparison(..., 'gte')
+  - _handleLt → _handleComparison(..., 'lt')
+  - _handleLte → _handleComparison(..., 'lte')
+
+Added to switch statement in _evaluateRegularHandlebar:
+- All 6 comparison helpers now available
+- Organized with comments: Logical helpers vs Comparison helpers
+
+Test Results: **28/28 passing** ✓ (all existing tests still work)
+
+Status: Refactoring complete - cleaner, more maintainable code!
+
+
+============================================================
+2025-12-13 23:40
+
+User: simpler version: @handlebar.js (547-555) - I removed the obsolete intermediary comparative functions - this can be simplified, but I do not know how to apply a dynamic operator
+
+AI: Simplified _handleComparison using function map instead of switch statement.
+
+Changes:
+- Removed all 6 individual wrapper functions (_handleEq, _handleNe, etc.) - no longer needed
+- Replaced switch statement with function map approach
+- Each operator maps to a comparison function: operators[operator](left, right)
+- Much cleaner: no break statements, easier to extend, more functional style
+
+Implementation:
+```javascript
+const operators = {
+    eq: (a, b) => a == b,
+    ne: (a, b) => a != b,
+    gt: (a, b) => a > b,
+    gte: (a, b) => a >= b,
+    lt: (a, b) => a < b,
+    lte: (a, b) => a <= b
+};
+const compareFn = operators[operator];
+const result = compareFn(left, right);
+```
+
+Switch statement in _evaluateRegularHandlebar:
+- Uses fall-through cases for all comparison helpers
+- Single line: return _handleComparison(parsedArgs, currentContext, helper);
+
+Test Results: **28/28 passing** ✓
+
+Status: Code simplified and optimized - much cleaner architecture!
+
+
+============================================================
+2025-12-13 23:50
+
+User: - implement {{not}} - add {{else}} to {{#unless}} - new block helpers: ready to implement? or need clarification? if ready: implement {{#and}}, {{#or}}, {{#not}}, {{#gt}}, {{#gte}}, {{#lt}}, {{#lte}}, {{#eq}}, {{#ne}}
+
+AI: Implemented all three features!
+
+1. {{not}} Helper:
+   - Added _handleNot() function
+   - Accepts exactly 1 argument
+   - Returns negation: 'true' if falsy, 'false' if truthy
+   - Normalizes 'true'/'false' strings from subexpressions
+   - Added to switch statement and REGULAR_HANDLEBARS
+
+2. {{#unless}} with {{else}}:
+   - Enhanced _handleBlockUnless() to support {{else}} blocks
+   - Uses same pattern as {{#if}}: splits on {{else}}, handles nested blocks
+   - Returns elseContent when condition is true, unlessContent when false
+
+3. Block Helpers (all 9):
+   - Created unified _handleLogicalBlockHelper() function
+   - Handles both logical (and, or, not) and comparison (eq, ne, gt, gte, lt, lte) block helpers
+   - All support {{else}} blocks
+   - Added to BLOCK_HANDLEBARS array (alphabetically sorted)
+   - Added cases to _evaluateBlockHandlebar switch statement
+
+Implementation Details:
+- Block helpers parse params using _parseAndEvaluateArguments
+- Evaluate using existing helper functions (_handleAnd, _handleOr, _handleNot, _handleComparison)
+- Check if result === 'true' to determine condition
+- Handle {{else}} with nested block escaping (same pattern as {{#if}})
+
+Test Results: **28/28 passing** ✓ (existing tests still work)
+
+Status: All features implemented and ready for use!
+
+
+============================================================
+2025-12-13 23:55
+
+User: should we add unit tests for the new functions?
+
+AI: Yes! Added comprehensive unit tests for all new features.
+
+New Test Coverage:
+1. {{not}} Helper (4 tests):
+   - Falsy value returns 'true'
+   - Truthy value returns 'false'
+   - Handles subexpression results
+   - Handles string 'false'/'true' from subexpressions
+
+2. {{#unless}} with {{else}} (3 tests):
+   - Renders unless content when condition is falsy
+   - Renders else content when condition is truthy
+   - Handles without else block
+
+3. Block Helpers (20 tests):
+   - {{#and}} - truthy/falsy conditions with {{else}}
+   - {{#or}} - truthy/falsy conditions with {{else}}
+   - {{#not}} - truthy/falsy conditions with {{else}}
+   - {{#eq}} - equal/not equal with {{else}}
+   - {{#ne}} - not equal/equal with {{else}}
+   - {{#gt}} - greater/not greater with {{else}}
+   - {{#gte}} - greater-or-equal/less with {{else}}
+   - {{#lt}} - less/not less with {{else}}
+   - {{#lte}} - less-or-equal/more with {{else}}
+   - Nested block helpers
+   - Block helpers with subexpressions
+
+Test Results: **55/55 passing** ✓ (28 original + 27 new tests)
+
+Coverage:
+- All 9 helpers tested (and, or, not, eq, ne, gt, gte, lt, lte)
+- Standalone helpers ✓
+- Block helpers ✓
+- {{else}} support ✓
+- Subexpressions ✓
+- Nested blocks ✓
+
+Status: Comprehensive test coverage complete!
+
+
+============================================================
+2025-12-14 00:00
+
+User: nice! - anything left to implement?
+
+AI: Found one critical missing piece: subexpressions in {{#if}} and {{#unless}}!
+
+Implemented:
+1. Enhanced _evaluateCondition() to detect and evaluate subexpressions
+   - Detects subexpressions: (helper arg1 arg2 ...)
+   - Parses using _parseAndEvaluateArguments
+   - Evaluates using appropriate helper functions
+   - Returns boolean result
+
+2. Made _handleBlockIf() and _handleBlockUnless() async
+   - Required to await _evaluateCondition() for subexpressions
+   - Updated switch statement to await these calls
+
+3. Added comprehensive tests (8 new tests):
+   - {{#if}} with {{and}}, {{or}}, {{not}}, {{eq}}, {{gt}} subexpressions
+   - {{#if}} with nested subexpressions
+   - {{#unless}} with subexpressions
+   - All edge cases covered
+
+Test Results: **63/63 passing** ✓ (55 previous + 8 new tests)
+
+Final Status - ALL DELIVERABLES COMPLETE:
+✅ Subexpression parser (_parseAndEvaluateArguments)
+✅ Subexpression evaluator (integrated)
+✅ All 9 helper functions (and, or, not, eq, ne, gt, gte, lt, lte)
+✅ _evaluateCondition() enhanced for subexpressions
+✅ Block helpers (all 9 with {{else}} support)
+✅ {{#unless}} with {{else}}
+✅ Error handling (unbalanced parentheses, invalid arity)
+✅ Comprehensive test coverage (63 tests)
+
+W-114 is now 100% complete and ready for production!
+
+
+============================================================
+2025-12-00 00:05
+
+User: this looks overly complex: @handlebar.js (1881-1933) - what is `if (trimmed.startsWith('!'))`? - I don't think we have that documented anywhere - why does #if and #unless look different from #and #or etc in terms of logical and comparison subexpressions?
+
+AI: Great catch! Simplified _evaluateCondition() for consistency.
+
+Issues Found:
+1. `!` negation operator - legacy code, not documented in W-114, removed
+2. Inconsistent approach - manually checking each helper type instead of using unified evaluation
+3. Different pattern than block helpers - should use same approach
+
+Simplified Solution:
+- Removed `!` negation (not part of W-114 spec)
+- Now uses same unified approach as block helpers: just calls _evaluateRegularHandlebar()
+- Much simpler: subexpressions → evaluate as regular handlebar → check if result === 'true'
+- Consistent with block helpers which also use _evaluateRegularHandlebar internally
+
+Before: 50+ lines with manual helper type checking
+After: ~15 lines using unified evaluation
+
+Code is now:
+- Consistent across all block helpers
+- Easier to maintain
+- Same evaluation path for subexpressions everywhere
+
+Test Results: **63/63 passing** ✓
+
+Status: Code simplified and consistent!
+
+
+============================================================
+2025-12-14 00:10
+
+User: update docs/handlebars.md , webapp/view/jpulse-examples/handlebars.shtml
+
+AI: Updated both documentation files with comprehensive coverage of new logical/comparison helpers.
+
+docs/handlebars.md:
+- Updated {{#unless}} section to note {{else}} support (v1.3.14+)
+- Added comprehensive "Logical and Comparison Helpers" section with:
+  - Standalone helpers examples
+  - Subexpressions in conditions examples
+  - Block helpers with {{else}} examples
+  - Complete helper reference table
+  - Type coercion documentation
+- Updated "Nested Conditionals" section with subexpression examples
+- Updated "Best Practices" section with examples using new helpers
+
+webapp/view/jpulse-examples/handlebars.shtml:
+- Added new "Logical and Comparison Helpers" example card with:
+  - Standalone helpers demo
+  - Subexpressions in {{#if}} demo
+  - Block helpers with {{else}} demo
+  - Nested subexpressions demo
+  - Complete source code examples
+- Added tab registration for new example section
+- Added helper reference table to "Available Context Variables" section
+
+Documentation now fully covers:
+- All 9 helpers (and, or, not, eq, ne, gt, gte, lt, lte)
+- Three usage contexts (standalone, subexpressions, block helpers)
+- Type coercion behavior
+- Quoted strings with parentheses
+- Nested subexpressions
+
+Status: Documentation complete!
+
+
+============================================================
+2025-12-14 00:15
+
+User: webapp/view/jpulse-examples/handlebars.shtml - in Conditional Rendering add an example with (and ...) subexpression
+
+AI: Added subexpression examples to Conditional Rendering section.
+
+Changes:
+- Added new "Complex Conditions with Subexpressions" example box
+- Shows {{#if (and user.isAuthenticated user.isAdmin)}}
+- Shows {{#if (and user.isAuthenticated (gt user.count 3))}} with nested subexpression
+- Updated source code panel with both examples
+- Increased panel height from 16rem to 22rem to accommodate new content
+
+Examples now demonstrate:
+- Basic conditionals (existing)
+- Complex conditions with subexpressions (new)
+- Nested subexpressions in conditions (new)
+
+Status: Conditional Rendering section enhanced with subexpression examples!
+
+
+============================================================
+2025-12-14 00:20
+
+User: stuck again? @docs/handlebars.md - fix the FIXME
+
+AI: Fixed FIXME sections in handlebars.md documentation.
+
+Changes:
+- Replaced "FIXME summary" with clear descriptions:
+  - Regular handlebars: Single-line expressions that output values or perform operations
+  - Block handlebars: Multi-line expressions with opening and closing tags that control flow
+- Created comprehensive "Summary of Regular Handlebars" table with all 21 regular helpers in alphabetical order:
+  - and, app, appCluster, appConfig, components, config, eq, file.*, gt, gte, i18n, let, lt, lte, ne, not, or, url, user, vars
+  - Each entry includes example syntax and description
+- Created comprehensive "Summary of Block Handlebars" table with all 15 block helpers in alphabetical order:
+  - and, component, each, eq, gt, gte, if, let, lt, lte, ne, not, or, unless, with
+  - Each entry includes example syntax with {{else}} where applicable and description
+- Updated source code example in handlebars.shtml to match user's changes:
+  - Added {{else}} blocks to both subexpression examples
+  - Changed user.count to user.roles.length in second example
+  - Updated all text to match rendered examples
+
+Status: Documentation summary tables complete with all helpers!
+
+
+============================================================
+2025-12-14 00:40
+
+User: release prep: - assume release: W-114, v1.3.15 - update deliverables in W-114 work-items to document work done (don't change status, don't make any other changes to this file) - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script) - update commit-message.txt, following the same format (don't commit) - update cursor_log.txt
+
+AI: Completed release prep for W-114, v1.3.15.
+
+Changes:
+- Updated docs/dev/work-items.md deliverables section for W-114:
+  - Documented actual implementation: _parseAndEvaluateArguments() with multi-phase parsing
+  - Documented 3 logical helpers (_handleAnd, _handleOr, _handleNot)
+  - Documented unified _handleComparison() for all 6 comparison operators
+  - Documented _handleLogicalBlockHelper() for all 9 block helpers
+  - Documented enhanced _evaluateCondition() for subexpressions
+  - Documented {{else}} support for {{#unless}}
+  - Documented comprehensive test coverage (63 unit tests)
+  - Documented documentation updates (handlebars.md, examples page)
+- Updated README.md latest release highlights:
+  - Added v1.3.15 entry with comprehensive feature summary
+  - Moved v1.3.14 to second position
+- Updated docs/README.md latest release highlights:
+  - Added v1.3.15 entry with comprehensive feature summary
+  - Moved v1.3.14 to second position
+- Updated docs/CHANGELOG.md:
+  - Changed header to v1.3.15
+  - Added complete v1.3.15 entry with:
+    - Objective and key features
+    - All 9 regular helpers and 9 block helpers
+    - Subexpression support details
+    - Enhanced argument parsing algorithm
+    - Code changes summary
+    - Test coverage details
+    - Files modified list
+    - Documentation updates
+  - Moved v1.3.14 entry below
+- Updated commit-message.txt:
+  - Complete commit message following W-113 format
+  - Includes objective, key features, code changes, files modified, breaking changes, documentation
+  - Ready for git commit
+
+Status: Release prep complete! Ready for version bump and commit.
+
+
+============================================================

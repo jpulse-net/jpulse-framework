@@ -4,13 +4,13 @@
  * @tagline         Comprehensive Handlebars templating examples
  * @description     Interactive examples and source code for Handlebars templating in jPulse
  * @file            webapp/view/jpulse-examples/handlebars.shtml
- * @version         1.3.15
- * @release         2025-12-14
+ * @version         1.3.16
+ * @release         2025-12-16
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
 -->
 <html lang="en">
 <head>
@@ -108,7 +108,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                         <li><strong>Version:</strong> {{app.site.version}}</li>
                         <li><strong>Current User:</strong> {{#if user.isAuthenticated}}{{user.firstName}} {{user.lastName}}{{else}}Guest{{/if}}</li>
                         <li><strong>Current URL:</strong> {{url.domain}}{{url.pathname}}</li>
-                        <li><strong>Admin Email:</strong> {{config.email.adminEmail}}</li>
+                        <li><strong>Admin Email:</strong> {{siteConfig.email.adminEmail}}</li>
                     </ul>
                 </div>
             </div>
@@ -119,7 +119,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
     &lt;li&gt;&lt;strong&gt;Version:&lt;/strong&gt; &#123;&#123;app.site.version&#125;&#125;&lt;/li&gt;
     &lt;li&gt;&lt;strong&gt;Current User:&lt;/strong&gt; &#123;&#123;#if user.isAuthenticated&#125;&#125;&#123;&#123;user.firstName&#125;&#125; &#123;&#123;user.lastName&#125;&#125;&#123;&#123;else&#125;&#125;Guest&#123;&#123;/if&#125;&#125;&lt;/li&gt;
     &lt;li&gt;&lt;strong&gt;Current URL:&lt;/strong&gt; &#123;&#123;url.domain&#125;&#125;&#123;&#123;url.pathname&#125;&#125;&lt;/li&gt;
-    &lt;li&gt;&lt;strong&gt;Admin Email:&lt;/strong&gt; &#123;&#123;config.email.adminEmail&#125;&#125;&lt;/li&gt;
+    &lt;li&gt;&lt;strong&gt;Admin Email:&lt;/strong&gt; &#123;&#123;siteConfig.email.adminEmail&#125;&#125;&lt;/li&gt;
 &lt;/ul&gt;
                 </div>
             </div>
@@ -226,7 +226,6 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     <ul>
                         <li><code>jpulse-header.tmpl</code> - Contains CSS, meta tags, and navigation</li>
                         <li><code>jpulse-footer.tmpl</code> - Contains JavaScript libraries and closing tags</li>
-                        <li><code>.tmpl</code> - Contains the navigation tabs for this page</li>
                     </ul>
                     <p>File timestamp: Used for browser cache busting</p>
                     <ul>
@@ -239,9 +238,6 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                 <div class="jp-source-code" data-lang="html">
 &lt;!-- Server side include in the &lt;head&gt; section --&gt;
 &#123;&#123;file.include "jpulse-header.tmpl"&#125;&#125;
-
-&lt;!-- Server side include in the &lt;body&gt; section --&gt;
-&#123;&#123;file.include ".tmpl" showExamplesNav=true mainNavActiveTab="jp-tab-examples" examplesNavActiveTab="jp-tab-handlebars"&#125;&#125;
 
 &lt;!-- Server side include at the end of &lt;body&gt; --&gt;
 &#123;&#123;file.include "jpulse-footer.tmpl"&#125;&#125;
@@ -270,7 +266,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                         {{#if user.isAdmin}}
                             <div class="jp-info-box">
                                 <p>Admin Panel Access:</p>
-                                {{#if config.features.adminPanel}}
+                                {{#if siteConfig.features.adminPanel}}
                                     <p>✅ Admin panel is enabled</p>
                                 {{else}}
                                     <p>❌ Admin panel is disabled</p>
@@ -292,7 +288,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
     &#123;&#123;#if user.isAdmin&#125;&#125;
         &lt;div class="jp-info-box"&gt;
             &lt;p&gt;Admin Panel Access:&lt;/p&gt;
-            &#123;&#123;#if config.features.adminPanel&#125;&#125;
+            &#123;&#123;#if siteConfig.features.adminPanel&#125;&#125;
                 &lt;p&gt;✅ Admin panel is enabled&lt;/p&gt;
             &#123;&#123;else&#125;&#125;
                 &lt;p&gt;❌ Admin panel is disabled&lt;/p&gt;
@@ -401,9 +397,9 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
 
                 <div class="jp-warning-box">
                     <h4>Nested Properties</h4>
-                    {{let config.theme="dark" config.timeout=5000 api.v2.endpoint="/api/v2"}}
-                    <p><strong>Theme:</strong> {{vars.config.theme}}</p>
-                    <p><strong>Timeout:</strong> {{vars.config.timeout}}ms</p>
+                    {{let siteConfig.theme="dark" siteConfig.timeout=5000 api.v2.endpoint="/api/v2"}}
+                    <p><strong>Theme:</strong> {{vars.siteConfig.theme}}</p>
+                    <p><strong>Timeout:</strong> {{vars.siteConfig.timeout}}ms</p>
                     <p><strong>API Endpoint:</strong> {{vars.api.v2.endpoint}}</p>
                 </div>
 
@@ -428,9 +424,9 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
 &lt;p&gt;&lt;strong&gt;Show Footer:&lt;/strong&gt; &#123;&#123;vars.showFooter&#125;&#125;&lt;/p&gt;
 
 &lt;!-- Nested Properties --&gt;
-&#123;&#123;let config.theme="dark" config.timeout=5000 api.v2.endpoint="/api/v2"&#125;&#125;
-&lt;p&gt;&lt;strong&gt;Theme:&lt;/strong&gt; &#123;&#123;vars.config.theme&#125;&#125;&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Timeout:&lt;/strong&gt; &#123;&#123;vars.config.timeout&#125;&#125;ms&lt;/p&gt;
+&#123;&#123;let siteConfig.theme="dark" siteConfig.timeout=5000 api.v2.endpoint="/api/v2"&#125;&#125;
+&lt;p&gt;&lt;strong&gt;Theme:&lt;/strong&gt; &#123;&#123;vars.siteConfig.theme&#125;&#125;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Timeout:&lt;/strong&gt; &#123;&#123;vars.siteConfig.timeout&#125;&#125;ms&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;API Endpoint:&lt;/strong&gt; &#123;&#123;vars.api.v2.endpoint&#125;&#125;&lt;/p&gt;
 
 &lt;!-- Conditional Variable Assignment --&gt;
@@ -803,13 +799,13 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                         </tr>
                         <tr>
                             <td>Admin email</td>
-                            <td><code>&#123;&#123;config.email.adminEmail&#125;&#125;</code></td>
-                            <td><code>{{config.email.adminEmail}}</code></td>
+                            <td><code>&#123;&#123;siteConfig.email.adminEmail&#125;&#125;</code></td>
+                            <td><code>{{siteConfig.email.adminEmail}}</code></td>
                         </tr>
                         <tr>
                             <td>Feature flags</td>
-                            <td><code>&#123;&#123;config.features.*&#125;&#125;</code></td>
-                            <td><code>{{config.features.*}}</code></td>
+                            <td><code>&#123;&#123;siteConfig.features.*&#125;&#125;</code></td>
+                            <td><code>{{siteConfig.features.*}}</code></td>
                         </tr>
                     </table>
                 </div>
@@ -1024,7 +1020,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'interactive-example-tab', label: 'Interactive Form', panelId: 'interactive-example-panel' },
                     { id: 'interactive-source-tab', label: 'Source Code', panelId: 'interactive-source-panel' }
                 ],
-                panelHeight: '27rem',
+                panelHeight: '29rem',
                 slideAnimation: true
             }, 'interactive-example-tab');
 
@@ -1034,7 +1030,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'variables-example-tab', label: 'Example', panelId: 'variables-example-panel' },
                     { id: 'variables-source-tab', label: 'Source Code', panelId: 'variables-source-panel' }
                 ],
-                panelHeight: '17.5rem',
+                panelHeight: '18rem',
                 slideAnimation: true
             }, 'variables-example-tab');
 
@@ -1044,7 +1040,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'conditionals-example-tab', label: 'Example', panelId: 'conditionals-example-panel' },
                     { id: 'conditionals-source-tab', label: 'Source Code', panelId: 'conditionals-source-panel' }
                 ],
-                panelHeight: '22rem',
+                panelHeight: '25rem',
                 slideAnimation: true
             }, 'conditionals-example-tab');
 
@@ -1064,7 +1060,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'includes-example', label: 'Example', panelId: 'includes-example-panel' },
                     { id: 'includes-source', label: 'Source Code', panelId: 'includes-source-panel' }
                 ],
-                panelHeight: '18.5rem',
+                panelHeight: '16rem',
                 slideAnimation: true
             }, 'includes-example');
 
@@ -1074,7 +1070,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'nested-example', label: 'Example', panelId: 'nested-example-panel' },
                     { id: 'nested-source', label: 'Source Code', panelId: 'nested-source-panel' }
                 ],
-                panelHeight: '22rem',
+                panelHeight: '24rem',
                 slideAnimation: true
             }, 'nested-example');
 
@@ -1084,6 +1080,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'loops-example', label: 'Example', panelId: 'loops-example-panel' },
                     { id: 'loops-source', label: 'Source Code', panelId: 'loops-source-panel' }
                 ],
+                panelHeight: '32rem',
                 slideAnimation: true
             }, 'loops-example');
 
@@ -1093,6 +1090,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'let-example', label: 'Example', panelId: 'let-example-panel' },
                     { id: 'let-source', label: 'Source Code', panelId: 'let-source-panel' }
                 ],
+                panelHeight: '32rem',
                 slideAnimation: true
             }, 'let-example');
 
@@ -1102,17 +1100,9 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'with-example', label: 'Example', panelId: 'with-example-panel' },
                     { id: 'with-source', label: 'Source Code', panelId: 'with-source-panel' }
                 ],
+                panelHeight: '29rem',
                 slideAnimation: true
             }, 'with-example');
-
-            // {{#let}} block-scoped variables example tabs
-            jPulse.UI.tabs.register('let-block-tabs', {
-                tabs: [
-                    { id: 'let-block-example', label: 'Example', panelId: 'let-block-example-panel' },
-                    { id: 'let-block-source', label: 'Source Code', panelId: 'let-block-source-panel' }
-                ],
-                slideAnimation: true
-            }, 'let-block-example');
 
             // Logical and comparison helpers example tabs
             jPulse.UI.tabs.register('logical-tabs', {
@@ -1120,8 +1110,19 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     { id: 'logical-example', label: 'Example', panelId: 'logical-example-panel' },
                     { id: 'logical-source', label: 'Source Code', panelId: 'logical-source-panel' }
                 ],
+                panelHeight: '32rem',
                 slideAnimation: true
             }, 'logical-example');
+
+            // {{#let}} block-scoped variables example tabs
+            jPulse.UI.tabs.register('let-block-tabs', {
+                tabs: [
+                    { id: 'let-block-example', label: 'Example', panelId: 'let-block-example-panel' },
+                    { id: 'let-block-source', label: 'Source Code', panelId: 'let-block-source-panel' }
+                ],
+                panelHeight: '32rem',
+                slideAnimation: true
+            }, 'let-block-example');
 
             document.getElementById('handlebarButton').addEventListener('click', async () => {
                 const $resultElem = document.getElementById('handlebarResult');

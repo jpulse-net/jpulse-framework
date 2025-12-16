@@ -3,13 +3,13 @@
  * @tagline         Unit tests for W-097 Phase 1: Reusable handlebars components
  * @description     Tests for component definition and usage functionality
  * @file            webapp/tests/unit/controller/handlebar-components.test.js
- * @version         1.3.15
- * @release         2025-12-14
+ * @version         1.3.16
+ * @release         2025-12-16
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           80%, Cursor 2.2, Claude Sonnet 4.5
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
@@ -256,14 +256,6 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
     });
 
     describe('Inline Parameter (_inline)', () => {
-        test('should parse _inline parameter correctly', () => {
-            const args = HandlebarController._parseHelperArgs('_inline="true" size="24"');
-
-            // Should parse _inline as string "true" (quoted)
-            expect(args._inline).toBe('true');
-            expect(args.size).toBe('24');
-        });
-
         test('should remove newlines with _inline="true"', async () => {
             const template = `{{#component "inline-svg" size="24"}}<svg width="{{size}}">
 <rect x="0"/>
@@ -285,23 +277,6 @@ describe('W-097 Phase 1: Reusable Handlebars Components', () => {
             expect(result).toContain('_inline='); // undefined becomes empty
             expect(result).not.toContain('_inline=should-not-appear');
             expect(result).not.toContain('_inline=true');
-        });
-    });
-
-    describe('Parameter Parsing', () => {
-        test('should parse component parameters correctly', () => {
-            const args = HandlebarController._parseHelperArgs('"test-name" param1="value1" param2="value2"');
-
-            expect(args._target).toBe('test-name');
-            expect(args.param1).toBe('value1');
-            expect(args.param2).toBe('value2');
-        });
-
-        test('should handle parameters without target', () => {
-            const args = HandlebarController._parseHelperArgs('param1="value1" param2="value2"');
-
-            expect(args.param1).toBe('value1');
-            expect(args.param2).toBe('value2');
         });
     });
 });

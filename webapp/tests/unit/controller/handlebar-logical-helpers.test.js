@@ -3,13 +3,13 @@
  * @tagline         Unit tests for W-114: {{and}}, {{or}}, {{eq}} logical helpers
  * @description     Tests for logical and comparison helpers with subexpression support
  * @file            webapp/tests/unit/controller/handlebar-logical-helpers.test.js
- * @version         1.3.15
- * @release         2025-12-14
+ * @version         1.3.16
+ * @release         2025-12-16
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.1, Claude Sonnet 4.5
+ * @genai           80%, Cursor 2.2, Claude Sonnet 4.5
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
@@ -517,6 +517,74 @@ describe('W-114: Handlebars Logical Helpers - {{and}}, {{or}}, {{eq}}', () => {
             const context = { user: mockReq.session.user };
             const result = await HandlebarController.expandHandlebars(mockReq, template, context);
             expect(result.trim()).toBe('Not premium');
+        });
+    });
+
+    describe('Escaped Quotes in {{let}}', () => {
+        test('should handle escaped double quotes in double-quoted strings', async () => {
+            const template = '{{let name="escaped double quote: \\"stuff\\""}}{{vars.name}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template);
+            expect(result).toBe('escaped double quote: "stuff"');
+        });
+
+        test('should handle escaped single quotes in single-quoted strings', async () => {
+            const template = "{{let name='escaped single quote: \\'stuff\\''}}{{vars.name}}";
+            const result = await HandlebarController.expandHandlebars(mockReq, template);
+            expect(result).toBe("escaped single quote: 'stuff'");
+        });
+
+        test('should handle single quotes in double-quoted strings', async () => {
+            const template = "{{let name=\"single quote in double: 'stuff'\"}}{{vars.name}}";
+            const result = await HandlebarController.expandHandlebars(mockReq, template);
+            expect(result).toBe("single quote in double: 'stuff'");
+        });
+
+        test('should handle double quotes in single-quoted strings', async () => {
+            const template = '{{let name=\'double quote in single: "stuff"\'}}{{vars.name}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template);
+            expect(result).toBe('double quote in single: "stuff"');
+        });
+
+        test('should handle multiple escaped quotes', async () => {
+            const template = '{{let name="multiple: \\"one\\" and \\"two\\""}}{{vars.name}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template);
+            expect(result).toBe('multiple: "one" and "two"');
+        });
+
+        test('should handle escaped quotes with parentheses', async () => {
+            const template = '{{let name="James (\\"Jim\\")"}}{{vars.name}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template);
+            expect(result).toBe('James ("Jim")');
+        });
+
+        test('should escape unescaped double quotes when normalizing from single quotes', async () => {
+            const template = '{{let name=\'bar "quoted" text\'}}{{vars.name}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template);
+            expect(result).toBe('bar "quoted" text');
+        });
+
+        test('should preserve escaped double quotes when normalizing from single quotes', async () => {
+            const template = '{{let name=\'bar \\"quoted\\" text\'}}{{vars.name}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template);
+            expect(result).toBe('bar "quoted" text');
+        });
+
+        test('should unescape escaped single quotes in double-quoted strings', async () => {
+            const template = '{{let name="it\\\'s working"}}{{vars.name}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template);
+            expect(result).toBe("it's working");
+        });
+
+        test('should handle mixed escaped and unescaped quotes in single quotes', async () => {
+            const template = '{{let name=\'He said "hello" and \\"goodbye\\"\'}}{{vars.name}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template);
+            expect(result).toBe('He said "hello" and "goodbye"');
+        });
+
+        test('should handle escaped single quotes in single-quoted strings (preserved)', async () => {
+            const template = "{{let name='it\\'s a test'}}{{vars.name}}";
+            const result = await HandlebarController.expandHandlebars(mockReq, template);
+            expect(result).toBe("it's a test");
         });
     });
 });

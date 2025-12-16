@@ -1,6 +1,89 @@
-# jPulse Docs / Version History v1.3.15
+# jPulse Docs / Version History v1.3.16
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.16, W-115, 2025-12-15
+
+**Commit:** `W-115, v1.3.16: handlebars: config context enhancements & security, fixes for let and subexpressions`
+
+**REFACTORING RELEASE**: Improved handlebars context clarity and security with config context renaming and sensitive field filtering.
+
+**Objective**: Make handlebars context more intuitive by renaming `config` to `siteConfig`, and enhance security by filtering sensitive configuration fields based on authentication status.
+
+**Key Features**:
+
+**Context Renaming**:
+- Renamed `config` context property to `siteConfig` for better distinction
+- Two configuration structures now clearly separated:
+  - `siteConfig`: system config from ConfigModel (database)
+  - `appConfig`: webapp/app.conf configuration
+- Breaking change: `{{config.*}}` → `{{siteConfig.*}}` (no backward compatibility)
+
+**Security Enhancement - Sensitive Field Filtering**:
+- Added `_meta.contextFilter` to ConfigModel schema with `withoutAuth` and `withAuth` arrays
+- Filters sensitive fields like SMTP credentials based on authentication status
+- Supports wildcard patterns: `data.email.smtp*`, `data.email.*pass`
+- Enhanced `_removeWildcardPath()` to support property name patterns:
+  - Prefix patterns: `smtp*` matches `smtpServer`, `smtpPort`, `smtpUser`, `smtpPass`
+  - Suffix patterns: `*pass` matches any property ending with `pass`
+- Unauthenticated users: all SMTP fields filtered
+- Authenticated users: password fields still filtered (security best practice)
+
+**New Context Features**:
+- Added `user.hasRole.*` context object for role testing
+- Example: `{{#if user.hasRole.root}}`, `{{#if user.hasRole.admin}}`
+- Implemented as object with role keys set to `true` for user's roles
+
+**API Enhancements**:
+- Added `includeSchema` query parameter to config controller (like user controller)
+- Returns schema and contextFilter metadata when requested: `GET /api/1/config/:id?includeSchema=1`
+
+**Code Changes**:
+
+**webapp/controller/handlebar.js**:
+- Renamed `config` context property to `siteConfig` in `_buildInternalContext()`
+- Updated `_filterContext()` to filter `siteConfig` using schema `_meta.contextFilter`
+- Enhanced `_removeWildcardPath()` to support property name patterns (`smtp*`, `*pass`)
+- Updated `REGULAR_HANDLEBARS` array with descriptive comments
+- Updated `BLOCK_HANDLEBARS` array with descriptive comments
+
+**webapp/model/config.js**:
+- Added `_meta.contextFilter` to schema with `withoutAuth` and `withAuth` arrays
+- Defined sensitive field patterns: `data.email.smtp*`, `data.email.*pass`, `data.email.smtpPass`
+
+**webapp/controller/config.js**:
+- Added `includeSchema` query parameter support (matching user controller pattern)
+- Returns schema and contextFilter metadata when requested
+
+**webapp/tests/unit/controller/handlebar-context-filter.test.js**:
+- New test file with 4 unit tests:
+  - Filter `smtp*` fields for unauthenticated users
+  - Filter `*pass` fields for unauthenticated users
+  - Filter `smtpPass` for authenticated users
+  - Preserve non-sensitive fields
+
+**webapp/tests/unit/controller/handlebar-variables.test.js**:
+- Fixed test to use `siteConfig` instead of `config`
+
+**Files Modified**: 7
+- `webapp/controller/handlebar.js`: Context renaming, filtering logic, wildcard pattern enhancement
+- `webapp/model/config.js`: Schema metadata for context filtering
+- `webapp/controller/config.js`: Schema API support
+- `docs/handlebars.md`: Updated all examples (9 occurrences)
+- `webapp/view/jpulse-examples/handlebars.shtml`: Updated all examples (13 occurrences)
+- `webapp/tests/unit/controller/handlebar-variables.test.js`: Test fix
+- `webapp/tests/unit/controller/handlebar-context-filter.test.js`: New test file
+
+**Breaking Changes**:
+- `{{config.*}}` → `{{siteConfig.*}}` (all templates must be updated)
+- No backward compatibility provided
+
+**Documentation**:
+- Updated `docs/dev/work-items.md` with W-115 deliverables
+- Updated `docs/handlebars.md` with `siteConfig` examples and `user.hasRole.*` documentation
+- Updated `webapp/view/jpulse-examples/handlebars.shtml` with `siteConfig` examples
+- Updated `README.md` and `docs/README.md` latest release highlights
 
 ________________________________________________
 ## v1.3.15, W-114, 2025-12-14
@@ -1019,7 +1102,7 @@ ________________________________________________
   * Flexible sorting: component-order (default), plugin-order, filename, filesystem
   * Memory-efficient: only loads filtered components
 - **Components as context variables**: `{{components.namespace.name}}`
-  * Accessed like `{{user.*}}` or `{{config.*}}`
+  * Accessed like `{{user.*}}` or `{{siteConfig.*}}`
   * Follows "don't make me think" philosophy
   * Available in `{{#each components.namespace}}` loops
 - **Enhanced component calls**: `{{components.jpIcons.configSvg size="64"}}`

@@ -3,13 +3,13 @@
  * @tagline         Config Controller for jPulse Framework WebApp
  * @description     This is the config controller for the jPulse Framework WebApp
  * @file            webapp/controller/config.js
- * @version         1.3.15
- * @release         2025-12-14
+ * @version         1.3.16
+ * @release         2025-12-16
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
  */
 
 import ConfigModel from '../model/config.js';
@@ -93,15 +93,32 @@ class ConfigController {
                 return global.CommonUtils.sendError(req, res, 404, message, 'CONFIG_NOT_FOUND');
             }
 
+            // W-115: Include schema metadata if requested
+            const includeSchema = req.query.includeSchema === '1' || req.query.includeSchema === 'true';
+            let schema = null;
+            if (includeSchema) {
+                schema = {
+                    schema: ConfigModel.schema,
+                    contextFilter: ConfigModel.schema._meta?.contextFilter || null
+                };
+            }
+
             const elapsed = Date.now() - startTime;
-            LogController.logInfo(req, 'config.get', `success: config retrieved for id: ${id}, completed in ${elapsed}ms`);
+            LogController.logInfo(req, 'config.get', `success: config retrieved for id: ${id}, completed in ${elapsed}ms${includeSchema ? ' (with schema)' : ''}`);
             const message = global.i18n.translate(req, 'controller.config.configGetDone', { id });
-            res.json({
+            const response = {
                 success: true,
                 data: config,
                 message: message,
                 elapsed
-            });
+            };
+
+            // W-115: Add schema to response if requested
+            if (schema) {
+                response.schema = schema;
+            }
+
+            res.json(response);
 
         } catch (error) {
             LogController.logError(req, 'config.get', `error: ${error.message}`);

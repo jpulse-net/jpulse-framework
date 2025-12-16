@@ -1,4 +1,4 @@
-# jPulse Docs / Template Reference v1.3.15
+# jPulse Docs / Template Reference v1.3.16
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -132,9 +132,9 @@ Templates have access to a rich context object with application data, user infor
 
 {{!-- Site configuration --}}
 <footer>
-    <p>Contact: <a href="mailto:{{config.email.adminEmail}}">{{config.email.adminName}}</a></p>
-    {{#if config.messages.broadcast}}
-        <div class="broadcast-message">{{config.messages.broadcast}}</div>
+    <p>Contact: <a href="mailto:{{siteConfig.email.adminEmail}}">{{siteConfig.email.adminName}}</a></p>
+    {{#if siteConfig.messages.broadcast}}
+        <div class="broadcast-message">{{siteConfig.messages.broadcast}}</div>
     {{/if}}
 </footer>
 ```
@@ -284,7 +284,7 @@ The i18n system supports handlebars-style variable substitution within translati
 {{user.firstName}}, {{user.lastName}}, {{user.email}}
 
 {{!-- Configuration context --}}
-{{config.siteName}}, {{config.adminEmail}}
+{{siteConfig.siteName}}, {{siteConfig.adminEmail}}
 
 {{!-- URL context --}}
 {{url.domain}}, {{url.pathname}}
@@ -915,7 +915,7 @@ jPulse.dom.ready(() => {
                 <div class="jp-footer-info">
                     <p>{{app.site.copyright}} v{{app.site.version}}</p>
                     {{#if config.email.adminEmail}}
-                        <p>Contact: <a href="mailto:{{config.email.adminEmail}}">{{config.email.adminName}}</a></p>
+                        <p>Contact: <a href="mailto:{{siteConfig.email.adminEmail}}">{{siteConfig.email.adminName}}</a></p>
                     {{/if}}
                 </div>
 

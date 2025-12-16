@@ -3,13 +3,13 @@
  * @tagline         Unit tests for W-103: {{let}} and {{#with}} for custom variables
  * @description     Tests for variable assignment and context switching functionality
  * @file            webapp/tests/unit/controller/handlebar-variables.test.js
- * @version         1.3.15
- * @release         2025-12-14
+ * @version         1.3.16
+ * @release         2025-12-16
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           80%, Cursor 2.2, Claude Sonnet 4.5
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
@@ -438,7 +438,7 @@ describe('W-103: Handlebars Variables - {{let}} and {{#with}}', () => {
             const template = `
                 {{let config="myConfig"}}
                 {{let user="myUser"}}
-                System config exists: {{#if config}}yes{{/if}}
+                System config exists: {{#if siteConfig}}yes{{/if}}
                 System user: {{user.firstName}}
                 Custom config: {{vars.config}}
                 Custom user: {{vars.user}}

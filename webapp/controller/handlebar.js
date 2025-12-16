@@ -3,13 +3,13 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.3.15
- * @release         2025-12-14
+ * @version         1.3.16
+ * @release         2025-12-16
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
  */
 
 import path from 'path';
@@ -31,46 +31,46 @@ class HandlebarController {
     // Regular handlebars: {{file.*}}, {{let}}, and internal top level context variables
     // ATTENTION: Keep this in sync with case in _buildInternalContext()
     static REGULAR_HANDLEBARS = [
-        'and',
-        'app',
-        'appCluster',
-        'appConfig',
-        'components',
-        'config',
-        'eq',
-        'file',     // {{file.*}} helper, not a context variable
-        'gt',
-        'gte',
-        'i18n',
-        'let',
-        'lt',
-        'lte',
-        'ne',
-        'not',
-        'or',
-        'url',
-        'user',
-        'vars'      // Populated by {{let}}
+        'and',          // logical AND helper
+        'app',          // app.jPulse.* and app.site.* context variables
+        'appCluster',   // appCluster.* context variable, Redis cluster availability
+        'appConfig',    // appConfig.* context variable, webapp/app.conf configuration
+        'components',   // components.* context variable, reusable components
+        'eq',           // equality comparison helper
+        'file',         // {{file.*}} helper
+        'gt',           // greater than comparison helper
+        'gte',          // greater than or equal to comparison helper
+        'i18n',         // i18n.* context variable, internationalization
+        'let',          // {{let}} helper to define custom vars.* context variables
+        'lt',           // less than comparison helper
+        'lte',          // less than or equal to comparison helper
+        'ne',           // not equal to comparison helper
+        'not',          // logical NOT helper
+        'or',           // logical OR helper
+        'siteConfig',   // siteConfig.* context variable, data from ConfigModel (database)
+        'url',          // url.* context variable
+        'user',         // user.* context variable
+        'vars',         // vars.* context variable, populated by {{let}}
     ];
 
     // Block handlebars: helpers that can be used as {{#helper}}...{{/helper}}
     // ATTENTION: Keep this in sync with case in _evaluateBlockHandlebar()
     static BLOCK_HANDLEBARS = [
-        'and',      // W-114: Logical block helper
-        'component',
-        'each',
-        'eq',       // W-114: Comparison block helper
-        'gt',       // W-114: Comparison block helper
-        'gte',      // W-114: Comparison block helper
-        'if',
-        'let',
-        'lt',       // W-114: Comparison block helper
-        'lte',      // W-114: Comparison block helper
-        'ne',       // W-114: Comparison block helper
-        'not',      // W-114: Logical block helper
-        'or',       // W-114: Logical block helper
-        'unless',
-        'with'
+        'and',          // logical AND helper
+        'component',    // component helper to define reusable components
+        'each',         // each helper to iterate over arrays
+        'eq',           // equality comparison helper
+        'gt',           // greater than comparison helper
+        'gte',          // greater than or equal to comparison helper
+        'if',           // if helper to conditionally render content
+        'let',          // let helper to define custom vars.* context variables
+        'lt',           // less than comparison helper
+        'lte',          // less than or equal to comparison helper
+        'ne',           // not equal to comparison helper
+        'not',          // logical NOT helper
+        'or',           // logical OR helper
+        'unless',       // unless helper to conditionally render content
+        'with',         // with helper to switch context to object properties
     ];
 
     /**
@@ -240,6 +240,7 @@ class HandlebarController {
 
         // Create base handlebars context
         const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+        const userRoles = req.session?.user?.roles || [];
         const baseContext = {
             app: appConfig.app,
             user: {
@@ -250,12 +251,16 @@ class HandlebarController {
                 lastName: req.session?.user?.lastName || '',
                 email: req.session?.user?.email || '',
                 initials: req.session?.user?.initials || '?',
-                roles: req.session?.user?.roles || [],
-                preferences: req.session?.user?.preferences || {},
+                roles: userRoles,
+                hasRole: userRoles.reduce((acc, role) => {
+                    acc[role] = true;
+                    return acc;
+                }, {}),
                 isAuthenticated: AuthController.isAuthenticated(req),
-                isAdmin: AuthController.isAuthorized(req, adminRoles)
+                isAdmin: AuthController.isAuthorized(req, adminRoles),
+                preferences: req.session?.user?.preferences || {}
             },
-            config: this.globalConfig?.data || {},
+            siteConfig: this.globalConfig?.data || {},
             appConfig: appConfig, // Full app config (will be filtered based on auth)
             // W-076: Add Redis cluster availability for client-side jPulse.appCluster
             appCluster: {
@@ -289,26 +294,43 @@ class HandlebarController {
 
     /**
      * Filter context based on authentication status
-     * Removes sensitive paths defined in app.conf
+     * Removes sensitive paths defined in app.conf and schema metadata
      * @param {object} context - Context to filter
      * @param {boolean} isAuthenticated - Whether user is authenticated
      * @returns {object} Filtered context
      */
     static _filterContext(context, isAuthenticated) {
-        const filterList = isAuthenticated
-            ? global.appConfig.controller.handlebar.contextFilter.withAuth
-            : global.appConfig.controller.handlebar.contextFilter.withoutAuth;
-
-        if (!filterList || filterList.length === 0) {
-            return context;
-        }
-
         // Deep clone context to avoid mutating original
         const filtered = JSON.parse(JSON.stringify(context));
 
-        // Remove filtered paths
-        for (const filterPath of filterList) {
-            this._removePath(filtered, filterPath);
+        // Filter appConfig (existing logic)
+        const appFilterList = isAuthenticated
+            ? global.appConfig.controller.handlebar.contextFilter.withAuth
+            : global.appConfig.controller.handlebar.contextFilter.withoutAuth;
+
+        if (appFilterList && appFilterList.length > 0) {
+            for (const filterPath of appFilterList) {
+                this._removePath(filtered, filterPath);
+            }
+        }
+
+        // Filter siteConfig using schema metadata (W-115)
+        if (filtered.siteConfig && configModel.schema?._meta?.contextFilter) {
+            const siteConfigFilter = configModel.schema._meta.contextFilter;
+            const siteFilterList = isAuthenticated
+                ? siteConfigFilter.withAuth
+                : siteConfigFilter.withoutAuth;
+
+            if (siteFilterList && siteFilterList.length > 0) {
+                // Schema paths are relative to config document (e.g., 'data.email.smtp*')
+                // But siteConfig in context is just the data part, so remove 'data.' prefix
+                for (const filterPath of siteFilterList) {
+                    const adjustedPath = filterPath.startsWith('data.')
+                        ? filterPath.substring(5)  // Remove 'data.' prefix
+                        : filterPath;
+                    this._removePath(filtered.siteConfig, adjustedPath);
+                }
+            }
         }
 
         return filtered;
@@ -407,6 +429,27 @@ class HandlebarController {
                 if (hasDoubleWildcard) {
                     // ** means search recursively
                     this._removeWildcardRecursive(current, lastPart);
+                } else if (lastPart.includes('*')) {
+                    // Property name pattern matching
+                    if (lastPart.startsWith('*')) {
+                        // Suffix pattern like '*pass' - remove all properties ending with suffix
+                        const suffix = lastPart.replace(/^\*/, '');
+                        for (const key in current) {
+                            if (current.hasOwnProperty(key) && key.endsWith(suffix)) {
+                                delete current[key];
+                            }
+                        }
+                    } else if (lastPart.endsWith('*')) {
+                        // Prefix pattern like 'smtp*' - remove all properties starting with prefix
+                        const prefix = lastPart.replace(/\*$/, '');
+                        for (const key in current) {
+                            if (current.hasOwnProperty(key) && key.startsWith(prefix)) {
+                                delete current[key];
+                            }
+                        }
+                    } else {
+                        // Pattern with * in middle - not supported, skip
+                    }
                 } else {
                     // Single level: only remove direct property
                     if (lastPart in current) {
@@ -600,30 +643,25 @@ class HandlebarController {
 
                 // Variable helpers
                 case 'let':
-                    return _handleLet(expression, currentContext);
+                    return await _handleLet(expression, currentContext);
                 default:
-                    // Handle property access (no spaces)
-                    if (!helper.includes(' ')) {
-                        let value;
-                        if (helper.includes('.')) {
-                            // Nested property access (e.g., user.name)
-                            value = getNestedProperty(currentContext, helper);
-                        } else {
-                            // Simple property access (e.g., mainNavActiveTab)
-                            value = currentContext[helper];
-                        }
-
-                        // If value exists and is not a string, stringify it (arrays, objects, etc.)
-                        if (value !== undefined && value !== null) {
-                            if (typeof value !== 'string' && typeof value !== 'number') {
-                                return JSON.stringify(value);
-                            }
-                            return String(value);
-                        }
-                        return '';
+                    // Handle property access
+                    let value;
+                    if (helper.includes('.')) {
+                        // Nested property access (e.g., user.name)
+                        value = _getNestedProperty(currentContext, helper);
+                    } else {
+                        // Simple property access (e.g., mainNavActiveTab)
+                        value = currentContext[helper];
                     }
-                    // Unknown helper, return empty
-                    LogController.logInfo(req, 'handlebar.expandHandlebars', `DEBUG: Unknown helper: ${helper}`);
+
+                    // If value exists and is not a string, stringify it (arrays, objects, etc.)
+                    if (value !== undefined && value !== null) {
+                        if (typeof value !== 'string' && typeof value !== 'number') {
+                            return JSON.stringify(value);
+                        }
+                        return String(value);
+                    }
                     return '';
             }
         }
@@ -649,10 +687,17 @@ class HandlebarController {
         async function _parseAndEvaluateArguments(expression, currentContext) {
             const escChar = '\x00';
 
+            /**
+             * Encode spaces, quotes, parentheses, and backslashes.
+             * This allows Phase 6 to simply split key="value" pairs on unencoded spaces
+             */
             function _encodeChars(str) {
-                return str.replace(/['"\(\)]/g, (match) => `${escChar}_ESC_:${match.charCodeAt(0)}${escChar}`);
+                return str.replace(/[ '"\(\)\\]/g, (match) => `${escChar}_ESC_:${match.charCodeAt(0)}${escChar}`);
             }
 
+            /**
+             * Restore encoded characters
+             */
             function _restoreChars(str) {
                 return str.replace(new RegExp(`${escChar}_ESC_:(\\d+)${escChar}`, 'g'), (match, code) => {
                     return String.fromCharCode(parseInt(code));
@@ -696,11 +741,20 @@ class HandlebarController {
 
             // Phase 2: Escape quotes and parentheses inside quoted strings, normalize to double quotes
             // Example: arg='Hello (\'world\')' → "Hello (world)" with chars encoded
+            // When normalizing single quotes to double quotes, escape unescaped double quotes in content
+            // Example: foo='bar "quoted" text' → foo="bar \"quoted\" text"
             let processedExpr = parts[2];
             processedExpr = processedExpr.replace(/(['"])((?:(?!\1)[^\\]|\\.)*)\1/g, (match, quote, content) => {
-                // Unescape any escaped quotes, then encode all special chars
-                const unescaped = content.replace(/\\(['"])/g, '$1');
-                return _encodeChars('"' + unescaped + '"');
+                if(quote === "'") {
+                    // If normalizing from single quote to double quote, escape unescaped double quotes
+                    content = content.replace(/(?<!\\)"/g, '\\"');
+                } else {
+                    // Unescape escaped single quotes (they don't need escaping in double quotes)
+                    content = content.replace(/\\'/g, "'");
+                }
+                // Encode special chars (spaces, quotes, parentheses, backslashes)
+                // Escaped quotes (\") are preserved as encoded backslash + encoded quote
+                return _encodeChars('"' + content + '"');
             });
 
             // Phase 3: Annotate parentheses with nesting level
@@ -730,84 +784,44 @@ class HandlebarController {
             processedExpr = _cleanupExpressionText(processedExpr);
 
             // Phase 6: Parse all arguments - positional and key=value pairs
+            // Spaces between key=value pairs are NOT encoded, so we can split on space!
             if (!processedExpr || !processedExpr.trim()) {
                 return args;  // No arguments
             }
 
-            const encodedQuote = `${escChar}_ESC_:34${escChar}`;
             const positionalArgs = [];
 
-            // Split by spaces, but respecting quoted strings and key=value pairs
-            let remainingExpr = processedExpr.trim();
+            // Split by space to get array of tokens (key=value pairs or positional args)
+            const tokens = processedExpr.trim().split(/\s+/);
 
-            while (remainingExpr) {
-                // Try to match key=value pair first
-                const kvMatch = remainingExpr.match(new RegExp(`^(\\w+)=(${encodedQuote}(.*?)${encodedQuote}|([^ ]+))(?: |$)`));
+            for (const token of tokens) {
+                const restored = _restoreChars(token);
+                const match = restored.trim().match(/^([^=]+)=(.+)$/);
+                let [key, value] = match ? match.slice(1) : [null, restored];
 
-                if (kvMatch) {
-                    // It's a key=value pair
-                    const key = kvMatch[1];
-                    let value;
+                if (value.startsWith('"') && value.endsWith('"')) {
+                    // Quoted: remove quotes and unescape escaped quotes
+                    value = value.replace(/^"|"$/g, '').replace(/\\(['"])/g, '$1');
+                } else if (value === 'true') {
+                    value = true;
+                } else if (value === 'false') {
+                    value = false;
+                } else if (!isNaN(value) && value !== '') {
+                    value = Number(value);
+                }
 
-                    if (kvMatch[3] !== undefined) {
-                        // Quoted string value
-                        value = _restoreChars(kvMatch[3]);
-                    } else {
-                        // Unquoted value - type coerce
-                        const rawValue = kvMatch[4];
-                        if (rawValue === 'true') {
-                            value = true;
-                        } else if (rawValue === 'false') {
-                            value = false;
-                        } else if (!isNaN(rawValue) && rawValue !== '') {
-                            value = Number(rawValue);
-                        } else {
-                            value = _restoreChars(rawValue);
-                        }
-                    }
-
+                if (key) {
                     args[key] = value;
-                    remainingExpr = remainingExpr.substring(kvMatch[0].length).trim();
                 } else {
-                    // It's a positional argument
-                    // Match quoted string or unquoted token
-                    const posMatch = remainingExpr.match(new RegExp(`^(?:${encodedQuote}(.*?)${encodedQuote}|([^ ]+))(?: |$)`));
-
-                    if (posMatch) {
-                        let value;
-
-                        if (posMatch[1] !== undefined) {
-                            // Quoted string
-                            value = _restoreChars(posMatch[1]);
+                    // Positional argument: try to resolve as property if it is a string
+                    if(typeof value === 'string') {
+                        if (value.includes('.')) {
+                            value = _getNestedProperty(currentContext, value) ?? value;
                         } else {
-                            // Unquoted token - type coerce and resolve properties
-                            const rawValue = _restoreChars(posMatch[2]);
-                            if (rawValue === 'true') {
-                                value = true;
-                            } else if (rawValue === 'false') {
-                                value = false;
-                            } else if (!isNaN(rawValue) && rawValue !== '') {
-                                value = Number(rawValue);
-                            } else {
-                                // Try to resolve as property access
-                                if (rawValue.includes('.')) {
-                                    value = getNestedProperty(currentContext, rawValue);
-                                } else {
-                                    value = currentContext[rawValue];
-                                }
-                                // If property doesn't exist, use the string as-is
-                                if (value === undefined) {
-                                    value = rawValue;
-                                }
-                            }
+                            value = currentContext[value] ?? value;
                         }
-
-                        positionalArgs.push(value);
-                        remainingExpr = remainingExpr.substring(posMatch[0].length).trim();
-                    } else {
-                        // Shouldn't happen, but break to avoid infinite loop
-                        break;
-                    }
+                    } // else keep as is (Number, Boolean, etc.)
+                    positionalArgs.push(value);
                 }
             }
 
@@ -905,7 +919,7 @@ class HandlebarController {
          * W-094: Support file.list with sortBy parameter
          */
         async function _handleBlockEach(params, blockContent, currentContext) {
-            let items = getNestedProperty(currentContext, params.trim());
+            let items = _getNestedProperty(currentContext, params.trim());
             let sortBy = null;
 
             // W-094: Check if params is file.list helper call
@@ -965,46 +979,26 @@ class HandlebarController {
          * Sets variables in vars namespace (template-scoped)
          * Example: {{let key1="val1" key2=123 nested.key="value"}}
          */
-        function _handleLet(expression, currentContext) {
+        async function _handleLet(expression, currentContext) {
             // Ensure vars namespace exists
             if (!currentContext.vars) {
                 currentContext.vars = {};
             }
 
             // Extract key=value pairs from the expression
-            // Regex to match: key="value" or key=value or nested.key="value"
-            const args = {};
-            const keyValueRegex = /(\w+(?:\.\w+)*)=(?:(['"])(.*?)\2|([^\s]+))/g;
-            let match;
-
-            while ((match = keyValueRegex.exec(expression)) !== null) {
-                const key = match[1];
-                let value = match[3] !== undefined ? match[3] : match[4]; // quoted or unquoted
-
-                // Type conversion for unquoted values
-                if (match[3] === undefined) { // unquoted
-                    if (value === 'true') {
-                        value = true;
-                    } else if (value === 'false') {
-                        value = false;
-                    } else if (!isNaN(value) && value !== '') {
-                        value = Number(value);
-                    }
-                }
-
-                args[key] = value;
-            }
+            // example: key1="value1" key2='value2' key3=value3 nested.key="value"
+            const parsedArgs = await _parseAndEvaluateArguments(expression, currentContext);
 
             // Set all key=value pairs in vars namespace
             const setVars = [];
-            for (const [key, value] of Object.entries(args)) {
-                _setNestedProperty(currentContext.vars, key, value);
-                setVars.push(key);
+            for (const [key, value] of Object.entries(parsedArgs)) {
+                if (!key.startsWith('_')) {
+                    _setNestedProperty(currentContext.vars, key, value);
+                    setVars.push(key);
+                }
             }
-
             if (setVars.length > 0) {
-                LogController.logInfo(req, 'handlebar.let',
-                    `Variables set: ${setVars.join(', ')}`);
+                LogController.logInfo(req, 'handlebar.let', `Variables set: ${setVars.join(', ')}`);
             }
 
             return ''; // No output
@@ -1019,7 +1013,7 @@ class HandlebarController {
             const trimmedParams = params.trim();
 
             // Get the context object
-            const contextValue = getNestedProperty(currentContext, trimmedParams);
+            const contextValue = _getNestedProperty(currentContext, trimmedParams);
 
             if (!contextValue || typeof contextValue !== 'object') {
                 LogController.logInfo(req, 'handlebar.with',
@@ -1046,27 +1040,8 @@ class HandlebarController {
          */
         async function _handleLetBlock(params, blockContent, currentContext) {
             // Extract key=value pairs from params
-            const args = {};
-            const keyValueRegex = /(\w+(?:\.\w+)*)=(?:(['"])(.*?)\2|([^\s]+))/g;
-            let match;
-
-            while ((match = keyValueRegex.exec(params)) !== null) {
-                const key = match[1];
-                let value = match[3] !== undefined ? match[3] : match[4]; // quoted or unquoted
-
-                // Type conversion for unquoted values
-                if (match[3] === undefined) { // unquoted
-                    if (value === 'true') {
-                        value = true;
-                    } else if (value === 'false') {
-                        value = false;
-                    } else if (!isNaN(value) && value !== '') {
-                        value = Number(value);
-                    }
-                }
-
-                args[key] = value;
-            }
+            const expression = 'let ' + params;
+            const parsedArgs = await _parseAndEvaluateArguments(expression, currentContext);
 
             // Create isolated context with cloned vars
             const blockContext = {
@@ -1076,9 +1051,11 @@ class HandlebarController {
 
             // Add new vars to block scope
             const setVars = [];
-            for (const [key, value] of Object.entries(args)) {
-                _setNestedProperty(blockContext.vars, key, value);
-                setVars.push(key);
+            for (const [key, value] of Object.entries(parsedArgs)) {
+                if (!key.startsWith('_')) {
+                    _setNestedProperty(blockContext.vars, key, value);
+                    setVars.push(key);
+                }
             }
 
             if (setVars.length > 0) {
@@ -1155,7 +1132,8 @@ class HandlebarController {
          */
         async function _handleComponentDefinition(params, blockContent, currentContext) {
             // Parse component name and parameters
-            const parsedArgs = self._parseHelperArgs(params);
+            const expression = 'component ' + params;
+            const parsedArgs = await _parseAndEvaluateArguments(expression, currentContext);
 
             // First parameter is the component name (required)
             const componentName = parsedArgs._target;
@@ -1844,7 +1822,7 @@ class HandlebarController {
         /**
          * Get nested property from object using dot notation
          */
-        function getNestedProperty(obj, path) {
+        function _getNestedProperty(obj, path) {
             // Handle special @ properties for each loops
             if (path.startsWith('@')) {
                 return obj[path];
@@ -1880,7 +1858,7 @@ class HandlebarController {
             }
 
             // Handle property access
-            const value = getNestedProperty(currentContext, trimmed);
+            const value = _getNestedProperty(currentContext, trimmed);
 
             // JavaScript truthy evaluation
             return !!value;
@@ -1958,34 +1936,6 @@ class HandlebarController {
         });
         return convertedSegments.join('.');
     }
-
-    /**
-     * W-097 Phase 1: Parse helper arguments
-     * Parses "name" param1="value1" param2="value2" format
-     * @param {string} argsString - Arguments string
-     * @returns {object} Parsed arguments with _target for name
-     */
-    static _parseHelperArgs(argsString) {
-        const args = { _helper: true };
-
-        // Match first quoted string as _target
-        const targetMatch = argsString.match(/^["']([^"']+)["']/);
-        if (targetMatch) {
-            args._target = targetMatch[1];
-            // Remove target from string for further parsing
-            argsString = argsString.substring(targetMatch[0].length).trim();
-        }
-
-        // Match key="value" pairs
-        const paramRegex = /(\w+)=["']([^"']*)["']/g;
-        let match;
-        while ((match = paramRegex.exec(argsString)) !== null) {
-            args[match[1]] = match[2];
-        }
-
-        return args;
-    }
-
 
     /**
      * API endpoint: POST /api/1/handlebar/expand

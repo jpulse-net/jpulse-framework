@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.3.15
+# jPulse Docs / REST API Reference v1.3.16
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -790,8 +790,23 @@ Retrieve configuration by ID or default configuration.
 - `_default` (path): Reserved identifier that resolves to the configured default config document (e.g., "global")
 - `id` (path): Configuration ID (e.g., "global", "americas", "emea")
 
+**Query Parameters:**
+- `includeSchema` (optional): Set to `1` or `true` to include schema and contextFilter metadata
+
 **Special Endpoint:**
 - `GET /api/1/config/_default` - Returns the default configuration document as defined in `appConfig.controller.config.defaultDocName`
+
+**Examples:**
+```bash
+# Get default configuration
+GET /api/1/config/_default
+
+# Get configuration by ID
+GET /api/1/config/global
+
+# Get configuration with schema metadata
+GET /api/1/config/global?includeSchema=1
+```
 
 **Response (200):**
 ```json
@@ -818,6 +833,41 @@ Retrieve configuration by ID or default configuration.
         "updatedBy": "admin",
         "docVersion": 1
     }
+}
+```
+
+**Response with `?includeSchema=1`:**
+```json
+{
+    "success": true,
+    "message": "Config retrieved successfully",
+    "data": {
+        "_id": "global",
+        "data": { /* config data */ }
+    },
+    "schema": {
+        "schema": {
+            "_id": { "type": "string", "required": true },
+            "data": {
+                "email": {
+                    "adminEmail": { "type": "string", "default": "", "validate": "email" },
+                    "smtpServer": { "type": "string", "default": "localhost" },
+                    "smtpPass": { "type": "string", "default": "" }
+                }
+            },
+            "_meta": {
+                "contextFilter": {
+                    "withoutAuth": ["data.email.smtp*", "data.email.*pass"],
+                    "withAuth": ["data.email.smtpPass"]
+                }
+            }
+        },
+        "contextFilter": {
+            "withoutAuth": ["data.email.smtp*", "data.email.*pass"],
+            "withAuth": ["data.email.smtpPass"]
+        }
+    },
+    "elapsed": 12
 }
 ```
 

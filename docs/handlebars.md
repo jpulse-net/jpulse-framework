@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.3.15
+# jPulse Docs / Handlebars Templating v1.3.16
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -10,7 +10,7 @@ Handlebars is a semantic templating language that allows you to build dynamic HT
 
 There are two types of handlebars:
 - **Regular handlebars**: Single-line expressions that output values or perform operations, such as `{{user.firstName}}`, `{{and a b}}`
-- **Block handlebars**: Multi-line expressions with opening and closing tags that control flow and rendering such as `{{#if condition}}...{{/if}}`, `{{#each items}}...{{/each}}`
+- **Block handlebars**: Multi-line expressions with opening and closing tags that control flow and rendering, such as `{{#if condition}}...{{/if}}`, `{{#each items}}...{{/each}}`
 
 ### Summary of Block and Regular Handlebars
 
@@ -21,7 +21,6 @@ There are two types of handlebars:
 | `{{appCluster.*}}` | Redis cluster availability information |
 | `{{appConfig.*}}` | Full application configuration (filtered based on auth) |
 | `{{components.jpIcons.configSvg size="64"}}` | Reusable component call with parameters |
-| `{{config.email.adminEmail}}` | Configuration values from webapp/model/config.js |
 | `{{eq user.role "admin"}}` | Equality comparison, returns "true" or "false" (2 arguments) |
 | `{{file.include "template.tmpl"}}` | Include another template file |
 | `{{file.exists "file.tmpl"}}` | Check if file exists, returns "true" or "false" |
@@ -36,6 +35,7 @@ There are two types of handlebars:
 | `{{ne user.role "guest"}}` | Not equal comparison, returns "true" or "false" (2 arguments) |
 | `{{not user.isGuest}}` | Logical NOT, returns "true" or "false" (1 argument) |
 | `{{or user.isPremium user.isTrial}}` | Logical OR, returns "true" or "false" (1+ arguments) |
+| `{{siteConfig.email.adminEmail}}` | Site configuration values from ConfigModel (database) |
 | `{{url.protocol}}://{{url.hostname}}{{url.pathname}}` | URL context (protocol, hostname, port, pathname, search, domain, param.*) |
 | `{{user.firstName}} {{user.email}}` | User context (username, loginId, firstName, lastName, email, roles, isAuthenticated, isAdmin) |
 | `{{vars.pageTitle}}` | Custom variables defined with `{{let}}` or `{{#let}}` |
@@ -67,7 +67,7 @@ Use double curly braces to output variables:
 ```handlebars
 {{app.jPulse.name}}
 {{user.firstName}}
-{{config.email.adminEmail}}
+{{siteConfig.email.adminEmail}}
 ```
 
 ### Conditionals
@@ -243,7 +243,7 @@ Use `#each` blocks to iterate over different data structures:
 
 #### Object Keys
 ```handlebars
-{{#each config.features}}
+{{#each siteConfig.features}}
     <div class="jp-feature">
         <strong>{{@key}}:</strong> {{this}}
     </div>
@@ -452,7 +452,7 @@ You can nest conditionals for complex logic (v0.7.20+):
     {{#if user.isAdmin}}
         <div class="jp-info-box">
             <p>Admin Panel Access:</p>
-            {{#if config.features.adminPanel}}
+            {{#if siteConfig.features.adminPanel}}
                 <p>✅ Admin panel is enabled</p>
             {{else}}
                 <p>❌ Admin panel is disabled</p>
@@ -469,7 +469,7 @@ You can nest conditionals for complex logic (v0.7.20+):
 {{#if (and user.isAuthenticated user.isAdmin)}}
     <div class="jp-info-box">
         <p>Admin Panel Access:</p>
-        {{#if (eq config.features.adminPanel true)}}
+        {{#if (eq siteConfig.features.adminPanel true)}}
             <p>✅ Admin panel is enabled</p>
         {{else}}
             <p>❌ Admin panel is disabled</p>
@@ -538,8 +538,8 @@ The jPulse Framework provides several context objects that are available in all 
 - `{{url.param.name}}` - Query parameters (replace 'name' with parameter name)
 
 ### Configuration
-- `{{config.email.adminEmail}}` - Administrator email address
-- `{{config.*}}` - Consult webapp/model/config.js for available fields
+- `{{siteConfig.email.adminEmail}}` - Administrator email address
+- `{{siteConfig.*}}` - Consult webapp/model/config.js for available fields
 
 ### Internationalization (i18n)
 - `{{i18n.view.home.*}}` - Home page messages
@@ -578,9 +578,9 @@ Define template-scoped variables using the `{{let}}` helper:
 
 **Nested properties:**
 ```handlebars
-{{let config.theme="dark" config.timeout=5000 api.v2.endpoint="/api/v2"}}
-<p>Theme: {{vars.config.theme}}</p>
-<p>Timeout: {{vars.config.timeout}}ms</p>
+{{let siteConfig.theme="dark" siteConfig.timeout=5000 api.v2.endpoint="/api/v2"}}
+<p>Theme: {{vars.siteConfig.theme}}</p>
+<p>Timeout: {{vars.siteConfig.timeout}}ms</p>
 <p>API: {{vars.api.v2.endpoint}}</p>
 ```
 

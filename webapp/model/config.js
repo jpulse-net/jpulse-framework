@@ -3,13 +3,13 @@
  * @tagline         Config Model for jPulse Framework WebApp
  * @description     This is the config model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/config.js
- * @version         1.3.15
- * @release         2025-12-14
+ * @version         1.3.16
+ * @release         2025-12-16
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
  */
 
 import database from '../database.js';
@@ -43,7 +43,18 @@ class ConfigModel {
         updatedAt: { type: 'date', auto: true },
         updatedBy: { type: 'string', default: '' },
         docVersion: { type: 'number', default: 1 },
-        saveCount: { type: 'number', default: 1, autoIncrement: true }
+        saveCount: { type: 'number', default: 1, autoIncrement: true },
+        _meta: {
+            contextFilter: {
+                withoutAuth: [
+                    'data.email.smtp*',     // Remove all smtp fields for unauthenticated users
+                    'data.email.*pass'      // Remove any password fields
+                ],
+                withAuth: [
+                    'data.email.smtpPass'   // Even authenticated users shouldn't see password
+                ]
+            }
+        }
     };
 
     /**

@@ -1,4 +1,4 @@
-# jPulse Docs / Sending Email v1.3.15
+# jPulse Docs / Sending Email v1.3.16
 
 Complete guide to configuring and sending emails from jPulse Framework applications using the standardized email sending strategy.
 

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.15
+# jPulse Docs / Dev / Work Items v1.3.16
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -2830,21 +2830,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/model/user.js:
     - Added aggregation for user document changes: MongoDB aggregation pipeline querying log collection for user document changes (docsCreated24h, docsUpdated24h, docsDeleted24h)
 
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-114, v1.3.15, 2025-12-14: handlebars: add logical and comparison helpers with subexpressions and block helpers
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: more flexible handlebars
 - note on syntax:
@@ -2959,12 +2946,79 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-115, v1.3.16, 2025-12-16: handlebars: config context enhancements & security, fixes for let and subexpressions
+- status: 🚧 IN_PROGRESS
+- type: Refactoring
+- objective: more intuitive handlebars; fix bugs discovered after W-114, v1.3.15 release
+- features:
+  - rename `config` context property to more descriptive `siteConfig`
+    - there are two configuration structures:
+      - `siteConfig`: system config from ConfigModel (database)
+      - `appConfig`: webapp/app.conf configuration
+    - this is a breaking change, but acceptable (no backward compatibility needed)
+    - fix needed:
+      - `webapp/controller/handlebar.js`
+      - `docs/handlebars.md`
+      - `webapp/view/jpulse-examples/handlebars.shtml`
+      - any other documentation referencing `{{config.*}}`
+  - exclude sensitive site config fields from the `siteConfig` context property
+    - add metadata to the site config schema following appConfig pattern
+    - appConfig: already has `contextFilter.withoutAuth` and `contextFilter.withAuth` in app.conf (no changes needed)
+    - siteConfig: add `_meta.contextFilter` to ConfigModel schema with `withoutAuth` and `withAuth` arrays
+    - supports wildcards: `['data.email.smtp*', 'data.email.*pass', 'data.email.smtpUser']`
+    - example schema format:
+      ```
+      _meta: {
+          contextFilter: {
+              withoutAuth: ['data.email.smtp*', 'data.email.*pass'],
+              withAuth: ['data.email.smtpPass']  // Even authenticated users shouldn't see password
+          }
+      }
+      ```
+  - new `user.hasRole.*` context to test for role, such as `{{#if user.hasRole.root}} ... {{/if}}`
+    - implemented as object with role keys set to `true` for user's roles
+    - example: `{{#if user.hasRole.admin}}`, `{{#if user.hasRole.root}}`
+    - note for release: document in handlebars.md and examples page
+- issues:
+  - bug 1: not all handlers with key="value" work if value has embedded quotes
+    - example: `{{let foo="value with \"quote\" does not work"}}`
+  - bug 2: not all handlers with `key=(vars.some.value)` evaluate subexpressions
+- deliverables:
+  - `webapp/controller/handlebar.js`
+    - renamed context property `config` to `siteConfig`
+    - updated `_filterContext()` to filter `siteConfig` using schema `_meta.contextFilter`
+    - enhanced `_removeWildcardPath()` to support property name patterns (`smtp*`, `*pass`)
+    - updated `REGULAR_HANDLEBARS` array with comments
+  - `webapp/model/config.js`
+    - added `_meta.contextFilter` to schema with `withoutAuth` and `withAuth` arrays
+    - defined sensitive field patterns: `data.email.smtp*`, `data.email.*pass`, `data.email.smtpPass`
+  - `webapp/controller/config.js`
+    - added `includeSchema` query parameter support (like user controller)
+    - returns schema and contextFilter metadata when requested
+  - `docs/handlebars.md`
+    - updated all examples referencing `config` to `siteConfig` (9 occurrences)
+  - `webapp/view/jpulse-examples/handlebars.shtml`
+    - updated all examples referencing `config` to `siteConfig` (13 occurrences)
+  - `webapp/tests/unit/controller/handlebar-variables.test.js`
+    - fixed test to use `siteConfig` instead of `config`
+  - `webapp/tests/unit/controller/handlebar-context-filter.test.js`
+    - new test file with 4 unit tests for siteConfig filtering
+
+
+
+
+
+
+
+
+
 ### Pending
 
 
-
 old pending:
-- view controller: return unexpanded `{{handlebars}}` if not exist, instead of empty return
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
@@ -2977,7 +3031,6 @@ old pending:
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-037: view: create themes
 - W-0: markdown docs: a way to define the sequence of docs
-- W-0: handlebars: enhance `{{#if}}` and `{{#unless}}` with and, or, gt, gte, lt, lte, eq, ne
 - W-0: deployment: docker strategy
 - W-0: auth controller: authentication with OAuth2 (see W-109 for flow design)
 - W-0: auth controller: authentication with LDAP (see W-109 for flow design)
@@ -2993,8 +3046,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-114, v1.3.15
-- update deliverables in W-114 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-115, v1.3.16
+- update deliverables in W-115 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -3011,12 +3064,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.15
+node bin/bump-version.js 1.3.16
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.15
+git tag v1.3.16
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -3238,6 +3291,89 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - prerequisite
   - W-076, v1.0.0: framework: redis infrastrucure for a scaleable jPulse Framework
 - /hello-websocket/, /hello-app-cluster/ should work properly on its own page, that is no messaging to other tabs with same page open
+
+### W-0: handlebars: add math helpers
+- status: 🕑 PENDING
+- type: Feature
+- objective: perform simple math
+- option 1: single math handler
+  - syntax:
+    - `{{math 2 + 4 + 6 + vars.sum}}`
+    - `{{math 2 + 4 * 6 + vars.sum}}`
+    - `{{math (2 + 4) * 6 + vars.sum}}`
+    - `{{math user.roles.length - 1}}`
+    - `{{math (file.timestamp "my-file.js") + 1000}}`
+  - pros:
+    - more flexible math
+    - single handlebar helper
+  - cons:
+    - new (unfamiliar) syntax with parenthesis
+    - separate handling from subexpression evaluation
+    - possibly exclude subexpression evaluation,
+      - or only support context path, such as vars.sum
+    - needs special filtering for security
+- option 2: one math handler per operand
+  - syntax:
+    - `{{add 2 4 6 vars.sum}}`
+    - `{{add 2 (multiply 4 6) vars.sum}}`
+    - `{{add (file.timestamp "my-file.js") 1000}}`
+    - `{{divide}}`
+    - `{{multiply}}`
+    - `{{remainder}}`
+    - `{{subtract}}`
+  - pros:
+    - familiar, standard subexpressions evaluation (nested parenthesis)
+    - easy to implement
+    - secure by design
+  - cons:
+    - less flexible math
+    - multile handlebar helpers
+    - more verbose
+- deliverables:
+  - FIXME file:
+    - FIXME summary
+
+### W-0: handlebars: define plugin interface
+- status: 🕑 PENDING
+- type: Feature
+- objective: enable site developers to define their own handlebar helpers
+- interface:
+  - `HandlebarController.registerHelper('uppercase', (text) => text.toUpperCase());`
+  - how to register in plugin?
+- deliverables:
+  - FIXME file:
+    - FIXME summary
+
+### W-0: handlebars: add array access functions
+- status: 🕑 PENDING
+- type: Feature
+- objective: flexibility with array references
+- syntax option 1: (idea)
+  - `{{array.includes user.roles "admin"}}` -- test if user roles array includes "admin", returns true or false
+  - `{{array.indexOf user.roles "admin"}}` -- get the index of "admin" in the user roles array, -1 if not found
+  - `{{array.join user.roles ", "}}` -- join the user roles array items
+  - `{{array.first user.roles}}` -- get the first item of the user roles array
+- syntax option 2:
+  - `{{user.roles.includes "admin"}}` -- test if user roles array includes "admin", returns true or false
+  - `{{user.roles.indexOf "admin"}}` -- get the index of "admin" in the user roles array, -1 if not found
+  - `{{user.roles.join ", "}}` -- join the user roles array items
+  - `{{user.roles.first}}` -- get the first item of the user roles array
+  - `{{user.roles.0}}` -- get the first item of the user roles array (alternative)
+  - `{{user.roles.last}}` -- get the last item of the user roles array
+  - `{{user.roles.-1}}` -- get the last item of the user roles array (alternative)
+- implementation for option 2:
+  - _getNestedProperty(obj, path, arg)
+    - add third parameter arg
+    - at any key of path, if value is undefined, value of previous key is of type array, and key is `includes`, `indexOf`, `first`, `last`, take special action to access array of previous key value
+  - _evaluateRegularHandlebar()
+    - in switch default, call _getNestedProperty(obj, path, parsedArgs._target)
+  - _parseAndEvaluateArguments()
+    - defer the positional argument trial to resolve as property to separate loop
+      - call _getNestedProperty(currentContext, value, nextValue)
+  - fix additional _getNestedProperty() calls accordingly
+- deliverables:
+  - FIXME file:
+    - FIXME summary
 
 ### W-0: handlebars: block components with content slots
 - status: 🕑 PENDING

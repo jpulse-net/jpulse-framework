@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Markdown Controller
  * @description     Tests for markdown controller functions
  * @file            webapp/tests/unit/controller/markdown.test.js
- * @version         1.3.16
- * @release         2025-12-16
+ * @version         1.3.17
+ * @release         2025-12-17
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -439,6 +439,41 @@ describe('MarkdownController', () => {
             expect(result).toContain('plugins-count');
         });
 
+        it('should process handlebars-list-table generator', async () => {
+            const content = 'Helpers:\n%DYNAMIC{handlebars-list-table}%';
+            const result = await MarkdownController._processDynamicContent(content);
+            expect(result).toContain('Handlebars Helpers with Examples');
+            expect(result).toContain('|');
+            expect(result).toContain('What it does');
+        });
+
+        it('should process handlebars-list-table with type filter', async () => {
+            const content = 'Regular:\n%DYNAMIC{handlebars-list-table type="regular"}%';
+            const result = await MarkdownController._processDynamicContent(content);
+            expect(result).toContain('Regular Handlebars with Examples');
+            expect(result).toContain('{{and');
+        });
+
+        it('should process handlebars-list-table with source filter', async () => {
+            const content = 'jPulse:\n%DYNAMIC{handlebars-list-table source="jpulse"}%';
+            const result = await MarkdownController._processDynamicContent(content);
+            expect(result).toContain('jPulse Framework');
+        });
+
+        it('should process handlebars-list generator', async () => {
+            const content = 'Helpers:\n%DYNAMIC{handlebars-list}%';
+            const result = await MarkdownController._processDynamicContent(content);
+            expect(result).toContain('{{and}}');
+            expect(result).toContain('{{#if}}');
+        });
+
+        it('should process handlebars-list with type filter', async () => {
+            const content = 'Block:\n%DYNAMIC{handlebars-list type="block"}%';
+            const result = await MarkdownController._processDynamicContent(content);
+            expect(result).toContain('{{#if}}');
+            expect(result).not.toContain('{{and}}'); // Regular helper shouldn't appear
+        });
+
         it('should handle multiple tokens in same content', async () => {
             const content = 'Count: %DYNAMIC{plugins-count}% and list: %DYNAMIC{dynamic-generator-list}%';
             const result = await MarkdownController._processDynamicContent(content);
@@ -462,6 +497,8 @@ describe('MarkdownController', () => {
             expect(registry['plugins-list']).toBeDefined();
             expect(registry['plugins-count']).toBeDefined();
             expect(registry['dynamic-generator-list']).toBeDefined();
+            expect(registry['handlebars-list-table']).toBeDefined();
+            expect(registry['handlebars-list']).toBeDefined();
         });
 
         it('should have generator functions for each entry', () => {

@@ -3,8 +3,8 @@
  * @tagline         Symlink Management for Plugin Static Assets
  * @description     Manages symlinks for plugin static assets
  * @file            webapp/utils/symlink-manager.js
- * @version         1.3.16
- * @release         2025-12-16
+ * @version         1.3.17
+ * @release         2025-12-17
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

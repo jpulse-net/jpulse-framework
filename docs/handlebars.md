@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.3.16
+# jPulse Docs / Handlebars Templating v1.3.17
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -14,6 +14,9 @@ There are two types of handlebars:
 
 ### Summary of Block and Regular Handlebars
 
+%DYNAMIC{handlebars-list-table type="regular"}%
+
+<!-- Regular handlebars as of v1.3.17: (above dynamic list shows the current list)
 | Regular Handlebars with Examples | What it does |
 |----------------------------------|--------------|
 | `{{and user.isAuthenticated user.isAdmin}}` | Logical AND, returns "true" or "false" (1+ arguments) |
@@ -39,9 +42,13 @@ There are two types of handlebars:
 | `{{url.protocol}}://{{url.hostname}}{{url.pathname}}` | URL context (protocol, hostname, port, pathname, search, domain, param.*) |
 | `{{user.firstName}} {{user.email}}` | User context (username, loginId, firstName, lastName, email, roles, isAuthenticated, isAdmin) |
 | `{{vars.pageTitle}}` | Custom variables defined with `{{let}}` or `{{#let}}` |
+-->
 
 ### Summary of Block Handlebars
 
+%DYNAMIC{handlebars-list-table type="block"}%
+
+<!-- Block handlebars as of v1.3.17: (above dynamic list shows the current list)
 | Block Handlebars with Examples | What it does |
 |--------------------------------|--------------|
 | `{{#and user.isAuthenticated user.isAdmin}} admin {{else}} not admin {{/and}}` | Logical AND block, renders true or else part (1+ arguments) |
@@ -59,6 +66,7 @@ There are two types of handlebars:
 | `{{#or user.isPremium user.isTrial}} limited {{else}} full {{/or}}` | Logical OR block, renders true or else part (1+ arguments) |
 | `{{#unless user.isAuthenticated}} login {{else}} welcome {{/unless}}` | Inverse conditional rendering (when condition is false) |
 | `{{#with user}} {{firstName}} {{lastName}} {{/with}}` | Switch context to object's properties |
+-->
 
 ## Basic Syntax
 
@@ -1159,8 +1167,141 @@ When defining temporary variables in loops, use `{{#let}}` blocks to prevent pol
 
 ## Advanced Features
 
-### Custom Helpers
-The jPulse Framework can be extended with custom Handlebars helpers for specific functionality. Contact jPulse.net.
+### Custom Handlebars Helpers (v1.3.17+)
+
+You can create custom Handlebars helpers for your site or plugin using the auto-discovery pattern. Helpers are automatically discovered and registered during bootstrap, requiring no manual registration.
+
+#### Creating Custom Helpers
+
+**For Plugins**: Add helper methods to your plugin controller (`plugins/your-plugin/webapp/controller/yourPlugin.js`)
+
+**For Sites**: Add helper methods to a site controller (`site/webapp/controller/yourController.js`)
+
+**Naming Convention**: Methods starting with `handlebar` are automatically discovered
+- `handlebarUppercase` → `{{uppercase}}`
+- `handlebarRepeat` → `{{#repeat}}`
+
+#### Helper Types
+
+**Regular Helpers** (2 parameters):
+```javascript
+static handlebarUppercase(args, context) {
+    const text = args._target || args.text || '';
+    return String(text).toUpperCase();
+}
+```
+Usage: `{{uppercase "hello"}}` → `"HELLO"`
+
+**Block Helpers** (3 parameters):
+```javascript
+static async handlebarRepeat(args, blockContent, context) {
+    const count = parseInt(args.count || 1, 10);
+    let result = '';
+    for (let i = 0; i < count; i++) {
+        const iterationContext = {
+            ...context,
+            '@index': i,
+            '@first': i === 0,
+            '@last': i === count - 1
+        };
+        const expanded = await context._handlebar.expandHandlebars(blockContent, iterationContext);
+        result += expanded;
+    }
+    return result;
+}
+```
+Usage: `{{#repeat count=3}}Hello{{/repeat}}` → `"HelloHelloHello"`
+
+#### Helper Arguments (`args`)
+
+All helpers receive a parsed `args` object with:
+- `args._helper` - Helper name (e.g., "uppercase")
+- `args._target` - First positional argument or property path value
+- `args._args[]` - Array of positional arguments
+- `args.{key}` - Named arguments (e.g., `args.count` from `count=3`)
+
+Subexpressions are pre-evaluated, so `{{uppercase (user.name)}}` passes the evaluated value in `args._target`.
+
+#### Context Utilities (`context._handlebar`)
+
+Block helpers have access to framework utilities via `context._handlebar`:
+- `context._handlebar.req` - Express request object
+- `context._handlebar.depth` - Current recursion depth
+- `context._handlebar.expandHandlebars(template, additionalContext)` - Expand nested Handlebars
+- `context._handlebar.parseAndEvaluateArguments(expression, ctx)` - Parse helper arguments
+- `context._handlebar.getNestedProperty(obj, path)` - Get nested property
+- `context._handlebar.setNestedProperty(obj, path, value)` - Set nested property
+
+#### Auto-Documentation with JSDoc
+
+Helpers are automatically documented when you include JSDoc comments with `@description` and `@example`:
+
+```javascript
+/**
+ * W-116: Example regular helper - converts text to uppercase
+ * @description Convert text to UPPERCASE (hello-world plugin example)
+ * @example {{uppercase "hello world"}}
+ * @param {object} args - Parsed arguments (already evaluated)
+ * @param {object} context - Template context
+ * @returns {string} Uppercased text
+ */
+static handlebarUppercase(args, context) {
+    const text = args._target || args.text || '';
+    return String(text).toUpperCase();
+}
+```
+
+The framework automatically extracts:
+- **Description**: From `@description` tag - appears in helper documentation
+- **Example**: From `@example` tag - appears in helper documentation and examples
+
+These are automatically included in the [Handlebars Helpers documentation](#summary-of-block-and-regular-handlebars) via dynamic content generation.
+
+#### Helper Priority
+
+Helpers can override built-in helpers with the following priority (highest to lowest):
+1. **Site helpers** - `site/webapp/controller/*.js`
+2. **Plugin helpers** - `plugins/*/webapp/controller/*.js` (loaded in plugin order)
+3. **Built-in helpers** - Framework core helpers
+
+The last registered helper wins, so site helpers always override plugin helpers, which override built-in helpers.
+
+#### Example: Complete Helper Implementation
+
+```javascript
+export default class MyPluginController {
+    /**
+     * Regular helper: Format currency
+     * @description Format a number as currency with optional symbol
+     * @example {{currency 1234.56 symbol="$"}}
+     * @param {object} args - Parsed arguments
+     * @param {object} context - Template context
+     * @returns {string} Formatted currency string
+     */
+    static handlebarCurrency(args, context) {
+        const amount = parseFloat(args._target || args.amount || 0);
+        const symbol = args.symbol || '$';
+        return `${symbol}${amount.toFixed(2)}`;
+    }
+
+    /**
+     * Block helper: Render items in a grid
+     * @description Render block content in a responsive grid layout
+     * @example {{#grid columns=3}}<div>Item</div>{{/grid}}
+     * @param {object} args - Parsed arguments
+     * @param {string} blockContent - Content between tags
+     * @param {object} context - Template context
+     * @returns {string} HTML with grid wrapper
+     */
+    static async handlebarGrid(args, blockContent, context) {
+        const columns = parseInt(args.columns || 3, 10);
+        const expanded = await context._handlebar.expandHandlebars(blockContent, context);
+        return `<div class="grid grid-cols-${columns}">${expanded}</div>`;
+    }
+}
+```
+
+**See Also**: [Creating Plugins - Step 3.5: Add Handlebars Helpers](../plugins/creating-plugins.md#step-35-add-handlebars-helpers-optional-w-116) for detailed plugin integration guide.
 
 ### Template Caching
 Templates are cached for performance. Restart the development server to see changes during development.

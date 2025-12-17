@@ -3,8 +3,8 @@
  * @tagline         Markdown controller for the jPulse Framework
  * @description     Markdown document serving with caching support, part of jPulse Framework
  * @file            webapp/controller/markdown.js
- * @version         1.3.16
- * @release         2025-12-16
+ * @version         1.3.17
+ * @release         2025-12-17
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -89,6 +89,17 @@ class MarkdownController {
                     : global.HookManager.getAvailableHooks();
                 return `${Object.keys(hooks).length}`;
             },
+        },
+        // W-116: Handlebars helpers dynamic content generators
+        'handlebars-list-table': {
+            description: 'Markdown table of Handlebars helpers',
+            params: '`type` (optional: "regular" or "block"), `source` (optional: "jpulse", "site", or plugin name)',
+            generator: async (params) => MarkdownController._generateHandlebarsTable(params),
+        },
+        'handlebars-list': {
+            description: 'Bullet list of Handlebars helpers',
+            params: '`type` (optional: "regular" or "block"), `source` (optional: "jpulse", "site", or plugin name)',
+            generator: async (params) => MarkdownController._generateHandlebarsList(params),
         },
     };
 
@@ -874,6 +885,109 @@ class MarkdownController {
             if (hook.canCancel) badges.push('cancel');
             const badgeStr = badges.length > 0 ? ` _(${badges.join(', ')})_` : '';
             md += `- **\`${name}\`**${badgeStr} - ${hook.description}\n`;
+        }
+
+        return md;
+    }
+
+    /**
+     * W-116: Generate markdown table of Handlebars helpers
+     * Used for dynamic content: %DYNAMIC{handlebars-list-table}% (all) or %DYNAMIC{handlebars-list-table type="regular" source="jpulse"}%
+     * @param {object} params - Optional parameters
+     *   - type: filter by type "regular" or "block" (default: all types)
+     *   - source: filter by source "jpulse", "site", or plugin name (default: all sources)
+     * @returns {string} Markdown table
+     * @private
+     */
+    static async _generateHandlebarsTable(params = {}) {
+        const HandlebarController = (await import('./handlebar.js')).default;
+        if (!HandlebarController || !HandlebarController.HANDLEBARS_DESCRIPTIONS) {
+            return '_HandlebarController not initialized._';
+        }
+
+        let helpers = HandlebarController.HANDLEBARS_DESCRIPTIONS;
+
+        // Filter by type if specified
+        if (params.type) {
+            helpers = helpers.filter(h => h.type === params.type);
+        }
+
+        // Filter by source if specified
+        if (params.source) {
+            helpers = helpers.filter(h => h.source === params.source);
+        }
+
+        // Sort by name
+        helpers = helpers.sort((a, b) => a.name.localeCompare(b.name));
+
+        if (helpers.length === 0) {
+            return '_No helpers match the criteria._';
+        }
+
+        // Determine table title based on filters
+        let tableTitle = 'Handlebars Helpers with Examples';
+        if (params.type && !params.source) {
+            tableTitle = params.type === 'block' ? 'Block Handlebars with Examples' : 'Regular Handlebars with Examples';
+        } else if (params.source && !params.type) {
+            const sourceLabel = params.source === 'jpulse' ? 'jPulse Framework' : params.source === 'site' ? 'Site' : `Plugin: ${params.source}`;
+            tableTitle = `${sourceLabel} Handlebars Helpers with Examples`;
+        } else if (params.type && params.source) {
+            const sourceLabel = params.source === 'jpulse' ? 'jPulse Framework' : params.source === 'site' ? 'Site' : `Plugin: ${params.source}`;
+            const typeLabel = params.type === 'block' ? 'Block' : 'Regular';
+            tableTitle = `${sourceLabel} ${typeLabel} Handlebars Helpers with Examples`;
+        }
+
+        let md = `| ${tableTitle} | What it does |\n`;
+        md += '|----------------------------------|--------------|\n';
+
+        for (const helper of helpers) {
+            const example = helper.example || `{{${helper.type === 'block' ? '#' : ''}${helper.name}}}`;
+            md += `| \`${example}\` | ${helper.description} |\n`;
+        }
+
+        return md;
+    }
+
+    /**
+     * W-116: Generate markdown list of Handlebars helpers
+     * Used for dynamic content: %DYNAMIC{handlebars-list}% (all) or %DYNAMIC{handlebars-list type="regular" source="jpulse"}%
+     * @param {object} params - Optional parameters
+     *   - type: filter by type "regular" or "block" (default: all types)
+     *   - source: filter by source "jpulse", "site", or plugin name (default: all sources)
+     * @returns {string} Markdown list
+     * @private
+     */
+    static async _generateHandlebarsList(params = {}) {
+        const HandlebarController = (await import('./handlebar.js')).default;
+        if (!HandlebarController || !HandlebarController.HANDLEBARS_DESCRIPTIONS) {
+            return '_HandlebarController not initialized._';
+        }
+
+        let helpers = HandlebarController.HANDLEBARS_DESCRIPTIONS;
+
+        // Filter by type if specified
+        if (params.type) {
+            helpers = helpers.filter(h => h.type === params.type);
+        }
+
+        // Filter by source if specified
+        if (params.source) {
+            helpers = helpers.filter(h => h.source === params.source);
+        }
+
+        // Sort by name
+        helpers = helpers.sort((a, b) => a.name.localeCompare(b.name));
+
+        if (helpers.length === 0) {
+            return '_No helpers match the criteria._';
+        }
+
+        let md = '';
+        for (const helper of helpers) {
+            const example = helper.example || `{{${helper.type === 'block' ? '#' : ''}${helper.name}}}`;
+            // Show helper syntax (e.g., {{and}} or {{#and}}) instead of just name
+            const helperSyntax = `{{${helper.type === 'block' ? '#' : ''}${helper.name}}}`;
+            md += `- **${helperSyntax}**: ${helper.description}, \`${example}\`\n`;
         }
 
         return md;

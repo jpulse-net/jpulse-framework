@@ -3,8 +3,8 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.3.16
- * @release         2025-12-16
+ * @version         1.3.17
+ * @release         2025-12-17
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -214,6 +214,15 @@ export async function bootstrap(options = {}) {
         await HandlebarControllerModule.default.initialize();
         global.HandlebarController = HandlebarControllerModule.default;
         bootstrapLog('✅ HandlebarController: Initialized');
+
+        // Step 18.1: Auto-discover and register custom Handlebars helpers (W-116)
+        // Must be after HandlebarController.initialize() and SiteControllerRegistry.initialize()
+        if (!isTest && siteControllerRegistry) {
+            const helperCount = await HandlebarControllerModule.default.initializeHandlebarHandlers();
+            if (helperCount > 0) {
+                bootstrapLog(`✅ Handlebars Helpers: Registered ${helperCount} custom helper(s) from controllers`);
+            }
+        }
 
         // Step 19: Initialize EmailController (W-087)
         const EmailControllerModule = await import('../controller/email.js');

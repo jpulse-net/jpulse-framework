@@ -1,6 +1,141 @@
-# jPulse Docs / Version History v1.3.16
+# jPulse Docs / Version History v1.3.17
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.17, W-116, 2025-12-17
+
+**Commit:** `W-116, v1.3.17: handlebars: define plugin interface for custom helpers`
+
+**FEATURE RELEASE**: Enable site developers and plugin developers to define custom Handlebars helpers using auto-discovery pattern consistent with existing plugin architecture (API endpoints, hooks).
+
+**Objective**: Enable site developers and plugin developers to define their own handlebar helpers using auto-discovery pattern, providing a unified interface for regular and block helpers with consistent argument structure and access to framework utilities.
+
+**Key Features**:
+
+**Auto-Discovery Pattern**:
+- Methods starting with `handlebar*` in controllers are automatically registered during bootstrap
+- Works for sites: `site/webapp/controller/*.js` with `handlebar*` methods
+- Works for plugins: `plugins/*/webapp/controller/*.js` with `handlebar*` methods
+- No manual registration needed - follows existing `api*` (endpoints) and `on*` (hooks) patterns
+- Helper name derived from method name: `handlebarUppercase` → `{{uppercase}}`
+
+**Unified Interface**:
+- Regular helpers: `(args, context)` - 2 parameters
+- Block helpers: `(args, blockContent, context)` - 3 parameters
+- Helper type automatically detected from function signature (`function.length`)
+- Both helper types receive parsed `args` object with pre-evaluated subexpressions
+
+**Consistent Argument Structure**:
+- `args._helper` - Helper name (e.g., "uppercase")
+- `args._target` - First positional argument or property path value
+- `args._args[]` - Array of all positional arguments
+- `args.{key}` - Named arguments (e.g., `args.count` from `count=3`)
+- Subexpressions are pre-evaluated (no need to parse manually)
+
+**Internal Utilities Access**:
+- Framework utilities available via `context._handlebar.*` namespace
+- `context._handlebar.req` - Express request object
+- `context._handlebar.depth` - Current recursion depth
+- `context._handlebar.expandHandlebars(template, additionalContext)` - Expand nested Handlebars
+- `context._handlebar.parseAndEvaluateArguments(expression, ctx)` - Parse helper arguments
+- `context._handlebar.getNestedProperty(obj, path)` - Get nested property
+- `context._handlebar.setNestedProperty(obj, path, value)` - Set nested property
+- `context._handlebar` is filtered out before templates see the context (security)
+
+**Auto-Documentation with JSDoc**:
+- Helpers are automatically documented when JSDoc comments include `@description` and `@example` tags
+- Framework extracts these tags during helper registration via `_extractJSDoc()` method
+- Documentation is automatically included in helper lists via dynamic content generation
+- Examples should show actual template syntax (e.g., `{{uppercase "text"}}`)
+
+**Dynamic Documentation**:
+- Helper lists generated automatically via `%DYNAMIC{handlebars-list-table}%` tokens
+- Supports filtering by type (`type="regular"` or `type="block"`) and source (`source="jpulse"`, `source="site"`, or plugin name)
+- Helper list format via `%DYNAMIC{handlebars-list}%` token
+- All helpers tracked in `HANDLEBARS_DESCRIPTIONS` array with metadata (name, type, description, example, source)
+
+**Helper Priority**:
+- Site helpers override plugin helpers, which override built-in helpers
+- Priority enforced by registration order: Site → Plugin 1 → Plugin 2 → Core
+- Last registered helper wins (Map.set() behavior)
+
+**Refactored Built-in Helpers**:
+- All existing regular helpers refactored to use `args` parameter instead of `expression` string
+- All existing block helpers refactored to use `args` parameter instead of `params` string
+- Consistent interface across all helpers (built-in and custom)
+
+**Code Changes**:
+
+**webapp/controller/handlebar.js**:
+- Added `helperRegistry` Map storing handler, type, source, description, example metadata
+- Added `registerHelper(name, handler, options)` method with validation
+- Added `initializeHandlebarHandlers()` method for auto-discovery from controllers
+- Added `_registerHelpersFromFile(filePath, source, pathToFileURL)` for registering helpers from controller files
+- Added `_extractJSDoc(fileContent, methodName)` for extracting `@description` and `@example` from JSDoc
+- Replaced `REGULAR_HANDLEBARS` and `BLOCK_HANDLEBARS` arrays with `HANDLEBARS_DESCRIPTIONS` array
+- Updated `_evaluateRegularHandlebar()` to check registry first (plugin/site helpers override built-ins)
+- Updated `_evaluateBlockHandlebar()` to check registry first and use parsed args
+- Refactored all existing regular helpers to use `args` parameter
+- Refactored all existing block helpers to use `args` parameter
+- Added `context._handlebar` namespace with internal utilities in `_buildInternalContext()`
+- Filter out `_handlebar` from context in `_filterContext()` before template exposure
+- Updated `getMetrics()` to derive helper lists from `HANDLEBARS_DESCRIPTIONS`
+
+**webapp/utils/path-resolver.js**:
+- Added `collectControllerFiles()` method for collecting controller files in load order (site → plugins)
+
+**webapp/utils/bootstrap.js**:
+- Call `HandlebarController.initializeHandlebarHandlers()` after `SiteControllerRegistry.initialize()`
+- Helper auto-discovery moved to `HandlebarController` for better separation of concerns
+
+**webapp/controller/markdown.js**:
+- Added `handlebars-list-table` dynamic content generator with type and source filters
+- Added `handlebars-list` dynamic content generator with type filter
+- Generators import `HandlebarController` to access `HANDLEBARS_DESCRIPTIONS`
+
+**plugins/hello-world/webapp/controller/helloPlugin.js**:
+- Added example regular helper (`handlebarUppercase`) with JSDoc
+- Added example block helper (`handlebarRepeat`) with JSDoc
+- Demonstrate usage of `context._handlebar.expandHandlebars()` for nested expansion
+- Include `@description` and `@example` tags for auto-documentation
+
+**webapp/tests/unit/controller/handlebar-plugin-interface.test.js**:
+- New test file with 22 unit tests:
+  - Helper registration via `registerHelper()`
+  - JSDoc extraction from source files
+  - Auto-discovery from controllers
+  - Regular helper invocation with `args` parameter
+  - Block helper invocation with `args` parameter
+  - Internal utilities access via `context._handlebar`
+  - `HANDLEBARS_DESCRIPTIONS` integration
+  - Helper override priority
+
+**webapp/tests/integration/plugin-handlebars-helpers.test.js**:
+- New test file with 5 integration tests:
+  - Plugin helper registration and discovery
+  - Helper invocation in real bootstrap flow
+  - Helper priority (site > plugin > built-in)
+  - Helpers with property access and subexpressions
+
+**Files Modified**: 8
+- `webapp/controller/handlebar.js`: Registry, auto-discovery, JSDoc extraction, helper refactoring, context utilities
+- `webapp/utils/path-resolver.js`: Controller file collection utility
+- `webapp/utils/bootstrap.js`: Helper auto-discovery integration
+- `webapp/controller/markdown.js`: Dynamic content generators for helper documentation
+- `plugins/hello-world/webapp/controller/helloPlugin.js`: Example helpers with JSDoc
+- `docs/handlebars.md`: Custom helpers documentation section
+- `docs/plugins/creating-plugins.md`: Step 3.5 with helper examples and JSDoc documentation
+- `docs/dev/work-items.md`: Updated features, implementation, and deliverables
+
+**Breaking Changes**: None
+
+**Documentation**:
+- Updated `docs/handlebars.md` with comprehensive custom helpers section
+- Updated `docs/plugins/creating-plugins.md` with Step 3.5: Add Handlebars Helpers
+- Updated `docs/dev/work-items.md` with W-116 features, implementation, and deliverables
+- Updated `docs/dev/working/W-116-handlebars-plugin-interface.md` with implementation details and JSDoc extraction
+- Updated `README.md` and `docs/README.md` latest release highlights
 
 ________________________________________________
 ## v1.3.16, W-115, 2025-12-15

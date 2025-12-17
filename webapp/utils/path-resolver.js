@@ -3,8 +3,8 @@
  * @tagline         Site Override and Plugin Path Resolution Utility
  * @description     Provides path resolution for site overrides (W-014) and plugins (W-045)
  * @file            webapp/utils/path-resolver.js
- * @version         1.3.16
- * @release         2025-12-16
+ * @version         1.3.17
+ * @release         2025-12-17
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -233,6 +233,50 @@ class PathResolver {
             const pluginPath = path.join(plugin.path, 'webapp', modulePath);
             if (fs.existsSync(pluginPath)) {
                 files.push(pluginPath);
+            }
+        }
+
+        return files;
+    }
+
+    /**
+     * W-116: Collect all controller files from site and plugins
+     * Returns array of { filePath, source } objects in load order
+     * @returns {Array<{filePath: string, source: string}>} Array of controller file info
+     */
+    static collectControllerFiles() {
+        const files = [];
+        const appDir = global.appConfig.system.appDir;
+        const siteDir = global.appConfig.system.siteDir;
+
+        // 1. Site controllers (highest priority)
+        if (siteDir) {
+            const siteControllerDir = path.join(siteDir, 'webapp', 'controller');
+            if (fs.existsSync(siteControllerDir)) {
+                const siteFiles = fs.readdirSync(siteControllerDir)
+                    .filter(file => file.endsWith('.js'))
+                    .map(file => ({
+                        filePath: path.join(siteControllerDir, file),
+                        source: 'site'
+                    }));
+                files.push(...siteFiles);
+            }
+        }
+
+        // 2. Plugin controllers (in load order)
+        if (global.PluginManager && global.PluginManager.initialized) {
+            const activePlugins = this.getActivePlugins();
+            for (const plugin of activePlugins) {
+                const pluginControllerDir = path.join(plugin.path, 'webapp', 'controller');
+                if (fs.existsSync(pluginControllerDir)) {
+                    const pluginFiles = fs.readdirSync(pluginControllerDir)
+                        .filter(file => file.endsWith('.js'))
+                        .map(file => ({
+                            filePath: path.join(pluginControllerDir, file),
+                            source: `plugin:${plugin.name}`
+                        }));
+                    files.push(...pluginFiles);
+                }
             }
         }
 

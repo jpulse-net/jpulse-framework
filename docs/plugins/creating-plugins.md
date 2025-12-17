@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.3.16
+# jPulse Docs / Plugins / Creating Plugins v1.3.17
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -165,6 +165,14 @@ import CommonUtils from '../../utils/common.js';
 
 export default class YourPluginController {
     /**
+     * Declare which hooks your plugin implements
+     */
+    static hooks = {
+        onAuthBeforeLogin: { priority: 50 },  // Run early (lower = earlier)
+        onUserAfterSave: {}                   // Default priority 100
+    };
+
+    /**
      * GET /api/1/yourPlugin
      * Static methods starting with "api" are auto-discovered
      */
@@ -194,10 +202,188 @@ export default class YourPluginController {
 }
 ```
 
-**Auto-Discovery Rules:**
+**Auto-Discovery Rules for API Endpoints:**
 - Method name: `static async api{HttpMethod}` (e.g., `apiGet`, `apiPost`, `apiPut`, `apiDelete`)
 - URL: `/api/1/{controllerName}` (camelCase controller name becomes URL path)
 - Example: `YourPluginController.apiGet` → `GET /api/1/yourPlugin`
+
+**Auto-Discovery of Plugin Hooks:**
+- Declare your hooks in the `static hooks` method
+- jPulse discovers your `static hooks` declaration during bootstrap
+- Registers each hook with the HookManager
+- Calls your handlers at the appropriate points
+- See details in [Plugin Hooks](plugin-hooks.md)
+
+## Step 3.5: Add Handlebars Helpers (Optional) (W-116)
+
+Handlebars helpers allow your plugin to add custom template functions that can be used in views. Helpers are automatically discovered during bootstrap using the `handlebar*` naming convention.
+
+**File**: `plugins/your-plugin/webapp/controller/yourPlugin.js`
+
+```javascript
+export default class YourPluginController {
+    /**
+     * W-116: Regular helper - converts text to uppercase
+     * Usage: {{uppercase "hello"}} → "HELLO"
+     * Note: The description and example below are extracted by the handlebars doc system.
+     * @description Convert text to UPPERCASE (hello-world plugin example)
+     * @example {{uppercase "hello world"}}
+     * @param {object} args - Parsed arguments (already evaluated)
+     * @param {object} context - Template context
+     * @returns {string} Uppercased text
+     */
+    static handlebarUppercase(args, context) {
+        // Support multiple argument formats:
+        // {{uppercase "text"}} -> args._target = "text"
+        // {{uppercase text="text"}} -> args.text = "text"
+        // {{uppercase user.username}} -> args._target = user.username value
+        const text = args._target || args.text || '';
+        return String(text).toUpperCase();
+    }
+
+    /**
+     * W-116: Block helper - repeats content N times
+     * Usage: {{#repeat count=3}}Hello{{/repeat}} → "HelloHelloHello"
+     * Supports {{@index}} and {{@first}} / {{@last}} iteration variables
+     * Note: The description and example below are extracted by the handlebars doc system.
+     * @description Repeat text N times (hello-world plugin example)
+     * @example {{#repeat count=3}} Hello {{@index}} {{/repeat}}
+     * @param {object} args - Parsed arguments (already evaluated)
+     * @param {string} blockContent - Content between opening and closing tags
+     * @param {object} context - Template context
+     * @returns {string} Repeated content
+     */
+    static async handlebarRepeat(args, blockContent, context) {
+        const count = parseInt(args.count || args._target || 1, 10);
+        if (count <= 0 || count > 100) {
+            return ''; // Safety limit
+        }
+
+        // Build result by iterating and expanding with iteration context
+        let result = '';
+        for (let i = 0; i < count; i++) {
+            // Create iteration context with special variables (like {{#each}})
+            const iterationContext = {
+                ...context,
+                '@index': i,
+                '@first': i === 0,
+                '@last': i === count - 1,
+                '@count': count
+            };
+
+            // Expand block content with iteration context
+            const expanded = await context._handlebar.expandHandlebars(blockContent, iterationContext);
+            result += expanded;
+        }
+
+        return result;
+    }
+}
+```
+
+### Auto-Discovery Rules
+
+**Naming Convention**: Methods starting with `handlebar` are automatically discovered
+- `handlebarUppercase` → `{{uppercase}}`
+- `handlebarRepeat` → `{{#repeat}}`
+- The method name determines the handlebar helper name:
+  - to build the method name, capitalize the first character of your helper name, and prefix it with `handlebar`
+  - example: helper name `myStuff` → method name method `handlebarMyStuff`
+
+**Helper Type Detection**:
+- **Regular helper**: 2 parameters `(args, context)` → `{{helperName ...}}`
+- **Block helper**: 3 parameters `(args, blockContent, context)` → `{{#helperName ...}}...{{/helperName}}`
+- Type is automatically detected from function signature (`function.length`)
+
+**Registration**: Auto-discovered during bootstrap (no manual registration needed)
+
+**Priority**: Plugin helpers can override built-in helpers, but site helpers override plugin helpers
+
+### Helper Arguments (`args`)
+
+All helpers receive a parsed `args` object with pre-evaluated subexpressions:
+
+- `args._helper` - Helper name (e.g., "uppercase")
+- `args._target` - First positional argument or property path value
+- `args._args[]` - Array of all positional arguments
+- `args.{key}` - Named arguments (e.g., `args.count` from `count=3`)
+
+**Example**: `{{uppercase (user.lastName)}}` passes the evaluated `user.lastName` value in `args._target` (no need to parse manually).
+
+### Context Utilities (`context._handlebar`)
+
+Block helpers have access to framework utilities via `context._handlebar`:
+
+- `context._handlebar.req` - Express request object
+- `context._handlebar.depth` - Current recursion depth
+- `context._handlebar.expandHandlebars(template, additionalContext)` - Expand nested Handlebars
+- `context._handlebar.parseAndEvaluateArguments(expression, ctx)` - Parse helper arguments
+- `context._handlebar.getNestedProperty(obj, path)` - Get nested property
+- `context._handlebar.setNestedProperty(obj, path, value)` - Set nested property
+
+**Note**: `context._handlebar` is filtered out before templates see the context, so it's only available to helper functions.
+
+### Auto-Documentation with JSDoc
+
+Helpers are automatically documented when you include JSDoc comments with `@description` and `@example` tags:
+
+```javascript
+/**
+ * Regular helper description
+ * @description Detailed description of what the helper does
+ * @example {{helperName arg1="value"}}
+ * @param {object} args - Parsed arguments
+ * @param {object} context - Template context
+ * @returns {string} Result description
+ */
+static handlebarHelperName(args, context) {
+    // Implementation
+}
+```
+
+**JSDoc Extraction**:
+- **`@description`**: Extracted and displayed in helper documentation tables
+- **`@example`**: Extracted and displayed in helper documentation tables
+- Both are automatically included in the [Handlebars Helpers documentation](../../handlebars.md#summary-of-block-and-regular-handlebars) via dynamic content generation
+- Examples should show the actual template syntax (e.g., `{{uppercase "text"}}`)
+
+**Best Practices**:
+- Always include `@description` for clarity
+- Always include `@example` showing actual usage
+- Keep examples simple and clear
+- Use multi-line JSDoc for complex helpers
+
+### Example Usage in Templates
+
+```handlebars
+{{!-- Regular helper with positional argument --}}
+{{uppercase user.username}}
+
+{{!-- Regular helper with named argument --}}
+{{uppercase text="Hello World"}}
+
+{{!-- Regular helper with subexpression (pre-evaluated) --}}
+{{uppercase (user.lastName)}}
+
+{{!-- Block helper with iteration variables --}}
+{{#repeat count=3}}
+    <p>Item {{@index}} of {{@count}} (first: {{@first}}, last: {{@last}})</p>
+{{/repeat}}
+
+{{!-- Block helper with CSS classes based on index --}}
+{{#repeat count=5}}
+    <div class="item item-{{@index}}">
+        Item {{@index}} (position {{@index}} of {{@count}})
+    </div>
+{{/repeat}}
+
+{{!-- Block helper with nested Handlebars --}}
+{{#repeat count=2}}
+    <div>{{uppercase user.firstName}}</div>
+{{/repeat}}
+```
+
+**See Also**: [Handlebars Documentation - Custom Helpers](../../handlebars.md#custom-handlebars-helpers-v1317) for complete reference.
 
 ## Step 4: Create Model (Optional)
 

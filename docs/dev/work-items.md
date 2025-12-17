@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.16
+# jPulse Docs / Dev / Work Items v1.3.17
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -2936,21 +2936,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/dev/working/W-114-handlebars-logical-subexpressions.md -- working document
     - Complete brainstorming, requirements, design decisions, and implementation plan
 
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-115, v1.3.16, 2025-12-16: handlebars: config context enhancements & security, fixes for let and subexpressions
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Refactoring
 - objective: more intuitive handlebars; fix bugs discovered after W-114, v1.3.15 release
 - features:
@@ -3015,6 +3002,87 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-116, v1.3.17, 2025-12-16: handlebars: define plugin interface for custom helpers
+- status: ✅ DONE
+- type: Feature
+- objective: enable site developers and plugin developers to define their own handlebar helpers using auto-discovery pattern
+- features:
+  - Auto-discovery: Methods starting with `handlebar*` in controllers are automatically registered
+  - Unified interface: Regular helpers `(args, context)`, Block helpers `(args, blockContent, context)`
+  - Consistent arguments: Both helper types receive parsed `args` object (subexpressions already expanded)
+  - Internal utilities: Framework utilities available via `context._handlebar.*` (req, depth, expandHandlebars, etc.)
+  - Function signature detection: Helper type determined by parameter count (2 = regular, 3 = block)
+  - Works for sites: Add `site/webapp/controller/*.js` with `handlebar*` methods
+  - Works for plugins: Add `handlebar*` methods to plugin controller
+  - Refactored built-in helpers: All existing helpers use same `args` interface for consistency
+  - Auto-documentation: JSDoc `@description` and `@example` tags automatically extracted and included in documentation
+  - Dynamic documentation: Helper lists generated automatically via `%DYNAMIC{handlebars-list-table}%` tokens
+  - Helper priority: Site helpers override plugin helpers, which override built-in helpers
+  - Helper registry: Single Map storing handler, type, source, description, and example metadata
+- implementation:
+  - Refactor all existing regular helpers to use `args` instead of `expression` string
+  - Refactor all existing block helpers to use `args` instead of `params` string
+  - Add helper registry (`helperRegistry` Map) storing handler and metadata together
+  - Add `registerHelper()` method to HandlebarController with validation
+  - Add `initializeHandlebarHandlers()` method for auto-discovery from controllers
+  - Add `PathResolver.collectControllerFiles()` for collecting controller files in load order
+  - Auto-discover `handlebar*` methods from SiteControllerRegistry (site and plugins)
+  - Extract JSDoc `@description` and `@example` tags via `_extractJSDoc()` method
+  - Add `context._handlebar` namespace with internal utilities (req, depth, expandHandlebars, etc.)
+  - Update `_evaluateRegularHandlebar()` to check registry first (plugin/site helpers override built-ins)
+  - Update `_evaluateBlockHandlebar()` to check registry first and use parsed args
+  - Filter out `_handlebar` from context in `_filterContext()` before template exposure
+  - Replace `REGULAR_HANDLEBARS` and `BLOCK_HANDLEBARS` arrays with `HANDLEBARS_DESCRIPTIONS` array
+  - Add dynamic content generators `handlebars-list-table` and `handlebars-list` in MarkdownController
+  - Update `getMetrics()` to derive helper lists from `HANDLEBARS_DESCRIPTIONS`
+- deliverables:
+  - `webapp/controller/handlebar.js`:
+    - Refactor all existing regular helpers to use `args` parameter instead of `expression` string
+    - Refactor all existing block helpers to use `args` parameter instead of `params` string
+    - Add helper registry (`helperRegistry`, `helperRegistryInfo` Maps) and `registerHelper()` method
+    - Update `_evaluateRegularHandlebar()` to check registry first, then built-in helpers
+    - Update `_evaluateBlockHandlebar()` to parse params and check registry first
+    - Add `context._handlebar` namespace with internal utilities (req, depth, expandHandlebars, etc.)
+    - Filter out `_handlebar` from context in `_filterContext()` before template exposure
+  - `webapp/utils/bootstrap.js`:
+    - Add helper auto-discovery after `SiteControllerRegistry.initialize()` and before `HandlebarController.initialize()`
+    - Discover `handlebar*` methods from all registered controllers (framework, site, plugins)
+  - `docs/dev/working/W-116-handlebars-plugin-interface.md`:
+    - Complete implementation plan with all phases
+    - API reference with helper signatures and args structure
+    - Examples for plugin and site helpers
+  - `docs/plugins/creating-plugins.md`:
+    - Add "Step 9: Add Handlebars Helpers" section
+    - Document auto-discovery pattern and naming convention
+    - Show examples of regular and block helpers
+    - Document `context._handlebar` utilities
+  - `webapp/tests/unit/controller/handlebar.test.js`:
+    - Test helper registration via `registerHelper()`
+    - Test auto-discovery from controllers
+    - Test regular helper invocation with `args` parameter
+    - Test block helper invocation with `args` parameter
+    - Test internal utilities access via `context._handlebar`
+  - `webapp/tests/integration/plugin-handlebars-helpers.test.js`:
+    - Test plugin helper registration and discovery
+    - Test site helper registration and discovery
+    - Test helper priority (framework → site → plugins)
+    - Test helpers with subexpressions
+  - `plugins/hello-world/webapp/controller/helloPlugin.js`:
+    - Add example regular helper (`handlebarUppercase`)
+    - Add example block helper (`handlebarRepeat`)
+    - Demonstrate usage of `context._handlebar` utilities
+
+
+
+
+
+
+
 ### Pending
 
 
@@ -3046,8 +3114,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-115, v1.3.16
-- update deliverables in W-115 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-116, v1.3.17
+- update deliverables in W-116 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -3064,12 +3132,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.16
+node bin/bump-version.js 1.3.17
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.16
+git tag v1.3.17
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -3329,17 +3397,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
     - less flexible math
     - multile handlebar helpers
     - more verbose
-- deliverables:
-  - FIXME file:
-    - FIXME summary
-
-### W-0: handlebars: define plugin interface
-- status: 🕑 PENDING
-- type: Feature
-- objective: enable site developers to define their own handlebar helpers
-- interface:
-  - `HandlebarController.registerHelper('uppercase', (text) => text.toUpperCase());`
-  - how to register in plugin?
 - deliverables:
   - FIXME file:
     - FIXME summary

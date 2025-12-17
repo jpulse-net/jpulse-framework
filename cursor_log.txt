@@ -6014,3 +6014,63 @@ Status: Release prep complete! Ready for version bump and commit.
 
 
 ============================================================
+2025-12-16 11:50
+
+W-116: Implemented Handlebars Plugin Interface
+
+User request: "ok, no runtime validation - yes, go ahead"
+
+Summary:
+Implemented the Handlebars plugin interface for auto-discovery of custom helpers from site and plugin controllers. This enables developers to add custom Handlebars helpers by simply defining static methods starting with "handlebar" in their controllers.
+
+Key changes:
+1. Added helperRegistry Map to HandlebarController for storing custom helpers
+2. Added registerHelper() method with automatic type detection (regular vs block)
+3. Refactored all existing regular and block helpers to use args parameter (already parsed)
+4. Added context._handlebar namespace with internal utilities (req, depth, expandHandlebars, etc.)
+5. Implemented auto-discovery in bootstrap.js to scan controllers for handlebar* methods
+6. Updated _evaluateRegularHandlebar and _evaluateBlockHandlebar to check registry first
+7. Added _handlebar filtering in _filterContext to prevent exposure to templates
+8. Updated getMetrics() to sort arrays and include registeredHelpers count
+
+Files modified:
+- webapp/controller/handlebar.js: Added registry, registerHelper(), refactored all helpers, added _handlebar context
+- webapp/utils/bootstrap.js: Added auto-discovery logic for handlebar* methods
+- docs/dev/working/W-116-handlebars-plugin-interface.md: Removed runtime validation comments
+
+Implementation complete. All existing helpers refactored to use args parameter. Auto-discovery working. Ready for testing.
+
+Status: Implementation complete, pending tests (W-116-7)
+
+============================================================
+2025-12-16 23:02
+
+W-116, v1.3.17: Handlebars Plugin Interface - Documentation and Release Prep
+
+Request: Update documentation for W-116 release (handlebars plugin interface), update README.md, docs/README.md, docs/CHANGELOG.md, commit-message.txt, and cursor_log.txt
+
+Summary:
+- Updated README.md with v1.3.17 release highlights (Handlebars Plugin Interface for Custom Helpers)
+- Updated docs/README.md with v1.3.17 release highlights
+- Updated docs/CHANGELOG.md with comprehensive v1.3.17 entry including all features, code changes, tests, and documentation
+- Updated commit-message.txt following W-115 format with complete W-116 details
+- Fixed documentation examples in docs/plugins/creating-plugins.md (removed non-working nested conditionals with @first/@last)
+- All documentation now covers: auto-discovery pattern, unified interface, JSDoc extraction, helper priority, complete examples
+
+Key Documentation Updates:
+- docs/handlebars.md: Replaced placeholder "Custom Helpers" section with comprehensive documentation
+- docs/plugins/creating-plugins.md: Enhanced Step 3.5 with JSDoc documentation and working examples
+- docs/dev/work-items.md: Updated features, implementation, and deliverables (status kept as IN_PROGRESS per request)
+- docs/dev/working/W-116-handlebars-plugin-interface.md: Added JSDoc extraction details
+
+Release Readiness:
+- Implementation: ✅ Complete
+- Tests: ✅ 27 tests passing (22 unit + 5 integration)
+- Documentation: ✅ Complete
+- Examples: ✅ Working (hello-world plugin)
+- Release docs: ✅ Updated (README, CHANGELOG, commit message)
+
+Status: Ready for release prep. All deliverables complete, tests passing, documentation comprehensive.
+
+
+============================================================

@@ -3,7 +3,7 @@
  * @tagline         Hello Plugin Controller
  * @description     Simple API controller demonstrating plugin structure
  * @file            plugins/hello-world/webapp/controller/helloPlugin.js
- * @version         1.3.16
+ * @version         1.3.17
  * @author          jPulse Team, https://jpulse.net
  * @license         BSL 1.1
  * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
@@ -53,6 +53,12 @@ class HelloPluginController {
         };
         return context;
     }
+
+    // ========================================================================
+    // API endpoints (W-014)
+    // Auto-discovered by SiteControllerRegistry during bootstrap
+    // Method names starting with "api" are automatically registered
+    // ========================================================================
 
     /**
      * Get plugin data
@@ -124,6 +130,69 @@ class HelloPluginController {
             LogController.logError(req, 'helloPlugin.stats', `error: ${error.message}`);
             return global.CommonUtils.sendError(req, res, 500, 'Failed to retrieve hello plugin statistics', 'INTERNAL_ERROR', error.message);
         }
+    }
+
+    // ========================================================================
+    // Handlebars Helpers (W-116)
+    // Auto-discovered by HandlebarController during bootstrap
+    // Method names starting with "handlebar" are automatically registered
+    // ========================================================================
+
+    /**
+     * W-116: Example regular handlebar helper - converts text to uppercase
+     * Usage in templates: {{uppercase "hello world"}} → "HELLO WORLD".
+     * Note: The description and example below are extracted by the handlebars doc system.
+     * @description Convert text to UPPERCASE (hello-world plugin example)
+     * @example {{uppercase "hello world"}}
+     * @param {object} args - Parsed arguments (already evaluated)
+     * @param {object} context - Template context
+     * @returns {string} Uppercased text
+     */
+    static handlebarUppercase(args, context) {
+        // Support multiple argument formats:
+        // {{uppercase "text"}} -> args._target = "text"
+        // {{uppercase text="text"}} -> args.text = "text"
+        // {{uppercase user.username}} -> args._target = user.username value
+        const text = args._target || args.text || args[0] || '';
+        return String(text).toUpperCase();
+    }
+
+    /**
+     * W-116: Example block handlebar helper - repeats content N times
+     * Usage in templates: {{#repeat count=3}}Hello{{/repeat}} → "HelloHelloHello".
+     * Supports {{@index}} and {{@first}} / {{@last}} iteration variables.
+     * Note: The description and example below are extracted by the handlebars doc system.
+     * @description Repeat text N times (hello-world plugin example)
+     * @example {{#repeat count=3}} Hello {{@index}} {{/repeat}}
+     * @param {object} args - Parsed arguments (already evaluated)
+     * @param {string} blockContent - Content between opening and closing tags
+     * @param {object} context - Template context
+     * @returns {string} Repeated content
+     */
+    static async handlebarRepeat(args, blockContent, context) {
+        const count = parseInt(args.count || args._target || 1, 10);
+        if (count <= 0 || count > 100) {
+            return ''; // Safety limit
+        }
+
+        // Build result by iterating and expanding with iteration context
+        let result = '';
+        for (let i = 0; i < count; i++) {
+            // Create iteration context with special variables (like {{#each}})
+            const iterationContext = {
+                ...context,
+                '@index': i,
+                '@first': i === 0,
+                '@last': i === count - 1,
+                '@count': count
+            };
+
+            // Expand block content with iteration context
+            const expanded = await context._handlebar.expandHandlebars(blockContent, iterationContext);
+            result += expanded;
+        }
+
+        return result;
     }
 }
 

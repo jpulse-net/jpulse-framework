@@ -172,7 +172,110 @@ jPulse automatically:
 - **Discovers controllers** in `site/webapp/controller/`
 - **Registers routes** based on filename and methods
 - **Creates API endpoints** from `api()` method
+- **Registers Handlebars helpers** from `handlebar*` methods
 - **No manual configuration** required
+
+### Creating Custom Handlebars Helpers
+
+Site developers can create custom Handlebars helpers by adding static methods to any site controller. Helpers are automatically discovered and registered during bootstrap, following the same auto-discovery pattern as API endpoints.
+
+**Location:** `site/webapp/controller/*.js`
+
+**Naming Convention:** Methods starting with `handlebar` are automatically registered
+- `handlebarUppercase` → `{{uppercase}}`
+- `handlebarFormatDate` → `{{formatDate}}`
+- `handlebarRepeat` → `{{#repeat}}` (block helper)
+
+**Example: Regular Helper**
+```javascript
+// site/webapp/controller/custom.js
+class CustomController {
+    /**
+     * Format a date value
+     * @description Format date using specified format string
+     * @example {{formatDate user.lastLogin "YYYY-MM-DD"}}
+     * @param {object} args - Parsed arguments (already evaluated)
+     * @param {object} context - Template context
+     * @returns {string} Formatted date string
+     */
+    static handlebarFormatDate(args, context) {
+        const date = args._target || args.date;
+        const format = args.format || args._args?.[1] || 'YYYY-MM-DD';
+
+        if (!date) return '';
+
+        // Simple date formatting (use a library like date-fns in production)
+        const d = new Date(date);
+        return d.toISOString().split('T')[0]; // Simplified example
+    }
+}
+
+export { CustomController };
+```
+
+**Example: Block Helper**
+```javascript
+// site/webapp/controller/custom.js
+class CustomController {
+    /**
+     * Repeat content N times
+     * @description Repeat block content a specified number of times
+     * @example {{#repeat count=3}}Item {{@index}}{{/repeat}}
+     * @param {object} args - Parsed arguments (already evaluated)
+     * @param {string} blockContent - Content inside the block
+     * @param {object} context - Template context
+     * @returns {string} Repeated content
+     */
+    static async handlebarRepeat(args, blockContent, context) {
+        const count = parseInt(args.count || args._target || 1, 10);
+        let result = '';
+
+        for (let i = 0; i < count; i++) {
+            const iterationContext = {
+                ...context,
+                '@index': i,
+                '@first': i === 0,
+                '@last': i === count - 1,
+                '@count': count
+            };
+
+            // Expand block content with iteration context
+            const expanded = await context._handlebar.expandHandlebars(blockContent, iterationContext);
+            result += expanded;
+        }
+
+        return result;
+    }
+}
+
+export { CustomController };
+```
+
+**Helper Arguments Structure:**
+All helpers receive a parsed `args` object:
+- `args._helper` - Helper name (e.g., "formatDate")
+- `args._target` - First positional argument or property path value (already evaluated)
+- `args._args[]` - Array of all positional arguments
+- `args.{key}` - Named arguments (e.g., `args.count` from `count=3`)
+
+**Context Utilities:**
+Block helpers have access to framework utilities via `context._handlebar`:
+- `context._handlebar.req` - Express request object
+- `context._handlebar.depth` - Current recursion depth
+- `context._handlebar.expandHandlebars(template, additionalContext)` - Expand nested Handlebars
+- `context._handlebar.getNestedProperty(obj, path)` - Get nested property
+- `context._handlebar.setNestedProperty(obj, path, value)` - Set nested property
+
+**Helper Priority:**
+Helpers follow override priority: `site` → `plugin 1` → `plugin 2` → `core`
+- Site helpers override plugin and core helpers
+- Plugin helpers override core helpers
+- Core helpers are the fallback
+
+**Auto-Documentation:**
+Include JSDoc comments with `@description` and `@example` tags to automatically document your helpers. The framework extracts these during registration and includes them in helper documentation.
+
+> **See Also:** [Handlebars Reference](handlebars.md) for complete documentation on creating custom helpers, including detailed examples, argument parsing, and best practices.
 
 ________________________________________________
 ## View Customization

@@ -6074,3 +6074,33 @@ Status: Ready for release prep. All deliverables complete, tests passing, docume
 
 
 ============================================================
+2025-12-16 23:42
+
+User Request: Documentation updates for client-side Handlebars and site developer helper creation
+- Update template-reference.md to document two types of client-side Handlebars (jPulse and Vue.js)
+- Document custom Handlebars helpers for site developers in site-customization.md
+- Add cross-reference link in handlebars.md
+
+Changes Made:
+1. template-reference.md:
+   - Expanded "Client-Side Handlebars Expansion" section
+   - Added subsection for "jPulse Handlebars (Server-Side Context)" with existing API endpoint documentation
+   - Added subsection for "Vue.js Handlebars (Client-Side Only)" with description and link to mpa-vs-spa.md
+   - Clarified when to use each approach
+
+2. site-customization.md:
+   - Added "Creating Custom Handlebars Helpers" subsection under "Controller Customization"
+   - Included complete examples for both regular and block helpers
+   - Documented helper arguments structure and context utilities
+   - Explained helper priority (site → plugin → core)
+   - Added auto-documentation information with JSDoc
+   - Included cross-reference to handlebars.md for complete documentation
+
+3. handlebars.md:
+   - Added cross-reference link to site-customization.md in "Creating Custom Helpers" section
+   - Makes it easier for site developers to find site-specific documentation
+
+Status: Documentation updates complete. Site developers now have clear guidance on creating custom Handlebars helpers, and both client-side Handlebars approaches are documented.
+
+
+============================================================

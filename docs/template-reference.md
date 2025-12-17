@@ -952,7 +952,11 @@ jPulse.dom.ready(() => {
 
 ## 🔄 Client-Side Handlebars Expansion
 
-For dynamic content that needs to be generated on the client side, you can use the Handlebars expansion API endpoint:
+There are two types of client-side Handlebars templating available in jPulse:
+
+### jPulse Handlebars (Server-Side Context)
+
+For dynamic content that needs to be generated on the client side with full server-side context, use the Handlebars expansion API endpoint:
 
 **API Endpoint:** `POST /api/1/handlebar/expand`
 
@@ -976,6 +980,55 @@ const result = await jPulse.api.post('/api/1/handlebar/expand', {
 ```
 
 > **See Also:** [Front-End Development Guide](front-end-development.md) for complete client-side Handlebars expansion documentation, use cases, and examples.
+
+### Vue.js Templates (Client-Side Only)
+
+When building Single Page Applications (SPAs) with Vue.js, you can use Vue's built-in template syntax which is similar to Handlebars. Vue templates use `{{ }}` (with spaces) for interpolation and support directives like `v-if`, `v-for`, and `v-bind` for dynamic rendering.
+
+**Syntax Distinction:**
+- **jPulse Handlebars**: `{{variable}}` (no spaces) - expanded server-side with full server context
+- **Vue.js Templates**: `{{ variable }}` (with spaces) - expanded client-side with Vue component data
+
+**Mixing jPulse and Vue.js:**
+You can mix both in the same template! jPulse Handlebars are expanded server-side first, then Vue.js processes the result:
+
+```html
+<!-- site/webapp/view/hello-vue/index.shtml -->
+<div id="app">
+    <!-- jPulse Handlebars (no spaces) - expanded server-side -->
+    <h1>Welcome {{user.firstName}}!</h1>
+
+    <!-- Vue.js (with spaces) - expanded client-side -->
+    <div v-if="isAuthenticated">
+        <p>Your order {{ order.id }} is {{ order.status }}.</p>
+    </div>
+</div>
+
+<script>
+const app = Vue.createApp({
+    data() {
+        return {
+            // jPulse Handlebars expanded server-side, Vue uses the result
+            isAuthenticated: {{user.isAuthenticated}}, // Becomes: true or false
+            order: { id: 'ORD-123', status: 'shipped' }
+        }
+    }
+});
+app.mount('#app');
+</script>
+```
+
+**Processing Flow:**
+1. **Server-side**: jPulse expands `{{user.firstName}}` → `"John"` and `{{user.isAuthenticated}}` → `true`
+2. **Client-side**: Vue.js receives the expanded HTML and processes `{{ order.id }}` and `v-if="isAuthenticated"` with its component data
+
+**When to Use:**
+- Building full SPAs with Vue.js
+- Rich interactive user interfaces
+- Real-time client-side state management
+- When you need server context (user, config) mixed with client-side reactive data
+
+> **See Also:** [MPA vs. SPA Architecture Guide](mpa-vs-spa.md) for details on when to use Vue.js SPAs and how they differ from jPulse Handlebars.
 
 ## 🔧 Best Practices
 

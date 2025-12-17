@@ -1177,6 +1177,8 @@ You can create custom Handlebars helpers for your site or plugin using the auto-
 
 **For Sites**: Add helper methods to a site controller (`site/webapp/controller/yourController.js`)
 
+> **Site Developers**: See [Site Customization - Creating Custom Handlebars Helpers](site-customization.md#creating-custom-handlebars-helpers) for detailed documentation and examples specific to site development.
+
 **Naming Convention**: Methods starting with `handlebar` are automatically discovered
 - `handlebarUppercase` → `{{uppercase}}`
 - `handlebarRepeat` → `{{#repeat}}`

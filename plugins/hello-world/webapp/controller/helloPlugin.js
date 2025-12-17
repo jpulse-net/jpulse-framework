@@ -153,7 +153,7 @@ class HelloPluginController {
         // {{uppercase "text"}} -> args._target = "text"
         // {{uppercase text="text"}} -> args.text = "text"
         // {{uppercase user.username}} -> args._target = user.username value
-        const text = args._target || args.text || args[0] || '';
+        const text = args._target || args.text || '';
         return String(text).toUpperCase();
     }
 

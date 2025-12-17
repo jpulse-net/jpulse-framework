@@ -2994,19 +2994,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/tests/unit/controller/handlebar-context-filter.test.js`
     - new test file with 4 unit tests for siteConfig filtering
 
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-116, v1.3.17, 2025-12-16: handlebars: define plugin interface for custom helpers
 - status: ✅ DONE
 - type: Feature
@@ -3076,6 +3063,19 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - Add example regular helper (`handlebarUppercase`)
     - Add example block helper (`handlebarRepeat`)
     - Demonstrate usage of `context._handlebar` utilities
+
+
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
 
 
 

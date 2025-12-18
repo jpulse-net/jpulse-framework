@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.17
+# jPulse Docs / Dev / Work Items v1.3.18
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -140,7 +140,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   2. Static `/common` directory (protects 3rd party packages from dynamic processing)
   3. Dynamic content: `*.shtml`, `*.tmpl`, `/jpulse-*.js`, `/jpulse-*.css`
   4. Root static fallback: `/` (serves remaining static files including `/images`)
-- nginx Configuration** (production):
+- nginx Configuration (production):
   - API routes → proxy to app
   - Static `/common/` directory → direct serve
   - Dynamic templates (`*.shtml`, `*.tmpl`, `/jpulse-*`) → proxy to app
@@ -517,7 +517,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - create webapp/view/admin/config.shtml -- edit site config
-- **DELIVERED**: Complete site configuration management system with intuitive admin interface, email settings (SMTP server, port, credentials, TLS), site messages, password visibility toggle, smart default creation, comprehensive validation, full i18n support, and extensive test coverage
+- DELIVERED: Complete site configuration management system with intuitive admin interface, email settings (SMTP server, port, credentials, TLS), site messages, password visibility toggle, smart default creation, comprehensive validation, full i18n support, and extensive test coverage
 
 ### W-014, v0.5.0: architecture: strategy for seamless update of site-specific jPulse deployments
 - status: ✅ DONE
@@ -2117,31 +2117,31 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - add themes
 - create a hello-world demo plugin, ship with jpulse-framework
 - deliverables:
-  - **Core Plugin Infrastructure**:
+  - Core Plugin Infrastructure:
     * PluginManager for discovery, validation, dependency resolution, lifecycle management
     * Auto-discovery from plugins/ directory with plugin.json metadata
     * PathResolver integration for site > plugins > framework priority
     * Symlink management for static assets and documentation
     * Bootstrap sequence integration (Step 5)
-  - **Plugin Configuration Management**:
+  - Plugin Configuration Management:
     * PluginModel with JSON schema validation (MongoDB storage)
     * Dynamic form generation from schema in admin UI
     * Per-plugin config with types, validation, defaults, enums
     * Admin UI: /admin/plugins.shtml (list/enable/disable), /admin/plugin-config.shtml (configure)
-  - **Plugin Components**:
+  - Plugin Components:
     * Auto-discovery: controllers, models, views, static assets, documentation
     * SiteControllerRegistry integration for plugin API endpoints
     * ViewController integration for plugin views
     * Handlebars file.list/file.include helpers support plugins
     * W-098 append mode for jpulse-common.js/css, jpulse-navigation.js
-  - **hello-world Demo Plugin** (ships with framework):
+  - hello-world Demo Plugin (ships with framework):
     * Demonstrates MVC pattern, configuration schema, navigation integration
     * Controller: /api/1/hello-plugin/* endpoints
     * Model: plugin data & statistics
     * Views: /hello-plugin/ (tutorial), /jpulse-plugins/hello-world.shtml (overview)
     * Documentation: auto-symlinked to /jpulse-docs/installed-plugins/hello-world/
     * Full example with all plugin features
-  - **Developer Documentation** (docs/plugins/):
+  - Developer Documentation (docs/plugins/):
     * Plugin Architecture Overview (plugin-architecture.md)
     * Creating Plugins Guide (creating-plugins.md)
     * Managing Plugins Guide (managing-plugins.md)
@@ -2994,7 +2994,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/tests/unit/controller/handlebar-context-filter.test.js`
     - new test file with 4 unit tests for siteConfig filtering
 
-### W-116, v1.3.17, 2025-12-16: handlebars: define plugin interface for custom helpers
+### W-116, v1.3.17, 2025-12-17: handlebars: define plugin interface for custom helpers
 - status: ✅ DONE
 - type: Feature
 - objective: enable site developers and plugin developers to define their own handlebar helpers using auto-discovery pattern
@@ -3077,6 +3077,98 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-117, v1.3.18, 2025-12-18: refactoring: handlebar optimization, security unit tests
+- status: ✅ DONE
+- type: Refactoring
+- objective: security hardening, more efficient handlebar processing, comprehensive unit test coverage
+- features:
+  - context caching optimization for improved performance with nested template expansions
+  - security hardening with 206 new unit tests for XSS prevention and path traversal blocking
+  - technical debt removal (16 skipped tests eliminated)
+  - documentation enhancements for client-side Handlebars and site developer helpers
+- implementation:
+  - context caching: moved _buildInternalContext() to expandHandlebars() (depth 0 only), cached on req.baseContext
+  - unit test analysis: identified 5 low-hanging fruit opportunities (sanitizeHtml, MetricsRegistry, _validatePluginName, ContextExtensions, validatePluginJson)
+  - implemented 4 high-priority test suites with 206 comprehensive tests
+  - test cleanup: removed 6 skipped tests from health.test.js, deleted admin-view.test.js (10 skipped tests)
+  - documentation: Vue.js vs jPulse Handlebars clarification, site developer helper creation guide
+- enhancements:
+  - performance (Handlebar Context Caching):
+    - moved _buildInternalContext() from _expandHandlebars() to expandHandlebars() (depth 0)
+    - cached baseContext on req.baseContext for reuse across nested {{file.include}} calls
+    - eliminated redundant context rebuilds, significantly improving performance for templates with many includes
+  - security (XSS Prevention):
+    - 55 tests for sanitizeHtml(): script/style removal, event handlers, javascript:/data: protocols, tag/attribute filtering
+    - comprehensive coverage of attack vectors: nested attacks, SVG-based XSS, URL encoding, command injection patterns
+  - security (Path Traversal Prevention):
+    - 68 tests for _validatePluginName(): validates plugin names against path traversal attacks
+    - blocks: ../, ./, absolute paths, special characters, uppercase, command injection, SQL injection patterns
+  - infrastructure (Metrics Collection):
+    - 47 tests for MetricsRegistry: registration, validation, sync/async providers, error handling
+    - ensures health monitoring system reliability for component metrics collection
+  - core Features (Context Extensions):
+    - 36 tests for ContextExtensions (W-014): provider management, priority ordering, caching, async support
+    - validates Handlebars context extension system used by site controllers and plugins
+  - technical Debt Removal:
+    - removed 16 skipped unit tests (health.test.js: 6 tests, admin-view.test.js: deleted entire file with 10 tests)
+    - all functionality covered by integration tests (health-api.test.js, admin-routes.test.js)
+    - test suite now shows 0 skipped tests (was 16)
+  - documentation (Client-Side Handlebars):
+    - template-reference.md: Distinguished jPulse Handlebars (server-side) vs Vue.js (client-side)
+    - clarified syntax: {{variable}} (jPulse) vs {{ variable }} (Vue.js with spaces)
+    - explained processing flow and when to use each approach
+  - documentation (Site Developer Helpers):
+    - site-customization.md: Added comprehensive guide for creating custom Handlebars helpers
+    - included examples for regular and block helpers, args structure, context utilities
+    - documented helper priority (site → plugin → core) and JSDoc auto-documentation
+- deliverables:
+  - webapp/controller/handlebar.js:
+    - performance: Context built once per request at depth 0, cached on req.baseContext
+    - _expandHandlebars() reuses cached context instead of rebuilding on every call
+  - webapp/tests/unit/controller/handlebar-context-caching.test.js:
+    - 7 tests: Validates context caching optimization works correctly
+    - tests: single call per request, caching, reuse across nested calls, context isolation
+  - webapp/tests/unit/utils/common-utils-sanitize.test.js:
+    - 55 tests: XSS prevention via sanitizeHtml()
+    - coverage: script/style removal, event handlers (15+ types), protocols, tags, attributes, attack vectors
+  - webapp/tests/unit/utils/metrics-registry.test.js:
+    - 47 tests: MetricsRegistry reliability
+    - coverage: register/unregister, validation, sync/async providers, error handling
+  - webapp/tests/unit/controller/plugin-controller-validation.test.js:
+    - 68 tests: Path traversal prevention via _validatePluginName()
+    - coverage: valid formats, path traversal attacks, special chars, URL encoding, real-world attacks
+  - webapp/tests/unit/utils/context-extensions.test.js:
+    - 36 tests: Context extension system (W-014)
+    - coverage: provider registration, priority ordering, caching, async support, error handling
+  - webapp/tests/unit/controller/health.test.js:
+    - removed 6 skipped tests (health() and metrics() methods)
+    - added comment noting integration test coverage in health-api.test.js
+  - webapp/tests/unit/controller/admin-view.test.js:
+    - deleted entire file (10 skipped tests in skipped describe block)
+    - functionality covered by admin-routes.test.js integration tests
+  - docs/template-reference.md:
+    - added "Vue.js Templates (Client-Side Only)" subsection under "Client-Side Handlebars Expansion"
+    - clarified syntax distinction and processing flow between jPulse and Vue.js Handlebars
+  - docs/site-customization.md:
+    - added "Creating Custom Handlebars Helpers" subsection under "Controller Customization"
+    - Complete examples for regular and block helpers with JSDoc documentation
+  - docs/handlebars.md:
+    - added cross-reference link to site-customization.md for site developers
+- total impact:
+  - tests: +213 new unit tests (206 low-hanging fruit + 7 context caching), -16 skipped tests = +197 net
+  - security: XSS prevention (55 tests), path traversal blocking (68 tests)
+  - infrastructure: Metrics reliability (47 tests), context extensions (36 tests)
+  - performance: Handlebar context caching optimization (7 tests)
+  - quality: 0 skipped tests (eliminated technical debt)
+  - documentation: Vue.js vs jPulse clarification, site developer helper guide
+- status notes:
+  - all 213 new tests passing (100% pass rate)
+  - performance optimization validated and tested
+  - security hardening complete for critical functions
+  - documentation comprehensive and cross-referenced
+
+
+
 
 
 
@@ -3114,8 +3206,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-116, v1.3.17
-- update deliverables in W-116 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-117, v1.3.18
+- update deliverables in W-117 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -3132,12 +3224,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.17
+node bin/bump-version.js 1.3.18
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.17
+git tag v1.3.18
 git push origin main --tags
 
 === plugin release & package build on github ===

@@ -1,6 +1,192 @@
-# jPulse Docs / Version History v1.3.17
+# jPulse Docs / Version History v1.3.18
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.18, W-117, 2025-12-18
+
+**Commit:** `W-117, v1.3.18: refactoring: handlebar optimization, security unit tests`
+
+**REFACTORING RELEASE**: Performance optimization through context caching, comprehensive security hardening with 206 new unit tests, technical debt removal (16 skipped tests eliminated), and documentation enhancements for client-side Handlebars and site developer helpers.
+
+**Objective**: Optimize Handlebars performance for nested template expansions, harden security with comprehensive unit tests for critical functions, eliminate technical debt from skipped tests, and enhance documentation for developer experience.
+
+**Key Features**:
+
+**Performance Optimization - Context Caching**:
+- Moved `_buildInternalContext()` from `_expandHandlebars()` to `expandHandlebars()` (depth 0 only)
+- Cached `baseContext` on `req.baseContext` for reuse across nested `{{file.include}}` calls
+- Eliminated redundant context rebuilds on every recursive call
+- Significant performance improvement for templates with many includes
+- Added 7 unit tests for context caching validation
+
+**Security Hardening - Unit Tests** (206 new tests):
+1. **sanitizeHtml() - 55 tests** (XSS Prevention):
+   - Script/style tag removal (basic, with attributes, case-insensitive, nested, multiple)
+   - Event handler stripping (onclick, onerror, onload, all 15+ common handlers)
+   - JavaScript/data protocol removal (href, src, base64 URLs)
+   - HTML comment removal (basic, multiline, with scripts)
+   - Tag/attribute filtering (allow safe, remove dangerous)
+   - Custom options (allowedTags, allowedAttributes)
+   - Edge cases (empty, null, undefined, numbers, objects, malformed HTML)
+   - Complex attack vectors (nested attacks, SVG-based XSS, mixed case, URL encoding)
+   - Real-world scenarios (plugin descriptions with formatting, malicious content)
+
+2. **_validatePluginName() - 68 tests** (Path Traversal Prevention):
+   - Valid plugin names (lowercase, hyphens, numbers, length variations)
+   - Path traversal attacks (`../`, `./`, `../../etc/passwd`, absolute paths)
+   - Special characters (uppercase, underscores, spaces, @, ., /, \, |, ;, &)
+   - Command injection patterns (backticks, $(), pipes, shell redirects)
+   - SQL injection patterns (single/double quotes, SQL keywords)
+   - Unicode/emoji characters
+   - Edge cases (empty, null, undefined, whitespace, very long names)
+   - Error messages (proper req object usage, i18n validation)
+
+3. **MetricsRegistry - 47 tests** (Infrastructure Reliability):
+   - register() validation (name, function, options)
+   - Sync and async provider support
+   - unregister() functionality
+   - getRegisteredNames() accuracy
+   - isRegistered() checking
+   - getProvider() retrieval
+   - Error handling for invalid inputs
+   - Provider priority and overriding
+   - Integration scenarios with HealthController
+
+4. **ContextExtensions - 36 tests** (W-014 Context System):
+   - registerProvider() with priorities, cache options, timestamps
+   - getExtendedContext() merging, priority ordering, caching
+   - getCacheKey() generation (username:path format)
+   - clearCache() patterns (all, specific, regex)
+   - getMetrics() structure (provider count, cache size)
+   - Async provider support
+   - Error handling (failed providers continue execution)
+   - Complex nested objects and functions
+
+**Technical Debt Removal**:
+- Removed 16 skipped unit tests (0 skipped tests remaining)
+- health.test.js: Removed 6 skipped tests (health() and metrics() methods)
+  - Tests were marked "Jest ES module mocking complexity"
+  - All functionality covered by health-api.test.js integration tests
+- admin-view.test.js: Deleted entire file (10 skipped tests in skipped describe block)
+  - Tests attempted complex view rendering with heavy mocking
+  - All admin functionality covered by admin-routes.test.js integration tests
+- Improved code quality without reducing coverage
+
+**Documentation Enhancements**:
+1. **Client-Side Handlebars Clarification** (template-reference.md):
+   - Distinguished jPulse Handlebars (server-side, `{{variable}}` without spaces) vs Vue.js (client-side, `{{ variable }}` with spaces)
+   - Clarified syntax distinction and processing flow
+   - Added "Vue.js Templates (Client-Side Only)" subsection
+   - Explained processing order (jPulse server-side first, then Vue.js client-side)
+
+2. **Site Developer Helpers Guide** (site-customization.md):
+   - Added "Creating Custom Handlebars Helpers" subsection under "Controller Customization"
+   - Complete examples for regular and block helpers
+   - Documented args structure (\_target, \_args[], named parameters)
+   - Explained context utilities (context.\_handlebar.*)
+   - Documented helper priority (site → plugin → core)
+   - Included JSDoc auto-documentation information
+   - Cross-reference to handlebars.md
+
+3. **Cross-References** (handlebars.md):
+   - Added link to site-customization.md for site developers
+
+**Code Changes**:
+
+**webapp/controller/handlebar.js**:
+- Moved `_buildInternalContext()` call from `_expandHandlebars()` to `expandHandlebars()`
+- Cache `baseContext` on `req.baseContext` at depth 0
+- `_expandHandlebars()` retrieves cached context (with fallback for direct calls)
+- Performance: Context built once per request instead of on every recursive call
+
+**webapp/tests/unit/controller/handlebar-context-caching.test.js** (NEW):
+- 7 tests for context caching optimization:
+  - `_buildInternalContext()` called only once per request
+  - `baseContext` cached on req.baseContext
+  - Cached context reused across nested calls (depth 0 and 1)
+  - `additionalContext` can override cached properties
+  - Multiple sequential requests handled independently
+  - `context._handlebar` utilities preserved across nested calls
+  - Fallback rebuilds context if baseContext missing
+
+**webapp/tests/unit/utils/common-utils-sanitize.test.js** (NEW):
+- 55 comprehensive tests for `CommonUtils.sanitizeHtml()`
+- Covers all XSS attack vectors and edge cases
+- Validates security against script injection, event handlers, malicious protocols
+- Tests custom options and real-world scenarios
+
+**webapp/tests/unit/utils/metrics-registry.test.js** (NEW):
+- 47 comprehensive tests for `MetricsRegistry`
+- Validates registration, retrieval, validation logic
+- Tests sync/async providers, error handling
+- Ensures health monitoring system reliability
+
+**webapp/tests/unit/controller/plugin-controller-validation.test.js** (NEW):
+- 68 comprehensive tests for `PluginController._validatePluginName()`
+- Validates security against path traversal, command injection, SQL injection
+- Tests valid formats, special characters, unicode, error messages
+
+**webapp/tests/unit/utils/context-extensions.test.js** (NEW):
+- 36 comprehensive tests for `ContextExtensions` (W-014)
+- Validates provider registration, priority ordering, caching
+- Tests async support, error handling, metrics
+- Ensures Handlebars context extension system reliability
+
+**webapp/tests/unit/controller/health.test.js**:
+- Removed 6 skipped tests (health() and metrics() methods)
+- Added comment noting integration test coverage
+
+**webapp/tests/unit/controller/admin-view.test.js** (DELETED):
+- Removed entire file (10 skipped tests)
+- Functionality covered by admin-routes.test.js
+
+**docs/template-reference.md**:
+- Enhanced "Client-Side Handlebars Expansion" section
+- Added "Vue.js Templates (Client-Side Only)" subsection
+- Clarified syntax distinction and processing flow
+
+**docs/site-customization.md**:
+- Added "Creating Custom Handlebars Helpers" subsection
+- Complete examples for regular and block helpers with JSDoc
+
+**docs/handlebars.md**:
+- Added cross-reference link to site-customization.md
+
+**Test Results**:
+- Before: 51 suites, 1064 tests passed, 16 skipped (1080 total)
+- After: 55 suites, 1270 tests passed, 0 skipped (1270 total)
+- Integration: 10 suites, 105 tests passed
+- Grand Total: 65 suites, 1375 tests passed, 0 skipped
+- Net Change: +213 tests, -16 skipped = +197 net improvement
+
+**Files Modified**: 8
+- webapp/controller/handlebar.js: Context caching optimization
+- webapp/tests/unit/controller/handlebar-context-caching.test.js: NEW (7 tests)
+- webapp/tests/unit/utils/common-utils-sanitize.test.js: NEW (55 tests)
+- webapp/tests/unit/utils/metrics-registry.test.js: NEW (47 tests)
+- webapp/tests/unit/controller/plugin-controller-validation.test.js: NEW (68 tests)
+- webapp/tests/unit/utils/context-extensions.test.js: NEW (36 tests)
+- webapp/tests/unit/controller/health.test.js: Removed 6 skipped tests
+- webapp/tests/unit/controller/admin-view.test.js: DELETED (10 skipped tests)
+
+**Files Modified (Documentation)**: 3
+- docs/template-reference.md: Vue.js vs jPulse Handlebars clarification
+- docs/site-customization.md: Site developer helper creation guide
+- docs/handlebars.md: Cross-reference link
+
+**Breaking Changes**: None
+
+**Impact Summary**:
+- **Performance**: Context caching eliminates redundant rebuilds in nested templates
+- **Security**: 123 tests (sanitizeHtml: 55, _validatePluginName: 68) protect against XSS and path traversal
+- **Infrastructure**: 83 tests (MetricsRegistry: 47, ContextExtensions: 36) ensure platform reliability
+- **Quality**: Zero skipped tests (was 16), 100% test pass rate, technical debt eliminated
+- **Documentation**: Clear distinction between jPulse and Vue.js Handlebars, comprehensive site developer guide
+
+**Work Item**: W-117
+**Version**: v1.3.18
+**Release Date**: 2025-12-18
 
 ________________________________________________
 ## v1.3.17, W-116, 2025-12-17

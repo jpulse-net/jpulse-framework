@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.3.17
+# jPulse Docs / Front-End Development Guide v1.3.18
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -161,6 +161,55 @@ if (result.success) {
     // Output: "Hello John! You have 5 new messages."
 }
 ```
+
+### Using Components in API Calls
+
+**Important:** Components must be explicitly included in your API call template. Unlike server-side rendering where components are pre-loaded via `{{file.include "components/svg-icons.tmpl"}}` in the page header for example, API calls create a fresh component registry for each request.
+
+**Example: Using SVG Icons**
+
+```javascript
+// Include component library first, then use components
+const result = await jPulse.api.post('/api/1/handlebar/expand', {
+    text: `
+        {{file.include "components/svg-icons.tmpl"}}
+        <div class="icon-container">
+            {{components.jpIcons.userSvg size="24" fillColor="#007bff"}}
+        </div>
+    `
+});
+
+if (result.success) {
+    document.getElementById('icon-wrapper').innerHTML = result.text;
+}
+```
+
+**Why This Is Required:**
+
+- **Stateless nature**: Each API call is independent - components from page rendering aren't available
+- **Performance**: Pre-loading components would add overhead to every API call
+- **Flexibility**: Different pages have different components (admin cards, plugin cards, custom components)
+- **Explicit is better**: Clear what components are available in each API call
+
+**Best Practice:**
+
+Include only the component libraries you need for that specific API call:
+
+```javascript
+// For SVG icons
+{{file.include "components/svg-icons.tmpl"}}
+
+// For admin dashboard cards (if needed)
+{{file.includeComponents "admin/*.shtml" component="adminCards.*"}}
+
+// Then use the components
+{{components.jpIcons.configSvg size="32"}}
+{{#each components.adminCards}}
+    {{this}}
+{{/each}}
+```
+
+> **Note:** On server-side rendered pages, components are automatically available because they're loaded via `{{file.include}}` in the page template (e.g., `jpulse-header.tmpl`). API calls require explicit inclusion.
 
 ### Real-World Example: Dynamic User Card
 

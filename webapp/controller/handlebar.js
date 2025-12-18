@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.3.17
- * @release         2025-12-17
+ * @version         1.3.18
+ * @release         2025-12-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -769,6 +769,9 @@ class HandlebarController {
         if (depth === 0) {
             req.componentRegistry = new Map();
             req.componentCallStack = [];
+
+            // Build internal context
+            req.baseContext = await this._buildInternalContext(req);
         }
 
         // Delegate to internal recursive implementation
@@ -797,29 +800,32 @@ class HandlebarController {
             // Remove trailing whitespace after {{/component}} because they do not produce output
             .replace(/(\{\{\/component\}\})\s+/g, '$1');
 
-        // Build internal context
-        const internalContext = await this._buildInternalContext(req);
+        // Use cached base context instead of rebuilding
+        const baseContext = req.baseContext || await this._buildInternalContext(req);
 
         // W-116: Add _handlebar utilities to context (needs depth from _expandHandlebars)
         // Note: These utilities will be available to custom helpers via context._handlebar
         // They are filtered out before exposing context to templates
-        internalContext._handlebar = {
-            req: req,
-            depth: depth,
-            expandHandlebars: (template, additionalContext = {}) => {
-                return HandlebarController._expandHandlebars(req, template, additionalContext, depth + 1);
-            },
-            parseAndEvaluateArguments: (expression, ctx) => {
-                return _parseAndEvaluateArguments(expression, ctx);
-            },
-            getNestedProperty: (obj, path) => {
-                return _getNestedProperty(obj, path);
-            },
-            setNestedProperty: (obj, path, value) => {
-                return _setNestedProperty(obj, path, value);
-            },
-            evaluateCondition: (params, ctx) => {
-                return _evaluateCondition(params, ctx);
+        const internalContext = {
+            ...baseContext,
+            _handlebar: {
+                req: req,
+                depth: depth,
+                expandHandlebars: (template, additionalContext = {}) => {
+                    return HandlebarController._expandHandlebars(req, template, additionalContext, depth + 1);
+                },
+                parseAndEvaluateArguments: (expression, ctx) => {
+                    return _parseAndEvaluateArguments(expression, ctx);
+                },
+                getNestedProperty: (obj, path) => {
+                    return _getNestedProperty(obj, path);
+                },
+                setNestedProperty: (obj, path, value) => {
+                    return _setNestedProperty(obj, path, value);
+                },
+                evaluateCondition: (params, ctx) => {
+                    return _evaluateCondition(params, ctx);
+                }
             }
         };
 

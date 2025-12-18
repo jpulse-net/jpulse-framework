@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Health Controller
  * @description     Unit tests for the Health Controller
  * @file            webapp/tests/unit/controller/health.test.js
- * @version         1.3.17
- * @release         2025-12-17
+ * @version         1.3.18
+ * @release         2025-12-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -280,40 +280,8 @@ describe('HealthController', () => {
         });
     });
 
-    // Skip the problematic tests that require complex ES module mocking
-    describe('health() - SKIPPED', () => {
-        it.skip('should return basic health information', () => {
-            // Skipped due to Jest ES module mocking complexity
-            // Health endpoint is fully functional and tested via integration tests
-        });
-
-        it.skip('should handle errors gracefully', () => {
-            // Skipped due to Jest ES module mocking complexity
-            // Error handling is fully functional and tested via integration tests
-        });
-    });
-
-    describe('metrics() - SKIPPED', () => {
-        it.skip('should return basic metrics for non-admin users', () => {
-            // Skipped due to Jest ES module mocking complexity
-            // Metrics endpoint is fully functional and tested via integration tests
-        });
-
-        it.skip('should return detailed metrics for admin users', () => {
-            // Skipped due to Jest ES module mocking complexity
-            // Admin metrics are fully functional and tested via integration tests
-        });
-
-        it.skip('should handle metrics errors gracefully', () => {
-            // Skipped due to Jest ES module mocking complexity
-            // Error handling is fully functional and tested via integration tests
-        });
-
-        it.skip('should log admin status in metrics call', () => {
-            // Skipped due to Jest ES module mocking complexity
-            // Logging is fully functional and tested via integration tests
-        });
-    });
+    // Note: health() and metrics() endpoint tests are covered by integration tests
+    // in webapp/tests/integration/health-api.test.js due to ES module mocking complexity
 });
 
 // EOF webapp/tests/unit/controller/health.test.js

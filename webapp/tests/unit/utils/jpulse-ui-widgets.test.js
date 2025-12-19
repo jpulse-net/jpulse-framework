@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI Dialog and Accordion Widgets (W-048)
  * @description     Tests for client-side UI widgets: alertDialog, infoDialog, accordion
  * @file            webapp/tests/unit/utils/jpulse-ui-widgets.test.js
- * @version         1.3.18
- * @release         2025-12-18
+ * @version         1.3.19
+ * @release         2025-12-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -50,7 +50,16 @@ global.window.i18n = {
 
 // Load jpulse-common.js content and evaluate it in the window context
 const jpulseCommonPath = path.join(process.cwd(), 'webapp/view/jpulse-common.js');
-const jpulseCommonContent = fs.readFileSync(jpulseCommonPath, 'utf8');
+let jpulseCommonContent = fs.readFileSync(jpulseCommonPath, 'utf8');
+
+// Replace Handlebars i18n template strings with actual values for testing
+// This simulates what Handlebars does on the server side
+jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.view\.ui\.alertDialog\.title\}\}/g, 'Alert');
+jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.view\.ui\.alertDialog\.oKButton\}\}/g, 'OK');
+jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.view\.ui\.infoDialog\.title\}\}/g, 'Information');
+jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.view\.ui\.infoDialog\.oKButton\}\}/g, 'OK');
+jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.view\.ui\.successDialog\.title\}\}/g, 'Success');
+jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.view\.ui\.successDialog\.oKButton\}\}/g, 'OK');
 
 // Execute the code in the window context
 const vm = require('vm');

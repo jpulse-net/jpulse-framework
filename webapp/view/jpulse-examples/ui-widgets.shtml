@@ -4,8 +4,8 @@
  * @tagline         Interactive UI widget examples and demonstrations
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
- * @version         1.3.18
- * @release         2025-12-18
+ * @version         1.3.19
+ * @release         2025-12-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -774,6 +774,76 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
             </div>
         </div>
 
+        <!-- Heading Anchor Links Widget -->
+        <div class="jp-card">
+            <h2 class="jp-card-dialog-heading">Heading Anchor Links</h2>
+            <div class="jp-info-box">
+                <p><strong>What you learn:</strong> GitHub-style anchor links automatically added to all headings for deep linking and easy content sharing.</p>
+                <p><strong>Features:</strong> Automatic ID generation, Unicode support, configurable heading levels, clipboard integration, and accessible design.</p>
+            </div>
+            <div id="heading-anchors-demo-tabs" class="jp-tabs"></div>
+            <div id="heading-anchors-example-panel" class="jp-panel">
+                <p>Hover over any heading below to see the anchor link icon (🔗). Click it to copy the URL to your clipboard!</p>
+
+                <h1>Example H1 Heading</h1>
+                <p>This is a level 1 heading. Hover over it to see the anchor link icon.</p>
+
+                <h2>Example H2 Heading</h2>
+                <p>This is a level 2 heading with some content below it.</p>
+
+                <h3>Example H3 Heading</h3>
+                <p>This is a level 3 heading. Notice how the icon positioning adjusts for different heading levels.</p>
+
+                <h2>Duplicate Heading Test</h2>
+                <p>This is the first "Duplicate Heading Test" - it gets ID "duplicate-heading-test".</p>
+
+                <h2>Duplicate Heading Test</h2>
+                <p>This is the second "Duplicate Heading Test" - it gets ID "duplicate-heading-test-1".</p>
+
+                <h2>日本語のテスト</h2>
+                <p>This heading demonstrates Unicode support. The anchor ID preserves Japanese characters: <code>#日本語のテスト</code></p>
+
+                <h3>Special Characters: What's New? (v1.3.19)</h3>
+                <p>This heading shows how punctuation is handled. The anchor becomes: <code>#special-characters-whats-new-v1319</code></p>
+
+                <div class="jp-info-box">
+                    <h4>Try It Out:</h4>
+                    <ol>
+                        <li>Hover over any heading above</li>
+                        <li>Click the 🔗 icon that appears</li>
+                        <li>Check your clipboard - the full URL with anchor is copied!</li>
+                        <li>Notice the URL in your browser updates with the anchor</li>
+                        <li>Share the link - it will jump directly to that heading</li>
+                    </ol>
+                </div>
+            </div>
+            <div id="heading-anchors-source-panel" class="jp-panel">
+                <div class="jp-source-code" data-lang="html">
+&lt;!-- No code required! Heading anchors are automatic. --&gt;
+&lt;h1&gt;My Section Title&lt;/h1&gt;
+&lt;h2&gt;Subsection&lt;/h2&gt;
+&lt;h3&gt;日本語のテスト&lt;/h3&gt;
+                </div>
+                <div class="jp-source-code" data-lang="javascript">
+// Configuration (optional) in site/webapp/app.conf file:
+view: {
+    headingAnchors: {
+        enabled: true,                  // Enable/disable
+        levels: [1, 2, 3, 4, 5, 6],     // Which heading levels
+        icon: '🔗'                      // Link icon
+    }
+}
+
+// Manual initialization (usually automatic)
+jPulse.UI.headingAnchors.init({
+    enabled: true,
+    levels: [1, 2, 3],
+    icon: '#'
+});
+                </div>
+            </div>
+        </div>
+
         <!-- Source Code Widget -->
         <div class="jp-card">
             <h2 class="jp-card-dialog-heading">Source Code Widget</h2>
@@ -942,6 +1012,14 @@ jPulse.UI.sourceCode.initAll();
                 ],
                 slideAnimation: true
             }, 'content-boxes-example-tab');
+
+            jPulse.UI.tabs.register('heading-anchors-demo-tabs', {
+                tabs: [
+                    { id: 'heading-anchors-example-tab', label: 'Example', panelId: 'heading-anchors-example-panel' },
+                    { id: 'heading-anchors-source-tab', label: 'Source Code', panelId: 'heading-anchors-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'heading-anchors-example-tab');
 
             jPulse.UI.tabs.register('sourcecode-demo-tabs', {
                 tabs: [

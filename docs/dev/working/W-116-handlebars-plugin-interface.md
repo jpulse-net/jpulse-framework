@@ -1,7 +1,7 @@
 # W-116: Handlebars: Plugin Interface for Helpers
 
 ## Status
-🚧 IN_PROGRESS (Implementation Complete, Documentation In Progress)
+✅ DONE
 
 ## Overview
 

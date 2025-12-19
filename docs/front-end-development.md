@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.3.18
+# jPulse Docs / Front-End Development Guide v1.3.19
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -21,7 +21,7 @@ The jPulse Framework provides a comprehensive client-side utility library availa
 - **Handlebars Template Expansion**: Client-side template rendering with server context
 - **Custom Variables**: Define template variables with `{{let}}` for flexible templates
 - **Form Handling**: Enhanced form submission with validation and error handling
-- **UI Components**: Slide-down messages, collapsible sections, and more
+- **UI Components**: Slide-down messages, collapsible sections, heading anchor links, and more
 - **DOM Utilities**: Enhanced DOM manipulation with consistent patterns
 - **Device Detection**: Responsive design and feature detection utilities
 

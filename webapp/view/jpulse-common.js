@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.3.18
- * @release         2025-12-18
+ * @version         1.3.19
+ * @release         2025-12-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -669,10 +669,14 @@ window.jPulse = {
 
                 // Get duration from config if not specified
                 if (duration === null) {
-                    const config = window.appConfig?.view?.toastMessage?.duration;
-                    // Default: error 8 sec, others 5 sec
-                    const defaultDuration = type === 'error' ? 8000 : 5000;
-                    duration = config?.[type] || defaultDuration;
+                    // Defensive coding instead of durations = {{appConfig.view.toastMessage.duration}}
+                    const durations = {
+                        info:     Number('{{appConfig.view.toastMessage.duration.info}}') || 3000,
+                        warning:  Number('{{appConfig.view.toastMessage.duration.warning}}') || 5000,
+                        error:    Number('{{appConfig.view.toastMessage.duration.error}}') || 8000,
+                        success:  Number('{{appConfig.view.toastMessage.duration.success}}') || 3000
+                    };
+                    duration = durations[type] || type === 'error' ? durations.error : durations.info;
                 }
 
                 const messageDiv = document.createElement('div');
@@ -873,7 +877,7 @@ window.jPulse = {
 
             return new Promise((resolve) => {
                 // Get i18n title if not provided
-                const title = config.title || (window.i18n?.view?.ui?.confirmDialog?.title || 'Confirm');
+                const title = config.title || '{{i18n.view.ui.confirmDialog.title}}' || 'Confirm';
 
                 // Create dialog elements
                 const overlay = jPulse.UI._createDialogOverlay();
@@ -1503,8 +1507,6 @@ window.jPulse = {
              * Setup URL change listener for SPA navigation
              */
             _setupUrlChangeListener: () => {
-                let currentUrl = window.location.pathname;
-
                 // Listen for popstate events (back/forward button)
                 window.addEventListener('popstate', () => {
                     jPulse.UI.breadcrumbs._generateBreadcrumb();
@@ -3720,9 +3722,19 @@ window.jPulse = {
                 if (typeof marked !== 'undefined') {
                     const html = marked.parse(content);
                     viewer._contentEl.innerHTML = html;
+
+                    // W-118: Initialize heading anchors after markdown is rendered
+                    if (jPulse.UI?.headingAnchors) {
+                        jPulse.UI.headingAnchors.init();
+                    }
                 } else {
                     console.error('marked.js not loaded. Include: <script src="/common/marked/marked.min.js"></script>');
                     viewer._contentEl.innerHTML = `<pre>${content}</pre>`;
+
+                    // W-118: Initialize heading anchors even for plain text
+                    if (jPulse.UI?.headingAnchors) {
+                        jPulse.UI.headingAnchors.init();
+                    }
                 }
             },
 
@@ -3798,15 +3810,12 @@ window.jPulse = {
 
             // Get default title from i18n if not provided
             if (!config.title) {
-                const i18nKeys = {
-                    alert: 'alertDialog',
-                    info: 'infoDialog',
-                    success: 'successDialog'
+                const i18nTexts = {
+                    alert: '{{i18n.view.ui.alertDialog.title}}',
+                    info: '{{i18n.view.ui.infoDialog.title}}',
+                    success: '{{i18n.view.ui.successDialog.title}}'
                 };
-                const i18nKey = i18nKeys[type] || 'infoDialog';
-                config.title = window.i18n?.view?.ui?.[i18nKey]?.title ||
-                    (type === 'alert' ? 'Alert' :
-                     type === 'success' ? 'Success' : 'Information');
+                config.title = i18nTexts[type] || i18nTexts.info || 'Information';
             }
 
             // Use confirmDialog with single OK button and type-specific styling
@@ -4442,6 +4451,181 @@ window.jPulse = {
                         console.error('jPulse.UI.windowFocus: callback error:', error);
                     }
                 });
+            }
+        },
+
+        // ============================================================
+        // W-118: Heading Anchor Links
+        // ============================================================
+
+        /**
+         * W-118: Add GitHub-style anchor links to headings
+         * Enables deep linking to any section on any page
+         */
+        headingAnchors: {
+            // Internal state
+            _initialized: false,
+            _config: {
+                enabled: true,
+                levels: [1, 2, 3, 4, 5, 6],
+                icon: '🔗'
+            },
+
+            /**
+             * GitHub-style slug generation with Unicode support
+             * @param {string} text - Heading text to convert to slug
+             * @returns {string} URL-safe slug
+             * @example
+             *   _slugify("Framework Architecture") → "framework-architecture"
+             *   _slugify("What's New?") → "whats-new"
+             *   _slugify("日本語") → "日本語" (Unicode preserved)
+             */
+            _slugify: (text) => {
+                return text
+                    .toLowerCase()
+                    .trim()
+                    // Keep Unicode letters, ASCII alphanumeric, spaces, hyphens
+                    .replace(/[^\w\s\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF-]/g, '')
+                    .replace(/\s+/g, '-')       // Spaces to hyphens
+                    .replace(/-+/g, '-')        // Collapse multiple hyphens
+                    .replace(/^-+|-+$/g, '');   // Trim leading/trailing hyphens
+            },
+
+            /**
+             * Ensure all headings have IDs
+             * Generates GitHub-style IDs for headings without them
+             * Handles duplicates by appending -1, -2, etc.
+             * Guards against ID conflicts with non-heading elements
+             */
+            _ensureHeadingIds: () => {
+                const config = jPulse.UI.headingAnchors._config;
+
+                if (!config.enabled) return;
+
+                // Build Set of ALL existing IDs in the DOM (headings and non-headings)
+                const existingIds = new Set(
+                    Array.from(document.querySelectorAll('[id]'))
+                        .map(el => el.id)
+                );
+
+                const selector = config.levels.map(n => `h${n}`).join(', ');
+
+                document.querySelectorAll(selector).forEach(heading => {
+                    // Skip if already has ID
+                    if (heading.id) return;
+
+                    const textContent = heading.textContent.trim();
+                    let slug = jPulse.UI.headingAnchors._slugify(textContent);
+
+                    if (!slug) return; // Skip empty slugs
+
+                    // Handle conflicts with ANY existing ID
+                    let finalSlug = slug;
+                    let counter = 0;
+                    while (existingIds.has(finalSlug)) {
+                        counter++;
+                        finalSlug = `${slug}-${counter}`;
+                    }
+
+                    heading.id = finalSlug;
+                    existingIds.add(finalSlug); // Track for next heading
+                });
+            },
+
+            /**
+             * Add visible anchor links to headings
+             * Shows 🔗 on hover, copies link to clipboard on click
+             */
+            _addLinks: () => {
+                const config = jPulse.UI.headingAnchors._config;
+
+                if (!config.enabled) return;
+
+                // Build selector for headings with IDs
+                const selector = config.levels
+                    .map(n => `h${n}[id]`)
+                    .join(', ');
+
+                document.querySelectorAll(selector).forEach(heading => {
+                    // Skip if already has anchor link
+                    if (heading.querySelector('.heading-anchor')) return;
+
+                    const id = heading.id;
+                    const anchor = document.createElement('a');
+                    anchor.className = 'heading-anchor';
+                    anchor.href = `#${id}`;
+                    anchor.innerHTML = config.icon || '🔗';
+
+                    // Use i18n for aria-label with %SECTION% token expansion
+                    const headingText = heading.textContent.trim();
+                    const ariaLabelTemplate = '{{i18n.view.ui.headingAnchor.linkToSection}}' || 'Link to %SECTION%';
+                    const ariaLabel = ariaLabelTemplate.replace('%SECTION%', headingText);
+                    anchor.setAttribute('aria-label', ariaLabel);
+
+                    // Use i18n for title (tooltip)
+                    const title = '{{i18n.view.ui.headingAnchor.copyLinkTitle}}' || 'Copy link to clipboard';
+                    anchor.setAttribute('title', title);
+
+                    anchor.addEventListener('click', async (e) => {
+                        e.preventDefault();
+
+                        // Update URL
+                        window.location.hash = id;
+
+                        // Copy to clipboard
+                        const url = `${window.location.origin}${window.location.pathname}#${id}`;
+                        try {
+                            await navigator.clipboard.writeText(url);
+
+                            // Show success feedback (i18n)
+                            if (jPulse.UI.toast) {
+                                // Try to get i18n message, fallback to English
+                                const message = '{{i18n.view.ui.headingAnchor.linkCopied}}' || 'Link copied to clipboard';
+                                jPulse.UI.toast.show(message, 'success', { duration: 2000 });
+                            }
+                        } catch (err) {
+                            console.warn('Clipboard copy failed:', err);
+
+                            // Fallback: show URL in toast
+                            if (jPulse.UI.toast) {
+                                const message = '{{i18n.view.ui.headingAnchor.linkFailed}}' || 'Failed to copy link';
+                                jPulse.UI.toast.show(`${message}: ${url}`, 'info', { duration: 5000 });
+                            }
+                        }
+                    });
+
+                    // Insert anchor before heading text
+                    heading.insertBefore(anchor, heading.firstChild);
+                });
+            },
+
+            /**
+             * Initialize heading anchors on current page
+             * @param {Object} options - Configuration options
+             * @param {boolean} options.enabled - Enable/disable feature (default: true)
+             * @param {number[]} options.levels - Heading levels to process (default: [1,2,3,4,5,6])
+             * @param {string} options.icon - Icon to display (default: '🔗')
+             */
+            init: (options) => {
+                // Safety: ensure options is an object
+                if (typeof options !== 'object' || options === null) {
+                    options = {};
+                }
+
+                // Store config in internal variable (like breadcrumbs pattern)
+                if (options.enabled !== undefined) {
+                    jPulse.UI.headingAnchors._config.enabled = options.enabled;
+                }
+                if (options.levels !== undefined) {
+                    jPulse.UI.headingAnchors._config.levels = options.levels;
+                }
+                if (options.icon !== undefined) {
+                    jPulse.UI.headingAnchors._config.icon = options.icon;
+                }
+
+                jPulse.UI.headingAnchors._initialized = true;
+                jPulse.UI.headingAnchors._ensureHeadingIds();
+                jPulse.UI.headingAnchors._addLinks();
             }
         }
     },

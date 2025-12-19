@@ -1,6 +1,140 @@
-# jPulse Docs / Version History v1.3.18
+# jPulse Docs / Version History v1.3.19
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.19, W-118, 2025-12-19
+
+**Commit:** `W-118, v1.3.19: view: headings with anchor links for copy & paste in browser URL bar`
+
+**FEATURE RELEASE**: GitHub-style anchor links automatically added to all headings (h1-h6) across all jPulse pages, enabling deep linking and easy content sharing.
+
+**Objective**: Enable users to share deep links to specific sections, copy direct links to headings via clipboard, and navigate to specific content via URL fragments (#anchors).
+
+**Key Features**:
+
+**GitHub-Compatible Slugification**:
+- Lowercase conversion, spaces to hyphens, punctuation removal
+- Unicode preservation (non-English characters kept intact)
+- Duplicate handling with `-1`, `-2`, etc. suffixes
+- No length limit (matches GitHub behavior)
+
+**Universal Implementation**:
+- Works on ALL page types: `.shtml` templates, markdown docs, dynamically rendered content
+- Single JavaScript solution handles ID generation and link behavior
+- No npm dependencies (custom implementation)
+- Automatic initialization on page load and SPA navigation
+
+**User Experience**:
+- Hover-to-reveal 🔗 icon on the left of headings
+- Click-to-copy URL with anchor fragment to clipboard
+- i18n toast notification on successful copy
+- URL automatically updates with anchor fragment
+- Target highlighting animation when navigating to anchor
+
+**Configuration** (via `app.conf`):
+```javascript
+view: {
+    headingAnchors: {
+        enabled: true,                  // Enable/disable feature
+        levels: [1, 2, 3, 4, 5, 6],     // Which heading levels (all by default)
+        icon: '🔗'                      // Link icon (default: 🔗)
+    }
+}
+```
+
+**Robust ID Conflict Resolution**:
+- Checks against ALL existing DOM IDs (not just headings)
+- Prevents conflicts with existing elements
+- Ensures HTML validity and feature integrity
+
+**Code Changes**:
+
+**webapp/view/jpulse-common.js** (lines 4465-4625):
+- Implemented `jPulse.UI.headingAnchors` object with:
+  - `_slugify()`: GitHub-style slug generation with Unicode support
+  - `_ensureHeadingIds()`: Automatic ID generation with conflict resolution
+  - `_addLinks()`: Anchor link creation with click handlers
+  - `init()`: Configuration and initialization method
+- Integrated with `jPulse.UI.docs._renderMarkdown` for dynamic content
+
+**webapp/view/jpulse-common.css** (lines 3750-3867):
+- `.heading-anchor` styling with hover effects and positioning
+- Markdown-specific spacing adjustments
+- h1 icon vertical alignment fixes
+- Icon-only hover highlight (jPulse button style)
+- Target highlighting animation
+
+**webapp/view/jpulse-footer.tmpl** (lines 185-220):
+- Auto-initialization on page load and SPA navigation
+- Configuration passed from `app.conf`
+
+**webapp/app.conf** (lines 380-384):
+- Default `headingAnchors` configuration
+
+**webapp/translations/en.conf, de.conf** (lines 291-295):
+- i18n strings: `linkCopied`, `linkFailed`, `linkToSection`, `copyLinkTitle`
+
+**webapp/tests/unit/utils/jpulse-ui-heading-anchors.test.js** (NEW):
+- 33 comprehensive unit tests:
+  - 11 tests for `_slugify` function (Unicode, punctuation, edge cases)
+  - 6 tests for ID generation (duplicates, conflicts, configuration)
+  - 6 tests for anchor link creation (attributes, icons, duplicates)
+  - 4 tests for click behavior (URL update, clipboard, toast messages)
+  - 3 tests for configuration (enabled/disabled, defaults, partial config)
+  - 3 tests for edge cases (long headings, whitespace, Unicode)
+
+**Documentation**:
+- `docs/jpulse-ui-reference.md`: Complete widget documentation with API reference, examples, configuration
+- `docs/site-customization.md`: Configuration guide for `headingAnchors` settings
+- `docs/style-reference.md`: CSS documentation for heading anchor links
+- `docs/front-end-development.md`: Brief mention and link to detailed reference
+- `docs/markdown-docs.md`: Feature mention in overview
+- `webapp/view/jpulse-examples/ui-widgets.shtml`: Live interactive example
+- `docs/images/anchor-link-on-hover-700.png`: Screenshot for documentation
+
+**Test Results**:
+- 33 new unit tests, all passing
+- Works on all page types (Markdown, Handlebars, dynamic content)
+- SPA navigation integration tested
+
+**Files Modified**: 11
+- webapp/view/jpulse-common.js: Heading anchors implementation
+- webapp/view/jpulse-common.css: Anchor link styling
+- webapp/view/jpulse-footer.tmpl: Auto-initialization
+- webapp/app.conf: Default configuration
+- webapp/translations/en.conf, de.conf: i18n strings
+- webapp/tests/unit/utils/jpulse-ui-heading-anchors.test.js: NEW (33 tests)
+- docs/jpulse-ui-reference.md: Widget documentation
+- docs/site-customization.md: Configuration guide
+- docs/style-reference.md: CSS documentation
+- docs/front-end-development.md: Brief mention
+- docs/markdown-docs.md: Feature mention
+- webapp/view/jpulse-examples/ui-widgets.shtml: Live example
+
+**Breaking Changes**: None
+
+**Documentation**:
+- Updated `docs/jpulse-ui-reference.md` with heading anchor links documentation
+- Updated `docs/site-customization.md` with configuration guide
+- Updated `docs/style-reference.md` with CSS documentation
+- Updated `docs/front-end-development.md` with feature mention
+- Updated `docs/markdown-docs.md` with feature mention
+- Updated `docs/dev/work-items.md` with W-118 features, implementation, and deliverables
+- Updated `README.md` and `docs/README.md` latest release highlights
+- Updated `docs/CHANGELOG.md` with v1.3.19 entry
+
+**Impact Summary**:
+- **User Experience**: Easy deep linking and content sharing via anchor links
+- **Accessibility**: ARIA labels, keyboard navigable, screen reader friendly
+- **Compatibility**: GitHub-compatible slugification standard
+- **Flexibility**: Configurable per site (enable/disable, heading levels, icon)
+- **Quality**: Comprehensive test coverage (33 tests), works on all page types
+- **Documentation**: Complete guides for users and developers
+
+**Work Item**: W-118
+**Version**: v1.3.19
+**Release Date**: 2025-12-19
 
 ________________________________________________
 ## v1.3.18, W-117, 2025-12-18

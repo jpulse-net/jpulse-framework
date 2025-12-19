@@ -1,4 +1,4 @@
-# jPulse Docs / Style Reference v1.3.18
+# jPulse Docs / Style Reference v1.3.19
 
 Comprehensive CSS framework documentation for the jPulse `jp-*` styling system, providing consistent, responsive, and enterprise-ready components for web applications.
 
@@ -447,6 +447,130 @@ Specialized message containers with colored borders:
     <p>Changes will be applied immediately and cannot be undone.</p>
 </div>
 ```
+
+### Heading Anchor Links
+
+GitHub-style anchor links automatically added to all headings for deep linking and content sharing.
+
+#### Anchor Link Styling
+
+```css
+.heading-anchor {
+    position: absolute;
+    left: -0.3em;
+    padding: 2px 4px;
+    text-decoration: none;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out, background-color 0.2s ease-in-out, border 0.2s ease-in-out;
+    font-size: 0.9em;
+    vertical-align: middle;
+    color: var(--jp-link-color, #0066cc);
+    border-radius: 4px;
+    border: 1px solid transparent;
+    display: inline-block;
+}
+
+.heading-anchor:hover {
+    text-decoration: none;
+    background-color: rgba(0, 102, 204, 0.1);
+    border-color: rgba(0, 102, 204, 0.3);
+}
+
+/* Show anchor on heading hover */
+h1:hover .heading-anchor,
+h2:hover .heading-anchor,
+h3:hover .heading-anchor,
+h4:hover .heading-anchor,
+h5:hover .heading-anchor,
+h6:hover .heading-anchor,
+.heading-anchor:hover,
+.heading-anchor:focus {
+    opacity: 1;
+}
+
+/* Adjust h1 icon vertical alignment */
+h1 .heading-anchor {
+    vertical-align: baseline;
+    transform: translateY(0.1em);
+    left: -0.8em;
+}
+
+/* Ensure headings have room for the anchor */
+h1, h2, h3, h4, h5, h6 {
+    position: relative;
+    padding-left: 0.5em;
+}
+
+h2 .heading-anchor,
+h3 .heading-anchor,
+h4 .heading-anchor,
+h5 .heading-anchor,
+h6 .heading-anchor {
+    left: -0.9em;
+}
+
+/* Markdown-specific spacing */
+.jp-markdown-content h1,
+.jp-markdown-content h2,
+.jp-markdown-content h3,
+.jp-markdown-content h4,
+.jp-markdown-content h5,
+.jp-markdown-content h6 {
+    padding-left: 0.1em;
+}
+
+.jp-markdown-content h1 .heading-anchor {
+    left: -1.1em;
+}
+
+.jp-markdown-content h2 .heading-anchor,
+.jp-markdown-content h3 .heading-anchor,
+.jp-markdown-content h4 .heading-anchor,
+.jp-markdown-content h5 .heading-anchor,
+.jp-markdown-content h6 .heading-anchor {
+    left: -1.5em;
+}
+
+/* Target highlighting animation */
+h1:target,
+h2:target,
+h3:target,
+h4:target,
+h5:target,
+h6:target {
+    scroll-margin-top: 80px;
+    animation: jp-highlight-heading 2s ease-in-out;
+}
+
+@keyframes jp-highlight-heading {
+    0%, 100% {
+        background-color: transparent;
+    }
+    50% {
+        background-color: rgba(255, 255, 0, 0.2);
+    }
+}
+
+/* Mobile: Make anchor slightly more visible */
+@media (max-width: 768px) {
+    .heading-anchor {
+        opacity: 0.3;
+    }
+}
+```
+
+**Features:**
+- **Automatic**: Works on all pages (Markdown docs, Handlebars templates)
+- **Hover State**: Icon appears on heading hover with jPulse button-style highlight
+- **Icon Highlight**: Background and border appear only when hovering directly over the icon
+- **Target Highlighting**: Yellow flash animation when navigating to anchor
+- **Responsive**: Slightly more visible on mobile devices
+- **Markdown-Specific**: Adjusted spacing for markdown content areas
+
+**Customization:**
+Override these styles in your site CSS to customize appearance, positioning, or colors.
+
+> **See Also:** [jPulse.UI Widget Reference](jpulse-ui-reference.md#heading-anchor-links) for complete JavaScript API and configuration documentation.
 
 ## 👤 User Components
 

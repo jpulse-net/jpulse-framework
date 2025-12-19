@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.18
+# jPulse Docs / Dev / Work Items v1.3.19
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3064,19 +3064,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - Add example block helper (`handlebarRepeat`)
     - Demonstrate usage of `context._handlebar` utilities
 
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-117, v1.3.18, 2025-12-18: refactoring: handlebar optimization, security unit tests
 - status: ✅ DONE
 - type: Refactoring
@@ -3175,6 +3162,98 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-118, v1.3.19, 2025-12-19: view: headings with anchor links for copy & paste in browser URL bar
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives: ability to share content with anchor links, should work on any jpulse rendered page, not just markdown docs
+- prerequisits: W-049: docs: views render markdown docs for jPulse docs and site docs
+- features:
+  - on hover on any page heading, show a `🔗` (U+1F517) on the left of the heading
+  - click on `🔗`:
+    - the URI has an #anchor-link appended/replaced
+    - the clipboard is updated with anchor link
+    - user can share deep link with anchor
+  - behaviour is configurable in app config:
+    ```
+      view.headingAnchors: {
+          enabled: true,
+          levels: [1, 2, 3, 4, 5, 6],     // all heading levels
+          icon: '🔗'                      // link icon on hover over heading
+      }
+    ```
+  - anchor name based on heading name:
+    - example: heading `## Framework Architecture` becomes anchor `#framework-architecture`
+    - use GitHub Markdown standard:
+      - lowercased conversion
+      - spaces replaced by `-`
+      - remove punctuation
+      - non-English Unicode text is supported, such as `#日本語文章はOKです`
+      - for duplicate headings append `-1`, `-2`, etc.
+- example:
+  - file `/docs/handlebars.md` has h3 header `### Logical and Comparison Helpers (v1.3.15+)`
+  - DOM: `<h3 id="logical-and-comparison-helpers-v1315">Logical and Comparison Helpers (v1.3.15+)</h3>`
+  - in rendered `/jpulse-docs/handlebars` page, click on `🔗` next to `Logical and Comparison Helpers (v1.3.15+)`
+  - sharable link: http://localhost:8080/jpulse-docs/handlebars#logical-and-comparison-helpers-v1315
+- deliverables:
+  - webapp/view/jpulse-common.js (lines 4465-4625):
+    - implemented jPulse.UI.headingAnchors object with GitHub-style slug generation
+    - _slugify() function with Unicode support
+    - _ensureHeadingIds() for automatic ID generation with conflict resolution
+    - _addLinks() for anchor link creation with click handlers
+    - init() method for configuration and initialization
+    - integrated with jPulse.UI.docs._renderMarkdown for dynamic content
+  - webapp/view/jpulse-common.css (lines 3750-3867):
+    - .heading-anchor styling with hover effects and positioning
+    - markdown-specific spacing adjustments
+    - h1 icon vertical alignment fixes
+    - icon-only hover highlight (jPulse button style)
+    - target highlighting animation
+  - webapp/view/jpulse-footer.tmpl (lines 185-220):
+    - auto-initialization on page load and SPA navigation
+    - configuration passed from app.conf
+  - webapp/app.conf (lines 380-384):
+    - default headingAnchors configuration (enabled, levels, icon)
+  - webapp/translations/en.conf, de.conf (lines 291-295):
+    - i18n strings for linkCopied, linkFailed, linkToSection, copyLinkTitle
+  - webapp/tests/unit/utils/jpulse-ui-heading-anchors.test.js (NEW):
+    - 33 comprehensive unit tests (slugify, ID generation, link creation, click behavior, configuration, edge cases)
+  - docs/jpulse-ui-reference.md:
+    - complete widget documentation with API reference, examples, configuration
+  - docs/site-customization.md:
+    - configuration guide for headingAnchors settings
+  - docs/style-reference.md:
+    - CSS documentation for heading anchor links
+  - docs/front-end-development.md:
+    - brief mention and link to detailed reference
+  - docs/markdown-docs.md:
+    - feature mention in overview
+  - webapp/view/jpulse-examples/ui-widgets.shtml:
+    - live interactive example with various heading levels and Unicode support
+  - docs/images/anchor-link-on-hover-700.png:
+    - screenshot for documentation
+
+
+
+
+
+
+### W-119, v1.3.20, 2025-12-20: i18n: usage audit tests for translations, controllers, views
+- status: 🕑 PENDING
+- type: Feature
+- objectives: more reliable translations
+- tests:
+  - FIXME
+- deliverables:
+  - FIXME path/file:
+    - FIXME summary
+
+
+
 ### Pending
 
 
@@ -3206,8 +3285,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-117, v1.3.18
-- update deliverables in W-117 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-118, v1.3.19
+- update deliverables in W-118 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -3224,12 +3303,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.18
+node bin/bump-version.js 1.3.19
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.18
+git tag v1.3.19
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -3347,37 +3426,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - closed by default
   - open on command (hamburger menu?)
 - fix /jpulse-docs/ markdown SPA to be based on common sidebar
-
-### W-0: view: headings with anchor links for copy & paste in browser URL bar
-- status: 🕑 PENDING
-- type: Feature
-- objectives: ability to share content with deep links, should work on any jpulse rendered page, not just markdown docs
-- depends on: W-049: docs: views render markdown docs for jPulse docs and site docs
-- feature:
-  - on hover on any page heading, show a '#' on the left of the heading
-  - click on '#':
-    - the URI has an #anchor-link appended/replaced
-    - the clipboard is updated with anchor link
-    - user can share deep link with anchor
-- anchor name based on heading name:
-    - option 1:
-      - lowercased heading name, special chars replaced by _, max length 36 chars
-      - exmaple: #framework_architecture
-    - option 2:
-      - hash of heading name
-      - exmaple: #e15a52f75b23c8c9
-- open question:
-  - support duplicate heading names, or pick first one?
-    - example: each feature section in a page could have an "Objective" heading
-    - could be #objective, #objective-2, #objective-3, ...
-- example:
-  - click on '#' of ## Troubleshooting header in /jpulse/dev/installation.md:
-  - sharable link:
-    - option 1: http://localhost:8080/jpulse/dev/installation#troublshooting
-    - option 2: http://localhost:8080/jpulse/dev/installation#e15a52f75b23c8c9
-- deliverables:
-  - webapp/view/jpulse-common.js, webapp/view/jpulse-footer.tmpl:
-    - add logic for hover, copy to clipboard, URI change with anchor
 
 ### W-0: markdown docs: a way to define the sequence of docs
 - status: 🕑 PENDING

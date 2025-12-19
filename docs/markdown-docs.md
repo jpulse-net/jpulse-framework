@@ -1,4 +1,4 @@
-# jPulse Docs / Markdown Documentation System v1.3.18
+# jPulse Docs / Markdown Documentation System v1.3.19
 
 **For Site Developers**
 
@@ -13,6 +13,7 @@ jPulse provides a complete markdown documentation infrastructure that:
 - **Renders beautifully** with syntax highlighting and responsive design
 - **Follows site override patterns** (site > plugins > framework)
 - **Supports file exclusion** via `.jpulse-ignore`
+- **Automatic anchor links** - All headings (h1-h6) automatically get GitHub-style anchor links for deep linking and easy content sharing
 
 ## Quick Start
 

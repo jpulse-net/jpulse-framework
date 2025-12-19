@@ -1,7 +1,7 @@
 # W-114: handlebars: add logical and comparison helpers with subexpressions and block helpers
 
 ## Status
-🕑 PENDING
+✅ DONE
 
 ## Overview
 
@@ -651,11 +651,10 @@ Arguments can be:
 
 1. ✅ Requirements documented
 2. ✅ Implementation plan created
-3. ⏳ Wait for implementation approval
-4. ⏳ Implement Phase 1: Subexpression Parser
-5. ⏳ Implement Phase 2: Helper Functions
-6. ⏳ Implement Phase 3: Integration
-7. ⏳ Implement Phase 4: Error Handling
-8. ⏳ Implement Phase 5: Testing
-9. ⏳ Update documentation
-10. ⏳ Update work-items.md
+3. ✅ Implement Phase 1: Subexpression Parser
+4. ✅ Implement Phase 2: Helper Functions
+5. ✅ Implement Phase 3: Integration
+6. ✅ Implement Phase 4: Error Handling
+7. ✅ Implement Phase 5: Testing
+8. ✅ Update documentation
+9. ✅ Update work-items.md

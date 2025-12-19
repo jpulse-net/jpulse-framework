@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v1.3.18
+# jPulse Docs / Site Customization Guide v1.3.19
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -107,6 +107,52 @@ jPulse automatically merges configurations in priority order:
 4. Environment variables
 
 **Note**: Site settings always have highest priority, allowing you to override both framework and plugin defaults.
+
+### View Configuration
+
+#### Heading Anchor Links
+
+Configure heading anchor links (GitHub-style deep linking) in `view.headingAnchors`:
+
+```javascript
+// webapp/app.conf or site/webapp/app.conf
+view: {
+    headingAnchors: {
+        enabled: true,                  // Enable/disable feature
+        levels: [1, 2, 3, 4, 5, 6],     // Which heading levels
+        icon: '🔗'                      // Link icon
+    }
+}
+```
+
+**Disable Feature:**
+```javascript
+view: {
+    headingAnchors: {
+        enabled: false
+    }
+}
+```
+
+**Only Process h1-h3:**
+```javascript
+view: {
+    headingAnchors: {
+        levels: [1, 2, 3]
+    }
+}
+```
+
+**Custom Icon:**
+```javascript
+view: {
+    headingAnchors: {
+        icon: '#'  // Use # instead of 🔗
+    }
+}
+```
+
+> **See Also:** [jPulse.UI Widget Reference](jpulse-ui-reference.md#heading-anchor-links) for complete documentation on heading anchor links, including API reference and examples.
 
 ________________________________________________
 ## Controller Customization

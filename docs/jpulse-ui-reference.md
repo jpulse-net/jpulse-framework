@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.3.18
+# jPulse Docs / jPulse.UI Widget Reference v1.3.19
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -12,6 +12,7 @@ Complete reference documentation for all `jPulse.UI.*` widgets available in the 
 - [Tab Interface](#tab-interface) - Navigation and panel tabs
 - [Source Code Display](#source-code-display) - Syntax-highlighted code blocks
 - [Pagination Helper](#pagination-helper) - Cursor-based pagination state management
+- [Heading Anchor Links](#heading-anchor-links) - GitHub-style anchor links for deep linking
 
 ---
 
@@ -653,6 +654,130 @@ function updatePagination(pagination) {
 - **Bidirectional navigation**: Support for both next and previous page
 - **Range display**: Formatted "Showing X-Y of Z" with i18n support
 - **Button management**: Automatic disabled state based on cursor availability
+
+---
+
+## Heading Anchor Links
+
+GitHub-style anchor links automatically added to all headings (h1-h6) across all jPulse pages, enabling deep linking and easy content sharing.
+
+### Features
+- **Automatic**: Works on all pages (Markdown docs, Handlebars templates, dynamic content)
+- **GitHub-Compatible**: Follows GitHub's heading anchor algorithm
+- **Unicode Support**: Preserves non-English characters (Japanese, Chinese, etc.)
+- **Configurable**: Enable/disable, customize heading levels, change icon
+- **Accessible**: ARIA labels, keyboard navigable, screen reader friendly
+
+### Basic Usage
+
+The feature is **automatic** - no code required! Just use headings in your content:
+
+```html
+<h2>My Section Title</h2>
+```
+
+Users will see a 🔗 icon on hover that:
+- Updates the URL with the anchor link
+- Copies the full URL to clipboard
+- Shows a success toast notification
+
+![Heading anchor link in action](./images/anchor-link-on-hover-700.png)
+
+*Screenshot showing: (1) Click the anchor icon to create a link, (2) Confirmation toast appears, (3) URL updates with anchor fragment*
+
+### Examples
+
+**English Heading:**
+- Heading: `## Framework Architecture`
+- Anchor: `#framework-architecture`
+
+**Unicode Heading:**
+- Heading: `## 日本語のドキュメント`
+- Anchor: `#日本語のドキュメント`
+
+**Duplicate Headings:**
+- First: `#overview`
+- Second: `#overview-1`
+- Third: `#overview-2`
+
+### Configuration
+
+Configure in `webapp/app.conf` or `site/webapp/app.conf`:
+
+```javascript
+view: {
+    headingAnchors: {
+        enabled: true,                  // Enable/disable feature
+        levels: [1, 2, 3, 4, 5, 6],     // Which heading levels (all by default)
+        icon: '🔗'                      // Link icon (default: 🔗)
+    }
+}
+```
+
+**Disable Feature:**
+```javascript
+view: {
+    headingAnchors: {
+        enabled: false
+    }
+}
+```
+
+**Only Process h1-h3:**
+```javascript
+view: {
+    headingAnchors: {
+        levels: [1, 2, 3]
+    }
+}
+```
+
+**Custom Icon:**
+```javascript
+view: {
+    headingAnchors: {
+        icon: '#'  // Use # instead of 🔗
+    }
+}
+```
+
+### API Reference
+
+#### `jPulse.UI.headingAnchors.init(options)`
+
+Manually initialize heading anchors (usually automatic).
+
+**Parameters:**
+- `options` (object): Configuration options
+  - `enabled` (boolean): Enable/disable feature (default: `true`)
+  - `levels` (number[]): Heading levels to process (default: `[1,2,3,4,5,6]`)
+  - `icon` (string): Icon to display (default: `'🔗'`)
+
+**Example:**
+```javascript
+// Disable for specific page
+jPulse.UI.headingAnchors.init({ enabled: false });
+
+// Only process h1 and h2
+jPulse.UI.headingAnchors.init({ levels: [1, 2] });
+```
+
+### Accessibility
+
+- **ARIA Labels**: Descriptive labels for screen readers (`Link to [heading text]`)
+- **Keyboard Navigation**: Anchor links are focusable
+- **Visual Feedback**: Hover states and target highlighting (yellow flash on navigation)
+- **Screen Reader Friendly**: Semantic HTML structure
+
+### Browser Support
+
+- Modern browsers with Clipboard API support
+- Graceful degradation for older browsers (URL updates, but clipboard may not work)
+- Unicode URL support (all modern browsers)
+
+### Related Documentation
+- [Style Reference](style-reference.md#heading-anchor-links) - CSS customization
+- [Site Customization](site-customization.md#view-configuration) - Configuration guide
 
 ---
 

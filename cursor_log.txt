@@ -6752,3 +6752,90 @@ Status: W-117 v1.3.18 release preparation complete. Ready for version bump and c
 
 
 ============================================================
+2025-12-18 12:40
+
+W-118: Research and document heading anchor links standard
+
+User Query:
+- Potential next work item: W-0: view: headings with anchor links for copy & paste in browser URL bar
+- Question: Is there a standard for anchor link generation? Should we align with GitHub markdown rendering?
+- User observed: GitHub now shows 🔗 on hover instead of #
+- User noted: jPulse markdown pages have no anchor IDs in DOM (e.g., <h3>Logical and Comparison Helpers (v1.3.15+)</h3>)
+- Question: Does marked.js have an option to enable ID generation?
+- Additional questions about implementation approach and configuration
+
+Response Summary:
+1. **GitHub Standard Research**
+   - Confirmed GitHub uses de facto standard for heading anchor generation:
+     * Lowercase conversion
+     * Spaces → hyphens
+     * Remove punctuation
+     * Duplicates: append -1, -2, etc.
+   - Example: "Logical and Comparison Helpers (v1.3.15+)" → "logical-and-comparison-helpers-v1315"
+   - GitHub now uses 🔗 icon on hover (updated from #)
+
+2. **marked.js Investigation**
+   - Confirmed jPulse uses marked.js v15.0.12
+   - marked.js does NOT generate heading IDs by default (verified user's observation)
+   - Options: Use marked-gfm-heading-id extension OR build custom renderer
+   - Issue: marked-gfm-heading-id only works during markdown parsing, not on .shtml pages
+
+3. **Implementation Recommendation**
+   - Build custom solution (no npm dependencies)
+   - Single JavaScript approach works universally:
+     * Markdown pages (via custom marked renderer)
+     * .shtml Handlebars pages (via DOM scanning)
+     * Any HTML page (via DOM scanning)
+   - Use GitHub-compatible slugification algorithm
+   - Support Unicode (keep intact, don't encode)
+   - No length limit (GitHub has none)
+   - All 6 heading levels by default (h1-h6)
+
+4. **Configuration Decisions**
+   - Add to webapp/app.conf under view.headingAnchors
+   - Site-overrideable via site/webapp/app.conf
+   - Config: enabled (true), levels ([1,2,3,4,5,6]), icon ('🔗')
+   - Rationale: Site developers might need to disable to avoid ID conflicts
+
+5. **Internationalization**
+   - Clipboard success message must be i18n compatible
+   - Add translation keys to webapp/translations/en.conf and de.conf
+   - Use jPulse toast notification system for feedback
+
+6. **Technical Clarifications**
+   - Why id="" not <a name="">: HTML5 deprecated <a name="">, id is modern standard
+   - jPulse has two config systems: app.conf (file-based) and MongoDB ConfigModel
+   - This feature uses app.conf (not MongoDB config)
+
+7. **Documentation Created**
+   - Comprehensive W-118 work item document: docs/dev/working/W-118-view-anchor-link-headings.md
+   - Includes: design decisions, implementation plan, examples, testing strategy
+   - Covers: accessibility, security, performance, edge cases
+   - Resolved all open questions from work-items.md
+
+Key Deliverables:
+- webapp/view/jpulse-common.js (JavaScript implementation)
+- webapp/view/jpulse-common.css (CSS styles)
+- webapp/view/jpulse-footer.tmpl (auto-initialization)
+- webapp/app.conf (default configuration added at lines 380-384)
+- webapp/translations/en.conf and de.conf (i18n strings)
+- docs/dev/working/W-118-view-anchor-link-headings.md (comprehensive documentation)
+
+Status: W-118 research and documentation complete. Ready for implementation.
+
+============================================================
+2025-12-19 00:41
+
+release prep: - assume release: W-118, v1.3.19 - update features and deliverables in W-118 work-items to document work done (don't change status, don't make any other changes to this file) - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script) - update commit-message.txt, following the same format (don't commit) - update cursor_log.txt
+
+Summary:
+- Updated W-118 deliverables in docs/dev/work-items.md with comprehensive list of all files modified, tests added, and documentation created
+- Added v1.3.19 to README.md latest release highlights section
+- Added v1.3.19 to docs/README.md latest release highlights section
+- Added v1.3.19 entry to docs/CHANGELOG.md with complete feature description, code changes, test results, and impact summary
+- Updated commit-message.txt with W-118 release information following the same format as previous releases
+- Updated cursor_log.txt with this entry
+
+Changes were accepted.
+
+============================================================

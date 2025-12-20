@@ -3,8 +3,8 @@
  * @tagline         Jest Global Teardown
  * @description     Global teardown for Jest tests runs once after all tests complete
  * @file            webapp/tests/setup/global-teardown.js
- * @version         1.3.19
- * @release         2025-12-19
+ * @version         1.3.20
+ * @release         2025-12-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,6 +18,9 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Get test file name for warning messages
+const TEST_FILE = 'webapp/tests/setup/global-teardown.js';
 
 /**
  * Clean up any test databases or connections
@@ -84,6 +87,47 @@ async function cleanupRedisAndCache() {
 }
 
 /**
+ * Generate warning summary
+ * Only prints if not running from test-all.js (which will aggregate warnings)
+ */
+function generateWarningSummary() {
+    // Check if warnings were collected
+    if (!global.testWarnings) {
+        // Warnings collector not initialized - skip summary
+        return;
+    }
+
+    // Skip summary if running from test-all.js (it will aggregate warnings at the end)
+    // Check for test-all.js by looking at environment variable or process title
+    const isTestAll = process.env.JEST_RUN_FROM_TEST_ALL === 'true' ||
+                      (typeof process.title !== 'undefined' && process.title.includes('test-all'));
+
+    if (isTestAll) {
+        // Don't print here - test-all.js will aggregate and print at the end
+        return;
+    }
+
+    // Always show summary section, even if empty (for consistency)
+    console.log('\n============================================================');
+    console.log('⚠️  WARNING SUMMARY');
+    console.log('============================================================');
+
+    if (global.testWarnings.length === 0) {
+        console.log('No warnings reported during test execution.');
+    } else {
+        // Print unique warnings (deduplicate)
+        const uniqueWarnings = [...new Set(global.testWarnings)];
+        uniqueWarnings.forEach(warning => {
+            console.log(warning);
+        });
+
+        console.log(`\nTotal warnings: ${global.testWarnings.length} (${uniqueWarnings.length} unique)`);
+    }
+
+    console.log('============================================================\n');
+}
+
+/**
  * Generate cleanup report
  */
 function generateCleanupReport() {
@@ -100,11 +144,14 @@ export default async function globalTeardown() {
     try {
         await cleanupTestDatabases();
         await cleanupRedisAndCache();
+
+        // Generate warning summary before cleanup report
+        generateWarningSummary();
         generateCleanupReport();
 
         console.log('✅ Jest Global Teardown: Cleanup completed successfully!');
     } catch (error) {
-        console.error('❌ Jest Global Teardown failed:', error);
+        console.log(`⚠️  WARNING: Jest Global Teardown failed: ${error.message || error} [${TEST_FILE}]`);
         // Don't throw - we don't want cleanup failures to fail the test run
     }
 }

@@ -6823,6 +6823,7 @@ Key Deliverables:
 
 Status: W-118 research and documentation complete. Ready for implementation.
 
+
 ============================================================
 2025-12-19 00:41
 
@@ -6837,5 +6838,91 @@ Summary:
 - Updated cursor_log.txt with this entry
 
 Changes were accepted.
+
+
+============================================================
+2025-12-19 01:00
+
+next: W-119, v1.3.20, 2025-12-20: i18n: usage audit tests for translations, controllers, views
+- see @work-items.md (3239-3249) and working doc @docs/dev/working/W-119-i18n-usage-audit-tests.md
+- review task, ask questions if unclear
+- plan how to implement (wait for my go ahead, but update the working doc)
+
+Summary:
+- Reviewed W-119 task requirements for i18n usage audit tests
+- Examined existing codebase: translation file structure, i18n utilities, view/controller patterns
+- Found existing utilities in webapp/utils/i18n.js: getObjectPaths, getValueByPath, setValueByPath
+- Discovered 512 i18n references in views across 22 files, ~160 in 10 controller files
+- Updated working doc with detailed implementation plan including:
+  - Step-by-step implementation approach (10 steps)
+  - File structure and utility functions needed
+  - Test file specifications for all 3 test suites
+  - Regex patterns for extracting keys from views and controllers
+  - Error handling and reporting strategies
+  - Performance considerations
+  - No new npm dependencies (following user preference)
+- Plan includes: translation-loader.js, key-flattener.js, key-validator.js, key-extractor.js utilities
+- Three test files: translation-keys.test.js, view-usage.test.js, controller-usage.test.js
+- Ready for user approval before implementation
+
+Changes were pending approval.
+
+
+============================================================
+2025-12-19 01:30
+
+looks good, go for it
+
+Summary:
+- Implemented W-119: i18n usage audit tests for translations, controllers, views
+- Created 3 utility files in webapp/tests/unit/i18n/utils/:
+  - translation-loader.js: Loads, parses, and flattens translation .conf files to sorted key arrays
+  - key-validator.js: Validates keys against reference translation file
+  - key-extractor.js: Extracts i18n keys from view files ({{i18n.*}}) and controller files (global.i18n.translate())
+- Created combined test file: webapp/tests/unit/i18n/i18n-usage-audit.test.js with 3 test suites:
+  - Translation Key Comparison: Validates all language files have matching key structures
+  - View i18n Usage Validation: Validates all {{i18n.*}} references in view files
+  - Controller i18n Usage Validation: Validates all global.i18n.translate() calls
+- Tests successfully run and catch real issues:
+  - Translation key comparison: PASSED
+  - View i18n usage: PASSED (512 references validated)
+  - Controller i18n usage: Found 18 broken references (missing keys like controller.cache.*, plugin.*, controller.user.stats.*)
+- Implementation follows plan: single combined test file, in-memory flattened arrays, no caching, no new dependencies
+- All tests functional and ready for use
+
+Changes were accepted.
+
+
+============================================================
+2025-12-19 13:03
+
+W-119: Implemented single warning summary at end of test-all.js run
+
+User Request:
+- Show a single warning summary at the very end, just before "📊 TEST SUMMARY"
+- Currently warnings appear after each test block (Unit Tests, Integration Tests)
+- User wants aggregated warnings from all Jest runs in one place
+
+Implementation:
+1. Modified webapp/tests/setup/global-teardown.js:
+   - Added check for JEST_RUN_FROM_TEST_ALL environment variable
+   - Skip warning summary in global-teardown when running from test-all.js
+   - test-all.js will aggregate and print warnings at the end
+
+2. Modified bin/test-all.js:
+   - Added extractWarnings() function to parse Jest output for WARNING: lines
+   - Modified runCommand() to extract warnings and return them in result object
+   - Set JEST_RUN_FROM_TEST_ALL=true environment variable when running Jest tests
+   - Added warning aggregation logic before "📊 TEST SUMMARY" section
+   - Print unique warnings with total count
+
+Technical Details:
+- Warning extraction uses regex to find lines containing "WARNING:"
+- Only extracts actual warnings, not summary headers (which don't contain "WARNING:")
+- Deduplicates warnings using Set
+- Environment variable approach allows global-teardown to detect test-all.js execution
+
+Changes were accepted.
+
 
 ============================================================

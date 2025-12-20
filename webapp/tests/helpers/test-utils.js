@@ -3,8 +3,8 @@
  * @tagline         Test utilities for the jPulse Framework WebApp
  * @description     Common utilities and helpers for testing
  * @file            webapp/tests/helpers/test-utils.js
- * @version         1.3.19
- * @release         2025-12-19
+ * @version         1.3.20
+ * @release         2025-12-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -19,6 +19,9 @@ import { jest } from '@jest/globals';
 // Calculate project root using process.cwd() for Jest compatibility
 // This assumes tests are run from the project root (which is standard)
 const projectRoot = process.cwd();
+
+// Get test file name for warning messages
+const TEST_FILE = 'webapp/tests/helpers/test-utils.js';
 
 /**
  * Test utilities for jPulse Framework testing
@@ -185,7 +188,7 @@ export class TestUtils {
             global.appConfig = config;
             // Removed the console.log for cleaner test output
         } catch (error) {
-            console.warn('Failed to setup consolidated config, using fallback:', error.message);
+            console.log(`⚠️  WARNING: Failed to setup consolidated config, using fallback: ${error.message} [${TEST_FILE}]`);
             // Fallback config must include all properties that modules need
             global.appConfig = {
                 app: {

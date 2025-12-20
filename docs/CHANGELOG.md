@@ -1,6 +1,110 @@
-# jPulse Docs / Version History v1.3.19
+# jPulse Docs / Version History v1.3.20
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.20, W-119, 2025-12-20
+
+**Commit:** `W-119, v1.3.20: i18n: usage audit tests for translations, controllers, views`
+
+**TESTING RELEASE**: Comprehensive automated tests for translation key consistency and i18n usage validation across the framework.
+
+**Objective**: Ensure translation key consistency across all language files, validate that all i18n references in views and controllers use valid translation keys, prevent runtime errors from missing or broken translation references, and provide clear reporting of issues for easy debugging.
+
+**Key Features**:
+
+**Translation Key Comparison Test**:
+- Loads all `.conf` files in `webapp/translations/` as JavaScript objects
+- Recursively flattens nested structure to dot-notation paths (e.g., `controller.auth.loginDisabled`)
+- Compares key sets between `en.conf` (reference) and other language files
+- Reports missing keys (in `en.conf` but not in other languages)
+- Reports extra keys (in other languages but not in `en.conf`)
+
+**View i18n Usage Validation**:
+- Scans all view files (.js, .css, .tmpl, .shtml) for `{{i18n.*}}` references
+- Validates all referenced keys exist in translation files
+- Reports file path, line number, and match context for invalid references
+
+**Controller i18n Usage Validation**:
+- Scans all controller files for `global.i18n.translate()` calls
+- Validates static string keys exist in translation files
+- Detects and reports dynamic keys (variables, string concatenation, template literals) as warnings
+- Reports file path, line number, match context, and reason for dynamic keys
+
+**Performance**:
+- Full audit completes in < 2 seconds
+- In-memory flattened key arrays (no file caching needed)
+- Single combined test file for all three test types
+
+**Test Utilities**:
+
+**webapp/tests/unit/i18n/utils/translation-loader.js**:
+- Loads, parses, and flattens translation files into sorted dot-notation key arrays
+- Returns structure: `{ en: ['controller.auth.loginDisabled', ...], de: [...] }`
+- Handles nested objects recursively
+
+**webapp/tests/unit/i18n/utils/key-validator.js**:
+- Validates keys against reference set (en.conf)
+- Reports missing and extra keys
+
+**webapp/tests/unit/i18n/utils/key-extractor.js**:
+- Extracts i18n keys from view and controller files using regex patterns
+- Detects static keys and dynamic keys (variables, string concatenation, template literals)
+- Returns structured references with file path, line number, and match context
+
+**webapp/tests/unit/i18n/find-dynamic-keys.js**:
+- Standalone script to find dynamic i18n keys across the codebase
+- Useful for discovering keys that cannot be statically validated
+
+**Warning Standardization System**:
+- Standardized "WARNING:" format across all bin/ scripts
+- Format: `WARNING: {message} [file-path]`
+- Enhanced `bin/test-all.js` to extract and aggregate warnings from all test suites
+- Single aggregated warning summary displayed at end of test run, just before "📊 TEST SUMMARY"
+- Modified `webapp/tests/setup/global-teardown.js` to skip warning summary when running from test-all.js
+
+**Code Changes**:
+
+**webapp/tests/unit/i18n/i18n-usage-audit.test.js** (NEW):
+- Combined test file with three test suites
+- Translation Key Comparison test
+- View i18n Usage Validation test
+- Controller i18n Usage Validation test
+
+**bin/test-all.js**:
+- Added `extractWarnings()` function to parse test output for "WARNING:" lines
+- Modified `runCommand()` to extract warnings from all test suites
+- Added warning aggregation logic before "📊 TEST SUMMARY" section
+- Set `JEST_RUN_FROM_TEST_ALL=true` environment variable when running Jest tests
+
+**webapp/tests/setup/global-teardown.js**:
+- Added check for `JEST_RUN_FROM_TEST_ALL` environment variable
+- Skips warning summary when running from test-all.js (prevents duplicate summaries)
+
+**bin/configure.js, bin/config-registry.js, bin/plugin-manager-cli.js**:
+- Converted all warnings to standardized "WARNING: ... [file-path]" format
+- Added `SCRIPT_FILE` constants for consistent file path reporting
+
+**Test Results**:
+- All tests passing
+- Translation key comparison: PASSED
+- View i18n usage: PASSED (512 references validated)
+- Controller i18n usage: Validated all static keys, detected dynamic keys as warnings
+
+**Documentation**:
+- Updated `docs/dev/work-items.md` with W-119 deliverables
+- All warnings now use standardized format for easy discovery via `npm test | grep WARNING:`
+
+**Impact Summary**:
+- **Quality**: Automated validation prevents runtime translation errors
+- **Maintainability**: Easy to discover missing or broken translation references
+- **Developer Experience**: Clear reporting with file paths and line numbers
+- **Consistency**: Standardized warning format across all test suites
+- **Performance**: Fast execution (< 2 seconds) enables CI/CD integration
+
+**Work Item**: W-119
+**Version**: v1.3.20
+**Release Date**: 2025-12-20
 
 ________________________________________________
 ## v1.3.19, W-118, 2025-12-19

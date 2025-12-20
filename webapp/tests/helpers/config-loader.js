@@ -3,8 +3,8 @@
  * @tagline         Jest-independent configuration loader for tests
  * @description     Loads consolidated configuration without Jest dependencies
  * @file            webapp/tests/helpers/config-loader.js
- * @version         1.3.19
- * @release         2025-12-19
+ * @version         1.3.20
+ * @release         2025-12-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -17,6 +17,9 @@ import path from 'path';
 
 // Calculate project root using process.cwd() for Jest compatibility
 const projectRoot = process.cwd();
+
+// Get test file name for warning messages
+const TEST_FILE = 'webapp/tests/helpers/config-loader.js';
 
 /**
  * Load consolidated configuration from .jpulse/app.json
@@ -48,7 +51,7 @@ export function setupGlobalAppConfig() {
         global.appConfig = config;
         return true;
     } catch (error) {
-        console.warn('Failed to setup consolidated config, using fallback:', error.message);
+        console.log(`⚠️  WARNING: Failed to setup consolidated config, using fallback: ${error.message} [${TEST_FILE}]`);
         // Fallback config with all necessary properties
         global.appConfig = {
             app: {

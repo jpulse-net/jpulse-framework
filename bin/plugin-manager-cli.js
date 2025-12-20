@@ -4,8 +4,8 @@
  * @tagline         Plugin management commands for jPulse Framework
  * @description     Handles plugin install, update, remove, enable, disable, list, info, publish
  * @file            bin/plugin-manager-cli.js
- * @version         1.3.19
- * @release         2025-12-19
+ * @version         1.3.20
+ * @release         2025-12-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,6 +20,9 @@ import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Get script file name for warning messages
+const SCRIPT_FILE = 'bin/plugin-manager-cli.js';
 
 // Error codes for programmatic handling
 const ERROR_CODES = {
@@ -257,7 +260,7 @@ function discoverPlugins(pluginsDir, registry) {
             });
         } catch (error) {
             // Skip plugins with invalid JSON
-            console.error(`Warning: Failed to parse plugin.json for ${pluginName}: ${error.message}`);
+            console.error(`⚠️  WARNING: Failed to parse plugin.json for ${pluginName}: ${error.message} [${SCRIPT_FILE}]`);
         }
     }
 
@@ -842,7 +845,7 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
             }
             if (validation.warnings.length > 0) {
                 for (const warning of validation.warnings) {
-                    console.log(`  ⚠ Warning: ${warning}`);
+                    console.log(`⚠️  WARNING: ${warning} [${SCRIPT_FILE}]`);
                 }
             }
 
@@ -935,7 +938,7 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
             }
             if (validation.warnings.length > 0) {
                 for (const warning of validation.warnings) {
-                    console.log(`  ⚠ Warning: ${warning}`);
+                    console.log(`⚠️  WARNING: ${warning} [${SCRIPT_FILE}]`);
                 }
             }
 

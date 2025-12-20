@@ -4,8 +4,8 @@
  * @tagline         Unified configuration registry for all jPulse tools
  * @description     Single source of truth for variable definitions, defaults, and template expansion
  * @file            bin/config-registry.js
- * @version         1.3.19
- * @release         2025-12-19
+ * @version         1.3.20
+ * @release         2025-12-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,6 +20,9 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Get script file name for warning messages
+const SCRIPT_FILE = 'bin/config-registry.js';
 
 /**
  * UNIFIED CONFIG_REGISTRY - Single Source of Truth for ALL Variable Information
@@ -228,7 +231,7 @@ export const CONFIG_REGISTRY = {
             const userInput = await question('? Session secret (leave empty for auto-generation): ');
             if (userInput.trim()) {
                 if (userInput.length < 16) {
-                    console.log('⚠️  Warning: Session secret should be at least 16 characters');
+                    console.log(`⚠️  WARNING: Session secret should be at least 16 characters [${SCRIPT_FILE}]`);
                 }
                 config.SESSION_SECRET = userInput.trim();
             }
@@ -450,7 +453,7 @@ export const CONFIG_REGISTRY = {
 
                 // Validate log directory path
                 if (!logDirInput.startsWith('/') && logDirInput !== '') {
-                    console.log(`⚠️  Warning: '${logDirInput}' is not an absolute path. Using default: ${defaultLogDir}`);
+                    console.log(`⚠️  WARNING: '${logDirInput}' is not an absolute path. Using default: ${defaultLogDir} [${SCRIPT_FILE}]`);
                     logDirInput = defaultLogDir;
                 }
 
@@ -558,7 +561,7 @@ export function buildCompleteConfig(userConfig = {}, deploymentType = 'prod') {
                     // Set computed value (even if empty, to ensure it's computed)
                     completeConfig[varName] = computedValue;
                 } catch (error) {
-                    console.log(`⚠️  Warning: Could not compute ${varName}: ${error.message}`);
+                    console.log(`⚠️  WARNING: Could not compute ${varName}: ${error.message} [${SCRIPT_FILE}]`);
                     if (completeConfig[varName] === undefined) {
                         completeConfig[varName] = '';
                     }
@@ -577,7 +580,7 @@ export function buildCompleteConfig(userConfig = {}, deploymentType = 'prod') {
             try {
                 defaultValue = defaultValue(deploymentType, completeConfig);
             } catch (error) {
-                console.log(`⚠️  Warning: Could not resolve ${varName}: ${error.message}`);
+                console.log(`⚠️  WARNING: Could not resolve ${varName}: ${error.message} [${SCRIPT_FILE}]`);
                 defaultValue = '';
             }
         }

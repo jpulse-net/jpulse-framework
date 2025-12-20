@@ -1,7 +1,7 @@
 # W-119: I18N: Usage Audit Tests for Translations, Controllers, Views
 
 ## Status
-🕑 PENDING
+🚧 IN_PROGRESS
 
 ## Overview
 
@@ -195,31 +195,279 @@ Broken references (2):
 - Important for controller validation
 - Can start with regex, upgrade to AST if needed
 
+---
+
+## Detailed Implementation Plan
+
+### Step 1: Create Utility Functions
+
+**Location**: `webapp/tests/unit/i18n/utils/`
+
+#### 1.1 `translation-loader.js`
+- **Purpose**: Load, parse, and flatten translation `.conf` files to sorted key arrays
+- **Functions**:
+  - `loadTranslationFile(filePath)`: Read and evaluate `.conf` file, extract language data, flatten to sorted key array
+  - `loadAllTranslations(translationsDir)`: Load all `.conf` files from directory
+  - `flattenKeys(obj, prefix = '')`: Recursively flatten nested object to dot-notation paths (internal helper)
+- **Implementation**:
+  - Use `fs.readFileSync` to read files
+  - Use `new Function()` to safely evaluate JavaScript (same approach as `webapp/utils/i18n.js`)
+  - Extract language data (remove top-level `en.`, `de.` wrapper)
+  - Flatten nested structure recursively to dot-notation paths
+  - Sort keys alphabetically for consistent comparison
+  - Return flattened structure: `{ en: ['controller.auth.accountDisabled', 'controller.auth.accountLocked', ...], de: [...] }`
+- **Key Flattening Logic**:
+  - Handle nested objects recursively
+  - Skip arrays (treat as leaf values)
+  - Handle null/undefined values (treat as leaf)
+  - Reuse logic from `webapp/utils/i18n.js::getObjectPaths()` or create test-specific version
+
+#### 1.2 `key-validator.js`
+- **Purpose**: Validate keys against reference translation file
+- **Functions**:
+  - `validateKeys(referenceKeys, targetKeys)`: Compare two key sets
+  - Returns: `{ missing: [...], extra: [...] }`
+- **Implementation**:
+  - Compare arrays of dot-notation paths
+  - Missing: keys in reference but not in target
+  - Extra: keys in target but not in reference
+
+#### 1.3 `key-extractor.js`
+- **Purpose**: Extract i18n keys from various source formats
+- **Functions**:
+  - `extractViewKeys(content, filePath)`: Extract `{{i18n.*}}` patterns from view files
+  - `extractControllerKeys(content, filePath)`: Extract `global.i18n.translate()` calls from controller files
+- **Implementation**:
+  - **View extraction**: Use regex `/\{\{@?i18n\.([^}]+)\}\}/g` (matches both `{{i18n.}}` and `{{@i18n.}}`)
+    - Filter out commented code: `{{!-- ... --}}`
+    - Filter out HTML-escaped: `&#123;&#123;i18n...&#125;&#125;`
+    - Return: `[{ key: 'view.ui.title', line: 45, file: '...' }, ...]`
+  - **Controller extraction**: Use regex `/global\.i18n\.translate\s*\(\s*[^,]+,\s*['"]([^'"]+)['"]/g`
+    - Handle multiline with flag `m`
+    - Skip dynamic keys (variables) - detect non-string literals
+    - Return: `[{ key: 'controller.auth.loginSuccess', line: 120, file: '...' }, ...]`
+
+### Step 2: Create Test File
+
+**Location**: `webapp/tests/unit/i18n/i18n-usage-audit.test.js`
+
+**Rationale**: All three test suites need the same translation keys, so combining them into a single file allows:
+- Single `beforeAll` to load translations once
+- Shared `enKeys` variable across all test suites
+- Simpler structure, no need for file caching
+- Jest's `beforeAll` runs even if only one test is executed
+
+#### 2.1 Combined Test Structure
+```javascript
+describe('I18N Usage Audit', () => {
+    let translations; // { en: [...], de: [...] } - flattened, sorted arrays
+    let enKeys; // Reference keys from en.conf
+
+    beforeAll(() => {
+        // Load all translation files once (already flattened by translation-loader)
+        translations = loadAllTranslations(translationsDir);
+        enKeys = translations.en; // Reference keys (sorted array)
+    });
+
+    describe('Translation Key Comparison', () => {
+        test('en.conf should be the reference language', () => {
+            // Verify en.conf exists and is valid
+            expect(enKeys).toBeDefined();
+            expect(enKeys.length).toBeGreaterThan(0);
+        });
+
+        test.each(['de'])('should have matching keys with en.conf', (langCode) => {
+            // Compare each language file with en.conf
+            const targetKeys = translations[langCode];
+            const { missing, extra } = validateKeys(enKeys, targetKeys);
+            // Report missing and extra keys
+            expect(missing).toEqual([]);
+            expect(extra).toEqual([]);
+        });
+    });
+
+    describe('View i18n Usage Validation', () => {
+        test('should validate all {{i18n.*}} references', () => {
+            // Discover all view files
+            // Extract all i18n keys from view files
+            // Validate against enKeys
+            // Report broken references
+        });
+
+        test('should handle escaped handlebars correctly', () => {
+            // Verify {{@i18n.*}} patterns are extracted
+        });
+
+        test('should ignore commented code', () => {
+            // Verify {{!-- ... --}} patterns are ignored
+        });
+    });
+
+    describe('Controller i18n Usage Validation', () => {
+        test('should validate all global.i18n.translate() calls', () => {
+            // Discover all controller files
+            // Extract all translation keys from controller files
+            // Validate against enKeys
+            // Report broken references
+        });
+
+        test('should report dynamic keys separately', () => {
+            // Identify and report keys that use variables (cannot validate)
+        });
+
+        test('should handle multiline function calls', () => {
+            // Verify regex handles multiline patterns
+        });
+    });
+});
+```
+
+**File Discovery**:
+- **Views**: Scan `webapp/view/` recursively
+  - Include: `.js`, `.shtml`, `.tmpl`, `.css` (if contains Handlebars)
+- **Controllers**: Scan `webapp/controller/` recursively
+  - Include: All `.js` files
+  - Exclude: Test files (`*.test.js`)
+
+**Output Format**:
+- Console: Human-readable summary
+- Test assertions: Fail if missing/extra keys found
+- Detailed report: List all differences with file and line numbers
+
+### Step 3: Implementation Details
+
+#### 3.1 Translation File Loading
+- **Approach**: Direct file reading (no app bootstrap required)
+- **Parsing**: Use `new Function()` to evaluate JavaScript (same as production code)
+- **Error Handling**: Catch syntax errors, report invalid files
+- **Path Resolution**: Use `path.join(process.cwd(), 'webapp/translations')`
+
+#### 3.2 Key Flattening (Integrated in translation-loader.js)
+- **Location**: Flattening logic is part of `translation-loader.js`
+- **Reuse**: Consider importing `getObjectPaths` from `webapp/utils/i18n.js` if possible
+- **Alternative**: Create test-specific version to avoid dependencies
+- **Edge Cases**:
+  - Empty objects: return empty array
+  - Null values: treat as leaf (include in paths)
+  - Arrays: treat as leaf (don't recurse)
+- **Sorting**: Keys are sorted alphabetically for consistent comparison and reporting
+
+#### 3.3 View Key Extraction
+- **Regex Pattern**: `/\{\{@?i18n\.([^}]+)\}\}/g`
+- **Filtering**:
+  - Skip `{{!-- ... --}}` comments (check if match is inside comment)
+  - Skip HTML-escaped: `&#123;&#123;` and `&#125;&#125;`
+  - Handle line numbers: track line breaks in content
+- **Key Extraction**: Remove `i18n.` prefix, trim whitespace
+
+#### 3.4 Controller Key Extraction
+- **Regex Pattern**: `/global\.i18n\.translate\s*\(\s*[^,]+,\s*['"]([^'"]+)['"]/gm`
+- **Multiline Support**: Use `m` flag for multiline matching
+- **Dynamic Key Detection**: If second argument is not a string literal, skip with warning
+- **Limitations**:
+  - Won't catch string concatenation: `'controller.' + module + '.key'`
+  - Won't catch template literals with variables: `` `controller.${module}.key` ``
+  - Report these as "dynamic keys (cannot validate)"
+
+### Step 4: Reporting
+
+#### 4.1 Test Output Format
+- **Console Output**: Human-readable summary
+  ```
+  Translation Key Comparison Results:
+  ==================================
+  de.conf vs en.conf:
+    Missing keys (2):
+      - controller.auth.newKey
+      - view.ui.newFeature.title
+    Extra keys (1):
+      - controller.auth.deprecatedKey
+  ```
+- **Test Assertions**:
+  - Fail test if any missing/extra keys found
+  - Provide detailed error messages with all issues
+
+#### 4.2 Error Messages
+- Include: File path, line number, key path, issue type
+- Format: `file:line → key → issue`
+- Group by file for readability
+
+### Step 5: Testing Strategy
+
+#### 5.1 Unit Tests for Utilities
+- Test each utility function independently
+- Mock file system operations where needed
+- Test edge cases (empty files, invalid syntax, etc.)
+
+#### 5.2 Integration Tests
+- Run full audit tests against actual codebase
+- Verify they catch real issues
+- Ensure performance is acceptable (< 2 seconds for small scale)
+
+#### 5.3 Test Data
+- Use actual translation files from `webapp/translations/`
+- Use actual view/controller files from codebase
+- No need for mock data (real-world validation)
+
+### Step 6: File Structure
+
+```
+webapp/tests/unit/i18n/
+├── i18n-usage-audit.test.js     # Combined test file (3 test suites)
+└── utils/
+    ├── translation-loader.js    # Loads, parses, and flattens translation files
+    ├── key-validator.js          # Validates keys against reference
+    └── key-extractor.js          # Extracts keys from views/controllers
+```
+
+### Step 7: Dependencies
+
+- **No new npm dependencies required** (following user preference)
+- Use Node.js built-ins: `fs`, `path`
+- Reuse existing utilities from `webapp/utils/i18n.js` where possible
+- Use Jest built-in features for testing
+
+### Step 8: Performance Considerations
+
+- **In-Memory Storage**: Flattened key arrays are small and kept in memory during test execution
+- **Sequential Processing**: Simple sequential file reading is sufficient (no parallel processing needed)
+- **Early Exit**: Stop on first error if in strict mode (optional)
+- **Expected Performance**: Complete audit should complete in < 2 seconds (small scale: 2 translation files, ~22 view files, ~10 controller files)
+
+### Step 9: Error Handling
+
+- **Invalid Translation Files**: Report syntax errors clearly
+- **Missing Files**: Skip with warning (don't fail entire test suite)
+- **Permission Errors**: Report and skip
+- **Malformed Keys**: Report but continue processing
+
+### Step 10: Future Enhancements (Out of Scope)
+
+- `--fix` mode to automatically update translation files
+- JSON output format for CI/CD integration
+- Exclude patterns for specific files/directories
+- AST-based controller parsing (if regex proves insufficient)
+
 ## Test Structure
 
 ### File Location
 ```
 webapp/tests/unit/i18n/
-  ├── translation-keys.test.js      # Test 1: Key comparison
-  ├── view-usage.test.js            # Test 2: View i18n validation
-  └── controller-usage.test.js      # Test 3: Controller i18n validation
-```
-
-### Test Utilities
-```
-webapp/tests/unit/i18n/
+  ├── i18n-usage-audit.test.js      # Combined test file with 3 test suites
   └── utils/
       ├── translation-loader.js     # Load and flatten .conf files
       ├── key-extractor.js          # Extract keys from various formats
       └── key-validator.js          # Validate keys against en.conf
 ```
 
+**Note**: All three test suites are combined into a single file because they share the same translation keys. The `beforeAll` hook loads translations once and makes them available to all test suites. Jest will run `beforeAll` even if only one test is executed.
+
 ## Expected Deliverables
 
-1. **Three test suites**:
-   - Translation key comparison test
-   - View i18n usage validation test
-   - Controller i18n usage validation test
+1. **One combined test file with three test suites**:
+   - Translation key comparison test suite
+   - View i18n usage validation test suite
+   - Controller i18n usage validation test suite
 
 2. **Utility functions**:
    - Translation file loader
@@ -245,8 +493,8 @@ webapp/tests/unit/i18n/
 
 ## Notes
 
-- Tests should be fast enough to run in CI/CD
-- Consider caching flattened key structures for performance
+- Tests should be fast enough to run in CI/CD (expected < 2 seconds)
+- Flattened key arrays are small and kept in memory during test execution
 - Report format should be machine-readable (JSON) and human-readable (text)
 - Consider adding `--fix` mode to automatically update translation files (future enhancement)
 

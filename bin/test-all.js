@@ -4,8 +4,8 @@
  * @tagline         Runs all tests (webapp + CLI) with unified output
  * @description     "Don't make me think" test runner for complete validation
  * @file            bin/test-all.js
- * @version         1.3.19
- * @release         2025-12-19
+ * @version         1.3.20
+ * @release         2025-12-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -27,6 +27,29 @@ const colors = {
 };
 
 /**
+ * Extract warnings from test output (all test suites)
+ * Looks for lines containing "WARNING:" (standardized format)
+ */
+function extractWarnings(output) {
+    const warnings = [];
+    const lines = output.split('\n');
+
+    for (const line of lines) {
+        // Look for lines containing "WARNING:"
+        if (line.includes('WARNING:')) {
+            // Extract the warning message (everything from WARNING: onwards)
+            const warningIndex = line.indexOf('WARNING:');
+            if (warningIndex !== -1) {
+                const warningMessage = line.substring(warningIndex).trim();
+                warnings.push(warningMessage);
+            }
+        }
+    }
+
+    return warnings;
+}
+
+/**
  * Run command with proper error handling and output parsing
  */
 function runCommand(command, description, parseStats = false) {
@@ -36,26 +59,31 @@ function runCommand(command, description, parseStats = false) {
     try {
         if (parseStats) {
             // For Jest tests, capture both stdout and stderr since Jest outputs summary to stderr
+            // Set environment variable so global-teardown knows to skip warning summary
+            const env = { ...process.env, JEST_RUN_FROM_TEST_ALL: 'true' };
             const output = execSync(command + ' 2>&1', {
                 stdio: 'pipe',
                 cwd: process.cwd(),
                 encoding: 'utf8',
-                shell: true
+                shell: true,
+                env: env
             });
 
             // Show the output to user
             console.log(output);
             // Parse output for test statistics
             const stats = parseTestOutput(output, description);
+            // Extract warnings from output
+            const warnings = extractWarnings(output);
             console.log(`✅ ${colors.green}${description} - PASSED${colors.reset}`);
-            return { success: true, stats };
+            return { success: true, stats, warnings };
         } else {
             execSync(command, {
                 stdio: 'inherit',
                 cwd: process.cwd()
             });
             console.log(`✅ ${colors.green}${description} - PASSED${colors.reset}`);
-            return { success: true };
+            return { success: true, warnings: [] };
         }
 
     } catch (error) {
@@ -76,10 +104,12 @@ function runCommand(command, description, parseStats = false) {
 
             // Even on failure, try to parse stats
             const stats = parseTestOutput(combinedOutput, description);
-            return { success: false, stats };
+            // Extract warnings from output
+            const warnings = extractWarnings(combinedOutput);
+            return { success: false, stats, warnings };
         }
 
-        return { success: false };
+        return { success: false, warnings: [] };
     }
 }
 
@@ -217,6 +247,31 @@ async function runAllTests() {
     const integrationResult = runCommand('jest webapp/tests/integration --runInBand', 'Integration Tests (routes, middleware, auth)', true);
     results.push({ name: 'Integration Tests', result: integrationResult, baseStats: null, time: new Date().valueOf() });
     if (integrationResult.success) totalPassed++; else totalFailed++;
+
+    // Aggregate warnings from all test runs (CLI Tools, Enhanced CLI, MongoDB, Unit Tests, Integration Tests)
+    const allWarnings = [];
+    results.forEach(result => {
+        if (result.result.warnings && result.result.warnings.length > 0) {
+            allWarnings.push(...result.result.warnings);
+        }
+    });
+
+    // Print warning summary just before TEST SUMMARY
+    console.log('\n' + '='.repeat(60));
+    console.log('⚠️  WARNING SUMMARY');
+    console.log('='.repeat(60));
+
+    if (allWarnings.length > 0) {
+        // Print unique warnings (deduplicate)
+        const uniqueWarnings = [...new Set(allWarnings)];
+        uniqueWarnings.forEach(warning => {
+            console.log(warning);
+        });
+
+        console.log(`\nTotal warnings: ${allWarnings.length} (${uniqueWarnings.length} unique)`);
+    } else {
+        console.log('\nNo warnings encountered in this test run');
+    }
 
     // Summary
     console.log('\n' + '='.repeat(60));

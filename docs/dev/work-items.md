@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.19
+# jPulse Docs / Dev / Work Items v1.3.20
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3154,21 +3154,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - security hardening complete for critical functions
   - documentation comprehensive and cross-referenced
 
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-118, v1.3.19, 2025-12-19: view: headings with anchor links for copy & paste in browser URL bar
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives: ability to share content with anchor links, should work on any jpulse rendered page, not just markdown docs
 - prerequisits: W-049: docs: views render markdown docs for jPulse docs and site docs
@@ -3242,15 +3229,53 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
 ### W-119, v1.3.20, 2025-12-20: i18n: usage audit tests for translations, controllers, views
-- status: 🕑 PENDING
-- type: Feature
+- status: ✅ DONE
+- type: Testing
 - objectives: more reliable translations
 - tests:
-  - FIXME
+  - webapp/tests/unit/i18n/i18n-usage-audit.test.js: Combined test suite for translation key comparison, view i18n usage, and controller i18n usage validation
 - deliverables:
-  - FIXME path/file:
-    - FIXME summary
+  - webapp/tests/unit/i18n/i18n-usage-audit.test.js:
+    - Combined test file with three test suites: Translation Key Comparison, View i18n Usage Validation, Controller i18n Usage Validation
+    - Validates translation key consistency across all language files (en.conf as reference)
+    - Validates all {{i18n.*}} references in view files (.js, .css, .tmpl, .shtml)
+    - Validates all global.i18n.translate() calls in controller files
+    - Detects and reports dynamic keys (variables, string concatenation, template literals) as warnings
+    - Performance: < 2 seconds for full audit
+  - webapp/tests/unit/i18n/utils/translation-loader.js:
+    - Utility to load, parse, and flatten translation files into sorted dot-notation key arrays
+    - Handles nested objects recursively
+    - Returns flattened structure: { en: ['controller.auth.loginDisabled', ...], de: [...] }
+  - webapp/tests/unit/i18n/utils/key-validator.js:
+    - Utility to validate keys against a reference set (en.conf)
+    - Reports missing and extra keys
+  - webapp/tests/unit/i18n/utils/key-extractor.js:
+    - Utility to extract i18n keys from view and controller files using regex patterns
+    - Detects static keys and dynamic keys (variables, string concatenation, template literals)
+    - Returns structured references with file path, line number, and match context
+  - webapp/tests/unit/i18n/find-dynamic-keys.js:
+    - Standalone script to find dynamic i18n keys across the codebase
+  - bin/test-all.js:
+    - Enhanced to extract and aggregate warnings from all test suites (CLI Tools, Enhanced CLI, MongoDB, Unit Tests, Integration Tests)
+    - Displays single aggregated warning summary at end of test run, just before "📊 TEST SUMMARY"
+  - webapp/tests/setup/global-teardown.js:
+    - Modified to skip warning summary when running from test-all.js (prevents duplicate summaries)
+  - bin/configure.js, bin/config-registry.js, bin/plugin-manager-cli.js:
+    - Converted all warnings to standardized "WARNING: ... [file-path]" format for consistent detection
+
+
+
+
+
 
 
 
@@ -3285,8 +3310,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-118, v1.3.19
-- update deliverables in W-118 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-119, v1.3.20
+- update deliverables in W-119 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -3303,12 +3328,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.19
+node bin/bump-version.js 1.3.20
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.19
+git tag v1.3.20
 git push origin main --tags
 
 === plugin release & package build on github ===

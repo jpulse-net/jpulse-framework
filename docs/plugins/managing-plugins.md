@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Managing Plugins via CLI v1.3.19
+# jPulse Docs / Plugins / Managing Plugins via CLI v1.3.20
 
 jPulse Framework provides a command-line interface for managing plugins. This guide covers installation, updates, and publishing.
 

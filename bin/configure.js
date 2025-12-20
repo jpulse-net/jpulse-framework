@@ -4,8 +4,8 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         1.3.19
- * @release         2025-12-19
+ * @version         1.3.20
+ * @release         2025-12-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -23,6 +23,9 @@ import { CONFIG_REGISTRY, buildCompleteConfig, expandAllVariables } from './conf
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const packageRoot = path.dirname(__dirname);
+
+// Get script file name for warning messages
+const SCRIPT_FILE = 'bin/configure.js';
 
 // Interactive prompt interface
 const rl = readline.createInterface({
@@ -198,7 +201,7 @@ async function configureNewFeaturesOnly() {
         });
 
         if (configLevelVars.length > 0) {
-            console.log(`⚠️  Warning: ${configLevelVars.join(', ')} require app config changes`);
+            console.log(`WARNING: ${configLevelVars.join(', ')} require app config changes [${SCRIPT_FILE}]`);
             console.log('💡 Please choose "Reconfigure from scratch" to update site/webapp/app.conf\n');
             process.exit(1);
         }

@@ -3,8 +3,8 @@
  * @tagline         Jest Global Setup
  * @description     Global setup for Jest tests runs once before all tests start
  * @file            webapp/tests/setup/global-setup.js
- * @version         1.3.19
- * @release         2025-12-19
+ * @version         1.3.20
+ * @release         2025-12-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,6 +18,34 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Get test file name for warning messages
+const TEST_FILE = 'webapp/tests/setup/global-setup.js';
+
+/**
+ * Global warning collector for test warnings
+ * Collects all WARNING: messages during test execution
+ */
+if (!global.testWarnings) {
+    global.testWarnings = [];
+    const originalConsoleLog = console.log;
+
+    // Intercept console.log to collect warnings
+    console.log = function(...args) {
+        const message = args.join(' ');
+        // Check if message contains WARNING: (may have leading spaces from Jest formatting)
+        if (message.includes('WARNING:')) {
+            // Extract just the WARNING: part and everything after
+            const warningIndex = message.indexOf('WARNING:');
+            if (warningIndex !== -1) {
+                const warningMessage = message.substring(warningIndex);
+                global.testWarnings.push(warningMessage);
+            }
+        }
+        // Always call original to preserve normal output
+        originalConsoleLog.apply(console, args);
+    };
+}
 
 /**
  * Initialize global appConfig for all tests
@@ -37,7 +65,7 @@ async function initializeGlobalConfig() {
         }
         return true;
     } catch (error) {
-        console.error('❌ Failed to initialize global appConfig:', error.message);
+        console.log(`⚠️  WARNING: Failed to initialize global appConfig: ${error.message} [${TEST_FILE}]`);
         throw error;
     }
 }
@@ -56,7 +84,7 @@ async function initializeLogController() {
         console.log('📝 LogController initialized for test environment');
         return true;
     } catch (error) {
-        console.error('❌ Failed to initialize LogController:', error.message);
+        console.log(`⚠️  WARNING: Failed to initialize LogController: ${error.message} [${TEST_FILE}]`);
         throw error;
     }
 }
@@ -79,7 +107,7 @@ async function initializeTestDatabase() {
         }
         return connected;
     } catch (error) {
-        console.warn('⚠️  Database initialization failed:', error.message);
+        console.log(`⚠️  WARNING: Database initialization failed: ${error.message} [${TEST_FILE}]`);
         return false;
     }
 }
@@ -107,7 +135,7 @@ async function cleanupTempFiles() {
                     await fs.unlink(filePath);
                     console.log(`   ✓ Removed: ${file}`);
                 } catch (error) {
-                    console.warn(`   ⚠️  Could not remove ${file}: ${error.message}`);
+                    console.log(`⚠️  WARNING: Could not remove ${file}: ${error.message} [${TEST_FILE}]`);
                 }
             }
         }
@@ -160,7 +188,7 @@ export default async function globalSetup() {
 
         console.log('✅ Jest Global Setup: Test environment ready!');
     } catch (error) {
-        console.error('❌ Jest Global Setup failed:', error);
+        console.log(`⚠️  WARNING: Jest Global Setup failed: ${error.message || error} [${TEST_FILE}]`);
         throw error;
     }
 }

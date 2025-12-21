@@ -3,7 +3,7 @@
  * @tagline         Validate translation keys against reference
  * @description     Utility to compare key sets and identify missing/extra keys
  * @file            webapp/tests/unit/i18n/utils/key-validator.js
- * @version         1.3.21
+ * @version         1.3.22
  * @release         2025-12-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

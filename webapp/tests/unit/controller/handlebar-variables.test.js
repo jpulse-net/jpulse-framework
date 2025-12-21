@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-103: {{let}} and {{#with}} for custom variables
  * @description     Tests for variable assignment and context switching functionality
  * @file            webapp/tests/unit/controller/handlebar-variables.test.js
- * @version         1.3.21
+ * @version         1.3.22
  * @release         2025-12-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

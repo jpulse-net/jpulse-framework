@@ -4,7 +4,7 @@
  * @tagline         Framework update synchronization CLI tool
  * @description     Updates local framework files from installed package
  * @file            bin/jpulse-update.js
- * @version         1.3.21
+ * @version         1.3.22
  * @release         2025-12-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -19,237 +19,33 @@ import { execSync } from 'child_process';
 import { CONFIG_REGISTRY, buildCompleteConfig, expandAllVariables } from './config-registry.js';
 
 /**
- * Load and parse .markdown file for a directory, extracting publish-list and ignore patterns
- * @param {string} baseDir - Base directory containing .markdown
- * @returns {Object} Config object with publishList and ignore arrays
- */
-function loadMarkdownConfig(baseDir) {
-    const markdownFile = path.join(baseDir, '.markdown');
-
-    const config = {
-        publishList: [], // Array of path strings (in order)
-        ignore: [] // Array of ignore pattern objects
-    };
-
-    try {
-        const content = fs.readFileSync(markdownFile, 'utf8');
-        const lines = content.split('\n');
-
-        let currentSection = null;
-
-        for (const line of lines) {
-            const trimmedLine = line.trim();
-
-            // Skip empty lines and comments (unless checking for section headers)
-            if (!trimmedLine || trimmedLine.startsWith('#')) {
-                continue;
-            }
-
-            // Check for section headers: [section-name]
-            const sectionMatch = trimmedLine.match(/^\[([\w-]+)\]$/);
-            if (sectionMatch) {
-                currentSection = sectionMatch[1].toLowerCase();
-                continue;
-            }
-
-            // Parse content based on current section
-            if (currentSection === 'publish-list') {
-                // Format: filepath [optional-title]
-                // Extract just the path (first token, before whitespace separator)
-                const tabIndex = trimmedLine.indexOf('\t');
-                const doubleSpaceIndex = trimmedLine.indexOf('  ');
-                let pathEnd = -1;
-                if (tabIndex !== -1 && doubleSpaceIndex !== -1) {
-                    pathEnd = Math.min(tabIndex, doubleSpaceIndex);
-                } else if (tabIndex !== -1) {
-                    pathEnd = tabIndex;
-                } else if (doubleSpaceIndex !== -1) {
-                    pathEnd = doubleSpaceIndex;
-                }
-
-                const filePath = pathEnd === -1 ? trimmedLine : trimmedLine.substring(0, pathEnd).trim();
-                if (filePath) {
-                    config.publishList.push(filePath);
-                }
-            } else if (currentSection === 'ignore') {
-                // Parse ignore patterns (same syntax as old .jpulse-ignore)
-                const pattern = trimmedLine;
-                try {
-                    // Convert glob pattern to regex
-                    // Escape special regex chars except * and ?
-                    let regexPattern = pattern
-                        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-                        .replace(/\*/g, '.*')
-                        .replace(/\?/g, '.');
-
-                    // Handle directory patterns (ending with /)
-                    const isDirectory = pattern.endsWith('/');
-                    if (isDirectory) {
-                        regexPattern = regexPattern.slice(0, -1); // Remove trailing /
-                    }
-
-                    config.ignore.push({
-                        pattern: pattern,
-                        regex: new RegExp(`^${regexPattern}$`),
-                        isDirectory: isDirectory
-                    });
-                } catch (regexError) {
-                    // Invalid regex pattern - skip this pattern (fail gracefully, no warnings)
-                    // This matches the markdown controller behavior: ignore invalid patterns
-                    continue;
-                }
-            }
-            // Unknown sections are ignored gracefully
-        }
-
-        return config;
-    } catch (error) {
-        // Fail gracefully: missing file or invalid format - return empty config (no warnings)
-        // This matches the markdown controller behavior: silent fallback to defaults
-        if (error.code === 'ENOENT') {
-            // File doesn't exist - return empty config (all files published, alphabetical order)
-            return config;
-        }
-        // Invalid format or other error - return empty config (fail gracefully, no warnings)
-        // This ensures the sync process continues even with a malformed .markdown file
-        return config;
-    }
-}
-
-/**
- * Check if a file or directory should be ignored
- * @param {string} relativePath - Relative path from base directory
- * @param {boolean} isDirectory - Whether the path is a directory
- * @param {Array} ignorePatterns - Array of ignore pattern objects
- * @returns {boolean} True if should be ignored
- */
-function shouldIgnore(relativePath, isDirectory, ignorePatterns) {
-    for (const pattern of ignorePatterns) {
-        // For directory patterns (ending with /), check both exact match and subdirectory match
-        if (pattern.isDirectory) {
-            const dirPath = pattern.pattern.slice(0, -1); // Remove trailing /
-
-            // Exact directory match
-            if (isDirectory && relativePath === dirPath) {
-                return true;
-            }
-
-            // File or subdirectory inside ignored directory
-            if (relativePath.startsWith(dirPath + '/')) {
-                return true;
-            }
-        } else {
-            // File patterns - only match files
-            if (!isDirectory && pattern.regex.test(relativePath)) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-/**
  * Copy directory recursively, preserving existing files
- * Uses [publish-list] for ordering (explicit files first, then alphabetical), with [ignore] filtering
+ * Simple recursive copy - no filtering or ordering needed (package already has filtered docs)
  * @param {string} src - Source directory
  * @param {string} dest - Destination directory
- * @param {string} baseDir - Base directory for relative path calculation (for config patterns)
- * @param {Object} markdownConfig - Markdown config object with publishList and ignore arrays
  */
-function syncDirectory(src, dest, baseDir = null, markdownConfig = null) {
+function syncDirectory(src, dest) {
     if (!fs.existsSync(dest)) {
         fs.mkdirSync(dest, { recursive: true });
     }
 
     const entries = fs.readdirSync(src, { withFileTypes: true });
 
-    // Collect all entries with their relative paths
-    const entryList = [];
     for (const entry of entries) {
         const srcPath = path.join(src, entry.name);
-        const relativePath = baseDir ? path.relative(baseDir, srcPath).replace(/\\/g, '/') : entry.name;
+        const destPath = path.join(dest, entry.name);
 
-        // Skip symlinks (we handle jpulse docs separately)
+        // Skip symlinks (they're already resolved to actual files in the package)
         if (entry.isSymbolicLink()) {
             console.log(`⏭️  Skipping symlink: ${entry.name}`);
             continue;
         }
 
-        entryList.push({
-            entry: entry,
-            srcPath: srcPath,
-            destPath: path.join(dest, entry.name),
-            relativePath: relativePath
-        });
-    }
-
-    // Apply ignore patterns (ignore takes precedence over publish-list)
-    const ignorePatterns = markdownConfig?.ignore || [];
-    const filteredEntries = entryList.filter(item => {
-        if (ignorePatterns.length > 0 && shouldIgnore(item.relativePath, item.entry.isDirectory(), ignorePatterns)) {
-            console.log(`⏭️  Skipping ignored: ${item.relativePath}`);
-            return false;
-        }
-        return true;
-    });
-
-    // Apply publish-list ordering: explicit files first (in listed order), then remaining alphabetically
-    const publishList = markdownConfig?.publishList || [];
-    if (publishList.length > 0) {
-        const explicitEntries = [];
-        const explicitPaths = new Set();
-        const remainingEntries = [];
-
-        // First, collect explicit entries in publish-list order
-        for (const publishPath of publishList) {
-            const item = filteredEntries.find(e => e.relativePath === publishPath);
-            if (item) {
-                explicitEntries.push(item);
-                explicitPaths.add(publishPath);
-            }
-        }
-
-        // Then, collect remaining entries (not in publish-list)
-        for (const item of filteredEntries) {
-            if (!explicitPaths.has(item.relativePath)) {
-                remainingEntries.push(item);
-            }
-        }
-
-        // Sort remaining entries alphabetically
-        remainingEntries.sort((a, b) => {
-            if (a.entry.isDirectory() !== b.entry.isDirectory()) {
-                return a.entry.isDirectory() ? 1 : -1;
-            }
-            return a.entry.name.localeCompare(b.entry.name);
-        });
-
-        // Process in order: explicit first, then remaining
-        for (const item of [...explicitEntries, ...remainingEntries]) {
-            if (item.entry.isDirectory()) {
-                syncDirectory(item.srcPath, item.destPath, baseDir, markdownConfig);
-            } else {
-                // Always overwrite framework files
-                fs.copyFileSync(item.srcPath, item.destPath);
-            }
-        }
-    } else {
-        // No publish-list, process alphabetically (already filtered by ignore)
-        filteredEntries.sort((a, b) => {
-            if (a.entry.isDirectory() !== b.entry.isDirectory()) {
-                return a.entry.isDirectory() ? 1 : -1;
-            }
-            return a.entry.name.localeCompare(b.entry.name);
-        });
-
-        for (const item of filteredEntries) {
-            if (item.entry.isDirectory()) {
-                syncDirectory(item.srcPath, item.destPath, baseDir, markdownConfig);
-            } else {
-                // Always overwrite framework files
-                fs.copyFileSync(item.srcPath, item.destPath);
-            }
+        if (entry.isDirectory()) {
+            syncDirectory(srcPath, destPath);
+        } else {
+            // Always overwrite framework files
+            fs.copyFileSync(srcPath, destPath);
         }
     }
 }
@@ -352,6 +148,7 @@ function sync() {
             }
 
             // Copy documentation to webapp/static/assets/jpulse-docs/
+            // Note: Package already contains filtered docs (excluded files removed at build time via .npmignore)
             console.log('📚 Copying documentation...');
             const docsSource = path.join(frameworkPath, 'docs');
             const docsDestination = path.join('webapp', 'static', 'assets', 'jpulse-docs');
@@ -365,17 +162,9 @@ function sync() {
                     fs.rmSync(docsDestination, { recursive: true, force: true });
                 }
 
-                // Load markdown config (publish-list and ignore patterns)
-                const markdownConfig = loadMarkdownConfig(docsSource);
-                if (markdownConfig.publishList.length > 0) {
-                    console.log(`📋 Found ${markdownConfig.publishList.length} file(s) in .markdown [publish-list] section`);
-                }
-                if (markdownConfig.ignore.length > 0) {
-                    console.log(`📋 Found ${markdownConfig.ignore.length} ignore pattern(s) in .markdown [ignore] section`);
-                }
-
-                // Sync docs with publish-list ordering and ignore pattern support
-                syncDirectory(docsSource, docsDestination, docsSource, markdownConfig);
+                // Package already has filtered docs (only files we want, in correct order)
+                // Just copy everything - no need to filter or reorder
+                syncDirectory(docsSource, docsDestination);
                 console.log('✅ Documentation copied successfully');
             } else {
                 console.warn('⚠️  Documentation source not found');

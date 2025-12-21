@@ -102,8 +102,7 @@ dev/work-items.md
 [ignore]
 
 # Exclude files and directories from publishing.
-# Only affects files NOT listed in [publish-list] above.
-# Files in [publish-list] are always published, even if they match ignore patterns.
+# Takes precedence over [publish-list] - ignored files are excluded even if listed
 #
 # Syntax: gitignore-like patterns (relative to docs/ directory)
 #   - "file.md"          - ignore specific file
@@ -123,6 +122,7 @@ dev/work-items.md
 #   - Create a whitelist (use "*" to only publish [publish-list] files)
 
 # Ignore roadmap and working directory
+# NOTE: keep this in sync with .npmignore
 dev/roadmap.md
 dev/working/
 

@@ -1,4 +1,4 @@
-# jPulse Framework / Plugins / Hello-World / README v1.3.21
+# jPulse Framework / Plugins / Hello-World / README v1.3.22
 
 A reference implementation plugin for the jPulse Framework that demonstrates the plugin infrastructure.
 

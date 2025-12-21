@@ -3,7 +3,7 @@
  * @tagline         Unit tests for TimeBasedCounter and CounterManager
  * @description     Tests for time-based event counters with rolling time windows
  * @file            webapp/tests/unit/utils/time-based-counters.test.js
- * @version         1.3.21
+ * @version         1.3.22
  * @release         2025-12-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

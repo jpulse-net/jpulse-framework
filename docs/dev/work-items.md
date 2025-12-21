@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.21
+# jPulse Docs / Dev / Work Items v1.3.22
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3259,21 +3259,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - bin/configure.js, bin/config-registry.js, bin/plugin-manager-cli.js:
     - Converted all warnings to standardized "WARNING: ... [file-path]" format for consistent detection
 
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ###  W-120, v1.3.21, 2025-12-21: markdown: publishing directives for sort order and page titles
-- status: 🕑 PENDING
+- status: ✅ DONE
 - type: Feature
 - objectives: more control over markdown docs publishing
 - previous behavior:
@@ -3349,6 +3336,39 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-121, v1.3.22, 2025-12-21: markdown: v1.3.21 bug fix for ignore files are accessible in jpulse-docs
+- status: ✅ DONE
+- type: Bug Fix
+- objective: fix bug discovered after v1.3.21 release
+- issue:
+  - bug: files and directories specified in the `[ignore]` section of `docs/.markdown` are not excluded, and accessible:
+    - docs/dev/roadmap.md
+    - docs/dev/working
+- deliverables:
+  - .npmignore:
+    - added `docs/dev/roadmap.md` and `docs/dev/working/` to exclude from npm package
+    - files specified in `[ignore]` section of `docs/.markdown` are now excluded at build time
+    - added comment noting sync requirement with `docs/.markdown` `[ignore]` section
+  - bin/jpulse-update.js:
+    - simplified to basic recursive copy (removed all filtering/ordering logic)
+    - package already contains filtered docs (excluded files removed at build time via `.npmignore`)
+    - no need to filter or reorder - just copy everything from package
+    - updated comment to reflect `.npmignore` approach instead of prepack filtering
+
+
+
+
+
+
+
+
+
+
+
 ### Pending
 
 
@@ -3380,11 +3400,11 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-120, v1.3.21
-- update deliverables in W-120 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-121, v1.3.22
+- update deliverables in W-121 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
-- update cursor_log.txt
+- update cursor_log.txt (append, don't replace)
 
 ### Misc
 
@@ -3398,12 +3418,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.21
+node bin/bump-version.js 1.3.22
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.21
+git tag v1.3.22
 git push origin main --tags
 
 === plugin release & package build on github ===

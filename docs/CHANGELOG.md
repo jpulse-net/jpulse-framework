@@ -1,6 +1,62 @@
-# jPulse Docs / Version History v1.3.21
+# jPulse Docs / Version History v1.3.22
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.22, W-121, 2025-12-21
+
+**Commit:** `W-121, v1.3.22: markdown: v1.3.21 bug fix for ignore files are accessible in jpulse-docs`
+
+**BUG FIX RELEASE**: Fixed issue where files specified in `docs/.markdown` `[ignore]` section were still accessible in published npm package.
+
+**Objective**: Fix bug discovered after v1.3.21 release where ignored files were still included in the npm package despite being specified in the `[ignore]` section.
+
+**Issue**:
+- Bug: Files and directories specified in the `[ignore]` section of `docs/.markdown` were not excluded from npm package:
+  - `docs/dev/roadmap.md`
+  - `docs/dev/working/`
+- These files were accessible in the published package even though they should have been excluded
+
+**Solution**:
+- Added excluded files to `.npmignore` to exclude them at package build time
+- Simplified `bin/jpulse-update.js` to basic recursive copy (no filtering needed since package already contains pre-filtered docs)
+
+**Code Changes**:
+
+**.npmignore**:
+- Added `docs/dev/roadmap.md` and `docs/dev/working/` to exclude from npm package
+- Added comment noting sync requirement with `docs/.markdown` `[ignore]` section
+- Files specified in `[ignore]` section are now excluded at build time
+
+**bin/jpulse-update.js**:
+- Simplified `syncDirectory()` function to basic recursive copy
+- Removed all filtering and ordering logic (no longer needed)
+- Package already contains filtered docs (excluded files removed at build time via `.npmignore`)
+- Updated comment to reflect `.npmignore` approach instead of prepack filtering
+- No need to filter or reorder - just copy everything from package
+
+**Bugs Fixed**:
+1. Fixed ignored files appearing in npm package: Files specified in `docs/.markdown` `[ignore]` section are now properly excluded via `.npmignore`
+
+**Test Results**:
+- Verified excluded files are not in npm package
+- Verified `bin/jpulse-update.js` correctly copies filtered docs
+- All existing tests passing
+
+**Breaking Changes**:
+- None
+
+**Migration Steps**:
+- None required
+
+**Impact Summary**:
+- Reliability: Ignored files are now properly excluded from npm package
+- Simplicity: Simplified `bin/jpulse-update.js` by removing unnecessary filtering logic
+- Consistency: `.npmignore` ensures build-time exclusion matches runtime filtering
+
+**Work Item**: W-121
+**Version**: v1.3.22
+**Release Date**: 2025-12-21
 
 ________________________________________________
 ## v1.3.21, W-120, 2025-12-21

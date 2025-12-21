@@ -8,16 +8,23 @@ site/webapp/app.conf
 .env
 .env.*
 
+# Documentation files excluded via .markdown [ignore] section
+# NOTE: keep this in sync with docs/.markdown [ignore] section
+docs/dev/roadmap.md
+docs/dev/working/
+
 # Local work files
 .jpulse/
 commit-message*.txt
 tt-*
+
+# Backup files (save files from editors)
 *.save[0-9]
 *.save[0-9][0-9]
 *.bak
 
-# Test temporary files
-webapp/tests/fixtures/temp-*.conf
+# Test fixtures (not needed in production package)
+webapp/tests/fixtures/
 
 # Development and build artifacts
 coverage/

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v1.3.20
+# jPulse Docs / Site Customization Guide v1.3.21
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -402,7 +402,7 @@ ________________________________________________
 
 jPulse includes a powerful markdown-based documentation system that allows sites to create multiple documentation namespaces for different audiences.
 
-> 📚 **Comprehensive Guide**: See [Markdown Documentation](markdown-docs.md) for complete documentation including dynamic content, `.jpulse-ignore`, styling, and best practices.
+> 📚 **Comprehensive Guide**: See [Markdown Documentation](markdown-docs.md) for complete documentation including dynamic content, `.markdown` configuration, styling, and best practices.
 
 ### Quick Start: Adding Site Documentation
 
@@ -533,13 +533,14 @@ GET /api/1/markdown/docs/admin/setup.md
 
 #### File Filtering and Content Control
 
-The markdown system supports excluding files and directories from publication using ignore files:
+The markdown system supports excluding files and directories from publication using the `.markdown` configuration file:
 
-- **Ignore files**: Place `.jpulse-ignore` in your namespace root to exclude content
-- **Pattern support**: Use gitignore-like patterns to filter files and directories
+- **Configuration file**: Place `.markdown` in your namespace root to control publishing
+- **`[ignore]` section**: Use gitignore-like patterns to filter files and directories
 - **Development content**: Hide draft files, working directories, and backup files
+- **Custom ordering**: Use `[publish-list]` section to control sidebar order and titles
 
-For detailed ignore syntax and examples, see the [Markdown API Reference](api-reference.md#file-filtering-jpulse-ignore).
+For detailed configuration syntax and examples, see the [Markdown Documentation](markdown-docs.md#configuration-file-markdown) and [Markdown API Reference](api-reference.md#file-filtering-markdown).
 
 #### Organizing Content with Subdirectories
 

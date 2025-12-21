@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Requirements Document v1.3.20
+# jPulse Docs / Dev / Requirements Document v1.3.21
 
 Strategic requirements and specifications for the jPulse Framework, targeting enterprise and government organizations with focus on security, scalability, and maintainability.
 
@@ -187,7 +187,7 @@ docs/
 ├── installation.md       # Installation and setup guide
 ├── getting-started.md    # Quick start tutorial
 ├── site-customization.md # Site override system guide
-├── examples.md           # Code examples and use cases
+├── app-examples.md       # Code examples and use cases
 ├── deployment.md         # Production deployment guide
 ├── api-reference.md      # REST API documentation
 ├── CHANGELOG.md          # Version history

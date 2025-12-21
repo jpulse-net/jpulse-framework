@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.3.20
+# jPulse Docs / Front-End Development Guide v1.3.21
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -1215,7 +1215,7 @@ class UserTable {
 - **[Installation Guide](installation.md)** - Setup for development and production
 - **[Getting Started](getting-started.md)** - Quick start tutorial
 - **[Site Customization](site-customization.md)** - Site override system guide
-- **[Examples](examples.md)** - Real-world code examples
+- **[Examples](app-examples.md)** - Real-world code examples
 
 ### Advanced Topics
 - **[Architecture Overview](dev/architecture.md)** - System design and patterns

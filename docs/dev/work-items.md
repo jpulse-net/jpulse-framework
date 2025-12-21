@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.20
+# jPulse Docs / Dev / Work Items v1.3.21
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -599,7 +599,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/CHANGELOG.md
   - docs/api-reference.md
   - docs/deployment.md
-  - docs/examples.md
+  - docs/app-examples.md
   - docs/front-end-development.md
   - docs/getting-started.md
   - docs/installation.md
@@ -3224,19 +3224,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/images/anchor-link-on-hover-700.png:
     - screenshot for documentation
 
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-119, v1.3.20, 2025-12-20: i18n: usage audit tests for translations, controllers, views
 - status: ✅ DONE
 - type: Testing
@@ -3279,6 +3266,89 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+###  W-120, v1.3.21, 2025-12-21: markdown: publishing directives for sort order and page titles
+- status: 🕑 PENDING
+- type: Feature
+- objectives: more control over markdown docs publishing
+- previous behavior:
+  - possible to define pages to ignore in `.jpulse-ignore` -- good
+  - doc titles are generated from file names using Title Case, such as `style-reference.md` → `Style Reference` form -- good
+  - doc titles can be fixed with a substitution list, such as `Api` → `API` -- good
+  - the docs listed in the sidebar are in alphabetical order, not in logical doc order -- missing feature
+- new behavior:
+  - custom sort order for important docs using `[publish-list]` in `.markdown` file
+  - custom page titles supported in `[publish-list]` section
+  - ignore patterns moved from `.jpulse-ignore` to `[ignore]` section in `.markdown`
+  - title case fixes merged from `app.conf` defaults + `.markdown` overrides
+  - sidebar now follows `[publish-list]` order (explicit files first, then alphabetical)
+- features:
+  - remove `.jpulse-ignore` in favor of new `.markdown` in the docs root
+    - no backwards compatibility
+  - `.markdown` defines 3 sections, all optional:
+    - `[publish-list]` section:
+      - what: define the list of markdown pages to publish, with doc title, shown in sidebar
+    - `[ignore]` section:
+      - what: define list of markdown files to ignore on publish
+      - same syntax & behavior like the current `.jpulse-ignore`
+    - `[title-case-fix]` section:
+      - what: define list of word corrections when filename to Title Case conversion is used
+      - example: Api  API
+      - entries override `controller.markdown.titleCaseFix` list
+- deliverables:
+  - webapp/controller/markdown.js:
+    - Added `_initializeDocsConfig()` method to parse `.markdown` file with [publish-list], [ignore], and [title-case-fix] sections
+    - Added `_applyPublishListOrdering()` method for partial ordering (explicit files first, then alphabetical)
+    - Updated `_scanMarkdownFiles()` to use docsConfig, apply ordering, filtering, and custom titles
+    - Updated `_extractTitle()` to use merged titleCaseFix from docsConfig
+    - Updated `_getDirectoryListing()` for cache invalidation with `.markdown` mtime
+    - Updated `_getMarkdownFile()` for virtual README generation
+    - Removed `_loadIgnorePatterns()` method (replaced by `_initializeDocsConfig()`)
+    - Fixed code block rendering to preserve `.md` extensions in code blocks
+  - webapp/tests/unit/controller/markdown-ignore.test.js:
+    - Updated to use new `.markdown` file instead of `.jpulse-ignore`
+    - Fixed deprecated `substr()` to `slice()` for string manipulation
+  - webapp/tests/unit/controller/markdown-publish-list.test.js (NEW):
+    - Comprehensive tests for [publish-list] ordering functionality
+    - Tests for custom titles in [publish-list]
+    - Tests for interaction between [publish-list] and [ignore] sections
+    - Tests for partial ordering (explicit files first, then alphabetical)
+  - docs/.markdown (NEW):
+    - Configuration file with comprehensive comments and examples
+    - Organized sections logically for site admins/developers
+  - docs/markdown-docs.md:
+    - Updated to reflect new `.markdown` configuration system
+    - Added comprehensive documentation for [publish-list], [ignore], and [title-case-fix] sections
+  - docs/api-reference.md:
+    - Updated File Filtering section to reference `.markdown` instead of `.jpulse-ignore`
+  - docs/site-customization.md:
+    - Updated references to use `.markdown` configuration
+  - bin/jpulse-update.js:
+    - Updated to use `.markdown` configuration file instead of `.jpulse-ignore`
+    - Added support for [publish-list] ordering (explicit files first, then alphabetical)
+    - Matches markdown controller behavior for consistent publishing
+  - webapp/view/jpulse-common.js:
+    - Updated `_loadNavigation()` to flatten top-level directory structure and use directory title as sidebar heading
+    - Added `_setInitialPageTitle()` to set initial page title from top-level directory title on SPA load
+    - Added `_updatePageTitle()` to update page title dynamically from active sidebar link on navigation
+    - Updated `_updateActiveNav()` to call `_updatePageTitle()` after setting active navigation state
+  - webapp/view/jpulse-docs/index.shtml:
+    - Updated sidebar heading to use dynamic `id="docs-nav-heading"` populated from API response
+
+
+
+
+
+
+
+
+
+
 ### Pending
 
 
@@ -3304,14 +3374,14 @@ old pending:
 
 next work item: W-0...
 - review task, ask questions if unclear
-- suggest change of spec if any, goal is a good UX, good usability, good onboarding & learning experience for site admins and developers; use the don't make me think paradigm
+- suggest change of spec if any, goal is a good UX, good usability, good onboarding & learning experience for site admins and developers; use the "don't make me think" paradigm
 - plan how to implement (wait for my go ahead)
 - current timestamp: 2025-11-29 23:35
 
 release prep:
 - run tests, and fix issues
-- assume release: W-119, v1.3.20
-- update deliverables in W-119 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-120, v1.3.21
+- update deliverables in W-120 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt
@@ -3328,12 +3398,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.20
+node bin/bump-version.js 1.3.21
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.20
+git tag v1.3.21
 git push origin main --tags
 
 === plugin release & package build on github ===

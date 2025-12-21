@@ -1,4 +1,4 @@
-# jPulse Docs / Getting Started with jPulse v1.3.20
+# jPulse Docs / Getting Started with jPulse v1.3.21
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the site override system.
 
@@ -515,7 +515,7 @@ Now that you have a working jPulse site, explore these topics:
 
 1. **[Gen-AI Development Guide](genai-development.md)** - Accelerate development with AI assistance ("vibe coding")
 2. **[Site Customization Guide](site-customization.md)** - Deep dive into the site override system
-3. **[Examples](examples.md)** - Real-world implementation patterns
+3. **[Examples](app-examples.md)** - Real-world implementation patterns
 4. **[API Reference](api-reference.md)** - Complete framework API documentation
 5. **[Security & Authentication](security-and-auth.md)** - Authentication, authorization, and security best practices
 6. **[Sending Email](sending-email.md)** - Configure and send emails from your application

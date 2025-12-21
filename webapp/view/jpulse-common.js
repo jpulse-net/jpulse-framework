@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.3.20
- * @release         2025-12-20
+ * @version         1.3.21
+ * @release         2025-12-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -3522,6 +3522,7 @@ window.jPulse = {
                 // Load navigation and initial document
                 await jPulse.UI.docs._loadNavigation(viewer);
                 await jPulse.UI.docs._loadDocument(viewer);
+                jPulse.UI.docs._updateActiveNav(viewer);
                 jPulse.UI.docs._setupNavigation(viewer);
 
                 // Register with site nav if requested
@@ -3619,7 +3620,23 @@ window.jPulse = {
                     const response = await fetch(`/api/1/markdown/${viewer.namespace}/`);
                     const data = await response.json();
                     viewer.files = data.files;
-                    jPulse.UI.docs._renderNavigation(viewer, data.files);
+
+                    // Flatten structure: if first item is a directory, use its title as heading and render its files directly
+                    let filesToRender = data.files;
+                    let headingTitle = null;
+
+                    if (data.files && data.files.length > 0 && data.files[0].isDirectory) {
+                        // First item is a directory - use its title as heading and flatten its files
+                        headingTitle = data.files[0].title;
+                        filesToRender = data.files[0].files || [];
+                        // Update viewer.files to the flattened structure for navigation
+                        viewer.files = filesToRender;
+
+                        // Set initial page title from top-level directory title
+                        jPulse.UI.docs._setInitialPageTitle(headingTitle);
+                    }
+
+                    jPulse.UI.docs._renderNavigation(viewer, filesToRender, headingTitle);
                 } catch (error) {
                     console.error('Failed to load navigation:', error);
                     if (viewer._config.onError) {
@@ -3632,9 +3649,18 @@ window.jPulse = {
              * Render navigation sidebar
              * @param {Object} viewer - Viewer instance
              * @param {Array} files - File structure
+             * @param {string} headingTitle - Optional heading title (if flattening top level)
              */
-            _renderNavigation: (viewer, files) => {
+            _renderNavigation: (viewer, files, headingTitle) => {
                 viewer._navEl.innerHTML = `<ul class="jp-docs-nav">${jPulse.UI.docs._renderFileList(viewer, files)}</ul>`;
+
+                // Update heading if provided (flattened structure)
+                if (headingTitle) {
+                    const headingEl = document.getElementById('docs-nav-heading');
+                    if (headingEl) {
+                        headingEl.textContent = headingTitle;
+                    }
+                }
             },
 
             /**
@@ -3739,6 +3765,38 @@ window.jPulse = {
             },
 
             /**
+             * Set initial page title from top-level directory title
+             * Formats as: "[title] - [shortName]"
+             * @param {string} title - Top-level directory title
+             */
+            _setInitialPageTitle: (title) => {
+                const shortName = document.title.includes(' - ')
+                    ? document.title.split(' - ').slice(-1)[0]
+                    : 'jPulse';
+                document.title = `${title} - ${shortName}`;
+            },
+
+            /**
+             * Update page title from active sidebar link
+             * Formats as: "[docTitle] - [shortName]"
+             */
+            _updatePageTitle: () => {
+                const activeLink = document.querySelector('.jp-docs-nav a.jp-docs-nav-active');
+                if (!activeLink) return;
+
+                // Get text content (handles both regular links and directory links with <strong>)
+                const docTitle = (activeLink.querySelector('strong') || activeLink).textContent.trim();
+                if (!docTitle) return;
+
+                // Extract shortName from initial document.title (format: "Something - shortName")
+                const shortName = document.title.includes(' - ')
+                    ? document.title.split(' - ').slice(-1)[0]
+                    : 'jPulse';
+
+                document.title = `${docTitle} - ${shortName}`;
+            },
+
+            /**
              * Setup navigation event handlers
              * @param {Object} viewer - Viewer instance
              */
@@ -3773,6 +3831,9 @@ window.jPulse = {
                     link.classList.toggle('jp-docs-nav-active',
                         link.getAttribute('data-path') === viewer.currentPath);
                 });
+
+                // Update page title after active nav is set
+                jPulse.UI.docs._updatePageTitle();
             }
         },
 

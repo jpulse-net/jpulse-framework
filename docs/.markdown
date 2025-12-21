@@ -1,0 +1,157 @@
+# Markdown Publishing Configuration
+#
+# This file controls how your markdown documentation is published and displayed.
+# Place this file (.markdown) in your docs root directory (e.g., docs/.markdown).
+#
+# Three optional sections:
+#   [publish-list]   - Control the order of important docs and set custom titles
+#   [ignore]         - Exclude files/directories from publishing
+#   [title-case-fix] - Fix auto-generated titles (e.g., "Api" → "API")
+#
+# All sections are optional. If this file doesn't exist, all .md files are
+# published in alphabetical order with auto-generated titles.
+#
+# See full documentation: https://jpulse.net/jpulse-docs/markdown-docs
+
+#____________________________________________________________________________
+[publish-list]
+
+# Define the order of your most important documentation pages.
+# Files listed here appear first in the sidebar, in the order you specify.
+# All other .md files are published alphabetically after these.
+#
+# Format: filepath <optional-title>
+#   - filepath: relative to your docs/ directory (e.g., "getting-started.md")
+#   - optional-title: custom title (if omitted, auto-generated from filename)
+#   - Use spaces or tabs to separate filepath from title
+#
+# Examples:
+#   README.md           Welcome to My Docs
+#   getting-started.md  Getting Started
+#   api-reference.md                    (title auto-generated: "API Reference")
+#   guides/tutorial.md  Tutorial Guide  (subdirectory file)
+#
+# Tips:
+#   - List only your most important pages here for custom ordering
+#   - Use comments (lines starting with #) to organize sections
+#   - Subdirectories: list each file explicitly (e.g., "guides/README.md")
+
+README.md           jPulse Docs
+getting-started.md
+installation.md
+deployment.md
+
+# Core Concepts & Architecture
+mpa-vs-spa.md
+framework-comparison.md
+application-cluster.md
+
+# Development Basics
+front-end-development.md    Front-End Development
+template-reference.md
+handlebars.md
+style-reference.md
+jpulse-ui-reference.md
+
+# Site Customization
+site-customization.md
+site-navigation.md
+
+# Backend & API
+api-reference.md
+websockets.md
+sending-email.md
+
+# Security & Deployment
+security-and-auth.md
+
+# Documentation & Content
+markdown-docs.md
+app-examples.md
+
+# Plugins
+plugins/README.md
+plugins/creating-plugins.md
+plugins/managing-plugins.md
+plugins/plugin-architecture.md
+plugins/plugin-api-reference.md
+plugins/plugin-hooks.md
+plugins/publishing-plugins.md
+
+installed-plugins/README.md
+
+# GenAI Development
+genai-instructions.md
+genai-development.md
+
+# Reference & Meta
+CHANGELOG.md
+license.md
+
+# Internal Development (Framework Contributors)
+dev/README.md
+dev/requirements.md
+dev/architecture.md
+dev/installation.md
+dev/roadmap.md
+dev/publishing.md
+dev/project-assessments.md
+dev/work-items.md
+
+#____________________________________________________________________________
+[ignore]
+
+# Exclude files and directories from publishing.
+# Only affects files NOT listed in [publish-list] above.
+# Files in [publish-list] are always published, even if they match ignore patterns.
+#
+# Syntax: gitignore-like patterns (relative to docs/ directory)
+#   - "file.md"          - ignore specific file
+#   - "draft-*.md"       - ignore files matching pattern
+#   - "dev/"             - ignore entire directory (trailing /)
+#   - "*"                - whitelist mode: only publish files in [publish-list]
+#
+# Examples:
+#   draft-feature.md     - exclude draft file
+#   *.backup.md          - exclude all backup files
+#   internal/            - exclude internal directory
+#   dev/working/         - exclude working directory
+#
+# Common use cases:
+#   - Hide draft or work-in-progress documents
+#   - Exclude development/internal documentation
+#   - Create a whitelist (use "*" to only publish [publish-list] files)
+
+# Ignore roadmap and working directory
+dev/roadmap.md
+dev/working/
+
+#____________________________________________________________________________
+[title-case-fix]
+
+# Fix auto-generated titles when converting filenames to page titles.
+# Only applies to titles that are auto-generated (not custom titles in [publish-list]).
+#
+# Format: from-word    to-word
+#   - from-word: word as it appears in auto-generated title
+#   - to-word:   corrected version
+#   - Use spaces or tabs to separate
+#
+# Examples:
+#   Api             API
+#   CHANGELOG       Version History
+#   Css             CSS
+#   Javascript      JavaScript
+#
+# Common fixes:
+#   - Acronyms: "Api" → "API", "Css" → "CSS"
+#   - Special terms: "CHANGELOG" → "Version History"
+#   - Product names: "Jpulse" → "jPulse"
+#
+# Note: Framework provides default fixes (API, CSS, etc.). Your entries here
+# extend or override those defaults.
+
+Api             API
+CHANGELOG       Version History
+
+# EOF docs/.markdown

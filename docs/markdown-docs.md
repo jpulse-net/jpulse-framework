@@ -1,4 +1,4 @@
-# jPulse Docs / Markdown Documentation System v1.3.20
+# jPulse Docs / Markdown Documentation System v1.3.21
 
 **For Site Developers**
 
@@ -9,10 +9,11 @@ This guide explains how to create markdown-based documentation for your jPulse s
 jPulse provides a complete markdown documentation infrastructure that:
 
 - **Auto-generates navigation** from your directory structure
+- **Custom ordering and titles** via `.markdown` configuration file
 - **Supports dynamic content** with `%DYNAMIC{}%` tokens
 - **Renders beautifully** with syntax highlighting and responsive design
 - **Follows site override patterns** (site > plugins > framework)
-- **Supports file exclusion** via `.jpulse-ignore`
+- **Supports file exclusion** via `.markdown` `[ignore]` section
 - **Automatic anchor links** - All headings (h1-h6) automatically get GitHub-style anchor links for deep linking and easy content sharing
 
 ## Quick Start
@@ -145,32 +146,40 @@ my-help/
 
 **Best Practice**: Every directory should have a `README.md` for proper navigation.
 
+**Special Cases**:
+- **Directories with only README.md**: Displayed as regular document links (not expandable directories) for better visual clarity
+- **Directories without README.md**: Auto-generate a virtual README with a file listing when accessed directly
+
 ### Navigation Generation
 
 The sidebar navigation is auto-generated from your directory structure:
 
-- **Files** become navigation items (sorted alphabetically)
-- **Directories** become expandable sections
+- **Files** become navigation items
+- **Ordering**: Files listed in `.markdown` `[publish-list]` appear first (in specified order), followed by remaining files alphabetically
+- **Directories** become expandable sections (unless they contain only `README.md`, then shown as regular files)
 - **README.md** becomes the section's clickable header
-- **Titles** are derived from filenames (`getting-started.md` → "Getting Started")
+- **Titles** can be custom (via `[publish-list]`) or auto-generated from filenames (`getting-started.md` → "Getting Started")
 
 ### Title Generation
 
-Filenames are converted to human-readable titles:
+Titles can be specified explicitly in `.markdown` `[publish-list]` or auto-generated from filenames:
 
-| Filename | Generated Title |
-|----------|-----------------|
-| `README.md` | (Uses directory name) |
-| `getting-started.md` | Getting Started |
-| `api-reference.md` | API Reference |
-| `mpa-vs-spa.md` | MPA vs. SPA |
+| Filename | Generated Title | Custom Title Example |
+|----------|-----------------|---------------------|
+| `README.md` | (Uses directory name) | `README.md Welcome` → "Welcome" |
+| `getting-started.md` | Getting Started | `getting-started.md Getting Started Guide` → "Getting Started Guide" |
+| `api-reference.md` | API Reference | (auto-generated) |
+| `mpa-vs-spa.md` | MPA vs. SPA | (auto-generated) |
 
-**Tip**: Use descriptive filenames for automatic good titles.
+**Priority**: Custom title in `[publish-list]` > Auto-generated with title case fixes > Auto-generated (no fixes)
+
+**Tip**: Use descriptive filenames for automatic good titles, or specify custom titles in `.markdown` for important pages.
 
 ### Title Case Fixes
 
-The framework automatically fixes common acronyms and terms in generated titles. This is configured in `app.conf`:
+The framework automatically fixes common acronyms and terms in auto-generated titles. Title case fixes are merged from multiple sources:
 
+1. **Framework defaults** (in `app.conf`):
 ```javascript
 controller: {
     markdown: {
@@ -194,6 +203,7 @@ controller: {
 
 **To override or extend in your site**, add to `site/webapp/app.conf`:
 
+2. **Site overrides** (in `site/webapp/app.conf`):
 ```javascript
 controller: {
     markdown: {
@@ -208,7 +218,18 @@ controller: {
 }
 ```
 
-Site configuration merges with framework defaults, so you only need to specify additions or overrides.
+3. **Per-namespace overrides** (in `.markdown` `[title-case-fix]` section):
+```ini
+[title-case-fix]
+Api             API
+CHANGELOG       Version History
+Css             CSS
+Javascript      JavaScript
+```
+
+**Merging**: Framework defaults → Site config → `.markdown` config (each level extends/overrides the previous)
+
+**Note**: Title case fixes only apply to auto-generated titles, not custom titles specified in `[publish-list]`.
 
 ## Dynamic Content
 
@@ -262,14 +283,64 @@ Use the `%DYNAMIC{plugins-list-table}%` token to show plugins.
 
 The backtick-prefixed token will not be processed and displays literally.
 
-## Excluding Files
+## Configuration File: `.markdown`
 
-### The `.jpulse-ignore` File
+The `.markdown` file in your docs root directory provides complete control over publishing, ordering, and titles. All sections are optional.
 
-Create `.jpulse-ignore` in your docs root to exclude files from navigation:
+### File Location
+
+Create `.markdown` in your docs root directory:
 
 ```
-# .jpulse-ignore - files and directories to hide from navigation
+docs/my-help/
+├── .markdown          # Configuration file
+├── README.md
+└── getting-started.md
+```
+
+### Sections
+
+The `.markdown` file supports three optional sections:
+
+1. **`[publish-list]`** - Custom ordering and titles
+2. **`[ignore]`** - Exclude files/directories
+3. **`[title-case-fix]`** - Fix auto-generated titles
+
+### `[publish-list]` Section
+
+Define custom order for important docs and specify custom titles:
+
+```ini
+[publish-list]
+# Format: filepath [optional-title]
+# Files listed here appear first in the sidebar, in the order specified
+# Remaining files are published alphabetically after these
+
+README.md           Welcome to Help Center
+getting-started.md  Getting Started Guide
+faq.md              Frequently Asked Questions
+troubleshooting.md  # Title auto-generated: "Troubleshooting"
+
+# Subdirectories: list each file explicitly
+guides/README.md    User Guides
+guides/installation.md
+guides/configuration.md
+```
+
+**Behavior**:
+- **Partial list**: Only listed files are ordered explicitly
+- **Remaining files**: Published alphabetically after listed ones
+- **Custom titles**: Optional, if omitted title is auto-generated
+- **Subdirectories**: Must list each file explicitly (no `guides/` shorthand)
+
+### `[ignore]` Section
+
+Exclude files and directories from publishing:
+
+```ini
+[ignore]
+# Ignore patterns (gitignore-like syntax)
+# Takes precedence over [publish-list] - ignored files are excluded even if listed
 
 # Exclude specific files
 draft.md
@@ -282,9 +353,12 @@ work-in-progress/
 # Glob patterns
 *.draft.md
 temp-*
+
+# Whitelist mode: only publish files in [publish-list]
+*
 ```
 
-### Pattern Syntax
+**Pattern Syntax**:
 
 | Pattern | Matches |
 |---------|---------|
@@ -292,8 +366,53 @@ temp-*
 | `dirname/` | Directory and all contents |
 | `*.draft.md` | Files ending in `.draft.md` |
 | `temp-*` | Files starting with `temp-` |
+| `*` | Everything (whitelist mode) |
+
+**Precedence**: `[ignore]` takes precedence over `[publish-list]` - ignored files are excluded even if explicitly listed.
 
 **Note**: Ignored files are hidden from navigation but still accessible via direct URL.
+
+### `[title-case-fix]` Section
+
+Fix auto-generated titles (merges with framework defaults):
+
+```ini
+[title-case-fix]
+# Format: from-word    to-word
+# Only applies to auto-generated titles (not custom titles in [publish-list])
+
+Api             API
+CHANGELOG       Version History
+Css             CSS
+Javascript      JavaScript
+```
+
+**Merging**: Framework defaults → Site `app.conf` → `.markdown` `[title-case-fix]` (each extends/overrides previous)
+
+### Complete Example
+
+```ini
+# docs/my-help/.markdown
+
+[publish-list]
+README.md           Help Center
+getting-started.md  Getting Started
+faq.md
+troubleshooting.md
+
+guides/README.md    User Guides
+guides/installation.md
+guides/configuration.md
+
+[ignore]
+draft.md
+archive/
+*.backup.md
+
+[title-case-fix]
+Api             API
+CHANGELOG       Version History
+```
 
 ## Linking Between Documents
 
@@ -303,13 +422,13 @@ Use relative markdown links - they're automatically transformed:
 
 ```markdown
 <!-- Same directory -->
-See [Getting Started](./getting-started.md.md) for basics.
+See [Getting Started](./getting-started.md) for basics.
 
 <!-- Parent directory -->
-Return to [Overview](../README.md.md).
+Return to [Overview](../README.md).
 
 <!-- Subdirectory -->
-Check [Advanced Topics](./advanced/deep-dive.md.md).
+Check [Advanced Topics](./advanced/deep-dive.md).
 ```
 
 ### Cross-Namespace Links
@@ -317,7 +436,7 @@ Check [Advanced Topics](./advanced/deep-dive.md.md).
 For links to other documentation namespaces, use absolute paths with `.md` extension (works on both jPulse and your repository, such as GitHub):
 
 ```markdown
-See the [Plugin Guide](/jpulse-docs/plugins/README.md.md) for details.
+See the [Plugin Guide](/jpulse-docs/plugins/README.md) for details.
 ```
 
 ### Image Links
@@ -484,10 +603,11 @@ Override styles in your site's CSS:
 
 ### Maintenance
 
-1. **Use `.jpulse-ignore`** - Hide drafts and internal docs
-2. **Review navigation** - Ensure logical structure
-3. **Update cross-links** - After moving/renaming files
-4. **Test dynamic content** - Verify `%DYNAMIC{}%` tokens work
+1. **Use `.markdown` `[ignore]`** - Hide drafts and internal docs
+2. **Use `.markdown` `[publish-list]`** - Control ordering of important pages
+3. **Review navigation** - Ensure logical structure
+4. **Update cross-links** - After moving/renaming files
+5. **Test dynamic content** - Verify `%DYNAMIC{}%` tokens work
 
 ## Example: Creating a Help Center
 
@@ -505,7 +625,7 @@ ln -s ../../../../docs/help site/webapp/static/assets/help
 
 ```
 docs/help/                      # Edit your docs here (visible at project root)
-├── .jpulse-ignore
+├── .markdown                   # Configuration file
 ├── README.md
 ├── getting-started.md
 ├── faq.md
@@ -532,14 +652,14 @@ Welcome to the Help Center! Find answers to common questions and learn how to us
 
 ## Quick Links
 
-- [Getting Started](./getting-started.md.md) - New user? Start here
-- [FAQ](./faq.md.md) - Frequently asked questions
-- [Troubleshooting](./troubleshooting.md.md) - Common issues and solutions
+- [Getting Started](./getting-started.md) - New user? Start here
+- [FAQ](./faq.md) - Frequently asked questions
+- [Troubleshooting](./troubleshooting.md) - Common issues and solutions
 
 ## Guides
 
-- [User Guide](./user-guide/README.md.md) - Complete user documentation
-- [Admin Guide](./admin-guide/README.md.md) - Administrator documentation
+- [User Guide](./user-guide/README.md) - Complete user documentation
+- [Admin Guide](./admin-guide/README.md) - Administrator documentation
 
 ## Need More Help?
 

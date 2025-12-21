@@ -1,6 +1,147 @@
-# jPulse Docs / Version History v1.3.20
+# jPulse Docs / Version History v1.3.21
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.3.21, W-120, 2025-12-21
+
+**Commit:** `W-120, v1.3.21: markdown: publishing directives for sort order and page titles`
+
+**FEATURE RELEASE**: Comprehensive control over markdown documentation publishing with new `.markdown` configuration file, replacing `.jpulse-ignore` with unified configuration system.
+
+**Objective**: Provide more control over markdown docs publishing with custom sort order for important documents, custom page titles, unified ignore patterns, and title case fix overrides.
+
+**Key Features**:
+
+**`.markdown` Configuration File**:
+- Single configuration file in docs root directory (e.g., `docs/.markdown`)
+- Three optional sections: `[publish-list]`, `[ignore]`, `[title-case-fix]`
+- Simple regex-based parser (no 3rd party dependencies)
+- Graceful error handling: missing or invalid files fall back to defaults (no warnings)
+
+**`[publish-list]` Section**:
+- Partial list: Explicitly listed files appear first in specified order
+- Remaining files published alphabetically after listed ones
+- Custom titles: Optional title specification per file (format: `filepath [optional-title]`)
+- Subdirectories: Must list each file explicitly (e.g., `plugins/README.md`, not `plugins/`)
+- Whitespace separator: Spaces or tabs between filepath and title
+
+**`[ignore]` Section**:
+- Gitignore-like pattern syntax (exact files, wildcards, directories)
+- Takes precedence over `[publish-list]` - ignored files excluded even if listed
+- Whitelist mode: Use `*` to only publish files in `[publish-list]`
+- Replaces deprecated `.jpulse-ignore` file
+
+**`[title-case-fix]` Section**:
+- Word substitutions for auto-generated titles (format: `from-word    to-word`)
+- Merged with `app.conf controller.markdown.titleCaseFix` (framework defaults + site overrides)
+- Only applies to auto-generated titles (not custom titles in `[publish-list]`)
+
+**Navigation & Display**:
+- Sidebar navigation follows `[publish-list]` order (explicit files first, then alphabetical)
+- Directories with only README.md display as regular document links (not expandable directories)
+- Virtual README generation for directories without physical README.md
+- Code block rendering fixed to preserve `.md` extensions in documentation examples
+- Sidebar structure flattened: Removed redundant "Documentation" heading, top-level directory title (e.g., "jPulse Docs") now serves as sidebar heading
+- Dynamic page titles: Page `<title>` updates automatically based on active sidebar link, formats as `"[docTitle] - [shortName]"`
+- Initial page title: Set from top-level directory title on SPA load (e.g., "jPulse Docs - jPulse")
+
+**Code Changes**:
+
+**webapp/controller/markdown.js**:
+- Added `_initializeDocsConfig(baseDir)` method: Parses `.markdown` file, extracts all sections, merges titleCaseFix, caches per baseDir
+- Added `_applyPublishListOrdering(files, docsConfig)` method: Implements partial ordering logic
+- Updated `_scanMarkdownFiles()`: Applies ordering, filtering, and custom titles from docsConfig
+- Updated `_extractTitle()`: Uses merged titleCaseFix from docsConfig
+- Updated `_getDirectoryListing()`: Cache invalidation with `.markdown` mtime
+- Updated `_getMarkdownFile()`: Virtual README generation for directories
+- Removed `_loadIgnorePatterns()` method (replaced by `_initializeDocsConfig()`)
+- Updated `_transformMarkdownLinks()`: Preserves `.md` extensions in code blocks (```...```)
+
+**webapp/tests/unit/controller/markdown-ignore.test.js**:
+- Updated to use new `.markdown` file instead of `.jpulse-ignore`
+- Modified beforeEach to create unique test directories to prevent cache issues
+- Updated assertions to reflect new behavior (config object structure)
+- Fixed deprecated `substr()` to `slice()` for string manipulation
+
+**webapp/tests/unit/controller/markdown-publish-list.test.js** (NEW):
+- Comprehensive tests for `[publish-list]` ordering functionality
+- Tests for custom titles in `[publish-list]`
+- Tests for interaction between `[publish-list]` and `[ignore]` sections
+- Tests for partial ordering (explicit files first, then alphabetical)
+- Fixed deprecated `substr()` to `slice()` for string manipulation
+
+**webapp/view/jpulse-common.js**:
+- Updated `_loadNavigation()`: Flattens top-level directory structure, uses directory title as sidebar heading, sets initial page title
+- Updated `_renderNavigation()`: Accepts optional `headingTitle` parameter to update sidebar heading dynamically
+- Added `_setInitialPageTitle()`: Sets initial page title from top-level directory title on SPA load (e.g., "jPulse Docs - jPulse")
+- Added `_updatePageTitle()`: Updates page title from active sidebar link on navigation, formats as `"[docTitle] - [shortName]"`
+- Updated `_updateActiveNav()`: Calls `_updatePageTitle()` after setting active navigation state to update title on SPA navigation
+
+**webapp/view/jpulse-docs/index.shtml**:
+- Updated sidebar heading to use dynamic `id="docs-nav-heading"` instead of static translation
+- Heading now populated from top-level directory title via JavaScript
+
+**bin/jpulse-update.js**:
+- Updated `loadIgnorePatterns()` → `loadMarkdownConfig()`: Parses both `[publish-list]` and `[ignore]` sections
+- Updated `syncDirectory()`: Applies `[publish-list]` ordering (explicit files first, then alphabetical) with `[ignore]` filtering
+- Matches markdown controller behavior for consistent publishing
+- Graceful error handling: missing or invalid `.markdown` files return empty config
+
+**docs/.markdown** (NEW):
+- Configuration file with comprehensive comments and examples
+- Organized sections logically for site admins/developers
+- Includes helpful tips and use cases
+
+**Documentation Updates**:
+
+**docs/markdown-docs.md**:
+- Updated to reflect new `.markdown` configuration system
+- Added comprehensive documentation for all three sections
+- Updated examples to use `.markdown` instead of `.jpulse-ignore`
+- Fixed code block rendering (preserves `.md` extensions)
+
+**docs/api-reference.md**:
+- Updated "File Filtering" section to reference `.markdown` instead of `.jpulse-ignore`
+- Added complete example showing all three sections
+
+**docs/site-customization.md**:
+- Updated references to use `.markdown` configuration
+- Updated file filtering section with new syntax
+
+**Bugs Fixed**:
+1. Section header regex fixed to allow hyphens: `/^\[([\w-]+)\]$/` (was `/^\[(\w+)\]$/`)
+2. Fixed "Assignment to constant variable" error: Changed `const otherFiles = []` to `let otherFiles = []` in `_applyPublishListOrdering()`
+3. Fixed sidebar ordering: Sidebar now correctly follows `[publish-list]` order instead of alphabetical
+4. Fixed directories with only README.md: Display as regular document links (isDirectory: false) instead of expandable directories
+5. Fixed code block rendering: `.md` extensions now preserved in code blocks (```...```)
+
+**Test Results**:
+- All tests passing
+- Comprehensive unit tests for `[publish-list]` ordering and `[ignore]` filtering
+- Extensive manual testing performed
+- All features verified working correctly
+
+**Breaking Changes**:
+- **`.jpulse-ignore` file replaced by `.markdown` `[ignore]` section**: No backwards compatibility. Sites must migrate ignore patterns from `.jpulse-ignore` to `.markdown` `[ignore]` section.
+
+**Migration Steps**:
+1. Create `.markdown` file in `docs/` directory
+2. Copy ignore patterns from `.jpulse-ignore` to `[ignore]` section
+3. Optionally add `[publish-list]` section with desired order
+4. Optionally add `[title-case-fix]` section (merges with app.conf defaults)
+5. Remove `.jpulse-ignore` file
+
+**Impact Summary**:
+- **Control**: Complete control over documentation publishing, ordering, and titles
+- **Developer Experience**: Single unified configuration file instead of separate ignore file
+- **Flexibility**: Partial ordering allows important docs first, remaining alphabetical
+- **Maintainability**: Clear, well-documented configuration format
+- **Consistency**: `bin/jpulse-update.js` and markdown controller use same configuration
+
+**Work Item**: W-120
+**Version**: v1.3.21
+**Release Date**: 2025-12-21
 
 ________________________________________________
 ## v1.3.20, W-119, 2025-12-20

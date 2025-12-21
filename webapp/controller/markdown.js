@@ -3,13 +3,13 @@
  * @tagline         Markdown controller for the jPulse Framework
  * @description     Markdown document serving with caching support, part of jPulse Framework
  * @file            webapp/controller/markdown.js
- * @version         1.3.20
- * @release         2025-12-20
+ * @version         1.3.21
+ * @release         2025-12-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
  */
 
 import fs from 'fs/promises';
@@ -29,9 +29,8 @@ const cache = {
     ignorePatterns: {}
 };
 
-// _extractTitle() substitution
-const titleCaseFix = global.appConfig.controller?.markdown?.titleCaseFix || { 'Jpulse': 'jPulse' };
-const titleCaseFixRegex = new RegExp(`\\b(${Object.keys(titleCaseFix).join('|')})\\b`, 'g');
+// W-120: Docs config cache (per baseDir)
+const docsConfigCache = {};
 
 class MarkdownController {
 
@@ -210,19 +209,56 @@ class MarkdownController {
     static async _getDirectoryListing(namespace, baseDir) {
         const cacheKey = `listing_${namespace}`;
 
-        // Check cache if enabled
-        if (global.appConfig.controller?.markdown?.cache && cache.directoryListing[cacheKey]) {
-            return cache.directoryListing[cacheKey];
+        // W-120: Check .markdown mtime for cache invalidation
+        let configMtime = null;
+        try {
+            const configFile = path.join(baseDir, '.markdown');
+            const stats = await fs.stat(configFile);
+            configMtime = stats.mtime.getTime();
+        } catch (error) {
+            // No config file or error - use existing cache
         }
 
-        // Load ignore patterns for this namespace
-        const ignorePatterns = await MarkdownController._loadIgnorePatterns(baseDir);
+        // Check cache if enabled
+        if (global.appConfig.controller?.markdown?.cache && cache.directoryListing[cacheKey]) {
+            const cached = cache.directoryListing[cacheKey];
+            // Invalidate if config file changed
+            if (configMtime && cached.configMtime && configMtime !== cached.configMtime) {
+                // Config file was modified
+                delete cache.directoryListing[cacheKey];
+                delete docsConfigCache[baseDir]; // Clear config cache too
+            } else if (!configMtime && cached.configMtime) {
+                // Config file was deleted
+                delete cache.directoryListing[cacheKey];
+                delete docsConfigCache[baseDir];
+            } else if (configMtime && !cached.configMtime) {
+                // Config file was created (wasn't there before)
+                delete cache.directoryListing[cacheKey];
+                delete docsConfigCache[baseDir];
+            } else if (cached.files) {
+                // Check if configMtime matches (both null or both same)
+                const configMatches = (configMtime === null && cached.configMtime === null) ||
+                                     (configMtime !== null && cached.configMtime === configMtime);
+                if (configMatches) {
+                    // No config file change - return cached files
+                    return cached.files;
+                }
+                // Config changed, clear cache and continue
+                delete cache.directoryListing[cacheKey];
+                delete docsConfigCache[baseDir];
+            }
+        }
 
-        const files = await MarkdownController._scanMarkdownFiles(baseDir, '', namespace, ignorePatterns);
+        // W-120: Initialize docs config
+        const docsConfig = await MarkdownController._initializeDocsConfig(baseDir);
+        const files = await MarkdownController._scanMarkdownFiles(baseDir, '', namespace, docsConfig);
 
         // Cache if enabled
         if (global.appConfig.controller?.markdown?.cache) {
-            cache.directoryListing[cacheKey] = files;
+            cache.directoryListing[cacheKey] = {
+                files: files,
+                configMtime: configMtime
+            };
         }
 
         return files;
@@ -232,6 +268,7 @@ class MarkdownController {
      * Get markdown file content with caching
      * W-079: Enhanced with simplified CacheManager
      * W-104: Process dynamic content tokens after cache retrieval
+     * W-120: Handle subdirectories without README (auto-generate docs list)
      */
     static async _getMarkdownFile(namespace, filePath, baseDir) {
         // Security: prevent path traversal
@@ -242,7 +279,45 @@ class MarkdownController {
         const fullPath = path.join(baseDir, filePath);
 
         // W-079: Use simplified cache with getFileSync
-        const content = markdownCache.getFileSync(fullPath);
+        let content = markdownCache.getFileSync(fullPath);
+
+        // W-120: Handle subdirectory without README - generate virtual README
+        if (content === null && filePath.endsWith('README.md')) {
+            // Check if this is a directory (without README)
+            const dirPath = path.dirname(fullPath);
+            try {
+                const dirStats = await fs.stat(dirPath);
+                if (dirStats.isDirectory()) {
+                    // This is a directory without README - generate virtual README
+                    const docsConfig = await MarkdownController._initializeDocsConfig(baseDir);
+                    const relativeDirPath = path.dirname(filePath);
+                    const dirContents = await MarkdownController._scanMarkdownFiles(
+                        dirPath,
+                        relativeDirPath === '.' ? '' : relativeDirPath,
+                        namespace,
+                        docsConfig
+                    );
+
+                    if (dirContents.length > 0) {
+                        // Generate markdown list of files
+                        const dirName = path.basename(dirPath);
+                        const title = MarkdownController._extractTitle(dirName, docsConfig);
+                        let markdown = `# ${title}\n\n`;
+                        markdown += `This section contains the following documents:\n\n`;
+
+                        for (const file of dirContents) {
+                            const fileName = file.path.replace('.md', '');
+                            const fileTitle = file.title || fileName;
+                            markdown += `- [${fileTitle}](/${namespace}/${fileName})\n`;
+                        }
+
+                        content = markdown;
+                    }
+                }
+            } catch (error) {
+                // Not a directory or error - fall through to file not found
+            }
+        }
 
         if (content === null) {
             const error = new Error(`Markdown file not found: ${filePath}`);
@@ -267,16 +342,30 @@ class MarkdownController {
      * @returns {string} Transformed markdown content
      */
     static _transformMarkdownLinks(content, namespace, currentPath) {
-        let transformed = content;
+        // Extract code blocks to preserve them (don't transform links inside code blocks)
+        const codeBlockPlaceholder = '___CODE_BLOCK_PLACEHOLDER___';
+        const codeBlocks = [];
+        let processedContent = content;
+        let codeBlockIndex = 0;
 
-        // Transform relative image paths
-        transformed = transformed.replace(
+        // Match code blocks (```...```) - handles both with and without language tags
+        const codeBlockRegex = /```[\s\S]*?```/g;
+        processedContent = processedContent.replace(codeBlockRegex, (match) => {
+            const placeholder = `${codeBlockPlaceholder}${codeBlockIndex}${codeBlockPlaceholder}`;
+            codeBlocks[codeBlockIndex] = match;
+            codeBlockIndex++;
+            return placeholder;
+        });
+
+        // Transform relative image paths (only outside code blocks)
+        processedContent = processedContent.replace(
             /!\[([^\]]*)\]\(\.\/images\/([^)]+)\)/g,
             `![$1](/assets/${namespace}/images/$2)`
         );
 
         // Transform ALL .md links (handles ./, ../, ../../, and plain paths)
-        transformed = transformed.replace(
+        // Only transforms links outside code blocks
+        processedContent = processedContent.replace(
             /\[([^\]]+)\]\((?:\.\/)?((?:\.\.\/)*)([^)]+)\.md\)/g,
             (match, linkText, doubleDotSlashes, targetPath) => {
                 // Skip absolute URLs and anchors
@@ -305,13 +394,75 @@ class MarkdownController {
             }
         );
 
-        return transformed;
+        // Restore code blocks
+        codeBlocks.forEach((codeBlock, index) => {
+            const placeholder = `${codeBlockPlaceholder}${index}${codeBlockPlaceholder}`;
+            processedContent = processedContent.replace(placeholder, codeBlock);
+        });
+
+        return processedContent;
+    }
+
+    /**
+     * W-120: Apply publish list ordering to file list
+     * @param {Array} files - Array of file objects
+     * @param {Object} docsConfig - Docs config object
+     * @returns {Array} Ordered file array
+     */
+    static _applyPublishListOrdering(files, docsConfig) {
+        if (!docsConfig || !docsConfig.publishList || docsConfig.publishList.length === 0) {
+            // No publish-list, return files as-is (will be sorted alphabetically elsewhere if needed)
+            return files;
+        }
+
+        // Separate files into explicit and remaining
+        const explicitFiles = [];
+        const explicitPaths = new Set();
+        const remainingFiles = [];
+
+        // First, collect explicit files in order from publish-list
+        for (const entry of docsConfig.publishList) {
+            // Find file by exact path match (handles both files and directories)
+            const file = files.find(f => f.path === entry.path);
+            if (file) {
+                // Apply custom title if specified
+                if (entry.title) {
+                    file.title = entry.title;
+                }
+                explicitFiles.push(file);
+                explicitPaths.add(entry.path);
+            }
+        }
+
+        // Then, collect remaining files (not in publish-list and not ignored)
+        for (const file of files) {
+            if (!explicitPaths.has(file.path)) {
+                // Check if should be ignored (only for files not in publish-list)
+                if (!MarkdownController._shouldIgnore(file.path, file.isDirectory, docsConfig.ignore)) {
+                    remainingFiles.push(file);
+                }
+            }
+        }
+
+        // Sort remaining files alphabetically
+        remainingFiles.sort((a, b) => {
+            if (a.isDirectory !== b.isDirectory) {
+                return a.isDirectory ? 1 : -1;
+            }
+            return a.title.localeCompare(b.title);
+        });
+
+        return [...explicitFiles, ...remainingFiles];
     }
 
     /**
      * Recursively scan directory for .md files
+     * @param {string} dir - Directory to scan
+     * @param {string} relativePath - Relative path from base
+     * @param {string} namespace - Namespace
+     * @param {Object} docsConfig - Docs config object (W-120)
      */
-    static async _scanMarkdownFiles(dir, relativePath = '', namespace = '', ignorePatterns = null) {
+    static async _scanMarkdownFiles(dir, relativePath = '', namespace = '', docsConfig = null) {
         const entries = await fs.readdir(dir, { withFileTypes: true });
         let allFiles = [];
 
@@ -320,20 +471,32 @@ class MarkdownController {
             const rootReadme = entries.find(entry => entry.isFile() && entry.name === 'README.md');
             if (rootReadme) {
                 // Get all other files and directories
-                const otherFiles = [];
+                let otherFiles = [];
 
                 // Process regular files (excluding root README)
                 for (const entry of entries) {
                     if (entry.isFile() && entry.name.endsWith('.md') && entry.name !== 'README.md') {
-                        // Check if file should be ignored
-                        if (ignorePatterns && MarkdownController._shouldIgnore(entry.name, false, ignorePatterns)) {
+                        // W-120: Check if file should be ignored
+                        if (docsConfig && MarkdownController._shouldIgnore(entry.name, false, docsConfig.ignore)) {
                             continue;
+                        }
+
+                        // W-120: Check if title is in publish-list
+                        let title = null;
+                        if (docsConfig && docsConfig.publishList) {
+                            const publishEntry = docsConfig.publishList.find(e => e.path === entry.name);
+                            if (publishEntry && publishEntry.title) {
+                                title = publishEntry.title;
+                            }
+                        }
+                        if (!title) {
+                            title = MarkdownController._extractTitle(entry.name, docsConfig);
                         }
 
                         otherFiles.push({
                             path: entry.name,
                             name: entry.name,
-                            title: MarkdownController._extractTitle(entry.name),
+                            title: title,
                             isDirectory: false
                         });
                     }
@@ -358,14 +521,14 @@ class MarkdownController {
                 dirEntries.sort((a, b) => a.localeCompare(b));
 
                 for (const dirName of dirEntries) {
-                    // Check if directory should be ignored
-                    if (ignorePatterns && MarkdownController._shouldIgnore(dirName, true, ignorePatterns)) {
+                    // W-120: Check if directory should be ignored
+                    if (docsConfig && MarkdownController._shouldIgnore(dirName, true, docsConfig.ignore)) {
                         continue;
                     }
 
                     const fullPath = path.join(dir, dirName);
                     const relPath = dirName;
-                    const dirContents = await MarkdownController._scanMarkdownFiles(fullPath, relPath, namespace, ignorePatterns);
+                    const dirContents = await MarkdownController._scanMarkdownFiles(fullPath, relPath, namespace, docsConfig);
 
                     // Skip empty directories (no .md files)
                     if (dirContents.length === 0) {
@@ -382,29 +545,68 @@ class MarkdownController {
                         dirContents.splice(readmeIndex, 1);
                     }
 
-                    // Create directory entry with README merged up
-                    otherFiles.push({
-                        path: readmePath || path.join(relPath, 'README.md'),
-                        name: readmePath ? 'README.md' : '',
-                        title: MarkdownController._extractTitle(dirName),
-                        isDirectory: true,
-                        files: dirContents // All contents of the directory (excluding README)
-                    });
+                    // W-120: Get title from publish-list or auto-generate
+                    let dirTitle = null;
+                    const readmePathForTitle = readmePath || path.join(relPath, 'README.md');
+                    if (docsConfig && docsConfig.publishList) {
+                        const publishEntry = docsConfig.publishList.find(e => e.path === readmePathForTitle);
+                        if (publishEntry && publishEntry.title) {
+                            dirTitle = publishEntry.title;
+                        }
+                    }
+                    if (!dirTitle) {
+                        dirTitle = MarkdownController._extractTitle(dirName, docsConfig);
+                    }
+
+                    // W-120: Handle subdirectory without README - auto-generate docs list
+                    let finalPath = readmePath || path.join(relPath, 'README.md');
+                    let finalName = readmePath ? 'README.md' : '';
+                    if (!readmePath && dirContents.length > 0) {
+                        // Create virtual README with file list
+                        finalName = 'README.md'; // Make it clickable
+                    }
+
+                    // W-120: If directory has only README (no other files), render as regular doc
+                    if (dirContents.length === 0 && readmePath) {
+                        // Directory with only README - render as regular file
+                        otherFiles.push({
+                            path: readmePath,
+                            name: 'README.md',
+                            title: dirTitle,
+                            isDirectory: false
+                        });
+                    } else {
+                        // Create directory entry with README merged up
+                        otherFiles.push({
+                            path: finalPath,
+                            name: finalName,
+                            title: dirTitle,
+                            isDirectory: true,
+                            files: dirContents // All contents of the directory (excluding README)
+                        });
+                    }
                 }
 
-                // Sort other files: regular files first, then directories
-                otherFiles.sort((a, b) => {
-                    if (a.isDirectory !== b.isDirectory) {
-                        return a.isDirectory ? 1 : -1;
-                    }
-                    return a.title.localeCompare(b.title);
-                });
+                // W-120: Apply publish list ordering instead of simple sort
+                otherFiles = MarkdownController._applyPublishListOrdering(otherFiles, docsConfig);
 
                 // Return root README as container with all other files
+                // W-120: Get root title from publish-list or auto-generate
+                let rootTitle = null;
+                if (docsConfig && docsConfig.publishList) {
+                    const publishEntry = docsConfig.publishList.find(e => e.path === 'README.md');
+                    if (publishEntry && publishEntry.title) {
+                        rootTitle = publishEntry.title;
+                    }
+                }
+                if (!rootTitle) {
+                    rootTitle = MarkdownController._extractTitle(namespace, docsConfig);
+                }
+
                 return [{
                     path: 'README.md',
                     name: 'README.md',
-                    title: MarkdownController._extractTitle(namespace),
+                    title: rootTitle,
                     isDirectory: true,
                     files: otherFiles
                 }];
@@ -416,15 +618,27 @@ class MarkdownController {
         for (const entry of entries) {
             const relPath = path.join(relativePath, entry.name);
             if (entry.isFile() && entry.name.endsWith('.md')) {
-                // Check if file should be ignored
-                if (ignorePatterns && MarkdownController._shouldIgnore(relPath, false, ignorePatterns)) {
+                // W-120: Check if file should be ignored
+                if (docsConfig && MarkdownController._shouldIgnore(relPath, false, docsConfig.ignore)) {
                     continue;
+                }
+
+                // W-120: Check if title is in publish-list
+                let title = null;
+                if (docsConfig && docsConfig.publishList) {
+                    const publishEntry = docsConfig.publishList.find(e => e.path === relPath);
+                    if (publishEntry && publishEntry.title) {
+                        title = publishEntry.title;
+                    }
+                }
+                if (!title) {
+                    title = MarkdownController._extractTitle(entry.name, docsConfig);
                 }
 
                 allFiles.push({
                     path: relPath,
                     name: entry.name,
-                    title: MarkdownController._extractTitle(entry.name),
+                    title: title,
                     isDirectory: false
                 });
             }
@@ -451,13 +665,13 @@ class MarkdownController {
         for (const dirName of dirEntries) {
             const relPath = path.join(relativePath, dirName);
 
-            // Check if directory should be ignored
-            if (ignorePatterns && MarkdownController._shouldIgnore(relPath, true, ignorePatterns)) {
+            // W-120: Check if directory should be ignored
+            if (docsConfig && MarkdownController._shouldIgnore(relPath, true, docsConfig.ignore)) {
                 continue;
             }
 
             const fullPath = path.join(dir, dirName);
-            const dirContents = await MarkdownController._scanMarkdownFiles(fullPath, relPath, namespace, ignorePatterns);
+            const dirContents = await MarkdownController._scanMarkdownFiles(fullPath, relPath, namespace, docsConfig);
 
             // Skip empty directories (no .md files)
             if (dirContents.length === 0) {
@@ -474,49 +688,130 @@ class MarkdownController {
                 dirContents.splice(readmeIndex, 1);
             }
 
-            // Create directory entry with README merged up
-            allFiles.push({
-                path: readmePath || path.join(relPath, 'README.md'),
-                name: readmePath ? 'README.md' : '',
-                title: MarkdownController._extractTitle(dirName),
-                isDirectory: true,
-                files: dirContents // All contents of the directory (excluding README)
-            });
+            // W-120: Get title from publish-list or auto-generate
+            let dirTitle = null;
+            const readmePathForTitle = readmePath || path.join(relPath, 'README.md');
+            if (docsConfig && docsConfig.publishList) {
+                const publishEntry = docsConfig.publishList.find(e => e.path === readmePathForTitle);
+                if (publishEntry && publishEntry.title) {
+                    dirTitle = publishEntry.title;
+                }
+            }
+            if (!dirTitle) {
+                dirTitle = MarkdownController._extractTitle(dirName, docsConfig);
+            }
+
+            // W-120: Handle subdirectory without README - auto-generate docs list
+            let finalPath = readmePath || path.join(relPath, 'README.md');
+            let finalName = readmePath ? 'README.md' : '';
+            if (!readmePath && dirContents.length > 0) {
+                // Create virtual README with file list
+                finalName = 'README.md'; // Make it clickable
+            }
+
+            // W-120: If directory has only README (no other files), render as regular doc
+            if (dirContents.length === 0 && readmePath) {
+                // Directory with only README - render as regular file
+                allFiles.push({
+                    path: readmePath,
+                    name: 'README.md',
+                    title: dirTitle,
+                    isDirectory: false
+                });
+            } else {
+                // Create directory entry with README merged up
+                allFiles.push({
+                    path: finalPath,
+                    name: finalName,
+                    title: dirTitle,
+                    isDirectory: true,
+                    files: dirContents // All contents of the directory (excluding README)
+                });
+            }
         }
 
-        // Sort: regular files first (isDirectory: false), then directories (isDirectory: true)
-        allFiles.sort((a, b) => {
-            if (a.isDirectory !== b.isDirectory) {
-                return a.isDirectory ? 1 : -1;
-            }
-
-            // Within same type, README first
-            if (!a.isDirectory && !b.isDirectory) {
-                if (a.name === 'README.md') return -1;
-                if (b.name === 'README.md') return 1;
-            }
-
-            return a.title.localeCompare(b.title);
-        });
+        // W-120: Apply publish list ordering instead of simple sort
+        allFiles = MarkdownController._applyPublishListOrdering(allFiles, docsConfig);
 
         return allFiles;
     }
 
     /**
-     * Load and parse .jpulse-ignore file for a namespace
+     * W-120: Initialize and parse .markdown configuration file
+     * @param {string} baseDir - Base directory for the namespace
+     * @returns {Object} Config object with publishList, ignore, titleCaseFix, titleCaseFixRegex
      */
-    static async _loadIgnorePatterns(baseDir) {
-        const ignoreFile = path.join(baseDir, '.jpulse-ignore');
+    static async _initializeDocsConfig(baseDir) {
+        // Check cache first
+        if (docsConfigCache[baseDir]) {
+            return docsConfigCache[baseDir];
+        }
+
+        const configFile = path.join(baseDir, '.markdown');
+        const config = {
+            publishList: [], // Array of {path, title} objects
+            ignore: [], // Array of ignore pattern objects
+            titleCaseFix: {}, // Merged title case fix object
+            titleCaseFixRegex: null // Regex for title case fixes
+        };
+
+        // Start with framework defaults from app.conf
+        const frameworkDefaults = global.appConfig.controller?.markdown?.titleCaseFix || { 'Jpulse': 'jPulse' };
+        config.titleCaseFix = { ...frameworkDefaults };
 
         try {
-            const content = await fs.readFile(ignoreFile, 'utf8');
-            const patterns = content
-                .split('\n')
-                .map(line => line.trim())
-                .filter(line => line && !line.startsWith('#'))
-                .map(pattern => {
+            const content = await fs.readFile(configFile, 'utf8');
+            const lines = content.split('\n');
+            let currentSection = null;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+
+                // Skip empty lines and comments
+                if (!line || line.startsWith('#')) {
+                    continue;
+                }
+
+                // Check for section header (allow hyphens in section names)
+                const sectionMatch = line.match(/^\[([\w-]+)\]$/);
+                if (sectionMatch) {
+                    currentSection = sectionMatch[1];
+                    continue;
+                }
+
+                // Parse content based on current section
+                if (currentSection === 'publish-list') {
+                    // Format: filepath [optional-title]
+                    // Split on whitespace (spaces or tabs), but preserve multiple spaces for title
+                    // First, find where the path ends (first sequence of 2+ spaces or tab)
+                    const tabIndex = line.indexOf('\t');
+                    const doubleSpaceIndex = line.indexOf('  ');
+                    let pathEnd = -1;
+                    if (tabIndex !== -1 && doubleSpaceIndex !== -1) {
+                        pathEnd = Math.min(tabIndex, doubleSpaceIndex);
+                    } else if (tabIndex !== -1) {
+                        pathEnd = tabIndex;
+                    } else if (doubleSpaceIndex !== -1) {
+                        pathEnd = doubleSpaceIndex;
+                    }
+
+                    if (pathEnd === -1) {
+                        // No separator found, entire line is the path
+                        const filePath = line.trim();
+                        if (filePath) {
+                            config.publishList.push({ path: filePath, title: null });
+                        }
+                    } else {
+                        const filePath = line.substring(0, pathEnd).trim();
+                        const title = line.substring(pathEnd).trim() || null;
+                        if (filePath) {
+                            config.publishList.push({ path: filePath, title: title });
+                        }
+                    }
+                } else if (currentSection === 'ignore') {
+                    // Parse ignore patterns (same syntax as old .jpulse-ignore)
+                    const pattern = line;
                     // Convert glob pattern to regex
-                    // Escape special regex chars except * and ?
                     let regexPattern = pattern
                         .replace(/[.+^${}()|[\]\\]/g, '\\$&')
                         .replace(/\*/g, '.*')
@@ -528,26 +823,69 @@ class MarkdownController {
                         regexPattern = regexPattern.slice(0, -1); // Remove trailing /
                     }
 
-                    return {
+                    config.ignore.push({
                         pattern: pattern,
                         regex: new RegExp(`^${regexPattern}$`),
                         isDirectory: isDirectory
-                    };
-                });
+                    });
+                } else if (currentSection === 'title-case-fix') {
+                    // Format: from-word    to-word
+                    const parts = line.split(/\s+/);
+                    if (parts.length >= 2) {
+                        const fromWord = parts[0];
+                        const toWord = parts.slice(1).join(' ').trim();
+                        config.titleCaseFix[fromWord] = toWord;
+                    }
+                }
+                // Unknown sections are ignored gracefully
+            }
 
-            return patterns;
+            // Create regex from merged titleCaseFix
+            const titleCaseKeys = Object.keys(config.titleCaseFix);
+            if (titleCaseKeys.length > 0) {
+                config.titleCaseFixRegex = new RegExp(`\\b(${titleCaseKeys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'g');
+            } else {
+                config.titleCaseFixRegex = /(?!)/; // Never matches
+            }
+
         } catch (error) {
             if (error.code === 'ENOENT') {
-                return []; // No ignore file, no patterns
+                // No config file - use defaults
+                // titleCaseFix already has framework defaults
+                const titleCaseKeys = Object.keys(config.titleCaseFix);
+                if (titleCaseKeys.length > 0) {
+                    config.titleCaseFixRegex = new RegExp(`\\b(${titleCaseKeys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'g');
+                } else {
+                    config.titleCaseFixRegex = /(?!)/;
+                }
+            } else {
+                // Error reading file - use defaults
+                const titleCaseKeys = Object.keys(config.titleCaseFix);
+                if (titleCaseKeys.length > 0) {
+                    config.titleCaseFixRegex = new RegExp(`\\b(${titleCaseKeys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'g');
+                } else {
+                    config.titleCaseFixRegex = /(?!)/;
+                }
             }
-            throw error;
         }
+
+        // Cache the config
+        docsConfigCache[baseDir] = config;
+        return config;
     }
 
     /**
      * Check if a file or directory should be ignored
+     * @param {string} relativePath - Relative path to check
+     * @param {boolean} isDirectory - Whether this is a directory
+     * @param {Array} ignorePatterns - Array of ignore pattern objects
+     * @returns {boolean} True if should be ignored
      */
     static _shouldIgnore(relativePath, isDirectory, ignorePatterns) {
+        if (!ignorePatterns || ignorePatterns.length === 0) {
+            return false;
+        }
+
         for (const pattern of ignorePatterns) {
             // For directory patterns (ending with /), check both exact match and subdirectory match
             if (pattern.isDirectory) {
@@ -575,14 +913,23 @@ class MarkdownController {
 
     /**
      * Extract readable title from filename
+     * @param {string} filename - Filename to extract title from
+     * @param {Object} docsConfig - Docs config object (optional, for title case fixes)
+     * @returns {string} Extracted title
      */
-    static _extractTitle(filename) {
-        return filename
+    static _extractTitle(filename, docsConfig = null) {
+        let title = filename
             .replace(/\.md$/, '')
             .replace(/[-_]/g, ' ')
             .replace(/  +/g, ' ')
-            .replace(/\b\w/g, l => l.toUpperCase())
-            .replace(titleCaseFixRegex, (match) => titleCaseFix[match]).trim();
+            .replace(/\b\w/g, l => l.toUpperCase());
+
+        // Apply title case fixes if config provided
+        if (docsConfig && docsConfig.titleCaseFixRegex && docsConfig.titleCaseFix) {
+            title = title.replace(docsConfig.titleCaseFixRegex, (match) => docsConfig.titleCaseFix[match]);
+        }
+
+        return title.trim();
     }
 
     /**

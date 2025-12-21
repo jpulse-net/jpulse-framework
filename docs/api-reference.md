@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.3.20
+# jPulse Docs / REST API Reference v1.3.21
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -1132,19 +1132,31 @@ The markdown API follows the site override pattern for namespace resolution:
 1. **Site Override**: `site/webapp/static/assets/:namespace/`
 2. **Framework Default**: `webapp/static/assets/:namespace/`
 
-### File Filtering (.jpulse-ignore)
-The API respects `.jpulse-ignore` files in namespace roots to exclude files and directories from publication:
+### File Filtering (.markdown)
+The API respects `.markdown` configuration files in namespace roots to control publishing, ordering, and titles:
 
-**Ignore File Location:** `:namespace/.jpulse-ignore`
+**Configuration File Location:** `:namespace/.markdown`
 
-**Supported Patterns:**
+**Sections:**
+- **`[publish-list]`**: Define custom order and titles for important docs
+- **`[ignore]`**: Exclude files/directories from publication (gitignore-like patterns)
+- **`[title-case-fix]`**: Fix auto-generated titles (e.g., "Api" → "API")
+
+**Ignore Patterns** (in `[ignore]` section):
 - **Exact files**: `temp.md`
 - **Wildcard patterns**: `*.backup.md`, `draft-*.md`
 - **Directory patterns**: `dev/working/` (excludes entire directory)
+- **Whitelist mode**: Use `*` to only publish files in `[publish-list]`
 - **Comments**: Lines starting with `#`
 
-**Example .jpulse-ignore:**
-```
+**Example .markdown:**
+```ini
+[publish-list]
+README.md           Welcome
+getting-started.md  Getting Started
+faq.md
+
+[ignore]
 # Ignore temporary development files
 dev/tmp.md
 
@@ -1153,7 +1165,15 @@ dev/working/
 
 # Ignore backup markdown files
 *.backup.md
+
+[title-case-fix]
+Api             API
+CHANGELOG       Version History
 ```
+
+**Precedence**: `[ignore]` takes precedence over `[publish-list]` - ignored files are excluded even if listed in `[publish-list]`.
+
+For complete documentation, see [Markdown Documentation](markdown-docs.md#configuration-file-markdown).
 
 ### File Structure
 The API returns a hierarchical structure where:

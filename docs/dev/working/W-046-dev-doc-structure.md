@@ -14,7 +14,7 @@ CONTRIBUTING.md
 ├── getting-started.md     # Quick start tutorial
 ├── api-reference.md       # API documentation
 ├── site-customization.md  # Framework configuration (W-014 override guide)
-├── examples.md            # Code examples and use cases
+├── app-examples.md        # Code examples and use cases
 ├── deployment.md          # Production deployment guide (nginx, mongodb replica set, ...)
 ├── CHANGELOG.md           # Version history
 └── dev/                   # Developers documentation
@@ -61,7 +61,7 @@ For later:
 1. **`installation.md`** - Clear setup instructions for different environments
 2. **`getting-started.md`** - Tutorial for building first jPulse app
 3. **`api-reference.md`** - Complete API documentation
-4. **`examples.md`** - Real-world usage examples for enterprise scenarios
+4. **`app-examples.md`** - Real-world usage examples for enterprise scenarios
 
 ### Development Documentation (Starting Points)
 1. **`roadmap.md`** - v0.4, v0.5, v1.0 goals and timeline

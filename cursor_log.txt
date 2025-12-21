@@ -6926,3 +6926,171 @@ Changes were accepted.
 
 
 ============================================================
+2025-12-20 01:13
+
+User prompt:
+I'd like to discuss:
+W-120, v1.3.21, 2025-12-21: markdown: publishing directives for sort order and page titles, @work-items.md (3274-3301)
+- see scratchpad at @docs/dev/working/W-120-markdown-publishing-directives.md
+- review task, ask questions if unclear
+- suggest change of spec if any, goal is a good DX, good usability, good onboarding & learning experience for site developers; use the "don't make me think" paradigm
+- currently in brainstorming
+
+Summary of output:
+- Reviewed W-120 task specification and current markdown publishing implementation
+- Asked clarifying questions about [publish-list] behavior, subdirectory handling, title generation, and fallback behavior
+- User clarified: [publish-list] is partial (explicit files first, then alphabetical), subdirectories explicit only, title case fixes merge framework defaults with site overrides
+- Refined specification with clear behavior rules and implementation considerations
+- Updated scratchpad file with complete specification and detailed 7-phase implementation plan
+- Documented open question about subdirectory without README behavior
+
+Key decisions:
+- [publish-list] is partial list (not whitelist) - explicit files ordered first, remaining alphabetical
+- Subdirectory titles can be auto-generated from directory name if omitted
+- Title case fixes: start with app.conf defaults, merge with .jpulse-docs overrides
+- No subdirectory-level .jpulse-docs files (single root config only)
+- Simple regex-based parser (no 3rd party lib)
+- Silent fallback to defaults if config missing/invalid
+
+Changes were accepted.
+
+
+============================================================
+2025-12-20 15:20
+
+(Entry done by user)
+
+- there was a caching issue in the file list sidebar, showing webapp/tests/unit/i18n/utils/ as untracked
+- user asked how to fix
+- "do a refresh"
+- after that:
+  - the cursor ui is messed up:
+    - cursor icon no longer shown in upper right to toggle on/off the chat pane
+    - when chat pane is open, it is no longer possible to access chat history!
+  - cursor AI lost a lot of what happened in the "W-120 markdown publishing directives" chat
+    - assumed we were mid-debugging, even though everything is working properly
+- user asked to update the cursor log with the following:
+   - all bugs were fixed
+   - user did a lot of manual testing to ensure proper operation
+   - we did a fix for installed plugins that only have a README.md, shown in the sidebar confusingly as a directory, fixed to show just as a file (isDirectory: false)
+   - AI added a number of unit tests
+
+============================================================
+2025-12-20 15:41
+
+User prompt:
+W-120: markdown publishing directives for sort order and page titles - implementation and bug fixes
+
+Summary of implementation:
+- Fully implemented W-120: Markdown Publishing Directives feature
+- Renamed configuration file from `.jpulse-docs` to `.markdown` for better generality
+- Created comprehensive `.markdown` configuration file in docs/ with [publish-list], [ignore], and [title-case-fix] sections
+- Updated version to 1.3.21
+
+Core Implementation:
+1. Added `_initializeDocsConfig(baseDir)` method:
+   - Parses `.markdown` file using regex-based parser (no 3rd party dependencies)
+   - Extracts [publish-list], [ignore], and [title-case-fix] sections
+   - Merges titleCaseFix from app.conf (framework defaults) with .markdown overrides
+   - Creates titleCaseFixRegex for efficient title processing
+   - Caches config per baseDir with proper invalidation
+
+2. Removed `_loadIgnorePatterns()` method:
+   - Functionality integrated into `_initializeDocsConfig()`
+   - All ignore pattern loading now handled in unified config system
+
+3. Added `_applyPublishListOrdering(files, docsConfig)` method:
+   - Implements partial ordering: explicit files first (in listed order), then remaining files alphabetically
+   - Respects [ignore] patterns (ignore takes precedence over publish-list)
+   - Handles both root-level and subdirectory files
+
+4. Updated `_scanMarkdownFiles()` method:
+   - Now accepts docsConfig parameter
+   - Applies [ignore] filtering during file scanning
+   - Applies custom titles from [publish-list] when creating file objects
+   - Calls `_applyPublishListOrdering()` to sort files correctly
+   - Handles directories with only README.md by converting to regular file entries (isDirectory: false)
+
+5. Updated `_extractTitle()` method:
+   - Now uses merged titleCaseFix from docsConfig
+   - Applies framework defaults + site overrides correctly
+
+6. Updated `_getDirectoryListing()` method:
+   - Includes `.markdown` file modification time in cache invalidation
+   - Ensures config changes trigger cache refresh
+
+7. Updated `_getMarkdownFile()` method:
+   - Handles virtual README generation for directories without physical README.md
+   - Generates file listing when directory is accessed directly
+
+Bugs Fixed:
+1. Fixed section header regex: Changed `/^\[(\w+)\]$/` to `/^\[([\w-]+)\]$/` to correctly parse `[publish-list]` (hyphen was not matched)
+2. Fixed "Assignment to constant variable" error: Changed `const otherFiles = []` to `let otherFiles = []` in `_applyPublishListOrdering()`
+3. Fixed sidebar ordering: Sidebar now correctly follows [publish-list] order instead of alphabetical
+4. Fixed directories with only README.md: Directories containing only README.md are now shown as regular document links (isDirectory: false) instead of expandable directories, improving visual clarity
+
+Unit Tests Added:
+1. Updated `markdown-ignore.test.js`:
+   - Updated to use new `.markdown` file instead of `.jpulse-ignore`
+   - Modified beforeEach to create unique test directories to prevent cache issues
+   - Updated assertions to reflect new behavior (config object structure)
+   - Fixed deprecated `substr()` to `slice()` for string manipulation
+
+2. Created `markdown-publish-list.test.js`:
+   - Comprehensive tests for [publish-list] ordering functionality
+   - Tests for custom titles in [publish-list]
+   - Tests for interaction between [publish-list] and [ignore] sections
+   - Tests for partial ordering (explicit files first, then alphabetical)
+   - Fixed deprecated `substr()` to `slice()` for string manipulation
+
+Configuration File:
+- Created `docs/.markdown` with comprehensive comments and examples
+- Organized sections logically for site admins/developers
+- Includes helpful tips and use cases
+- Renamed `examples.md` to `app-examples.md` for better descriptiveness
+- Updated all internal documentation links to reflect new filename
+
+Manual Testing:
+- User performed extensive manual testing to ensure proper operation
+- Verified sidebar ordering follows [publish-list] correctly
+- Verified custom titles display properly
+- Verified ignore patterns work correctly
+- Verified directories with only README.md display as files
+- Verified cache invalidation works when .markdown changes
+- Verified title case fixes merge correctly (framework defaults + site overrides)
+
+Technical Details:
+- Parser: Simple regex-based, no 3rd party dependencies
+- Cache: Per-baseDir caching with mtime-based invalidation
+- Precedence: [ignore] takes precedence over [publish-list] (ignore wins)
+- Partial ordering: Explicit files first, then alphabetical for remaining
+- Title priority: Explicit title > auto-generated with merged titleCaseFix > auto-generated (no fixes)
+- Subdirectories: Explicit listing only (no shorthand like "plugins/"), each file must be listed
+
+Changes were accepted.
+
+
+============================================================
+
+2025-12-20 17:34
+
+User prompt:
+release prep:
+- assume release: W-120, v1.3.21
+- update deliverables in W-120 work-items to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- update cursor_log.txt
+
+Summary of release prep work:
+- Updated deliverables in docs/dev/work-items.md (W-120 section) with complete list of files modified and work done
+- Updated README.md "Latest Release Highlights" section with W-120 v1.3.21 entry
+- Updated docs/README.md "Latest Release Highlights" section with W-120 v1.3.21 entry
+- Added comprehensive W-120 entry to docs/CHANGELOG.md (before v1.3.20 entry)
+- Updated docs/CHANGELOG.md header from v1.3.20 to v1.3.21
+- Updated commit-message.txt with complete W-120 release information following same format as W-119
+- Updated cursor_log.txt with this release prep entry
+
+All release documentation now reflects W-120, v1.3.21: Markdown Publishing Directives feature release.
+
+Changes were accepted.

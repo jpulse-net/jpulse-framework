@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.3.22
+# jPulse Docs / Front-End Development Guide v1.4.1
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -636,6 +636,7 @@ The jPulse Framework provides a comprehensive set of UI widgets under the `jPuls
 
 - **[Toast Notifications](jpulse-ui-reference.md#toast-notifications)** - Non-blocking slide-down messages (`jPulse.UI.toast`)
 - **[Dialog Widgets](jpulse-ui-reference.md#dialog-widgets)** - Modal dialogs (`alertDialog`, `infoDialog`, `successDialog`, `confirmDialog`)
+- **[Sidebars](jpulse-ui-reference.md#sidebars)** - Left/right sidebars with component-based architecture (`jPulse.UI.sidebars`)
 - **[Collapsible Components](jpulse-ui-reference.md#collapsible-components)** - Expandable/collapsible sections (`jPulse.UI.collapsible`)
 - **[Accordion Component](jpulse-ui-reference.md#accordion-component)** - Grouped sections with mutual exclusion (`jPulse.UI.accordion`)
 - **[Tab Interface](jpulse-ui-reference.md#tab-interface)** - Navigation and panel tabs (`jPulse.UI.tabs`)

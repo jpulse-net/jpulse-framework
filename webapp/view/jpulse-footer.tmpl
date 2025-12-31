@@ -4,13 +4,13 @@
  * @tagline         Footer template for jPulse pages
  * @description     Footer included in all jPulse pages to provide a consistent page layout
  * @file            webapp/view/jpulse-footer.tmpl
- * @version         1.3.22
- * @release         2025-12-21
+ * @version         1.4.1
+ * @release         2025-12-31
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
 -->
 <!-- Visual Header Banner (positioned at top via CSS) -->
 <header class="jp-header">
@@ -63,6 +63,47 @@
 <nav class="jp-mobile-menu" id="jp-mobile-menu" aria-label="Mobile Navigation"></nav>
 {{/if}}
 
+<!-- Left Sidebar (W-068) -->
+{{#if appConfig.view.pageDecoration.sidebar.left.enabled}}
+<aside id="jp-sidebar-left" class="jp-sidebar jp-sidebar-left jp-sidebar-mode-{{appConfig.view.pageDecoration.sidebar.left.mode}} jp-sidebar-{{appConfig.view.pageDecoration.sidebar.left.behavior}}" data-sidebar="left">
+    <div class="jp-sidebar-content">
+        {{#each appConfig.view.pageDecoration.sidebar.left.components}}
+            {{components name=(this)}}
+        {{/each}}
+        <div class="jp-sidebar-empty" id="jp-sidebar-empty-left" style="display: none;">
+            {{i18n.view.pageDecoration.sidebar.empty}}
+        </div>
+    </div>
+    {{!-- Mobile close button (inside sidebar) --}}
+    <button class="jp-sidebar-toggle jp-sidebar-toggle-close" id="jp-sidebar-toggle-close-left" aria-label="Close left sidebar" style="display:none;">◄</button>
+</aside>
+<div id="jp-sidebar-separator-left" class="jp-sidebar-separator jp-sidebar-separator-left" data-sidebar="left">
+    <button class="jp-sidebar-toggle jp-sidebar-toggle-left" aria-label="Toggle left sidebar" title="Toggle sidebar"></button>
+</div>
+{{/if}}
+
+<!-- Right Sidebar (W-068) -->
+{{#if appConfig.view.pageDecoration.sidebar.right.enabled}}
+<aside id="jp-sidebar-right" class="jp-sidebar jp-sidebar-right jp-sidebar-mode-{{appConfig.view.pageDecoration.sidebar.right.mode}} jp-sidebar-{{appConfig.view.pageDecoration.sidebar.right.behavior}}" data-sidebar="right">
+    <div class="jp-sidebar-content">
+        {{#each appConfig.view.pageDecoration.sidebar.right.components}}
+            {{components name=(this)}}
+        {{/each}}
+        <div class="jp-sidebar-empty" id="jp-sidebar-empty-right" style="display: none;">
+            {{i18n.view.pageDecoration.sidebar.empty}}
+        </div>
+    </div>
+    {{!-- Mobile close button (inside sidebar) --}}
+    <button class="jp-sidebar-toggle jp-sidebar-toggle-close" id="jp-sidebar-toggle-close-right" aria-label="Close right sidebar" style="display:none;">►</button>
+</aside>
+<div id="jp-sidebar-separator-right" class="jp-sidebar-separator jp-sidebar-separator-right" data-sidebar="right">
+    <button class="jp-sidebar-toggle jp-sidebar-toggle-right" aria-label="Toggle right sidebar" title="Toggle sidebar"></button>
+</div>
+{{/if}}
+
+{{!-- Mobile backdrop overlay (hidden by default, shown by JavaScript when sidebar opens on mobile) --}}
+<div class="jp-sidebar-backdrop" id="jp-sidebar-backdrop"></div>
+
 <!-- Footer -->
 <footer class="jp-footer">
     <div class="jp-footer-content">
@@ -85,6 +126,32 @@
 </style>
 <script>
 jPulse.dom.ready(() => {
+    // Move sidebar elements into .jp-main on DOM ready to avoid initial layout flash
+    const main = document.querySelector('.jp-main');
+    if (main) {
+        let frag;
+        {{#if appConfig.view.pageDecoration.sidebar.left.enabled}}
+        frag = document.createDocumentFragment();
+        [ 'jp-sidebar-left', 'jp-sidebar-separator-left' ].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) frag.appendChild(el);
+        });
+        if (frag.childNodes.length) {
+            main.insertBefore(frag, main.firstChild);
+        }
+        {{/if}}
+        {{#if appConfig.view.pageDecoration.sidebar.right.enabled}}
+        frag = document.createDocumentFragment();
+        [ 'jp-sidebar-right', 'jp-sidebar-separator-right' ].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) frag.appendChild(el);
+        });
+        if (frag.childNodes.length) {
+            main.insertBefore(frag, main.firstChild);
+        }
+        {{/if}}
+    }
+
     {{#if appConfig.view.pageDecoration.siteNavigation.enabled}}
     // Initialize site navigation when DOM is ready
     // Note: Handlebars values are strings, so convert to numbers
@@ -218,6 +285,49 @@ jPulse.dom.ready(() => {
             }, 100);
         }
     });
+
+    // W-068: Initialize sidebars
+    if (jPulse.UI?.sidebars) {
+        jPulse.UI.sidebars.init({
+            left: JSON.parse('{{appConfig.view.pageDecoration.sidebar.left}}'),
+            right: JSON.parse('{{appConfig.view.pageDecoration.sidebar.right}}'),
+            mobile: JSON.parse('{{appConfig.view.pageDecoration.sidebar.mobile}}')
+        });
+
+        // Check for empty sidebar content and show empty message if needed
+        ['left', 'right'].forEach(side => {
+            const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+            const emptyEl = document.getElementById(`jp-sidebar-empty-${side}`);
+            if (sidebarEl && emptyEl) {
+                const checkEmpty = () => {
+                    const content = sidebarEl.querySelector('.jp-sidebar-content');
+                    if (content) {
+                        // Check if content is empty (only whitespace or only the empty message itself)
+                        const children = Array.from(content.children).filter(child =>
+                            child.id !== `jp-sidebar-empty-${side}` &&
+                            child.textContent.trim() !== ''
+                        );
+                        if (children.length === 0) {
+                            emptyEl.style.display = 'block';
+                        } else {
+                            emptyEl.style.display = 'none';
+                        }
+                    }
+                };
+                // Check immediately and after a short delay (for async component loading)
+                checkEmpty();
+                setTimeout(checkEmpty, 100);
+                // Also check when sidebar content changes (for SPA navigation)
+                if (window.MutationObserver) {
+                    const observer = new MutationObserver(checkEmpty);
+                    const content = sidebarEl.querySelector('.jp-sidebar-content');
+                    if (content) {
+                        observer.observe(content, { childList: true, subtree: true });
+                    }
+                }
+            }
+        });
+    }
 });
 </script>
 

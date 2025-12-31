@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v1.3.22
+# jPulse Docs / Site Customization Guide v1.4.1
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -396,6 +396,58 @@ Create `site/webapp/view/home/index.shtml` to override the framework home page:
 
 {{file.include webapp/view/jpulse-footer.tmpl}}
 ```
+
+### Sidebar Customization
+
+The framework provides a flexible sidebar system with left and right sidebars. Sites can customize sidebar configuration and create custom sidebar components.
+
+**Configuration in `site/webapp/app.conf`:**
+
+```javascript
+view: {
+    pageDecoration: {
+        sidebar: {
+            left: {
+                enabled: true,
+                mode: 'always',           // 'toggle' or 'always'
+                width: 250,
+                behavior: 'reflow',       // 'reflow' or 'overlay'
+                components: [
+                    'sidebar.siteNav',    // Site navigation
+                    'sidebar.customWidget' // Your custom component
+                ]
+            },
+            right: {
+                enabled: true,
+                mode: 'toggle',
+                initState: 'closed',
+                width: 300,
+                behavior: 'overlay',
+                components: ['sidebar.toc']
+            }
+        }
+    }
+}
+```
+
+**Creating Custom Sidebar Components:**
+
+Create `site/webapp/view/components/site-sidebars.tmpl`:
+
+```handlebars
+{{#component "sidebar.customWidget"}}
+    <div class="jp-sidebar-component site-custom-widget" id="site-custom-widget">
+        <h3 class="jp-sidebar-component-title">Quick Links</h3>
+        <ul>
+            <li><a href="/dashboard/">Dashboard</a></li>
+            <li><a href="/reports/">Reports</a></li>
+            <li><a href="/settings/">Settings</a></li>
+        </ul>
+    </div>
+{{/component}}
+```
+
+> 📚 **Complete Documentation**: See [Sidebars Guide](sidebars.md) for configuration options, built-in components, JavaScript API, and responsive design details. See [Sidebar Components Guide](sidebar-components.md) for creating custom components with dynamic content, API integration, and advanced patterns.
 
 ________________________________________________
 ## Site Documentation System (W-049)

@@ -4,8 +4,8 @@
  * @tagline         JPulse Framework documentation page
  * @description     JPulse Framework documentation, page loads markdown via markdown API, and renders it as HTML
  * @file            webapp/view/jpulse/index.shtml
- * @version         1.3.22
- * @release         2025-12-21
+ * @version         1.4.1
+ * @release         2025-12-31
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -19,6 +19,11 @@
     <title>{{i18n.view.jpulseDocs.documentation}} - {{app.jPulse.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
     <style>
+        .local-main-content {
+            position: relative;
+            padding: 0;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -26,27 +31,34 @@
     <div class="jp-main">
         <!-- Navigation Tabs -->
         <div id="jpulse-docs-examples-tabs" class="jp-tabs"></div>
-        <div class="jp-docs-container">
-            <nav class="jp-docs-nav local-docs-nav">
-                <h3 id="docs-nav-heading">{{i18n.view.jpulseDocs.documentation}}</h3>
-                <div class="jp-docs-nav-wrapper">
-                    <ul id="docs-navigation">
-                        <!-- Populated by JavaScript -->
-                    </ul>
-                </div>
-            </nav>
+        <div class="local-main-content" id="main-content">
+            <div class="jp-docs-container" id="jp-docs-container">
+                {{!-- W-068: Sidebar navigation now handled by sidebar.pageComponentLeft component --}}
+                {{!-- Fallback navigation structure if sidebar is not enabled --}}
+                <nav class="jp-docs-nav local-docs-nav" id="docs-nav-fallback" style="display: none;">
+                    <div class="jp-docs-nav-title">
+                        <a href="#" class="jp-docs-nav-title-link" id="docs-nav-title-link">{{i18n.view.jpulseDocs.documentation}}</a>
+                    </div>
+                    <div class="jp-docs-nav-wrapper">
+                        <ul id="docs-navigation-fallback">
+                            <!-- Populated by JavaScript if jPulse.UI.sidebars is not enabled or not available -->
+                        </ul>
+                    </div>
+                </nav>
 
-            <main class="jp-docs-content">
-                <div id="markdown-content" class="jp-markdown-content">
-                    <div class="jp-loading">{{i18n.view.jpulseDocs.loading}}</div>
-                </div>
-            </main>
+                <main class="jp-docs-content">
+                    <div id="markdown-content" class="jp-markdown-content">
+                        <div class="jp-loading">{{i18n.view.jpulseDocs.loading}}</div>
+                    </div>
+                </main>
+            </div>
         </div>
     </div>
 
     <script src="/common/marked/marked.min.js"></script>
     <script>
         // W-104: Using jPulse.UI.docs API for documentation viewer
+        // W-068: Updated to use new sidebar system with initComponent() API
         jPulse.dom.ready(async () => {
             // Initialize main navigation tab row
             jPulse.UI.tabs.register(
@@ -54,14 +66,52 @@
                 window.jPulseNavigation.tabs.jPulseDocsExamplesTabs
             );
 
-            // Initialize docs viewer with site nav integration
-            await jPulse.UI.docs.init({
-                navElement: '#docs-navigation',
+            // W-068: Initialize sidebar component
+            let navElement = '#docs-navigation-fallback';
+            const componentHandle = jPulse.UI.sidebars.initComponent('sidebar.pageComponentLeft', {
+                content: `
+                    <div class="jp-docs-nav-title">
+                        <a href="#" class="jp-docs-nav-title-link jp-docs-nav-directory" id="docs-nav-title-link">{{i18n.view.jpulseDocs.documentation}}</a>
+                    </div>
+                    <div class="jp-docs-nav-wrapper">
+                        <ul id="docs-navigation"></ul>
+                    </div>
+                `,
+                onLoad: (componentEl) => {
+                    // Navigation structure is now in DOM, ready for docs viewer
+                    navElement = '#docs-navigation';
+
+                    // Update container layout to single column when nav is in sidebar
+                    const container = document.getElementById('jp-docs-container');
+                    if (container) {
+                        container.classList.add('jp-docs-container-sidebar');
+                    }
+                },
+                refresh: (componentEl) => {
+                    // Refresh callback: re-render navigation if needed
+                    // This could be called when navigation structure changes
+                    // For now, docs viewer handles its own navigation updates
+                }
+            });
+
+            // Fallback if component initialization failed (sidebar not enabled or component not found)
+            if (!componentHandle) {
+                document.getElementById('docs-nav-fallback').style.display = 'block';
+            }
+
+            // Initialize docs viewer
+            const viewer = await jPulse.UI.docs.init({
+                navElement: navElement,
                 contentElement: '#markdown-content',
                 registerWithSiteNav: true,
-                siteNavKey: 'jPulseDocs',
-                flattenTopLevel: true
+                siteNavKey: 'jPulseDocs'
             });
+
+            // W-068: Set preferred state to open for left sidebar (navigation)
+            jPulse.UI.sidebars.setPreferredState('left', 'open');
+
+            // W-068: Set sidebar to appear in main-content container
+            jPulse.UI.sidebars.attachLeftSidebarTo('#main-content');
         });
     </script>
 

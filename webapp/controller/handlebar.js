@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.3.22
- * @release         2025-12-21
+ * @version         1.4.1
+ * @release         2025-12-31
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -42,7 +42,7 @@ class HandlebarController {
         {name: 'app', type: 'regular', source: 'jpulse', description: 'Application context (app.jPulse.* and app.site.*)', example: '{{app.site.name}} v{{app.site.version}}'},
         {name: 'appCluster', type: 'regular', source: 'jpulse', description: 'Redis cluster availability information', example: '{{appCluster.*}}'},
         {name: 'appConfig', type: 'regular', source: 'jpulse', description: 'Full application configuration (filtered based on auth)', example: '{{appConfig.*}}'},
-        {name: 'components', type: 'regular', source: 'jpulse', description: 'Reusable component call with parameters', example: '{{components.jpIcons.configSvg size="64"}}'},
+        {name: 'components', type: 'regular', source: 'jpulse', description: 'Reusable component call with parameters. Static: {{components.jpIcons.configSvg size="64"}}. Dynamic: {{components name="sidebar.toc"}} or {{components name=(this)}}', example: '{{components.jpIcons.configSvg size="64"}}'},
         {name: 'eq', type: 'regular', source: 'jpulse', description: 'Equality comparison, returns "true" or "false" (2 arguments)', example: '{{eq user.role "admin"}}'},
         {name: 'file', type: 'regular', source: 'jpulse', description: 'File operations (include, exists, list, timestamp)', example: '{{file.include "template.tmpl"}}'},
         {name: 'gt', type: 'regular', source: 'jpulse', description: 'Greater than comparison, returns "true" or "false" (2 arguments)', example: '{{gt user.score 100}}'},
@@ -918,7 +918,8 @@ class HandlebarController {
 
             // W-102: Handle components.* pattern (with or without parameters)
             // Example: {{components.jpIcons.configSvg size="64"}} or {{components.jpIcons.configSvg}}
-            if (helper.startsWith('components.')) {
+            // W-068: Also support {{components name="..."}} or {{components name=(this)}} for dynamic component access
+            if (helper.startsWith('components.') || helper === 'components') {
                 return await _handleComponentCall(parsedArgs, currentContext);
             }
 
@@ -1512,15 +1513,29 @@ class HandlebarController {
         /**
          * W-102: Handle component call with parameters
          * Example: {{components.jpIcons.configSvg size="64" fillColor="red"}}
+         * W-068: Also support {{components name="sidebar.toc"}} or {{components name=(this)}} for dynamic access
          */
         async function _handleComponentCall(parsedArgs, currentContext) {
-            const fullName = parsedArgs._helper; // e.g., "components.jpIcons.configSvg"
+            const fullName = parsedArgs._helper; // e.g., "components.jpIcons.configSvg" or "components"
 
-            // Remove "components." prefix to get component name
-            const componentName = fullName.replace(/^components\./, ''); // "jpIcons.configSvg"
+            // W-068: Support dynamic component name via name parameter
+            let componentName;
+            let usageName;
 
-            // Convert to usage name (already in correct format)
-            const usageName = componentName;
+            if (fullName === 'components' && parsedArgs.name) {
+                // Dynamic component access: {{components name="sidebar.toc"}} or {{components name=(this)}}
+                // The name parameter is already evaluated by _parseAndEvaluateArguments
+                componentName = parsedArgs.name;
+                usageName = componentName; // Already in correct format (e.g., "sidebar.toc")
+            } else if (fullName.startsWith('components.')) {
+                // Static component access: {{components.jpIcons.configSvg}}
+                componentName = fullName.replace(/^components\./, ''); // "jpIcons.configSvg"
+                usageName = componentName; // Already in correct format
+            } else {
+                const errorMsg = `Invalid component call: "${fullName}". Use {{components.name}} or {{components name="..."}}`;
+                LogController.logWarning(req, 'handlebar.componentCall', errorMsg);
+                return `<!-- Error: ${errorMsg} -->`;
+            }
 
             // Look up component in registry
             const component = req.componentRegistry.get(usageName);

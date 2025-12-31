@@ -1,0 +1,495 @@
+{{!--
+ * @name            jPulse Framework / WebApp / View / Components / Sidebar Components
+ * @tagline         Sidebar component library
+ * @description     Reusable sidebar components for left and right sidebars - W-068
+ * @file            webapp/view/components/jpulse-sidebars.tmpl
+ * @version         1.4.1
+ * @release         2025-12-31
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
+--}}
+
+{{#component "sidebar.siteNav"}}
+    <nav class="jp-sidebar-component jp-sidebar-nav" id="jp-sidebar-site-nav">
+        <div class="jp-sidebar-component-title">{{i18n.view.pageDecoration.sidebar.components.siteNav.title}}</div>
+        {{!-- Site navigation structure populated by JavaScript --}}
+    </nav>
+    <script>
+    jPulse.dom.ready(() => {
+        const navEl = document.getElementById('jp-sidebar-site-nav');
+        if (!navEl) return;
+
+        // Get navigation structure and current context
+        const navStructure = window.jPulseNavigation?.site;
+        if (!navStructure || Object.keys(navStructure).length === 0) {
+            const titleEl = navEl.querySelector('.jp-sidebar-component-title');
+            if (titleEl) {
+                titleEl.insertAdjacentHTML('afterend', `<div class="jp-sidebar-empty">{{i18n.view.pageDecoration.sidebar.components.siteNav.noNavigation}}</div>`);
+            } else {
+                navEl.innerHTML = `<div class="jp-sidebar-empty">{{i18n.view.pageDecoration.sidebar.components.siteNav.noNavigation}}</div>`;
+            }
+            return;
+        }
+
+        // Get current URL and user roles from navigation system (if initialized)
+        const currentUrl = jPulse.UI.navigation?._currentUrl || window.location.pathname;
+        const userRoles = jPulse.UI.navigation?._userRoles || [];
+
+        // Helper: Check if any child item has an exact URL match
+        const hasExactChildMatch = (item) => {
+            if (!item.pages || typeof item.pages !== 'object') return false;
+            return Object.values(item.pages).some(child => {
+                // Check role-based visibility
+                if (child.role && !userRoles.includes(child.role)) {
+                    return false;
+                }
+                // Check hideInDropdown flag
+                if (child.hideInDropdown) {
+                    return false;
+                }
+                // Check for exact URL match
+                return child.url === currentUrl;
+            });
+        };
+
+        // Render navigation for sidebar (simplified, no dropdowns)
+        const renderNavItem = (item, key, depth = 0) => {
+            // Check role-based visibility
+            if (item.role && !userRoles.includes(item.role)) {
+                return '';
+            }
+
+            // Check hideInDropdown flag (breadcrumb-only items)
+            if (item.hideInDropdown) {
+                return '';
+            }
+
+            // Check for active state
+            // Prefer exact matches over prefix matches to avoid parent/child both being active
+            const isActive = item.url === currentUrl ||
+                           (item.url && currentUrl.startsWith(item.url + '/') && !hasExactChildMatch(item));
+
+            let html = '<li class="jp-sidebar-nav-item' +
+                      (isActive ? ' jp-sidebar-nav-active' : '') +
+                      (depth > 0 ? ' jp-sidebar-nav-sub' : '') + '">';
+
+            // Render icon if present
+            let iconHTML = '';
+            if (item.icon) {
+                if (item.icon.trim().startsWith('<svg')) {
+                    iconHTML = '<span class="jp-sidebar-nav-icon">' + item.icon + '</span>';
+                } else if (['.jpg', '.jpeg', '.png', '.svg', '.gif'].some(ext =>
+                           item.icon.toLowerCase().endsWith(ext))) {
+                    const iconPath = item.icon.startsWith('/') ? item.icon : '/' + item.icon;
+                    iconHTML = '<img src="' + iconPath + '" alt="" class="jp-sidebar-nav-icon">';
+                } else {
+                    iconHTML = '<span class="jp-sidebar-nav-icon">' + item.icon + '</span>';
+                }
+            }
+
+            // Render link
+            html += '<a href="' + (item.url || '#') + '" class="jp-sidebar-nav-link">';
+            if (iconHTML) {
+                html += iconHTML;
+            }
+            html += '<span class="jp-sidebar-nav-label">' + (item.label || key) + '</span>';
+            html += '</a>';
+
+            // Render sub-pages if present
+            const pages = item.pages;
+            if (pages && typeof pages === 'object' && Object.keys(pages).length > 0) {
+                html += '<ul class="jp-sidebar-nav-submenu">';
+                Object.entries(pages).forEach(([subKey, subItem]) => {
+                    html += renderNavItem(subItem, subKey, depth + 1);
+                });
+                html += '</ul>';
+            }
+
+            html += '</li>';
+            return html;
+        };
+
+        // Function to render navigation
+        const renderNavigation = () => {
+            // Get merged navigation structure (includes registered pages)
+            const mergedNavStructure = { ...navStructure };
+
+            // Merge in registered pages from jPulse.UI.navigation
+            if (jPulse.UI.navigation?._registeredPages) {
+                Object.entries(jPulse.UI.navigation._registeredPages).forEach(([sectionKey, pages]) => {
+                    if (mergedNavStructure[sectionKey] && pages && typeof pages === 'object') {
+                        // Ensure pages object exists and merge safely
+                        if (!mergedNavStructure[sectionKey].pages) {
+                            mergedNavStructure[sectionKey].pages = {};
+                        }
+                        // Only merge valid page objects (with url property)
+                        Object.entries(pages).forEach(([pageKey, pageItem]) => {
+                            if (pageItem && typeof pageItem === 'object' && pageItem.url) {
+                                mergedNavStructure[sectionKey].pages[pageKey] = pageItem;
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Render all navigation items
+            let navHTML = '<ul class="jp-sidebar-nav-list">';
+            Object.entries(mergedNavStructure).forEach(([key, item]) => {
+                navHTML += renderNavItem(item, key);
+            });
+            navHTML += '</ul>';
+
+            // Remove existing nav list if present
+            const existingNav = navEl.querySelector('.jp-sidebar-nav-list');
+            if (existingNav) {
+                existingNav.remove();
+            }
+
+            // Insert nav after title (title already exists in DOM from template)
+            const titleEl = navEl.querySelector('.jp-sidebar-component-title');
+            if (titleEl) {
+                titleEl.insertAdjacentHTML('afterend', navHTML);
+            } else {
+                // Fallback: if title not found, insert at beginning
+                navEl.insertAdjacentHTML('afterbegin', navHTML);
+            }
+        };
+
+        // Initial render
+        renderNavigation();
+
+        // Listen for navigation updates (when registerPages is called)
+        // Check periodically for registered pages changes (nice to have, not requirement)
+        let lastRegisteredPages = JSON.stringify(jPulse.UI.navigation?._registeredPages || {});
+        let checkCount = 0;
+        const maxChecks = 60; // Stop checking after 30 seconds (60 * 500ms)
+        const checkForUpdates = setInterval(() => {
+            checkCount++;
+            if (checkCount > maxChecks) {
+                clearInterval(checkForUpdates);
+                return;
+            }
+
+            try {
+                const currentRegisteredPages = JSON.stringify(jPulse.UI.navigation?._registeredPages || {});
+                if (currentRegisteredPages !== lastRegisteredPages) {
+                    lastRegisteredPages = currentRegisteredPages;
+                    renderNavigation();
+                }
+            } catch (error) {
+                console.warn('[Sidebar siteNav] Error checking for navigation updates:', error);
+                // Stop checking on error to avoid spam
+                clearInterval(checkForUpdates);
+            }
+        }, 500); // Check every 500ms
+
+        // Clean up interval when component is removed (if needed)
+        // Note: This is a simple polling approach. A better solution would be to
+        // emit a custom event from registerPages, but this works for now.
+    });
+    </script>
+{{/component}}
+
+{{#component "sidebar.toc"}}
+    {{#if appConfig.view.pageDecoration.sidebar.components.toc.selector}}
+    <div class="jp-sidebar-component jp-sidebar-toc" id="jp-sidebar-toc" data-selector="{{appConfig.view.pageDecoration.sidebar.components.toc.selector}}">
+    {{else}}
+    <div class="jp-sidebar-component jp-sidebar-toc" id="jp-sidebar-toc">
+    {{/if}}
+        {{!-- Always show the "Table of Contents" heading --}}
+        <div class="jp-sidebar-component-title">{{i18n.view.pageDecoration.sidebar.components.toc.title}}</div>
+        {{!-- Hidden empty message, shown when no headings found --}}
+        <div class="jp-sidebar-toc-empty" id="jp-sidebar-toc-empty" style="display: none;">{{i18n.view.pageDecoration.sidebar.components.toc.noHeadings}}</div>
+        {{!-- Table of contents auto-generated from page headings --}}
+    </div>
+    <script>
+    jPulse.dom.ready(() => {
+        const tocEl = document.getElementById('jp-sidebar-toc');
+        if (!tocEl) return;
+
+        // Get selector from data attribute (override) or use default
+        // Default includes h1-h6 to catch all possible heading levels
+        const defaultSelector = '.jp-main h1, .jp-main h2, .jp-main h3, .jp-main h4, .jp-main h5, .jp-main h6';
+        const selector = tocEl.dataset.selector || defaultSelector;
+
+        // Exclude headings inside code blocks (hardcoded, unlikely to change)
+        const excludeSelector = 'pre, code, .jp-source-code';
+
+        // Function to generate TOC
+        const generateToc = () => {
+            const allHeadings = document.querySelectorAll(selector);
+
+            // Filter out headings inside code blocks
+            const headings = Array.from(allHeadings).filter(heading => {
+                // Check if heading is inside any excluded container
+                const excludedContainers = document.querySelectorAll(excludeSelector);
+                for (const container of excludedContainers) {
+                    if (container.contains(heading)) {
+                        return false;
+                    }
+                }
+                // Also check if heading is visible (not hidden by CSS)
+                const style = window.getComputedStyle(heading);
+                if (style.display === 'none' || style.visibility === 'hidden') {
+                    return false;
+                }
+                return true;
+            });
+
+            // Find the title and empty message elements (already rendered in template)
+            const titleEl = tocEl.querySelector('.jp-sidebar-component-title');
+            const emptyEl = tocEl.querySelector('#jp-sidebar-toc-empty');
+
+            if (headings.length === 0) {
+                // Show empty message
+                if (emptyEl) {
+                    emptyEl.style.display = 'block';
+                }
+                return;
+            }
+
+            // Hide empty message if headings are found
+            if (emptyEl) {
+                emptyEl.style.display = 'none';
+            }
+
+            // Normalize heading levels: if a lower level appears before a higher level at start, shift it up
+            // Example: h3, h2, h3 → h2, h2, h3 (first h3 shifts to h2)
+            const normalizedHeadings = [];
+
+            // First pass: find the lowest level number (firstHigherLevel) in the entire sequence
+            let firstHigherLevel = null;
+            headings.forEach((heading) => {
+                const level = parseInt(heading.tagName.charAt(1)); // h2 -> 2, h3 -> 3
+                if (firstHigherLevel === null || level < firstHigherLevel) {
+                    firstHigherLevel = level;
+                }
+            });
+
+            // Second pass: normalize levels
+            // Only shift levels that appear BEFORE we've seen the firstHigherLevel
+            // Once we've seen firstHigherLevel, keep original levels
+            let hasSeenFirstHigherLevel = false;
+            headings.forEach((heading, index) => {
+                const level = parseInt(heading.tagName.charAt(1)); // h2 -> 2, h3 -> 3
+
+                let normalizedLevel = level;
+
+                // If we encounter the firstHigherLevel, mark it as seen
+                if (level === firstHigherLevel) {
+                    hasSeenFirstHigherLevel = true;
+                }
+
+                // Only shift levels that are higher than firstHigherLevel AND appear before we've seen firstHigherLevel
+                if (level > firstHigherLevel && !hasSeenFirstHigherLevel) {
+                    normalizedLevel = firstHigherLevel;
+                }
+
+                normalizedHeadings.push({ heading, level: normalizedLevel, originalLevel: level });
+            });
+
+            // Generate TOC structure with proper nesting
+            let tocHTML = '<nav class="jp-sidebar-toc-nav"><ul class="jp-sidebar-toc-list">';
+            const stack = []; // Stack to track open list levels: [{level, isOpen}]
+
+            normalizedHeadings.forEach((item, index) => {
+                const { heading, level } = item;
+
+                // Respect existing heading ID (from heading anchor feature)
+                // Only generate ID if heading doesn't have one
+                if (!heading.id) {
+                    // Use existing slugify function if available, otherwise fallback
+                    const text = heading.textContent.trim();
+                    let slug;
+                    if (jPulse.UI?.headingAnchors?._slugify) {
+                        slug = jPulse.UI.headingAnchors._slugify(text);
+                    } else {
+                        slug = text.toLowerCase()
+                            .replace(/[^\w\s\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF-]/g, '')
+                            .replace(/\s+/g, '-')
+                            .replace(/-+/g, '-')
+                            .replace(/^-+|-+$/g, '');
+                    }
+
+                    // Handle conflicts with existing IDs
+                    let finalId = slug || `toc-heading-${index}`;
+                    let counter = 0;
+                    const existingIds = new Set(Array.from(document.querySelectorAll('[id]')).map(el => el.id));
+                    while (existingIds.has(finalId)) {
+                        counter++;
+                        finalId = `${slug}-${counter}`;
+                    }
+
+                    heading.id = finalId;
+                }
+
+                const id = heading.id;
+
+                // Extract text, excluding the heading anchor link icon (🔗)
+                // Clone the heading to avoid modifying the original
+                const headingClone = heading.cloneNode(true);
+                const anchorLink = headingClone.querySelector('.heading-anchor');
+                if (anchorLink) {
+                    anchorLink.remove();
+                }
+                const text = headingClone.textContent.trim();
+
+                // Close levels that are deeper than current level
+                while (stack.length > 0 && stack[stack.length - 1].level >= level) {
+                    const closed = stack.pop();
+                    if (closed.isOpen) {
+                        tocHTML += '</ul>';
+                    }
+                    tocHTML += '</li>';
+                }
+
+                // If we need to go deeper, open a new sublist
+                if (stack.length > 0 && level > stack[stack.length - 1].level) {
+                    // Open sublist for the previous item
+                    const lastItem = stack[stack.length - 1];
+                    if (!lastItem.isOpen) {
+                        tocHTML += '<ul class="jp-sidebar-toc-sublist">';
+                        lastItem.isOpen = true;
+                    }
+                }
+
+                // Add TOC item
+                tocHTML += '<li class="jp-sidebar-toc-item jp-sidebar-toc-level-' + level + '">';
+                tocHTML += '<a href="#' + id + '" class="jp-sidebar-toc-link" data-heading-id="' + id + '">';
+                tocHTML += '<span class="jp-sidebar-toc-text">' + text + '</span>';
+                tocHTML += '</a>';
+
+                // Push to stack (not open yet, will open if next item is deeper)
+                stack.push({ level, isOpen: false });
+            });
+
+            // Close all remaining open levels
+            while (stack.length > 0) {
+                const item = stack.pop();
+                if (item.isOpen) {
+                    tocHTML += '</ul>';
+                }
+                tocHTML += '</li>';
+            }
+
+            tocHTML += '</ul></nav>';
+
+            // Remove old TOC nav if it exists (on regeneration)
+            const oldNav = tocEl.querySelector('.jp-sidebar-toc-nav');
+            if (oldNav) {
+                oldNav.remove();
+            }
+
+            // Insert nav after title (title already exists in DOM from template)
+            if (titleEl) {
+                titleEl.insertAdjacentHTML('afterend', tocHTML);
+            } else {
+                // Fallback: if title not found, insert at beginning
+                tocEl.insertAdjacentHTML('afterbegin', tocHTML);
+            }
+
+            // Store headings array for scroll tracking (use original headings, not normalized)
+            const headingsArray = normalizedHeadings.map(item => item.heading);
+
+            // Add click handlers for smooth scroll and URL update
+            tocEl.querySelectorAll('.jp-sidebar-toc-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = link.getAttribute('href').substring(1);
+                    const targetEl = document.getElementById(targetId);
+                    if (targetEl) {
+                        const offset = 80; // Account for header
+                        const targetPosition = targetEl.getBoundingClientRect().top + window.pageYOffset - offset;
+                        window.scrollTo({
+                            top: targetPosition,
+                            behavior: 'smooth'
+                        });
+
+                        // Update URL with anchor (e.g., /hello-app-cluster/#global-notifications)
+                        const newUrl = window.location.pathname + '#' + targetId;
+                        window.history.pushState(null, '', newUrl);
+                    }
+                });
+            });
+
+            // Highlight active section while scrolling
+            const updateActiveSection = () => {
+                const scrollPos = window.scrollY + 100; // Offset for header
+                let activeHeading = null;
+
+                // Find the heading closest to scroll position
+                headingsArray.forEach(heading => {
+                    const headingTop = heading.getBoundingClientRect().top + window.pageYOffset;
+                    if (headingTop <= scrollPos) {
+                        activeHeading = heading;
+                    }
+                });
+
+                // Update active state
+                tocEl.querySelectorAll('.jp-sidebar-toc-link').forEach(link => {
+                    link.classList.remove('jp-sidebar-toc-active');
+                });
+
+                if (activeHeading && activeHeading.id) {
+                    const activeLink = tocEl.querySelector(`.jp-sidebar-toc-link[href="#${activeHeading.id}"]`);
+                    if (activeLink) {
+                        activeLink.classList.add('jp-sidebar-toc-active');
+                    }
+                }
+            };
+
+            // Remove old scroll listener if it exists (prevent memory leak on regeneration)
+            if (tocEl._scrollHandler) {
+                window.removeEventListener('scroll', tocEl._scrollHandler);
+            }
+
+            // Create new scroll handler
+            let scrollTimeout = null;
+            tocEl._scrollHandler = () => {
+                if (scrollTimeout) {
+                    clearTimeout(scrollTimeout);
+                }
+                scrollTimeout = setTimeout(updateActiveSection, 50);
+            };
+
+            // Add scroll listener
+            window.addEventListener('scroll', tocEl._scrollHandler);
+
+            // Initial update
+            updateActiveSection();
+        };
+
+        // Generate TOC initially (with delay to ensure content is rendered)
+        setTimeout(generateToc, 100);
+
+        // Subscribe to content-changed events (W-068: client-side event system)
+        if (jPulse.events) {
+            jPulse.events.on('content-changed', () => {
+                // Small delay to ensure content is fully rendered and heading anchors are added
+                setTimeout(generateToc, 50);
+            });
+        }
+    });
+    </script>
+{{/component}}
+
+{{#component "sidebar.pageComponentLeft"}}
+    <div class="jp-sidebar-component jp-sidebar-page-component jp-sidebar-page-component-left jp-sidebar-page-component-empty" data-sidebar-component="pageComponent" id="jp-sidebar-page-component-left">
+        {{!-- Skeleton - provides real estate for page/SPA to populate the left sidebar --}}
+        {{!-- Can be initialized via jPulse.UI.sidebars.initComponent() --}}
+        {{!-- Hidden by default (via CSS class), shown when content is added --}}
+    </div>
+{{/component}}
+
+{{#component "sidebar.pageComponentRight"}}
+    <div class="jp-sidebar-component jp-sidebar-page-component jp-sidebar-page-component-right jp-sidebar-page-component-empty" data-sidebar-component="pageComponent" id="jp-sidebar-page-component-right">
+        {{!-- Skeleton - provides real estate for page/SPA to populate the right sidebar --}}
+        {{!-- Can be initialized via jPulse.UI.sidebars.initComponent() --}}
+        {{!-- Hidden by default (via CSS class), shown when content is added --}}
+    </div>
+{{/component}}
+
+{{!-- End webapp/view/components/jpulse-sidebars.tmpl --}}

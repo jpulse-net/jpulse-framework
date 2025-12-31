@@ -1,4 +1,4 @@
-# jPulse Docs / Template Reference v1.3.22
+# jPulse Docs / Template Reference v1.4.1
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -60,6 +60,8 @@ webapp/view/                # Framework templates (checked second)
 ```
 
 > **Navigation Customization:** See [Site Navigation Guide](site-navigation.md) for complete documentation on customizing site navigation.
+
+> **Sidebar System:** See [Sidebars Guide](sidebars.md) for left/right sidebars with component-based architecture and responsive design.
 
 ### URL Routing
 Templates are accessed via clean URLs:

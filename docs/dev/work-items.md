@@ -3327,19 +3327,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/view/jpulse-docs/index.shtml:
     - Updated sidebar heading to use dynamic `id="docs-nav-heading"` populated from API response
 
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-121, v1.3.22, 2025-12-21: markdown: v1.3.21 bug fix for ignore files are accessible in jpulse-docs
 - status: ✅ DONE
 - type: Bug Fix
@@ -3369,6 +3356,97 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-068, v1.4.1, 2025-12-31: view: create left and right sidebars with components
+- status: ✅ DONE
+- type: Feature
+- objective: define a flexible and extensible sidebar infrastructure
+- brainstorming and design:
+  - docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
+  - docs/dev/working/W-068-sidebar-generalization.md
+- design decisions:
+  - sidebar components defined as components, not specific to left/right side
+  - sidebar usage (which components, order) defined in `app.conf`
+  - sidebar modes: off, always on, open/closed toggle
+  - template override: site can add or replace templates via `site/webapp/view/components/site-sidebars.tmpl`
+  - pages can set preferred open/closed state (markdown doc SPA wants open left sidebar)
+  - user can resize sidebar width, persistenly stored in browser localStorage
+  - intuitive indicators for sidebar resize
+  - mobile support with different UX
+  - fix /jpulse-docs/ markdown SPA to be based on new sidebar infrastructure
+- deliverables:
+  - webapp/app.conf:
+    - Added complete sidebar configuration structure (left/right sidebars, components, mobile settings)
+  - webapp/controller/handlebar.js:
+    - Enhanced `{{components}}` helper to support dynamic component access: `{{components name=(this)}}`
+    - Enables component iteration with `{{#each}}` loops
+  - webapp/view/jpulse-header.tmpl:
+    - Added sidebar component loading (jpulse-sidebars.tmpl, site-sidebars.tmpl)
+  - webapp/view/jpulse-footer.tmpl:
+    - Added sidebar HTML structure (left/right sidebars, separators, toggle buttons, backdrop)
+    - Added sidebar initialization with configuration from app.conf
+    - Added empty sidebar content detection
+  - webapp/view/jpulse-common.js:
+    - Implemented complete jPulse.UI.sidebars API (~2,500 lines)
+    - Control methods: open(), close(), toggle(), getState()
+    - Preferred state: setPreferredState() with localStorage preference control
+    - Component init: initComponent() for dynamic page-specific content
+    - Custom containers: attachLeftSidebarTo(), attachRightSidebarTo()
+    - User preferences: getUserPreference(), setUserPreference(), getUserPreferences()
+    - Desktop: drag-to-resize, double-click toggle, toggle buttons, reflow/overlay behaviors
+    - Mobile: fixed overlay, swipe gestures, touch targets, automatic hamburger menu close
+    - Created jPulse.events pub/sub system for client-side component communication
+  - webapp/view/jpulse-common.css:
+    - Added complete sidebar styling (~650 lines)
+    - Desktop layout: absolute positioning, transitions, drag handles
+    - Mobile layout: fixed overlay with transforms, backdrop, touch-optimized buttons
+    - Component styles: TOC, siteNav, utility states (empty, error, loading)
+    - Mode-specific styles: 'toggle' with controls, 'always' without controls
+  - webapp/view/components/jpulse-sidebars.tmpl:
+    - Created framework sidebar components (496 lines)
+    - sidebar.siteNav: Site navigation from jPulse.UI.navigation with polling
+    - sidebar.toc: Table of contents with configurable selectors, heading normalization, SPA updates
+    - sidebar.pageComponentLeft/Right: Generic containers for page-specific content
+  - webapp/view/jpulse-navigation.js:
+    - Fixed URLs to include index.shtml for consistency (admin, user, examples sections)
+  - webapp/view/jpulse-docs/index.shtml:
+    - Migrated to new sidebar infrastructure
+    - Replaced old .jp-docs-nav with sidebar.pageComponentLeft integration
+    - Added setPreferredState('left', 'open') for better docs UX
+    - Added attachLeftSidebarTo() for positioning below tab bar
+  - webapp/translations/en.conf, de.conf:
+    - Added i18n strings for sidebar components (empty state, TOC, siteNav)
+  - site/webapp/view/hello/site-development.shtml:
+    - Added setup card with detection for site CSS/JS files
+    - Added JavaScript to hide setup card when both files are loaded
+  - docs/sidebars.md:
+    - Created comprehensive user guide (726 lines)
+    - Configuration, modes, components, API, desktop/mobile UX, examples, troubleshooting
+  - docs/sidebar-components.md:
+    - Created developer guide for custom components (703 lines)
+    - Component structure, creation guide, examples, best practices, advanced patterns
+  - docs/README.md:
+    - Added sidebars cross-links to Site Development section
+  - docs/template-reference.md:
+    - Added sidebar cross-link after Navigation Customization
+  - docs/jpulse-ui-reference.md:
+    - Added complete jPulse.UI.sidebars API reference section
+  - docs/front-end-development.md:
+    - Added Sidebars to UI Widgets list
+  - docs/site-customization.md:
+    - Added Sidebar Customization section with config and component examples
+  - docs/.markdown:
+    - Added sidebars.md and sidebar-components.md to publish list
+
+
+
+
+
+
+
+
 ### Pending
 
 
@@ -3376,6 +3454,7 @@ old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
+- site nav dropdown issue: can't scroll a tall sub-menu that is taller than viewport
 
 ### Potential next items:
 - W-068: view: create responsive sidebar
@@ -3384,7 +3463,6 @@ old pending:
 - W-0: view: create tooltip on any element with jp-tooltip class
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-037: view: create themes
-- W-0: markdown docs: a way to define the sequence of docs
 - W-0: deployment: docker strategy
 - W-0: auth controller: authentication with OAuth2 (see W-109 for flow design)
 - W-0: auth controller: authentication with LDAP (see W-109 for flow design)
@@ -3400,8 +3478,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-121, v1.3.22
-- update deliverables in W-121 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-068, v1.4.1
+- update deliverables in W-068 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -3418,12 +3496,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.3.22
+node bin/bump-version.js 1.4.1
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.3.22
+git tag v1.4.1
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -3520,27 +3598,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - user can set preferred theme
 - way to define new themes
   - drop in a directory, with auto discovery
-
-### W-068: view: create responsive sidebar
-- status: 🕑 PENDING
-- type: Feature
-- objective: define common sidebar, make it useful on mobile and desktop
-- brainstorming:
-  docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
-- only left sidebar?
-  - also right sidebar?
-- on desktop:
-  - show options:
-    - fixed (default)
-    - toggle: `▶` / `◀` clickable buttons
-    - auto-hide: show when mouse is on left page padding (open close with delay)
-    - when open:
-      - shift left border of main content to right (with content reflow), or
-      - overlap main content
-- on mobile:
-  - closed by default
-  - open on command (hamburger menu?)
-- fix /jpulse-docs/ markdown SPA to be based on common sidebar
 
 ### W-0: markdown docs: a way to define the sequence of docs
 - status: 🕑 PENDING

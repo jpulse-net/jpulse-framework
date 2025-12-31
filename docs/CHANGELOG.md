@@ -1,6 +1,219 @@
-# jPulse Docs / Version History v1.3.22
+# jPulse Docs / Version History v1.4.1
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.1, W-068, 2025-12-31
+
+**Commit:** `W-068, v1.4.1: view: create left and right sidebars with components`
+
+**FEATURE RELEASE**: Complete sidebar infrastructure with component-based architecture, responsive design, and extensive configuration options.
+
+**Objective**: Define a flexible and extensible sidebar system that works seamlessly on desktop and mobile, supports multiple display modes, and provides a component-based architecture for maximum flexibility.
+
+**Key Features**:
+
+**Dual Sidebar System**:
+- Independent left and right sidebars with full configuration control
+- Each sidebar can be independently enabled/disabled
+- Per-sidebar configuration: mode, initState, width, behavior, component list
+- Mobile-specific settings: breakpoint, width, swipe gestures
+
+**Display Modes**:
+- **'toggle'**: User controls open/closed state via toggle buttons, double-click, or API
+- **'always'**: Sidebar always visible, no toggle controls shown
+- **initState**: 'open' or 'closed' for toggle mode initial state
+
+**Behaviors**:
+- **'reflow'**: Content reflows when sidebar opens (adds padding to main content)
+- **'overlay'**: Sidebar overlays content (no content reflow)
+- Configurable per sidebar for desktop (mobile always uses overlay)
+
+**Built-in Components**:
+- **sidebar.siteNav**: Site navigation from `jPulse.UI.navigation` with automatic updates
+- **sidebar.toc**: Table of contents with configurable heading selectors, exclude patterns, heading normalization, and SPA integration
+- **sidebar.pageComponentLeft/Right**: Generic containers for page-specific dynamic content
+
+**Component Architecture**:
+- Reusable components defined via `{{#component "sidebar.*"}}` syntax
+- Components rendered in sequence defined by `app.conf`
+- Framework components in `webapp/view/components/jpulse-sidebars.tmpl`
+- Site-specific components in `site/webapp/view/components/site-sidebars.tmpl`
+- Plugin components via standard path resolution (site → plugins → framework)
+- Dynamic component loading via enhanced `{{components name=(this)}}` helper
+
+**Desktop User Experience**:
+- Visual separator bars with rounded corners matching sidebar
+- Toggle buttons with `[◄]` and `[►]` icons, vertical offset from top
+- Drag separator to resize sidebar width (persistently stored in localStorage)
+- Double-click separator to toggle open/closed
+- Smooth animations for open/close transitions
+- Separator bar positioned flush with sidebar edge when open, at .jp-main edge when closed
+- Reflow behavior adds gap between sidebar and content
+- Overlay behavior with white gradient fade at sidebar edge
+
+**Mobile User Experience** (<768px default):
+- Fixed overlay mode regardless of desktop behavior setting
+- Sidebar slides in from edge, covering full height below header
+- Configurable width (default 85%, supports px or %)
+- Visual separator bar in closed state (3px wide, semi-transparent, vertically centered)
+- Touch-optimized toggle buttons (44x44px touch target, 30x30px visual)
+- Swipe gestures to open/close (configurable, enabled by default)
+- Semi-transparent backdrop when sidebar open (click to close)
+- Smooth slide animations (250ms open, 200ms close)
+- Only one sidebar open at a time
+- Automatic hamburger menu close when sidebar opens
+
+**User Preferences**:
+- Custom sidebar widths stored in localStorage per user/browser
+- `jpulse-allow-programmatic-toggle` preference to disable page-requested state changes
+- User manual toggles always work regardless of preferences
+
+**Page Integration**:
+- `jPulse.UI.sidebars.setPreferredState(side, state)`: Pages can request sidebar state
+- Preferred state applied on page load if user allows programmatic toggle
+- Manual toggles override programmatic requests
+- Integration with SPA navigation (state persists/resets appropriately)
+- Custom sidebar containers: `attachLeftSidebarTo(selector)`, `attachRightSidebarTo(selector)`
+
+**JavaScript API** (`jPulse.UI.sidebars`):
+- `init(config)`: Initialize sidebar system
+- `open(side)`, `close(side)`, `toggle(side)`: Control sidebar state
+- `getState(side)`: Get current state ('open' or 'closed')
+- `setPreferredState(side, state)`: Set page preferred state
+- `initComponent(componentName, options)`: Initialize dynamic component content
+- `attachLeftSidebarTo(selector)`, `attachRightSidebarTo(selector)`: Custom positioning
+- `getUserPreference(key)`, `setUserPreference(key, value)`, `getUserPreferences()`: Preference management
+- `layoutAll()`: Force layout recalculation
+
+**Client-Side Event System**:
+- Created `jPulse.events` pub/sub for single-tab ephemeral UI events
+- Used for TOC updates on SPA navigation
+- Distinct from server-side `jPulse.appCluster.broadcast`
+
+**Styling & CSS**:
+- ~650 lines of sidebar CSS with desktop and mobile media queries
+- Sidebar component classes: `jp-sidebar-component`, `jp-sidebar-component-title`
+- Utility classes: `jp-sidebar-empty`, `jp-sidebar-error`, `jp-sidebar-loading`
+- TOC styles: `jp-sidebar-toc-*` classes for navigation tree
+- SiteNav styles: `jp-sidebar-nav-*` classes matching docs nav
+- Component separators: horizontal dividers between components
+
+**Internationalization**:
+- i18n strings for sidebar components in en.conf and de.conf
+- Empty state, TOC title, TOC no headings, siteNav title, siteNav no navigation
+
+**Documentation Integration**:
+- Migrated `/jpulse-docs/` to new sidebar infrastructure
+- Docs pages set preferred state 'open' for better navigation UX
+- Sidebar positioned below tab bar for natural integration
+- Dynamic doc tree rendering in sidebar.pageComponentLeft
+
+**Code Changes**:
+
+**webapp/app.conf**:
+- Added complete sidebar configuration structure under `view.pageDecoration.sidebar`
+- Left sidebar: enabled, toggle mode, closed initState, 250px width, reflow behavior, pageComponentLeft
+- Right sidebar: enabled, toggle mode, closed initState, 250px width, overlay behavior, toc + pageComponentRight
+- TOC component settings: selector, excludeSelector
+- Mobile settings: breakpoint (768px), width (85%), swipeEnabled (true)
+
+**webapp/controller/handlebar.js**:
+- Enhanced `{{components}}` helper to support dynamic component access
+- New syntax: `{{components name="sidebar.toc"}}` or `{{components name=(this)}}`
+- Enables component iteration with `{{#each}}` loops
+- Backward compatible with existing `{{components.name}}` syntax
+
+**webapp/view/jpulse-header.tmpl**:
+- Added sidebar component loading (jpulse-sidebars.tmpl and optional site-sidebars.tmpl)
+
+**webapp/view/jpulse-footer.tmpl**:
+- Added sidebar HTML structure (left/right sidebars, separators, toggle buttons, backdrop)
+- Added sidebar initialization script with config from app.conf
+- Added empty sidebar content detection with MutationObserver
+
+**webapp/view/jpulse-common.js**:
+- Implemented complete `jPulse.UI.sidebars` API (~2,500 lines)
+- Sidebar control, state management, preferred state, component initialization
+- Custom container positioning, user preferences
+- Desktop drag-to-resize, double-click toggle, visual toggle buttons
+- Mobile fixed overlay, swipe gestures, touch targets, backdrop
+- MutationObserver and ResizeObserver for dynamic layout updates
+- Created `jPulse.events` pub/sub system for client-side component communication
+
+**webapp/view/jpulse-common.css**:
+- Added complete sidebar styling (~650 lines)
+- Base sidebar styles: absolute positioning, transitions, backgrounds
+- Desktop layout: separator bars, toggle buttons, drag handles, reflow padding
+- Mobile layout: fixed overlay, transforms, backdrop, touch-optimized buttons
+- Component styles: TOC, siteNav, utility states, component separators
+- Mode-specific styles: toggle with controls, always without controls
+
+**webapp/view/components/jpulse-sidebars.tmpl**:
+- Created framework sidebar components (496 lines)
+- `sidebar.siteNav`: Site navigation with icons, hierarchy, polling for updates
+- `sidebar.toc`: Table of contents with heading extraction, normalization, active state
+- `sidebar.pageComponentLeft/Right`: Generic containers for page-specific content
+
+**webapp/view/jpulse-navigation.js**:
+- Fixed URLs to include `index.shtml` for consistency (admin, user, examples)
+
+**webapp/view/jpulse-docs/index.shtml**:
+- Migrated to new sidebar infrastructure
+- Replaced `.jp-docs-nav` with `sidebar.pageComponentLeft` integration
+- Added `setPreferredState('left', 'open')` for better UX
+- Added `attachLeftSidebarTo()` for positioning below tab bar
+
+**webapp/translations/en.conf, de.conf**:
+- Added i18n strings for sidebar components (empty, TOC, siteNav)
+
+**site/webapp/view/hello/site-development.shtml**:
+- Added setup card for site CSS/JS file detection
+- Added JavaScript to hide card when both files loaded
+
+**Documentation**:
+- **docs/sidebars.md**: Complete user guide (726 lines) - configuration, modes, components, API, UX, examples
+- **docs/sidebar-components.md**: Developer guide (703 lines) - component structure, creation, patterns, best practices
+- **docs/README.md**: Added sidebars cross-links
+- **docs/template-reference.md**: Added sidebar cross-link
+- **docs/jpulse-ui-reference.md**: Added complete API reference section
+- **docs/front-end-development.md**: Added to UI widgets list
+- **docs/site-customization.md**: Added sidebar customization section
+- **docs/.markdown**: Added new docs to publish list
+
+**Features Delivered**:
+1. ✅ Left and right sidebar support with independent configuration
+2. ✅ Display modes: 'toggle' and 'always'
+3. ✅ Behaviors: 'reflow' and 'overlay'
+4. ✅ Component-based architecture with site override support
+5. ✅ Built-in components: siteNav, toc, pageComponentLeft/Right
+6. ✅ Desktop UX: drag-resize, toggle buttons, double-click, smooth animations
+7. ✅ Mobile UX: fixed overlay, swipe gestures, touch targets, backdrop
+8. ✅ User preferences: width customization, programmatic toggle control
+9. ✅ Page integration: preferred state API, custom containers
+10. ✅ Complete JavaScript API (`jPulse.UI.sidebars`)
+11. ✅ Plugin support via path resolution
+12. ✅ i18n support (en, de)
+13. ✅ Comprehensive documentation (1,429 lines)
+
+**Breaking Changes**:
+- None (new feature, no API changes to existing code)
+
+**Migration Steps**:
+- None required (opt-in feature via `app.conf`)
+- To enable: Set `view.pageDecoration.sidebar.left.enabled` or `right.enabled` to `true` in `app.conf`
+- See [Sidebars Guide](sidebars.md) for configuration details
+
+**Impact Summary**:
+- **User Experience**: Professional sidebar navigation with intuitive controls
+- **Developer Experience**: Flexible component system for custom sidebar content
+- **Mobile**: Touch-optimized overlay navigation with swipe gestures
+- **Documentation**: Complete guides for configuration and component development
+- **Extensibility**: Plugin support for custom sidebar components
+
+**Work Item**: W-068
+**Version**: v1.4.1
+**Release Date**: 2025-12-31
 
 ________________________________________________
 ## v1.3.22, W-121, 2025-12-21

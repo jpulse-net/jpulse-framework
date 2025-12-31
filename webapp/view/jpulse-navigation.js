@@ -7,8 +7,8 @@
  *                  See docs/site-navigation.md for more information, also available at:
  *                  https://jpulse.net/jpulse-docs/site-navigation
  * @file            webapp/view/jpulse-navigation.js
- * @version         1.3.22
- * @release         2025-12-21
+ * @version         1.4.1
+ * @release         2025-12-31
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -34,7 +34,7 @@ window.jPulseNavigation = {
             pages: {
                 dashboard: {
                     label:      `{{i18n.view.navigation.admin.dashboard}}`,
-                    url:        '/admin/',
+                    url:        '/admin/index.shtml',
                     icon:       '⚙️'
                 },
                 config: {
@@ -134,7 +134,7 @@ window.jPulseNavigation = {
             pages: {
                 overview: {
                     label:      `{{i18n.view.navigation.user.overview}}`,
-                    url:        '/user/'
+                    url:        '/user/index.shtml'
                 },
                 profile: {
                     label:      `{{i18n.view.navigation.user.profile}}`,
@@ -163,7 +163,7 @@ window.jPulseNavigation = {
             pages: {
                 overview: {
                     label:      `{{i18n.view.navigation.jPulseExamples.overview}}`,
-                    url:        '/jpulse-examples/',
+                    url:        '/jpulse-examples/index.shtml',
                     icon:       '🚀'
                 },
                 api: {
@@ -200,7 +200,7 @@ window.jPulseNavigation = {
             pages: {
                 overview: {
                     label:      `{{i18n.view.navigation.jPulsePlugins.overview}}`,
-                    url:        '/jpulse-plugins/',
+                    url:        '/jpulse-plugins/index.shtml',
                     icon:       `{{components.jpIcons.pluginSvg size="24" _inline=true}}`
                 }
             }
@@ -213,7 +213,7 @@ window.jPulseNavigation = {
             pages: {
                 overview: {
                     label:      'Overview',
-                    url:        '/hello/',
+                    url:        '/hello/index.shtml',
                     icon:       '🌐'
                 },
                 {{#if file.exists "hello/site-override.shtml"}}

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Installation Guide v1.3.22
+# jPulse Docs / Site Installation Guide v1.4.1
 
 This guide covers creating and setting up jPulse sites for development and production environments.
 
@@ -414,7 +414,6 @@ npm config set prefix ~/.npm-global
 
 ### Getting Help
 
-- Check the [troubleshooting guide](troubleshooting.md) for common issues
 - Review [getting started tutorial](getting-started.md) for next steps
 - See [deployment guide](deployment.md) for production setup
 

@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.3.22
+# jPulse Docs / jPulse.UI Widget Reference v1.4.1
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -795,9 +795,126 @@ Automatic breadcrumb trail generation based on current URL and navigation struct
 
 ---
 
+## Sidebars
+
+Flexible left and right sidebars with component-based architecture, responsive design, and extensive configuration options.
+
+### Quick Overview
+
+The sidebar system provides left/right sidebars with multiple display modes, component-based architecture, and seamless desktop/mobile experiences.
+
+**Features:**
+- Left and right sidebar support
+- Two display modes: 'toggle' (user controls) and 'always' (always visible)
+- Built-in components: site navigation, table of contents, page-specific content
+- Responsive design (desktop reflow/overlay, mobile fixed overlay)
+- User preferences (custom widths, programmatic toggle control)
+- Page preferred state (pages can request sidebar open/closed)
+- Desktop: Drag-to-resize, double-click toggle, toggle buttons
+- Mobile: Swipe gestures, touch-optimized, fixed overlay
+
+### JavaScript API - jPulse.UI.sidebars
+
+Complete API reference for programmatic sidebar control.
+
+#### Control Methods
+
+```javascript
+// Open/close sidebars
+jPulse.UI.sidebars.open('left');    // Open left sidebar
+jPulse.UI.sidebars.close('right');  // Close right sidebar
+jPulse.UI.sidebars.toggle('left');  // Toggle left sidebar
+
+// Get sidebar state
+const state = jPulse.UI.sidebars.getState('left');  // Returns 'open' or 'closed'
+```
+
+#### Page Preferred State
+
+Pages can request a preferred sidebar state (user can disable programmatic toggle):
+
+```javascript
+// Set preferred state (applies on page load if user allows)
+jPulse.UI.sidebars.setPreferredState('left', 'open');    // Request open
+jPulse.UI.sidebars.setPreferredState('left', 'closed');  // Request closed
+jPulse.UI.sidebars.setPreferredState('left', null);      // No preference
+
+// Example: Docs page requests left sidebar open
+jPulse.dom.ready(() => {
+    jPulse.UI.sidebars.setPreferredState('left', 'open');
+});
+```
+
+#### Component Initialization
+
+Initialize page-specific components with dynamic content:
+
+```javascript
+// Initialize component
+const component = jPulse.UI.sidebars.initComponent('sidebar.pageComponentLeft', {
+    content: '<ul><li>Item 1</li><li>Item 2</li></ul>',  // HTML content
+    onLoad: (element) => {  // Callback after content set
+        console.log('Component loaded:', element);
+    }
+});
+
+// Returns handle object with methods:
+// - getElement(): Get component DOM element
+// - setContent(html): Update component content
+// - getContent(): Get current content HTML
+// - refresh(): Trigger refresh (calls onLoad if defined)
+
+// Later: Update content
+if (component) {
+    component.setContent('<ul><li>Updated content</li></ul>');
+    component.refresh();
+}
+```
+
+#### Custom Sidebar Location
+
+Position sidebars after specific elements (e.g., below tab bar):
+
+```javascript
+// Attach sidebar to custom container
+jPulse.UI.sidebars.attachLeftSidebarTo('#jpulse-docs-container');
+jPulse.UI.sidebars.attachRightSidebarTo('#custom-wrapper');
+
+// Sidebar will be inserted as first child of specified container
+// Reflow padding applies to the custom container
+```
+
+#### User Preferences
+
+Access and modify user preferences (stored in localStorage):
+
+```javascript
+// Get user preference
+const width = jPulse.UI.sidebars.getUserPreference('jpulse-sidebar-left-width');
+const allowToggle = jPulse.UI.sidebars.getUserPreference('jpulse-allow-programmatic-toggle');
+
+// Set user preference
+jPulse.UI.sidebars.setUserPreference('jpulse-sidebar-left-width', 300);
+jPulse.UI.sidebars.setUserPreference('jpulse-allow-programmatic-toggle', false);
+
+// Get all preferences
+const prefs = jPulse.UI.sidebars.getUserPreferences();
+```
+
+### Complete Documentation
+
+For comprehensive sidebar documentation including configuration, components, mobile UX, and examples, see:
+
+- **[Sidebars Guide](sidebars.md)** - Complete guide to using and configuring sidebars
+- **[Sidebar Components Guide](sidebar-components.md)** - Creating custom sidebar components
+
+---
+
 ## Related Documentation
 
 - **[Front-End Development Guide](front-end-development.md)** - Complete guide with examples and best practices
+- **[Sidebars Guide](sidebars.md)** - Sidebar system documentation
+- **[Sidebar Components Guide](sidebar-components.md)** - Custom component development
 - **[Style Reference](style-reference.md)** - Complete `jp-*` CSS framework
 - **[UI Widgets Examples](/jpulse-examples/ui-widgets.shtml)** - Interactive demonstrations
 

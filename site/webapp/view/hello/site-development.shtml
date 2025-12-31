@@ -4,8 +4,8 @@
  * @tagline         Comprehensive W-047 Site Development Demo
  * @description     Detailed demonstration of site-specific CSS and JavaScript features
  * @file            site/webapp/view/hello/site-demo.shtml
- * @version         1.3.22
- * @release         2025-12-21
+ * @version         1.4.1
+ * @release         2025-12-31
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,6 +18,75 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Site Development Demo - {{app.site.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-card-setup-required {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        .local-card-setup-required h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .local-card-setup-required p {
+            color: #856404;
+        }
+        .local-card-setup-required pre {
+            background: #f8f9fa;
+        }
+        .local-card-setup-required ul {
+            color: #856404;
+            margin-top: 0.5rem;
+        }
+        .local-card-setup-required ul li {
+            margin-top: 0.5rem;
+        }
+        .local-card-setup-required code {
+            font-size: 0.9em;
+        }
+        #buttonFeedback {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            min-height: 20px;
+            font-style: italic;
+            color: #666;
+        }
+        #utilityDemo {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        #analyticsDemo {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .site-accordion-header {
+            background: #f0f0f0;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+        .site-accordion-content {
+            display: none;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        #eventTrackingDemo {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .local-file-structure pre {
+            line-height: 1;
+            font-size: 0.9em;
+            background-color: #f4f9ff;
+        }
+    </style>
 </head>
 <body>
     <div class="jp-main">
@@ -38,12 +107,31 @@
             <p>This page demonstrates all aspects of site-specific development in the jPulse Framework.</p>
         </div>
 
+        <!-- Setup Required Card -->
+        <div class="jp-card local-card-setup-required" id="setupRequiredCard" style="display: none;">
+            <h3>⚠️ Setup Required</h3>
+            <p><strong>To see the demos below, first create the site CSS and JavaScript files:</strong></p>
+            <pre><code class="language-bash">cp site/webapp/view/jpulse-common.css.tmpl site/webapp/view/jpulse-common.css
+cp site/webapp/view/jpulse-common.js.tmpl site/webapp/view/jpulse-common.js</code></pre>
+            <p>
+                <strong>What these files do:</strong>
+            </p>
+            <ul>
+                <li><strong>CSS file</strong> - Required for Section 1 (site-* styles: feature cards, buttons, etc.)</li>
+                <li><strong>JS file</strong> - Required for Section 2 (utility functions, analytics) and Section 3 (interactive components)</li>
+            </ul>
+            <p>
+                Restart the jPulse application, after which these files are automatically loaded (W-098 append mode).
+                See <a href="/jpulse-docs/site-customization" target="_blank">Site Customization Guide</a> for details.
+            </p>
+        </div>
+
         <!-- Section 1: CSS Styling Demo -->
         <div class="jp-card">
             <h3>🎨 Section 1: Site-Specific CSS Styling</h3>
             <p>These components use <code>site-*</code> prefixed CSS classes from <code>jpulse-common.css</code>:</p>
 
-            <div class="site-feature-grid" style="margin: 20px 0;">
+            <div class="site-feature-grid">
                 <div class="site-feature-card">
                     <div class="site-feature-icon">🎯</div>
                     <h4 class="site-feature-title">Custom Styling</h4>
@@ -61,16 +149,14 @@
                 </div>
             </div>
 
-            <div style="margin: 20px 0;">
-                <h4>Site Button Styles:</h4>
-                <div class="jp-flex jp-gap-10 jp-flex-wrap" style="margin: 10px 0;">
-                    <button id="primaryBtn" class="site-btn site-btn-primary">Primary Button</button>
-                    <button id="secondaryBtn" class="site-btn site-btn-secondary">Secondary Button</button>
-                    <button id="outlineBtn" class="site-btn site-btn-outline">Outline Button</button>
-                </div>
-                <div id="buttonFeedback" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px; min-height: 20px; font-style: italic; color: #666;">
-                    Click any button above to see the interaction feedback...
-                </div>
+            <h4>Site Button Styles:</h4>
+            <div class="jp-flex jp-gap-10 jp-flex-wrap">
+                <button id="primaryBtn" class="site-btn site-btn-primary">Primary Button</button>
+                <button id="secondaryBtn" class="site-btn site-btn-secondary">Secondary Button</button>
+                <button id="outlineBtn" class="site-btn site-btn-outline">Outline Button</button>
+            </div>
+            <div id="buttonFeedback">
+                Click any button above to see the interaction feedback...
             </div>
         </div>
 
@@ -79,22 +165,18 @@
             <h3>⚡ Section 2: JavaScript Extensions</h3>
             <p>Site-specific JavaScript extends the jPulse framework:</p>
 
-            <div style="margin: 20px 0;">
-                <h4>Utility Functions Demo:</h4>
-                <div id="utilityDemo" style="background: #f5f5f5; padding: 15px; border-radius: 4px; font-family: monospace;">
-                    <div>Currency: <span id="currencyDemo">Loading...</span></div>
-                    <div>Date: <span id="dateDemo">Loading...</span></div>
-                    <div>Unique ID: <span id="idDemo">Loading...</span></div>
-                </div>
+            <h4>Utility Functions Demo:</h4>
+            <div id="utilityDemo">
+                <div>Currency: <span id="currencyDemo">Loading...</span></div>
+                <div>Date: <span id="dateDemo">Loading...</span></div>
+                <div>Unique ID: <span id="idDemo">Loading...</span></div>
             </div>
 
-            <div style="margin: 20px 0;">
-                <h4>Analytics Integration:</h4>
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 4px;">
-                    <p><strong>Analytics Ready:</strong> Site JavaScript includes analytics tracking system</p>
-                    <p><code>jPulse.site.analytics.track('event_name', data)</code></p>
-                    <p style="margin: 0; font-size: 0.9em; color: #666;">Automatic event tracking via data attributes (see Section 3)</p>
-                </div>
+            <h4>Analytics Integration:</h4>
+            <div id="analyticsDemo">
+                <p><strong>Analytics Ready:</strong> Site JavaScript includes analytics tracking system</p>
+                <p><code>jPulse.site.analytics.track('event_name', data)</code></p>
+                <p>Automatic event tracking via data attributes (see Section 3)</p>
             </div>
         </div>
 
@@ -103,31 +185,25 @@
             <h3>🔧 Section 3: Interactive Components</h3>
             <p>Site-specific components with data attributes:</p>
 
-            <div style="margin: 20px 0;">
-                <h4>Site-Specific Components:</h4>
-                <p>This demonstrates site-specific functionality that extends the jPulse Framework.</p>
-            </div>
+            <h4>Site-Specific Components:</h4>
+            <p>This demonstrates site-specific functionality that extends the jPulse Framework.</p>
 
-            <div style="margin: 20px 0;">
-                <h4>Accordion Component:</h4>
-                <div data-site-component="accordion" style="margin: 15px 0;">
-                    <div data-accordion-header style="background: #f0f0f0; padding: 10px; cursor: pointer; border-radius: 4px; margin-bottom: 5px;">
-                        📋 Click to expand site accordion
-                    </div>
-                    <div style="display: none; padding: 10px; background: #f9f9f9; border-radius: 4px;">
-                        <p>This accordion is powered by site-specific JavaScript from <code>jpulse-common.js</code>.</p>
-                        <p>It demonstrates auto-initialization using data attributes and clean component architecture.</p>
-                    </div>
+            <h4>Accordion Component:</h4>
+            <div data-site-component="accordion">
+                <div data-accordion-header class="site-accordion-header">
+                    📋 Click to expand site accordion
+                </div>
+                <div class="site-accordion-content">
+                    <p>This accordion is powered by site-specific JavaScript from <code>jpulse-common.js</code>.</p>
+                    <p>It demonstrates auto-initialization using data attributes and clean component architecture.</p>
                 </div>
             </div>
 
-            <div style="margin: 20px 0;">
-                <h4>Event Tracking:</h4>
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 4px;">
-                    <p><strong>Automatic Tracking:</strong> Elements with <code>data-site-track</code> attribute automatically track interactions</p>
-                    <p><strong>Example:</strong> <code>&lt;button data-site-track="demo_click"&gt;Track Me&lt;/button&gt;</code></p>
-                    <p style="margin: 0; font-size: 0.9em; color: #666;">Events are logged to console and can integrate with analytics services</p>
-                </div>
+            <h4>Event Tracking:</h4>
+            <div id="eventTrackingDemo">
+                <p><strong>Automatic Tracking:</strong> Elements with <code>data-site-track</code> attribute automatically track interactions</p>
+                <p><strong>Example:</strong> <code>&lt;button data-site-track="demo_click"&gt;Track Me&lt;/button&gt;</code></p>
+                <p>Events are logged to console and can integrate with analytics services</p>
             </div>
         </div>
 
@@ -136,33 +212,29 @@
             <h3>📖 Section 4: Development Guide</h3>
             <p>Key concepts for site-specific development:</p>
 
-            <div class="jp-info-box">
+            <div class="jp-info-box local-file-structure">
                 <h4>File Structure:</h4>
-                <pre style="background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto;">site/webapp/view/
+                <pre><code class="language-bash">site/webapp/view/
 ├── jpulse-common.css      # Site-specific styles
 ├── jpulse-common.js       # Site-specific JavaScript
 ├── jpulse-common.css.tmpl # CSS template
-└── jpulse-common.js.tmpl  # JavaScript template</pre>
+└── jpulse-common.js.tmpl  # JavaScript template</code></pre>
             </div>
 
-            <div style="margin: 20px 0;">
-                <h4>CSS Naming Convention:</h4>
-                <ul>
-                    <li><code>site-*</code> prefix for all site-specific classes</li>
-                    <li>Clear source identification (when you see <code>site-header</code>, you know it's in <code>jpulse-common.css</code>)</li>
-                    <li>No conflicts with framework <code>jp-*</code> classes</li>
-                </ul>
-            </div>
+            <h4>CSS Naming Convention:</h4>
+            <ul>
+                <li><code>site-*</code> prefix for all site-specific classes</li>
+                <li>Clear source identification (when you see <code>site-header</code>, you know it's in <code>jpulse-common.css</code>)</li>
+                <li>No conflicts with framework <code>jp-*</code> classes</li>
+            </ul>
 
-            <div style="margin: 20px 0;">
-                <h4>JavaScript Extension Pattern:</h4>
-                <ul>
-                    <li>Extends <code>window.jPulse</code> object with <code>jPulse.site</code> namespace</li>
-                    <li>Auto-initialization on DOM ready</li>
-                    <li>Component system using data attributes</li>
-                    <li>Utility functions and analytics integration</li>
-                </ul>
-            </div>
+            <h4>JavaScript Extension Pattern:</h4>
+            <ul>
+                <li>Extends <code>window.jPulse</code> object with <code>jPulse.site</code> namespace</li>
+                <li>Auto-initialization on DOM ready</li>
+                <li>Component system using data attributes</li>
+                <li>Utility functions and analytics integration</li>
+            </ul>
         </div>
 
         <!-- Navigation -->
@@ -172,13 +244,14 @@
             <a href="/hello/" class="jp-btn jp-btn-active">🌐 Hello World Site Demos</a>
             <span class="jp-btn-nav-arrow">&nbsp;</span>
             <a href=/jpulse-docs/" class="jp-btn jp-btn-outline" target="_blank">📖 Documentation</a>
-        </div> 
+        </div>
 
         <script>
             jPulse.dom.ready(() => {
                 // Wait for site JavaScript to load
                 setTimeout(() => {
-                    if (typeof jPulse.site !== 'undefined') {
+                    const cssLoaded = getComputedStyle(document.querySelector('.site-feature-card') || document.body).borderRadius !== '0px';
+                    if (cssLoaded && typeof jPulse.site !== 'undefined') {
                         // Populate utility function demos
                         document.getElementById('currencyDemo').textContent = jPulse.site.utils.formatCurrency(1234.56);
                         document.getElementById('dateDemo').textContent = jPulse.site.utils.formatDate(new Date());
@@ -211,6 +284,8 @@
                         console.log('✅ Site demo page initialized with jPulse.site extensions');
                     } else {
                         // Fallback if site JavaScript isn't loaded
+                        const setupCard = document.getElementById('setupRequiredCard');
+                        setupCard.style.display = 'block';
                         console.warn('⚠️ Site JavaScript not loaded - demo functionality limited');
                         document.getElementById('currencyDemo').textContent = 'Site JS not loaded';
                         document.getElementById('dateDemo').textContent = 'Site JS not loaded';

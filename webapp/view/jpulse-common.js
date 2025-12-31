@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.3.22
- * @release         2025-12-21
+ * @version         1.4.1
+ * @release         2025-12-31
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -13,6 +13,63 @@
  */
 
 window.jPulse = {
+
+    // ============================================================
+    // jPulse.events: Client-side event system for single-tab UI events (W-068)
+    // ============================================================
+
+    /**
+     * Simple event system for client-side, single-tab communication
+     * Use this for ephemeral UI events that don't involve server state changes
+     *
+     * For cross-tab or cross-user events, use jPulse.appCluster.broadcast instead
+     *
+     * @example
+     * // Subscribe to an event
+     * jPulse.events.on('content-changed', (data) => {
+     *     console.log('Content changed:', data);
+     * });
+     *
+     * // Emit an event
+     * jPulse.events.emit('content-changed', { source: 'docs', path: '/installation' });
+     *
+     * // Unsubscribe
+     * jPulse.events.off('content-changed', handlerFunction);
+     */
+    events: {
+        /**
+         * Emit a client-side event
+         * @param {string} eventName - Name of the event (will be prefixed with 'jpulse:')
+         * @param {Object} detail - Event data payload
+         */
+        emit: (eventName, detail = {}) => {
+            document.dispatchEvent(new CustomEvent(`jpulse:${eventName}`, { detail }));
+        },
+
+        /**
+         * Subscribe to a client-side event
+         * @param {string} eventName - Name of the event (without 'jpulse:' prefix)
+         * @param {Function} handler - Event handler function
+         */
+        on: (eventName, handler) => {
+            const wrappedHandler = (e) => handler(e.detail);
+            handler._wrappedHandler = wrappedHandler;
+            document.addEventListener(`jpulse:${eventName}`, wrappedHandler);
+        },
+
+        /**
+         * Unsubscribe from a client-side event
+         * @param {string} eventName - Name of the event (without 'jpulse:' prefix)
+         * @param {Function} handler - Event handler function to remove
+         */
+        off: (eventName, handler) => {
+            const wrappedHandler = handler._wrappedHandler;
+            if (wrappedHandler) {
+                document.removeEventListener(`jpulse:${eventName}`, wrappedHandler);
+                delete handler._wrappedHandler;
+            }
+        }
+    },
 
     // ============================================================
     // jPulse.api: API helper methods for common HTTP verbs
@@ -3478,12 +3535,12 @@ window.jPulse = {
                      * Navigate to a document
                      * @param {string} path - Document path (e.g., 'guides/installation.md')
                      */
-                    navigateTo: async function(path) {
+                    navigateTo: async function(path, hash = null) {
                         const normalizedPath = path.endsWith('.md') ? path : `${path}.md`;
-                        const url = `/${this.namespace}/${path.replace('.md', '')}`;
+                        const url = `/${this.namespace}/${path.replace('.md', '')}${hash || ''}`;
                         history.pushState({ path: normalizedPath }, '', url);
                         this.currentPath = normalizedPath;
-                        await jPulse.UI.docs._loadDocument(this);
+                        await jPulse.UI.docs._loadDocument(this, hash);
                         jPulse.UI.docs._updateActiveNav(this);
                     },
 
@@ -3621,22 +3678,14 @@ window.jPulse = {
                     const data = await response.json();
                     viewer.files = data.files;
 
-                    // Flatten structure: if first item is a directory, use its title as heading and render its files directly
-                    let filesToRender = data.files;
-                    let headingTitle = null;
-
-                    if (data.files && data.files.length > 0 && data.files[0].isDirectory) {
-                        // First item is a directory - use its title as heading and flatten its files
-                        headingTitle = data.files[0].title;
-                        filesToRender = data.files[0].files || [];
-                        // Update viewer.files to the flattened structure for navigation
-                        viewer.files = filesToRender;
-
-                        // Set initial page title from top-level directory title
-                        jPulse.UI.docs._setInitialPageTitle(headingTitle);
+                    // Hide the i18n title (if it exists)
+                    const titleEl = document.getElementById('docs-nav-title-link');
+                    if (titleEl) {
+                        titleEl.style.display = 'none';
                     }
 
-                    jPulse.UI.docs._renderNavigation(viewer, filesToRender, headingTitle);
+                    // Render full structure - no flattening
+                    jPulse.UI.docs._renderNavigation(viewer, data.files);
                 } catch (error) {
                     console.error('Failed to load navigation:', error);
                     if (viewer._config.onError) {
@@ -3648,31 +3697,29 @@ window.jPulse = {
             /**
              * Render navigation sidebar
              * @param {Object} viewer - Viewer instance
-             * @param {Array} files - File structure
-             * @param {string} headingTitle - Optional heading title (if flattening top level)
+             * @param {Array} files - File structure (full JSON tree, no flattening)
              */
-            _renderNavigation: (viewer, files, headingTitle) => {
-                viewer._navEl.innerHTML = `<ul class="jp-docs-nav">${jPulse.UI.docs._renderFileList(viewer, files)}</ul>`;
-
-                // Update heading if provided (flattened structure)
-                if (headingTitle) {
-                    const headingEl = document.getElementById('docs-nav-heading');
-                    if (headingEl) {
-                        headingEl.textContent = headingTitle;
-                    }
+            _renderNavigation: (viewer, files) => {
+                // viewer._navEl is already the <ul> element, so we set its innerHTML directly
+                // Add jp-docs-nav class if not already present
+                if (!viewer._navEl.classList.contains('jp-docs-nav')) {
+                    viewer._navEl.classList.add('jp-docs-nav');
                 }
+                viewer._navEl.innerHTML = jPulse.UI.docs._renderFileList(viewer, files, 0);
             },
 
             /**
              * Render file list recursively
              * @param {Object} viewer - Viewer instance
              * @param {Array} files - Files to render
+             * @param {number} depth - Current nesting depth (0 = top level)
              * @returns {string} HTML string
              */
-            _renderFileList: (viewer, files) => {
+            _renderFileList: (viewer, files, depth = 0) => {
                 let html = '';
-                files.forEach(file => {
-                    html += jPulse.UI.docs._renderFileItem(viewer, file);
+                files.forEach((file, index) => {
+                    const isTopLevel = (depth === 0 && index === 0);
+                    html += jPulse.UI.docs._renderFileItem(viewer, file, depth, isTopLevel);
                 });
                 return html;
             },
@@ -3681,12 +3728,19 @@ window.jPulse = {
              * Render single file item
              * @param {Object} viewer - Viewer instance
              * @param {Object} item - File object
+             * @param {number} depth - Current nesting depth
+             * @param {boolean} isTopLevel - Whether this is the top-level directory (depth=0, index=0)
              * @returns {string} HTML string
              */
-            _renderFileItem: (viewer, item) => {
+            _renderFileItem: (viewer, item, depth = 0, isTopLevel = false) => {
                 const isActive = item.path === viewer.currentPath;
                 let cssClass = isActive ? 'jp-docs-nav-active' : '';
-                let html = '<li>';
+                let html = '<li';
+
+                if (isTopLevel) {
+                    html += ' class="jp-docs-nav-top-level"';
+                }
+                html += '>';
 
                 if (item.isDirectory) {
                     cssClass += ' jp-docs-nav-directory';
@@ -3700,7 +3754,7 @@ window.jPulse = {
 
                     // Render nested files
                     if (item.files && item.files.length > 0) {
-                        html += `<ul>${jPulse.UI.docs._renderFileList(viewer, item.files)}</ul>`;
+                        html += `<ul>${jPulse.UI.docs._renderFileList(viewer, item.files, depth + 1)}</ul>`;
                     }
                 } else {
                     // Regular file
@@ -3715,7 +3769,7 @@ window.jPulse = {
              * Load document content from API
              * @param {Object} viewer - Viewer instance
              */
-            _loadDocument: async (viewer) => {
+            _loadDocument: async (viewer, hash = null) => {
                 try {
                     const response = await fetch(`/api/1/markdown/${viewer.namespace}/${viewer.currentPath}`);
                     const data = await response.json();
@@ -3723,6 +3777,24 @@ window.jPulse = {
                         throw new Error(data.error || 'Failed to load document');
                     }
                     jPulse.UI.docs._renderMarkdown(viewer, data.content);
+
+                    // Handle scrolling: if hash provided or in URL, scroll to that element; otherwise scroll to top
+                    const targetHash = hash || window.location.hash;
+                    if (targetHash) {
+                        const targetId = targetHash.substring(1); // Remove #
+                        const targetEl = document.getElementById(targetId);
+                        if (targetEl) {
+                            const offset = 80; // Account for header
+                            const targetPosition = targetEl.getBoundingClientRect().top + window.pageYOffset - offset;
+                            window.scrollTo({
+                                top: targetPosition,
+                                behavior: 'smooth'
+                            });
+                        }
+                    } else {
+                        // No hash - scroll to top
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
 
                     // Call onNavigate callback
                     if (viewer._config.onNavigate) {
@@ -3753,6 +3825,15 @@ window.jPulse = {
                     if (jPulse.UI?.headingAnchors) {
                         jPulse.UI.headingAnchors.init();
                     }
+
+                    // W-068: Emit content-changed event for sidebar components
+                    if (jPulse.events) {
+                        jPulse.events.emit('content-changed', {
+                            source: 'docs',
+                            path: viewer.currentPath,
+                            namespace: viewer.namespace
+                        });
+                    }
                 } else {
                     console.error('marked.js not loaded. Include: <script src="/common/marked/marked.min.js"></script>');
                     viewer._contentEl.innerHTML = `<pre>${content}</pre>`;
@@ -3760,6 +3841,15 @@ window.jPulse = {
                     // W-118: Initialize heading anchors even for plain text
                     if (jPulse.UI?.headingAnchors) {
                         jPulse.UI.headingAnchors.init();
+                    }
+
+                    // W-068: Emit content-changed event for sidebar components
+                    if (jPulse.events) {
+                        jPulse.events.emit('content-changed', {
+                            source: 'docs',
+                            path: viewer.currentPath,
+                            namespace: viewer.namespace
+                        });
                     }
                 }
             },
@@ -3803,21 +3893,75 @@ window.jPulse = {
             _setupNavigation: (viewer) => {
                 // Handle navigation clicks
                 document.addEventListener('click', async (e) => {
-                    if (e.target.matches('.jp-docs-nav a')) {
+                    // Use closest() to handle clicks on <strong> inside <a> elements
+                    const link = e.target.closest('.jp-docs-nav a');
+                    if (link) {
                         e.preventDefault();
-                        const path = e.target.getAttribute('data-path');
-                        const url = `/${viewer.namespace}/${path.replace('.md', '')}`;
-                        history.pushState({ path }, '', url);
-                        viewer.currentPath = path;
+                        const path = link.getAttribute('data-path');
+                        if (!path) {
+                            // Title link clicked - navigate to root
+                            const url = `/${viewer.namespace}/`;
+                            history.pushState({ path: 'README.md' }, '', url);
+                            viewer.currentPath = 'README.md';
+                        } else {
+                            const url = `/${viewer.namespace}/${path.replace('.md', '')}`;
+                            history.pushState({ path }, '', url);
+                            viewer.currentPath = path;
+                        }
                         await jPulse.UI.docs._loadDocument(viewer);
                         jPulse.UI.docs._updateActiveNav(viewer);
+                        return;
+                    }
+
+                    // Handle links in markdown content (same namespace)
+                    // Check if click is inside the content area
+                    if (viewer._contentEl && viewer._contentEl.contains(e.target)) {
+                        // Skip heading anchor links (they handle their own navigation)
+                        if (e.target.closest('.heading-anchor')) {
+                            return;
+                        }
+
+                        const contentLink = e.target.closest('a');
+                        if (contentLink && contentLink.href) {
+                            const url = new URL(contentLink.href, window.location.origin);
+                            const pathname = url.pathname;
+
+                            // Skip anchor-only links (hash links)
+                            if (!pathname || pathname === '/' || pathname === window.location.pathname) {
+                                return;
+                            }
+
+                            // Check if link is to same namespace
+                            const namespacePrefix = `/${viewer.namespace}/`;
+                            if (pathname.startsWith(namespacePrefix)) {
+                                // Extract path from URL (remove namespace prefix and trailing slash)
+                                let docPath = pathname.substring(namespacePrefix.length);
+                                if (docPath.endsWith('/')) {
+                                    docPath = docPath.slice(0, -1) || 'README';
+                                }
+
+                                // Convert to .md path if needed
+                                if (!docPath.endsWith('.md')) {
+                                    docPath = `${docPath}.md`;
+                                }
+
+                                // Extract hash from original link URL
+                                const hash = url.hash || null;
+
+                                // Use SPA navigation instead of full page reload
+                                e.preventDefault();
+                                await viewer.navigateTo(docPath, hash);
+                                return;
+                            }
+                        }
                     }
                 });
 
                 // Handle browser back/forward
                 window.addEventListener('popstate', async () => {
                     viewer.currentPath = jPulse.UI.docs._getPathFromUrl(viewer.namespace);
-                    await jPulse.UI.docs._loadDocument(viewer);
+                    const hash = window.location.hash || null;
+                    await jPulse.UI.docs._loadDocument(viewer, hash);
                     jPulse.UI.docs._updateActiveNav(viewer);
                 });
             },
@@ -4629,12 +4773,25 @@ window.jPulse = {
 
                     anchor.addEventListener('click', async (e) => {
                         e.preventDefault();
+                        e.stopPropagation(); // Prevent docs navigation handler from interfering
 
-                        // Update URL
-                        window.location.hash = id;
+                        // Update URL with hash using pushState (preserves SPA navigation)
+                        const newUrl = `${window.location.pathname}${window.location.search}#${id}`;
+                        history.pushState(null, '', newUrl);
+
+                        // Scroll to heading (smooth scroll)
+                        const headingEl = document.getElementById(id);
+                        if (headingEl) {
+                            const offset = 80; // Account for header
+                            const targetPosition = headingEl.getBoundingClientRect().top + window.pageYOffset - offset;
+                            window.scrollTo({
+                                top: targetPosition,
+                                behavior: 'smooth'
+                            });
+                        }
 
                         // Copy to clipboard
-                        const url = `${window.location.origin}${window.location.pathname}#${id}`;
+                        const url = `${window.location.origin}${newUrl}`;
                         try {
                             await navigator.clipboard.writeText(url);
 
@@ -4687,6 +4844,1195 @@ window.jPulse = {
                 jPulse.UI.headingAnchors._initialized = true;
                 jPulse.UI.headingAnchors._ensureHeadingIds();
                 jPulse.UI.headingAnchors._addLinks();
+            }
+        },
+
+        // ============================================================
+        // jPulse.sidebars: W-068 Sidebar System
+        // ============================================================
+
+        sidebars: {
+            _config: null,
+            _initialized: false,
+            _defaultWidth: { left: 250, right: 250 },
+            _main: null,
+            _resizeObserver: null,
+            _mutationObserver: null,
+            _basePaddingH: 0,
+            _basePaddingRight: 0,
+            _basePaddingV: 0,
+            _isDragging: false,
+            _preferredStates: { left: null, right: null },
+            _preferredStateApplied: { left: false, right: false },
+            _userManuallyToggledAfterPreference: { left: false, right: false },
+            _toastShownForPage: false,
+            _applyingPreferredState: { left: false, right: false },
+            _reflowTarget: { left: null, right: null }, // Elements to apply reflow padding to (default: main)
+            _isMobile: false,
+            _mobileMediaQuery: null,
+            _backdrop: null,
+            _getPaddingAndHeight(main) {
+                const cs = window.getComputedStyle(main);
+                // use captured base padding to avoid feedback from reflow adjustments
+                const paddingH = this._basePaddingH != null ? this._basePaddingH : Math.min(Math.max(parseInt(cs.paddingLeft, 10) || 0, 0), 200);
+                const paddingR = this._basePaddingRight != null ? this._basePaddingRight : Math.min(Math.max(parseInt(cs.paddingRight, 10) || paddingH, 0), 200);
+                const paddingV = this._basePaddingV != null ? this._basePaddingV : Math.min(Math.max(parseInt(cs.paddingTop, 10) || paddingH, 0), 200);
+                const mainHeight = Math.max(main.clientHeight, main.getBoundingClientRect().height);
+                const usableHeight = Math.max(0, mainHeight - paddingV * 2);
+                return { paddingH, paddingR, paddingV, usableHeight };
+            },
+
+            _captureBasePadding(main) {
+                const cs = window.getComputedStyle(main);
+                this._basePaddingH = Math.min(Math.max(parseInt(cs.paddingLeft, 10) || 0, 0), 200);
+                this._basePaddingRight = Math.min(Math.max(parseInt(cs.paddingRight, 10) || this._basePaddingH, 0), 200);
+                this._basePaddingV = Math.min(Math.max(parseInt(cs.paddingTop, 10) || this._basePaddingH, 0), 200);
+                // Set CSS custom properties for all padding values to preserve them
+                main.style.setProperty('--jp-main-padding-top', `${this._basePaddingV}px`);
+                main.style.setProperty('--jp-main-padding-right', `${this._basePaddingRight}px`);
+                main.style.setProperty('--jp-main-padding-bottom', `${this._basePaddingV}px`);
+                main.style.setProperty('--jp-main-padding-left', `${this._basePaddingH}px`);
+            },
+
+            _updateMainLayout(main) {
+                if (!main) return;
+
+                const leftCfg = this._config.sidebar.left;
+                const rightCfg = this._config.sidebar.right;
+
+                const leftEl = document.getElementById('jp-sidebar-left');
+                const rightEl = document.getElementById('jp-sidebar-right');
+
+                const leftEnabled = !!leftCfg?.enabled;
+                const rightEnabled = !!rightCfg?.enabled;
+
+                const leftOpen = leftEnabled && !!leftEl?.classList.contains('jp-sidebar-open');
+                const rightOpen = rightEnabled && !!rightEl?.classList.contains('jp-sidebar-open');
+
+                // Force 'reflow' behavior when mode is 'always'
+                const leftBehavior = (leftCfg?.mode === 'always') ? 'reflow' : (leftCfg?.behavior || 'reflow');
+                const rightBehavior = (rightCfg?.mode === 'always') ? 'reflow' : (rightCfg?.behavior || 'reflow');
+
+                // Get reflow targets (custom element if set, otherwise main)
+                const leftTarget = this._reflowTarget.left || main;
+                const rightTarget = this._reflowTarget.right || main;
+
+                // Clear any legacy inline paddings and CSS variables from all potential targets
+                [main, leftTarget, rightTarget].forEach(el => {
+                    if (el) {
+                        el.style.removeProperty('padding');
+                        el.style.removeProperty('padding-left');
+                        el.style.removeProperty('padding-right');
+                        el.style.removeProperty('--jp-sidebar-reflow-padding-left');
+                        el.style.removeProperty('--jp-sidebar-reflow-padding-right');
+                        el.classList.remove('jp-sidebar-reflow-active-left');
+                        el.classList.remove('jp-sidebar-reflow-active-right');
+                    }
+                });
+
+                // Reflow: apply padding to target element
+                if (leftOpen && leftBehavior === 'reflow') {
+                    const reflowGap = 15; // Reduced from 20px
+                    leftTarget.style.setProperty('--jp-sidebar-reflow-padding-left', `${this._basePaddingH + this._getWidth('left') + reflowGap}px`);
+                    leftTarget.classList.add('jp-sidebar-reflow-active-left');
+                }
+
+                if (rightOpen && rightBehavior === 'reflow') {
+                    const reflowGap = 15; // Reduced from 20px
+                    rightTarget.style.setProperty('--jp-sidebar-reflow-padding-right', `${this._basePaddingRight + this._getWidth('right') + reflowGap}px`);
+                    rightTarget.classList.add('jp-sidebar-reflow-active-right');
+                }
+
+                // Overlay: keep overlay-active if any open sidebar uses overlay
+                const overlayActive = (leftOpen && leftBehavior === 'overlay') || (rightOpen && rightBehavior === 'overlay');
+                if (overlayActive) {
+                    main.classList.add('jp-sidebar-overlay-active');
+                } else {
+                    main.classList.remove('jp-sidebar-overlay-active');
+                    main.style.removeProperty('--sidebar-gradient-left');
+                }
+            },
+
+            _getWidth(side) {
+                const key = `jpulse-sidebar-${side}-width`;
+                const stored = parseInt(localStorage.getItem(key), 10);
+                if (!Number.isNaN(stored) && stored > 0) {
+                    return Math.min(Math.max(stored, 120), 600); // clamp for safety
+                }
+                const cfg = this._config.sidebar[side];
+                const width = (cfg && cfg.width) || this._defaultWidth[side];
+                return Math.min(Math.max(width, 120), 600); // clamp config/default too
+            },
+
+            _layoutSide(main, side, state) {
+                const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+                const separatorEl = document.querySelector(`.jp-sidebar-separator-${side}`);
+                if (!sidebarEl || !separatorEl) return;
+
+                const cfg = this._config.sidebar[side];
+                // Force 'open' state when mode is 'always'
+                if (cfg?.mode === 'always') {
+                    state = 'open';
+                }
+
+                // Mobile mode: Use mobile width and show/hide close button
+                if (this._isMobile) {
+                    const mobileWidth = cfg?.mobile?.width || this._config?.sidebar?.mobile?.width || '85%';
+                    sidebarEl.style.width = mobileWidth;
+
+                    const closeBtn = document.getElementById(`jp-sidebar-toggle-close-${side}`);
+                    if (closeBtn) {
+                        closeBtn.style.display = (state === 'open') ? 'block' : 'none';
+                    }
+
+                    // Mobile: handle classes only (positioning done by CSS)
+                    if (state === 'open') {
+                        sidebarEl.classList.add('jp-sidebar-open');
+                        sidebarEl.classList.remove('jp-sidebar-closed');
+                    } else {
+                        sidebarEl.classList.add('jp-sidebar-closed');
+                        sidebarEl.classList.remove('jp-sidebar-open');
+                    }
+
+                    // Update main layout (for backdrop)
+                    this._updateMainLayout(main);
+                    return;
+                }
+
+                // Desktop mode (existing code)
+                const { paddingH, paddingR, paddingV, usableHeight } = this._getPaddingAndHeight(main);
+                const width = this._getWidth(side);
+
+                // Check if custom reflow target is set - use its top position
+                const reflowTarget = this._reflowTarget[side];
+                let topOffset = paddingV;
+                let adjustedHeight = usableHeight;
+
+                if (reflowTarget && reflowTarget !== main) {
+                    // Measure where the reflow target actually starts relative to .jp-main
+                    const mainRect = main.getBoundingClientRect();
+                    const targetRect = reflowTarget.getBoundingClientRect();
+                    topOffset = targetRect.top - mainRect.top;
+                    adjustedHeight = Math.max(0, main.clientHeight - topOffset - paddingV);
+                }
+
+                // shared vertical geometry
+                sidebarEl.style.top = `${topOffset}px`;
+                sidebarEl.style.bottom = `${paddingV}px`;
+                sidebarEl.style.height = `${adjustedHeight}px`;
+                separatorEl.style.top = `${topOffset}px`;
+                separatorEl.style.bottom = `${paddingV}px`;
+                separatorEl.style.height = `${adjustedHeight}px`;
+
+                if (state === 'open') {
+                    sidebarEl.classList.add('jp-sidebar-open');
+                    sidebarEl.classList.remove('jp-sidebar-closed');
+
+                    if (side === 'left') {
+                        sidebarEl.style.left = `${paddingH}px`;
+                        sidebarEl.style.right = '';
+                        sidebarEl.style.width = `${width}px`;
+                        separatorEl.classList.add('jp-sidebar-separator-open');
+                        separatorEl.style.left = `${paddingH + width - 4}px`;
+                        separatorEl.style.right = '';
+                    } else {
+                        // Right sidebar should align to the .jp-main padding edge
+                        sidebarEl.style.right = `${paddingR}px`;
+                        sidebarEl.style.left = '';
+                        sidebarEl.style.width = `${width}px`;
+                        separatorEl.classList.add('jp-sidebar-separator-open');
+                        // Separator stays flush with the inside edge of the sidebar
+                        separatorEl.style.right = `${paddingR + width - 4}px`;
+                        separatorEl.style.left = '';
+                    }
+
+                    // Mark separator for overlay gradient if this sidebar uses overlay behavior
+                    const cfg = this._config.sidebar[side];
+                    if ((cfg?.behavior || 'reflow') === 'overlay') {
+                        separatorEl.classList.add('jp-sidebar-separator-overlay');
+                    } else {
+                        separatorEl.classList.remove('jp-sidebar-separator-overlay');
+                    }
+
+                } else {
+                    sidebarEl.classList.add('jp-sidebar-closed');
+                    sidebarEl.classList.remove('jp-sidebar-open');
+                    separatorEl.classList.remove('jp-sidebar-separator-overlay');
+                    if (side === 'left') {
+                        // Closed: flush with .jp-main left edge (0px, not paddingH)
+                        sidebarEl.style.left = '0px';
+                        sidebarEl.style.right = '';
+                        separatorEl.style.left = '0px';
+                        separatorEl.style.right = '';
+                    } else {
+                        // Closed: flush with .jp-main right edge (0px, not paddingR)
+                        sidebarEl.style.right = '0px';
+                        sidebarEl.style.left = '';
+                        separatorEl.style.right = '0px';
+                        separatorEl.style.left = '';
+                    }
+                    sidebarEl.style.width = '0px';
+                    separatorEl.classList.remove('jp-sidebar-separator-open');
+                }
+
+                // Update main layout after any sidebar state change (supports both sidebars simultaneously)
+                this._updateMainLayout(main);
+            },
+
+            layoutAll() {
+                // Don't layout during drag to prevent interference
+                if (this._isDragging) return;
+
+                const main = this._main || document.querySelector('.jp-main');
+                if (!main) return;
+                ['left', 'right'].forEach(side => {
+                    const cfg = this._config.sidebar[side];
+                    if (!cfg || !cfg.enabled) return;
+                    const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+                    if (!sidebarEl) return;
+                    const isOpen = sidebarEl.classList.contains('jp-sidebar-open');
+                    this._layoutSide(main, side, isOpen ? 'open' : 'closed');
+                });
+            },
+
+            open(side) {
+                const main = this._main || document.querySelector('.jp-main');
+                const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+                const cfg = this._config.sidebar[side];
+                if (!main || !sidebarEl || !cfg) return;
+
+                // Prevent state changes when mode is 'always' (sidebar is always open)
+                if (cfg?.mode === 'always') {
+                    return;
+                }
+
+                // Mobile: Close the other sidebar first (only one sidebar open at a time)
+                if (this._isMobile) {
+                    const otherSide = side === 'left' ? 'right' : 'left';
+                    const otherSidebarEl = document.getElementById(`jp-sidebar-${otherSide}`);
+                    if (otherSidebarEl && otherSidebarEl.classList.contains('jp-sidebar-open')) {
+                        this.close(otherSide);
+                    }
+
+                    // Close hamburger menu if open
+                    const hamburgerMenu = document.querySelector('.jp-nav-menu');
+                    if (hamburgerMenu && hamburgerMenu.classList.contains('jp-nav-menu-open')) {
+                        // Trigger hamburger close (simulate click on backdrop or close button)
+                        const backdrop = document.querySelector('.jp-nav-backdrop');
+                        if (backdrop) {
+                            backdrop.click();
+                        }
+                    }
+
+                    // Show backdrop
+                    if (this._backdrop) {
+                        this._backdrop.classList.add('jp-sidebar-backdrop-active');
+                    }
+
+                    // Add body class to track which sidebar is open (for CSS selectors)
+                    document.body.classList.add(`jp-sidebar-${side}-open`);
+                }
+
+                this._layoutSide(main, side, 'open');
+                sessionStorage.setItem(`jpulse-sidebar-${side}-state`, 'open');
+
+                // If we had a preferred state applied and this is NOT a programmatic call, mark that user manually toggled
+                if (this._preferredStateApplied[side] && !this._applyingPreferredState[side]) {
+                    this._userManuallyToggledAfterPreference[side] = true;
+                }
+            },
+
+            close(side) {
+                const main = this._main || document.querySelector('.jp-main');
+                const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+                const cfg = this._config.sidebar[side];
+                if (!main || !sidebarEl || !cfg) return;
+
+                // Prevent state changes when mode is 'always' (sidebar is always open)
+                if (cfg?.mode === 'always') {
+                    return;
+                }
+
+                this._layoutSide(main, side, 'closed');
+                sessionStorage.setItem(`jpulse-sidebar-${side}-state`, 'closed');
+
+                // Mobile: Hide backdrop if no sidebars are open
+                if (this._isMobile && this._backdrop) {
+                    const leftOpen = document.getElementById('jp-sidebar-left')?.classList.contains('jp-sidebar-open');
+                    const rightOpen = document.getElementById('jp-sidebar-right')?.classList.contains('jp-sidebar-open');
+
+                    if (!leftOpen && !rightOpen) {
+                        this._backdrop.classList.remove('jp-sidebar-backdrop-active');
+                    }
+
+                    // Remove body class when sidebar closes
+                    document.body.classList.remove(`jp-sidebar-${side}-open`);
+                }
+
+                // If we had a preferred state applied and this is NOT a programmatic call, mark that user manually toggled
+                if (this._preferredStateApplied[side] && !this._applyingPreferredState[side]) {
+                    this._userManuallyToggledAfterPreference[side] = true;
+                }
+            },
+
+            toggle(side) {
+                const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+                const cfg = this._config.sidebar[side];
+                if (!sidebarEl || !cfg) return;
+
+                // Prevent state changes when mode is 'always' (sidebar is always open)
+                if (cfg?.mode === 'always') {
+                    return;
+                }
+
+                const wasOpen = sidebarEl.classList.contains('jp-sidebar-open');
+
+                if (wasOpen) {
+                    this.close(side);
+                } else {
+                    this.open(side);
+                }
+
+                // If we had a preferred state applied, mark that user manually toggled
+                if (this._preferredStateApplied[side]) {
+                    this._userManuallyToggledAfterPreference[side] = true;
+                }
+            },
+
+            getUserPreference(key) {
+                const value = localStorage.getItem(key);
+                if (key === 'jpulse-allow-programmatic-toggle') {
+                    // Default to true if missing or explicitly true
+                    return value === null || value === 'true';
+                }
+                return value;
+            },
+
+            setUserPreference(key, value) {
+                localStorage.setItem(key, String(value));
+            },
+
+            getUserPreferences() {
+                return {
+                    'jpulse-sidebar-left-width': localStorage.getItem('jpulse-sidebar-left-width'),
+                    'jpulse-sidebar-right-width': localStorage.getItem('jpulse-sidebar-right-width'),
+                    'jpulse-allow-programmatic-toggle': this.getUserPreference('jpulse-allow-programmatic-toggle')
+                };
+            },
+
+            getState(side) {
+                const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+                if (!sidebarEl) return null;
+                return sidebarEl.classList.contains('jp-sidebar-open') ? 'open' : 'closed';
+            },
+
+            _restoreSavedState(side) {
+                const savedState = sessionStorage.getItem(`jpulse-sidebar-${side}-saved-before-preference`);
+                if (savedState) {
+                    const allowProgrammatic = this.getUserPreference('jpulse-allow-programmatic-toggle') !== false;
+                    if (allowProgrammatic) {
+                        const main = this._main || document.querySelector('.jp-main');
+                        if (main) {
+                            this._layoutSide(main, side, savedState);
+                            sessionStorage.setItem(`jpulse-sidebar-${side}-state`, savedState);
+                        }
+                    }
+                }
+            },
+
+            _showProgrammaticToggleDisabledToast(side, preferredState) {
+                if (this._toastShownForPage) return;
+                this._toastShownForPage = true;
+
+                const sideName = side === 'left' ? 'left' : 'right';
+                const stateName = preferredState === 'open' ? 'open' : 'closed';
+
+                if (jPulse.UI?.toast) {
+                    jPulse.UI.toast.info(
+                        `This page works best with ${sideName} sidebar ${stateName} for better navigation. ` +
+                        `Enable programmatic sidebar control in your localStorage so that the page can ${stateName} the sidebar.`,
+                        { duration: 8000 }
+                    );
+                }
+            },
+
+            /**
+             * Attach left sidebar reflow padding to a custom element
+             * Sidebar remains in .jp-main, only reflow padding target changes
+             * @param {string} selector - CSS selector for the element that should get reflow padding
+             * @returns {boolean} True if successful
+             */
+            attachLeftSidebarTo(selector) {
+                return this._setReflowTarget('left', selector);
+            },
+
+            /**
+             * Attach right sidebar reflow padding to a custom element
+             * @param {string} selector - CSS selector for the element that should get reflow padding
+             * @returns {boolean} True if successful
+             */
+            attachRightSidebarTo(selector) {
+                return this._setReflowTarget('right', selector);
+            },
+
+            /**
+             * Internal helper to set reflow padding target
+             */
+            _setReflowTarget(side, selector) {
+                if (side !== 'left' && side !== 'right') return false;
+                if (!selector || typeof selector !== 'string') return false;
+
+                const targetEl = document.querySelector(selector);
+                if (!targetEl) {
+                    console.warn(`[Sidebars] Element not found: ${selector}`);
+                    return false;
+                }
+
+                const main = document.querySelector('.jp-main');
+                if (!main || !main.contains(targetEl)) {
+                    console.warn(`[Sidebars] Element must be within .jp-main`);
+                    return false;
+                }
+
+                // Store reflow target (do NOT move sidebar, just track where to apply padding)
+                this._reflowTarget[side] = targetEl;
+
+                // Re-apply layout if already initialized
+                if (this._initialized) {
+                    this._updateMainLayout(main);
+                }
+
+                return true;
+            },
+
+            setPreferredState(side, state) {
+                // Validate parameters
+                if (side !== 'left' && side !== 'right') return false;
+                if (state !== 'open' && state !== 'closed' && state !== null) return false;
+
+                // Mobile: Ignore preferred state (auto-opening 85% sidebar is poor UX)
+                if (this._isMobile) {
+                    return false;
+                }
+
+                const allowProgrammatic = this.getUserPreference('jpulse-allow-programmatic-toggle') !== false;
+
+                if (state === null) {
+                    // Page explicitly says "no preference"
+                    this._preferredStates[side] = null;
+                    this._preferredStateApplied[side] = false;
+                    this._userManuallyToggledAfterPreference[side] = false;
+
+                    // Restore saved state if available
+                    this._restoreSavedState(side);
+                    return true;
+                }
+
+                // If user manually toggled after preference was applied, don't apply new ones
+                if (this._userManuallyToggledAfterPreference[side]) {
+                    // Just update preference, don't apply
+                    this._preferredStates[side] = state;
+                    return false;
+                }
+
+                // Save current state if not already applied
+                if (!this._preferredStateApplied[side]) {
+                    const currentState = this.getState(side);
+                    if (currentState !== state) {
+                        sessionStorage.setItem(`jpulse-sidebar-${side}-saved-before-preference`, currentState);
+                    }
+                    sessionStorage.setItem(`jpulse-sidebar-${side}-page-has-preference`, 'true');
+                }
+
+                this._preferredStates[side] = state;
+
+                // Apply if allowed
+                if (allowProgrammatic) {
+                    this._applyingPreferredState[side] = true;
+                    try {
+                        if (state === 'open') {
+                            this.open(side);
+                        } else {
+                            this.close(side);
+                        }
+                        this._preferredStateApplied[side] = true;
+                    } finally {
+                        this._applyingPreferredState[side] = false;
+                    }
+                    return true;
+                } else {
+                    // Show toast notification
+                    this._showProgrammaticToggleDisabledToast(side, state);
+                    return false;
+                }
+            },
+
+            /**
+             * Initialize a sidebar component with content and callbacks
+             * @param {string} componentName - Component name (e.g., 'sidebar.pageComponentLeft', 'sidebar.pageComponentRight')
+             * @param {Object} options - Initialization options
+             * @param {string} [options.content] - HTML content to set
+             * @param {Function} [options.onLoad] - Callback after content is set (receives element)
+             * @param {Function} [options.refresh] - Callback to refresh component content (receives element)
+             * @returns {Object|null} Component handle with refresh() and getElement() methods, or null if failed
+             */
+            initComponent(componentName, options = {}) {
+                // Validate component name format
+                if (!componentName || !componentName.startsWith('sidebar.')) {
+                    console.warn(`[Sidebars] Invalid component name: '${componentName}'. Must start with 'sidebar.'`);
+                    return null;
+                }
+
+                // Extract side from component name (e.g., 'sidebar.pageComponentLeft' -> 'left')
+                const side = componentName.includes('Left') ? 'left' :
+                             componentName.includes('Right') ? 'right' : null;
+
+                if (!side) {
+                    console.warn(`[Sidebars] Cannot determine sidebar side from component name: '${componentName}'`);
+                    return null;
+                }
+
+                // Check if sidebar is enabled (exists in DOM)
+                const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+                if (!sidebarEl) {
+                    // Sidebar not enabled - this is not an error, just return null
+                    return null;
+                }
+
+                // Find component element
+                const componentId = `jp-sidebar-page-component-${side}`;
+                const componentEl = document.getElementById(componentId);
+                if (!componentEl) {
+                    console.warn(`[Sidebars] Component '${componentName}' (${componentId}) not found in DOM`);
+                    return null;
+                }
+
+                // Show the component (remove empty class)
+                componentEl.classList.remove('jp-sidebar-page-component-empty');
+
+                // Set content if provided
+                if (options.content) {
+                    componentEl.innerHTML = options.content;
+                }
+
+                // Store refresh callback on element for later use
+                if (options.refresh) {
+                    componentEl._jpSidebarRefresh = options.refresh;
+                }
+
+                // Call onLoad callback if provided (synchronously since content is already set)
+                if (options.onLoad) {
+                    try {
+                        options.onLoad(componentEl);
+                    } catch (error) {
+                        console.error(`[Sidebars] Error in onLoad callback for '${componentName}':`, error);
+                    }
+                }
+
+                // Return handle object
+                return {
+                    /**
+                     * Get the component DOM element
+                     * @returns {Element} Component element
+                     */
+                    getElement: () => componentEl,
+
+                    /**
+                     * Refresh component content by calling refresh callback
+                     */
+                    refresh: () => {
+                        if (componentEl._jpSidebarRefresh) {
+                            try {
+                                componentEl._jpSidebarRefresh(componentEl);
+                            } catch (error) {
+                                console.error(`[Sidebars] Error in refresh callback for '${componentName}':`, error);
+                            }
+                        }
+                    },
+
+                    /**
+                     * Set new content
+                     * @param {string} newContent - HTML content
+                     */
+                    setContent: (newContent) => {
+                        componentEl.innerHTML = newContent;
+                    },
+
+                    /**
+                     * Get current content
+                     * @returns {string} HTML content
+                     */
+                    getContent: () => {
+                        return componentEl.innerHTML;
+                    }
+                };
+            },
+
+            _initMobile() {
+                const breakpoint = this._config?.sidebar?.mobile?.breakpoint || 768;
+                this._mobileMediaQuery = window.matchMedia(`(max-width: ${breakpoint}px)`);
+
+                // Initial check
+                this._isMobile = this._mobileMediaQuery.matches;
+
+                // Listen for viewport changes
+                this._mobileMediaQuery.addEventListener('change', (e) => {
+                    this._isMobile = e.matches;
+                    this._handleMobileChange();
+                });
+
+                // Get or create backdrop element
+                this._backdrop = document.getElementById('jp-sidebar-backdrop');
+                if (this._backdrop) {
+                    this._backdrop.addEventListener('click', () => {
+                        this._closeAllSidebars();
+                    });
+
+                    // Check if any sidebars are already open on page load (mobile only)
+                    if (this._isMobile) {
+                        setTimeout(() => {
+                            const leftOpen = document.getElementById('jp-sidebar-left')?.classList.contains('jp-sidebar-open');
+                            const rightOpen = document.getElementById('jp-sidebar-right')?.classList.contains('jp-sidebar-open');
+                            if (leftOpen || rightOpen) {
+                                this._backdrop.classList.add('jp-sidebar-backdrop-active');
+                            }
+                        }, 0);
+                    }
+                }
+
+                // Bind mobile close buttons
+                ['left', 'right'].forEach(side => {
+                    const closeBtn = document.getElementById(`jp-sidebar-toggle-close-${side}`);
+                    if (closeBtn) {
+                        closeBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            this.close(side);
+                        });
+                    }
+                });
+
+                // Watch for hamburger menu opening - close sidebars when it opens
+                // Also close sidebar when link is clicked in sidebar (mobile only)
+                const setupMobileInteractions = () => {
+                    // Try multiple times to find elements (they might load after init)
+                    let attempts = 0;
+                    const maxAttempts = 10;
+
+                    const trySetup = () => {
+                        // Set up hamburger menu observer - use correct selector
+                        const hamburgerBtn = document.querySelector('.jp-hamburger');
+
+                        if (hamburgerBtn) {
+                            hamburgerBtn.addEventListener('click', () => {
+                                // Small delay to let hamburger menu toggle
+                                setTimeout(() => {
+                                    const isExpanded = hamburgerBtn.getAttribute('aria-expanded') === 'true';
+                                    if (isExpanded) {
+                                        this._closeAllSidebars();
+                                    }
+                                }, 50);
+                            });
+                        }
+
+                        // Set up sidebar link click handlers (close sidebar on mobile)
+                        ['left', 'right'].forEach(side => {
+                            const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+                            if (sidebarEl) {
+                                sidebarEl.addEventListener('click', (e) => {
+                                    if (!this._isMobile) return;
+
+                                    // Check if click target is a link or inside a link
+                                    const link = e.target.closest('a');
+                                    if (link && link.href) {
+                                        // Close sidebar when link is clicked
+                                        setTimeout(() => {
+                                            this.close(side);
+                                        }, 100);
+                                    }
+                                });
+                            }
+                        });
+
+                        // Retry if elements not found yet
+                        if (!hamburgerBtn && attempts < maxAttempts) {
+                            attempts++;
+                            setTimeout(trySetup, 100);
+                        }
+                    };
+
+                    trySetup();
+                };
+
+                // Try to set up interactions immediately, or wait for DOM
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', setupMobileInteractions);
+                } else {
+                    setupMobileInteractions();
+                }
+
+                // Initialize swipe gestures if enabled
+                if (this._config?.sidebar?.mobile?.swipeEnabled) {
+                    this._initSwipeGestures();
+                }
+            },
+
+            _handleMobileChange() {
+                // Re-layout sidebars when switching between desktop and mobile
+                const main = document.querySelector('.jp-main');
+                if (!main) return;
+
+                ['left', 'right'].forEach(side => {
+                    const cfg = this._config.sidebar[side];
+                    if (!cfg || !cfg.enabled) return;
+
+                    const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+                    if (!sidebarEl) return;
+
+                    const isOpen = sidebarEl.classList.contains('jp-sidebar-open');
+                    this._layoutSide(main, side, isOpen ? 'open' : 'closed');
+                });
+            },
+
+            _closeAllSidebars() {
+                ['left', 'right'].forEach(side => {
+                    const cfg = this._config.sidebar[side];
+                    if (cfg && cfg.enabled) {
+                        this.close(side);
+                    }
+                });
+            },
+
+            _initSwipeGestures() {
+                let touchStartX = 0;
+                let touchStartY = 0;
+                let touchCurrentX = 0;
+                let isSwiping = false;
+                let swipeSide = null;
+
+                document.addEventListener('touchstart', (e) => {
+                    if (!this._isMobile) return;
+
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                    touchCurrentX = touchStartX;
+
+                    // Detect if swipe starts from edge (within 40px of left/right for easier activation)
+                    const edgeThreshold = 40;
+
+                    if (touchStartX < edgeThreshold) {
+                        // Left edge - check if left sidebar exists and is closed
+                        const leftCfg = this._config?.sidebar?.left;
+                        const leftEl = document.getElementById('jp-sidebar-left');
+                        if (leftCfg?.enabled && leftEl && !leftEl.classList.contains('jp-sidebar-open')) {
+                            isSwiping = true;
+                            swipeSide = 'left';
+                        }
+                    } else if (touchStartX > window.innerWidth - edgeThreshold) {
+                        // Right edge - check if right sidebar exists and is closed
+                        const rightCfg = this._config?.sidebar?.right;
+                        const rightEl = document.getElementById('jp-sidebar-right');
+                        if (rightCfg?.enabled && rightEl && !rightEl.classList.contains('jp-sidebar-open')) {
+                            isSwiping = true;
+                            swipeSide = 'right';
+                        }
+                    }
+                }, { passive: true });
+
+                document.addEventListener('touchmove', (e) => {
+                    if (!isSwiping) return;
+                    touchCurrentX = e.touches[0].clientX;
+                }, { passive: true });
+
+                document.addEventListener('touchend', (e) => {
+                    if (!isSwiping) return;
+
+                    const deltaX = touchCurrentX - touchStartX;
+                    const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY);
+                    const threshold = 50; // Minimum swipe distance
+
+                    // Only trigger if horizontal swipe is dominant
+                    if (Math.abs(deltaX) > threshold && Math.abs(deltaX) > deltaY * 2) {
+                        if (swipeSide === 'left' && deltaX > 0) {
+                            // Swipe right from left edge - open left sidebar
+                            this.open('left');
+                        } else if (swipeSide === 'right' && deltaX < 0) {
+                            // Swipe left from right edge - open right sidebar
+                            this.open('right');
+                        }
+                    }
+
+                    isSwiping = false;
+                    swipeSide = null;
+                }, { passive: true });
+
+                // Swipe to close when sidebar is open
+                ['left', 'right'].forEach(side => {
+                    const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+                    if (!sidebarEl) return;
+
+                    let sidebarTouchStartX = 0;
+                    let sidebarTouchStartY = 0;
+                    let sidebarTouchCurrentX = 0;
+                    let isSidebarSwiping = null; // null = undecided, true = horizontal, false = vertical
+
+                    sidebarEl.addEventListener('touchstart', (e) => {
+                        if (!this._isMobile) return;
+                        if (!sidebarEl.classList.contains('jp-sidebar-open')) return;
+
+                        sidebarTouchStartX = e.touches[0].clientX;
+                        sidebarTouchStartY = e.touches[0].clientY;
+                        sidebarTouchCurrentX = sidebarTouchStartX;
+                        isSidebarSwiping = null; // Start undecided
+                    }, { passive: true });
+
+                    sidebarEl.addEventListener('touchmove', (e) => {
+                        if (isSidebarSwiping === false) return; // Already determined as vertical scroll
+
+                        const currentX = e.touches[0].clientX;
+                        const currentY = e.touches[0].clientY;
+                        const deltaX = Math.abs(currentX - sidebarTouchStartX);
+                        const deltaY = Math.abs(currentY - sidebarTouchStartY);
+
+                        // Need some movement to determine direction
+                        if (deltaX < 10 && deltaY < 10) {
+                            return; // Not enough movement yet
+                        }
+
+                        // First time determining direction
+                        if (isSidebarSwiping === null) {
+                            if (deltaY > deltaX) {
+                                // Vertical movement dominates - it's a scroll gesture
+                                isSidebarSwiping = false;
+                                return;
+                            } else {
+                                // Horizontal movement dominates - it's a swipe-to-close gesture
+                                isSidebarSwiping = true;
+                            }
+                        }
+
+                        // Track horizontal position for swipe-to-close
+                        if (isSidebarSwiping === true) {
+                            sidebarTouchCurrentX = currentX;
+                        }
+                    }, { passive: true });
+
+                    sidebarEl.addEventListener('touchend', (e) => {
+                        if (isSidebarSwiping !== true) {
+                            isSidebarSwiping = null; // Reset for next gesture
+                            return;
+                        }
+
+                        const deltaX = sidebarTouchCurrentX - sidebarTouchStartX;
+                        const threshold = 50;
+
+                        if (side === 'left' && deltaX < -threshold) {
+                            // Swipe left on left sidebar - close
+                            this.close('left');
+                        } else if (side === 'right' && deltaX > threshold) {
+                            // Swipe right on right sidebar - close
+                            this.close('right');
+                        }
+
+                        isSidebarSwiping = null; // Reset for next gesture
+                    }, { passive: true });
+                });
+            },
+
+            _bindControls(side) {
+                const separatorEl = document.querySelector(`.jp-sidebar-separator-${side}`);
+                if (!separatorEl) return;
+
+                const cfg = this._config.sidebar[side];
+                // Skip all controls binding when mode is 'always' (separator/toggle are hidden)
+                if (cfg?.mode === 'always') {
+                    return;
+                }
+
+                // Track if drag occurred to prevent click handler from firing
+                let dragOccurred = false;
+                let isDragging = false;
+                let startX = 0;
+                let startWidth = 0;
+
+                // Toggle on double-click only (per spec, only if no drag occurred)
+                separatorEl.addEventListener('dblclick', (e) => {
+                    if (!dragOccurred) {
+                        this.toggle(side);
+                    }
+                    dragOccurred = false;
+                });
+
+                const toggleBtn = separatorEl.querySelector('.jp-sidebar-toggle');
+                if (toggleBtn) {
+                    toggleBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.toggle(side);
+                    });
+                }
+
+                // Drag to resize - only move separator during drag
+                const handleMouseMove = (e) => {
+                    if (!isDragging) return;
+
+                    const paddingH = this._basePaddingH;
+                    const delta = side === 'left'
+                        ? e.clientX - startX
+                        : startX - e.clientX;
+
+                    // Mark that drag occurred if mouse moved more than 3px
+                    if (Math.abs(delta) > 3) {
+                        dragOccurred = true;
+                    }
+
+                    // Calculate new separator position (clamped to valid width range)
+                    const newWidth = Math.max(120, Math.min(600, startWidth + delta));
+                    const newSeparatorPos = paddingH + newWidth - 4;
+
+                    // ONLY move the separator during drag, nothing else
+                    const currentSeparatorEl = document.querySelector(`.jp-sidebar-separator-${side}`);
+                    if (currentSeparatorEl) {
+                        currentSeparatorEl.style.transition = 'none';
+                        if (side === 'left') {
+                            currentSeparatorEl.style.left = `${newSeparatorPos}px`;
+                        } else {
+                            currentSeparatorEl.style.right = `${newSeparatorPos}px`;
+                        }
+                    }
+                };
+
+                const handleMouseUp = () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    this._isDragging = false; // Allow layoutAll again
+
+                    // Remove user-select prevention
+                    document.body.style.userSelect = '';
+                    document.body.style.cursor = '';
+
+                    const main = this._main || document.querySelector('.jp-main');
+                    const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+                    const currentSeparatorEl = document.querySelector(`.jp-sidebar-separator-${side}`);
+
+                    if (!main || !sidebarEl || !currentSeparatorEl) {
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        document.removeEventListener('mouseup', handleMouseUp);
+                        return;
+                    }
+
+                    // Calculate final width from separator position using base padding
+                    const paddingH = this._basePaddingH;
+                    let finalWidth;
+                    if (side === 'left') {
+                        const separatorLeft = parseInt(currentSeparatorEl.style.left, 10);
+                        if (!isNaN(separatorLeft)) {
+                            finalWidth = Math.max(120, Math.min(600, separatorLeft - paddingH + 4));
+                        } else {
+                            finalWidth = startWidth; // fallback
+                        }
+                    } else {
+                        const separatorRight = parseInt(currentSeparatorEl.style.right, 10);
+                        if (!isNaN(separatorRight)) {
+                            finalWidth = Math.max(120, Math.min(600, separatorRight - paddingH + 4));
+                        } else {
+                            finalWidth = startWidth; // fallback
+                        }
+                    }
+
+                    // Save final width
+                    localStorage.setItem(`jpulse-sidebar-${side}-width`, finalWidth.toString());
+
+                    // Re-enable transitions
+                    currentSeparatorEl.style.transition = '';
+
+                    // Apply final layout (this will update sidebar width and main padding properly)
+                    this._layoutSide(main, side, 'open');
+
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                };
+
+                separatorEl.addEventListener('mousedown', (e) => {
+                    const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+                    if (!sidebarEl || !sidebarEl.classList.contains('jp-sidebar-open')) return;
+
+                    // Don't start drag if clicking on toggle button
+                    if (e.target.closest('.jp-sidebar-toggle')) return;
+
+                    isDragging = true;
+                    this._isDragging = true; // Prevent layoutAll during drag
+                    dragOccurred = false;
+                    startX = e.clientX;
+                    startWidth = sidebarEl.offsetWidth;
+
+                    // Prevent text selection during drag
+                    document.body.style.userSelect = 'none';
+                    document.body.style.cursor = 'ew-resize';
+
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', handleMouseUp);
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            },
+
+            _observeMain(main) {
+                if (this._resizeObserver) {
+                    this._resizeObserver.disconnect();
+                    this._resizeObserver = null;
+                }
+                if (main) {
+                    this._resizeObserver = new ResizeObserver(() => this.layoutAll());
+                    this._resizeObserver.observe(main);
+                    this._main = main;
+                    this._captureBasePadding(main);
+                }
+            },
+
+            _markMounted() {
+                // no-op after cleanup
+            },
+
+            _enableTransitions() {
+                // transitions always on in CSS
+            },
+
+            _observeMainReplacement() {
+                if (this._mutationObserver) {
+                    this._mutationObserver.disconnect();
+                }
+                this._mutationObserver = new MutationObserver(() => {
+                    const current = document.querySelector('.jp-main');
+                    if (current && current !== this._main) {
+                        this._observeMain(current);
+                        this.layoutAll();
+                    }
+                });
+                this._mutationObserver.observe(document.body, { childList: true, subtree: true });
+            },
+
+            init(config) {
+                if (this._initialized) return;
+                this._initialized = true;
+
+                // Normalize config structure: ensure sidebar.left and sidebar.right exist
+                this._config = {
+                    sidebar: {
+                        left: config?.left || {},
+                        right: config?.right || {},
+                        mobile: config?.mobile || { breakpoint: 768, swipeEnabled: true }
+                    }
+                };
+
+                const main = document.querySelector('.jp-main');
+                if (!main) {
+                    console.warn('[Sidebars] .jp-main not found');
+                    return;
+                }
+
+                // Initialize mobile detection
+                this._initMobile();
+
+                // Reset flags for new page load
+                this._preferredStateApplied = { left: false, right: false };
+                this._userManuallyToggledAfterPreference = { left: false, right: false };
+                this._toastShownForPage = false;
+
+                this._captureBasePadding(main);
+                this._observeMain(main);
+                this._observeMainReplacement();
+
+                // Prevent initial "closed -> open" animation on page load.
+                // Apply initial layout with transitions disabled, then restore transitions next frame.
+                const _initialTransitionState = [];
+                const _disableTransitions = (el) => {
+                    if (!el) return;
+                    _initialTransitionState.push({ el, transition: el.style.transition });
+                    el.style.transition = 'none';
+                };
+                _disableTransitions(main);
+                ['left', 'right'].forEach(side => {
+                    _disableTransitions(document.getElementById(`jp-sidebar-${side}`));
+                    _disableTransitions(document.querySelector(`.jp-sidebar-separator-${side}`));
+                });
+
+                ['left', 'right'].forEach(side => {
+                    const cfg = this._config.sidebar[side];
+                    if (!cfg || !cfg.enabled) return;
+                    this._bindControls(side);
+                });
+
+                // Step 1: Check for state restoration from previous page
+                ['left', 'right'].forEach(side => {
+                    const cfg = this._config.sidebar[side];
+                    if (!cfg || !cfg.enabled) return;
+
+                    const prevPageHadPreference = sessionStorage.getItem(`jpulse-sidebar-${side}-page-has-preference`) === 'true';
+
+                    if (prevPageHadPreference) {
+                        const savedState = sessionStorage.getItem(`jpulse-sidebar-${side}-saved-before-preference`);
+
+                        // Only restore if current page hasn't set a preference yet
+                        if (!this._preferredStates[side] && savedState) {
+                            const allowProgrammatic = this.getUserPreference('jpulse-allow-programmatic-toggle') !== false;
+                            if (allowProgrammatic) {
+                                // Force 'open' when mode is 'always', ignoring saved state
+                                const restoreState = (cfg.mode === 'always') ? 'open' : savedState;
+                                this._layoutSide(main, side, restoreState);
+                                sessionStorage.setItem(`jpulse-sidebar-${side}-state`, restoreState);
+                            }
+                        }
+
+                        // Clear sessionStorage flags
+                        sessionStorage.removeItem(`jpulse-sidebar-${side}-page-has-preference`);
+                        sessionStorage.removeItem(`jpulse-sidebar-${side}-saved-before-preference`);
+                    }
+                });
+
+                // Step 2: Apply initial state (localStorage > config initState > default)
+                ['left', 'right'].forEach(side => {
+                    const cfg = this._config.sidebar[side];
+                    if (!cfg || !cfg.enabled) return;
+
+                    // Only apply if no preferred state was set (preferred states will be applied in Step 3)
+                    if (!this._preferredStates[side]) {
+                        const stored = sessionStorage.getItem(`jpulse-sidebar-${side}-state`);
+                        // Force 'open' when mode is 'always', ignoring stored state
+                        const initState = (cfg.mode === 'always') ? 'open' : (stored || cfg.initState || 'closed');
+                        this._layoutSide(main, side, initState);
+                    }
+                });
+
+                // Step 3: Apply preferred states (if any were set before DOM ready)
+                ['left', 'right'].forEach(side => {
+                    const cfg = this._config.sidebar[side];
+                    if (!cfg || !cfg.enabled) return;
+
+                    if (this._preferredStates[side] && !this._preferredStateApplied[side]) {
+                        const allowProgrammatic = this.getUserPreference('jpulse-allow-programmatic-toggle') !== false;
+                        if (allowProgrammatic) {
+                            if (this._preferredStates[side] === 'open') {
+                                this.open(side);
+                            } else {
+                                this.close(side);
+                            }
+                            this._preferredStateApplied[side] = true;
+                        } else {
+                            this._showProgrammaticToggleDisabledToast(side, this._preferredStates[side]);
+                        }
+                    }
+                });
+
+                // Ensure .jp-main padding/classes match the combined sidebar state
+                this._updateMainLayout(main);
+
+                // Restore transitions after initial layout
+                requestAnimationFrame(() => {
+                    _initialTransitionState.forEach(item => {
+                        item.el.style.transition = item.transition || '';
+                    });
+                });
+
+                window.addEventListener('resize', () => this.layoutAll());
             }
         }
     },
@@ -5653,7 +6999,9 @@ window.jPulse = {
     }
 };
 
+// ============================================================
 // Auto-initialize source code components when DOM is ready
+// ============================================================
 jPulse.dom.ready(() => {
     jPulse.appCluster._isClusterMode = ('{{appCluster.available}}' === 'true');
     jPulse.UI.sourceCode.initAll();

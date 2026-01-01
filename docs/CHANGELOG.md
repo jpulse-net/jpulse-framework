@@ -1,6 +1,88 @@
-# jPulse Docs / Version History v1.4.1
+# jPulse Docs / Version History v1.4.2
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.2, W-122, 2026-01-01
+
+**Commit:** `W-122, v1.4.2: markdown: v1.4.1 bug fix for ignore files still accessible in jpulse-docs`
+
+**BUG FIX RELEASE**: Fixed regression where files specified in `docs/.markdown` `[ignore]` section were still being copied to site deployments.
+
+**Objective**: Fix regression bug discovered after v1.4.1 release where files that should be excluded according to `.markdown` `[ignore]` section were still accessible in site deployments.
+
+**Issue**:
+- Files and directories specified in `[ignore]` section of `docs/.markdown` were not excluded:
+  - `docs/dev/roadmap.md`
+  - `docs/dev/working/`
+- These files were appearing in `webapp/static/assets/jpulse-docs/dev/` after fresh installs and upgrades
+
+**Root Cause**:
+- `bin/configure.js` (fresh installs) was copying entire `docs/` directory without filtering
+- `bin/jpulse-update.js` (upgrades) was copying entire `docs/` directory without filtering
+- Both scripts ignored the `.markdown` `[ignore]` section that the markdown controller uses
+
+**Solution**:
+- Implemented same filtering logic in both scripts as used by `webapp/controller/markdown.js`
+- Added `loadMarkdownIgnorePatterns()` function to parse `.markdown` `[ignore]` section
+- Added `shouldIgnore()` function to check if files/directories match ignore patterns
+- Modified `copyDirectory()`/`syncDirectory()` to accept optional filter function
+- Both scripts now filter files during copy based on `.markdown` `[ignore]` patterns
+- Fixed symlink handling: use `lstatSync()` instead of `existsSync()` to detect symlinks without following them
+- Added `isFrameworkDevRepo()` safeguard to prevent accidental execution in framework development repository
+
+**Code Changes**:
+
+**bin/configure.js**:
+- Added `loadMarkdownIgnorePatterns()` function (lines ~527-584)
+- Added `shouldIgnore()` function (lines ~586-620)
+- Modified `copyDirectory()` to accept `baseDir` and `shouldSkip` parameters
+- Added explicit docs copy section with filtering after webapp copy (lines ~1157-1183)
+- Fixed symlink handling: use `lstatSync()` to detect and remove symlinks before creating directories
+- Added `isFrameworkDevRepo()` check (checks `package.json` name === '@jpulse-net/jpulse-framework')
+- Removes existing docs (symlink or directory) before copying filtered version
+
+**bin/jpulse-update.js**:
+- Added `loadMarkdownIgnorePatterns()` function (lines ~21-78)
+- Added `shouldIgnore()` function (lines ~80-115)
+- Modified `syncDirectory()` to accept `baseDir` and `shouldSkip` parameters
+- Updated docs copy section to use filtering (lines ~259-285)
+- Fixed symlink handling: use `lstatSync()` to detect and remove symlinks before creating directories
+- Added `isFrameworkDevRepo()` check at script start (before npm operations)
+- Removes existing docs before copying filtered version
+
+**Testing**:
+- All automated tests pass (CLI Tools, Enhanced CLI, MongoDB, Unit, Integration)
+- Tested upgrade path: `npx jpulse update` properly excludes ignored files
+- Tested fresh install path: `npx jpulse configure` properly excludes ignored files
+- Tested safeguard: Both scripts detect framework repo and exit with helpful error messages
+- Verified symlink handling works in test environment (repo has symlinks, npm packages don't)
+- Verified excluded files (`dev/roadmap.md`, `dev/working/`) are not present in site deployments
+- Verified allowed files are still copied correctly
+
+**Features Delivered**:
+1. ✅ Fresh install filtering: `bin/configure.js` filters docs during new site setup
+2. ✅ Upgrade filtering: `bin/jpulse-update.js` filters docs during framework updates
+3. ✅ Consistent behavior: Both paths use same filtering logic as markdown controller
+4. ✅ Pattern matching: Supports gitignore-like patterns (files, directories, wildcards)
+5. ✅ Graceful fallback: Missing or invalid `.markdown` files fall back to no filtering
+
+**Breaking Changes**:
+- None
+
+**Migration Steps**:
+- None required
+- Sites running `npx jpulse update` will automatically get filtered docs
+- Fresh installs will automatically exclude ignored files
+
+**Impact Summary**:
+- Site Deployments: Excluded files no longer appear in site git repositories
+- Consistency: All three paths (runtime, install, update) now use same filtering logic
+- Maintenance: Single source of truth (`.markdown` `[ignore]` section) for exclusions
+
+**Work Item**: W-122
+**Version**: v1.4.2
+**Release Date**: 2026-01-01
 
 ________________________________________________
 ## v1.4.1, W-068, 2025-12-31

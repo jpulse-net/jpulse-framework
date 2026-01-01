@@ -9989,3 +9989,65 @@ STATUS: Corrected, ready for release
 
 
 ============================================================
+2026-01-01 20:10
+
+W-122, v1.4.2: markdown: v1.4.1 bug fix for ignore files still accessible in jpulse-docs
+
+Summary:
+Fixed regression bug where files specified in docs/.markdown [ignore] section
+were still being copied to site deployments during fresh installs and upgrades.
+
+Issue:
+- Files in [ignore] section (docs/dev/roadmap.md, docs/dev/working/) were
+  still appearing in webapp/static/assets/jpulse-docs/dev/ after install/update
+- Root cause: bin/configure.js and bin/jpulse-update.js were copying entire
+  docs/ directory without filtering based on .markdown [ignore] patterns
+
+Solution:
+- Implemented same filtering logic in both scripts as used by markdown controller
+- Added loadMarkdownIgnorePatterns() to parse .markdown [ignore] section
+- Added shouldIgnore() to check if files match ignore patterns
+- Modified copyDirectory()/syncDirectory() to accept optional filter function
+- Both scripts now filter files during copy based on .markdown [ignore] patterns
+
+Implementation Details:
+
+bin/configure.js:
+- Added loadMarkdownIgnorePatterns() function (lines ~527-584)
+- Added shouldIgnore() function (lines ~586-620)
+- Modified copyDirectory() to accept baseDir and shouldSkip parameters
+- Added explicit docs copy section with filtering after webapp copy (lines ~1157-1183)
+- Removes existing docs (symlink or directory) before copying filtered version
+
+bin/jpulse-update.js:
+- Added loadMarkdownIgnorePatterns() function (lines ~21-78)
+- Added shouldIgnore() function (lines ~80-115)
+- Modified syncDirectory() to accept baseDir and shouldSkip parameters
+- Updated docs copy section to use filtering (lines ~259-285)
+- Removes existing docs before copying filtered version
+
+Testing:
+- Tested upgrade path: npx jpulse update properly excludes ignored files
+  - Verified filtering messages: "⏭️  Skipping ignored: dev/roadmap.md"
+  - Verified excluded files not present in webapp/static/assets/jpulse-docs/dev/
+- Tested fresh install path: npx jpulse configure properly excludes ignored files
+  - Created test directory, installed framework, copied updated configure.js
+  - Ran npx jpulse configure, verified excluded files not present
+- Verified allowed files still copied correctly (architecture.md, installation.md, etc.)
+
+Features Delivered:
+✅ Fresh install filtering: bin/configure.js filters docs during new site setup
+✅ Upgrade filtering: bin/jpulse-update.js filters docs during framework updates
+✅ Consistent behavior: Both paths use same filtering logic as markdown controller
+✅ Pattern matching: Supports gitignore-like patterns (files, directories, wildcards)
+✅ Graceful fallback: Missing or invalid .markdown files fall back to no filtering
+
+Impact:
+- Site Deployments: Excluded files no longer appear in site git repositories
+- Consistency: All three paths (runtime, install, update) now use same filtering logic
+- Maintenance: Single source of truth (.markdown [ignore] section) for exclusions
+
+Status: ✅ ACCEPTED
+
+
+============================================================

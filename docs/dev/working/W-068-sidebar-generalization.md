@@ -1184,12 +1184,17 @@ sidebar: {
 - in case sidebar content is taller than viewport, sidebar content can be scrolled (mouse wheel or scrollbar)
 - useful for TOC component
 
-### 3. Use actual sidebar height option
+### 3. Auto-close sidebar on link click option
+- if enabled:
+- automatically close sidebar when a link is clicked in a sidebar
+- useful for sidebar.toc with 'overlay' mode
+
+### 4. Use actual sidebar height option
 - if enabled:
 - use up actual vertical space needed by content, i.e. not to bottom of page
 - useful when 'overflow' mode is active
 
-### 4. Convoluted sidebar code
+### 5. Convoluted sidebar code
 - webapp/view/jpulse-common.js needs to be refactored so that humans can mainatin it
 - code is fragile and took more than a week to stabilize
 

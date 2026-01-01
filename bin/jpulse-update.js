@@ -4,8 +4,8 @@
  * @tagline         Framework update synchronization CLI tool
  * @description     Updates local framework files from installed package
  * @file            bin/jpulse-update.js
- * @version         1.4.1
- * @release         2025-12-31
+ * @version         1.4.2
+ * @release         2026-01-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -19,12 +19,111 @@ import { execSync } from 'child_process';
 import { CONFIG_REGISTRY, buildCompleteConfig, expandAllVariables } from './config-registry.js';
 
 /**
- * Copy directory recursively, preserving existing files
- * Simple recursive copy - no filtering or ordering needed (package already has filtered docs)
+ * Load and parse .markdown file [ignore] section
+ * @param {string} baseDir - Base directory containing .markdown
+ * @returns {Array} Array of ignore pattern objects {pattern, regex, isDirectory}
+ */
+function loadMarkdownIgnorePatterns(baseDir) {
+    const configFile = path.join(baseDir, '.markdown');
+    const ignorePatterns = [];
+
+    try {
+        const content = fs.readFileSync(configFile, 'utf8');
+        const lines = content.split('\n');
+        let currentSection = null;
+
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+
+            // Skip empty lines and comments
+            if (!trimmedLine || trimmedLine.startsWith('#')) {
+                continue;
+            }
+
+            // Check for section header
+            const sectionMatch = trimmedLine.match(/^\[([\w-]+)\]$/);
+            if (sectionMatch) {
+                currentSection = sectionMatch[1];
+                continue;
+            }
+
+            // Parse ignore patterns
+            if (currentSection === 'ignore') {
+                const pattern = trimmedLine;
+                try {
+                    // Convert glob pattern to regex
+                    let regexPattern = pattern
+                        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+                        .replace(/\*/g, '.*')
+                        .replace(/\?/g, '.');
+
+                    const isDirectory = pattern.endsWith('/');
+                    if (isDirectory) {
+                        regexPattern = regexPattern.slice(0, -1);
+                    }
+
+                    ignorePatterns.push({
+                        pattern: pattern,
+                        regex: new RegExp(`^${regexPattern}$`),
+                        isDirectory: isDirectory
+                    });
+                } catch (regexError) {
+                    // Skip invalid regex patterns
+                    continue;
+                }
+            }
+        }
+    } catch (error) {
+        // No .markdown file or error - return empty array (no filtering)
+    }
+
+    return ignorePatterns;
+}
+
+/**
+ * Check if a file or directory should be ignored
+ * @param {string} relativePath - Relative path from baseDir
+ * @param {boolean} isDirectory - Whether this is a directory
+ * @param {Array} ignorePatterns - Array of ignore pattern objects
+ * @returns {boolean} True if should be ignored
+ */
+function shouldIgnore(relativePath, isDirectory, ignorePatterns) {
+    if (!ignorePatterns || ignorePatterns.length === 0) {
+        return false;
+    }
+
+    for (const pattern of ignorePatterns) {
+        if (pattern.isDirectory) {
+            const dirPath = pattern.pattern.slice(0, -1); // Remove trailing /
+
+            // Exact directory match
+            if (isDirectory && relativePath === dirPath) {
+                return true;
+            }
+
+            // File or subdirectory inside ignored directory
+            if (relativePath.startsWith(dirPath + '/')) {
+                return true;
+            }
+        } else {
+            // File pattern - only match files
+            if (!isDirectory && pattern.regex.test(relativePath)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Copy directory recursively with optional filtering
  * @param {string} src - Source directory
  * @param {string} dest - Destination directory
+ * @param {string} baseDir - Base directory for relative path calculation (for filtering)
+ * @param {Function} shouldSkip - Optional function(relativePath, isDirectory) => boolean
  */
-function syncDirectory(src, dest) {
+function syncDirectory(src, dest, baseDir = null, shouldSkip = null) {
     if (!fs.existsSync(dest)) {
         fs.mkdirSync(dest, { recursive: true });
     }
@@ -41,8 +140,18 @@ function syncDirectory(src, dest) {
             continue;
         }
 
-        if (entry.isDirectory()) {
-            syncDirectory(srcPath, destPath);
+        // Calculate relative path for filtering
+        const relativePath = baseDir ? path.relative(baseDir, srcPath).replace(/\\/g, '/') : entry.name;
+        const isDirectory = entry.isDirectory();
+
+        // Apply filter if provided
+        if (shouldSkip && shouldSkip(relativePath, isDirectory)) {
+            console.log(`⏭️  Skipping ignored: ${relativePath}`);
+            continue;
+        }
+
+        if (isDirectory) {
+            syncDirectory(srcPath, destPath, baseDir, shouldSkip);
         } else {
             // Always overwrite framework files
             fs.copyFileSync(srcPath, destPath);
@@ -100,6 +209,26 @@ function updatePackage(versionArg) {
 }
 
 /**
+ * Check if running in framework dev repository (not a site)
+ */
+function isFrameworkDevRepo() {
+    // Check if this is the framework package itself (not a site using it)
+    // The framework's package.json has name "@jpulse-net/jpulse-framework"
+    // A site's package.json will have a different name (their site ID)
+    if (fs.existsSync('package.json')) {
+        try {
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            if (pkg.name === '@jpulse-net/jpulse-framework') {
+                return true;
+            }
+        } catch (error) {
+            // Ignore parse errors, fall through to false
+        }
+    }
+    return false;
+}
+
+/**
  * Main sync function
  */
 function sync() {
@@ -148,7 +277,7 @@ function sync() {
             }
 
             // Copy documentation to webapp/static/assets/jpulse-docs/
-            // Note: Package already contains filtered docs (excluded files removed at build time via .npmignore)
+            // Filter based on .markdown [ignore] section to exclude files that shouldn't be in site deployments
             console.log('📚 Copying documentation...');
             const docsSource = path.join(frameworkPath, 'docs');
             const docsDestination = path.join('webapp', 'static', 'assets', 'jpulse-docs');
@@ -158,13 +287,28 @@ function sync() {
                 fs.mkdirSync(path.dirname(docsDestination), { recursive: true });
 
                 // Remove existing docs and copy fresh
-                if (fs.existsSync(docsDestination)) {
+                // Use lstat to detect symlinks without following them
+                try {
+                    const stats = fs.lstatSync(docsDestination);
+                    // If we get here, something exists (file, directory, or symlink)
                     fs.rmSync(docsDestination, { recursive: true, force: true });
+                } catch (error) {
+                    // Path doesn't exist, which is fine
+                    if (error.code !== 'ENOENT') {
+                        throw error;
+                    }
                 }
 
-                // Package already has filtered docs (only files we want, in correct order)
-                // Just copy everything - no need to filter or reorder
-                syncDirectory(docsSource, docsDestination);
+                // Load ignore patterns from .markdown file
+                const ignorePatterns = loadMarkdownIgnorePatterns(docsSource);
+
+                // Create filter function
+                const shouldSkip = (relativePath, isDirectory) => {
+                    return shouldIgnore(relativePath, isDirectory, ignorePatterns);
+                };
+
+                // Copy with filtering based on .markdown [ignore] section
+                syncDirectory(docsSource, docsDestination, docsSource, shouldSkip);
                 console.log('✅ Documentation copied successfully');
             } else {
                 console.warn('⚠️  Documentation source not found');
@@ -222,6 +366,22 @@ function sync() {
 
 // Parse command line arguments
 const versionArg = process.argv[2] || null;
+
+// Check if running in framework dev repo BEFORE doing anything
+if (isFrameworkDevRepo()) {
+    console.error('❌ ERROR: Running in jPulse Framework development repository');
+    console.error('');
+    console.error('💡 This script is for site installations, not framework development.');
+    console.error('');
+    console.error('To update a site:');
+    console.error('  1. Navigate to your site directory: cd /path/to/my-site');
+    console.error('  2. Run: npx jpulse update');
+    console.error('');
+    console.error('For framework development:');
+    console.error('  - Changes here are already in use (no update needed)');
+    console.error('  - Run: npm test');
+    process.exit(1);
+}
 
 // Update package first, then sync files
 updatePackage(versionArg);

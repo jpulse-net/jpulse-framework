@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.3.22
+# jPulse Docs / Dev / Work Items v1.4.2
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3346,19 +3346,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - no need to filter or reorder - just copy everything from package
     - updated comment to reflect `.npmignore` approach instead of prepack filtering
 
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-068, v1.4.1, 2025-12-31: view: create left and right sidebars with components
 - status: ✅ DONE
 - type: Feature
@@ -3447,6 +3434,42 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-122, v1.4.2, 2026-01-01: markdown: v1.4.1 bug fix for ignore files still accessible in jpulse-docs
+- status: ✅ DONE
+- type: Bug Fix
+- objective: fix regression bug discovered after v1.4.1 release that was supposed to be fixed in v1.3.22
+- issue:
+  - bug: files and directories specified in the `[ignore]` section of `docs/.markdown` are not excluded, and accessible:
+    - docs/dev/roadmap.md
+    - docs/dev/working
+- deliverables:
+  - bin/configure.js:
+    - Added `loadMarkdownIgnorePatterns()` function to read and parse `.markdown` `[ignore]` section
+    - Added `shouldIgnore()` function to check if files/directories should be excluded
+    - Modified `copyDirectory()` to accept optional `shouldSkip` filter function
+    - Added explicit docs copy section with filtering after webapp copy during fresh installs
+    - Filters files based on `.markdown` `[ignore]` patterns to exclude `docs/dev/roadmap.md` and `docs/dev/working/` from site deployments
+    - Fixed symlink handling: use `lstatSync()` instead of `existsSync()` to properly detect and remove symlinks before copying
+    - Added `isFrameworkDevRepo()` safeguard to prevent accidental execution in framework development repository
+  - bin/jpulse-update.js:
+    - Added `loadMarkdownIgnorePatterns()` function to read and parse `.markdown` `[ignore]` section
+    - Added `shouldIgnore()` function to check if files/directories should be excluded
+    - Modified `syncDirectory()` to accept optional `shouldSkip` filter function
+    - Updated docs copy section to use filtering based on `.markdown` `[ignore]` patterns
+    - Filters files during upgrade to exclude `docs/dev/roadmap.md` and `docs/dev/working/` from site deployments
+    - Fixed symlink handling: use `lstatSync()` instead of `existsSync()` to properly detect and remove symlinks before copying
+    - Added `isFrameworkDevRepo()` safeguard to prevent accidental execution in framework development repository
+
+
+
+
+
+
+
 ### Pending
 
 
@@ -3457,8 +3480,6 @@ old pending:
 - site nav dropdown issue: can't scroll a tall sub-menu that is taller than viewport
 
 ### Potential next items:
-- W-068: view: create responsive sidebar
-- W-0: view: headings with anchor links for copy & paste in browser URL bar
 - W-0: view: broadcast message
 - W-0: view: create tooltip on any element with jp-tooltip class
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
@@ -3478,8 +3499,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-068, v1.4.1
-- update deliverables in W-068 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-122, v1.4.2
+- update deliverables in W-122 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -3496,12 +3517,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.1
+node bin/bump-version.js 1.4.2
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.1
+git tag v1.4.2
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -3598,11 +3619,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - user can set preferred theme
 - way to define new themes
   - drop in a directory, with auto discovery
-
-### W-0: markdown docs: a way to define the sequence of docs
-- status: 🕑 PENDING
-- type: Feature
-- objective: more logical flow for doc pages (instead of alphabetical)
 
 ### W-0: view: broadcast message
 - status: 🕑 PENDING

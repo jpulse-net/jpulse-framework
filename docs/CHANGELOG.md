@@ -1,6 +1,34 @@
-# jPulse Docs / Version History v1.4.2
+# jPulse Docs / Version History v1.4.3
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.3, W-123, 2026-01-03
+
+**Commit:** `W-123, v1.4.3: view: sidebars with sticky pos and auto-close`
+
+**FEATURE RELEASE**: Improved sidebar UX for long pages (especially docs) with hover mode, sticky positioning, and optional auto-close behavior.
+
+**Objective**: Provide a quick way to access and use the Table of Contents in the right sidebar while reading long pages.
+
+**Key Features**:
+- **Hover mode (desktop)**:
+  - New `mode: 'hover'` to open a sidebar when hovering the main edge hover zone
+  - Toggle buttons are hidden in hover mode
+- **Sticky positioning (desktop overlay/hover)**:
+  - Overlay/hover sidebars use a sticky viewport layout (stable top/bottom margins) so the TOC stays accessible while scrolling
+  - Inner scroll wrapper keeps top/bottom padding visible while content scrolls
+- **Auto-close on click (optional)**:
+  - Auto-close on sidebar link click and outside click when `autoCloseOnClick: true`
+- **Resize support**:
+  - Separator drag-to-resize is supported in hover mode (width is applied on drag end)
+
+**Documentation**:
+- Updated `docs/sidebars.md` with hover mode and sticky behavior details
+
+**Work Item**: W-123
+**Version**: v1.4.3
+**Release Date**: 2026-01-03
 
 ________________________________________________
 ## v1.4.2, W-122, 2026-01-01

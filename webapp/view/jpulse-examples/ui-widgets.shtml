@@ -4,8 +4,8 @@
  * @tagline         Interactive UI widget examples and demonstrations
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
- * @version         1.4.2
- * @release         2026-01-01
+ * @version         1.4.3
+ * @release         2026-01-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -255,7 +255,7 @@ jPulse.dom.ready(() =&gt; {
         exclusive: true,
         initOpen: 0,
         onSectionChange: (openIndex, clickedIndex) =&gt; {
-            console.log(`Accordion section ${clickedIndex} clicked`);
+            console.log(`- jPulse-examples: Accordion section ${clickedIndex} clicked`);
         }
     });
 
@@ -323,8 +323,8 @@ jPulse.dom.ready(() =&gt; {
     // Initialize collapsible
     const demoCollapsible = jPulse.UI.collapsible.register('demo-collapsible', {
         initOpen: false,
-        onOpen: () =&gt; console.log('Collapsible opened'),
-        onClose: () =&gt; console.log('Collapsible closed')
+        onOpen: () =&gt; console.log('- jPulse-examples: Collapsible opened'),
+        onClose: () =&gt; console.log('- jPulse-examples: Collapsible closed')
     });
 
     // Programmatic control
@@ -871,7 +871,7 @@ const cartItems = [
 ];
 
 const total = calculateTotal(cartItems);
-console.log(`Total: $${total.toFixed(2)}`);
+console.log(`- jPulse-examples: Total: $${total.toFixed(2)}`);
                     </div>
 
                     <h4>HTML Example:</h4>
@@ -1039,7 +1039,7 @@ jPulse.UI.sourceCode.initAll();
                 panelHeight: '21rem',
                 slideAnimation: true,
                 onTabChange: (activeTab, clickedTab) => {
-                    console.log(`Demo tab changed to: ${activeTab}`);
+                    console.log(`- jPulse-examples: Demo tab changed to: ${activeTab}`);
                 }
             }, 'demo-tab1');
 
@@ -1048,7 +1048,7 @@ jPulse.UI.sourceCode.initAll();
                 exclusive: true,
                 initOpen: 0,
                 onSectionChange: (openIndex, clickedIndex) => {
-                    console.log(`Demo accordion section ${clickedIndex} clicked`);
+                    console.log(`- jPulse-examples: Demo accordion section ${clickedIndex} clicked`);
                 }
             });
 
@@ -1175,7 +1175,7 @@ jPulse.UI.sourceCode.initAll();
                                     },
                                     'Yes, Delete': () => {
                                         // Simulate file deletion
-                                        console.log('Deleting files:', selectedFiles);
+                                        console.log('- jPulse-examples: Deleting files:', selectedFiles);
                                         jPulse.UI.toast.success(`Deleted ${selectedFiles.length} file(s) successfully!`);
                                         return false; // Close second dialog
                                     }
@@ -1192,7 +1192,7 @@ jPulse.UI.sourceCode.initAll();
                     }
                 });
 
-                console.log('Complex dialog result:', result);
+                console.log('- jPulse-examples: Complex dialog result:', result);
             });
 
             // Form validation example
@@ -1292,8 +1292,8 @@ jPulse.UI.sourceCode.initAll();
             // Initialize demo collapsible
             const demoCollapsible = jPulse.UI.collapsible.register('demo-collapsible', {
                 initOpen: false,
-                onOpen: () => console.log('Demo collapsible opened'),
-                onClose: () => console.log('Demo collapsible closed')
+                onOpen: () => console.log('- jPulse-examples: Demo collapsible opened'),
+                onClose: () => console.log('- jPulse-examples: Demo collapsible closed')
             });
 
             // Collapsible programmatic control

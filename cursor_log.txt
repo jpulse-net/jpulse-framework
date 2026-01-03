@@ -10051,3 +10051,289 @@ Status: ✅ ACCEPTED
 
 
 ============================================================
+2026-01-02 22:00
+
+PROMPT: Fixed two critical bugs in sticky sidebar (TD-2 + TD-4):
+- Bug #1: Top margin missing - sidebar/separator started at header height only
+- Bug #2: Animation from window edge - no initial closed position set
+
+OUTPUT:
+Implemented fixes in jpulse-common.js:
+
+1. Top Position Fix (_layoutSide method, ~line 5035):
+   - Changed: const topPosition = headerHeight + paddingV
+   - Now adds .jp-main top padding (30px) to header height (35px)
+   - Result: Sidebar/separator top at 65px (header + content padding)
+   - Visual: Sidebar aligns with .jp-main content area, not edge
+
+2. Initial Closed Position Fix (init method, ~line 6282):
+   - Added: Pre-initialize closed position for sticky sidebars
+   - Runs after _bindControls, before state restoration
+   - Checks if mode === 'hover' or behavior === 'overlay'
+   - Calls _layoutSide(main, side, 'closed') during init
+   - Result: Sidebar/separator positioned at .jp-main edge immediately
+   - Visual: First animation starts from .jp-main edge, not window edge
+
+Technical Details:
+- Top calculation now: headerHeight + paddingV (35px + 30px = 65px)
+- Previous: headerHeight only (35px)
+- Right sidebar closed: right = window.innerWidth - mainRect.right
+- Left sidebar closed: left = mainRect.left
+- Both set during init with transitions disabled
+- Animations now flow from/to correct edge
+
+Testing Required:
+- Desktop right sidebar (hover mode): verify top margin and animation edge
+- Desktop left sidebar (toggle/overlay): verify same behavior
+- Mobile: no changes (sticky only applies to desktop)
+- Resize: verify positions update correctly
+
+
+============================================================
+2026-01-03 00:45
+
+PROMPT: Simplify sticky sidebar vertical positioning (hover/overlay): use fixed viewport margins.
+
+OUTPUT:
+- Implemented _getStickyViewportOffsets(main, headerHeight) to compute:
+  - top = min(100px, headerHeight + max(0, .jp-main margin-top))
+  - bottom = min(100px, footerHeight(.jp-footer) + max(0, .jp-main margin-bottom))
+- Updated sticky mode in _layoutSide() to use these offsets for sidebar + separator.
+- Updated sticky hover zone in _initHoverMode() to use the same offsets.
+- Removed DEBUG console logs from init() sticky pre-layout.
+
+Status: PENDING USER VERIFICATION
+
+
+============================================================
+2026-01-03 00:58
+
+PROMPT: Fix sticky sidebar top margin still flush with banner after simplifying to viewport-based margins.
+
+OUTPUT:
+- Updated _getStickyViewportOffsets():
+  - Top now uses actual viewport gap via main.getBoundingClientRect().top (clamped: min(100px, max(headerHeight, mainRect.top))).
+  - This prevents negative .jp-main margin-top from collapsing sticky top to banner height.
+  - Bottom remains min(100px, footerHeight(.jp-footer) + max(0, .jp-main margin-bottom)).
+- Removed unused paddingV lookup in _initHoverMode() sticky branch.
+
+Status: PENDING USER VERIFICATION
+
+
+============================================================
+2026-01-03 01:06
+
+PROMPT: Adjust sticky sidebar margins: symmetric top/bottom and add subtle 5px separation from .jp-main.
+
+OUTPUT:
+- Updated _getStickyViewportOffsets():
+  - top = min(100px, max(headerHeight, mainRect.top)) + 5px
+  - bottom = top (symmetric)
+- Applies to sticky sidebar + separator + hover zone (shared helper).
+
+Status: PENDING USER VERIFICATION
+
+
+============================================================
+2026-01-03 01:14
+
+PROMPT: Fix sticky top margin changing after scrolling (hover/overlay).
+
+OUTPUT:
+- Cached sticky viewport offsets in _getStickyViewportOffsets() so scrolling does not affect margins.
+- Cache invalidation:
+  - init(): sets _stickyViewportOffsetsCache = null
+  - resize handler: clears _stickyViewportOffsetsCache before layoutAll()
+  - _observeMainReplacement(): clears _stickyViewportOffsetsCache when .jp-main is replaced
+
+Status: PENDING USER VERIFICATION
+
+ACCEPTED: Sticky sidebar viewport margin caching + symmetric margins + scroll-stable reopen behavior verified.
+
+
+============================================================
+2026-01-03 01:20
+
+PROMPT: Fix regression: close animation hides sidebar immediately (only separator animates).
+
+OUTPUT:
+- Updated CSS: .jp-sidebar-closed no longer sets visibility:hidden (keeps opacity:0 and width:0).
+- This restores close animation while still preventing content bleed in closed state.
+
+Status: PENDING USER VERIFICATION
+
+
+============================================================
+2026-01-03 01:28
+
+PROMPT: Fix close animation visual regression: sidebar background snapped transparent while text/width animates.
+
+OUTPUT:
+- Removed closed-state opacity on the sidebar container (keeps background visible during width animation).
+- Added opacity fade only on .jp-sidebar-content:
+  - .jp-sidebar-closed .jp-sidebar-content { opacity: 0; }
+  - .jp-sidebar-open .jp-sidebar-content { opacity: 1; }
+  - Added transition: opacity 0.2s ease to .jp-sidebar-content.
+
+Status: PENDING USER VERIFICATION
+
+ACCEPTED: Close animation background snap fix (fade content only; keep sidebar panel background during width animation).
+
+
+============================================================
+2026-01-03 01:35
+
+PROMPT: Adjust sticky margin symmetry: bottom margin = top margin - banner height (symmetry within white page background).
+
+OUTPUT:
+- Updated _getStickyViewportOffsets() cached result:
+  - top unchanged (cached, +5px separation, capped at 100px)
+  - bottom = clamp(top - headerHeight, 0..100)
+- Applies to sticky sidebar + separator + hover zone (shared helper).
+
+Status: PENDING USER VERIFICATION
+
+
+============================================================
+2026-01-03 01:44
+
+PROMPT: Reduce large top gap inside TOC sidebar, but keep extra top padding for toggle mode (space for toggle button). Apply reduced padding only to hover mode.
+
+OUTPUT:
+- Reverted global .jp-sidebar-content padding to 30px top (toggle button space).
+- Added hover-only override:
+  - .jp-sidebar-mode-hover .jp-sidebar-content { padding-top: 15px; }
+
+Status: PENDING USER VERIFICATION
+
+
+============================================================
+2026-01-03 01:52
+
+PROMPT: Keep top/bottom padding visible in sidebar while scrolling (hover mode TOC) without overlays.
+
+OUTPUT:
+- Updated jpulse-footer.tmpl: wrapped sidebar component rendering in a new inner scroll container:
+  - <div class="jp-sidebar-content-scroll"> ... </div>
+- Updated CSS:
+  - .jp-sidebar-content is now a flex container with padding and overflow hidden
+  - .jp-sidebar-content-scroll handles overflow-y:auto (scrolling)
+  - Content fade on open/close moved to .jp-sidebar-content-scroll
+
+Status: PENDING USER VERIFICATION
+
+
+============================================================
+2026-01-03 02:06
+
+PROMPT: Add subtle fade gradient at top/bottom padding areas of sidebar so text fades while scrolling, without affecting toggle-mode padding.
+
+OUTPUT:
+- Introduced CSS vars on .jp-sidebar-content:
+  - --jp-sidebar-pad-top (default 30px, hover 15px)
+  - --jp-sidebar-pad-bottom (15px)
+- Added ::before/::after fade overlays anchored at the inner scroll edges:
+  - top: var(--jp-sidebar-pad-top)
+  - bottom: var(--jp-sidebar-pad-bottom)
+  - pointer-events:none, z-index above scroll content
+- Kept scroll container (.jp-sidebar-content-scroll) as the only scrolling element.
+
+Status: PENDING USER VERIFICATION
+
+
+============================================================
+2026-01-03 02:14
+
+PROMPT: Reduce sidebar fade overlay height so it doesn't wash out the TOC heading.
+
+OUTPUT:
+- Tweaked .jp-sidebar-content::before/::after:
+  - height: 10px (was 18px)
+  - gradient start opacity reduced to rgba(245,245,245,0.85)
+
+Status: PENDING USER VERIFICATION
+
+ACCEPTED: Sidebar padding-on-scroll fix (added .jp-sidebar-content-scroll wrapper), hover-only padding-top tweak, and top/bottom fade gradient tweaks.
+
+
+============================================================
+2026-01-03 02:23
+
+PROMPT: Restore missing functionality: allow resizing sidebars in hover mode (drag separator) while keeping hover open/close behavior.
+
+OUTPUT:
+- Added drag-to-resize handlers inside jPulse.UI.sidebars._initHoverMode():
+  - mousedown on separator starts drag (opens sidebar if needed)
+  - mousemove updates sidebar width and separator position live (sticky-aware)
+  - mouseup stores width in localStorage (jpulse-sidebar-{side}-width) and calls _layoutSide(..., 'open')
+  - clears hover timers during drag and blocks text selection.
+
+Status: PENDING USER VERIFICATION
+
+
+============================================================
+2026-01-03 02:33
+
+PROMPT: Optimize hover-mode resize to match toggle-mode performance (drag animates separator only).
+
+OUTPUT:
+- Updated hover-mode drag handler in _initHoverMode():
+  - During mousemove: only moves separator (no live sidebar resize/reposition).
+  - On mouseup: computes final width from separator position, stores to localStorage, calls _layoutSide(...,'open') to apply.
+  - Added guards so hover open/close timers do not fire while dragging.
+
+Status: PENDING USER VERIFICATION
+
+
+============================================================
+2026-01-03 02:45
+
+PROMPT: Minor UX polish: hide separator overlay gradient while resizing (dragging) so the whiteout doesn't animate oddly.
+
+OUTPUT:
+- Added body.jp-sidebar-dragging class during sidebar resize drag (toggle + hover).
+- CSS: body.jp-sidebar-dragging .jp-sidebar-separator.jp-sidebar-separator-overlay::after { opacity: 0; }
+
+Status: PENDING USER VERIFICATION
+
+
+============================================================
+2026-01-03 02:52
+
+PROMPT: Restore faint hover highlight for the hover zone when sidebar is closed.
+
+OUTPUT:
+- CSS: added subtle background on .jp-sidebar-hover-zone:hover and a short background-color transition.
+
+Status: PENDING USER VERIFICATION
+
+
+============================================================
+2026-01-03 03:03
+
+PROMPT: Fix hover-zone highlight not showing: CSS :hover was overridden by inline JS background style.
+
+OUTPUT:
+- Removed inline hoverZone.style.background='transparent' in _initHoverMode().
+- Hover zone background is now controlled purely by CSS (.jp-sidebar-hover-zone and .jp-sidebar-hover-zone:hover).
+
+Status: PENDING USER VERIFICATION
+
+
+============================================================
+2026-01-03 03:15
+
+PROMPT: Release prep for W-123, v1.4.3: update W-123 spec/deliverables in docs/dev/work-items.md; add hover mode docs; update Latest Release Highlights in README.md and docs/README.md; update docs/CHANGELOG.md; update commit-message.txt; append cursor_log entry.
+
+OUTPUT:
+- docs/dev/work-items.md: Filled in W-123 spec and deliverables (kept status unchanged).
+- docs/sidebars.md: Documented desktop hover mode, sticky overlay/hover behavior, autoCloseOnClick option, and notes/troubleshooting.
+- README.md: Prepended v1.4.3 (W-123) release highlight and fixed Sidebars Guide links to use docs/ paths.
+- docs/README.md: Prepended v1.4.3 (W-123) release highlight and fixed W-121 work-items link to dev/work-items.md.
+- docs/CHANGELOG.md: Added v1.4.3 (W-123) feature release entry (avoided regression/bug wording).
+- commit-message.txt: Updated for W-123, v1.4.3 (no git commit performed).
+
+Status: PENDING USER REVIEW
+
+
+============================================================

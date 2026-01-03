@@ -4,8 +4,8 @@
  * @tagline         Real-time WebSocket server monitoring and status
  * @description     Admin-only page showing live WebSocket namespace status
  * @file            webapp/view/admin/websocket-status.shtml
- * @version         1.4.2
- * @release         2026-01-01
+ * @version         1.4.3
+ * @release         2026-01-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -391,14 +391,14 @@
 
         // Initialize WebSocket connection
         function initWebSocket() {
-            console.log('Connecting to WebSocket stats feed...');
+            console.log('- jPulse: Connecting to WebSocket stats feed...');
 
             wsConnection = jPulse.ws.connect('/api/1/ws/jpulse-ws-status')
                 .onMessage((data, message) => {
                     if (data && data.type === 'stats-update') {
                         updateStats(data.data);
                     } else if (!message.success) {
-                        console.error('WebSocket error:', message.error);
+                        console.error('- jPulse: WebSocket error:', message.error);
                         jPulse.UI.toast.show(`WebSocket error: ${message.error}`, 'error');
                     }
                 })

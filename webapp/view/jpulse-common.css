@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.4.2
- * @release         2026-01-01
+ * @version         1.4.3
+ * @release         2026-01-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -3968,6 +3968,11 @@ h6 .heading-anchor {
     z-index: 0;
 }
 
+/* During resize drag, hide the overlay gradient (looks odd while the separator is moving). */
+body.jp-sidebar-dragging .jp-sidebar-separator.jp-sidebar-separator-overlay::after {
+    opacity: 0;
+}
+
 /* Left overlay: fade into content to the right of the sidebar border */
 .jp-sidebar-separator-left.jp-sidebar-separator-open.jp-sidebar-separator-overlay::after {
     left: 4px; /* separator width */
@@ -3981,22 +3986,76 @@ h6 .heading-anchor {
 }
 
 .jp-sidebar-content {
-    padding: 30px 15px 15px 15px;
+    --jp-sidebar-pad-top: 30px;
+    --jp-sidebar-pad-bottom: 15px;
+    padding: var(--jp-sidebar-pad-top) 15px var(--jp-sidebar-pad-bottom) 15px;
     height: 100%;
+    box-sizing: border-box;
+    /* Keep padding non-scrollable: scrolling happens in .jp-sidebar-content-scroll */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative; /* anchor fade overlays */
+}
+
+/* Hover mode: reduce top padding (no toggle button area needed) */
+.jp-sidebar-mode-hover .jp-sidebar-content {
+    --jp-sidebar-pad-top: 15px;
+}
+
+.jp-sidebar-content-scroll {
+    flex: 1 1 auto;
+    min-height: 0; /* required for overflow in flex container */
     overflow-y: auto;
     box-sizing: border-box;
+    transition: opacity 0.2s ease;
+    position: relative;
+    z-index: 0;
+}
+
+/* Optional: subtle fade at top/bottom of scroll area (helps readability while scrolling) */
+.jp-sidebar-content::before,
+.jp-sidebar-content::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 10px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Fade text in at the top edge of the scroll area */
+.jp-sidebar-content::before {
+    top: var(--jp-sidebar-pad-top);
+    background: linear-gradient(to bottom, rgba(245, 245, 245, 0.85), rgba(245, 245, 245, 0));
+}
+
+/* Fade text out at the bottom edge of the scroll area */
+.jp-sidebar-content::after {
+    bottom: var(--jp-sidebar-pad-bottom);
+    background: linear-gradient(to top, rgba(245, 245, 245, 0.85), rgba(245, 245, 245, 0));
 }
 
 .jp-sidebar-closed {
     width: 0 !important;
+    /* Keep sidebar container/background animating; hide only inner content to prevent bleed */
 }
 
-.jp-sidebar-left.jp-sidebar-closed {
+.jp-sidebar-closed .jp-sidebar-content-scroll {
+    opacity: 0;
+}
+
+.jp-sidebar-open .jp-sidebar-content-scroll {
+    opacity: 1;
+}
+
+.jp-sidebar-left.jp-sidebar-closed:not(.jp-sidebar-sticky) {
     left: 0 !important;
     right: auto !important;
 }
 
-.jp-sidebar-right.jp-sidebar-closed {
+.jp-sidebar-right.jp-sidebar-closed:not(.jp-sidebar-sticky) {
     right: 0 !important;
     left: auto !important;
 }
@@ -4042,6 +4101,57 @@ h6 .heading-anchor {
 
 .jp-sidebar-separator-left { left: 0; }
 .jp-sidebar-separator-right { right: 0; }
+
+/* Hover zone base styles (TD-1: Hover mode) */
+.jp-sidebar-hover-zone {
+    background: transparent;
+    pointer-events: auto;
+    z-index: 894; /* Below sidebar (895) so sidebar is on top when open */
+    transition: background-color 120ms ease;
+}
+
+/* Subtle visual feedback when hovering the hover zone (closed-state affordance) */
+.jp-sidebar-hover-zone:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+/* Sticky sidebars (overlay/hover modes) - TD-2 + TD-4 */
+.jp-sidebar-sticky {
+    position: fixed !important;
+    /* top set by JavaScript (headerHeight + paddingV) - DO NOT use !important */
+    top: var(--jp-header-height, 35px);
+    bottom: 20px;  /* 20px from bottom for padding */
+    height: auto !important;
+    max-height: none !important;  /* Height controlled by top/bottom */
+    /* Closed state uses width: 0; prevent content from bleeding out */
+    overflow: hidden !important;
+}
+
+.jp-sidebar-sticky .jp-sidebar-content {
+    height: 100%;  /* Fill parent */
+    max-height: none;  /* Remove max-height constraint */
+    overflow-y: auto;
+}
+
+.jp-sidebar-separator-sticky {
+    position: fixed !important;
+    /* top set by JavaScript (headerHeight + paddingV) - DO NOT use !important */
+    top: var(--jp-header-height, 35px);
+    bottom: 20px;  /* Match sidebar */
+    height: auto !important;
+    max-height: none !important;
+}
+
+/* Hover zone for sticky mode */
+.jp-sidebar-hover-zone-sticky {
+    position: fixed !important;
+    /* top set by JavaScript (headerHeight + paddingV) - DO NOT use !important */
+    top: var(--jp-header-height, 35px);
+    /* bottom set by JavaScript - DO NOT use !important */
+    bottom: 20px;  /* Match sidebar and separator */
+    height: auto !important;
+    max-height: none !important;
+}
 
 /* Hide separator and toggle button when sidebar mode is 'always' */
 .jp-sidebar-mode-always.jp-sidebar-left ~ .jp-sidebar-separator-left,
@@ -4090,7 +4200,8 @@ h6 .heading-anchor {
 
 /* Component separators - horizontal divider between sidebar components */
 /* Only show divider between visible components (exclude hidden and empty ones) */
-.jp-sidebar-component:not(:first-child):not(.jp-sidebar-page-component-empty):not(.jp-sidebar-empty) {
+/* Use adjacent sibling selector to only show divider after visible components */
+.jp-sidebar-component:not(.jp-sidebar-page-component-empty):not(.jp-sidebar-empty) + .jp-sidebar-component:not(.jp-sidebar-page-component-empty):not(.jp-sidebar-empty) {
     margin-top: 0.75rem;
     padding-top: 0.75rem;
     border-top: 2px solid #e0e0e0;
@@ -4315,6 +4426,26 @@ h6 .heading-anchor {
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);  /* Visual lift */
         /* Transition always on base element so it animates all transform changes */
         transition: transform 200ms cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+    }
+
+    /* Mobile: Override sticky classes (mobile uses its own fixed positioning) */
+    .jp-sidebar-sticky {
+        position: fixed !important;
+        top: var(--jp-header-height, 70px) !important;
+        height: calc(100vh - var(--jp-header-height, 70px)) !important;
+        max-height: none !important;
+    }
+
+    .jp-sidebar-separator-sticky {
+        position: fixed !important;
+        top: calc(var(--jp-header-height, 70px) + 10vh) !important;
+        height: 60vh !important;
+        max-height: none !important;
+    }
+
+    .jp-sidebar-hover-zone-sticky {
+        /* Mobile hover zones don't exist, but guard against stale classes */
+        display: none !important;
     }
 
     /* Left sidebar positioning */

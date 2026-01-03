@@ -4,8 +4,8 @@
  * @tagline         Footer template for jPulse pages
  * @description     Footer included in all jPulse pages to provide a consistent page layout
  * @file            webapp/view/jpulse-footer.tmpl
- * @version         1.4.2
- * @release         2026-01-01
+ * @version         1.4.3
+ * @release         2026-01-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -67,11 +67,13 @@
 {{#if appConfig.view.pageDecoration.sidebar.left.enabled}}
 <aside id="jp-sidebar-left" class="jp-sidebar jp-sidebar-left jp-sidebar-mode-{{appConfig.view.pageDecoration.sidebar.left.mode}} jp-sidebar-{{appConfig.view.pageDecoration.sidebar.left.behavior}}" data-sidebar="left">
     <div class="jp-sidebar-content">
-        {{#each appConfig.view.pageDecoration.sidebar.left.components}}
-            {{components name=(this)}}
-        {{/each}}
-        <div class="jp-sidebar-empty" id="jp-sidebar-empty-left" style="display: none;">
-            {{i18n.view.pageDecoration.sidebar.empty}}
+        <div class="jp-sidebar-content-scroll">
+            {{#each appConfig.view.pageDecoration.sidebar.left.components}}
+                {{components name=(this)}}
+            {{/each}}
+            <div class="jp-sidebar-empty" id="jp-sidebar-empty-left" style="display: none;">
+                {{i18n.view.pageDecoration.sidebar.empty}}
+            </div>
         </div>
     </div>
     {{!-- Mobile close button (inside sidebar) --}}
@@ -86,11 +88,13 @@
 {{#if appConfig.view.pageDecoration.sidebar.right.enabled}}
 <aside id="jp-sidebar-right" class="jp-sidebar jp-sidebar-right jp-sidebar-mode-{{appConfig.view.pageDecoration.sidebar.right.mode}} jp-sidebar-{{appConfig.view.pageDecoration.sidebar.right.behavior}}" data-sidebar="right">
     <div class="jp-sidebar-content">
-        {{#each appConfig.view.pageDecoration.sidebar.right.components}}
-            {{components name=(this)}}
-        {{/each}}
-        <div class="jp-sidebar-empty" id="jp-sidebar-empty-right" style="display: none;">
-            {{i18n.view.pageDecoration.sidebar.empty}}
+        <div class="jp-sidebar-content-scroll">
+            {{#each appConfig.view.pageDecoration.sidebar.right.components}}
+                {{components name=(this)}}
+            {{/each}}
+            <div class="jp-sidebar-empty" id="jp-sidebar-empty-right" style="display: none;">
+                {{i18n.view.pageDecoration.sidebar.empty}}
+            </div>
         </div>
     </div>
     {{!-- Mobile close button (inside sidebar) --}}

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.2
+# jPulse Docs / Dev / Work Items v1.4.3
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3427,17 +3427,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/.markdown:
     - Added sidebars.md and sidebar-components.md to publish list
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-122, v1.4.2, 2026-01-01: markdown: v1.4.1 bug fix for ignore files still accessible in jpulse-docs
 - status: ✅ DONE
 - type: Bug Fix
@@ -3464,6 +3453,45 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - Fixed symlink handling: use `lstatSync()` instead of `existsSync()` to properly detect and remove symlinks before copying
     - Added `isFrameworkDevRepo()` safeguard to prevent accidental execution in framework development repository
 
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-123, v1.4.3, 2026-01-03: view: sidebars with open on hover mode and auto-close
+- status: ✅ DONE
+- type: Feature
+- objective: qick way to access and use the Table of Contents in the right sidebar
+- prerequisites:
+  - docs/dev/working/W-068-sidebar-generalization.md
+- spec:
+  - add desktop hover mode to sidebars, to allow instant access without toggle clicks
+  - in hover / overlay behavior: use sticky viewport positioning so a long page can be read while TOC stays quickly accessible
+  - add auto-close behavior (desktop + mobile) when clicking a link inside the sidebar and when clicking outside the sidebar
+  - keep existing toggle and always modes behavior unchanged
+  - keep mobile UX unchanged (mobile does not use hover mode)
+- deliverables:
+  - webapp/view/jpulse-common.js:
+    - add hover mode (open on hover over hover zone; close on leave with delay)
+    - add sticky layout for overlay / hover behavior (stable viewport margins)
+    - add auto-close on link click and outside click when enabled
+    - support separator drag-to-resize in hover mode (apply width on drag end)
+  - webapp/view/jpulse-common.css:
+    - add hover zone styles and hover indication
+    - add sticky sidebar / separator styles (position fixed; JS controlled top/bottom)
+    - ensure closed/open animations work with sticky positioning
+    - add inner scroll wrapper styles and content fade behavior
+  - webapp/view/jpulse-footer.tmpl:
+    - add inner scroll wrapper container for sidebar content
+  - webapp/app.conf:
+    - enable right sidebar hover mode for docs use cases and configure auto close on click
+  - docs/sidebars.md:
+    - document hover mode, sticky behavior, and auto-close on click
 
 
 
@@ -3499,8 +3527,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-122, v1.4.2
-- update deliverables in W-122 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-123, v1.4.3
+- update deliverables in W-123 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -3517,12 +3545,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.2
+node bin/bump-version.js 1.4.3
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.2
+git tag v1.4.3
 git push origin main --tags
 
 === plugin release & package build on github ===

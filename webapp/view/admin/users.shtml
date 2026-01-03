@@ -4,8 +4,8 @@
  * @tagline         Admin user management interface
  * @description     User management dashboard for site administrators
  * @file            webapp/view/admin/users.shtml
- * @version         1.4.2
- * @release         2026-01-01
+ * @version         1.4.3
+ * @release         2026-01-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -280,7 +280,7 @@
                     document.getElementById('recentLogins').textContent = stats.recentLogins?.last30d || 0;
                 }
             } catch (error) {
-                console.error('Failed to load stats:', error);
+                console.error('- jPulse: Failed to load stats:', error);
             }
         }
 
@@ -500,7 +500,7 @@
                     jPulse.UI.toast.error('Failed to load role options: ' + (response.error || 'Unknown error'));
                 }
             } catch (error) {
-                console.error('Failed to load roles:', error);
+                console.error('- jPulse: Failed to load roles:', error);
                 jPulse.UI.toast.error('Failed to load role options. Please refresh the page.');
             }
         }
@@ -532,7 +532,7 @@
                     jPulse.UI.toast.error('Failed to load status options: ' + (response.error || 'Unknown error'));
                 }
             } catch (error) {
-                console.error('Failed to load statuses:', error);
+                console.error('- jPulse: Failed to load statuses:', error);
                 jPulse.UI.toast.error('Failed to load status options. Please refresh the page.');
             }
         }

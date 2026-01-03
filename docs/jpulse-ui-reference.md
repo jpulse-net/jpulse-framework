@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.4.2
+# jPulse Docs / jPulse.UI Widget Reference v1.4.3
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 

@@ -4,8 +4,8 @@
  * @tagline         Admin user profile management with view and edit capabilities
  * @description     Admin user profile management with view and edit modes
  * @file            webapp/view/admin/user-profile.shtml
- * @version         1.4.2
- * @release         2026-01-01
+ * @version         1.4.3
+ * @release         2026-01-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -674,7 +674,7 @@
                         await loadUser();
                     }
                 } else {
-                    console.error(`Handler not found: ${action.handler}`);
+                    console.error(`- jPulse: Handler not found: ${action.handler}`);
                     jPulse.UI.toast.error(`Handler not available: ${action.handler}`);
                 }
             }
@@ -738,7 +738,7 @@
                     availableRoles = response.data.roles;
                 }
             } catch (error) {
-                console.error('Failed to load roles:', error);
+                console.error('- jPulse: Failed to load roles:', error);
             }
         }
 
@@ -766,7 +766,7 @@
                     }
                 }
             } catch (error) {
-                console.error('Failed to load statuses:', error);
+                console.error('- jPulse: Failed to load statuses:', error);
             }
         }
 
@@ -791,7 +791,7 @@
                     languageSelect.value = currentValue;
                 }
             } catch (error) {
-                console.error('Failed to load languages:', error);
+                console.error('- jPulse: Failed to load languages:', error);
             }
         }
 
@@ -816,7 +816,7 @@
                     themeSelect.value = currentValue;
                 }
             } catch (error) {
-                console.error('Failed to load themes:', error);
+                console.error('- jPulse: Failed to load themes:', error);
             }
         }
 

@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.4.2
- * @release         2026-01-01
+ * @version         1.4.3
+ * @release         2026-01-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -190,7 +190,7 @@ window.jPulse = {
 
             // Log error to console
             if (logError) {
-                console.error(`- API error during ${action}:`, error);
+                console.error(`- jPulse.api: API error during ${action}:`, error);
             }
 
             // Show user-friendly message
@@ -971,7 +971,7 @@ window.jPulse = {
                                         shouldClose = false;
                                     }
                                 } catch (error) {
-                                    console.error('Dialog callback error:', error);
+                                    console.error('- jPulse.UI.confirmDialog: Dialog callback error:', error);
                                 }
                             }
 
@@ -1045,7 +1045,7 @@ window.jPulse = {
             register: (elementId, config = {}) => {
                 const element = document.getElementById(elementId);
                 if (!element) {
-                    console.warn(`Collapsible element with ID '${elementId}' not found`);
+                    console.warn(`- jPulse.UI.collabsible: Collapsible element with ID '${elementId}' not found`);
                     return null;
                 }
 
@@ -1077,7 +1077,7 @@ window.jPulse = {
             _toggle: (elementId) => {
                 const element = document.getElementById(elementId);
                 if (!element) {
-                    console.warn(`Collapsible element with ID '${elementId}' not found`);
+                    console.warn(`- jPulse.UI.collapsible: Collapsible element with ID '${elementId}' not found`);
                     return;
                 }
 
@@ -1096,7 +1096,7 @@ window.jPulse = {
             _expand: (elementId) => {
                 const element = document.getElementById(elementId);
                 if (!element) {
-                    console.warn(`Collapsible element with ID '${elementId}' not found`);
+                    console.warn(`- jPulse.UI.collapsible: Collapsible element with ID '${elementId}' not found`);
                     return;
                 }
                 jPulse.UI.collapsible._expandElement(element);
@@ -1109,7 +1109,7 @@ window.jPulse = {
             _collapse: (elementId) => {
                 const element = document.getElementById(elementId);
                 if (!element) {
-                    console.warn(`Collapsible element with ID '${elementId}' not found`);
+                    console.warn(`- jPulse.UI.collapsible: Collapsible element with ID '${elementId}' not found`);
                     return;
                 }
                 jPulse.UI.collapsible._collapseElement(element);
@@ -1123,7 +1123,7 @@ window.jPulse = {
             _isExpanded: (elementId) => {
                 const element = document.getElementById(elementId);
                 if (!element) {
-                    console.warn(`Collapsible element with ID '${elementId}' not found`);
+                    console.warn(`- jPulse.UI.collapsible: Collapsible element with ID '${elementId}' not found`);
                     return false;
                 }
                 return element.classList.contains('jp-expanded');
@@ -1147,7 +1147,7 @@ window.jPulse = {
                     // If no .jp-collapsible-header, use the h3 directly
                     h3 = collapsibleElement.querySelector('h3');
                     if (!h3) {
-                        console.warn('Collapsible element missing required h3 or .jp-collapsible-header');
+                        console.warn('- jPulse.UI.collapsible: Collapsible element missing required h3 or .jp-collapsible-header');
                         return;
                     }
                     header = h3; // Use h3 as the clickable header
@@ -1259,7 +1259,7 @@ window.jPulse = {
             register: (elementId, options = {}) => {
                 const element = document.getElementById(elementId);
                 if (!element) {
-                    console.warn(`Accordion element with ID '${elementId}' not found`);
+                    console.warn(`- jPulse.UI.accordion: Accordion element with ID '${elementId}' not found`);
                     return null;
                 }
 
@@ -1329,7 +1329,7 @@ window.jPulse = {
                 // Find header (h3 or h4 element)
                 const header = section.querySelector('h3, h4');
                 if (!header) {
-                    console.warn('Accordion section missing required h3 or h4 element');
+                    console.warn('- jPulse.UI.accordion: Accordion section missing required h3 or h4 element');
                     return;
                 }
 
@@ -1529,7 +1529,7 @@ window.jPulse = {
                 jPulse.UI.breadcrumbs._navConfig = jPulse.UI.navigation._sanitizeNavStructure(options.navigation);
 
                 if (!jPulse.UI.breadcrumbs._navConfig) {
-                    console.warn('jPulse.UI.breadcrumbs: No navigation structure provided');
+                    console.warn('- jPulse.UI.breadcrumbs: No navigation structure provided');
                     return null;
                 }
 
@@ -1604,7 +1604,7 @@ window.jPulse = {
                     || window.jPulseSiteNavigation;
 
                 if (!navConfig) {
-                    console.warn('jPulse.UI.breadcrumbs: No navigation structure found');
+                    console.warn('- jPulse.UI.breadcrumbs: No navigation structure found');
                     return;
                 }
 
@@ -2001,7 +2001,7 @@ window.jPulse = {
             register: (elementId, options = {}, activeTabId = null) => {
                 const element = document.getElementById(elementId);
                 if (!element) {
-                    console.warn(`Tab element with ID '${elementId}' not found`);
+                    console.warn(`- jPulse.UI.tabs: Tab element with ID '${elementId}' not found`);
                     return null;
                 }
 
@@ -2037,7 +2037,7 @@ window.jPulse = {
                 const hasPanelTabs = config.tabs.some(tab => tab.panelId);
 
                 if (hasNavTabs && hasPanelTabs) {
-                    console.warn('Mixed navigation and panel tabs in same group not supported');
+                    console.warn('- jPulse.UI.tabs: Mixed navigation and panel tabs in same group not supported');
                     return null;
                 }
 
@@ -2310,7 +2310,7 @@ window.jPulse = {
                 }
 
                 if (!targetPanel) {
-                    console.warn(`Panel with ID '${tabData.panelId}' not found`);
+                    console.warn(`- jPulse.UI.tabs: Panel with ID '${tabData.panelId}' not found`);
                     return;
                 }
 
@@ -2618,7 +2618,7 @@ window.jPulse = {
                 const oldRoles = JSON.stringify(jPulse.UI.navigation._userRoles);
 
                 if (jPulse.UI.navigation._initialized && newRoles === oldRoles) {
-                    console.warn('jPulse.UI.navigation already initialized with same roles');
+                    console.warn('- jPulse.UI.navigation: Already initialized with same roles');
                     return null;
                 }
 
@@ -2645,7 +2645,7 @@ window.jPulse = {
                 // Get navigation structure from options parameter (passed from server)
                 const navConfig = options.navigation;
                 if (!navConfig || Object.keys(navConfig).length === 0) {
-                    console.warn('No navigation structure provided');
+                    console.warn('- jPulse.UI.navigation: No navigation structure provided');
                     return null;
                 }
                 // Sanitize navigation to remove null deletion markers (W-098)
@@ -2675,7 +2675,7 @@ window.jPulse = {
              */
             registerPages: async (sectionKey, callback) => {
                 if (typeof callback !== 'function') {
-                    console.error('registerPages: callback must be a function');
+                    console.error('- jPulse.UI.navigation: registerPages: callback must be a function');
                     return;
                 }
 
@@ -2684,7 +2684,7 @@ window.jPulse = {
                 const section = navConfig?.[sectionKey];
 
                 if (!section) {
-                    console.warn(`Navigation section '${sectionKey}' not found in navigation config`);
+                    console.warn(`- jPulse.UI.navigation: Navigation section '${sectionKey}' not found in navigation config`);
                     return;
                 }
 
@@ -2708,7 +2708,7 @@ window.jPulse = {
                         jPulse.UI.breadcrumbs.refresh();
                     }
                 } catch (error) {
-                    console.error(`Failed to load dynamic pages for ${sectionKey}:`, error);
+                    console.error(`- jPulse.UI.navigation: Failed to load dynamic pages for ${sectionKey}:`, error);
                 }
             },
 
@@ -3687,7 +3687,7 @@ window.jPulse = {
                     // Render full structure - no flattening
                     jPulse.UI.docs._renderNavigation(viewer, data.files);
                 } catch (error) {
-                    console.error('Failed to load navigation:', error);
+                    console.error('- jPulse.UI.docs: Failed to load navigation:', error);
                     if (viewer._config.onError) {
                         viewer._config.onError(error);
                     }
@@ -3835,7 +3835,7 @@ window.jPulse = {
                         });
                     }
                 } else {
-                    console.error('marked.js not loaded. Include: <script src="/common/marked/marked.min.js"></script>');
+                    console.error('- jPulse.UI.docs: marked.js not loaded. Include: <script src="/common/marked/marked.min.js"></script>');
                     viewer._contentEl.innerHTML = `<pre>${content}</pre>`;
 
                     // W-118: Initialize heading anchors even for plain text
@@ -3900,7 +3900,7 @@ window.jPulse = {
                         const path = link.getAttribute('data-path');
                         if (!path) {
                             // Title link clicked - navigate to root
-                            const url = `/${viewer.namespace}/`;
+                        const url = `/${viewer.namespace}/`;
                             history.pushState({ path: 'README.md' }, '', url);
                             viewer.currentPath = 'README.md';
                         } else {
@@ -3949,7 +3949,7 @@ window.jPulse = {
                                 const hash = url.hash || null;
 
                                 // Use SPA navigation instead of full page reload
-                                e.preventDefault();
+                        e.preventDefault();
                                 await viewer.navigateTo(docPath, hash);
                                 return;
                             }
@@ -4554,7 +4554,7 @@ window.jPulse = {
              */
             register: function(callback) {
                 if (typeof callback !== 'function') {
-                    console.error('jPulse.UI.windowFocus.register: callback must be a function');
+                    console.error('- jPulse.UI.windowFocus.register: callback must be a function');
                     return () => {};
                 }
 
@@ -4570,7 +4570,7 @@ window.jPulse = {
                 try {
                     callback(jPulse.UI.windowFocus._hasFocus);
                 } catch (error) {
-                    console.error('jPulse.UI.windowFocus: callback error:', error);
+                    console.error('- jPulse.UI.windowFocus: callback error:', error);
                 }
 
                 // Return unregister function
@@ -4653,7 +4653,7 @@ window.jPulse = {
                     try {
                         callback(newFocus);
                     } catch (error) {
-                        console.error('jPulse.UI.windowFocus: callback error:', error);
+                        console.error('- jPulse.UI.windowFocus: callback error:', error);
                     }
                 });
             }
@@ -4802,7 +4802,7 @@ window.jPulse = {
                                 jPulse.UI.toast.show(message, 'success', { duration: 2000 });
                             }
                         } catch (err) {
-                            console.warn('Clipboard copy failed:', err);
+                            console.warn('- jPulse.UI.headingAnchor: Clipboard copy failed:', err);
 
                             // Fallback: show URL in toast
                             if (jPulse.UI.toast) {
@@ -4932,13 +4932,17 @@ window.jPulse = {
 
                 // Reflow: apply padding to target element
                 if (leftOpen && leftBehavior === 'reflow') {
-                    const reflowGap = 15; // Reduced from 20px
+                    // Use smaller gap for custom containers (they often have their own padding)
+                    // Use larger gap for .jp-main (no inherent padding between sidebar and content)
+                    const reflowGap = (leftTarget !== main) ? 4 : 15;
                     leftTarget.style.setProperty('--jp-sidebar-reflow-padding-left', `${this._basePaddingH + this._getWidth('left') + reflowGap}px`);
                     leftTarget.classList.add('jp-sidebar-reflow-active-left');
                 }
 
                 if (rightOpen && rightBehavior === 'reflow') {
-                    const reflowGap = 15; // Reduced from 20px
+                    // Use smaller gap for custom containers (they often have their own padding)
+                    // Use larger gap for .jp-main (no inherent padding between sidebar and content)
+                    const reflowGap = (rightTarget !== main) ? 4 : 15;
                     rightTarget.style.setProperty('--jp-sidebar-reflow-padding-right', `${this._basePaddingRight + this._getWidth('right') + reflowGap}px`);
                     rightTarget.classList.add('jp-sidebar-reflow-active-right');
                 }
@@ -4962,6 +4966,40 @@ window.jPulse = {
                 const cfg = this._config.sidebar[side];
                 const width = (cfg && cfg.width) || this._defaultWidth[side];
                 return Math.min(Math.max(width, 120), 600); // clamp config/default too
+            },
+
+            _shouldUseSticky(side) {
+                const cfg = this._config.sidebar[side];
+                if (!cfg || !cfg.enabled) return false;
+
+                // Sticky behavior for overlay-based modes (hover always uses overlay, or explicit overlay)
+                return (cfg.mode === 'hover' || (cfg.behavior || 'reflow') === 'overlay');
+            },
+
+            _getStickyViewportOffsets(main, headerHeight) {
+                if (!main) return { top: headerHeight, bottom: 0 };
+
+                // Cache offsets so scrolling does NOT change the sticky margins.
+                // Recompute only when explicitly invalidated (resize / main replacement).
+                if (this._stickyViewportOffsetsCache) {
+                    return this._stickyViewportOffsetsCache;
+                }
+
+                const mainRect = main.getBoundingClientRect();
+
+                const MAX_MARGIN = 100;
+
+                // Top: use the viewport gap at the time we compute the cache.
+                const topBase = Math.min(MAX_MARGIN, Math.max(headerHeight, mainRect.top));
+                // Add a small offset to visually separate from .jp-main
+                const top = Math.min(MAX_MARGIN, topBase + 5);
+
+                // Bottom: symmetry within white page background (exclude blue banner area)
+                // bottom = top - headerHeight (clamp to [0..MAX_MARGIN])
+                const bottom = Math.max(10, Math.min(MAX_MARGIN, top - headerHeight));
+
+                this._stickyViewportOffsetsCache = { top, bottom };
+                return this._stickyViewportOffsetsCache;
             },
 
             _layoutSide(main, side, state) {
@@ -4999,80 +5037,164 @@ window.jPulse = {
                     return;
                 }
 
-                // Desktop mode (existing code)
+                // Desktop mode: Detect sticky mode (TD-2 + TD-4)
+                const useSticky = this._shouldUseSticky(side);
+
+                // Simple guard: Remove sticky classes if mode no longer requires them
+                if (!useSticky) {
+                    sidebarEl.classList.remove('jp-sidebar-sticky');
+                    separatorEl.classList.remove('jp-sidebar-separator-sticky');
+                }
+
                 const { paddingH, paddingR, paddingV, usableHeight } = this._getPaddingAndHeight(main);
                 const width = this._getWidth(side);
 
-                // Check if custom reflow target is set - use its top position
-                const reflowTarget = this._reflowTarget[side];
-                let topOffset = paddingV;
-                let adjustedHeight = usableHeight;
+                if (useSticky) {
+                    // ===== STICKY MODE (overlay/hover) - TD-2 + TD-4 =====
+                    sidebarEl.classList.add('jp-sidebar-sticky');
+                    separatorEl.classList.add('jp-sidebar-separator-sticky');
 
-                if (reflowTarget && reflowTarget !== main) {
-                    // Measure where the reflow target actually starts relative to .jp-main
+                    // Calculate viewport-relative positions (fixed positioning)
                     const mainRect = main.getBoundingClientRect();
-                    const targetRect = reflowTarget.getBoundingClientRect();
-                    topOffset = targetRect.top - mainRect.top;
-                    adjustedHeight = Math.max(0, main.clientHeight - topOffset - paddingV);
-                }
 
-                // shared vertical geometry
-                sidebarEl.style.top = `${topOffset}px`;
-                sidebarEl.style.bottom = `${paddingV}px`;
-                sidebarEl.style.height = `${adjustedHeight}px`;
-                separatorEl.style.top = `${topOffset}px`;
-                separatorEl.style.bottom = `${paddingV}px`;
-                separatorEl.style.height = `${adjustedHeight}px`;
+                    // Get header height from CSS variable or use fallback
+                    const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--jp-header-height') || '35', 10);
 
-                if (state === 'open') {
-                    sidebarEl.classList.add('jp-sidebar-open');
-                    sidebarEl.classList.remove('jp-sidebar-closed');
+                    // Sticky/hover/overlay: fixed viewport margins (simple, stable across scroll)
+                    // top: banner height + .jp-main margin-top (max 100px)
+                    // bottom: footer height + .jp-main margin-bottom (max 100px)
+                    const { top: topPosition, bottom: bottomPosition } = this._getStickyViewportOffsets(main, headerHeight);
 
-                    if (side === 'left') {
-                        sidebarEl.style.left = `${paddingH}px`;
-                        sidebarEl.style.right = '';
-                        sidebarEl.style.width = `${width}px`;
+                    // Set position explicitly (don't rely on CSS alone)
+                    sidebarEl.style.position = 'fixed';
+                    sidebarEl.style.top = `${topPosition}px`;
+                    sidebarEl.style.bottom = `${bottomPosition}px`;
+                    sidebarEl.style.height = 'auto';
+
+                    separatorEl.style.position = 'fixed';
+                    separatorEl.style.top = `${topPosition}px`;
+                    separatorEl.style.bottom = `${bottomPosition}px`;
+                    separatorEl.style.height = 'auto';
+
+                    if (state === 'open') {
+                        // OPEN: Position at .jp-main edge + padding
+                        if (side === 'left') {
+                            const leftOffset = mainRect.left + paddingH;
+                            sidebarEl.style.left = `${leftOffset}px`;
+                            sidebarEl.style.right = '';
+                            sidebarEl.style.width = `${width}px`;
+                            separatorEl.style.left = `${leftOffset + width - 4}px`;
+                            separatorEl.style.right = '';
+                        } else {
+                            const rightOffset = window.innerWidth - mainRect.right + paddingR;
+                            sidebarEl.style.right = `${rightOffset}px`;
+                            sidebarEl.style.left = '';
+                            sidebarEl.style.width = `${width}px`;
+                            separatorEl.style.right = `${rightOffset + width - 4}px`;
+                            separatorEl.style.left = '';
+                        }
+
+                        sidebarEl.classList.add('jp-sidebar-open');
+                        sidebarEl.classList.remove('jp-sidebar-closed');
                         separatorEl.classList.add('jp-sidebar-separator-open');
-                        separatorEl.style.left = `${paddingH + width - 4}px`;
-                        separatorEl.style.right = '';
-                    } else {
-                        // Right sidebar should align to the .jp-main padding edge
-                        sidebarEl.style.right = `${paddingR}px`;
-                        sidebarEl.style.left = '';
-                        sidebarEl.style.width = `${width}px`;
-                        separatorEl.classList.add('jp-sidebar-separator-open');
-                        // Separator stays flush with the inside edge of the sidebar
-                        separatorEl.style.right = `${paddingR + width - 4}px`;
-                        separatorEl.style.left = '';
-                    }
-
-                    // Mark separator for overlay gradient if this sidebar uses overlay behavior
-                    const cfg = this._config.sidebar[side];
-                    if ((cfg?.behavior || 'reflow') === 'overlay') {
                         separatorEl.classList.add('jp-sidebar-separator-overlay');
+
                     } else {
+                        // CLOSED: Both sidebar and separator at .jp-main edge (for animation from/to edge)
+                        if (side === 'left') {
+                            // Position at .jp-main left edge (viewport-relative)
+                            sidebarEl.style.left = `${mainRect.left}px`;
+                            sidebarEl.style.right = '';
+                            separatorEl.style.left = `${mainRect.left}px`;
+                            separatorEl.style.right = '';
+                        } else {
+                            // Position at .jp-main right edge (viewport-relative)
+                            const edgeOffset = window.innerWidth - mainRect.right;
+                            sidebarEl.style.right = `${edgeOffset}px`;
+                            sidebarEl.style.left = '';
+                            separatorEl.style.right = `${edgeOffset}px`;
+                            separatorEl.style.left = '';
+                        }
+                        sidebarEl.style.width = '0px';
+                        sidebarEl.classList.add('jp-sidebar-closed');
+                        sidebarEl.classList.remove('jp-sidebar-open');
+                        separatorEl.classList.remove('jp-sidebar-separator-open');
                         separatorEl.classList.remove('jp-sidebar-separator-overlay');
                     }
 
                 } else {
-                    sidebarEl.classList.add('jp-sidebar-closed');
-                    sidebarEl.classList.remove('jp-sidebar-open');
-                    separatorEl.classList.remove('jp-sidebar-separator-overlay');
-                    if (side === 'left') {
-                        // Closed: flush with .jp-main left edge (0px, not paddingH)
-                        sidebarEl.style.left = '0px';
-                        sidebarEl.style.right = '';
-                        separatorEl.style.left = '0px';
-                        separatorEl.style.right = '';
-                    } else {
-                        // Closed: flush with .jp-main right edge (0px, not paddingR)
-                        sidebarEl.style.right = '0px';
-                        sidebarEl.style.left = '';
-                        separatorEl.style.right = '0px';
-                        separatorEl.style.left = '';
+                    // ===== NON-STICKY MODE or CLOSED =====
+
+                    // Check if custom reflow target is set - use its top position
+                    const reflowTarget = this._reflowTarget[side];
+                    let topOffset = paddingV;
+                    let adjustedHeight = usableHeight;
+
+                    if (reflowTarget && reflowTarget !== main) {
+                        // Measure where the reflow target actually starts relative to .jp-main
+                        const mainRect = main.getBoundingClientRect();
+                        const targetRect = reflowTarget.getBoundingClientRect();
+                        topOffset = targetRect.top - mainRect.top;
+                        adjustedHeight = Math.max(0, main.clientHeight - topOffset - paddingV);
                     }
-                    sidebarEl.style.width = '0px';
-                    separatorEl.classList.remove('jp-sidebar-separator-open');
+
+                    // shared vertical geometry
+                    sidebarEl.style.top = `${topOffset}px`;
+                    sidebarEl.style.bottom = `${paddingV}px`;
+                    sidebarEl.style.height = `${adjustedHeight}px`;
+                    separatorEl.style.top = `${topOffset}px`;
+                    separatorEl.style.bottom = `${paddingV}px`;
+                    separatorEl.style.height = `${adjustedHeight}px`;
+
+                    if (state === 'open') {
+                        sidebarEl.classList.add('jp-sidebar-open');
+                        sidebarEl.classList.remove('jp-sidebar-closed');
+
+                        if (side === 'left') {
+                            sidebarEl.style.left = `${paddingH}px`;
+                            sidebarEl.style.right = '';
+                            sidebarEl.style.width = `${width}px`;
+                            separatorEl.classList.add('jp-sidebar-separator-open');
+                            separatorEl.style.left = `${paddingH + width - 4}px`;
+                            separatorEl.style.right = '';
+                        } else {
+                            // Right sidebar should align to the .jp-main padding edge
+                            sidebarEl.style.right = `${paddingR}px`;
+                            sidebarEl.style.left = '';
+                            sidebarEl.style.width = `${width}px`;
+                            separatorEl.classList.add('jp-sidebar-separator-open');
+                            // Separator stays flush with the inside edge of the sidebar
+                            separatorEl.style.right = `${paddingR + width - 4}px`;
+                            separatorEl.style.left = '';
+                        }
+
+                        // Mark separator for overlay gradient if this sidebar uses overlay behavior
+                        if ((cfg?.behavior || 'reflow') === 'overlay') {
+                            separatorEl.classList.add('jp-sidebar-separator-overlay');
+                        } else {
+                            separatorEl.classList.remove('jp-sidebar-separator-overlay');
+                        }
+
+                    } else {
+                        sidebarEl.classList.add('jp-sidebar-closed');
+                        sidebarEl.classList.remove('jp-sidebar-open');
+                        separatorEl.classList.remove('jp-sidebar-separator-overlay');
+                        if (side === 'left') {
+                            // Closed: flush with .jp-main left edge (0px, not paddingH)
+                            sidebarEl.style.left = '0px';
+                            sidebarEl.style.right = '';
+                            separatorEl.style.left = '0px';
+                            separatorEl.style.right = '';
+                        } else {
+                            // Closed: flush with .jp-main right edge (0px, not paddingR)
+                            sidebarEl.style.right = '0px';
+                            sidebarEl.style.left = '';
+                            separatorEl.style.right = '0px';
+                            separatorEl.style.left = '';
+                        }
+                        sidebarEl.style.width = '0px';
+                        separatorEl.classList.remove('jp-sidebar-separator-open');
+                    }
                 }
 
                 // Update main layout after any sidebar state change (supports both sidebars simultaneously)
@@ -5284,13 +5406,13 @@ window.jPulse = {
 
                 const targetEl = document.querySelector(selector);
                 if (!targetEl) {
-                    console.warn(`[Sidebars] Element not found: ${selector}`);
+                    console.warn(`- jPulse.UI.sidebars: Element not found: ${selector}`);
                     return false;
                 }
 
                 const main = document.querySelector('.jp-main');
                 if (!main || !main.contains(targetEl)) {
-                    console.warn(`[Sidebars] Element must be within .jp-main`);
+                    console.warn(`- jPulse.UI.sidebars: Element must be within .jp-main`);
                     return false;
                 }
 
@@ -5312,6 +5434,13 @@ window.jPulse = {
 
                 // Mobile: Ignore preferred state (auto-opening 85% sidebar is poor UX)
                 if (this._isMobile) {
+                    return false;
+                }
+
+                // Hover mode: Ignore preferred state (hover-only interaction)
+                const cfg = this._config.sidebar[side];
+                if (cfg?.mode === 'hover') {
+                    console.warn(`- jPulse.UI.sidebars: setPreferredState('${side}', '${state}') ignored: sidebar is in 'hover' mode (opens on hover only)`);
                     return false;
                 }
 
@@ -5379,7 +5508,7 @@ window.jPulse = {
             initComponent(componentName, options = {}) {
                 // Validate component name format
                 if (!componentName || !componentName.startsWith('sidebar.')) {
-                    console.warn(`[Sidebars] Invalid component name: '${componentName}'. Must start with 'sidebar.'`);
+                    console.warn(`- jPulse.UI.sidebars: Invalid component name: '${componentName}'. Must start with 'sidebar.'`);
                     return null;
                 }
 
@@ -5388,7 +5517,7 @@ window.jPulse = {
                              componentName.includes('Right') ? 'right' : null;
 
                 if (!side) {
-                    console.warn(`[Sidebars] Cannot determine sidebar side from component name: '${componentName}'`);
+                    console.warn(`- jPulse.UI.sidebars: Cannot determine sidebar side from component name: '${componentName}'`);
                     return null;
                 }
 
@@ -5403,7 +5532,7 @@ window.jPulse = {
                 const componentId = `jp-sidebar-page-component-${side}`;
                 const componentEl = document.getElementById(componentId);
                 if (!componentEl) {
-                    console.warn(`[Sidebars] Component '${componentName}' (${componentId}) not found in DOM`);
+                    console.warn(`- jPulse.UI.sidebars: Component '${componentName}' (${componentId}) not found in DOM`);
                     return null;
                 }
 
@@ -5425,7 +5554,7 @@ window.jPulse = {
                     try {
                         options.onLoad(componentEl);
                     } catch (error) {
-                        console.error(`[Sidebars] Error in onLoad callback for '${componentName}':`, error);
+                        console.error(`- jPulse.UI.sidebars: Error in onLoad callback for '${componentName}':`, error);
                     }
                 }
 
@@ -5445,7 +5574,7 @@ window.jPulse = {
                             try {
                                 componentEl._jpSidebarRefresh(componentEl);
                             } catch (error) {
-                                console.error(`[Sidebars] Error in refresh callback for '${componentName}':`, error);
+                                console.error(`- jPulse.UI.sidebars: Error in refresh callback for '${componentName}':`, error);
                             }
                         }
                     },
@@ -5534,12 +5663,14 @@ window.jPulse = {
                             });
                         }
 
-                        // Set up sidebar link click handlers (close sidebar on mobile)
+                        // Set up sidebar link click handlers (W-123: close sidebar on mobile or desktop with autoCloseOnClick)
                         ['left', 'right'].forEach(side => {
                             const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+                            const cfg = this._config.sidebar[side];
                             if (sidebarEl) {
                                 sidebarEl.addEventListener('click', (e) => {
-                                    if (!this._isMobile) return;
+                                    // Skip if not mobile AND not desktop with autoCloseOnClick enabled
+                                    if (!this._isMobile && !cfg?.autoCloseOnClick) return;
 
                                     // Check if click target is a link or inside a link
                                     const link = e.target.closest('a');
@@ -5551,6 +5682,33 @@ window.jPulse = {
                                     }
                                 });
                             }
+                        });
+
+                        // TD-3: Set up click-outside handler for desktop with autoCloseOnClick
+                        document.addEventListener('click', (e) => {
+                            // Only on desktop
+                            if (this._isMobile) return;
+
+                            // Check each sidebar
+                            ['left', 'right'].forEach(side => {
+                                const cfg = this._config.sidebar[side];
+                                const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+
+                                // Only if autoCloseOnClick enabled and sidebar exists
+                                if (!cfg?.autoCloseOnClick || !sidebarEl) return;
+
+                                // Only if sidebar is currently open
+                                if (!sidebarEl.classList.contains('jp-sidebar-open')) return;
+
+                                // Check if click is outside sidebar and separator
+                                const separatorEl = document.querySelector(`.jp-sidebar-separator-${side}`);
+                                const clickedInsideSidebar = sidebarEl.contains(e.target);
+                                const clickedOnSeparator = separatorEl && separatorEl.contains(e.target);
+
+                                if (!clickedInsideSidebar && !clickedOnSeparator) {
+                                    this.close(side);
+                                }
+                            });
                         });
 
                         // Retry if elements not found yet
@@ -5738,6 +5896,298 @@ window.jPulse = {
                 });
             },
 
+            _initHoverMode(side) {
+                const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
+                const separatorEl = document.querySelector(`.jp-sidebar-separator-${side}`);
+                const cfg = this._config.sidebar[side];
+                const main = document.querySelector('.jp-main');
+
+                if (!sidebarEl || !separatorEl || !cfg || !main) {
+                    console.warn(`- jPulse.UI.sidebars: Hover mode init failed for ${side}: missing elements`);
+                    return;
+                }
+
+                // Hover mode: Force overlay behavior and autoCloseOnClick
+                cfg.behavior = 'overlay';
+                cfg.autoCloseOnClick = true;
+
+                // Hide toggle button in hover mode (interaction is hover-based, not click-based)
+                const toggleBtn = separatorEl.querySelector('.jp-sidebar-toggle');
+                if (toggleBtn) {
+                    toggleBtn.style.display = 'none';
+                }
+
+                let openTimer = null;
+                let closeTimer = null;
+                const OPEN_DELAY = 300;   // ms delay before opening (prevents accidental opens)
+                const CLOSE_DELAY = 500;  // ms delay before auto-close
+
+                // Calculate hover zone width to cover full padding + margin
+                const mainStyles = window.getComputedStyle(main);
+                const paddingH = side === 'left' ?
+                    parseInt(mainStyles.paddingLeft, 10) :
+                    parseInt(mainStyles.paddingRight, 10);
+                const HOVER_MARGIN = 20;   // px extending outside .jp-main edge (wider for easier targeting)
+                const hoverZoneWidth = paddingH + HOVER_MARGIN; // e.g., 30px + 20px = 50px
+
+                // Create STATIC hover zone (Option A: never moves, always at edge)
+                const hoverZone = document.createElement('div');
+                hoverZone.className = 'jp-sidebar-hover-zone';
+                hoverZone.style.width = `${hoverZoneWidth}px`;
+                hoverZone.style.zIndex = '894'; // Below sidebar (895) so sidebar is on top when open
+                hoverZone.style.pointerEvents = 'auto';
+                // Background is controlled by CSS (.jp-sidebar-hover-zone and :hover)
+
+                // Detect sticky mode (hover mode always uses sticky)
+                const useSticky = this._shouldUseSticky(side);
+
+                if (useSticky) {
+                    // STICKY MODE: Fixed to viewport
+                    const mainRect = main.getBoundingClientRect();
+                    const headerHeight = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--jp-header-height') || '35', 10);
+                    const { top: topPosition, bottom: bottomPosition } = this._getStickyViewportOffsets(main, headerHeight);
+
+                    hoverZone.style.top = `${topPosition}px`;
+                    hoverZone.style.bottom = `${bottomPosition}px`;
+                    hoverZone.style.position = 'fixed';
+                    hoverZone.classList.add('jp-sidebar-hover-zone-sticky');
+
+                    // Calculate viewport-relative position
+                    if (side === 'left') {
+                        hoverZone.style.left = `${mainRect.left - HOVER_MARGIN}px`;
+                        hoverZone.style.right = '';
+                    } else {
+                        hoverZone.style.right = `${window.innerWidth - mainRect.right - HOVER_MARGIN}px`;
+                        hoverZone.style.left = '';
+                    }
+
+                    // Vertical position handled by CSS class - DON'T set inline styles that would override CSS
+                    // (CSS rule: .jp-sidebar-hover-zone-sticky sets top, max-height, etc.)
+
+                } else {
+                    // NON-STICKY MODE: Absolute within .jp-main
+                    hoverZone.style.position = 'absolute';
+
+                    if (side === 'left') {
+                        hoverZone.style.left = `-${HOVER_MARGIN}px`;
+                        hoverZone.style.right = '';
+                    } else {
+                        hoverZone.style.right = `-${HOVER_MARGIN}px`;
+                        hoverZone.style.left = '';
+                    }
+                }
+
+                // Insert into .jp-main
+                main.appendChild(hoverZone);
+
+                if (!useSticky) {
+                    // NON-STICKY: Sync vertical dimensions AFTER insertion (once separator is positioned by layoutSide)
+                    requestAnimationFrame(() => {
+                        hoverZone.style.top = separatorEl.style.top;
+                        hoverZone.style.bottom = separatorEl.style.bottom;
+                        // Don't set height - let it calculate from top/bottom
+                    });
+
+                    // Watch for separator dimension changes (happens when custom container is attached)
+                    const observer = new MutationObserver(() => {
+                        hoverZone.style.top = separatorEl.style.top;
+                        hoverZone.style.bottom = separatorEl.style.bottom;
+                    });
+                    observer.observe(separatorEl, {
+                        attributes: true,
+                        attributeFilter: ['style']
+                    });
+                }
+
+                // Helper to clear all timers
+                const clearAllTimers = () => {
+                    if (openTimer) {
+                        clearTimeout(openTimer);
+                        openTimer = null;
+                    }
+                    if (closeTimer) {
+                        clearTimeout(closeTimer);
+                        closeTimer = null;
+                    }
+                };
+
+                // Drag to resize (supported in hover mode as well)
+                let isDragging = false;
+                let startX = 0;
+                let startWidth = 0;
+                let baseEdgeOffset = 0;
+                let startTransitionSidebar = '';
+                let startTransitionSeparator = '';
+
+                const handleMouseMove = (e) => {
+                    if (!isDragging) return;
+
+                    const delta = side === 'left'
+                        ? e.clientX - startX
+                        : startX - e.clientX;
+
+                    const newWidth = Math.max(120, Math.min(600, startWidth + delta));
+                    const newSeparatorPos = baseEdgeOffset + newWidth - 4;
+
+                    // Performance: during drag, move only the separator (match toggle mode behavior)
+                    const currentSeparatorEl = document.querySelector(`.jp-sidebar-separator-${side}`);
+                    if (currentSeparatorEl) {
+                        currentSeparatorEl.style.transition = 'none';
+                        if (side === 'left') {
+                            currentSeparatorEl.style.left = `${newSeparatorPos}px`;
+                        } else {
+                            currentSeparatorEl.style.right = `${newSeparatorPos}px`;
+                        }
+                    }
+                };
+
+                const handleMouseUp = () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    this._isDragging = false; // Allow layoutAll again
+
+                    document.body.style.userSelect = '';
+                    document.body.style.cursor = '';
+                    document.body.classList.remove('jp-sidebar-dragging');
+
+                    const main = this._main || document.querySelector('.jp-main');
+                    if (!main) {
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        document.removeEventListener('mouseup', handleMouseUp);
+                        return;
+                    }
+
+                    // Calculate final width from separator position and the captured base edge offset
+                    const currentSeparatorEl = document.querySelector(`.jp-sidebar-separator-${side}`);
+                    let finalWidth = this._getWidth(side);
+                    if (currentSeparatorEl) {
+                        const pos = side === 'left'
+                            ? parseInt(currentSeparatorEl.style.left, 10)
+                            : parseInt(currentSeparatorEl.style.right, 10);
+                        if (!Number.isNaN(pos)) {
+                            finalWidth = Math.max(120, Math.min(600, pos - baseEdgeOffset + 4));
+                        }
+                    }
+                    localStorage.setItem(`jpulse-sidebar-${side}-width`, String(finalWidth));
+
+                    // Restore transitions
+                    sidebarEl.style.transition = startTransitionSidebar || '';
+                    separatorEl.style.transition = startTransitionSeparator || '';
+
+                    // Re-apply final layout using stored width
+                    this._layoutSide(main, side, 'open');
+
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                };
+
+                separatorEl.addEventListener('mousedown', (e) => {
+                    // Don't start drag if clicking on toggle button (even though hidden in hover)
+                    if (e.target.closest('.jp-sidebar-toggle')) return;
+
+                    clearAllTimers();
+
+                    // Ensure sidebar is open during drag
+                    if (!sidebarEl.classList.contains('jp-sidebar-open')) {
+                        this.open(side);
+                    }
+
+                    isDragging = true;
+                    this._isDragging = true; // Prevent layoutAll during drag
+                    document.body.classList.add('jp-sidebar-dragging');
+                    startX = e.clientX;
+                    startWidth = this._getWidth(side);
+                    startTransitionSidebar = sidebarEl.style.transition;
+                    startTransitionSeparator = separatorEl.style.transition;
+
+                    // Capture base edge offset from current open position (sticky-aware)
+                    baseEdgeOffset = side === 'left'
+                        ? (parseInt(sidebarEl.style.left, 10) || 0)
+                        : (parseInt(sidebarEl.style.right, 10) || 0);
+
+                    document.body.style.userSelect = 'none';
+                    document.body.style.cursor = 'ew-resize';
+
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', handleMouseUp);
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+
+                // Start open timer when hovering over separator or hover zone (only when closed)
+                const startOpenTimer = () => {
+                    if (isDragging) return;
+                    const isOpen = sidebarEl.classList.contains('jp-sidebar-open');
+                    if (isOpen) return; // Already open, nothing to do
+
+                    clearAllTimers();
+                    openTimer = setTimeout(() => {
+                        this.open(side);
+                        openTimer = null;
+                    }, OPEN_DELAY);
+                };
+
+                separatorEl.addEventListener('mouseenter', startOpenTimer);
+                hoverZone.addEventListener('mouseenter', startOpenTimer);
+
+                // Cancel open timer if mouse leaves before delay expires (only when closed)
+                const cancelOpenTimer = () => {
+                    if (openTimer) {
+                        clearTimeout(openTimer);
+                        openTimer = null;
+                    }
+                };
+
+                separatorEl.addEventListener('mouseleave', cancelOpenTimer);
+                hoverZone.addEventListener('mouseleave', cancelOpenTimer);
+
+                // When sidebar is open: sidebar, separator, and hover zone act as ONE unit
+                // Start close timer only when mouse leaves ALL THREE
+                const checkAndStartCloseTimer = (e) => {
+                    if (isDragging) return;
+                    const isOpen = sidebarEl.classList.contains('jp-sidebar-open');
+                    if (!isOpen) return; // Only matters when sidebar is open
+
+                    const relatedTarget = e.relatedTarget;
+
+                    // Check if mouse is moving to one of the three elements
+                    const isGoingToSidebar = relatedTarget === sidebarEl || sidebarEl.contains(relatedTarget);
+                    const isGoingToSeparator = relatedTarget === separatorEl || separatorEl.contains(relatedTarget);
+                    const isGoingToHoverZone = relatedTarget === hoverZone || hoverZone.contains(relatedTarget);
+
+                    if (isGoingToSidebar || isGoingToSeparator || isGoingToHoverZone) {
+                        // Mouse is still within the sidebar area, don't start close timer
+                        clearAllTimers();
+                        return;
+                    }
+
+                    // Mouse has left the entire sidebar area, start close timer
+                    clearAllTimers();
+                    closeTimer = setTimeout(() => {
+                        this.close(side);
+                        closeTimer = null;
+                    }, CLOSE_DELAY);
+                };
+
+                sidebarEl.addEventListener('mouseleave', checkAndStartCloseTimer);
+                separatorEl.addEventListener('mouseleave', checkAndStartCloseTimer);
+                hoverZone.addEventListener('mouseleave', checkAndStartCloseTimer);
+
+                // Cancel close timer when mouse re-enters any of the three elements
+                const cancelCloseTimer = () => {
+                    const isOpen = sidebarEl.classList.contains('jp-sidebar-open');
+                    if (isOpen) {
+                        clearAllTimers();
+                    }
+                };
+
+                sidebarEl.addEventListener('mouseenter', cancelCloseTimer);
+                separatorEl.addEventListener('mouseenter', cancelCloseTimer);
+                hoverZone.addEventListener('mouseenter', cancelCloseTimer);
+
+                // Note: Link click and outside click are handled by TD-3 (autoCloseOnClick: true)
+            },
+
             _bindControls(side) {
                 const separatorEl = document.querySelector(`.jp-sidebar-separator-${side}`);
                 if (!separatorEl) return;
@@ -5745,6 +6195,12 @@ window.jPulse = {
                 const cfg = this._config.sidebar[side];
                 // Skip all controls binding when mode is 'always' (separator/toggle are hidden)
                 if (cfg?.mode === 'always') {
+                    return;
+                }
+
+                // W-123: Handle hover mode (skip toggle button and drag binding)
+                if (cfg?.mode === 'hover' && !this._isMobile) {
+                    this._initHoverMode(side);
                     return;
                 }
 
@@ -5808,6 +6264,7 @@ window.jPulse = {
                     // Remove user-select prevention
                     document.body.style.userSelect = '';
                     document.body.style.cursor = '';
+                    document.body.classList.remove('jp-sidebar-dragging');
 
                     const main = this._main || document.querySelector('.jp-main');
                     const sidebarEl = document.getElementById(`jp-sidebar-${side}`);
@@ -5860,6 +6317,7 @@ window.jPulse = {
 
                     isDragging = true;
                     this._isDragging = true; // Prevent layoutAll during drag
+                    document.body.classList.add('jp-sidebar-dragging');
                     dragOccurred = false;
                     startX = e.clientX;
                     startWidth = sidebarEl.offsetWidth;
@@ -5904,6 +6362,7 @@ window.jPulse = {
                     const current = document.querySelector('.jp-main');
                     if (current && current !== this._main) {
                         this._observeMain(current);
+                        this._stickyViewportOffsetsCache = null;
                         this.layoutAll();
                     }
                 });
@@ -5925,7 +6384,7 @@ window.jPulse = {
 
                 const main = document.querySelector('.jp-main');
                 if (!main) {
-                    console.warn('[Sidebars] .jp-main not found');
+                    console.warn('- jPulse.UI.sidebars: .jp-main not found');
                     return;
                 }
 
@@ -5940,6 +6399,7 @@ window.jPulse = {
                 this._captureBasePadding(main);
                 this._observeMain(main);
                 this._observeMainReplacement();
+                this._stickyViewportOffsetsCache = null;
 
                 // Prevent initial "closed -> open" animation on page load.
                 // Apply initial layout with transitions disabled, then restore transitions next frame.
@@ -5959,6 +6419,19 @@ window.jPulse = {
                     const cfg = this._config.sidebar[side];
                     if (!cfg || !cfg.enabled) return;
                     this._bindControls(side);
+                });
+
+                // FIX: For sticky sidebars (hover/overlay mode), set initial closed position
+                // This ensures animations start/end at the correct edge on first interaction
+                ['left', 'right'].forEach(side => {
+                    const cfg = this._config.sidebar[side];
+                    if (!cfg || !cfg.enabled) return;
+
+                    // Check if sidebar will use sticky positioning
+                    if (cfg.mode === 'hover' || (cfg.mode === 'toggle' && cfg.behavior === 'overlay')) {
+                        // Set initial closed position (before any state restoration)
+                        this._layoutSide(main, side, 'closed');
+                    }
                 });
 
                 // Step 1: Check for state restoration from previous page
@@ -6032,7 +6505,30 @@ window.jPulse = {
                     });
                 });
 
-                window.addEventListener('resize', () => this.layoutAll());
+                window.addEventListener('resize', () => {
+                    this._stickyViewportOffsetsCache = null;
+                    this.layoutAll();
+
+                    // Update hover zones in sticky mode (fixed positioning requires viewport-relative recalculation)
+                    const main = this._main || document.querySelector('.jp-main');
+                    if (!main) return;
+
+                    ['left', 'right'].forEach(side => {
+                        if (this._shouldUseSticky(side)) {
+                            const hoverZone = document.querySelector('.jp-sidebar-hover-zone.jp-sidebar-hover-zone-sticky');
+                            if (hoverZone) {
+                                const mainRect = main.getBoundingClientRect();
+                                const HOVER_MARGIN = 20;  // Must match _initHoverMode value
+
+                                if (side === 'left') {
+                                    hoverZone.style.left = `${mainRect.left - HOVER_MARGIN}px`;
+                                } else {
+                                    hoverZone.style.right = `${window.innerWidth - mainRect.right - HOVER_MARGIN}px`;
+                                }
+                            }
+                        }
+                    });
+                });
             }
         }
     },
@@ -6093,7 +6589,7 @@ window.jPulse = {
                 document.body.removeChild(textArea);
                 return successful;
             } catch (err) {
-                console.error('Copy failed:', err);
+                console.error('- jPulse.UI.clipboard: Copy failed:', err);
                 document.body.removeChild(textArea);
                 return false;
             }
@@ -6198,7 +6694,7 @@ window.jPulse = {
                     break;
 
                 default:
-                    console.warn(`jPulse.ws: Unknown uuidStorage '${this._config.uuidStorage}', using 'session'`);
+                    console.warn(`- jPulse.ws: Unknown uuidStorage '${this._config.uuidStorage}', using 'session'`);
                     uuid = sessionStorage.getItem(storageKey);
                     if (!uuid) {
                         uuid = this._generateUUID();
@@ -6267,7 +6763,7 @@ window.jPulse = {
                         connection.ws.send(JSON.stringify(data));
                         return true;
                     }
-                    console.warn('jPulse.ws: Cannot send, connection not open');
+                    console.warn('- jPulse.ws: Cannot send, connection not open');
                     return false;
                 },
 
@@ -6344,7 +6840,7 @@ window.jPulse = {
 
                 // Connection opened
                 connection.ws.onopen = () => {
-                    console.log(`jPulse.ws: Connected to ${connection.path}`);
+                    console.log(`- jPulse.ws: Connected to ${connection.path}`);
                     connection.reconnectAttempts = 0;
                     this._updateStatus(connection, 'connected');
 
@@ -6378,17 +6874,17 @@ window.jPulse = {
                                     callback(null, message); // null data, full message for error handling
                                 }
                             } catch (error) {
-                                console.error('jPulse.ws: Message handler error:', error);
+                                console.error('- jPulse.ws: Message handler error:', error);
                             }
                         });
                     } catch (error) {
-                        console.error('jPulse.ws: Failed to parse message:', error);
+                        console.error('- jPulse.ws: Failed to parse message:', error);
                     }
                 };
 
                 // Connection closed
                 connection.ws.onclose = () => {
-                    console.log(`jPulse.ws: Disconnected from ${connection.path}`);
+                    console.log(`- jPulse.ws: Disconnected from ${connection.path}`);
 
                     // Clear ping timer (even though we don't use it, just in case)
                     if (connection.pingTimer) {
@@ -6407,11 +6903,11 @@ window.jPulse = {
 
                 // Connection error
                 connection.ws.onerror = (error) => {
-                    console.error(`jPulse.ws: Connection error on ${connection.path}:`, error);
+                    console.error(`- jPulse.ws: Connection error on ${connection.path}:`, error);
                 };
 
             } catch (error) {
-                console.error('jPulse.ws: Failed to create WebSocket:', error);
+                console.error('- jPulse.ws: Failed to create WebSocket:', error);
                 this._scheduleReconnect(connection);
             }
         },
@@ -6432,7 +6928,7 @@ window.jPulse = {
                 connection.config.reconnectMaxInterval
             );
 
-            console.log(`jPulse.ws: Reconnecting to ${connection.path} in ${delay/1000}s (attempt ${connection.reconnectAttempts})`);
+            console.log(`- jPulse.ws: Reconnecting to ${connection.path} in ${delay/1000}s (attempt ${connection.reconnectAttempts})`);
 
             connection.reconnectTimer = setTimeout(() => {
                 this._createWebSocket(connection);
@@ -6448,12 +6944,12 @@ window.jPulse = {
             connection.status = newStatus;
 
             if (oldStatus !== newStatus) {
-                console.log(`jPulse.ws: Status changed: ${oldStatus} -> ${newStatus}`);
+                console.log(`- jPulse.ws: Status changed: ${oldStatus} -> ${newStatus}`);
                 connection.statusCallbacks.forEach(callback => {
                     try {
                         callback(newStatus, oldStatus);
                     } catch (error) {
-                        console.error('jPulse.ws: Status handler error:', error);
+                        console.error('- jPulse.ws: Status handler error:', error);
                     }
                 });
             }
@@ -6614,7 +7110,7 @@ window.jPulse = {
                 // Register interest in this channel with server (include omitSelf flag)
                     self._registerChannelInterest(channel, { omitSelf });
 
-                console.log(`jPulse.appCluster: Subscribed to ${channel} (with auto-WebSocket)`);
+                console.log(`- jPulse.appCluster: Subscribed to ${channel} (with auto-WebSocket)`);
             },
 
             /**
@@ -6662,7 +7158,7 @@ window.jPulse = {
                         })
                         .onStatusChange((status) => {
                             if (status === 'connected') {
-                                console.log('jPulse.appCluster: WebSocket connected for broadcast system');
+                                console.log('- jPulse.appCluster: WebSocket connected for broadcast system');
                                 self._processPendingSubscriptions();
                             }
                         });
@@ -6686,9 +7182,9 @@ window.jPulse = {
                         const { channel, data } = message;
                         self._publishLocal(channel, data);
                     } else if (message.type === 'subscribed') {
-                        console.log(`jPulse.appCluster: Server confirmed subscription to ${message.channel}`);
+                        console.log(`- jPulse.appCluster: Server confirmed subscription to ${message.channel}`);
                     } else if (message.type === 'unsubscribed') {
-                        console.log(`jPulse.appCluster: Server confirmed unsubscription from ${message.channel}`);
+                        console.log(`- jPulse.appCluster: Server confirmed unsubscription from ${message.channel}`);
                     }
                 },
 
@@ -6701,7 +7197,7 @@ window.jPulse = {
 
                     const uuid = jPulse.appCluster.getUuid();
                     if (!uuid) {
-                        console.warn('jPulse.appCluster: Cannot process pending subscriptions, no UUID available');
+                        console.warn('- jPulse.appCluster: Cannot process pending subscriptions, no UUID available');
                         return;
                     }
 
@@ -6758,7 +7254,7 @@ window.jPulse = {
                         try {
                             subscriber.callback(data);
                     } catch (error) {
-                        console.error(`jPulse.appCluster: Error in subscriber for ${channel}:`, error);
+                        console.error(`- jPulse.appCluster: Error in subscriber for ${channel}:`, error);
                     }
                 });
             },
@@ -6795,7 +7291,7 @@ window.jPulse = {
                         return [response.data.instanceId];
                     }
                 } catch (error) {
-                    console.error('jPulse.appCluster: Error getting active instances:', error);
+                    console.error('- jPulse.appCluster: Error getting active instances:', error);
                 }
                 return [jPulse.appCluster.getInstanceId()];
             },
@@ -6817,7 +7313,7 @@ window.jPulse = {
                         };
                     }
                 } catch (error) {
-                    console.error('jPulse.appCluster: Error getting cluster health:', error);
+                    console.error('- jPulse.appCluster: Error getting cluster health:', error);
                 }
 
                 // Fallback
@@ -7028,7 +7524,7 @@ jPulse.dom.ready(() => {
                 jPulse.UI.toast.show(message, toastType, options);
             });
         } catch (e) {
-            console.error('Error parsing toast queue:', e);
+            console.error('- jPulse.UI.toast: Error parsing toast queue:', e);
         } finally {
             sessionStorage.removeItem('jpulse_toast_queue');
         }

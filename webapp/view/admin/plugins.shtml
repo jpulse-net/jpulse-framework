@@ -4,8 +4,8 @@
  * @tagline         Plugin Management Dashboard
  * @description     Admin interface for managing installed plugins
  * @file            webapp/view/admin/plugins.shtml
- * @version         1.4.2
- * @release         2026-01-01
+ * @version         1.4.3
+ * @release         2026-01-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -175,7 +175,7 @@
                 jPulse.UI.toast.error('Failed to load plugins');
             }
         } catch (error) {
-            console.error('Error loading plugins:', error);
+            console.error('- jPulse: Error loading plugins:', error);
             jPulse.UI.toast.error('Error loading plugins: ' + error.message);
         }
     }
@@ -280,7 +280,7 @@
                 jPulse.UI.toast.error(response.error || message.replace(`{{message}}`, response.error || ''));
             }
         } catch (error) {
-            console.error('Error toggling plugin:', error);
+            console.error('- jPulse: Error toggling plugin:', error);
             jPulse.UI.toast.error('Error: ' + error.message);
         }
     }
@@ -303,7 +303,7 @@
                 jPulse.UI.toast.error(response.error || 'Scan failed');
             }
         } catch (error) {
-            console.error('Error rescanning plugins:', error);
+            console.error('- jPulse: Error rescanning plugins:', error);
             jPulse.UI.toast.error('Scan error: ' + error.message);
         } finally {
             const btn = document.getElementById('btnRescan');

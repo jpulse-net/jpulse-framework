@@ -1167,7 +1167,8 @@ sidebar: {
 
 ## Tech Debt
 
-### 1. New 'hover' mode
+### TD-1: New 'hover' mode
+- status: ✅ DONE in W-123, v1.4.3, 2026-01-03
 - if enabled:
 - similar to mode 'toggle'
 - close pos: separator looks the same, but no toggle button
@@ -1178,23 +1179,27 @@ sidebar: {
   - sidebar remains open until mouse moves outside sidebar (with some delay)
   - select item (click on link) to take action
 
-### 2. Sticky sidebar option
+### TD-2: Sticky sidebar option
+- status: ✅ DONE in W-123, v1.4.3, 2026-01-03
 - if enabled:
 - when scrolling down, sidebar scrolls until it touches the banner, then sticks at that pos
 - in case sidebar content is taller than viewport, sidebar content can be scrolled (mouse wheel or scrollbar)
 - useful for TOC component
 
-### 3. Auto-close sidebar on link click option
+### TD-3: Auto-close sidebar on link click option
+- status: ✅ DONE in W-123, v1.4.3, 2026-01-03
 - if enabled:
 - automatically close sidebar when a link is clicked in a sidebar
 - useful for sidebar.toc with 'overlay' mode
 
-### 4. Use actual sidebar height option
+### TD-4: Use actual sidebar height option
+- status: ✅ DONE in W-123, v1.4.3, 2026-01-03
 - if enabled:
 - use up actual vertical space needed by content, i.e. not to bottom of page
 - useful when 'overflow' mode is active
+- implemented differently: sticky mode
 
-### 5. Convoluted sidebar code
+### TD-5: Convoluted sidebar code
+- status: 🕑 PENDING
 - webapp/view/jpulse-common.js needs to be refactored so that humans can mainatin it
 - code is fragile and took more than a week to stabilize
-

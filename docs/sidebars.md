@@ -1,4 +1,4 @@
-# jPulse Docs / Sidebars Guide v1.4.2
+# jPulse Docs / Sidebars Guide v1.4.3
 
 Complete guide to using and configuring sidebars in the jPulse Framework for desktop and mobile.
 
@@ -21,7 +21,7 @@ The jPulse Framework provides a flexible, responsive sidebar system that support
 ### Key Features
 
 - **Left and Right Sidebars**: Support for both left and right sidebars with independent configuration
-- **Multiple Display Modes**: 'toggle' (user controls) and 'always' (always visible)
+- **Multiple Display Modes**: 'toggle' (user controls), 'always' (always visible), and 'hover' (desktop hover-to-open)
 - **Component-Based**: Mix and match reusable sidebar components (site nav, TOC, page content, custom)
 - **Responsive Design**: Optimized layouts for desktop (reflow/overlay) and mobile (fixed overlay)
 - **User Preferences**: Customizable widths and programmatic toggle control (stored in localStorage)
@@ -61,22 +61,24 @@ view: {
         sidebar: {
             left: {
                 enabled: true,              // Enable left sidebar
-                mode: 'toggle',             // 'toggle' | 'always'
+                mode: 'toggle',             // 'toggle' | 'always' | 'hover'
                 initState: 'closed',        // 'open' | 'closed' (for toggle mode)
+                autoCloseOnClick: false,    // Close on link click/outside click (optional)
                 width: 250,                 // Default width in pixels
                 behavior: 'reflow',         // 'reflow' | 'overlay'
                 components: [               // Component list in order
-                    'sidebar.siteNav',
                     'sidebar.pageComponentLeft'
                 ]
             },
             right: {
                 enabled: true,              // Enable right sidebar
-                mode: 'toggle',
+                mode: 'hover',
                 initState: 'closed',
+                autoCloseOnClick: true,
                 width: 300,
                 behavior: 'overlay',
                 components: [
+                    'sidebar.pageComponentRight',
                     'sidebar.toc'
                 ]
             },
@@ -103,8 +105,9 @@ view: {
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `enabled` | boolean | `false` | Enable/disable sidebar (if false, no HTML rendered) |
-| `mode` | string | `'toggle'` | Display mode: `'toggle'` (user controls) or `'always'` (always visible) |
+| `mode` | string | `'toggle'` | Display mode: `'toggle'` (user controls), `'always'` (always visible), or `'hover'` (desktop hover-to-open) |
 | `initState` | string | `'closed'` | Initial state for toggle mode: `'open'` or `'closed'` |
+| `autoCloseOnClick` | boolean | `false` | If true, close on sidebar link click and outside click (desktop and mobile) |
 | `width` | number | `250` | Default width in pixels (desktop) |
 | `behavior` | string | `'reflow'` | Layout behavior: `'reflow'` (content wraps) or `'overlay'` (content behind) |
 | `components` | array | `[]` | List of component names to render in order |
@@ -161,6 +164,30 @@ Sidebar always visible, no toggle button. User cannot close it.
 ```javascript
 mode: 'always',
 behavior: 'reflow'  // Automatically set to reflow
+```
+
+### Hover Mode (Desktop)
+
+Hover mode is a desktop-only UX optimized for quick, low-friction access (for example, a right-side Table of Contents while reading long documentation pages).
+
+**Behavior:**
+- Opens when you hover the hover zone at the edge of `.jp-main`
+- Closes when you move the mouse away (with a small delay to avoid accidental close)
+- Uses overlay behavior and sticky viewport positioning so the sidebar stays accessible while you scroll
+- Toggle buttons are hidden in hover mode
+- Separator drag-to-resize is supported; the final width is applied when you release the mouse
+
+**Configuration:**
+
+```javascript
+right: {
+    enabled: true,
+    mode: 'hover',
+    width: 300,
+    behavior: 'overlay',        // Hover mode uses overlay behavior
+    autoCloseOnClick: true,     // Recommended for docs/TOC use cases
+    components: ['sidebar.pageComponentRight', 'sidebar.toc']
+}
 ```
 
 ---
@@ -478,6 +505,10 @@ Desktop sidebars provide rich interaction patterns for power users.
 2. Double-click separator bar
 3. Call `jPulse.UI.sidebars.toggle('left')`
 
+**Hover Mode (Desktop):**
+- Move the mouse to the hover zone at the edge of `.jp-main` to open the sidebar
+- Move the mouse away to close (after a small delay)
+
 **Resize Sidebar:**
 1. Hover over separator bar (cursor changes to `col-resize`)
 2. Click and drag left/right to resize
@@ -693,6 +724,11 @@ jPulse.UI.sidebars.initComponent('sidebar.pageComponentRight', {
 1. Is mode 'toggle' (resize disabled in 'always' mode)?
 2. Ensure cursor is over separator bar (should show `col-resize` cursor)
 3. Try dragging separator bar, not toggle button
+
+### Hover Mode Notes
+
+- Hover mode is desktop-only. On mobile, sidebars use the mobile overlay UX and do not use hover zones.
+- In hover mode, toggle buttons are hidden by design.
 
 ### Preferred State Not Applying
 

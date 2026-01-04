@@ -3483,18 +3483,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/sidebars.md:
     - document hover mode, sticky behavior, and auto-close on click
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-124, v1.4.4, 2026-01-04: view: auto-discovery of sidebar and icon components at plugin and site level
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: auto-discover and include all components at all levels (framework, plugins, site)
 - bug fixes:
@@ -3521,6 +3511,17 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/view/jpulse-header.tmpl:
     - Simplified component includes to auto-discovery loop: `{{#each file.list "components/*.tmpl"}} {{file.include this}} {{/each}}`
     - Removed individual `{{file.include}}` statements for `svg-icons.tmpl` and `jpulse-sidebars.tmpl`
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
 
 
 

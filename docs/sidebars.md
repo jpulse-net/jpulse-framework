@@ -1,4 +1,4 @@
-# jPulse Docs / Sidebars Guide v1.4.3
+# jPulse Docs / Sidebars Guide v1.4.4
 
 Complete guide to using and configuring sidebars in the jPulse Framework for desktop and mobile.
 
@@ -256,9 +256,9 @@ Table of Contents
   API Reference
 ```
 
-### sidebar.pageComponentLeft / sidebar.pageComponentRight
+### sidebar.pageComponentLeft & Right
 
-Skeleton components that provide real estate for pages/SPAs to populate dynamically.
+Skeleton components that provide real estate for pages/SPAs to populate sidebar content dynamically.
 
 **Features:**
 - Generic placeholder for page-specific content
@@ -267,8 +267,11 @@ Skeleton components that provide real estate for pages/SPAs to populate dynamica
 - Ideal for SPA integration
 
 **Configuration:**
+
+In `view.pageDecoration.sidebar.left` and `view.pageDecoration.sidebar.right`:
 ```javascript
-components: ['sidebar.pageComponentLeft']
+components: ['sidebar.pageComponentLeft', 'sidebar.anotherComponent']
+components: ['sidebar.pageComponentRight', 'sidebar.someOtherComponent']
 ```
 
 **JavaScript Initialization:**
@@ -288,6 +291,7 @@ component.refresh();
 
 **Use Cases:**
 - Markdown docs navigation (SPA tree structure)
+  - Reference implementation at `webapp/view/jpulse-docs/index.shtml`
 - Email folder list
 - File browser
 - Custom page navigation

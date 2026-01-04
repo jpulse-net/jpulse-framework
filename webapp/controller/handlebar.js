@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.4.3
- * @release         2026-01-03
+ * @version         1.4.4
+ * @release         2026-01-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1257,9 +1257,13 @@ class HandlebarController {
             let sortBy = null;
 
             // W-094: Check if args contains file.list helper call
-            if (args._helper === 'file.list') {
+            if (args._target === 'file.list') {
                 // Get the file list
-                const listResult = _handleFileList(args, currentContext);
+                const fileListArgs = {
+                    _helper: args._target,
+                    _target: args._args?.[1]
+                };
+                const listResult = _handleFileList(fileListArgs, currentContext);
                 items = JSON.parse(listResult);
 
                 // Get sortBy parameter
@@ -1270,8 +1274,19 @@ class HandlebarController {
                     items.sort();
                 }
             } else if (args._target) {
-                // Regular property access: {{#each items}} - args._target is already evaluated
-                items = args._target;
+                // Regular property access or subexpression result
+                // Check if args._target is a JSON string (from subexpression like (file.list "pattern"))
+                if (typeof args._target === 'string' && /^\s*[\{\[]/.test(args._target)) {
+                    try {
+                        items = JSON.parse(args._target);
+                    } catch (e) {
+                        // Not valid JSON, treat as property path or literal
+                        items = args._target;
+                    }
+                } else {
+                    // Regular property access: {{#each items}} - args._target is already evaluated
+                    items = args._target;
+                }
             }
 
             if (!items || (!Array.isArray(items) && typeof items !== 'object')) {
@@ -1415,11 +1430,11 @@ class HandlebarController {
                 throw new Error(`Prohibited path in include: ${includePath}. Use relative paths from view root only.`);
             }
 
-            // Use PathResolver to support site overrides
+            // Use PathResolver to support site overrides and plugins (W-045)
             let fullPath;
             try {
                 const relativePath = `view/${includePath}`;
-                fullPath = PathResolver.resolveModule(relativePath);
+                fullPath = PathResolver.resolveModuleWithPlugins(relativePath);
             } catch (error) {
                 throw new Error(`Include file not found: ${includePath} (${error.message})`);
             }

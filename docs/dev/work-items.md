@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.3
+# jPulse Docs / Dev / Work Items v1.4.4
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3453,16 +3453,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - Fixed symlink handling: use `lstatSync()` instead of `existsSync()` to properly detect and remove symlinks before copying
     - Added `isFrameworkDevRepo()` safeguard to prevent accidental execution in framework development repository
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-123, v1.4.3, 2026-01-03: view: sidebars with open on hover mode and auto-close
 - status: ✅ DONE
 - type: Feature
@@ -3498,6 +3488,44 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-124, v1.4.4, 2026-01-04: view: auto-discovery of sidebar and icon components at plugin and site level
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: auto-discover and include all components at all levels (framework, plugins, site)
+- bug fixes:
+  - Fixed `{{#each file.list "pattern"}}` not detecting `file.list` helper (was checking `args._helper` instead of `args._target`)
+  - Fixed `{{#each (file.list "pattern")}}` subexpression syntax not working (JSON string result not being parsed)
+  - Fixed `file.include` not using plugin-aware path resolution (changed from `resolveModule` to `resolveModuleWithPlugins`)
+- features:
+  - Auto-discovery of component templates from framework, plugins, and site using `{{#each file.list "components/*.tmpl"}}`
+  - Component template files with the same name are overridden at a higher level:
+    ```
+    webapp/view/components/*tmpl                 (jPulse Framework level)
+      ↓
+    plugins/[name]/webapp/view/components/*tmpl  (Plugin level)
+      ↓
+    site/webapp/view/components/*tmpl            (Site level)
+    ```
+  - Enhanced `{{#each}}` to support `file.list` helper directly: `{{#each file.list "pattern"}}`
+  - Enhanced `{{#each}}` to support subexpression syntax: `{{#each (file.list "pattern")}}`
+- deliverables:
+  - webapp/controller/handlebar.js:
+    - Fixed `_handleBlockEach()` to detect `file.list` in `args._target` instead of `args._helper`
+    - Added JSON string parsing for subexpression results in `{{#each}}` (handles `{{#each (file.list "pattern")}}`)
+    - Changed `_handleFileInclude()` to use `PathResolver.resolveModuleWithPlugins()` for plugin support
+  - webapp/view/jpulse-header.tmpl:
+    - Simplified component includes to auto-discovery loop: `{{#each file.list "components/*.tmpl"}} {{file.include this}} {{/each}}`
+    - Removed individual `{{file.include}}` statements for `svg-icons.tmpl` and `jpulse-sidebars.tmpl`
+
+
+
+
+
 ### Pending
 
 
@@ -3527,8 +3555,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-123, v1.4.3
-- update deliverables in W-123 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-124, v1.4.4
+- update deliverables in W-124 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -3545,12 +3573,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.3
+node bin/bump-version.js 1.4.4
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.3
+git tag v1.4.4
 git push origin main --tags
 
 === plugin release & package build on github ===

@@ -1,11 +1,55 @@
-# jPulse Docs / Version History v1.4.3
+# jPulse Docs / Version History v1.4.4
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
 
 ________________________________________________
+## v1.4.4, W-124, 2026-01-04
+
+**Commit:** `W-124, v1.4.4: view: auto-discovery of sidebar and icon components at plugin and site level`
+
+**FEATURE RELEASE**: Auto-discovery of component templates from framework, plugins, and site levels with proper override priority and enhanced `{{#each}}` helper support.
+
+**Objective**: Enable automatic discovery and inclusion of component templates (icons, sidebars, etc.) at all three levels (framework, plugins, site) with proper override priority.
+
+**Key Features**:
+- **Component Auto-Discovery**:
+  - Auto-discovery of component templates using `{{#each file.list "components/*.tmpl"}}`
+  - Component files with the same name are overridden at higher levels (site > plugins > framework)
+  - Simplified `jpulse-header.tmpl` to a single auto-discovery loop
+- **Enhanced `{{#each}}` Helper**:
+  - Direct support for `file.list` helper: `{{#each file.list "pattern"}}`
+  - Subexpression support: `{{#each (file.list "pattern")}}` (parses JSON string results)
+- **Plugin Support**:
+  - `file.include` now uses `PathResolver.resolveModuleWithPlugins()` for plugin-aware path resolution
+  - Plugin components are automatically discovered and included
+
+**Bug Fixes**:
+- Fixed `{{#each file.list "pattern"}}` not detecting `file.list` helper (was checking `args._helper` instead of `args._target`)
+- Fixed `{{#each (file.list "pattern")}}` subexpression syntax not working (JSON string result not being parsed)
+- Fixed `file.include` not using plugin-aware path resolution
+
+**Code Changes**:
+
+**webapp/controller/handlebar.js**:
+- Fixed `_handleBlockEach()` to detect `file.list` in `args._target` instead of `args._helper`
+- Added JSON string parsing for subexpression results in `{{#each}}` (handles `{{#each (file.list "pattern")}}`)
+- Changed `_handleFileInclude()` to use `PathResolver.resolveModuleWithPlugins()` for plugin support
+
+**webapp/view/jpulse-header.tmpl**:
+- Simplified component includes to auto-discovery loop: `{{#each file.list "components/*.tmpl"}} {{file.include this}} {{/each}}`
+- Removed individual `{{file.include}}` statements for `svg-icons.tmpl` and `jpulse-sidebars.tmpl`
+
+**Documentation**:
+- Updated `docs/sidebar-components.md` to confirm automatic plugin component discovery
+
+**Work Item**: W-124
+**Version**: v1.4.4
+**Release Date**: 2026-01-04
+
+________________________________________________
 ## v1.4.3, W-123, 2026-01-03
 
-**Commit:** `W-123, v1.4.3: view: sidebars with sticky pos and auto-close`
+**Commit:** `W-123, v1.4.3: view: sidebars with open on hover mode and auto-close`
 
 **FEATURE RELEASE**: Improved sidebar UX for long pages (especially docs) with hover mode, sticky positioning, and optional auto-close behavior.
 

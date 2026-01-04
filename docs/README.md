@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.4.3
+# jPulse Docs / Site Administrator & Developer Documentation v1.4.4
 
 **For Site Administrators & Site Developers**
 
@@ -213,6 +213,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.4.4 - Component Auto-Discovery (W-124)**: Auto-discovery of component templates (icons, sidebars, etc.) from framework, plugins, and site levels with proper override priority. Fixed `{{#each file.list}}` helper detection and added subexpression support `{{#each (file.list "pattern")}}`. Enhanced `file.include` to use plugin-aware path resolution. Simplified component includes in `jpulse-header.tmpl` to a single auto-discovery loop. W-124.
 - ✅ **Version 1.4.3 - Sticky Hover Sidebars for TOC (W-123)**: Enhanced sidebar UX for documentation and long pages with a new desktop hover mode plus sticky viewport positioning for overlay/hover sidebars. Supports auto-close on link click and outside click (optional), keeps the TOC quickly accessible while reading, and retains existing toggle/always behavior. See [Sidebars Guide](sidebars.md). W-123.
 - ✅ **Version 1.4.2 - Documentation Filtering Bug Fix**: Patch release fixing regression where ignored docs files were appearing in site deployments. Fixed `bin/configure.js` and `bin/jpulse-update.js` to properly apply `.markdown` `[ignore]` patterns during install/upgrade. Added symlink handling fix and framework repo safeguard. All tests passing. No breaking changes.
 - ✅ **Version 1.4.1 - Flexible Sidebar Infrastructure**: Complete left and right sidebar system with component-based architecture, responsive design, and extensive configuration options. Features dual independent sidebars with 'toggle' and 'always' modes, built-in components (site navigation, table of contents, page-specific content), desktop UX (drag-to-resize, toggle buttons, reflow/overlay), mobile UX (fixed overlay, swipe gestures, touch-optimized), user preferences, page integration, complete JavaScript API (`jPulse.UI.sidebars`), and plugin support. See [Sidebars Guide](sidebars.md) and [Sidebar Components Guide](sidebar-components.md). W-068.

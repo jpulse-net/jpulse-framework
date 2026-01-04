@@ -10337,3 +10337,28 @@ Status: PENDING USER REVIEW
 
 
 ============================================================
+2026-01-04 00:28
+
+PROMPT: Release prep for W-124, v1.4.4: Update work-items, README files, CHANGELOG, commit-message, and cursor_log.
+
+OUTPUT:
+- docs/dev/work-items.md: Updated W-124 entry with bug fixes, features, and deliverables:
+  - Bug fixes: Fixed {{#each file.list}} detection, subexpression JSON parsing, file.include plugin support
+  - Features: Auto-discovery of component templates, enhanced {{#each}} helper support
+  - Deliverables: Updated handlebar.js and jpulse-header.tmpl changes
+- README.md: Prepended v1.4.4 (W-124) release highlight describing component auto-discovery and enhanced {{#each}} helper.
+- docs/README.md: Prepended v1.4.4 (W-124) release highlight.
+- docs/CHANGELOG.md: Added v1.4.4 (W-124) feature release entry with detailed bug fixes, features, code changes, and documentation updates.
+- commit-message.txt: Updated for W-124, v1.4.4 with complete release details (no git commit performed).
+
+Key Changes Documented:
+- Fixed {{#each file.list "pattern"}} helper detection (args._target vs args._helper)
+- Added subexpression support {{#each (file.list "pattern")}} with JSON parsing
+- Enhanced file.include to use resolveModuleWithPlugins() for plugin support
+- Simplified jpulse-header.tmpl to auto-discovery loop
+- Component override priority: site > plugins > framework
+
+Status: COMPLETED
+
+
+============================================================

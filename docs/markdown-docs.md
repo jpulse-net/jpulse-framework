@@ -1,4 +1,4 @@
-# jPulse Docs / Markdown Documentation System v1.4.3
+# jPulse Docs / Markdown Documentation System v1.4.4
 
 **For Site Developers**
 

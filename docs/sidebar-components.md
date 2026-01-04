@@ -1,4 +1,4 @@
-# jPulse Docs / Sidebar Components Guide v1.4.3
+# jPulse Docs / Sidebar Components Guide v1.4.4
 
 Guide to creating custom sidebar components for the jPulse Framework.
 
@@ -62,7 +62,7 @@ site/webapp/view/components/site-sidebars.tmpl
 site/webapp/view/components/site-sidebars.tmpl.tmpl
 ```
 
-> 💡 **Plugin Support**: Plugins can define sidebar components in their `webapp/view/components/` directory. These components are automatically discovered and available for use in `app.conf`.
+> 💡 **Plugin Support**: Plugins can define sidebar components in their `plugins/[plugin-name]/webapp/view/components/` directory. These components are automatically discovered and available for use in `app.conf`. The framework automatically includes all `components/*.tmpl` files from framework, plugins, and site in priority order (site → plugins → framework).
 
 ### Basic Template Structure
 

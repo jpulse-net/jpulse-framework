@@ -4,8 +4,8 @@
  * @tagline         Header template for jPulse pages
  * @description     Common header included in all jPulse pages
  * @file            webapp/view/jpulse-header.tmpl
- * @version         1.4.3
- * @release         2026-01-03
+ * @version         1.4.4
+ * @release         2026-01-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -22,14 +22,10 @@
 <!-- jPulse Component Library - Framework Core + Site (W-098 append mode) -->
 <link rel="stylesheet" href="/jpulse-common.css?t={{file.timestamp "jpulse-common.css"}}">
 
-<!-- SVG Icon Components - available for page content -->
-{{file.include "components/svg-icons.tmpl"}}
-
-<!-- Sidebar Components - available for sidebar rendering (W-068) -->
-{{file.include "components/jpulse-sidebars.tmpl"}}
-{{#if (file.exists "components/site-sidebars.tmpl")}}
-{{file.include "components/site-sidebars.tmpl"}}
-{{/if}}
+<!-- Component Libraries - icons & sidebar components are automatically discovered from framework, plugins, and site (W-045, W-068, W-124) -->
+{{#each file.list "components/*.tmpl"}}
+    {{file.include this}}
+{{/each}}
 
 <!-- Prism.js Syntax Highlighting -->
 <link rel="stylesheet" href="/common/prism/prism.css">

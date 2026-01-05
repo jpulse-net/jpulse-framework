@@ -3,8 +3,8 @@
  * @tagline         Search tests for User Model and Controller
  * @description     Unit tests for user search functionality, pagination, and schema-based queries
  * @file            webapp/tests/unit/user/user-search.test.js
- * @version         1.4.4
- * @release         2026-01-04
+ * @version         1.4.5
+ * @release         2026-01-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

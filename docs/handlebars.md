@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.4.4
+# jPulse Docs / Handlebars Templating v1.4.5
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -12,7 +12,9 @@ There are two types of handlebars:
 - **Regular handlebars**: Single-line expressions that output values or perform operations, such as `{{user.firstName}}`, `{{and a b}}`
 - **Block handlebars**: Multi-line expressions with opening and closing tags that control flow and rendering, such as `{{#if condition}}...{{/if}}`, `{{#each items}}...{{/each}}`
 
-### Summary of Block and Regular Handlebars
+**Note:** Vue.js supports browser-side handlebars with a slightly different syntax, such as `{{ order.id }}`. For details, see [Template Reference - Vue.js Templates](template-reference.md#vuejs-templates-client-side-only).
+
+### Summary of Regular Handlebars
 
 %DYNAMIC{handlebars-list-table type="regular"}%
 
@@ -67,19 +69,396 @@ There are two types of handlebars:
 | `{{#unless user.isAuthenticated}} login {{else}} welcome {{/unless}}` | Inverse conditional rendering (when condition is false) |
 | `{{#with user}} {{firstName}} {{lastName}} {{/with}}` | Switch context to object's properties |
 -->
+## Context Variables
 
-## Basic Syntax
+The jPulse Framework provides several context objects that are available in all templates:
 
-### Variables
-Use double curly braces to output variables:
+### `{{app.*}}` - Application Context
+
+- `{{app.jPulse.name}}` - jPulse Framework application name
+- `{{app.jPulse.version}}` - Current jPulse Framework application version
+- `{{app.jPulse.release}}` - Current jPulse Framework application release date
+- `{{app.site.name}}` - Custom site name
+- `{{app.site.version}}` - Current site version
+- `{{app.site.release}}` - Current site release date
+- `{{app.site.copyright}}` - Custom site copyright notice
+
+### `{{appCluster.*}}` - Redis Cluster Information
+
+Redis cluster availability information.
+
+### `{{appConfig.*}}` - Application Configuration
+
+Full application configuration (filtered based on auth).
+
+### `{{i18n.*}}` - Internationalization
+
+- `{{i18n.view.home.*}}` - Home page messages
+- `{{i18n.view.home.introduction}}` - Introduction message
+- `{{i18n.view.auth.*}}` - Authentication messages
+- `{{i18n.controller.*}}` - Controller messages
+- `{{i18n.*}}` - Consult the translation files at webapp/translations/ for available fields
+
+### `{{siteConfig.*}}` - Site Configuration
+
+- `{{siteConfig.email.adminEmail}}` - Administrator email address
+- `{{siteConfig.*}}` - Consult webapp/model/config.js for available fields
+
+### `{{url.*}}` - URL Context
+
+- `{{url.protocol}}` - HTTP or HTTPS
+- `{{url.hostname}}` - Domain name
+- `{{url.port}}` - Port number
+- `{{url.pathname}}` - URL path
+- `{{url.search}}` - Query string
+- `{{url.domain}}` - Full domain with port
+- `{{url.param.name}}` - Query parameters (replace 'name' with parameter name)
+
+### `{{user.*}}` - User Context
+
+- `{{user.username}}` - User's username
+- `{{user.loginId}}` - User's loginId
+- `{{user.firstName}}` - User's first name
+- `{{user.nickName}}` - User's nickname
+- `{{user.lastName}}` - User's last name
+- `{{user.initials}}` - User's initials
+- `{{user.email}}` - User's email address
+- `{{user.roles}}` - JSON array of user roles
+- `{{user.isAuthenticated}}` - Login status (true/false)
+- `{{user.isAdmin}}` - Admin status (true/false)
+
+### `{{vars.*}}` - Custom Variables
+
+User-defined custom variables (see [Custom Variables](#custom-variables) section). Custom variables are defined using `{{let}}` or `{{#let}}` and accessed via `{{vars.*}}`.
+
+> **Note:** System context variables (`app`, `user`, `url`, `config`, `i18n`) are protected and cannot be overridden by custom variables.
+
+## Regular Helpers
+
+### Logical Helpers
+
+#### `{{and}}` - Logical AND
+
+Returns `"true"` if all arguments are truthy (1+ arguments), otherwise returns `"false"`.
+
 ```handlebars
-{{app.jPulse.name}}
-{{user.firstName}}
-{{siteConfig.email.adminEmail}}
+{{and user.isAuthenticated user.isAdmin}}        <!-- Returns "true" or "false" -->
 ```
 
-### Conditionals
-Use `#if` blocks for conditional rendering:
+**Usage in subexpressions:**
+```handlebars
+{{#if (and user.isAdmin user.isActive)}}
+    Active admin!
+{{/if}}
+```
+
+**Type Coercion:**
+- Numbers and numeric strings are compared numerically: `{{gt "10" 5}}` → `"true"`
+- Strings are compared lexicographically: `{{gt "2025-12-14" "2025-12-13"}}` → `"true"`
+- Loose equality for comparisons: `{{eq 1 "1"}}` → `"true"`
+
+#### `{{not}}` - Logical NOT
+
+Returns `"true"` if argument is falsy (exactly 1 argument), otherwise returns `"false"`.
+
+```handlebars
+{{not user.isGuest}}                      <!-- Returns "true" or "false" -->
+```
+
+**Usage in subexpressions:**
+```handlebars
+{{#if (not user.isGuest)}}
+    Registered user
+{{/if}}
+```
+
+#### `{{or}}` - Logical OR
+
+Returns `"true"` if any argument is truthy (1+ arguments), otherwise returns `"false"`.
+
+```handlebars
+{{or user.isPremium user.isTrial}}        <!-- Returns "true" or "false" -->
+```
+
+**Usage in subexpressions:**
+```handlebars
+{{#if (or (eq user.role "admin") (and (gt user.score 1000) user.isPremium))}}
+    Special access!
+{{/if}}
+```
+
+### Comparison Helpers
+
+#### `{{eq}}` - Equality comparison
+
+Returns `"true"` if values are equal with type coercion (exactly 2 arguments), otherwise returns `"false"`.
+
+```handlebars
+{{eq user.role "admin"}}                  <!-- Returns "true" or "false" -->
+```
+
+**Usage in subexpressions:**
+```handlebars
+{{#if (eq user.status "active")}}
+    User is active
+{{/if}}
+```
+
+**Type Coercion:**
+- Numbers and numeric strings are compared numerically: `{{gt "10" 5}}` → `"true"`
+- Strings are compared lexicographically: `{{gt "2025-12-14" "2025-12-13"}}` → `"true"`
+- Loose equality for comparisons: `{{eq 1 "1"}}` → `"true"`
+
+#### `{{gt}}` - Greater than
+
+Returns `"true"` if `a > b` with type coercion (exactly 2 arguments), otherwise returns `"false"`.
+
+```handlebars
+{{gt user.score 100}}                     <!-- Returns "true" or "false" -->
+```
+
+**Usage in subexpressions:**
+```handlebars
+{{#if (gt user.score 100)}}
+    High score!
+{{/if}}
+```
+
+**Type Coercion:**
+- Numbers and numeric strings are compared numerically: `{{gt "10" 5}}` → `"true"`
+- Strings are compared lexicographically: `{{gt "2025-12-14" "2025-12-13"}}` → `"true"`
+
+#### `{{gte}}` - Greater than or equal
+
+Returns `"true"` if `a >= b` with type coercion (exactly 2 arguments), otherwise returns `"false"`.
+
+```handlebars
+{{gte user.count 10}}                     <!-- Returns "true" or "false" -->
+```
+
+**Type Coercion:**
+- Numbers and numeric strings are compared numerically
+- Strings are compared lexicographically
+
+#### `{{lt}}` - Less than
+
+Returns `"true"` if `a < b` with type coercion (exactly 2 arguments), otherwise returns `"false"`.
+
+```handlebars
+{{lt user.age 18}}                        <!-- Returns "true" or "false" -->
+```
+
+**Usage in subexpressions:**
+```handlebars
+{{#unless (or (eq user.role "guest") (lt user.score 10))}}
+    Regular user content
+{{/unless}}
+```
+
+**Type Coercion:**
+- Numbers and numeric strings are compared numerically
+- Strings are compared lexicographically
+
+#### `{{lte}}` - Less than or equal
+
+Returns `"true"` if `a <= b` with type coercion (exactly 2 arguments), otherwise returns `"false"`.
+
+```handlebars
+{{lte user.items 5}}                      <!-- Returns "true" or "false" -->
+```
+
+**Type Coercion:**
+- Numbers and numeric strings are compared numerically
+- Strings are compared lexicographically
+
+#### `{{ne}}` - Not equal
+
+Returns `"true"` if values are not equal with type coercion (exactly 2 arguments), otherwise returns `"false"`.
+
+```handlebars
+{{ne user.role "guest"}}                  <!-- Returns "true" or "false" -->
+```
+
+**Type Coercion:**
+- Numbers and numeric strings are compared numerically
+- Strings are compared lexicographically
+- Loose equality for comparisons: `{{eq 1 "1"}}` → `"true"`
+
+### Component Helpers
+
+#### `{{components.*}}` - Use Reusable Components
+
+Call registered reusable components with parameters. See [Reusable Components](#reusable-components) section for details.
+
+```handlebars
+{{components.jpIcons.configSvg size="64"}}
+{{components.widgets.buttonPrimary text="Submit" size="large"}}
+```
+
+**Naming convention:**
+- Component names are converted from kebab-case to camelCase for usage
+- `jpIcons.logs-svg` becomes `{{components.jpIcons.logsSvg}}`
+- `cards.user-card` becomes `{{components.cards.userCard}}`
+
+### File Operation Helpers
+
+#### `{{file.exists}}` - Check file existence
+
+Check if a file exists, returns `"true"` or `"false"`.
+
+```handlebars
+{{#if (file.exists "custom-template.tmpl")}}
+    {{file.include "custom-template.tmpl"}}
+{{else}}
+    {{file.include "default-template.tmpl"}}
+{{/if}}
+```
+
+#### `{{file.include}}` - Include template
+
+Include another template file. You can define parameters, and use them in the included template.
+
+```handlebars
+{{file.include "jpulse-header.tmpl"}}
+{{file.include "jpulse-navigation.tmpl"}}
+{{file.include "my-own-stuff.tmpl" someKey="some value" sleepy=true}}
+```
+
+**Using parameters in included template:**
+```handlebars
+{{#if sleepy}}
+    ...
+{{else}}
+    ...
+{{/if}}
+```
+
+#### `{{file.includeComponents}}` - Include components from files
+
+Register components from multiple files and make them available in the `components` context. This is particularly useful for dashboard pages that aggregate cards from multiple source files.
+
+```handlebars
+{{!-- Register all admin dashboard cards --}}
+{{file.includeComponents "admin/*.shtml" component="adminCards.*"}}
+
+{{!-- Render all registered cards --}}
+{{#each components.adminCards}}
+    {{this}}
+{{/each}}
+```
+
+**Define components in source files** (e.g., `admin/config.shtml`):
+```handlebars
+{{#component "adminCards.config" order=10}}
+    <a href="/admin/config.shtml" class="jp-card-dashboard jp-icon-btn">
+        <div class="jp-icon-container">{{components.jpIcons.configSvg size="64"}}</div>
+        <h3 class="jp-card-title">Configuration</h3>
+        <p class="jp-card-description">Manage site configuration</p>
+    </a>
+{{/component}}
+```
+
+**Include components parameters:**
+- `{{file.includeComponents "admin/*.shtml" component="adminCards.*" sortBy="component-order"}}`
+- `"glob-pattern"`: File pattern to search, such as `"admin/*.shtml"` (required)
+- `component="namespace.*"`: Filter components by namespace pattern (optional)
+- `sortBy="method"`: Sort method (optional)
+  - `"component-order"`: Sort by the `order=N` parameter in component definitions (default)
+  - `"plugin-order"`: Sort by plugin dependency resolution order (for plugin dashboards)
+  - `"filename"`: Alphabetical sorting by filename
+  - `"filesystem"`: Natural filesystem order (no sorting)
+
+**Example - Plugin Dashboard:**
+```handlebars
+{{!-- Register plugin cards sorted by dependency order --}}
+{{file.includeComponents "jpulse-plugins/*.shtml" component="pluginCards.*" sortBy="plugin-order"}}
+
+{{!-- Render plugin cards --}}
+{{#each components.pluginCards}}
+    {{this}}
+{{/each}}
+```
+
+**Features:**
+- **Silent registration:** Components are registered without output, then rendered via `{{#each}}`
+- **Pattern filtering:** Use `component="namespace.*"` to register only specific namespaced components
+- **Flexible sorting:** Choose sort method based on dashboard requirements
+- **Component expansion:** Components are fully expanded (including nested components and i18n) before registration
+- **Site overrides:** Automatically uses site overrides when available
+- **Security:** Path traversal protection, errors logged server-side only
+
+#### `{{file.list}}` - List files matching pattern
+
+List files matching a glob pattern.
+
+```handlebars
+{{#each file.list "admin/*.shtml"}}
+    <p>{{this}}</p>
+{{/each}}
+```
+
+**With filename sorting:**
+```handlebars
+{{#each file.list "admin/*.shtml" sortBy="filename"}}
+    <li>{{this}}</li>
+{{/each}}
+```
+
+The `file.list` helper supports:
+- Glob patterns: `"admin/*.shtml"`, `"docs/*.md"`, `"projects/*/*.shtml"` (supports multiple wildcards in path)
+- **Note:** Recursive patterns (`**`) are not supported. Use single-level wildcards (`*`) only.
+- **Multi-level patterns:** Patterns like `projects/*/*.shtml` work by recursively searching subdirectories
+- Site overrides: Automatically searches `site/webapp/view/` first, then `webapp/view/`
+- Sorting: `sortBy="filename"` (alphabetical)
+
+#### `{{file.timestamp}}` - Get file timestamp
+
+Get the last modified timestamp of a file.
+
+```handlebars
+{{file.timestamp "jpulse-footer.tmpl"}}
+{{!-- Use the file timestamp for browser cache busting: --}}
+<link rel="stylesheet" href="/jpulse-common.css?t={{file.timestamp "jpulse-common.css"}}">
+```
+
+### Variable Helpers
+
+#### `{{let}}` - Define custom variables
+
+Define template-scoped variables using the `{{let}}` helper. Variables are accessed via `{{vars.*}}`.
+
+```handlebars
+{{let pageTitle="Dashboard" maxItems=10 showFooter=true}}
+<title>{{vars.pageTitle}}</title>
+<p>Showing {{vars.maxItems}} items</p>
+{{#if vars.showFooter}}
+    <footer>...</footer>
+{{/if}}
+```
+
+**Supported value types:**
+- Strings: `{{let name="John"}}`
+- Numbers: `{{let count=42}}`
+- Booleans: `{{let active=true}}`
+
+**Nested properties:**
+```handlebars
+{{let siteConfig.theme="dark" siteConfig.timeout=5000 api.v2.endpoint="/api/v2"}}
+<p>Theme: {{vars.siteConfig.theme}}</p>
+<p>Timeout: {{vars.siteConfig.timeout}}ms</p>
+<p>API: {{vars.api.v2.endpoint}}</p>
+```
+
+See [Custom Variables](#custom-variables) section for detailed documentation.
+
+## Block Helpers
+
+### Conditional Helpers
+
+#### `{{#if}}` - Conditional rendering
+
+Conditional rendering based on truthy value.
+
 ```handlebars
 {{#if user.isAuthenticated}}
     <p>Welcome back, {{user.firstName}}!</p>
@@ -88,45 +467,9 @@ Use `#if` blocks for conditional rendering:
 {{/if}}
 ```
 
-Use `#unless` blocks for inverse conditional rendering (when condition is false):
+**With subexpressions:**
 ```handlebars
-{{#unless user.isAuthenticated}}
-    <p>Please log in to continue.</p>
-{{else}}
-    <p>Welcome back, {{user.firstName}}!</p>
-{{/unless}}
-```
-
-### Logical and Comparison Helpers (v1.3.15+)
-
-The jPulse Framework provides logical and comparison helpers that work in three contexts: standalone helpers, subexpressions in conditions, and block helpers.
-
-#### Standalone Helpers
-
-Use logical and comparison helpers to return explicit `"true"` or `"false"` values:
-
-```handlebars
-<!-- Logical helpers -->
-{{and user.isAdmin user.isActive}}        <!-- Returns "true" or "false" -->
-{{or user.isPremium user.isTrial}}        <!-- Returns "true" or "false" -->
-{{not user.isGuest}}                      <!-- Returns "true" or "false" -->
-
-<!-- Comparison helpers -->
-{{eq user.role "admin"}}                  <!-- Returns "true" or "false" -->
-{{ne user.role "guest"}}                  <!-- Returns "true" or "false" -->
-{{gt user.score 100}}                     <!-- Returns "true" or "false" -->
-{{gte user.count 10}}                     <!-- Returns "true" or "false" -->
-{{lt user.age 18}}                        <!-- Returns "true" or "false" -->
-{{lte user.items 5}}                      <!-- Returns "true" or "false" -->
-```
-
-#### Subexpressions in Conditions
-
-Use subexpressions (Polish notation) to create complex conditional logic in `{{#if}}` and `{{#unless}}`:
-
-```handlebars
-<!-- Simple subexpressions -->
-{{#if (and user.isAdmin user.isActive)}}
+{{#if (and user.isAuthenticated user.isAdmin)}}
     Active admin!
 {{/if}}
 
@@ -138,21 +481,9 @@ Use subexpressions (Polish notation) to create complex conditional logic in `{{#
     User is active
 {{/if}}
 
-<!-- Nested subexpressions -->
+{{!-- Nested subexpressions --}}
 {{#if (and (gt user.score 100) (eq user.status "active"))}}
     Active high scorer!
-{{/if}}
-
-{{#if (or (eq user.role "admin") (and (gt user.score 1000) user.isPremium))}}
-    Special access!
-{{/if}}
-
-{{#unless (or (eq user.role "guest") (lt user.score 10))}}
-    Regular user content
-{{/unless}}
-
-{{#if (not user.isGuest)}}
-    Registered user
 {{/if}}
 ```
 
@@ -163,44 +494,41 @@ Use subexpressions (Polish notation) to create complex conditional logic in `{{#
 {{/if}}
 ```
 
-#### Block Helpers
+#### `{{#unless}}` - Inverse conditional rendering
 
-Use block helpers for cleaner syntax with `{{else}}` support:
+Inverse conditional rendering (when condition is false).
 
 ```handlebars
-<!-- Logical block helpers -->
+{{#unless user.isAuthenticated}}
+    <p>Please log in to continue.</p>
+{{else}}
+    <p>Welcome back, {{user.firstName}}!</p>
+{{/unless}}
+```
+
+**With subexpressions:**
+```handlebars
+{{#unless (or (eq user.role "guest") (lt user.score 10))}}
+    Regular user content
+{{/unless}}
+```
+
+### Logical Block Helpers
+
+#### `{{#and}}` - Logical AND block
+
+Logical AND block, renders true or else part (1+ arguments).
+
+```handlebars
 {{#and user.isAdmin user.isActive}}
     Active admin!
 {{else}}
     Not an active admin
 {{/and}}
+```
 
-{{#or user.isGuest user.isTrial}}
-    Limited access user
-{{else}}
-    Full access user
-{{/or}}
-
-{{#not user.isGuest}}
-    Registered user
-{{else}}
-    Guest user
-{{/not}}
-
-<!-- Comparison block helpers -->
-{{#gt user.score 100}}
-    High score: {{user.score}}
-{{else}}
-    Score too low
-{{/gt}}
-
-{{#eq user.status "active"}}
-    User is active
-{{else}}
-    User is inactive
-{{/eq}}
-
-<!-- Nested subexpressions in block helpers -->
+**With nested subexpressions:**
+```handlebars
 {{#and (gt user.score 100) (eq user.status "active")}}
     Active high scorer!
 {{else}}
@@ -208,37 +536,132 @@ Use block helpers for cleaner syntax with `{{else}}` support:
 {{/and}}
 ```
 
-#### Helper Reference
+#### `{{#not}}` - Logical NOT block
 
-**Logical Helpers:**
-- `{{and arg1 arg2 ...}}` - Returns `"true"` if all arguments are truthy (1+ arguments)
-- `{{or arg1 arg2 ...}}` - Returns `"true"` if any argument is truthy (1+ arguments)
-- `{{not arg}}` - Returns `"true"` if argument is falsy (exactly 1 argument)
+Logical NOT block, renders true or else part (1 argument).
 
-**Comparison Helpers:**
-- `{{eq a b}}` - Returns `"true"` if values are equal with type coercion (exactly 2 arguments)
-- `{{ne a b}}` - Returns `"true"` if values are not equal with type coercion (exactly 2 arguments)
-- `{{gt a b}}` - Returns `"true"` if `a > b` with type coercion (exactly 2 arguments)
-- `{{gte a b}}` - Returns `"true"` if `a >= b` with type coercion (exactly 2 arguments)
-- `{{lt a b}}` - Returns `"true"` if `a < b` with type coercion (exactly 2 arguments)
-- `{{lte a b}}` - Returns `"true"` if `a <= b` with type coercion (exactly 2 arguments)
+```handlebars
+{{#not user.isGuest}}
+    Registered user
+{{else}}
+    Guest user
+{{/not}}
+```
 
-**Type Coercion:**
-- Numbers and numeric strings are compared numerically: `{{gt "10" 5}}` → `"true"`
-- Strings are compared lexicographically: `{{gt "2025-12-14" "2025-12-13"}}` → `"true"`
-- Loose equality for comparisons: `{{eq 1 "1"}}` → `"true"`
+#### `{{#or}}` - Logical OR block
 
-### Loops
-Use `#each` blocks to iterate over different data structures:
+Logical OR block, renders true or else part (1+ arguments).
 
-#### Array of Strings
+```handlebars
+{{#or user.isGuest user.isTrial}}
+    Limited access user
+{{else}}
+    Full access user
+{{/or}}
+```
+
+### Comparison Block Helpers
+
+#### `{{#eq}}` - Equality block
+
+Equality block, renders true or else part (2 arguments).
+
+```handlebars
+{{#eq user.status "active"}}
+    User is active
+{{else}}
+    User is inactive
+{{/eq}}
+```
+
+#### `{{#gt}}` - Greater than block
+
+Greater than block, renders true or else part (2 arguments).
+
+```handlebars
+{{#gt user.score 100}}
+    High score: {{user.score}}
+{{else}}
+    Score too low
+{{/gt}}
+```
+
+#### `{{#gte}}` - Greater than or equal block
+
+Greater than or equal block, renders true or else part (2 arguments).
+
+```handlebars
+{{#gte user.count 10}}
+    enough
+{{else}}
+    not enough
+{{/gte}}
+```
+
+#### `{{#lt}}` - Less than block
+
+Less than block, renders true or else part (2 arguments).
+
+```handlebars
+{{#lt user.age 18}}
+    minor
+{{else}}
+    adult
+{{/lt}}
+```
+
+#### `{{#lte}}` - Less than or equal block
+
+Less than or equal block, renders true or else part (2 arguments).
+
+```handlebars
+{{#lte user.items 5}}
+    few items
+{{else}}
+    many items
+{{/lte}}
+```
+
+#### `{{#ne}}` - Not equal block
+
+Not equal block, renders true or else part (2 arguments).
+
+```handlebars
+{{#ne user.role "guest"}}
+    registered
+{{else}}
+    guest
+{{/ne}}
+```
+
+### Component Block Helpers
+
+#### `{{#component}}` - Define reusable component
+
+Define reusable components with parameters. See [Reusable Components](#reusable-components) section for detailed documentation.
+
+```handlebars
+{{#component "widgets.buttonPrimary" text="Click Me" size="medium"}}
+    <button class="btn btn-primary btn-{{size}}">
+        {{text}}
+    </button>
+{{/component}}
+```
+
+### Iteration Helpers
+
+#### `{{#each}}` - Loop over arrays/objects
+
+Iterate over different data structures: arrays of strings, arrays of objects, object keys, and nested object properties.
+
+**Array of Strings:**
 ```handlebars
 {{#each user.roles}}
     <span class="jp-role-badge jp-role-{{this}}">{{this}}</span>
 {{/each}}
 ```
 
-#### Array of Objects
+**Array of Objects:**
 ```handlebars
 {{#each users}}
     <div class="jp-user-card">
@@ -249,7 +672,7 @@ Use `#each` blocks to iterate over different data structures:
 {{/each}}
 ```
 
-#### Object Keys
+**Object Keys:**
 ```handlebars
 {{#each siteConfig.features}}
     <div class="jp-feature">
@@ -258,8 +681,7 @@ Use `#each` blocks to iterate over different data structures:
 {{/each}}
 ```
 
-#### Nested Object Properties
-Access deep object properties using dot notation:
+**Nested Object Properties:**
 ```handlebars
 {{#each employees}}
     <div class="employee-card">
@@ -273,44 +695,7 @@ Access deep object properties using dot notation:
 {{/each}}
 ```
 
-### Comments
-Use Handlebars comments for notes that should not appear in the rendered output:
-
-```handlebars
-{{!-- This is a Handlebars comment - stripped during processing --}}
-
-{{!--
-  Multi-line comments are also supported,
-  they may contain handlebars, such as {{user.firstName}},
-  and will be completely removed from the output
---}}
-
-<!-- This is an HTML comment - visible in browser source -->
-```
-
-**Key Differences:**
-- `{{!-- --}}` - Handlebars comments are **removed** during server-side processing
-- `<!-- -->` - HTML comments are **preserved** in the rendered HTML (visible in browser source)
-
-**Use Cases for Handlebars Comments:**
-- Component library documentation (won't appear in rendered pages)
-- Template notes for developers (never sent to browser)
-- Comments in JavaScript files processed as Handlebars templates
-- Temporary debugging notes during development
-
-**Example:**
-```handlebars
-{{!--
-  SVG Icon Component Library
-  These components are used throughout the application
-  Updated: 2025-11-24
---}}
-{{#component "jpIcons.configSvg" fillColor="currentColor" size="64"}}
-    <svg width="{{size}}" height="{{size}}">...</svg>
-{{/component}}
-```
-
-#### Loop Variables (Special Context Variables)
+**Loop Variables (Special Context Variables):**
 
 The `{{#each}}` helper provides special variables within the iteration context:
 
@@ -322,245 +707,297 @@ The `{{#each}}` helper provides special variables within the iteration context:
 | `{{@last}}` | Boolean | `true` if this is the last iteration | `true` or `false` |
 | `{{@key}}` | String | Property name (object iteration only) | `'theme', 'language'` |
 
-### Logical and Comparison Helpers (v1.3.15+)
+### Variable Block Helpers
 
-The jPulse Framework provides logical and comparison helpers that work in three contexts: standalone helpers, subexpressions in conditions, and block helpers.
+#### `{{#let}}` - Block-scoped custom variables
 
-#### Standalone Helpers
-
-Use logical and comparison helpers to return explicit `"true"` or `"false"` values:
+Block-scoped custom variables (accessed via `{{vars.*}}`). Use `{{#let}}` blocks to create variables that only exist within the block scope, preventing variable pollution.
 
 ```handlebars
-<!-- Logical helpers -->
-{{and user.isAdmin user.isActive}}        <!-- Returns "true" or "false" -->
-{{or user.isPremium user.isTrial}}        <!-- Returns "true" or "false" -->
-{{not user.isGuest}}                      <!-- Returns "true" or "false" -->
+{{let outer="outer"}}
 
-<!-- Comparison helpers -->
-{{eq user.role "admin"}}                  <!-- Returns "true" or "false" -->
-{{ne user.role "guest"}}                  <!-- Returns "true" or "false" -->
-{{gt user.score 100}}                     <!-- Returns "true" or "false" -->
-{{gte user.count 10}}                     <!-- Returns "true" or "false" -->
-{{lt user.age 18}}                        <!-- Returns "true" or "false" -->
-{{lte user.items 5}}                      <!-- Returns "true" or "false" -->
+{{#let inner="inner"}}
+    <p>Inside: {{vars.outer}}, {{vars.inner}}</p>
+{{/let}}
+
+<p>After block: {{vars.outer}}, {{vars.inner}}</p>
+{{!-- vars.inner is empty here --}}
 ```
 
-#### Subexpressions in Conditions
-
-Use subexpressions (Polish notation) to create complex conditional logic in `{{#if}}` and `{{#unless}}`:
-
+**Preventing loop pollution:**
 ```handlebars
-<!-- Simple subexpressions -->
-{{#if (and user.isAdmin user.isActive)}}
-    Active admin!
-{{/if}}
-
-{{#if (gt user.score 100)}}
-    High score!
-{{/if}}
-
-{{#if (eq user.status "active")}}
-    User is active
-{{/if}}
-
-<!-- Nested subexpressions -->
-{{#if (and (gt user.score 100) (eq user.status "active"))}}
-    Active high scorer!
-{{/if}}
-
-{{#if (or (eq user.role "admin") (and (gt user.score 1000) user.isPremium))}}
-    Special access!
-{{/if}}
-
-{{#unless (or (eq user.role "guest") (lt user.score 10))}}
-    Regular user content
-{{/unless}}
-
-{{#if (not user.isGuest)}}
-    Registered user
-{{/if}}
+{{#each items}}
+    {{#let rowClass="active" index=@index}}
+        <li class="{{vars.rowClass}}">Item {{vars.index}}: {{this}}</li>
+    {{/let}}
+{{/each}}
+{{!-- vars.rowClass and vars.index don't persist after the loop --}}
 ```
 
-**Quoted strings with parentheses:** Parentheses inside quoted strings are preserved as literal characters:
+**Nested block scopes:**
 ```handlebars
-{{#if (and (eq user.firstName "James (Jim)") user.isActive)}}
-    Active user with nickname in name
-{{/if}}
+{{let level="L0"}}
+{{#let level="L1"}}
+    <p>Level 1: {{vars.level}}</p>
+    {{#let level="L2"}}
+        <p>Level 2: {{vars.level}}</p>
+    {{/let}}
+    <p>Back to Level 1: {{vars.level}}</p>
+{{/let}}
+<p>Back to Level 0: {{vars.level}}</p>
 ```
 
-#### Block Helpers
+See [Custom Variables](#custom-variables) section for detailed documentation.
 
-Use block helpers for cleaner syntax with `{{else}}` support:
+#### `{{#with}}` - Context switching
+
+Switch context to object's properties using the standard Handlebars `{{#with}}` helper.
 
 ```handlebars
-<!-- Logical block helpers -->
-{{#and user.isAdmin user.isActive}}
-    Active admin!
-{{else}}
-    Not an active admin
-{{/and}}
-
-{{#or user.isGuest user.isTrial}}
-    Limited access user
-{{else}}
-    Full access user
-{{/or}}
-
-{{#not user.isGuest}}
-    Registered user
-{{else}}
-    Guest user
-{{/not}}
-
-<!-- Comparison block helpers -->
-{{#gt user.score 100}}
-    High score: {{user.score}}
-{{else}}
-    Score too low
-{{/gt}}
-
-{{#eq user.status "active"}}
-    User is active
-{{else}}
-    User is inactive
-{{/eq}}
-
-<!-- Nested subexpressions in block helpers -->
-{{#and (gt user.score 100) (eq user.status "active")}}
-    Active high scorer!
-{{else}}
-    Doesn't meet criteria
-{{/and}}
-```
-
-#### Helper Reference
-
-**Logical Helpers:**
-- `{{and arg1 arg2 ...}}` - Returns `"true"` if all arguments are truthy (1+ arguments)
-- `{{or arg1 arg2 ...}}` - Returns `"true"` if any argument is truthy (1+ arguments)
-- `{{not arg}}` - Returns `"true"` if argument is falsy (exactly 1 argument)
-
-**Comparison Helpers:**
-- `{{eq a b}}` - Returns `"true"` if values are equal with type coercion (exactly 2 arguments)
-- `{{ne a b}}` - Returns `"true"` if values are not equal with type coercion (exactly 2 arguments)
-- `{{gt a b}}` - Returns `"true"` if `a > b` with type coercion (exactly 2 arguments)
-- `{{gte a b}}` - Returns `"true"` if `a >= b` with type coercion (exactly 2 arguments)
-- `{{lt a b}}` - Returns `"true"` if `a < b` with type coercion (exactly 2 arguments)
-- `{{lte a b}}` - Returns `"true"` if `a <= b` with type coercion (exactly 2 arguments)
-
-**Type Coercion:**
-- Numbers and numeric strings are compared numerically: `{{gt "10" 5}}` → `"true"`
-- Strings are compared lexicographically: `{{gt "2025-12-14" "2025-12-13"}}` → `"true"`
-- Loose equality for comparisons: `{{eq 1 "1"}}` → `"true"`
-
-### Nested Conditionals
-You can nest conditionals for complex logic (v0.7.20+):
-```handlebars
-{{#if user.isAuthenticated}}
-    {{#if user.isAdmin}}
-        <div class="jp-info-box">
-            <p>Admin Panel Access:</p>
-            {{#if siteConfig.features.adminPanel}}
-                <p>✅ Admin panel is enabled</p>
-            {{else}}
-                <p>❌ Admin panel is disabled</p>
-            {{/if}}
-        </div>
-    {{else}}
-        <p>Regular user - limited access</p>
+{{#with user}}
+    <p>Name: {{firstName}} {{lastName}}</p>
+    <p>Email: {{email}}</p>
+    {{#if isAdmin}}
+        <p>Admin privileges enabled</p>
     {{/if}}
-{{/if}}
+{{/with}}
 ```
 
-**With subexpressions (v1.3.15+):**
+**With nested objects:**
 ```handlebars
-{{#if (and user.isAuthenticated user.isAdmin)}}
-    <div class="jp-info-box">
-        <p>Admin Panel Access:</p>
-        {{#if (eq siteConfig.features.adminPanel true)}}
-            <p>✅ Admin panel is enabled</p>
-        {{else}}
-            <p>❌ Admin panel is disabled</p>
-        {{/if}}
-    </div>
-{{/if}}
+{{#with user.profile}}
+    <p>Bio: {{bio}}</p>
+    <p>Location: {{location}}</p>
+{{/with}}
 ```
 
-### Nested Blocks
-Complex template scenarios with nested blocks are fully supported (v0.7.20+):
+**Combined with custom variables:**
+```handlebars
+{{let greeting="Hello"}}
+{{#with user}}
+    <p>{{vars.greeting}}, {{firstName}}!</p>
+{{/with}}
+```
+
+See [Custom Variables](#custom-variables) section for detailed documentation.
+
+## Reusable Components
+
+The jPulse Framework supports reusable Handlebars components for eliminating code duplication. Components are template fragments that can be defined once and reused multiple times with different parameters.
+
+### Component Definition
+
+Define components using the `{{#component}}` block helper:
 
 ```handlebars
-{{!-- Nested {{#if}} within {{#each}} --}}
-{{#each users}}
-    <div class="user-card">
-        {{#if this.active}}
-            <span class="badge">Active</span>
-        {{/if}}
-        <h3>{{this.name}}</h3>
-    </div>
-{{/each}}
-
-{{!-- Nested {{#each}} loops --}}
-{{#each books}}
-    <div class="book">
-        <h2>{{this.title}}</h2>
-        {{#each this.chapters}}
-            <div class="chapter">Chapter {{@index}}: {{this}}</div>
-        {{/each}}
-    </div>
-{{/each}}
+{{#component "widgets.buttonPrimary" text="Click Me" size="medium"}}
+    <button class="btn btn-primary btn-{{size}}">
+        {{text}}
+    </button>
+{{/component}}
 ```
 
-## Context Variables
+**Component naming rules:**
+- Must start with a letter
+- Can contain letters, numbers, underscores, hyphens, and dots (for namespaces)
+- Must end with a letter or number
+- Always use namespaces to avoid naming collisions
+- Examples: `icons.box`, `icons.svg-icon-2`, `cards.userCard`, `buttons.Button_Large`, `jpIcons.configSvg`
 
-The jPulse Framework provides several context objects that are available in all templates:
+### Component Usage
 
-### App Context
-- `{{app.jPulse.name}}` - jPulse Framework application name
-- `{{app.jPulse.version}}` - Current jPulse Framework application version
-- `{{app.jPulse.release}}` - Current jPulse Framework application release date
-- `{{app.site.name}}` - Custom site name
-- `{{app.site.version}}` - Current site version
-- `{{app.site.release}}` - Current site release date
-- `{{app.site.copyright}}` - Custom site copyright notice
+Use components with the `{{components.namespace.componentName}}` syntax:
 
-### User Context
-- `{{user.username}}` - User's username
-- `{{user.loginId}}` - User's loginId
-- `{{user.firstName}}` - User's first name
-- `{{user.nickName}}` - User's nickname
-- `{{user.lastName}}` - User's last name
-- `{{user.initials}}` - User's initials
-- `{{user.email}}` - User's email address
-- `{{user.roles}}` - JSON array of user roles
-- `{{user.isAuthenticated}}` - Login status (true/false)
-- `{{user.isAdmin}}` - Admin status (true/false)
+```handlebars
+{{!-- Use with default parameters --}}
+{{components.widgets.buttonPrimary}}
 
-### URL Context
-- `{{url.protocol}}` - HTTP or HTTPS
-- `{{url.hostname}}` - Domain name
-- `{{url.port}}` - Port number
-- `{{url.pathname}}` - URL path
-- `{{url.search}}` - Query string
-- `{{url.domain}}` - Full domain with port
-- `{{url.param.name}}` - Query parameters (replace 'name' with parameter name)
+{{!-- Override specific parameters --}}
+{{components.widgets.buttonPrimary text="Submit" size="large"}}
+```
 
-### Configuration
-- `{{siteConfig.email.adminEmail}}` - Administrator email address
-- `{{siteConfig.*}}` - Consult webapp/model/config.js for available fields
+**Naming convention:**
+- Use namespaces for better separation of concerns, such as `jpIcons.logsSvg`
+- Component names are converted from kebab-case to camelCase for usage
+- `jpIcons.logs-svg` becomes `{{components.jpIcons.logsSvg}}`
+- `cards.user-card` becomes `{{components.cards.userCard}}`
+- `icons.hint` remains `{{components.icons.hint}}`
 
-### Internationalization (i18n)
-- `{{i18n.view.home.*}}` - Home page messages
-- `{{i18n.view.home.introduction}}` - Introduction message
-- `{{i18n.view.auth.*}}` - Authentication messages
-- `{{i18n.controller.*}}` - Controller messages
-- `{{i18n.*}}` - Consult the translation files at webapp/translations/ for available fields
+### Component Parameters
 
-### Custom Variables and Components
-- `{{vars.*}}` - User-defined custom variables (see [Custom Variables](#custom-variables) section)
-- `{{components.*}}` - Registered reusable components (see [Reusable Components](#reusable-components) section)
+Components support both user-defined parameters and special framework parameters:
 
-> **Note:** System context variables (`app`, `user`, `url`, `config`, `i18n`) are protected and cannot be overridden by custom variables.
+**User Parameters:**
+```handlebars
+{{components.jpIcons.logsSvg size="48" fillColor="#007bff"}}
+```
+
+**Framework Parameters (prefixed with `_`):**
+
+`_inline` - Removes newlines and collapses whitespace for inline use in JavaScript:
+```handlebars
+{{!-- In JavaScript object literal --}}
+<script>
+const navConfig = {
+    icon: `{{components.jpIcons.configSvg size="24" _inline=true}}`
+};
+</script>
+```
+
+**Features:**
+- Framework parameters (starting with `_`) are not passed to component context
+- `_inline=true` strips newlines and collapses whitespace to single spaces
+- Useful for embedding SVG in JavaScript strings without line breaks
+
+### Namespaced Components
+
+Components support dot-notation namespaces for organization:
+
+```handlebars
+{{!-- Define namespaced components --}}
+{{#component "jpIcons.configSvg" size="64"}}
+    <svg width="{{size}}">...</svg>
+{{/component}}
+
+{{#component "icons.userSvg" size="64"}}
+    <svg width="{{size}}">...</svg>
+{{/component}}
+
+{{#component "buttons.primary" text="Click"}}
+    <button>{{text}}</button>
+{{/component}}
+
+{{!-- Use namespaced components --}}
+{{components.jpIcons.configSvg size="32"}}
+{{components.siteIcons.userSvg size="48"}}
+{{components.buttons.primary text="Submit"}}
+```
+
+**Benefits:**
+- Organize components by category (icons, buttons, cards, etc.)
+- Avoid naming collisions as component library grows
+- Clear component purpose from namespace
+- Optional - flat naming (`config-svg`) still works
+
+### Component Libraries
+
+Create reusable component libraries by defining multiple components in `.tmpl` files:
+
+**File: `webapp/view/components/svg-icons.tmpl`**
+```handlebars
+{{!-- SVG Icon Component Library --}}
+
+{{#component "jpIcons.logsSvg" fillColor="currentColor" size="64"}}
+    <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none">
+        <rect x="20" y="85" width="10" height="22" fill="{{fillColor}}"/>
+        <rect x="36" y="64" width="10" height="43" fill="{{fillColor}}"/>
+        <rect x="52" y="75" width="10" height="32" fill="{{fillColor}}"/>
+    </svg>
+{{/component}}
+
+{{#component "jpIcons.usersSvg" fillColor="currentColor" size="64"}}
+    <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none">
+        <circle cx="64" cy="36" r="20" fill="{{fillColor}}"/>
+        <path d="M 25 100 Q 25 68, 64 68 T 103 100" fill="{{fillColor}}"/>
+    </svg>
+{{/component}}
+```
+
+**Note:** All `components/*.tmpl` component libraries from jPulse framework, plugins, and site are already included in all pages via `jpulse-header.tmpl`, so you can use these components without any `{{file.include}}` statement.
+
+**Use in your pages:**
+```handlebars
+<div class="icon-container">
+    {{components.jpIcons.logsSvg size="48" fillColor="#007bff"}}
+</div>
+
+<div class="icon-container">
+    {{components.jpIcons.usersSvg size="32"}}
+</div>
+```
+
+### Nested Components
+
+Components can call other components:
+
+```handlebars
+{{!-- Define a wrapper component that uses another component --}}
+{{#component "widgets.card-with-icon" title="Dashboard" iconSize="32"}}
+    <div class="card">
+        <div class="card-icon">
+            {{components.jpIcons.configSvg size=iconSize}}
+        </div>
+        <h3>{{title}}</h3>
+    </div>
+{{/component}}
+
+{{!-- The jpIcons.configSvg component is already defined in svg-icons.tmpl --}}
+
+{{!-- Usage --}}
+{{components.widgets.cardWithIcon title="System Status" iconSize="48"}}
+```
+
+**Limitations:**
+- Maximum nesting depth: 16 levels (configurable in `appConfig.controller.handlebar.maxIncludeDepth`)
+- Circular references are detected and prevented
+- Components do not inherit variables from calling context (pass parameters explicitly)
+
+### Component Error Handling
+
+Component errors are handled gracefully:
+
+**Development/Test Mode:**
+```handlebars
+{{components.icons.doesNonExistent}}
+```
+This generates output:<br/>
+`<!-- Error: Component "icons.doesNonExistent" not found. Did you forget to include the component library? -->`
+
+**Production Mode:**
+- Errors are logged server-side only
+- No visible output in rendered HTML
+
+**Circular reference detection:**
+```handlebars
+{{#component "comp-a"}}
+    {{components.compB}}
+{{/component}}
+
+{{#component "comp-b"}}
+    {{components.compA}}
+{{/component}}
+
+{{components.compA}}
+```
+This generates output:<br/>
+`<!-- Error: Circular component reference detected: compA → compB → compA -->`
+
+### Best Practices
+
+1. **Organize components in themed libraries:**
+   - Site specific component files:
+     - `site-svg-icons.tmpl`, `site-buttons.tmpl`, `site-cards.tmpl`
+     - Location: `site/webapp/view/components/`
+   - Plugin specific component files:
+     - `my-plugin-svg-icons.tmpl`, `my-plugin-buttons.tmpl`, `my-plugin-cards.tmpl`
+     - Location: `plugins/my-plugin/webapp/view/components/`
+   - Do not use `webapp/view/components/`, which is jPulse Framework specific
+
+2. **Use descriptive names with namespaces:**
+   - Good: `icons.user`, `icons.iconUser`, `buttons.button-primary`, `cardLib.cardDashboard`
+   - Avoid: `icon1`, `btn`, `c`
+
+3. **Provide sensible defaults:**
+   - Set default parameter values that work in most cases
+   - Override only when needed
+
+4. **Keep components focused:**
+   - Each component should do one thing well
+   - Combine simple components for complex UI elements
+
+5. **Document your components:**
+   - Add comments explaining parameters and usage
+   - Provide examples in component library files
 
 ## Custom Variables
 
@@ -732,446 +1169,11 @@ All custom variables are stored in the `vars` namespace:
    {{/each}}
    ```
 
-## File Operations
-
-The jPulse Framework provides special helpers for file operations:
-
-### Template Includes
-Include other template files:
-```handlebars
-{{file.include "jpulse-header.tmpl"}}
-{{file.include "jpulse-navigation.tmpl"}}
-{{file.include "my-own-stuff.tmpl" someKey="some value" sleepy=true}}
-```
-
-You can define parameters, and use them in the included template, such as this in above example:
-```handlebars
-{{#if sleepy}}
-    ...
-{{else}}
-    ...
-{{/if}}
-```
-
-### File Timestamps
-Get the last modified timestamp of a file:
-```handlebars
-{{file.timestamp "jpulse-footer.tmpl"}}
-{{!-- Use the file timestamp for browser cache busting: --}}
-<link rel="stylesheet" href="/jpulse-common.css?t={{file.timestamp "jpulse-common.css"}}">
-```
-
-### File Existence
-Check if a file exists:
-```handlebars
-{{#if (file.exists "custom-template.tmpl")}}
-    {{file.include "custom-template.tmpl"}}
-{{else}}
-    {{file.include "default-template.tmpl"}}
-{{/if}}
-```
-
-### File Listing
-List files matching a glob pattern:
-```handlebars
-{{#each file.list "admin/*.shtml"}}
-    <p>{{this}}</p>
-{{/each}}
-```
-
-**With filename sorting:**
-```handlebars
-{{#each file.list "admin/*.shtml" sortBy="filename"}}
-    <li>{{this}}</li>
-{{/each}}
-```
-
-The `file.list` helper supports:
-- Glob patterns: `"admin/*.shtml"`, `"docs/*.md"`, `"projects/*/*.shtml"` (supports multiple wildcards in path)
-- **Note:** Recursive patterns (`**`) are not supported. Use single-level wildcards (`*`) only.
-- **Multi-level patterns:** Patterns like `projects/*/*.shtml` work by recursively searching subdirectories
-- Site overrides: Automatically searches `site/webapp/view/` first, then `webapp/view/`
-- Sorting: `sortBy="filename"` (alphabetical)
-
-### Include Components from Files
-
-Use `file.includeComponents` to register components from multiple files and make them available in the `components` context. This is particularly useful for dashboard pages that aggregate cards from multiple source files:
-
-```handlebars
-{{!-- Register all admin dashboard cards --}}
-{{file.includeComponents "admin/*.shtml" component="adminCards.*"}}
-
-{{!-- Render all registered cards --}}
-{{#each components.adminCards}}
-    {{this}}
-{{/each}}
-```
-
-**Define components in source files** (e.g., `admin/config.shtml`):
-```handlebars
-{{#component "adminCards.config" order=10}}
-    <a href="/admin/config.shtml" class="jp-card-dashboard jp-icon-btn">
-        <div class="jp-icon-container">{{components.jpIcons.configSvg size="64"}}</div>
-        <h3 class="jp-card-title">Configuration</h3>
-        <p class="jp-card-description">Manage site configuration</p>
-    </a>
-{{/component}}
-```
-
-**Include components parameters:**
-- `{{file.includeComponents "admin/*.shtml" component="adminCards.*" sortBy="component-order"}}`
-- `"glob-pattern"`: File pattern to search, such as `"admin/*.shtml"` (required)
-- `component="namespace.*"`: Filter components by namespace pattern (optional)
-- `sortBy="method"`: Sort method (optional)
-  - `"component-order"`: Sort by the `order=N` parameter in component definitions (default)
-  - `"plugin-order"`: Sort by plugin dependency resolution order (for plugin dashboards)
-  - `"filename"`: Alphabetical sorting by filename
-  - `"filesystem"`: Natural filesystem order (no sorting)
-
-**Example - Plugin Dashboard:**
-```handlebars
-{{!-- Register plugin cards sorted by dependency order --}}
-{{file.includeComponents "jpulse-plugins/*.shtml" component="pluginCards.*" sortBy="plugin-order"}}
-
-{{!-- Render plugin cards --}}
-{{#each components.pluginCards}}
-    {{this}}
-{{/each}}
-```
-
-**Features:**
-- **Silent registration:** Components are registered without output, then rendered via `{{#each}}`
-- **Pattern filtering:** Use `component="namespace.*"` to register only specific namespaced components
-- **Flexible sorting:** Choose sort method based on dashboard requirements
-- **Component expansion:** Components are fully expanded (including nested components and i18n) before registration
-- **Site overrides:** Automatically uses site overrides when available
-- **Security:** Path traversal protection, errors logged server-side only
-
-## Reusable Components
-
-The jPulse Framework supports reusable Handlebars components for eliminating code duplication. Components are template fragments that can be defined once and reused multiple times with different parameters.
-
-### Component Definition
-
-Define components using the `{{#component}}` block helper:
-
-```handlebars
-{{#component "widgets.buttonPrimary" text="Click Me" size="medium"}}
-    <button class="btn btn-primary btn-{{size}}">
-        {{text}}
-    </button>
-{{/component}}
-```
-
-**Component naming rules:**
-- Must start with a letter
-- Can contain letters, numbers, underscores, hyphens, and dots (for namespaces)
-- Must end with a letter or number
-- Recommended to always use namespaces to avoid naming collisions
-- Examples: `icon.box`, `icons.svg-icon-2`, `cards.userCard`, `buttons.Button_Large`, `jpIcons.configSvg`
-
-### Component Usage
-
-Use components with the `{{components.componentName}}` syntax:
-
-```handlebars
-{{!-- Use with default parameters --}}
-{{components.widgets.buttonPrimary}}
-
-{{!-- Override specific parameters --}}
-{{components.widgets.buttonPrimary text="Submit" size="large"}}
-```
-
-**Naming convention:**
-- Use namespaces for better separation of concerns, such as `jpIcons.logsSvg`
-- Component names are converted from kebab-case to camelCase for usage
-- `logs-svg` becomes `{{components.logsSvg}}`
-- `user-card` becomes `{{components.userCard}}`
-- `icon` remains `{{components.icon}}`
-- Namespaced: `jpIcons.logs-svg` becomes `{{components.jpIcons.logsSvg}}`
-
-### Component Parameters
-
-Components support both user-defined parameters and special framework parameters:
-
-**User Parameters:**
-```handlebars
-{{components.jpIcons.logsSvg size="48" fillColor="#007bff"}}
-```
-
-**Framework Parameters (prefixed with `_`):**
-
-`_inline` - Removes newlines and collapses whitespace for inline use in JavaScript:
-```handlebars
-{{!-- In JavaScript object literal --}}
-<script>
-const navConfig = {
-    icon: `{{components.jpIcons.configSvg size="24" _inline=true}}`
-};
-</script>
-```
-
-**Features:**
-- Framework parameters (starting with `_`) are not passed to component context
-- `_inline=true` strips newlines and collapses whitespace to single spaces
-- Useful for embedding SVG in JavaScript strings without line breaks
-
-### Namespaced Components
-
-Components support optional dot-notation namespaces for organization:
-
-```handlebars
-{{!-- Define namespaced components --}}
-{{#component "jpIcons.configSvg" size="64"}}
-    <svg width="{{size}}">...</svg>
-{{/component}}
-
-{{#component "icons.userSvg" size="64"}}
-    <svg width="{{size}}">...</svg>
-{{/component}}
-
-{{#component "buttons.primary" text="Click"}}
-    <button>{{text}}</button>
-{{/component}}
-
-{{!-- Use namespaced components --}}
-{{components.jpIcons.configSvg size="32"}}
-{{components.siteIcons.userSvg size="48"}}
-{{components.buttons.primary text="Submit"}}
-```
-
-**Benefits:**
-- Organize components by category (icons, buttons, cards, etc.)
-- Avoid naming collisions as component library grows
-- Clear component purpose from namespace
-- Optional - flat naming (`config-svg`) still works
-
-### Component Libraries
-
-Create reusable component libraries by defining multiple components in `.tmpl` files:
-
-**File: `webapp/view/components/svg-icons.tmpl`**
-```handlebars
-{{!-- SVG Icon Component Library --}}
-
-{{#component "jpIcons.logsSvg" fillColor="currentColor" size="64"}}
-    <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none">
-        <rect x="20" y="85" width="10" height="22" fill="{{fillColor}}"/>
-        <rect x="36" y="64" width="10" height="43" fill="{{fillColor}}"/>
-        <rect x="52" y="75" width="10" height="32" fill="{{fillColor}}"/>
-    </svg>
-{{/component}}
-
-{{#component "jpIcons.usersSvg" fillColor="currentColor" size="64"}}
-    <svg width="{{size}}" height="{{size}}" viewBox="0 0 128 128" fill="none">
-        <circle cx="64" cy="36" r="20" fill="{{fillColor}}"/>
-        <path d="M 25 100 Q 25 68, 64 68 T 103 100" fill="{{fillColor}}"/>
-    </svg>
-{{/component}}
-```
-
-> **Note:** The `svg-icons.tmpl` component library is already included in all pages via `jpulse-header.tmpl`, so you can use these components without any `{{file.include}}` statement.
-
-**Use in your pages:**
-```handlebars
-<div class="icon-container">
-    {{components.jpIcons.logsSvg size="48" fillColor="#007bff"}}
-</div>
-
-<div class="icon-container">
-    {{components.jpIcons.usersSvg size="32"}}
-</div>
-```
-
-### Nested Components
-
-Components can call other components:
-
-```handlebars
-{{!-- Define a wrapper component that uses another component --}}
-{{#component "widgets.card-with-icon" title="Dashboard" iconSize="32"}}
-    <div class="card">
-        <div class="card-icon">
-            {{components.jpIcons.configSvg size=iconSize}}
-        </div>
-        <h3>{{title}}</h3>
-    </div>
-{{/component}}
-
-{{!-- The jpIcons.configSvg component is already defined in svg-icons.tmpl --}}
-
-{{!-- Usage --}}
-{{components.widgets.cardWithIcon title="System Status" iconSize="48"}}
-```
-
-**Limitations:**
-- Maximum nesting depth: 16 levels (configurable in `appConfig.controller.handlebar.maxIncludeDepth`)
-- Circular references are detected and prevented
-- Components do not inherit variables from calling context (pass parameters explicitly)
-
-### Component Error Handling
-
-Component errors are handled gracefully:
-
-**Development/Test Mode:**
-```handlebars
-{{components.nonexistentComponent}}
-```
-This generates output:<br/>
-`<!-- Error: Component "nonexistentComponent" not found. Did you forget to include the component library? -->`
-
-**Production Mode:**
-- Errors are logged server-side only
-- No visible output in rendered HTML
-
-**Circular reference detection:**
-```handlebars
-{{#component "comp-a"}}
-    {{components.compB}}
-{{/component}}
-
-{{#component "comp-b"}}
-    {{components.compA}}
-{{/component}}
-
-{{components.compA}}
-```
-This generates output:<br/>
-`<!-- Error: Circular component reference detected: compA → compB → compA -->`
-
-### Best Practices
-
-1. **Organize components in libraries:**
-   - Create themed component files: `svg-icons.tmpl`, `buttons.tmpl`, `cards.tmpl`
-   - Store in `site/webapp/view/components/`
-     - Don't use `webapp/view/components/`, which is jPulse Framework specific
-
-2. **Use descriptive names with namespaces:**
-   - Good: `icons.user`, `icons.iconUser`, `buttons.button-primary`, `cardLib.cardDashboard`
-   - Avoid: `icon1`, `btn`, `c`
-
-3. **Provide sensible defaults:**
-   - Set default parameter values that work in most cases
-   - Override only when needed
-
-4. **Keep components focused:**
-   - Each component should do one thing well
-   - Combine simple components for complex UI elements
-
-5. **Document your components:**
-   - Add comments explaining parameters and usage
-   - Provide examples in component library files
-
-## Error Handling
-
-The Handlebars system includes robust error handling for various scenarios:
-
-### Safe Iteration
-```handlebars
-{{!-- Safe handling of null/undefined --}}
-{{#each possiblyUndefined}}
-    <p>{{this}}</p>
-{{/each}}
-{{!-- If possiblyUndefined is null/undefined, no output is generated --}}
-```
-
-### Type Checking
-```handlebars
-{{!-- Invalid data types show error comments --}}
-{{#each stringValue}}
-    <p>{{this}}</p>
-{{/each}}
-```
-If stringValue is a string (not array/object), it generates output:<br/>
-`<!-- Error: Cannot iterate over non-iterable value: string -->`
-
-## Best Practices
-
-### 1. Use Semantic Variable Names
-Choose descriptive variable names that clearly indicate their purpose:
-```handlebars
-{{!-- Good --}}
-{{user.firstName}} {{user.lastName}}
-
-{{!-- Avoid --}}
-{{u.fn}} {{u.ln}}
-```
-
-### 2. Handle Missing Data Gracefully
-Always consider what happens when data might be missing:
-```handlebars
-{{#if user.isAuthenticated}}
-    Welcome, {{user.firstName}}!
-{{else}}
-    Welcome, Guest!
-{{/if}}
-```
-
-### 3. Keep Templates Clean
-Use logical and comparison helpers for complex conditions (v1.3.15+):
-```handlebars
-{{!-- Good - use subexpressions for complex logic --}}
-{{#if (and user.isAuthenticated user.isAdmin)}}
-    <div class="admin-panel">...</div>
-{{/if}}
-
-{{#if (or user.isPremium (gt user.score 1000))}}
-    <div class="premium-content">...</div>
-{{/if}}
-
-{{!-- Also good - use block helpers for cleaner syntax --}}
-{{#and user.isAuthenticated user.isAdmin}}
-    <div class="admin-panel">...</div>
-{{else}}
-    <div class="access-denied">...</div>
-{{/and}}
-```
-
-### 4. Use Consistent Naming
-Follow consistent naming conventions for CSS classes and IDs:
-```handlebars
-<div class="jp-user-info">
-    <span class="jp-user-name">{{user.firstName}} {{user.lastName}}</span>
-    <span class="jp-user-email">{{user.email}}</span>
-</div>
-```
-
-### 5. Use Block Scope to Prevent Variable Pollution
-When defining temporary variables in loops, use `{{#let}}` blocks to prevent pollution:
-```handlebars
-{{!-- Good - block scope prevents pollution --}}
-{{#each items}}
-    {{#let itemClass="active" index=@index}}
-        <li class="{{vars.itemClass}}">Item {{vars.index}}</li>
-    {{/let}}
-{{/each}}
-
-{{!-- Avoid - variables persist after loop --}}
-{{#each items}}
-    {{let itemClass="active" index=@index}}
-    <li class="{{vars.itemClass}}">Item {{vars.index}}</li>
-{{/each}}
-```
-
-## Template Organization
-
-### Site Structure
-- **Framework templates**: Located in `webapp/view/`
-- **Site-specific templates**: Located in `site/webapp/view/`
-- **Common includes**: `jpulse-header.tmpl`, `jpulse-footer.tmpl`, `jpulse-navigation.tmpl`
-
-### Template Types
-- **`.shtml` files**: Complete HTML pages
-- **`.tmpl` files**: Template fragments for inclusion
-- **`.css.tmpl` files**: Dynamic CSS with Handlebars variables
-
-## Advanced Features
-
-### Custom Handlebars Helpers (v1.3.17+)
+## Custom Handlebars Helpers
 
 You can create custom Handlebars helpers for your site or plugin using the auto-discovery pattern. Helpers are automatically discovered and registered during bootstrap, requiring no manual registration.
 
-#### Creating Custom Helpers
+### Creating Custom Helpers
 
 **For Plugins**: Add helper methods to your plugin controller (`plugins/your-plugin/webapp/controller/yourPlugin.js`)
 
@@ -1183,7 +1185,7 @@ You can create custom Handlebars helpers for your site or plugin using the auto-
 - `handlebarUppercase` → `{{uppercase}}`
 - `handlebarRepeat` → `{{#repeat}}`
 
-#### Helper Types
+### Helper Types
 
 **Regular Helpers** (2 parameters):
 ```javascript
@@ -1214,7 +1216,7 @@ static async handlebarRepeat(args, blockContent, context) {
 ```
 Usage: `{{#repeat count=3}}Hello{{/repeat}}` → `"HelloHelloHello"`
 
-#### Helper Arguments (`args`)
+### Helper Arguments (`args`)
 
 All helpers receive a parsed `args` object with:
 - `args._helper` - Helper name (e.g., "uppercase")
@@ -1224,7 +1226,7 @@ All helpers receive a parsed `args` object with:
 
 Subexpressions are pre-evaluated, so `{{uppercase (user.name)}}` passes the evaluated value in `args._target`.
 
-#### Context Utilities (`context._handlebar`)
+### Context Utilities (`context._handlebar`)
 
 Block helpers have access to framework utilities via `context._handlebar`:
 - `context._handlebar.req` - Express request object
@@ -1234,13 +1236,13 @@ Block helpers have access to framework utilities via `context._handlebar`:
 - `context._handlebar.getNestedProperty(obj, path)` - Get nested property
 - `context._handlebar.setNestedProperty(obj, path, value)` - Set nested property
 
-#### Auto-Documentation with JSDoc
+### Auto-Documentation with JSDoc
 
 Helpers are automatically documented when you include JSDoc comments with `@description` and `@example`:
 
 ```javascript
 /**
- * W-116: Example regular helper - converts text to uppercase
+ * Example regular helper - converts text to uppercase
  * @description Convert text to UPPERCASE (hello-world plugin example)
  * @example {{uppercase "hello world"}}
  * @param {object} args - Parsed arguments (already evaluated)
@@ -1257,9 +1259,9 @@ The framework automatically extracts:
 - **Description**: From `@description` tag - appears in helper documentation
 - **Example**: From `@example` tag - appears in helper documentation and examples
 
-These are automatically included in the [Handlebars Helpers documentation](#summary-of-block-and-regular-handlebars) via dynamic content generation.
+These are automatically included in the [Summary of Regular Handlebars](#summary-of-regular-handlebars) and [Summary of Block Handlebars](#summary-of-block-handlebars) documentation via dynamic content generation.
 
-#### Helper Priority
+### Helper Priority
 
 Helpers can override built-in helpers with the following priority (highest to lowest):
 1. **Site helpers** - `site/webapp/controller/*.js`
@@ -1268,7 +1270,7 @@ Helpers can override built-in helpers with the following priority (highest to lo
 
 The last registered helper wins, so site helpers always override plugin helpers, which override built-in helpers.
 
-#### Example: Complete Helper Implementation
+### Example: Complete Helper Implementation
 
 ```javascript
 export default class MyPluginController {
@@ -1282,7 +1284,7 @@ export default class MyPluginController {
      */
     static handlebarCurrency(args, context) {
         const amount = parseFloat(args._target || args.amount || 0);
-        const symbol = args.symbol || '$';
+        const symbol = args.symbol || '\x24';
         return `${symbol}${amount.toFixed(2)}`;
     }
 
@@ -1305,15 +1307,284 @@ export default class MyPluginController {
 
 **See Also**: [Creating Plugins - Step 3.5: Add Handlebars Helpers](../plugins/creating-plugins.md#step-35-add-handlebars-helpers-optional-w-116) for detailed plugin integration guide.
 
+## Comments
+
+### `{{!-- --}}` - Handlebars Comments
+
+Use Handlebars comments for notes that should not appear in the rendered output:
+
+```handlebars
+{{!-- This is a Handlebars comment - stripped during processing --}}
+
+{{!--
+  Multi-line comments are also supported,
+  they may contain handlebars, such as {{user.firstName}},
+  and will be completely removed from the output
+--}}
+
+<!-- This is an HTML comment - visible in browser source -->
+```
+
+**Key Differences:**
+- `{{!-- --}}` - Handlebars comments are **removed** during server-side processing
+- `<!-- -->` - HTML comments are **preserved** in the rendered HTML (visible in browser source)
+
+**Use Cases for Handlebars Comments:**
+- Component library documentation (won't appear in rendered pages)
+- Template notes for developers (never sent to browser)
+- Comments in JavaScript files processed as Handlebars templates
+- Temporary debugging notes during development
+
+**Example:**
+```handlebars
+{{!--
+  SVG Icon Component Library
+  These components are used throughout the application
+  Updated: 2025-11-24
+--}}
+{{#component "jpIcons.configSvg" fillColor="currentColor" size="64"}}
+    <svg width="{{size}}" height="{{size}}">...</svg>
+{{/component}}
+```
+
+## Nesting of Handlebars
+
+### Nested Conditionals
+
+You can nest conditionals for complex logic (v0.7.20+):
+
+```handlebars
+{{#if user.isAuthenticated}}
+    {{#if user.isAdmin}}
+        <div class="jp-info-box">
+            <p>Admin Panel Access:</p>
+            {{#if siteConfig.features.adminPanel}}
+                <p>✅ Admin panel is enabled</p>
+            {{else}}
+                <p>❌ Admin panel is disabled</p>
+            {{/if}}
+        </div>
+    {{else}}
+        <p>Regular user - limited access</p>
+    {{/if}}
+{{/if}}
+```
+
+**With subexpressions (v1.3.15+):**
+```handlebars
+{{#if (and user.isAuthenticated user.isAdmin)}}
+    <div class="jp-info-box">
+        <p>Admin Panel Access:</p>
+        {{#if (eq siteConfig.features.adminPanel true)}}
+            <p>✅ Admin panel is enabled</p>
+        {{else}}
+            <p>❌ Admin panel is disabled</p>
+        {{/if}}
+    </div>
+{{/if}}
+```
+
+### Nested Blocks
+
+Complex template scenarios with nested blocks are fully supported (v0.7.20+):
+
+```handlebars
+{{!-- Nested {{#if}} within {{#each}} --}}
+{{#each users}}
+    <div class="user-card">
+        {{#if this.active}}
+            <span class="badge">Active</span>
+        {{/if}}
+        <h3>{{this.name}}</h3>
+    </div>
+{{/each}}
+
+{{!-- Nested {{#each}} loops --}}
+{{#each books}}
+    <div class="book">
+        <h2>{{this.title}}</h2>
+        {{#each this.chapters}}
+            <div class="chapter">Chapter {{@index}}: {{this}}</div>
+        {{/each}}
+    </div>
+{{/each}}
+```
+
+### Subexpressions in Conditions
+
+Use subexpressions (Polish notation) to create complex conditional logic in `{{#if}}` and `{{#unless}}`:
+
+```handlebars
+<!-- Simple subexpressions -->
+{{#if (and user.isAdmin user.isActive)}}
+    Active admin!
+{{/if}}
+
+{{#if (gt user.score 100)}}
+    High score!
+{{/if}}
+
+{{#if (eq user.status "active")}}
+    User is active
+{{/if}}
+
+<!-- Nested subexpressions -->
+{{#if (and (gt user.score 100) (eq user.status "active"))}}
+    Active high scorer!
+{{/if}}
+
+{{#if (or (eq user.role "admin") (and (gt user.score 1000) user.isPremium))}}
+    Special access!
+{{/if}}
+
+{{#unless (or (eq user.role "guest") (lt user.score 10))}}
+    Regular user content
+{{/unless}}
+
+{{#if (not user.isGuest)}}
+    Registered user
+{{/if}}
+```
+
+**Quoted strings with parentheses:** Parentheses inside quoted strings are preserved as literal characters:
+```handlebars
+{{#if (and (eq user.firstName "James (Jim)") user.isActive)}}
+    Active user with nickname in name
+{{/if}}
+```
+
+## Error Handling
+
+The Handlebars system includes robust error handling for various scenarios:
+
+### Safe Iteration
+
+```handlebars
+{{!-- Safe handling of null/undefined --}}
+{{#each possiblyUndefined}}
+    <p>{{this}}</p>
+{{/each}}
+{{!-- If possiblyUndefined is null/undefined, no output is generated --}}
+```
+
+### Type Checking
+
+```handlebars
+{{!-- Invalid data types show error comments --}}
+{{#each stringValue}}
+    <p>{{this}}</p>
+{{/each}}
+```
+If stringValue is a string (not array/object), it generates output:<br/>
+`<!-- Error: Cannot iterate over non-iterable value: string -->`
+
+### Component Error Handling
+
+Component errors are handled gracefully with appropriate error messages in development/test mode and silent logging in production. See [Component Error Handling](#component-error-handling) in the Reusable Components section for detailed documentation.
+
+## Best Practices
+
+### 1. Use Semantic Variable Names
+
+Choose descriptive variable names that clearly indicate their purpose:
+```handlebars
+{{!-- Good --}}
+{{user.firstName}} {{user.lastName}}
+
+{{!-- Avoid --}}
+{{u.fn}} {{u.ln}}
+```
+
+### 2. Handle Missing Data Gracefully
+
+Always consider what happens when data might be missing:
+```handlebars
+{{#if user.isAuthenticated}}
+    Welcome, {{user.firstName}}!
+{{else}}
+    Welcome, Guest!
+{{/if}}
+```
+
+### 3. Keep Templates Clean
+
+Use logical and comparison helpers for complex conditions (v1.3.15+):
+```handlebars
+{{!-- Good - use subexpressions for complex logic --}}
+{{#if (and user.isAuthenticated user.isAdmin)}}
+    <div class="admin-panel">...</div>
+{{/if}}
+
+{{#if (or user.isPremium (gt user.score 1000))}}
+    <div class="premium-content">...</div>
+{{/if}}
+
+{{!-- Also good - use block helpers for cleaner syntax --}}
+{{#and user.isAuthenticated user.isAdmin}}
+    <div class="admin-panel">...</div>
+{{else}}
+    <div class="access-denied">...</div>
+{{/and}}
+```
+
+### 4. Use Consistent Naming
+
+Follow consistent naming conventions for CSS classes and IDs:
+```handlebars
+<div class="jp-user-info">
+    <span class="jp-user-name">{{user.firstName}} {{user.lastName}}</span>
+    <span class="jp-user-email">{{user.email}}</span>
+</div>
+```
+
+**Note:** This is a jPulse Framework example.
+- For page specific CSS classes use names like `"local-user-info"`, `"local-user-name"`, etc.
+- For site specific CSS classes defined in `site/webapp/view/jpulse-common.css` use reference like `"site-user-info"`, `"site-user-name"`, etc.
+
+### 5. Use Block Scope to Prevent Variable Pollution
+
+When defining temporary variables in loops, use `{{#let}}` blocks to prevent pollution:
+```handlebars
+{{!-- Good - block scope prevents pollution --}}
+{{#each items}}
+    {{#let itemClass="active" index=@index}}
+        <li class="{{vars.itemClass}}">Item {{vars.index}}</li>
+    {{/let}}
+{{/each}}
+
+{{!-- Avoid - variables persist after loop --}}
+{{#each items}}
+    {{let itemClass="active" index=@index}}
+    <li class="{{vars.itemClass}}">Item {{vars.index}}</li>
+{{/each}}
+```
+
+## Template Organization
+
+### Site Structure
+
+- **Framework templates**: Located in `webapp/view/`
+- **Plugin-specific templates**: Located in `plugins/[name]/webapp/view/`
+- **Site-specific templates**: Located in `site/webapp/view/`
+- **Common includes**: `jpulse-header.tmpl`, `jpulse-footer.tmpl`, `jpulse-navigation.js`
+
+### Template Types
+
+- **`.shtml` files**: Complete HTML pages
+- **`.tmpl` files**: Template fragments for inclusion
+- **`.css` files**: Styles
+- **`.js` files**: JavaScript
+
+**Note:** All types may include handlebars, which will be expanded by the time the browser receives the templates.
+
 ### Template Caching
+
 Templates are cached for performance. Restart the development server to see changes during development.
 
-### Site Overrides
-Site-specific templates can override framework templates by placing them in the same relative path within the site directory.
+### Overriding or Appending Templates
 
-## Examples
-
-For live examples of Handlebars usage, see the [Handlebars Examples](/jpulse-examples/handlebars.shtml) page, which provides interactive examples with source code for all the concepts covered in this guide.
+- `.shtml` and `.tmpl` files: Site-specific and plugin-specific templates can override framework templates by placing them in the same relative path within the site or plugin directory.
+- `.css` and `.js` files: Site-specific and plugin-specific templates will be appended to framework templates if placed in the same relative path within the site or plugin directory.
 
 ## Client-Side Handlebars Expansion
 
@@ -1333,6 +1604,10 @@ const result = await jPulse.api.post('/api/1/handlebar/expand', {
 ```
 
 > **See Also:** [Front-End Development Guide](front-end-development.md) for complete client-side Handlebars expansion documentation and use cases.
+
+## Examples
+
+For live examples of Handlebars usage, see the [Handlebars Examples](/jpulse-examples/handlebars.shtml) page, which provides interactive examples with source code for all the concepts covered in this guide.
 
 ## Related Documentation
 

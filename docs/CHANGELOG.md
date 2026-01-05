@@ -1,6 +1,72 @@
-# jPulse Docs / Version History v1.4.4
+# jPulse Docs / Version History v1.4.5
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.5, W-125, 2026-01-05
+
+**Commit:** `W-125, v1.4.5: docs: handlebar docs improvements, navigation improvements`
+
+**FEATURE RELEASE**: Documentation usability and navigation improvements across desktop and mobile.
+
+**Objective**: Make documentation and examples easier to navigate and improve site navigation UX (desktop dropdown + mobile hamburger).
+
+**Key Features**:
+- **Docs readability improvements**:
+  - Restructured `docs/handlebars.md` for clearer TOC navigation and faster lookup of helpers and context variables
+  - Removed outdated footer block from `docs/sending-email.md`
+- **Examples UX improvements**:
+  - Refactored `jpulse-examples/*` pages into numbered, long-form sections for better scanning and learning
+- **Navigation improvements (desktop + mobile)**:
+  - Desktop site navigation dropdown: flyout submenus become scrollable when too tall to fit the viewport
+  - Desktop deep flyouts: portal overlay prevents clipping when a parent flyout is scrollable
+  - jPulse Docs pulldown: fixed dynamic docs page registration so all docs groups render (not only the last one)
+  - Mobile hamburger: fixed clipping for large and nested docs lists (full expansion without hiding bottom items)
+- **TOC + accessibility improvements**:
+  - TOC supports `h4` headings by default and includes a "Back to top" action
+  - TOC supports opt-out for demo headings via `.jp-toc-ignore` / `data-toc-ignore="true"` (keeps heading anchor demos intact without polluting the sidebar TOC)
+  - Improved accessibility with i18n-backed aria labels for hamburger and sidebar toggles
+
+**Code Changes**:
+
+**docs/handlebars.md**:
+- Restructured and expanded sections for improved navigation and clarity
+
+**webapp/view/jpulse-examples/*.shtml**:
+- API, Forms, Handlebars, Layout, UI Widgets: converted to numbered, long-form section layout
+- UI Widgets, Forms, Layout: marked heading-based demo sections so demo headings are omitted from the sidebar TOC
+
+**webapp/view/jpulse-common.js**:
+- Desktop dropdown: conditional flyout scrolling + deep-flyout portal overlay
+- Docs pulldown: fixed directory key collisions in `convertFilesToPages()`
+- Mobile hamburger: robust submenu expansion for tall and nested lists
+
+**webapp/view/jpulse-common.css**:
+- Added portal overlay styles for deep flyouts
+- Updated mobile submenu expansion behavior to avoid clipping
+
+**webapp/view/components/jpulse-sidebars.tmpl**:
+- TOC: added "Back to top" link and behavior
+- TOC: ignore headings inside `.jp-toc-ignore` / `data-toc-ignore="true"` containers (useful for heading-based demos)
+
+**webapp/app.conf**:
+- TOC selector updated to include `h4`
+
+**webapp/view/jpulse-footer.tmpl**:
+- Accessibility: aria-labels backed by i18n for hamburger and sidebar toggles
+
+**webapp/translations/en.conf, webapp/translations/de.conf**:
+- Added i18n strings for sidebar/mobile navigation aria-labels and TOC "Back to top"
+
+**Breaking Changes**:
+- None
+
+**Migration Steps**:
+- None required
+
+**Work Item**: W-125
+**Version**: v1.4.5
+**Release Date**: 2026-01-05
 
 ________________________________________________
 ## v1.4.4, W-124, 2026-01-04

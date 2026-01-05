@@ -1,4 +1,4 @@
-# jPulse Docs / Sending Email v1.4.4
+# jPulse Docs / Sending Email v1.4.5
 
 Complete guide to configuring and sending emails from jPulse Framework applications using the standardized email sending strategy.
 
@@ -662,9 +662,3 @@ Check email status in health endpoint and set up alerts for failures.
 - **[Handlebars Templates](handlebars.md)** - Template processing guide
 - **[Security & Authentication](security-and-auth.md)** - Security best practices
 - **[Health Monitoring](api-reference.md#health-check-endpoint)** - System health checks
-
----
-
-**Document Version:** 1.0.0
-**Last Updated:** 2025-11-11
-**jPulse Framework Version:** 1.1.4

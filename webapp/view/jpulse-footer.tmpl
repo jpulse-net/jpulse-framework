@@ -4,8 +4,8 @@
  * @tagline         Footer template for jPulse pages
  * @description     Footer included in all jPulse pages to provide a consistent page layout
  * @file            webapp/view/jpulse-footer.tmpl
- * @version         1.4.4
- * @release         2026-01-04
+ * @version         1.4.5
+ * @release         2026-01-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -17,7 +17,7 @@
     <div class="jp-header-content">
         <!-- Mobile Hamburger Menu Icon (W-069) -->
         {{#if appConfig.view.pageDecoration.siteNavigation.enabled}}
-        <button class="jp-hamburger" id="jp-hamburger" aria-label="Menu" aria-expanded="false">
+        <button class="jp-hamburger" id="jp-hamburger" aria-label="{{i18n.view.pageDecoration.sidebar.menu}}" aria-expanded="false">
             <span></span>
             <span></span>
             <span></span>
@@ -60,7 +60,7 @@
 <!-- Mobile Menu Overlay (W-069) -->
 {{#if appConfig.view.pageDecoration.siteNavigation.enabled}}
 <div class="jp-mobile-menu-overlay" id="jp-mobile-menu-overlay"></div>
-<nav class="jp-mobile-menu" id="jp-mobile-menu" aria-label="Mobile Navigation"></nav>
+<nav class="jp-mobile-menu" id="jp-mobile-menu" aria-label="{{i18n.view.pageDecoration.sidebar.mobileNavigation}}"></nav>
 {{/if}}
 
 <!-- Left Sidebar (W-068) -->
@@ -77,10 +77,10 @@
         </div>
     </div>
     {{!-- Mobile close button (inside sidebar) --}}
-    <button class="jp-sidebar-toggle jp-sidebar-toggle-close" id="jp-sidebar-toggle-close-left" aria-label="Close left sidebar" style="display:none;">◄</button>
+    <button class="jp-sidebar-toggle jp-sidebar-toggle-close" id="jp-sidebar-toggle-close-left" aria-label="{{i18n.view.pageDecoration.sidebar.closeLeftSidebar}}" style="display:none;">◄</button>
 </aside>
 <div id="jp-sidebar-separator-left" class="jp-sidebar-separator jp-sidebar-separator-left" data-sidebar="left">
-    <button class="jp-sidebar-toggle jp-sidebar-toggle-left" aria-label="Toggle left sidebar" title="Toggle sidebar"></button>
+    <button class="jp-sidebar-toggle jp-sidebar-toggle-left" aria-label="{{i18n.view.pageDecoration.sidebar.toggleLeftSidebar}}" title="{{i18n.view.pageDecoration.sidebar.toggleSidebar}}"></button>
 </div>
 {{/if}}
 
@@ -98,10 +98,10 @@
         </div>
     </div>
     {{!-- Mobile close button (inside sidebar) --}}
-    <button class="jp-sidebar-toggle jp-sidebar-toggle-close" id="jp-sidebar-toggle-close-right" aria-label="Close right sidebar" style="display:none;">►</button>
+    <button class="jp-sidebar-toggle jp-sidebar-toggle-close" id="jp-sidebar-toggle-close-right" aria-label="{{i18n.view.pageDecoration.sidebar.closeRightSidebar}}" style="display:none;">►</button>
 </aside>
 <div id="jp-sidebar-separator-right" class="jp-sidebar-separator jp-sidebar-separator-right" data-sidebar="right">
-    <button class="jp-sidebar-toggle jp-sidebar-toggle-right" aria-label="Toggle right sidebar" title="Toggle sidebar"></button>
+    <button class="jp-sidebar-toggle jp-sidebar-toggle-right" aria-label="{{i18n.view.pageDecoration.sidebar.toggleRightSidebar}}" title="{{i18n.view.pageDecoration.sidebar.toggleSidebar}}"></button>
 </div>
 {{/if}}
 
@@ -331,6 +331,37 @@ jPulse.dom.ready(() => {
                 }
             }
         });
+    }
+
+    // Keyboard shortcut: Home key (Fn+Left on Mac) or Cmd+Up to scroll to top
+    const handleKeyDown = (e) => {
+        // Home key (works with Fn+Left on Mac) when not in input/textarea
+        const isHomeKey = e.key === 'Home' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName);
+        // Command+Up Arrow (Mac native)
+        const isCmdUp = e.key === 'ArrowUp' && (e.metaKey || e.ctrlKey);
+
+        if (isHomeKey || isCmdUp) {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+            // Clear URL hash if present
+            if (window.location.hash) {
+                window.history.pushState(null, '', window.location.pathname);
+            }
+        }
+    };
+
+    // Add keyboard listener
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Store handler for cleanup
+    tocEl._keydownHandler = handleKeyDown;
+
+    // Cleanup on regeneration (add this in the generateToc function cleanup section)
+    if (tocEl._keydownHandler) {
+        document.removeEventListener('keydown', tocEl._keydownHandler);
     }
 });
 </script>

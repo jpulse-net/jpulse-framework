@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.4
+# jPulse Docs / Dev / Work Items v1.4.5
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3523,6 +3523,51 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 ## 🚧 IN_PROGRESS Work Items
 
 
+### W-125, v1.4.5, 2026-01-05: docs: handlebar docs improvements, navigation improvements
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: more usable docs
+- deliverables:
+  - docs/handlebars.md:
+    - Restructured for readability and TOC navigation: moved Context Variables up, reorganized helpers into Regular/Block Helpers sections with clearer headings and examples, and expanded best-practices guidance
+  - webapp/view/jpulse-examples/api.shtml:
+    - Converted sections to numbered, long-form layout for better scanning and navigation
+  - webapp/view/jpulse-examples/forms.shtml:
+    - Converted sections to numbered, long-form layout for better scanning and navigation
+    - Marked heading-based demo section(s) to omit demo headings from the sidebar TOC (keeps anchor demo intact)
+  - webapp/view/jpulse-examples/handlebars.shtml:
+    - Converted sections to numbered, long-form layout; improved subexpression examples and overall learnability
+  - webapp/view/jpulse-examples/layout.shtml:
+    - Converted sections to numbered, long-form layout for better scanning and navigation
+    - Marked typography demo heading samples to omit them from the sidebar TOC (keeps heading samples intact)
+  - webapp/view/jpulse-examples/ui-widgets.shtml:
+    - Converted sections to numbered, long-form layout; improved content hierarchy (h2/h3) for TOC friendliness
+    - Marked heading anchor demo section to omit demo headings from the sidebar TOC (keeps anchor demo intact)
+  - webapp/view/jpulse-common.js:
+    - Site nav dropdown: added scroll support for flyout submenus when too tall to fit the viewport
+    - Site nav dropdown: added portal overlay for deeper flyouts to avoid clipping when parent menu is scrollable
+    - Docs pulldown: fixed key collisions in dynamic docs page registration so all docs submenus render (not only last one, e.g. Dev)
+    - Mobile hamburger: fixed clipping for large/nested docs menus by computing submenu heights dynamically and allowing parent expansion when deeper levels open
+  - webapp/view/jpulse-common.css:
+    - Site nav dropdown: added styles for portal overlay flyout menus
+    - Mobile hamburger: updated submenu expand behavior to avoid clipping tall lists
+  - webapp/view/components/jpulse-sidebars.tmpl:
+    - TOC: added "Back to top" link and behavior
+    - TOC: added opt-out to omit headings inside `.jp-toc-ignore` / `data-toc-ignore="true"` containers
+  - webapp/app.conf:
+    - TOC: expanded default heading selector to include h4
+  - webapp/view/jpulse-footer.tmpl:
+    - Accessibility: i18n-backed aria-labels for hamburger and sidebar toggles; added keyboard shortcut for scroll-to-top
+  - webapp/translations/en.conf, webapp/translations/de.conf:
+    - Added i18n strings for sidebar/mobile navigation aria-labels and TOC "back to top"
+  - docs/sending-email.md:
+    - Removed outdated document version footer block
+
+
+
+
+
+
 
 
 
@@ -3534,7 +3579,6 @@ old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
-- site nav dropdown issue: can't scroll a tall sub-menu that is taller than viewport
 
 ### Potential next items:
 - W-0: view: broadcast message
@@ -3556,8 +3600,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-124, v1.4.4
-- update deliverables in W-124 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-125, v1.4.5
+- update deliverables in W-125 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -3574,12 +3618,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.4
+node bin/bump-version.js 1.4.5
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.4
+git tag v1.4.5
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -3770,17 +3814,17 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
     - `{{add 2 4 6 vars.sum}}`
     - `{{add 2 (multiply 4 6) vars.sum}}`
     - `{{add (file.timestamp "my-file.js") 1000}}`
-    - `{{divide}}`
-    - `{{multiply}}`
-    - `{{remainder}}`
-    - `{{subtract}}`
+    - `{{divide ...}}`
+    - `{{multiply ...}}`
+    - `{{remainder ...}}`
+    - `{{subtract ...}}`
   - pros:
     - familiar, standard subexpressions evaluation (nested parenthesis)
     - easy to implement
     - secure by design
   - cons:
     - less flexible math
-    - multile handlebar helpers
+    - multiple handlebar helpers
     - more verbose
 - deliverables:
   - FIXME file:
@@ -3871,7 +3915,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
         { id: 'step-1', label: 'Step 1', url: '/signup/1' },
         { id: 'step-2', label: 'Step 2', url: '/signup/2' },
       ],
-      disablePending: true,   // disable to pending steps after current step
+      disablePending: true,   // disable pending steps after current step
       width:          '100%'
     })
     ```

@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.4.4
- * @release         2026-01-04
+ * @version         1.4.5
+ * @release         2026-01-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -2569,6 +2569,7 @@ window.jPulse = {
             _registeredPages: {},  // Dynamic pages registered by SPAs
             _navConfig: null,  // Navigation structure from server
             _hideTimeouts: new Map(),  // Map of submenu -> timeout for tracking individual hide operations
+            _navPortalId: 'jp-site-nav-portal',
             _openDelay: 300,  // ms delay before opening menu (default)
             _closeDelay: 500,  // ms delay before closing menu (default)
             _submenuCloseDelay: 600,  // ms delay before closing submenus (default)
@@ -2751,6 +2752,49 @@ window.jPulse = {
                     const menuPaddingLeft = 16;  // .jp-nav-link padding-left
                     dropdown.style.left = (logoImgRect.left - menuPaddingLeft) + 'px';
                 }
+
+                // Ensure portal container exists for deep flyouts when parent menu scrolls
+                jPulse.UI.navigation._ensureNavPortal();
+            },
+
+            /**
+             * Create (if needed) a portal container used to host flyout submenus that would
+             * otherwise be clipped by an overflow-y:auto parent menu.
+             */
+            _ensureNavPortal: () => {
+                if (document.getElementById(jPulse.UI.navigation._navPortalId)) {
+                    return;
+                }
+                const portal = document.createElement('div');
+                portal.id = jPulse.UI.navigation._navPortalId;
+                portal.className = 'jp-site-nav-portal';
+                document.body.appendChild(portal);
+            },
+
+            /**
+             * If the parent menu is scrollable (overflow-y:auto), deeper flyouts (3rd level+)
+             * get clipped. In that case, move the submenu to the portal container so it can
+             * render outside the scrollable parent.
+             */
+            _portalSubmenuIfNeeded: (item, submenu) => {
+                if (!item || !submenu) {
+                    return false;
+                }
+                if (submenu.classList.contains('jp-nav-portaled')) {
+                    return true;
+                }
+                const parentLevel = item.closest('.jp-nav-level');
+                if (!parentLevel || !parentLevel.classList.contains('jp-nav-scrollable')) {
+                    return false;
+                }
+                jPulse.UI.navigation._ensureNavPortal();
+                const portal = document.getElementById(jPulse.UI.navigation._navPortalId);
+                if (!portal) {
+                    return false;
+                }
+                submenu.classList.add('jp-nav-portaled');
+                portal.appendChild(submenu);
+                return true;
             },
 
             /**
@@ -3079,13 +3123,34 @@ window.jPulse = {
              * @param {HTMLElement} item - The nav item with submenu
              */
             _positionSubmenu: (item) => {
-                const submenu = item.querySelector('.jp-nav-level');  // Direct child ul (no div wrapper!)
+                // Cache submenu reference on item so it still works if submenu is moved to portal
+                const cachedSubmenu = item?._jpSubmenu;
+                const submenu = cachedSubmenu || item.querySelector(':scope > .jp-nav-level') || item.querySelector('.jp-nav-level');
                 if (!submenu) {
                     return;
                 }
+                if (!cachedSubmenu) {
+                    item._jpSubmenu = submenu;
+                }
+
+                const isPortaled = jPulse.UI.navigation._portalSubmenuIfNeeded(item, submenu);
+                if (isPortaled) {
+                    const itemRect = item.getBoundingClientRect();
+                    submenu.style.setProperty('left', `${Math.round(itemRect.right - 1)}px`, 'important');
+                    submenu.style.setProperty('top', `${Math.round(itemRect.top)}px`, 'important');
+                }
 
                 // Start with top: 0 (align with parent)
-                submenu.style.top = '0';
+                if (!isPortaled) {
+                    submenu.style.top = '0';
+                }
+                // Reset any previous scroll styling (applied only when submenu is too tall)
+                submenu.style.removeProperty('max-height');
+                submenu.style.removeProperty('overflow-y');
+                submenu.style.removeProperty('overflow-x');
+                submenu.style.removeProperty('-webkit-overflow-scrolling');
+                submenu.style.removeProperty('overscroll-behavior');
+                submenu.classList.remove('jp-nav-scrollable');
 
                 // DISABLE TRANSITIONS FIRST
                 submenu.style.setProperty('transition', 'none', 'important');
@@ -3107,6 +3172,28 @@ window.jPulse = {
                     // Calculate how much the submenu overflows the viewport
                     const bottomOverflow = submenuRect.bottom - viewportHeight + 10; // 10px padding from bottom
                     const topLimit = headerHeight + 10; // Don't go above header
+                    const availableHeight = viewportHeight - topLimit - 10; // 10px padding from bottom
+                    const scrollMaxHeight = Math.max(120, availableHeight);
+                    const needsScroll = submenu.scrollHeight > scrollMaxHeight;
+
+                    if (needsScroll) {
+                        // Too tall to fit: align with header and allow internal scrolling.
+                        // Use scrollHeight (content height) rather than rect.height because CSS max-height can
+                        // cap the box size while still letting content overflow when overflow is 'visible'.
+                        if (isPortaled) {
+                            submenu.style.setProperty('top', `${topLimit}px`, 'important');
+                        } else {
+                            const shiftAmount = submenuRect.top - topLimit;
+                            submenu.style.setProperty('top', `-${shiftAmount}px`, 'important');
+                        }
+                        submenu.style.setProperty('max-height', `${scrollMaxHeight}px`, 'important');
+                        submenu.style.setProperty('overflow-y', 'auto', 'important');
+                        // Do not force overflow-x:hidden here because it would clip deeper flyouts.
+                        submenu.style.setProperty('-webkit-overflow-scrolling', 'touch', 'important');
+                        submenu.style.setProperty('overscroll-behavior', 'contain', 'important');
+                        submenu.classList.add('jp-nav-scrollable');
+                        return;
+                    }
 
                     if (bottomOverflow > 0) {
                         // Submenu goes below viewport - need to shift it up
@@ -3116,11 +3203,26 @@ window.jPulse = {
                         // Make sure we don't shift above the header
                         if (newTop < topLimit) {
                             // Too tall to fit - align with header and let it scroll
-                            const shiftAmount = currentTop - topLimit;
-                            submenu.style.setProperty('top', `-${shiftAmount}px`, 'important');
+                            if (isPortaled) {
+                                submenu.style.setProperty('top', `${topLimit}px`, 'important');
+                            } else {
+                                const shiftAmount = currentTop - topLimit;
+                                submenu.style.setProperty('top', `-${shiftAmount}px`, 'important');
+                            }
+                            submenu.style.setProperty('max-height', `${scrollMaxHeight}px`, 'important');
+                            submenu.style.setProperty('overflow-y', 'auto', 'important');
+                            // Do not force overflow-x:hidden here because it would clip deeper flyouts.
+                            submenu.style.setProperty('-webkit-overflow-scrolling', 'touch', 'important');
+                            submenu.style.setProperty('overscroll-behavior', 'contain', 'important');
+                            submenu.classList.add('jp-nav-scrollable');
                         } else {
                             // Shift up by overflow amount
-                            submenu.style.setProperty('top', `-${bottomOverflow}px`, 'important');
+                            if (isPortaled) {
+                                const shiftedTop = Math.max(topLimit, submenuRect.top - bottomOverflow);
+                                submenu.style.setProperty('top', `${Math.round(shiftedTop)}px`, 'important');
+                            } else {
+                                submenu.style.setProperty('top', `-${bottomOverflow}px`, 'important');
+                            }
                         }
                     }
                 });
@@ -3373,6 +3475,55 @@ window.jPulse = {
                     return;
                 }
 
+                const updateSubmenuHeight = (navItem) => {
+                    if (!navItem) {
+                        return;
+                    }
+                    const submenu = navItem.querySelector(':scope > .jp-mobile-nav-submenu');
+                    if (!submenu) {
+                        return;
+                    }
+                    if (submenu._jpExpandTimer) {
+                        clearTimeout(submenu._jpExpandTimer);
+                        submenu._jpExpandTimer = null;
+                    }
+                    if (navItem.classList.contains('jp-expanded')) {
+                        // Expand to current content height, then switch to 'none' after the animation.
+                        // This avoids clipping when nested submenus expand (parent height can grow naturally).
+                        submenu.style.maxHeight = submenu.scrollHeight + 'px';
+                        submenu._jpExpandTimer = setTimeout(() => {
+                            if (navItem.classList.contains('jp-expanded')) {
+                                submenu.style.maxHeight = 'none';
+                            }
+                            submenu._jpExpandTimer = null;
+                        }, 350);
+                    } else {
+                        // Collapse:
+                        // If maxHeight is currently 'none' (expanded), set an explicit px height first
+                        // so the transition to 0 animates.
+                        if (submenu.style.maxHeight === 'none' || !submenu.style.maxHeight) {
+                            submenu.style.maxHeight = submenu.scrollHeight + 'px';
+                            void submenu.offsetHeight; // force reflow
+                        }
+                        submenu.style.maxHeight = '0';
+                    }
+                };
+
+                const updateAncestorSubmenuHeights = (navItem) => {
+                    // When nested submenus expand/collapse, all expanded ancestor submenu heights
+                    // must be recomputed, otherwise the parent container stays at its old height
+                    // and clips items near the bottom (common for large docs lists).
+                    let current = navItem;
+                    while (current) {
+                        const parentItem = current.parentElement?.closest('.jp-mobile-nav-item');
+                        if (!parentItem) {
+                            break;
+                        }
+                        updateSubmenuHeight(parentItem);
+                        current = parentItem;
+                    }
+                };
+
                 // Handle expand/collapse for items with submenus
                 const expandableItems = mobileMenu.querySelectorAll('.jp-mobile-nav-item.jp-has-submenu > .jp-mobile-nav-link');
                 expandableItems.forEach(button => {
@@ -3388,11 +3539,14 @@ window.jPulse = {
                         siblings.forEach(sibling => {
                             if (sibling !== item) {
                                 sibling.classList.remove('jp-expanded');
+                                updateSubmenuHeight(sibling);
                             }
                         });
 
                         // Toggle this item
                         item.classList.toggle('jp-expanded', !isExpanded);
+                        updateSubmenuHeight(item);
+                        updateAncestorSubmenuHeights(item);
                     });
                 });
 
@@ -3630,7 +3784,25 @@ window.jPulse = {
 
                 const pages = {};
                 files.forEach(file => {
-                    const key = file.name || file.path.replace('.md', '').replace(/[^a-zA-Z0-9]/g, '_');
+                    // IMPORTANT:
+                    // The markdown API returns directory entries with name 'README.md' so the directory is clickable.
+                    // That means using file.name as a key causes collisions across directories (only the last wins).
+                    // Fix: derive a stable directory key from the directory path instead.
+                    let key = null;
+                    if (file.isDirectory) {
+                        const withoutExt = (file.path || '').replace(/\.md$/i, '');
+                        const parts = withoutExt.split('/').filter(Boolean);
+                        // Example: 'dev/README' -> key 'dev'
+                        // Example: 'plugins/README' -> key 'plugins'
+                        if (parts.length >= 2 && parts[parts.length - 1].toUpperCase() === 'README') {
+                            key = parts[parts.length - 2];
+                        } else {
+                            key = parts[parts.length - 1] || null;
+                        }
+                    }
+                    if (!key) {
+                        key = file.name || (file.path || '').replace('.md', '').replace(/[^a-zA-Z0-9]/g, '_');
+                    }
                     pages[key] = {
                         label: file.title || file.name,
                         url: file.url || file.path.replace('.md', '')

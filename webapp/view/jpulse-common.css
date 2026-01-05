@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.4.4
- * @release         2026-01-04
+ * @version         1.4.5
+ * @release         2026-01-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -2411,7 +2411,7 @@ body {
     min-width: 250px;
     max-width: 400px;
     max-height: calc(100vh - var(--jp-header-height, 50px) - 20px);  /* Limit to viewport height */
-    overflow: visible;  /* Allow submenus to extend outside! */
+    overflow: visible;  /* Allow submenus to extend outside - scrolling handled by .jp-nav-level-0 */
     opacity: 1;
     transform: translateY(0);
     transition: opacity 0.2s ease, transform 0.2s ease;
@@ -2421,6 +2421,15 @@ body {
     opacity: 0;
     transform: translateY(-10px);
     pointer-events: none;
+}
+
+.jp-site-nav-portal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    z-index: 905;
 }
 
 /* Navigation Level (recursive) */
@@ -2433,6 +2442,7 @@ body {
 .jp-nav-level-0 {
     /* First level in main dropdown */
     padding: 8px 0;
+    /* Note: Scrolling is handled by parent .jp-site-nav-dropdown to avoid clipping submenus */
 }
 
 /* Navigation Item */
@@ -2536,6 +2546,24 @@ body {
     pointer-events: none;
     transition: opacity 0.2s ease, transform 0.2s ease;
     z-index: 901;
+}
+
+/* Portaled submenu (3rd level+ when parent menu is scrollable) */
+.jp-nav-level.jp-nav-portaled {
+    position: fixed;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 220px;
+    max-width: 350px;
+    max-height: calc(100vh - var(--jp-header-height, 50px) - 20px);
+    overflow: visible;
+    opacity: 0;
+    transform: translateX(-10px);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 906;
 }
 
 /* Show nested submenu on hover */
@@ -2756,7 +2784,8 @@ body {
 }
 
 .jp-mobile-nav-item.jp-expanded > .jp-mobile-nav-submenu {
-    max-height: 1000px;
+    /* JS sets an exact max-height based on scrollHeight to avoid clipping tall lists */
+    max-height: 6000px;
 }
 
 .jp-mobile-nav-submenu .jp-mobile-nav-link {
@@ -4270,6 +4299,22 @@ body.jp-sidebar-dragging .jp-sidebar-separator.jp-sidebar-separator-overlay::aft
 
 .jp-sidebar-toc-text {
     display: block;
+}
+
+.jp-sidebar-toc-top-link {
+    display: block;
+    padding: 0.12rem 0.5rem;
+    margin: 0.1rem 0 0.5rem 0;
+    color: #495057;
+    text-decoration: none;
+    font-size: 0.9em;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.jp-sidebar-toc-top-link:hover {
+    background-color: #1d92e0;
+    color: white;
 }
 
 /* Site Navigation (siteNav) styling - match docs nav style */

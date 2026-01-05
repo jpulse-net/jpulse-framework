@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.4.4
+# jPulse Docs / Site Administrator & Developer Documentation v1.4.5
 
 **For Site Administrators & Site Developers**
 
@@ -213,6 +213,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.4.5 - Docs UX + Navigation Improvements (W-125)**: Major documentation usability improvements across Handlebars docs, examples pages, and navigation. Restructured `handlebars.md` for clearer TOC navigation and easier lookup. Refactored `jpulse-examples/*` pages into numbered, long-form sections. Improved site navigation dropdown with scrollable flyout submenus (including deep flyouts without clipping). Fixed jPulse Docs pulldown so all docs groups render (not only the last one). Improved mobile hamburger menu to fully expand large/nested docs lists without clipping. Enhanced TOC with "Back to top" and h4 support; improved accessibility via i18n-backed aria labels. W-125.
 - ✅ **Version 1.4.4 - Component Auto-Discovery (W-124)**: Auto-discovery of component templates (icons, sidebars, etc.) from framework, plugins, and site levels with proper override priority. Fixed `{{#each file.list}}` helper detection and added subexpression support `{{#each (file.list "pattern")}}`. Enhanced `file.include` to use plugin-aware path resolution. Simplified component includes in `jpulse-header.tmpl` to a single auto-discovery loop. W-124.
 - ✅ **Version 1.4.3 - Sticky Hover Sidebars for TOC (W-123)**: Enhanced sidebar UX for documentation and long pages with a new desktop hover mode plus sticky viewport positioning for overlay/hover sidebars. Supports auto-close on link click and outside click (optional), keeps the TOC quickly accessible while reading, and retains existing toggle/always behavior. See [Sidebars Guide](sidebars.md). W-123.
 - ✅ **Version 1.4.2 - Documentation Filtering Bug Fix**: Patch release fixing regression where ignored docs files were appearing in site deployments. Fixed `bin/configure.js` and `bin/jpulse-update.js` to properly apply `.markdown` `[ignore]` patterns during install/upgrade. Added symlink handling fix and framework repo safeguard. All tests passing. No breaking changes.

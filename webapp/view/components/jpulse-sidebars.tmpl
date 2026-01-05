@@ -3,8 +3,8 @@
  * @tagline         Sidebar component library
  * @description     Reusable sidebar components for left and right sidebars - W-068
  * @file            webapp/view/components/jpulse-sidebars.tmpl
- * @version         1.4.4
- * @release         2026-01-04
+ * @version         1.4.5
+ * @release         2026-01-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -201,6 +201,8 @@
     {{/if}}
         {{!-- Always show the "Table of Contents" heading --}}
         <div class="jp-sidebar-component-title">{{i18n.view.pageDecoration.sidebar.components.toc.title}}</div>
+        {{!-- Scroll to top link --}}
+        <a href="#" class="jp-sidebar-toc-top-link" id="jp-sidebar-toc-top" title="{{i18n.view.pageDecoration.sidebar.components.toc.scrollToTopTitle}}">{{i18n.view.pageDecoration.sidebar.components.toc.backToTop}}</a>
         {{!-- Hidden empty message, shown when no headings found --}}
         <div class="jp-sidebar-toc-empty" id="jp-sidebar-toc-empty" style="display: none;">{{i18n.view.pageDecoration.sidebar.components.toc.noHeadings}}</div>
         {{!-- Table of contents auto-generated from page headings --}}
@@ -217,6 +219,9 @@
 
         // Exclude headings inside code blocks (hardcoded, unlikely to change)
         const excludeSelector = 'pre, code, .jp-source-code';
+        // Exclude headings inside explicitly ignored containers.
+        // Use this for heading-based demos where headings must exist (for anchor demo) but should not appear in the TOC.
+        const ignoreSelector = '.jp-toc-ignore, [data-toc-ignore="true"]';
 
         // Function to generate TOC
         const generateToc = () => {
@@ -224,6 +229,10 @@
 
             // Filter out headings inside code blocks
             const headings = Array.from(allHeadings).filter(heading => {
+                // Ignore headings inside explicitly ignored containers
+                if (heading.closest(ignoreSelector)) {
+                    return false;
+                }
                 // Check if heading is inside any excluded container
                 const excludedContainers = document.querySelectorAll(excludeSelector);
                 for (const container of excludedContainers) {
@@ -470,6 +479,22 @@
             jPulse.events.on('content-changed', () => {
                 // Small delay to ensure content is fully rendered and heading anchors are added
                 setTimeout(generateToc, 50);
+            });
+        }
+
+        // Add scroll-to-top functionality
+        const topLink = tocEl.querySelector('#jp-sidebar-toc-top');
+        if (topLink) {
+            topLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+                // Clear URL hash if present
+                if (window.location.hash) {
+                    window.history.pushState(null, '', window.location.pathname);
+                }
             });
         }
     });

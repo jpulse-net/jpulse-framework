@@ -3,8 +3,8 @@
  * @tagline         Demo Todo Controller for MVC Learning
  * @description     Example of complete MVC pattern with REST API endpoints
  * @file            site/webapp/controller/helloTodo.js
- * @version         1.4.4
- * @release         2026-01-04
+ * @version         1.4.5
+ * @release         2026-01-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

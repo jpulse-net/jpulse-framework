@@ -4,8 +4,8 @@
  * @tagline         Responsive layout examples and CSS patterns
  * @description     Comprehensive examples of responsive layouts and CSS utility classes in jPulse
  * @file            webapp/view/jpulse-examples/layout.shtml
- * @version         1.4.4
- * @release         2026-01-04
+ * @version         1.4.5
+ * @release         2026-01-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,6 +18,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Layout Examples - {{app.jPulse.shortName}}</title>
     {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-heading-2 {
+            margin-top: 2rem;
+        }
+    </style>
 </head>
 <body>
     {{#component "exampleCards.layout" order=40}}
@@ -42,38 +47,37 @@
         </div>
 
         <!-- Card Grid Layout -->
-        <div class="jp-card">
-            <h2 class="jp-card-dialog-heading">Card Grid Layout</h2>
-            <div class="jp-info-box">
-                <p><strong>What you learn:</strong> How to create responsive card grids that automatically adapt to different screen sizes using CSS Grid with auto-fit and minmax functions.</p>
-                <p><strong>Behind the scenes:</strong> Uses CSS Grid's <code>repeat(auto-fit, minmax(300px, 1fr))</code> to create flexible columns that maintain minimum card width while maximizing space usage.</p>
-            </div>
-            <div id="card-grid-tabs" class="jp-tabs"></div>
-            <div id="card-grid-example-panel" class="jp-panel">
-                <p>The card grid automatically adjusts to screen size:</p>
+        <h2 class="local-heading-2">1. Card Grid Layout</h2>
+        <div class="jp-info-box">
+            <p><strong>What you learn:</strong> How to create responsive card grids that automatically adapt to different screen sizes using CSS Grid with auto-fit and minmax functions.</p>
+            <p><strong>Behind the scenes:</strong> Uses CSS Grid's <code>repeat(auto-fit, minmax(300px, 1fr))</code> to create flexible columns that maintain minimum card width while maximizing space usage.</p>
+        </div>
+        <div id="card-grid-tabs" class="jp-tabs"></div>
+        <div id="card-grid-example-panel" class="jp-panel">
+            <p>The card grid automatically adjusts to screen size:</p>
 
-                <div class="jp-card-grid">
-                    <div class="jp-card">
-                        <h4>Feature 1</h4>
-                        <p>This card demonstrates responsive grid behavior. Resize your browser to see how cards adapt.</p>
-                        <button class="jp-btn jp-btn-primary">Learn More</button>
-                    </div>
+            <div class="jp-card-grid">
+                <div class="jp-card">
+                    <h4>Feature 1</h4>
+                    <p>This card demonstrates responsive grid behavior. Resize your browser to see how cards adapt.</p>
+                    <button class="jp-btn jp-btn-primary">Learn More</button>
+                </div>
 
-                    <div class="jp-card">
-                        <h4>Feature 2</h4>
-                        <p>Cards maintain consistent spacing and alignment across different screen sizes.</p>
-                        <button class="jp-btn jp-btn-secondary">Explore</button>
-                    </div>
+                <div class="jp-card">
+                    <h4>Feature 2</h4>
+                    <p>Cards maintain consistent spacing and alignment across different screen sizes.</p>
+                    <button class="jp-btn jp-btn-secondary">Explore</button>
+                </div>
 
-                    <div class="jp-card">
-                        <h4>Feature 3</h4>
-                        <p>The grid system ensures optimal readability and usability on all devices.</p>
-                        <button class="jp-btn jp-btn-success">Get Started</button>
-                    </div>
+                <div class="jp-card">
+                    <h4>Feature 3</h4>
+                    <p>The grid system ensures optimal readability and usability on all devices.</p>
+                    <button class="jp-btn jp-btn-success">Get Started</button>
                 </div>
             </div>
-            <div id="card-grid-source-panel" class="jp-panel">
-                <div class="jp-source-code" data-lang="html">
+        </div>
+        <div id="card-grid-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
 &lt;div class="jp-card-grid"&gt;
     &lt;div class="jp-card"&gt;
         &lt;h4&gt;Feature 1&lt;/h4&gt;
@@ -95,50 +99,48 @@
     gap: 20px;
     margin: 20px 0;
 }
-                </div>
             </div>
         </div>
 
         <!-- Flexbox Layouts -->
-        <div class="jp-card">
-            <h2 class="jp-card-dialog-heading">Flexbox Layouts</h2>
-            <div class="jp-info-box">
-                <p><strong>What you learn:</strong> How to use Flexbox for common layout patterns like button groups, justified content, and perfect centering. Essential techniques for modern web layouts.</p>
-                <p><strong>Behind the scenes:</strong> Demonstrates practical Flexbox properties including <code>justify-content</code>, <code>align-items</code>, <code>gap</code>, and <code>flex-wrap</code> for responsive designs.</p>
+        <h2 class="local-heading-2">2. Flexbox Layouts</h2>
+        <div class="jp-info-box">
+            <p><strong>What you learn:</strong> How to use Flexbox for common layout patterns like button groups, justified content, and perfect centering. Essential techniques for modern web layouts.</p>
+            <p><strong>Behind the scenes:</strong> Demonstrates practical Flexbox properties including <code>justify-content</code>, <code>align-items</code>, <code>gap</code>, and <code>flex-wrap</code> for responsive designs.</p>
+        </div>
+        <div id="flexbox-tabs" class="jp-tabs"></div>
+        <div id="flexbox-example-panel" class="jp-panel">
+            <h4>Button Groups</h4>
+            <div class="jp-btn-group">
+                <button class="jp-btn jp-btn-primary">Primary</button>
+                <button class="jp-btn jp-btn-secondary">Secondary</button>
+                <button class="jp-btn jp-btn-success">Success</button>
+                <button class="jp-btn jp-btn-danger">Danger</button>
             </div>
-            <div id="flexbox-tabs" class="jp-tabs"></div>
-            <div id="flexbox-example-panel" class="jp-panel">
-                <h4>Button Groups</h4>
-                <div class="jp-btn-group">
-                    <button class="jp-btn jp-btn-primary">Primary</button>
-                    <button class="jp-btn jp-btn-secondary">Secondary</button>
-                    <button class="jp-btn jp-btn-success">Success</button>
-                    <button class="jp-btn jp-btn-danger">Danger</button>
+
+            <hr class="jp-hr">
+
+            <h4>Justified Content</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f8f9fa; border-radius: 6px; margin: 15px 0;">
+                <div>
+                    <h5 style="margin: 0;">Content Title</h5>
+                    <p style="margin: 5px 0 0 0; color: #666;">Subtitle or description</p>
                 </div>
+                <button class="jp-btn jp-btn-primary">Action</button>
+            </div>
 
-                <hr class="jp-hr">
+            <hr class="jp-hr">
 
-                <h4>Justified Content</h4>
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f8f9fa; border-radius: 6px; margin: 15px 0;">
-                    <div>
-                        <h5 style="margin: 0;">Content Title</h5>
-                        <p style="margin: 5px 0 0 0; color: #666;">Subtitle or description</p>
-                    </div>
-                    <button class="jp-btn jp-btn-primary">Action</button>
-                </div>
-
-                <hr class="jp-hr">
-
-                <h4>Centered Content</h4>
-                <div style="display: flex; justify-content: center; align-items: center; height: 120px; background: #e9ecef; border-radius: 6px; margin: 15px 0;">
-                    <div style="text-align: center;">
-                        <h5 style="margin: 0;">Perfectly Centered</h5>
-                        <p style="margin: 5px 0 0 0;">Both horizontally and vertically</p>
-                    </div>
+            <h4>Centered Content</h4>
+            <div style="display: flex; justify-content: center; align-items: center; height: 120px; background: #e9ecef; border-radius: 6px; margin: 15px 0;">
+                <div style="text-align: center;">
+                    <h5 style="margin: 0;">Perfectly Centered</h5>
+                    <p style="margin: 5px 0 0 0;">Both horizontally and vertically</p>
                 </div>
             </div>
-            <div id="flexbox-source-panel" class="jp-panel">
-                <div class="jp-source-code" data-lang="html">
+        </div>
+        <div id="flexbox-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
 &lt;!-- Button Group (Flexbox) --&gt;
 &lt;div class="jp-btn-group"&gt;
     &lt;button class="jp-btn jp-btn-primary"&gt;Primary&lt;/button&gt;
@@ -169,43 +171,41 @@
     gap: 8px;
     flex-wrap: wrap;
 }
-                </div>
             </div>
         </div>
 
         <!-- Information Boxes -->
-        <div class="jp-card">
-            <h2 class="jp-card-dialog-heading">Information Boxes</h2>
+        <h2 class="local-heading-2">3. Information Boxes</h2>
+        <div class="jp-info-box">
+            <p><strong>What you learn:</strong> How to use jPulse's built-in information box components for different message types and user feedback scenarios.</p>
+            <p><strong>Behind the scenes:</strong> These are pre-styled CSS classes (<code>.jp-info-box</code>, <code>.jp-warning-box</code>, <code>.jp-error-box</code>) that provide consistent messaging across your application.</p>
+        </div>
+        <div id="info-boxes-tabs" class="jp-tabs"></div>
+        <div id="info-boxes-example-panel" class="jp-panel">
             <div class="jp-info-box">
-                <p><strong>What you learn:</strong> How to use jPulse's built-in information box components for different message types and user feedback scenarios.</p>
-                <p><strong>Behind the scenes:</strong> These are pre-styled CSS classes (<code>.jp-info-box</code>, <code>.jp-warning-box</code>, <code>.jp-error-box</code>) that provide consistent messaging across your application.</p>
+                <h4>Information Box</h4>
+                <p>Use info boxes to highlight important information or provide helpful context to users.</p>
+                <ul>
+                    <li>Perfect for tips and guidelines</li>
+                    <li>Draws attention without being intrusive</li>
+                    <li>Maintains consistent styling</li>
+                </ul>
             </div>
-            <div id="info-boxes-tabs" class="jp-tabs"></div>
-            <div id="info-boxes-example-panel" class="jp-panel">
-                <div class="jp-info-box">
-                    <h4>Information Box</h4>
-                    <p>Use info boxes to highlight important information or provide helpful context to users.</p>
-                    <ul>
-                        <li>Perfect for tips and guidelines</li>
-                        <li>Draws attention without being intrusive</li>
-                        <li>Maintains consistent styling</li>
-                    </ul>
-                </div>
 
-                <div class="jp-warning-box">
-                    <h4>Warning Box</h4>
-                    <p>Warning boxes are ideal for cautionary information that users should be aware of before proceeding.</p>
-                    <p><strong>Use cases:</strong> Form validation messages, important notices, or potential issues.</p>
-                </div>
-
-                <div class="jp-error-box">
-                    <h4>Error Box</h4>
-                    <p>Error boxes clearly communicate problems that need immediate attention.</p>
-                    <p>They use distinct styling to ensure users notice critical issues.</p>
-                </div>
+            <div class="jp-warning-box">
+                <h4>Warning Box</h4>
+                <p>Warning boxes are ideal for cautionary information that users should be aware of before proceeding.</p>
+                <p><strong>Use cases:</strong> Form validation messages, important notices, or potential issues.</p>
             </div>
-            <div id="info-boxes-source-panel" class="jp-panel">
-                <div class="jp-source-code" data-lang="html">
+
+            <div class="jp-error-box">
+                <h4>Error Box</h4>
+                <p>Error boxes clearly communicate problems that need immediate attention.</p>
+                <p>They use distinct styling to ensure users notice critical issues.</p>
+            </div>
+        </div>
+        <div id="info-boxes-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
 &lt;!-- Information Box --&gt;
 &lt;div class="jp-info-box"&gt;
     &lt;h4&gt;Information Box&lt;/h4&gt;
@@ -228,43 +228,41 @@
 .jp-info-box     /* Light blue background, informational */
 .jp-warning-box  /* Light yellow background, cautionary */
 .jp-error-box    /* Light red background, error state */
-                </div>
             </div>
         </div>
 
         <!-- Responsive Breakpoints -->
-        <div class="jp-card">
-            <h2 class="jp-card-dialog-heading">Responsive Breakpoints</h2>
-            <div class="jp-info-box">
-                <p><strong>What you learn:</strong> How to implement responsive breakpoints using a mobile-first approach with CSS media queries for different device sizes.</p>
-                <p><strong>Behind the scenes:</strong> Shows jPulse's breakpoint system (768px, 1024px, 1440px) and includes a live demo that detects and displays your current screen size category.</p>
-            </div>
-            <div id="breakpoints-tabs" class="jp-tabs"></div>
-            <div id="breakpoints-example-panel" class="jp-panel">
-                <p>Resize your browser window to see how content adapts at different breakpoints:</p>
+        <h2 class="local-heading-2">4. Responsive Breakpoints</h2>
+        <div class="jp-info-box">
+            <p><strong>What you learn:</strong> How to implement responsive breakpoints using a mobile-first approach with CSS media queries for different device sizes.</p>
+            <p><strong>Behind the scenes:</strong> Shows jPulse's breakpoint system (768px, 1024px, 1440px) and includes a live demo that detects and displays your current screen size category.</p>
+        </div>
+        <div id="breakpoints-tabs" class="jp-tabs"></div>
+        <div id="breakpoints-example-panel" class="jp-panel">
+            <p>Resize your browser window to see how content adapts at different breakpoints:</p>
 
-                <div id="responsive-demo" style="padding: 20px; background: linear-gradient(45deg, #e3f2fd, #bbdefb); border-radius: 6px; text-align: center; margin: 15px 0;">
-                    <h4 id="breakpoint-indicator">Current Breakpoint: <span id="current-breakpoint">Desktop</span></h4>
-                    <p>This demo shows how content adapts to different screen sizes.</p>
+            <div id="responsive-demo" style="padding: 20px; background: linear-gradient(45deg, #e3f2fd, #bbdefb); border-radius: 6px; text-align: center; margin: 15px 0;">
+                <h4 id="breakpoint-indicator">Current Breakpoint: <span id="current-breakpoint">Desktop</span></h4>
+                <p>This demo shows how content adapts to different screen sizes.</p>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
-                        <div style="background: white; padding: 15px; border-radius: 4px;">
-                            <h5>Column 1</h5>
-                            <p>Content adapts automatically</p>
-                        </div>
-                        <div style="background: white; padding: 15px; border-radius: 4px;">
-                            <h5>Column 2</h5>
-                            <p>Grid adjusts to screen size</p>
-                        </div>
-                        <div style="background: white; padding: 15px; border-radius: 4px;">
-                            <h5>Column 3</h5>
-                            <p>Mobile-first approach</p>
-                        </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+                    <div style="background: white; padding: 15px; border-radius: 4px;">
+                        <h5>Column 1</h5>
+                        <p>Content adapts automatically</p>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 4px;">
+                        <h5>Column 2</h5>
+                        <p>Grid adjusts to screen size</p>
+                    </div>
+                    <div style="background: white; padding: 15px; border-radius: 4px;">
+                        <h5>Column 3</h5>
+                        <p>Mobile-first approach</p>
                     </div>
                 </div>
             </div>
-            <div id="breakpoints-source-panel" class="jp-panel">
-                <div class="jp-source-code" data-lang="css">
+        </div>
+        <div id="breakpoints-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="css">
 &lt;!-- jPulse Framework Breakpoints --&gt;
 
 /* Mobile First Approach */
@@ -316,44 +314,44 @@
         grid-template-columns: repeat(3, 1fr); /* Desktop: 3 columns */
     }
 }
-                </div>
             </div>
         </div>
 
         <!-- Spacing and Typography -->
-        <div class="jp-card">
-            <h2 class="jp-card-dialog-heading">Spacing and Typography</h2>
+        <h2 class="local-heading-2">5. Spacing and Typography</h2>
+        <div class="jp-info-box">
+            <p><strong>What you learn:</strong> How to use jPulse's CSS variables and typography system for consistent spacing, font sizes, and visual hierarchy across your application.</p>
+            <p><strong>Behind the scenes:</strong> Demonstrates the complete CSS custom property system with spacing scales, typography variables, and color definitions that maintain design consistency.</p>
+        </div>
+        <div id="spacing-tabs" class="jp-tabs"></div>
+        <div id="spacing-example-panel" class="jp-panel">
             <div class="jp-info-box">
-                <p><strong>What you learn:</strong> How to use jPulse's CSS variables and typography system for consistent spacing, font sizes, and visual hierarchy across your application.</p>
-                <p><strong>Behind the scenes:</strong> Demonstrates the complete CSS custom property system with spacing scales, typography variables, and color definitions that maintain design consistency.</p>
-            </div>
-            <div id="spacing-tabs" class="jp-tabs"></div>
-            <div id="spacing-example-panel" class="jp-panel">
-                <div class="jp-info-box">
-                    <h4>Typography Hierarchy</h4>
+                <h4>Typography Hierarchy</h4>
+                <div class="jp-toc-ignore">
                     <h1 style="margin: 10px 0;">Heading 1 - Main Page Title</h1>
                     <h2 style="margin: 10px 0;">Heading 2 - Section Title</h2>
                     <h3 style="margin: 10px 0;">Heading 3 - Subsection Title</h3>
                     <h4 style="margin: 10px 0;">Heading 4 - Card Header</h4>
                     <h5 style="margin: 10px 0;">Heading 5 - Small Header</h5>
                     <h6 style="margin: 10px 0;">Heading 6 - Smallest Header</h6>
-                    <p>Regular paragraph text with proper line height and spacing for optimal readability.</p>
-                    <p class="jp-text-small">Small text for captions, footnotes, or secondary information.</p>
-                    <p class="jp-text-muted">Muted text for less important information or placeholders.</p>
                 </div>
+                <p>Regular paragraph text with proper line height and spacing for optimal readability.</p>
+                <p class="jp-text-small">Small text for captions, footnotes, or secondary information.</p>
+                <p class="jp-text-muted">Muted text for less important information or placeholders.</p>
+            </div>
 
-                <div class="jp-warning-box">
-                    <h4>Spacing Examples</h4>
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin: 15px 0;">
-                        <p style="margin: 0 0 8px 0;">Small spacing (8px)</p>
-                        <p style="margin: 0 0 15px 0;">Medium spacing (15px)</p>
-                        <p style="margin: 0 0 20px 0;">Large spacing (20px)</p>
-                        <p style="margin: 0;">No bottom margin</p>
-                    </div>
+            <div class="jp-warning-box">
+                <h4>Spacing Examples</h4>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin: 15px 0;">
+                    <p style="margin: 0 0 8px 0;">Small spacing (8px)</p>
+                    <p style="margin: 0 0 15px 0;">Medium spacing (15px)</p>
+                    <p style="margin: 0 0 20px 0;">Large spacing (20px)</p>
+                    <p style="margin: 0;">No bottom margin</p>
                 </div>
             </div>
-            <div id="spacing-source-panel" class="jp-panel">
-                <div class="jp-source-code" data-lang="css">
+        </div>
+        <div id="spacing-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="css">
 &lt;!-- Typography Classes --&gt;
 &lt;h1 class="jp-title"&gt;Main Page Title&lt;/h1&gt;
 &lt;p class="jp-text-small"&gt;Small text&lt;/p&gt;
@@ -394,42 +392,39 @@
     font-size: var(--jp-font-size-base);
     line-height: var(--jp-line-height-base);
 }
-                </div>
             </div>
         </div>
 
         <!-- Layout Best Practices -->
-        <div class="jp-card">
-            <h2 class="jp-card-dialog-heading">Layout Best Practices</h2>
-            <div class="jp-info-box">
-                <h4>Mobile-First Design</h4>
-                <ul>
-                    <li>Start with mobile layouts and enhance for larger screens</li>
-                    <li>Use <code>min-width</code> media queries for progressive enhancement</li>
-                    <li>Test on real devices, not just browser dev tools</li>
-                    <li>Consider touch targets (minimum 44px for interactive elements)</li>
-                </ul>
-            </div>
+        <h2 class="local-heading-2">6. Layout Best Practices</h2>
+        <div class="jp-info-box">
+            <h4>Mobile-First Design</h4>
+            <ul>
+                <li>Start with mobile layouts and enhance for larger screens</li>
+                <li>Use <code>min-width</code> media queries for progressive enhancement</li>
+                <li>Test on real devices, not just browser dev tools</li>
+                <li>Consider touch targets (minimum 44px for interactive elements)</li>
+            </ul>
+        </div>
 
-            <div class="jp-warning-box">
-                <h4>Performance Considerations</h4>
-                <ul>
-                    <li>Use CSS Grid and Flexbox instead of floats or positioning</li>
-                    <li>Minimize layout shifts with proper sizing</li>
-                    <li>Use <code>transform</code> and <code>opacity</code> for animations</li>
-                    <li>Optimize images with appropriate formats and sizes</li>
-                </ul>
-            </div>
+        <div class="jp-warning-box">
+            <h4>Performance Considerations</h4>
+            <ul>
+                <li>Use CSS Grid and Flexbox instead of floats or positioning</li>
+                <li>Minimize layout shifts with proper sizing</li>
+                <li>Use <code>transform</code> and <code>opacity</code> for animations</li>
+                <li>Optimize images with appropriate formats and sizes</li>
+            </ul>
+        </div>
 
-            <div class="jp-info-box">
-                <h4>Accessibility Guidelines</h4>
-                <ul>
-                    <li>Maintain proper heading hierarchy (h1 → h2 → h3)</li>
-                    <li>Ensure sufficient color contrast (4.5:1 minimum)</li>
-                    <li>Use semantic HTML elements appropriately</li>
-                    <li>Test with keyboard navigation and screen readers</li>
-                </ul>
-            </div>
+        <div class="jp-info-box">
+            <h4>Accessibility Guidelines</h4>
+            <ul>
+                <li>Maintain proper heading hierarchy (h1 → h2 → h3)</li>
+                <li>Ensure sufficient color contrast (4.5:1 minimum)</li>
+                <li>Use semantic HTML elements appropriately</li>
+                <li>Test with keyboard navigation and screen readers</li>
+            </ul>
         </div>
     </div>
 

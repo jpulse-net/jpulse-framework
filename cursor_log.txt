@@ -3983,9 +3983,6 @@ Completed release preparation for W-110, v1.3.11.
 
 
 ============================================================
-
-
-============================================================
 2025-12-08 14:45
 
 ## User Request
@@ -10359,6 +10356,346 @@ Key Changes Documented:
 - Component override priority: site > plugins > framework
 
 Status: COMPLETED
+
+
+============================================================
+2026-01-04 14:09
+
+I find the current @docs/handlebars.md doc a bit confusing
+- let's bring in more structure, proposed headings:
+  - Overview -- keep
+    - Summary of Regular Handlebars -- keep
+    - Summary of Block Handlebars -- keep
+  - Context Variables -- move up to here
+    - `{{app.*}}` - Application
+    - `{{i18n.*}}` - Internationalization
+    - etc.
+  - Regular Helpers -- new, in alphabetical order
+    - `{{and}}` - Logical AND
+    - `{{components.*}}` - Components
+    - `{{eq}}` - Equality comparison
+    - etc.
+  - Block Helpers -- new, in alphabetical order
+    - `{{#and}}` - Logical AND Block
+    - `{{#component}}` - Define Component Block
+    - `{{#each}}` - Loop Block
+    - etc.
+  - Comments
+    - `{{!-- --}}` Comment Blocks
+  - Nesting of Handlebars
+  - Error Handling
+  - Best Practices
+  - Template Organization
+  - Custom Handlebars Helpers -- from "Advanced Features"
+  - Related Documentation
+
+i.e., show the actual handlabr syntx in the h3 headings
+- this is muck more conistent, and easy to navigate in the TOC sidebar
+- one problem is, what to to with other groupings, such as "Logical and Comparison Helpers", "Custom Variables", "Reusable Components"
+
+Summary:
+Restructured docs/handlebars.md with improved navigation and organization:
+- Moved Context Variables section up (after Overview) with h3 headings for each context type (`{{app.*}}`, `{{user.*}}`, etc.)
+- Created Regular Helpers section with subsections (Logical, Comparison, Component, File Operation, Variable) and h4 headings for individual helpers showing syntax
+- Created Block Helpers section with subsections (Conditional, Logical Block, Comparison Block, Component Block, Iteration, Variable Block) and h4 headings
+- Moved Reusable Components, Custom Variables, and Custom Handlebars Helpers sections up (before Comments)
+- Removed "File Operations" detailed section (kept only in Regular Helpers subsection)
+- Updated `{{components.*}}` description to "Use Reusable Components"
+- All headings now show actual Handlebars syntax for better TOC navigation
+- Organized helpers alphabetically within subsections for easy lookup
+
+Status: COMPLETED
+
+
+============================================================
+2026-01-04 20:22
+
+Prompt:
+I lost all chat history!!!!
+I got a persistent error:
+@tt-scratchpad.md (361-374)
+so I deleted the ~/Library/Application Support/Cursor/User/workspaceStorage/
+I guess there is no way to get the chat history back?
+
+Version details:
+Version: 2.2.44 (Universal)
+VSCode Version: 1.105.1
+Commit: 20adc1003928b0f1b99305dbaf845656ff81f5d0
+Date: 2025-12-24T21:41:47.598Z
+Electron: 37.7.0
+Chromium: 138.0.7204.251
+Node.js: 22.20.0
+V8: 13.8.258.32-electron.0
+OS: Darwin x64 23.6.0
+
+Output summary:
+- Cursor chat/composer sessions are stored locally per-workspace in
+  ~/Library/Application Support/Cursor/User/workspaceStorage/<hash>/state.vscdb
+  (example key: composer.composerData).
+- On this machine, many workspaces still have composer entries (so not all history is lost).
+- For jpulse-framework, the workspace maps to
+  .../workspaceStorage/3415f581aa10af7db35c24a253570335/ and currently only shows 2 composers.
+  If older jpulse-framework composer entries disappeared after deletion, they are only recoverable
+  from backups (Time Machine) or disk recovery.
+
+Status: ANSWERED
+Changes accepted/rejected: PENDING USER CONFIRMATION
+
+
+============================================================
+2026-01-04 20:30
+Prompt:
+perfect storm: my nas with time machine is down for a week, and my local .save1 is incomplete
+I guess my chats are gone
+
+Output summary:
+- With no Time Machine restore point and no complete workspaceStorage.save1 copy for jpulse-framework,
+  the old jpulse-framework chat history is very likely not recoverable.
+- There are still other workspaces with composer/chat history present in workspaceStorage, so it was not a
+  total wipe across all workspaces.
+- Cursor logs exist and may contain partial snippets, but they typically do not contain full chat transcripts.
+
+Status: ANSWERED
+Changes accepted/rejected: ACCEPTED
+
+
+============================================================
+2026-01-04 20:39
+
+Prompt: I lost all cursor history due to a cursor app glitch :-(
+
+I was working on handlebars doc improvments, jpulse-examples page improvements, site nav  dropdown improvment for the latest work item @work-items.md (3526-3533)
+
+what can you tell about current progress of W-125?
+
+Summary: Findings: W-125 entry in docs/dev/work-items.md is IN_PROGRESS but still has placeholder deliverables (FIXME). Repo already contains substantial handlebars docs + examples (docs/handlebars.md and webapp/view/jpulse-examples/handlebars.shtml, both v1.4.4 / 2026-01-04). Site navigation dropdown implementation exists (webapp/view/jpulse-common.js + jpulse-common.css), with viewport max-height set, but dropdown container currently uses overflow: visible and jp-nav-level-0 has no overflow-y:auto, so the 'tall submenu cannot scroll' issue may still be unresolved.
+
+Changes accepted/rejected: N/A (informational status report; no code changes made).
+
+
+============================================================
+2026-01-04 20:41
+
+Prompt: see what else you can decipher from @tt-git-status.txt
+- update the cursor log with current status
+
+Summary: From tt-git-status.txt: 15 modified files. Changes cluster into docs + examples + navigation/sidebar UX. Key items: (1) Added W-125 stub in docs/dev/work-items.md but deliverables remain FIXME. (2) docs/handlebars.md heavily restructured/expanded (Context Variables moved up; Regular Helpers + Block Helpers sections; many new examples). (3) jpulse-examples pages (api/forms/handlebars/layout/ui-widgets) refactored to long-form numbered sections with local-heading-* styles (less jp-card nesting). (4) TOC sidebar improvements: add 'Back to top' link + styling; enable h4 headings in TOC (webapp/app.conf); add keyboard shortcut to scroll to top; update aria-labels for hamburger/mobile nav/sidebar toggles to use i18n; add new translation keys in en.conf/de.conf. (5) docs/sending-email.md footer version block removed. Open risk for W-125: nav dropdown scroll issue likely still unresolved (CSS indicates max-height but overflow/scroll handling for tall submenus is not clearly implemented in these diffs).
+
+Changes accepted/rejected: PENDING (local working tree has uncommitted changes; status summary only).
+
+
+============================================================
+2026-01-04 20:52
+
+Prompt: Recovered note from tt-scratchpad.md (376-382) after Cursor chats were lost due to deleting this project's Cursor settings.
+
+Summary: Recovered note content: 'you seem to go in circles; reverted the menu related css changes; switching from auto to gpt-5.2; please analyze and plan a fix (plan only, no code changes yet); might require a wrapper per menu level?'. Context: user had to delete Cursor settings for this project, resulting in losing all chats.
+
+Changes accepted/rejected: ACCEPTED (note captured into cursor log; no code changes).
+
+
+============================================================
+2026-01-04 20:55
+
+Prompt: I reverted just the dropdown related the changes the AI did (it went in circles, hence my intervention)
+- that is, dropdown css is back to the original problem (at least the menus show up)
+
+Summary: Status update: User reverted the AI's dropdown-related CSS changes; dropdown menus render again, but the original issue remains: a tall submenu cannot be scrolled when it exceeds the viewport height. Plan (no code yet): implement scrolling on the submenu container itself when too tall (max-height + overflow-y:auto), ideally toggled dynamically from jPulse.UI.navigation._positionSubmenu() when it detects 'too tall to fit'. Avoid making the parent dropdown a scrolling container because that can clip absolutely-positioned nested submenus.
+
+Changes accepted/rejected: ACCEPTED (status logged; no code changes).
+
+
+============================================================
+2026-01-04 21:01
+
+Prompt: at this time to top menu is ok
+- the jpulse docs menu is too tall, once activated
+- so let;s focus on the first level sub-menu for now
+
+Summary: Clarification: Top-level dropdown is OK. The first-level flyout submenu for the jPulse Docs section is too tall once activated, and cannot be scrolled. Scope narrowed to fixing depth-1 submenu scrolling first. Plan (no code yet): implement conditional overflow-y:auto + computed max-height on the hovered submenu <ul> inside jPulse.UI.navigation._positionSubmenu() when it detects the submenu cannot fit in the viewport; avoid making the parent dropdown scrollable to prevent clipping issues.
+
+Changes accepted/rejected: ACCEPTED (status logged; no code changes).
+
+
+============================================================
+2026-01-04 21:06
+
+Prompt: go ahead with the scroll fix
+
+Summary: Implemented first-level flyout submenu scrolling for the site navigation dropdown when a submenu is too tall to fit the viewport. Change: in webapp/view/jpulse-common.js, jPulse.UI.navigation._positionSubmenu() now detects the 'too tall to fit' case and applies max-height + overflow-y:auto (plus overscroll-behavior and momentum scrolling) to the submenu <ul>, while resetting those styles when the submenu fits. Target: fixes the jPulse Docs first-level submenu being taller than the viewport (original issue).
+
+Changes accepted/rejected: PENDING USER CONFIRMATION
+
+
+============================================================
+2026-01-04 21:12
+
+Prompt: the 2nd level menu does not scroll yet
+
+Summary: Fix applied: Updated webapp/view/jpulse-common.js jPulse.UI.navigation._positionSubmenu() to enable scrolling for ANY flyout submenu level when the submenu height exceeds the available viewport height under the header (not just the first-level case). Behavior: detects isTooTallToFit via submenuRect.height > availableHeight, aligns submenu under header, applies max-height + overflow-y:auto + momentum scrolling.
+
+Changes accepted/rejected: PENDING USER CONFIRMATION
+
+
+============================================================
+2026-01-04 21:14
+
+Prompt: no change!
+
+Summary: Adjusted submenu scroll detection logic for navigation flyouts. Previous logic used submenu bounding-box height vs available viewport height, which can fail when CSS max-height limits the box while overflow remains visible. Update: webapp/view/jpulse-common.js jPulse.UI.navigation._positionSubmenu() now detects overflow using submenu.scrollHeight > computed scrollMaxHeight and applies max-height + overflow-y:auto accordingly. Expected result: 2nd-level flyout with overflowing content becomes scrollable.
+
+Changes accepted/rejected: PENDING USER CONFIRMATION
+
+
+============================================================
+2026-01-04 21:21
+
+Prompt: scroll on 2nd level works now, BUT the 3rd level vanished!!
+
+Summary: Fix applied for 3rd-level flyout disappearing after enabling scroll on 2nd-level submenu. Root cause: making a submenu overflow-y:auto turns it into a clipping container, so deeper (3rd+) flyouts get clipped. Update: webapp/view/jpulse-common.js now creates a portal container (div#jp-site-nav-portal) and moves deeper flyout <ul> into it when their parent menu is scrollable (.jp-nav-scrollable). Portaled flyouts are positioned with fixed left/top based on the hovered item. CSS: added .jp-site-nav-portal and .jp-nav-level.jp-nav-portaled styling in webapp/view/jpulse-common.css to preserve the same look/behavior.
+
+Changes accepted/rejected: PENDING USER CONFIRMATION
+
+
+============================================================
+2026-01-04 21:25
+
+Prompt: that works now
+- let me undersatand if correct:
+- 1st level: no scroll support -- ok
+- 2nd level: scroll support -- fixed
+- 3rd level: ?
+- 4th level: ?
+
+Summary: Clarification of nav flyout scrolling behavior: Level-1 (top dropdown) remains non-scroll by design. Any flyout submenu (level 2+) becomes scrollable ONLY when its content exceeds the available viewport height under the header (computed per hover). When a scrollable submenu exists, deeper flyouts (3rd+) are portaled to a fixed overlay container to avoid being clipped by the scrollable parent, and they can themselves become scrollable if they are too tall.
+
+Changes accepted/rejected: ACCEPTED
+
+
+============================================================
+2026-01-04 21:33
+
+Prompt: pulldown only shows one submenu (dev) - why?
+
+Summary: Root cause: jPulse Docs pulldown uses jPulse.UI.docs.convertFilesToPages(viewer.files). The markdown API models each directory as a clickable entry with name 'README.md'. convertFilesToPages used file.name as the object key, causing key collisions across directories and leaving only the last directory (e.g. dev) as a submenu. Fix: updated convertFilesToPages() in webapp/view/jpulse-common.js to derive directory keys from the directory path (e.g. 'dev', 'genai', 'plugins') instead of file.name, eliminating collisions so the pulldown can show all top-level docs submenus like the sidebar.
+
+Changes accepted/rejected: PENDING USER CONFIRMATION
+
+
+============================================================
+2026-01-04 21:40
+
+Prompt: mobile hamburger menu: the 2nd level docs page list is clipped; expected full list
+
+Summary: Fix: Mobile hamburger submenu expansion no longer clips long lists (e.g., jPulse Docs pages). Root cause: CSS limited expanded .jp-mobile-nav-submenu to max-height:1000px with overflow:hidden. Changes: webapp/view/jpulse-common.js now sets the expanded submenu's inline max-height to submenu.scrollHeight (and collapses to 0 on close). webapp/view/jpulse-common.css bumps the expanded-state fallback max-height to 6000px and documents that JS sets the exact height. Expected: full docs list is visible; scrolling happens via the mobile menu panel (jp-mobile-menu has overflow-y:auto).
+
+Changes accepted/rejected: PENDING USER CONFIRMATION
+
+
+============================================================
+2026-01-04 21:44
+
+Prompt: mobile hamburger: expanding a 3rd level clips 2nd level / dev because 2nd level does not expand
+
+Summary: Fix: Mobile hamburger nested submenu expansion now recomputes parent submenu heights. Root cause: JS set max-height based on scrollHeight only for the toggled item; when a 3rd-level submenu expands, the 2nd-level submenu's scrollHeight increases but its max-height was not updated, clipping bottom items (and dev 3rd level if dev is last). Change: webapp/view/jpulse-common.js now updates max-height for all expanded ancestor nav items after any toggle, so 2nd-level grows to accommodate expanded 3rd-level content.
+
+Changes accepted/rejected: PENDING USER CONFIRMATION
+
+
+============================================================
+2026-01-04 21:47
+
+Prompt: mobile hamburger: expanding 3rd level clips bottom of 2nd level (dev hidden when last)
+
+Summary: Fix: Mobile hamburger submenu expansion now avoids parent clipping when nested submenus expand. Change: webapp/view/jpulse-common.js updateSubmenuHeight() now expands submenu to scrollHeight (px) and after the 0.3s animation switches max-height to 'none'. This lets parent submenus grow naturally when a deeper submenu opens. Collapse sets an explicit px height first (if needed) then animates to 0.
+
+Changes accepted/rejected: PENDING USER CONFIRMATION
+
+
+============================================================
+2026-01-04 21:49
+
+Prompt: nice, works now!
+
+anything left to do?
+
+Summary: Status: User confirmed fixes work. Completed: (1) Desktop site-nav dropdown: scrollable flyout submenus when too tall + portal overlay for deeper flyouts to avoid clipping. (2) Docs pulldown: fixed jPulse Docs dynamic pages key collisions (directories previously keyed by name=README.md). (3) Mobile hamburger: fixed submenu clipping for long 2nd-level lists and nested 3rd-level expansion by computing heights and using max-height:none after expansion. Remaining: W-125 entry in docs/dev/work-items.md still contains placeholder deliverables (FIXME) if you want the work item documentation updated.
+
+Changes accepted/rejected: ACCEPTED
+
+
+============================================================
+2026-01-04 21:57
+
+Prompt: release prep:
+- review @tt-git-diff.txt one more time
+- assume release: W-125, v1.4.5
+- update deliverables in W-125 work-items to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- update cursor_log.txt (append, don't replace)
+
+Summary: Release prep for W-125, v1.4.5 based on tt-git-diff.txt: (1) Updated docs/dev/work-items.md W-125 deliverables section (only that section; status unchanged) to list completed work across docs, examples, navigation dropdown, and mobile hamburger. (2) Updated release highlights for v1.4.5 in README.md and docs/README.md. (3) Added v1.4.5 / W-125 release entry to docs/CHANGELOG.md with key features + file list. (4) Updated commit-message.txt to W-125, v1.4.5 release message (no commit performed).
+
+Changes accepted/rejected: PENDING USER CONFIRMATION
+
+
+============================================================
+2026-01-04 22:05
+
+Prompt: examples pages toc tweak:
+- omit demo headings from sidebar TOC on ui-widgets.shtml and forms.shtml (keep headings for anchor demos)
+- implement generic mechanism to ignore a subtree from TOC
+
+Summary: Implemented a TOC ignore mechanism by filtering out headings within containers matching .jp-toc-ignore or [data-toc-ignore="true"] in webapp/view/components/jpulse-sidebars.tmpl. Applied .jp-toc-ignore to the heading anchor demo panel in webapp/view/jpulse-examples/ui-widgets.shtml and to the multistep form example panel in webapp/view/jpulse-examples/forms.shtml, so demo headings remain for anchor-link behavior but no longer appear in the sidebar TOC.
+
+Changes accepted/rejected: PENDING USER CONFIRMATION
+
+
+============================================================
+2026-01-04 22:08
+
+Prompt: acceptance update:
+- omit demo headings from sidebar TOC using .jp-toc-ignore / data-toc-ignore (ui-widgets, forms, sidebar toc generator)
+
+Summary: User confirmed ui-widgets/forms TOC change works; marking the prior changes as accepted.
+
+Changes accepted/rejected: ACCEPTED
+
+
+============================================================
+2026-01-04 22:08
+
+Prompt: examples layout page toc tweak:
+- omit typography demo headings (h1-h6 samples) from sidebar TOC while keeping the surrounding section headings
+
+Summary: Wrapped the typography hierarchy demo headings in webapp/view/jpulse-examples/layout.shtml with a .jp-toc-ignore container, so the heading samples no longer appear in the sidebar TOC.
+
+Changes accepted/rejected: PENDING USER CONFIRMATION
+
+
+============================================================
+2026-01-04 22:20
+
+Prompt: revise docs (no README highlights updates):
+- docs/CHANGELOG.md: include TOC-ignore demo heading changes
+- docs/dev/work-items.md: update W-125 deliverables to reflect TOC-ignore/demo-heading fixes
+- commit-message.txt: include TOC-ignore/demo-heading fixes
+- review webapp/view/jpulse-examples for consistency
+
+Summary: Docs revisions for W-125/v1.4.5: updated docs/CHANGELOG.md to document TOC opt-out via .jp-toc-ignore/data-toc-ignore and the related examples/TOC generator adjustments; updated docs/dev/work-items.md deliverables for W-125 to include the TOC-ignore/demo-heading fixes on ui-widgets/forms/layout and the sidebar TOC opt-out mechanism; updated commit-message.txt to include the TOC-ignore/demo-heading fixes and work-items deliverables update. Consistency review: all jpulse-examples pages use numbered local headings (local-heading-2/3) and consistent tabs+panel IDs; no functional inconsistencies found.
+
+Changes accepted/rejected: PENDING USER CONFIRMATION
+
+
+============================================================
+2026-01-04 22:21
+
+Prompt: acceptance update: revise docs + examples consistency review
+
+Summary: User confirmed the docs revisions (CHANGELOG/work-items/commit-message) and examples consistency review changes are accepted.
+
+Changes accepted/rejected: ACCEPTED
 
 
 ============================================================

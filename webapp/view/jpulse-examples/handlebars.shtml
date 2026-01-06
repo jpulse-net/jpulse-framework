@@ -4,8 +4,8 @@
  * @tagline         Comprehensive Handlebars templating examples
  * @description     Interactive examples and source code for Handlebars templating in jPulse
  * @file            webapp/view/jpulse-examples/handlebars.shtml
- * @version         1.4.6
- * @release         2026-01-06
+ * @version         1.4.7
+ * @release         2026-01-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -124,74 +124,338 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
             </div>
         </div>
 
-        <!-- Conditional Rendering Example -->
-        <h2 class="local-heading-2">3. Conditional Rendering</h2>
-        <!-- Tab interface for example/source -->
-        <div id="conditionals-tabs" class="jp-tabs"></div>
-        <div id="conditionals-example-panel" class="jp-panel">
-            {{#unless user.isAuthenticated}}
+        <!-- Context Variables -->
+        <h2 class="local-heading-2">3. Context Variables</h2>
+        <p>jPulse provides these context variables in all templates:</p>
+
+        <div class="jp-card-grid">
             <div class="jp-info-box">
-                <p><em>💡 Note: <a href="/auth/login.shtml">Log in</a> to see the authenticated user example below.</em></p>
+                <h4>3.1 App Context</h4>
+                <table class="jp-table">
+                    <tr>
+                        <th>Variable</th>
+                        <th>Handlebar</th>
+                        <th>Expanded</th>
+                    </tr>
+                    <tr>
+                        <td>Application name</td>
+                        <td><code>&#123;&#123;app.site.name&#125;&#125;</code></td>
+                        <td><code>{{app.site.name}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>Current application version</td>
+                        <td><code>&#123;&#123;app.site.version&#125;&#125;</code></td>
+                        <td><code>{{app.site.version}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>Current application release</td>
+                        <td><code>&#123;&#123;app.site.release&#125;&#125;</code></td>
+                        <td><code>{{app.site.release}}</code></td>
+                    </tr>
+                </table>
             </div>
-            {{/unless}}
+
+            <div class="jp-info-box">
+                <h4>3.2 User Context</h4>
+                <table class="jp-table">
+                    <tr>
+                        <th>Variable</th>
+                        <th>Handlebar</th>
+                        <th>Expanded</th>
+                    </tr>
+                    <tr>
+                        <td>Login status</td>
+                        <td><code>&#123;&#123;user.isAuthenticated&#125;&#125;</code></td>
+                        <td><code>{{user.isAuthenticated}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>First name</td>
+                        <td><code>&#123;&#123;user.firstName&#125;&#125;</code></td>
+                        <td><code>{{user.firstName}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>Last name</td>
+                        <td><code>&#123;&#123;user.lastName&#125;&#125;</code></td>
+                        <td><code>{{user.lastName}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>Email address</td>
+                        <td><code>&#123;&#123;user.email&#125;&#125;</code></td>
+                        <td><code>{{user.email}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>User roles</td>
+                        <td><code>&#123;&#123;user.roles&#125;&#125;</code></td>
+                        <td><code>{{user.roles}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>Admin status</td>
+                        <td><code>&#123;&#123;user.isAdmin&#125;&#125;</code></td>
+                        <td><code>{{user.isAdmin}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>User initials</td>
+                        <td><code>&#123;&#123;user.initials&#125;&#125;</code></td>
+                        <td><code>{{user.initials}}</code></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="jp-info-box">
+                <h4>3.3 URL Context</h4>
+                <table class="jp-table">
+                    <tr>
+                        <th>Variable</th>
+                        <th>Handlebar</th>
+                        <th>Expanded</th>
+                    </tr>
+                    <tr>
+                        <td>HTTP/HTTPS</td>
+                        <td><code>&#123;&#123;url.protocol&#125;&#125;</code></td>
+                        <td><code>{{url.protocol}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>Domain name</td>
+                        <td><code>&#123;&#123;url.hostname&#125;&#125;</code></td>
+                        <td><code>{{url.hostname}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>Port number</td>
+                        <td><code>&#123;&#123;url.port&#125;&#125;</code></td>
+                        <td><code>{{url.port}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>URL path</td>
+                        <td><code>&#123;&#123;url.pathname&#125;&#125;</code></td>
+                        <td><code>{{url.pathname}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>Query string</td>
+                        <td><code>&#123;&#123;url.search&#125;&#125;</code></td>
+                        <td><code>{{url.search}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>Full domain</td>
+                        <td><code>&#123;&#123;url.domain&#125;&#125;</code></td>
+                        <td><code>{{url.domain}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>Query parameters</td>
+                        <td><code>&#123;&#123;url.param.name&#125;&#125;</code></td>
+                        <td><code>{{url.param.name}}</code></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="jp-info-box">
+                <h4>3.4 Configuration</h4>
+                <table class="jp-table">
+                    <tr>
+                        <th>Variable</th>
+                        <th>Handlebar</th>
+                        <th>Expanded</th>
+                    </tr>
+                    <tr>
+                        <td>Admin email</td>
+                        <td><code>&#123;&#123;siteConfig.email.adminEmail&#125;&#125;</code></td>
+                        <td><code>{{siteConfig.email.adminEmail}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>Feature flags</td>
+                        <td><code>&#123;&#123;siteConfig.features.*&#125;&#125;</code></td>
+                        <td><code>{{siteConfig.features.*}}</code></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="jp-info-box">
+                <h4>3.5 Internationalization</h4>
+                <table class="jp-table">
+                    <tr>
+                        <th>Variable</th>
+                        <th>Handlebar</th>
+                        <th>Expanded</th>
+                    </tr>
+                    <tr>
+                        <td>Home page messages</td>
+                        <td><code>&#123;&#123;i18n.view.home.*&#125;&#125;</code></td>
+                        <td><code>&#123;&#123;i18n.view.home.*&#125;&#125;</code> <em>(example pattern)</em></td>
+                    </tr>
+                    <tr>
+                        <td>Example Introduction message</td>
+                        <td><code>&#123;&#123;i18n.view.home.introduction&#125;&#125;</code></td>
+                        <td><code>{{i18n.view.home.introduction}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>Auth messages</td>
+                        <td><code>&#123;&#123;i18n.view.auth.*&#125;&#125;</code></td>
+                        <td><code>&#123;&#123;i18n.view.auth.*&#125;&#125;</code> <em>(example pattern)</em></td>
+                    </tr>
+                    <tr>
+                        <td>Common messages</td>
+                        <td><code>&#123;&#123;i18n.common.*&#125;&#125;</code></td>
+                        <td><code>&#123;&#123;i18n.common.*&#125;&#125;</code> <em>(example pattern)</em></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="jp-info-box">
+                <h4>3.6 File Operations</h4>
+                <table class="jp-table">
+                    <tr>
+                        <th>Variable</th>
+                        <th>Handlebar</th>
+                        <th>Expanded</th>
+                    </tr>
+                    <tr>
+                        <td>Include template</td>
+                        <td><code>&#123;&#123;file.include "template.tmpl"&#125;&#125;</code></td>
+                        <td><code>&#123;&#123;file.include "template.tmpl"&#125;&#125;</code> <em>(example - file must exist)</em></td>
+                    </tr>
+                    <tr>
+                        <td>File timestamp</td>
+                        <td><code>&#123;&#123;file.timestamp "jpulse-header.tmpl"&#125;&#125;</code></td>
+                        <td><code>{{file.timestamp "jpulse-header.tmpl"}}</code></td>
+                    </tr>
+                    <tr>
+                        <td>File exists</td>
+                        <td><code>&#123;&#123;file.exists "jpulse-footer.tmpl"&#125;&#125;</code></td>
+                        <td><code>{{file.exists "jpulse-footer.tmpl"}}</code></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="jp-info-box">
+                <h4>3.7 Logical and Comparison Helpers (v1.3.15+)</h4>
+                <table class="jp-table">
+                    <tr>
+                        <th>Helper</th>
+                        <th>Handlebar</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>Logical AND</td>
+                        <td><code>&#123;&#123;and cond1 cond2&#125;&#125;</code></td>
+                        <td>Returns "true" if all conditions are truthy</td>
+                    </tr>
+                    <tr>
+                        <td>Logical OR</td>
+                        <td><code>&#123;&#123;or cond1 cond2&#125;&#125;</code></td>
+                        <td>Returns "true" if any condition is truthy</td>
+                    </tr>
+                    <tr>
+                        <td>Logical NOT</td>
+                        <td><code>&#123;&#123;not cond&#125;&#125;</code></td>
+                        <td>Returns "true" if condition is falsy</td>
+                    </tr>
+                    <tr>
+                        <td>Equal</td>
+                        <td><code>&#123;&#123;eq a b&#125;&#125;</code></td>
+                        <td>Returns "true" if values are equal (type coercion)</td>
+                    </tr>
+                    <tr>
+                        <td>Not equal</td>
+                        <td><code>&#123;&#123;ne a b&#125;&#125;</code></td>
+                        <td>Returns "true" if values are not equal (type coercion)</td>
+                    </tr>
+                    <tr>
+                        <td>Greater than</td>
+                        <td><code>&#123;&#123;gt a b&#125;&#125;</code></td>
+                        <td>Returns "true" if a > b (type coercion)</td>
+                    </tr>
+                    <tr>
+                        <td>Greater or equal</td>
+                        <td><code>&#123;&#123;gte a b&#125;&#125;</code></td>
+                        <td>Returns "true" if a >= b (type coercion)</td>
+                    </tr>
+                    <tr>
+                        <td>Less than</td>
+                        <td><code>&#123;&#123;lt a b&#125;&#125;</code></td>
+                        <td>Returns "true" if a < b (type coercion)</td>
+                    </tr>
+                    <tr>
+                        <td>Less or equal</td>
+                        <td><code>&#123;&#123;lte a b&#125;&#125;</code></td>
+                        <td>Returns "true" if a <= b (type coercion)</td>
+                    </tr>
+                    <tr>
+                        <td>Subexpressions</td>
+                        <td><code>&#123;&#123;#if (and cond1 cond2)&#125;&#125;...&#123;&#123;/if&#125;&#125;</code></td>
+                        <td>Use in {{#if}}, {{#unless}}, and block helpers</td>
+                    </tr>
+                    <tr>
+                        <td>Block helpers</td>
+                        <td><code>&#123;&#123;#and cond1 cond2&#125;&#125;...&#123;&#123;else&#125;&#125;...&#123;&#123;/and&#125;&#125;</code></td>
+                        <td>All helpers support {{else}} blocks</td>
+                    </tr>
+                </table>
+            </div>
+
             <div class="jp-warning-box">
-                <h4>Authentication Status</h4>
-                {{#if user.isAuthenticated}}
-                    <p>✅ Welcome back, {{user.firstName}}!</p>
-                    <p>Your roles: {{user.roles}}</p>
-                    {{#if user.isAdmin}}
-                        <p>🔧 You have admin privileges</p>
-                    {{/if}}
-                {{else}}
-                    <p>👋 Hello, guest! Please <a href="/auth/login.shtml">log in</a> to access more features.</p>
-                {{/if}}
+                <h4>3.8 Custom Variables</h4>
+                <table class="jp-table">
+                    <tr>
+                        <th>Variable</th>
+                        <th>Handlebar</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>Define variable</td>
+                        <td><code>&#123;&#123;let myVar="value"&#125;&#125;</code></td>
+                        <td>Sets custom variable in vars namespace</td>
+                    </tr>
+                    <tr>
+                        <td>Access variable</td>
+                        <td><code>&#123;&#123;vars.myVar&#125;&#125;</code></td>
+                        <td>Accesses custom variable</td>
+                    </tr>
+                    <tr>
+                        <td>Block-scoped variables</td>
+                        <td><code>&#123;&#123;#let key="value"&#125;&#125;...&#123;&#123;/let&#125;&#125;</code></td>
+                        <td>Variables only exist within block (scope isolation)</td>
+                    </tr>
+                    <tr>
+                        <td>Context switching</td>
+                        <td><code>&#123;&#123;#with user&#125;&#125;...&#123;&#123;/with&#125;&#125;</code></td>
+                        <td>Switches context to object properties</td>
+                    </tr>
+                </table>
             </div>
 
             <div class="jp-info-box">
-                <h4>Complex Conditions with Subexpressions (v1.3.15+)</h4>
-                {{#if (and user.isAuthenticated user.isAdmin)}}
-                    <p>✅ Authenticated admin user (using subexpression)</p>
-                {{else}}
-                    <p>❌ Not authenticated user, or a user without admin role</p>
-                {{/if}}
-                {{#if (and user.isAuthenticated (gt user.roles.length 1))}}
-                    <p>✅ Authenticated user with more than one role</p>
-                {{else}}
-                    <p>❌ Not authenticated user or a user with only one role</p>
-                {{/if}}
-            </div>
-        </div>
-
-        <div id="conditionals-source-panel" class="jp-panel">
-            <div class="jp-source-code" data-lang="html">
-&lt;!-- Basic Conditional --&gt;
-&#123;&#123;#if user.isAuthenticated&#125;&#125;
-    &lt;p&gt;✅ Welcome back, &#123;&#123;user.firstName&#125;&#125;!&lt;/p&gt;
-    &lt;p&gt;Your roles: &#123;&#123;user.roles&#125;&#125;&lt;/p&gt;
-    &#123;&#123;#if user.isAdmin&#125;&#125;
-        &lt;p&gt;🔧 You have admin privileges&lt;/p&gt;
-    &#123;&#123;/if&#125;&#125;
-&#123;&#123;else&#125;&#125;
-    &lt;p&gt;👋 Hello, guest! Please &lt;a href="/auth/login.shtml"&gt;log in&lt;/a&gt; to access more features.&lt;/p&gt;
-&#123;&#123;/if&#125;&#125;
-
-&lt;!-- Complex Conditions with Subexpressions (v1.3.15+) --&gt;
-&#123;&#123;#if (and user.isAuthenticated user.isAdmin)&#125;&#125;
-    &lt;p&gt;✅ Authenticated admin user (using subexpression)&lt;/p&gt;
-&#123;&#123;else&#125;&#125;
-    &lt;p&gt;❌ Not authenticated user, or a user without admin role&lt;/p&gt;
-&#123;&#123;/if&#125;&#125;
-
-&#123;&#123;#if (and user.isAuthenticated (gt user.roles.length 1))&#125;&#125;
-    &lt;p&gt;✅ Authenticated user with more than one role&lt;/p&gt;
-&#123;&#123;else&#125;&#125;
-    &lt;p&gt;❌ Not authenticated user or a user with only one role&lt;/p&gt;
-&#123;&#123;/if&#125;&#125;
+                <h4>3.9 Reusable Components</h4>
+                <table class="jp-table">
+                    <tr>
+                        <th>Variable</th>
+                        <th>Handlebar</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>Define component</td>
+                        <td><code>&#123;&#123;#component "adminCards.config"&#125;&#125;...&#123;&#123;/component&#125;&#125;</code></td>
+                        <td>Defines a reusable component</td>
+                    </tr>
+                    <tr>
+                        <td>Include component library</td>
+                        <td><code>&#123;&#123;file.includeComponents "admin/*.shtml" component="adminCards.*"&#125;&#125;</code></td>
+                        <td>Loads components from multiple admin dashboard files</td>
+                    </tr>
+                    <tr>
+                        <td>Use component</td>
+                        <td><code>&#123;&#123;components.adminCards.config&#125;&#125;</code></td>
+                        <td>Renders the component</td>
+                    </tr>
+                    <tr>
+                        <td>Use component with params</td>
+                        <td><code>&#123;&#123;components.jPulseIcons.configSvg size="64"&#125;&#125;</code></td>
+                        <td>Renders with custom parameters</td>
+                    </tr>
+                </table>
             </div>
         </div>
 
         <!-- Internationalization Example -->
-        <h2 class="local-heading-2">4. Internationalization (i18n)</h2>
+        <h2 class="local-heading-2">4. Internationalization with &#123;&#123;#i18n.*&#125;&#125;</h2>
         <!-- Tab interface for example/source -->
         <div id="i18n-tabs" class="jp-tabs"></div>
         <div id="i18n-example-panel" class="jp-panel">
@@ -211,7 +475,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
         </div>
 
         <!-- Template Includes Example -->
-        <h2 class="local-heading-2">5. Template Includes</h2>
+        <h2 class="local-heading-2">5. Template Includes with &#123;&#123;file.include&#125;&#125;</h2>
         <!-- Tab interface for example/source -->
         <div id="includes-tabs" class="jp-tabs"></div>
         <div id="includes-example-panel" class="jp-panel">
@@ -241,242 +505,8 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
             </div>
         </div>
 
-        <!-- Nested Handlebars Example (v0.7.20+) -->
-        <h2 class="local-heading-2">6. Nested Handlebars</h2>
-        <!-- Tab interface for example/source -->
-        <div id="nested-tabs" class="jp-tabs"></div>
-        <div id="nested-example-panel" class="jp-panel">
-            {{#unless user.isAuthenticated}}
-            <div class="jp-info-box">
-                <p><em>💡 Note: <a href="/auth/login.shtml">Log in</a> to see nested conditionals with user data.</em></p>
-            </div>
-            {{/unless}}
-            <div class="jp-warning-box">
-                <h4>Multi-level Conditional Example</h4>
-                {{#if user.isAuthenticated}}
-                    <p>User: {{user.firstName}} {{user.lastName}}</p>
-                    {{#if user.isAdmin}}
-                        <div class="jp-info-box">
-                            <p>Admin Panel Access:</p>
-                            {{#if siteConfig.features.adminPanel}}
-                                <p>✅ Admin panel is enabled</p>
-                            {{else}}
-                                <p>❌ Admin panel is disabled</p>
-                            {{/if}}
-                        </div>
-                    {{else}}
-                        <p>Regular user - limited access</p>
-                    {{/if}}
-                {{else}}
-                    <p>Please log in to see personalized content</p>
-                {{/if}}
-            </div>
-        </div>
-
-        <div id="nested-source-panel" class="jp-panel">
-            <div class="jp-source-code" data-lang="html">
-&#123;&#123;#if user.isAuthenticated&#125;&#125;
-    &lt;p&gt;User: &#123;&#123;user.firstName&#125;&#125; &#123;&#123;user.lastName&#125;&#125;&lt;/p&gt;
-    &#123;&#123;#if user.isAdmin&#125;&#125;
-        &lt;div class="jp-info-box"&gt;
-            &lt;p&gt;Admin Panel Access:&lt;/p&gt;
-            &#123;&#123;#if siteConfig.features.adminPanel&#125;&#125;
-                &lt;p&gt;✅ Admin panel is enabled&lt;/p&gt;
-            &#123;&#123;else&#125;&#125;
-                &lt;p&gt;❌ Admin panel is disabled&lt;/p&gt;
-            &#123;&#123;/if&#125;&#125;
-        &lt;/div&gt;
-    &#123;&#123;else&#125;&#125;
-        &lt;p&gt;Regular user - limited access&lt;/p&gt;
-    &#123;&#123;/if&#125;&#125;
-&#123;&#123;else&#125;&#125;
-    &lt;p&gt;Please log in to see personalized content&lt;/p&gt;
-&#123;&#123;/if&#125;&#125;
-            </div>
-        </div>
-
-        <!-- Loops Example -->
-        <h2 class="local-heading-2">7. Loops &amp; Iterations</h2>
-        <!-- Tab interface for example/source -->
-        <div id="loops-tabs" class="jp-tabs"></div>
-        <div id="loops-example-panel" class="jp-panel">
-            {{#unless user.isAuthenticated}}
-            <div class="jp-info-box">
-                <p><em>💡 Note: <a href="/auth/login.shtml">Log in</a> to see loops with your user roles and data.</em></p>
-            </div>
-            {{/unless}}
-            <div class="jp-info-box">
-                <h4>Array of Strings (User Roles)</h4>
-                <p>Current user roles:
-                {{#each user.roles}}
-                    <span class="jp-role-badge jp-role-{{this}}">{{this}}</span>
-                {{/each}}
-                </p>
-            </div>
-
-            <div class="jp-warning-box">
-                <h4>Loop Variables Example</h4>
-                <ul>
-                {{#each user.roles}}
-                    <li>Role {{@index}}: {{this}} {{#if @first}}(first){{/if}}{{#if @last}}(last){{/if}}</li>
-                {{/each}}
-                </ul>
-            </div>
-
-            <div class="jp-info-box">
-                <h4>Array of Objects Example</h4>
-                <p><em>Note: This example shows the concept. In a real application, you would pass an array of user objects to the template.</em></p>
-                <div class="jp-user-card" style="border: 1px solid #ddd; padding: 10px; margin: 5px 0;">
-                    <h5>{{user.firstName}} {{user.lastName}}</h5>
-                    <p>Email: {{user.email}}</p>
-                </div>
-            </div>
-
-            <div class="jp-warning-box">
-                <h4>Object Keys Example</h4>
-                <p><em>Iterating over session user object properties:</em></p>
-                <ul>
-                    {{#each user}}
-                    <li><strong>{{@key}}:</strong> {{this}}</li>
-                    {{/each}}
-                </ul>
-            </div>
-        </div>
-
-        <div id="loops-source-panel" class="jp-panel">
-            <div class="jp-source-code" data-lang="html">
-&lt;!-- Array of Strings --&gt;
-&#123;&#123;#each user.roles&#125;&#125;
-    &lt;span class="jp-role-badge jp-role-&#123;&#123;this&#125;&#125;"&gt;&#123;&#123;this&#125;&#125;&lt;/span&gt;
-&#123;&#123;/each&#125;&#125;
-
-&lt;!-- With Loop Variables --&gt;
-&#123;&#123;#each user.roles&#125;&#125;
-    &lt;li&gt;Role &#123;&#123;@index&#125;&#125;: &#123;&#123;this&#125;&#125; &#123;&#123;#if @first&#125;&#125;(first)&#123;&#123;/if&#125;&#125;&#123;&#123;#if @last&#125;&#125;(last)&#123;&#123;/if&#125;&#125;&lt;/li&gt;
-&#123;&#123;/each&#125;&#125;
-
-&lt;!-- Array of Objects --&gt;
-&#123;&#123;#each users&#125;&#125;
-    &lt;div class="jp-user-card"&gt;
-        &lt;h4&gt;&#123;&#123;this.firstName&#125;&#125; &#123;&#123;this.lastName&#125;&#125;&lt;/h4&gt;
-        &lt;p&gt;Email: &#123;&#123;this.email&#125;&#125;&lt;/p&gt;
-    &lt;/div&gt;
-&#123;&#123;/each&#125;&#125;
-
-&lt;!-- Object Keys --&gt;
-&#123;&#123;#each user&#125;&#125;
-    &lt;div&gt;&lt;strong&gt;&#123;&#123;@key&#125;&#125;:&lt;/strong&gt; &#123;&#123;this&#125;&#125;&lt;/div&gt;
-&#123;&#123;/each&#125;&#125;
-            </div>
-        </div>
-
-        <!-- Custom Variables with {{let}} (v1.3.3+) -->
-        <h2 class="local-heading-2">8. Custom Variables with &#123;&#123;let&#125;&#125;</h2>
-        <!-- Tab interface for example/source -->
-        <div id="let-tabs" class="jp-tabs"></div>
-        <div id="let-example-panel" class="jp-panel">
-            <div class="jp-info-box">
-                <h4>Basic Variable Assignment</h4>
-                {{let pageTitle="Handlebars Examples" maxItems=5 showFooter=true}}
-                <p><strong>Page Title:</strong> {{vars.pageTitle}}</p>
-                <p><strong>Max Items:</strong> {{vars.maxItems}}</p>
-                <p><strong>Show Footer:</strong> {{vars.showFooter}}</p>
-            </div>
-
-            <div class="jp-warning-box">
-                <h4>Nested Properties</h4>
-                {{let siteConfig.theme="dark" siteConfig.timeout=5000 api.v2.endpoint="/api/v2"}}
-                <p><strong>Theme:</strong> {{vars.siteConfig.theme}}</p>
-                <p><strong>Timeout:</strong> {{vars.siteConfig.timeout}}ms</p>
-                <p><strong>API Endpoint:</strong> {{vars.api.v2.endpoint}}</p>
-            </div>
-
-            <div class="jp-info-box">
-                <h4>Conditional Variable Assignment</h4>
-                {{#if user.isAuthenticated}}
-                    {{let greeting="Welcome back" showProfile=true}}
-                {{else}}
-                    {{let greeting="Hello guest" showProfile=false}}
-                {{/if}}
-                <p><strong>Greeting:</strong> {{vars.greeting}}</p>
-                <p><strong>Show Profile:</strong> {{vars.showProfile}}</p>
-            </div>
-        </div>
-
-        <div id="let-source-panel" class="jp-panel">
-            <div class="jp-source-code" data-lang="html">
-&lt;!-- Basic Variable Assignment --&gt;
-&#123;&#123;let pageTitle="Handlebars Examples" maxItems=5 showFooter=true&#125;&#125;
-&lt;p&gt;&lt;strong&gt;Page Title:&lt;/strong&gt; &#123;&#123;vars.pageTitle&#125;&#125;&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Max Items:&lt;/strong&gt; &#123;&#123;vars.maxItems&#125;&#125;&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Show Footer:&lt;/strong&gt; &#123;&#123;vars.showFooter&#125;&#125;&lt;/p&gt;
-
-&lt;!-- Nested Properties --&gt;
-&#123;&#123;let siteConfig.theme="dark" siteConfig.timeout=5000 api.v2.endpoint="/api/v2"&#125;&#125;
-&lt;p&gt;&lt;strong&gt;Theme:&lt;/strong&gt; &#123;&#123;vars.siteConfig.theme&#125;&#125;&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Timeout:&lt;/strong&gt; &#123;&#123;vars.siteConfig.timeout&#125;&#125;ms&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;API Endpoint:&lt;/strong&gt; &#123;&#123;vars.api.v2.endpoint&#125;&#125;&lt;/p&gt;
-
-&lt;!-- Conditional Variable Assignment --&gt;
-&#123;&#123;#if user.isAuthenticated&#125;&#125;
-    &#123;&#123;let greeting="Welcome back" showProfile=true&#125;&#125;
-&#123;&#123;else&#125;&#125;
-    &#123;&#123;let greeting="Hello guest" showProfile=false&#125;&#125;
-&#123;&#123;/if&#125;&#125;
-&lt;p&gt;&lt;strong&gt;Greeting:&lt;/strong&gt; &#123;&#123;vars.greeting&#125;&#125;&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;Show Profile:&lt;/strong&gt; &#123;&#123;vars.showProfile&#125;&#125;&lt;/p&gt;
-            </div>
-        </div>
-
-        <!-- Context Switching with #with handlebars (v1.3.3+) -->
-        <h2 class="local-heading-2">9. Context Switching with &#123;&#123;#with&#125;&#125;</h2>
-        <!-- Tab interface for example/source -->
-        <div id="with-tabs" class="jp-tabs"></div>
-        <div id="with-example-panel" class="jp-panel">
-            {{#unless user.isAuthenticated}}
-            <div class="jp-info-box">
-                <p><em>💡 Note: <a href="/auth/login.shtml">Log in</a> to see context switching with user data.</em></p>
-            </div>
-            {{/unless}}
-            <div class="jp-info-box">
-                <h4>Basic Context Switching</h4>
-                {{#with user}}
-                    <p><strong>Name:</strong> {{firstName}} {{lastName}}</p>
-                    <p><strong>Email:</strong> {{email}}</p>
-                    <p><strong>Roles:</strong> {{roles}}</p>
-                {{/with}}
-            </div>
-
-            <div class="jp-warning-box">
-                <h4>Combining Variables and Context Switching</h4>
-                {{let prefix="User"}}
-                {{#with user}}
-                    <p><strong>{{vars.prefix}}:</strong> {{firstName}} {{lastName}}</p>
-                    <p><strong>Status:</strong> {{#if isAuthenticated}}Active{{else}}Inactive{{/if}}</p>
-                {{/with}}
-            </div>
-        </div>
-
-        <div id="with-source-panel" class="jp-panel">
-            <div class="jp-source-code" data-lang="html">
-&lt;!-- Basic Context Switching --&gt;
-&#123;&#123;#with user&#125;&#125;
-    &lt;p&gt;&lt;strong&gt;Name:&lt;/strong&gt; &#123;&#123;firstName&#125;&#125; &#123;&#123;lastName&#125;&#125;&lt;/p&gt;
-    &lt;p&gt;&lt;strong&gt;Email:&lt;/strong&gt; &#123;&#123;email&#125;&#125;&lt;/p&gt;
-    &lt;p&gt;&lt;strong&gt;Roles:&lt;/strong&gt; &#123;&#123;roles&#125;&#125;&lt;/p&gt;
-&#123;&#123;/with&#125;&#125;
-
-&lt;!-- Combining Variables and Context Switching --&gt;
-&#123;&#123;let prefix="User"&#125;&#125;
-&#123;&#123;#with user&#125;&#125;
-    &lt;p&gt;&lt;strong&gt;&#123;&#123;vars.prefix&#125;&#125;:&lt;/strong&gt; &#123;&#123;firstName&#125;&#125; &#123;&#123;lastName&#125;&#125;&lt;/p&gt;
-    &lt;p&gt;&lt;strong&gt;Status:&lt;/strong&gt; &#123;&#123;#if isAuthenticated&#125;&#125;Active&#123;&#123;else&#125;&#125;Inactive&#123;&#123;/if&#125;&#125;&lt;/p&gt;
-&#123;&#123;/with&#125;&#125;
-            </div>
-        </div>
-
         <!-- Logical and Comparison Helpers (v1.3.15+) -->
-        <h2 class="local-heading-2">10. Logical and Comparison Helpers</h2>
+        <h2 class="local-heading-2">6. Logical and Comparison Helpers</h2>
         <!-- Tab interface for example/source -->
         <div id="logical-tabs" class="jp-tabs"></div>
         <div id="logical-example-panel" class="jp-panel">
@@ -573,8 +603,156 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
             </div>
         </div>
 
+        <!-- Math Helpers (v1.4.7+) -->
+        <h2 class="local-heading-2">7. Math Helpers</h2>
+        <!-- Tab interface for example/source -->
+        <div id="math-tabs" class="jp-tabs"></div>
+        <div id="math-example-panel" class="jp-panel">
+            <div class="jp-info-box">
+                <h4>Basic Math Operations</h4>
+                <ul>
+                    <li><strong>Add:</strong> {{add 2 4 6}} = 2 + 4 + 6</li>
+                    <li><strong>Subtract:</strong> {{subtract 10 3 2}} = 10 - 3 - 2</li>
+                    <li><strong>Multiply:</strong> {{multiply 2 3 4}} = 2 × 3 × 4</li>
+                    <li><strong>Divide:</strong> {{divide 100 4 2}} = 100 ÷ 4 ÷ 2</li>
+                    <li><strong>Modulo:</strong> {{mod 17 5}} = 17 % 5</li>
+                </ul>
+            </div>
+
+            <div class="jp-warning-box">
+                <h4>Rounding Operations</h4>
+                <ul>
+                    <li><strong>Round:</strong> {{round 3.7}} (rounds 3.7 to nearest integer)</li>
+                    <li><strong>Floor:</strong> {{floor 3.7}} (rounds 3.7 down)</li>
+                    <li><strong>Ceil:</strong> {{ceil 3.2}} (rounds 3.2 up)</li>
+                    <li><strong>Round with division:</strong> {{round (divide 22 7)}} (π approximation)</li>
+                </ul>
+            </div>
+
+            <div class="jp-info-box">
+                <h4>Min/Max Operations</h4>
+                <ul>
+                    <li><strong>Minimum:</strong> {{min 5 3 8 2}} (finds minimum value)</li>
+                    <li><strong>Maximum:</strong> {{max 5 3 8 2}} (finds maximum value)</li>
+                </ul>
+            </div>
+
+            <div class="jp-warning-box">
+                <h4>Nested Math Expressions</h4>
+                <ul>
+                    <li><strong>Complex calculation:</strong> {{divide (add 100 50) 3}} = (100 + 50) ÷ 3</li>
+                    <li><strong>Multiple operations:</strong> {{add 2 (multiply 4 6) (divide 20 2)}} = 2 + (4 × 6) + (20 ÷ 2)</li>
+                    <li><strong>In conditionals:</strong> {{#if (gt (add 50 50) 90)}}High score!{{else}}Low score{{/if}}</li>
+                </ul>
+            </div>
+
+            <div class="jp-info-box">
+                <h4>With Variables</h4>
+                {{let price=10 quantity=3 tax=1.2}}
+                <ul>
+                    <li><strong>Subtotal:</strong> {{multiply vars.price vars.quantity}} = {{multiply vars.price vars.quantity}}</li>
+                    <li><strong>Total with tax:</strong> {{multiply vars.price vars.quantity vars.tax}} = {{multiply vars.price vars.quantity vars.tax}}</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="math-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
+&lt;!-- Basic Math Operations --&gt;
+&#123;&#123;add 2 4 6&#125;&#125;                    &lt;!-- 12 --&gt;
+&#123;&#123;subtract 10 3 2&#125;&#125;              &lt;!-- 5 (10 - 3 - 2) --&gt;
+&#123;&#123;multiply 2 3 4&#125;&#125;                 &lt;!-- 24 --&gt;
+&#123;&#123;divide 100 4 2&#125;&#125;                 &lt;!-- 12.5 (100 / 4 / 2) --&gt;
+&#123;&#123;mod 17 5&#125;&#125;                       &lt;!-- 2 --&gt;
+
+&lt;!-- Rounding Operations --&gt;
+&#123;&#123;round 3.7&#125;&#125;                      &lt;!-- 4 --&gt;
+&#123;&#123;floor 3.7&#125;&#125;                      &lt;!-- 3 --&gt;
+&#123;&#123;ceil 3.2&#125;&#125;                       &lt;!-- 4 --&gt;
+&#123;&#123;round (divide 22 7)&#125;&#125;              &lt;!-- 3 (π approximation) --&gt;
+
+&lt;!-- Min/Max Operations --&gt;
+&#123;&#123;min 5 3 8 2&#125;&#125;                      &lt;!-- 2 --&gt;
+&#123;&#123;max 5 3 8 2&#125;&#125;                      &lt;!-- 8 --&gt;
+
+&lt;!-- Nested Math Expressions --&gt;
+&#123;&#123;divide (add 100 50) 3&#125;&#125;            &lt;!-- 50 --&gt;
+&#123;&#123;add 2 (multiply 4 6) (divide 20 2)&#125;&#125;  &lt;!-- 36 --&gt;
+
+&lt;!-- In Conditionals --&gt;
+&#123;&#123;#if (gt (add 50 50) 90)&#125;&#125;
+    High score!
+&#123;&#123;else&#125;&#125;
+    Low score
+&#123;&#123;/if&#125;&#125;
+
+&lt;!-- With Variables --&gt;
+&#123;&#123;let price=10 quantity=3 tax=1.2&#125;&#125;
+&#123;&#123;multiply vars.price vars.quantity&#125;&#125;        &lt;!-- 30 --&gt;
+&#123;&#123;multiply vars.price vars.quantity vars.tax&#125;&#125;  &lt;!-- 36 --&gt;
+            </div>
+        </div>
+
+        <!-- Custom Variables with {{let}} (v1.3.3+) -->
+        <h2 class="local-heading-2">8. Custom Variables with &#123;&#123;let&#125;&#125;</h2>
+        <!-- Tab interface for example/source -->
+        <div id="let-tabs" class="jp-tabs"></div>
+        <div id="let-example-panel" class="jp-panel">
+            <div class="jp-info-box">
+                <h4>Basic Variable Assignment</h4>
+                {{let pageTitle="Handlebars Examples" maxItems=5 showFooter=true}}
+                <p><strong>Page Title:</strong> {{vars.pageTitle}}</p>
+                <p><strong>Max Items:</strong> {{vars.maxItems}}</p>
+                <p><strong>Show Footer:</strong> {{vars.showFooter}}</p>
+            </div>
+
+            <div class="jp-warning-box">
+                <h4>Nested Properties</h4>
+                {{let siteConfig.theme="dark" siteConfig.timeout=5000 api.v2.endpoint="/api/v2"}}
+                <p><strong>Theme:</strong> {{vars.siteConfig.theme}}</p>
+                <p><strong>Timeout:</strong> {{vars.siteConfig.timeout}}ms</p>
+                <p><strong>API Endpoint:</strong> {{vars.api.v2.endpoint}}</p>
+            </div>
+
+            <div class="jp-info-box">
+                <h4>Conditional Variable Assignment</h4>
+                {{#if user.isAuthenticated}}
+                    {{let greeting="Welcome back" showProfile=true}}
+                {{else}}
+                    {{let greeting="Hello guest" showProfile=false}}
+                {{/if}}
+                <p><strong>Greeting:</strong> {{vars.greeting}}</p>
+                <p><strong>Show Profile:</strong> {{vars.showProfile}}</p>
+            </div>
+        </div>
+
+        <div id="let-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
+&lt;!-- Basic Variable Assignment --&gt;
+&#123;&#123;let pageTitle="Handlebars Examples" maxItems=5 showFooter=true&#125;&#125;
+&lt;p&gt;&lt;strong&gt;Page Title:&lt;/strong&gt; &#123;&#123;vars.pageTitle&#125;&#125;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Max Items:&lt;/strong&gt; &#123;&#123;vars.maxItems&#125;&#125;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Show Footer:&lt;/strong&gt; &#123;&#123;vars.showFooter&#125;&#125;&lt;/p&gt;
+
+&lt;!-- Nested Properties --&gt;
+&#123;&#123;let siteConfig.theme="dark" siteConfig.timeout=5000 api.v2.endpoint="/api/v2"&#125;&#125;
+&lt;p&gt;&lt;strong&gt;Theme:&lt;/strong&gt; &#123;&#123;vars.siteConfig.theme&#125;&#125;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Timeout:&lt;/strong&gt; &#123;&#123;vars.siteConfig.timeout&#125;&#125;ms&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;API Endpoint:&lt;/strong&gt; &#123;&#123;vars.api.v2.endpoint&#125;&#125;&lt;/p&gt;
+
+&lt;!-- Conditional Variable Assignment --&gt;
+&#123;&#123;#if user.isAuthenticated&#125;&#125;
+    &#123;&#123;let greeting="Welcome back" showProfile=true&#125;&#125;
+&#123;&#123;else&#125;&#125;
+    &#123;&#123;let greeting="Hello guest" showProfile=false&#125;&#125;
+&#123;&#123;/if&#125;&#125;
+&lt;p&gt;&lt;strong&gt;Greeting:&lt;/strong&gt; &#123;&#123;vars.greeting&#125;&#125;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Show Profile:&lt;/strong&gt; &#123;&#123;vars.showProfile&#125;&#125;&lt;/p&gt;
+            </div>
+        </div>
+
         <!-- Block-Scoped Variables with #let handlebars -->
-        <h2 class="local-heading-2">11. Block-Scoped Variables with &#123;&#123;#let&#125;&#125;</h2>
+        <h2 class="local-heading-2">9. Block-Scoped Variables with &#123;&#123;#let&#125;&#125;</h2>
         <!-- Tab interface for example/source -->
         <div id="let-block-tabs" class="jp-tabs"></div>
         <div id="let-block-example-panel" class="jp-panel">
@@ -646,333 +824,245 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
             </div>
         </div>
 
-        <!-- Available Context Variables -->
-        <h2 class="local-heading-2">12. Available Context Variables</h2>
-        <p>jPulse provides these context variables in all templates:</p>
-
-        <div class="jp-card-grid">
+        <!-- Conditional Rendering Example -->
+        <h2 class="local-heading-2">10. Conditional Rendering with &#123;&#123;#if&#125;&#125;</h2>
+        <!-- Tab interface for example/source -->
+        <div id="conditionals-tabs" class="jp-tabs"></div>
+        <div id="conditionals-example-panel" class="jp-panel">
+            {{#unless user.isAuthenticated}}
             <div class="jp-info-box">
-                <h4>12.1 App Context</h4>
-                <table class="jp-table">
-                    <tr>
-                        <th>Variable</th>
-                        <th>Handlebar</th>
-                        <th>Expanded</th>
-                    </tr>
-                    <tr>
-                        <td>Application name</td>
-                        <td><code>&#123;&#123;app.site.name&#125;&#125;</code></td>
-                        <td><code>{{app.site.name}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>Current application version</td>
-                        <td><code>&#123;&#123;app.site.version&#125;&#125;</code></td>
-                        <td><code>{{app.site.version}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>Current application release</td>
-                        <td><code>&#123;&#123;app.site.release&#125;&#125;</code></td>
-                        <td><code>{{app.site.release}}</code></td>
-                    </tr>
-                </table>
+                <p><em>💡 Note: <a href="/auth/login.shtml">Log in</a> to see the authenticated user example below.</em></p>
+            </div>
+            {{/unless}}
+            <div class="jp-warning-box">
+                <h4>Authentication Status</h4>
+                {{#if user.isAuthenticated}}
+                    <p>✅ Welcome back, {{user.firstName}}!</p>
+                    <p>Your roles: {{user.roles}}</p>
+                    {{#if user.isAdmin}}
+                        <p>🔧 You have admin privileges</p>
+                    {{/if}}
+                {{else}}
+                    <p>👋 Hello, guest! Please <a href="/auth/login.shtml">log in</a> to access more features.</p>
+                {{/if}}
             </div>
 
             <div class="jp-info-box">
-                <h4>12.2 User Context</h4>
-                <table class="jp-table">
-                    <tr>
-                        <th>Variable</th>
-                        <th>Handlebar</th>
-                        <th>Expanded</th>
-                    </tr>
-                    <tr>
-                        <td>Login status</td>
-                        <td><code>&#123;&#123;user.isAuthenticated&#125;&#125;</code></td>
-                        <td><code>{{user.isAuthenticated}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>First name</td>
-                        <td><code>&#123;&#123;user.firstName&#125;&#125;</code></td>
-                        <td><code>{{user.firstName}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>Last name</td>
-                        <td><code>&#123;&#123;user.lastName&#125;&#125;</code></td>
-                        <td><code>{{user.lastName}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>Email address</td>
-                        <td><code>&#123;&#123;user.email&#125;&#125;</code></td>
-                        <td><code>{{user.email}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>User roles</td>
-                        <td><code>&#123;&#123;user.roles&#125;&#125;</code></td>
-                        <td><code>{{user.roles}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>Admin status</td>
-                        <td><code>&#123;&#123;user.isAdmin&#125;&#125;</code></td>
-                        <td><code>{{user.isAdmin}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>User initials</td>
-                        <td><code>&#123;&#123;user.initials&#125;&#125;</code></td>
-                        <td><code>{{user.initials}}</code></td>
-                    </tr>
-                </table>
+                <h4>Complex Conditions with Subexpressions (v1.3.15+)</h4>
+                {{#if (and user.isAuthenticated user.isAdmin)}}
+                    <p>✅ Authenticated admin user (using subexpression)</p>
+                {{else}}
+                    <p>❌ Not authenticated user, or a user without admin role</p>
+                {{/if}}
+                {{#if (and user.isAuthenticated (gt user.roles.length 1))}}
+                    <p>✅ Authenticated user with more than one role</p>
+                {{else}}
+                    <p>❌ Not authenticated user or a user with only one role</p>
+                {{/if}}
             </div>
+        </div>
 
-            <div class="jp-info-box">
-                <h4>12.3 URL Context</h4>
-                <table class="jp-table">
-                    <tr>
-                        <th>Variable</th>
-                        <th>Handlebar</th>
-                        <th>Expanded</th>
-                    </tr>
-                    <tr>
-                        <td>HTTP/HTTPS</td>
-                        <td><code>&#123;&#123;url.protocol&#125;&#125;</code></td>
-                        <td><code>{{url.protocol}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>Domain name</td>
-                        <td><code>&#123;&#123;url.hostname&#125;&#125;</code></td>
-                        <td><code>{{url.hostname}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>Port number</td>
-                        <td><code>&#123;&#123;url.port&#125;&#125;</code></td>
-                        <td><code>{{url.port}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>URL path</td>
-                        <td><code>&#123;&#123;url.pathname&#125;&#125;</code></td>
-                        <td><code>{{url.pathname}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>Query string</td>
-                        <td><code>&#123;&#123;url.search&#125;&#125;</code></td>
-                        <td><code>{{url.search}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>Full domain</td>
-                        <td><code>&#123;&#123;url.domain&#125;&#125;</code></td>
-                        <td><code>{{url.domain}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>Query parameters</td>
-                        <td><code>&#123;&#123;url.param.name&#125;&#125;</code></td>
-                        <td><code>{{url.param.name}}</code></td>
-                    </tr>
-                </table>
+        <div id="conditionals-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
+&lt;!-- Basic Conditional --&gt;
+&#123;&#123;#if user.isAuthenticated&#125;&#125;
+    &lt;p&gt;✅ Welcome back, &#123;&#123;user.firstName&#125;&#125;!&lt;/p&gt;
+    &lt;p&gt;Your roles: &#123;&#123;user.roles&#125;&#125;&lt;/p&gt;
+    &#123;&#123;#if user.isAdmin&#125;&#125;
+        &lt;p&gt;🔧 You have admin privileges&lt;/p&gt;
+    &#123;&#123;/if&#125;&#125;
+&#123;&#123;else&#125;&#125;
+    &lt;p&gt;👋 Hello, guest! Please &lt;a href="/auth/login.shtml"&gt;log in&lt;/a&gt; to access more features.&lt;/p&gt;
+&#123;&#123;/if&#125;&#125;
+
+&lt;!-- Complex Conditions with Subexpressions (v1.3.15+) --&gt;
+&#123;&#123;#if (and user.isAuthenticated user.isAdmin)&#125;&#125;
+    &lt;p&gt;✅ Authenticated admin user (using subexpression)&lt;/p&gt;
+&#123;&#123;else&#125;&#125;
+    &lt;p&gt;❌ Not authenticated user, or a user without admin role&lt;/p&gt;
+&#123;&#123;/if&#125;&#125;
+
+&#123;&#123;#if (and user.isAuthenticated (gt user.roles.length 1))&#125;&#125;
+    &lt;p&gt;✅ Authenticated user with more than one role&lt;/p&gt;
+&#123;&#123;else&#125;&#125;
+    &lt;p&gt;❌ Not authenticated user or a user with only one role&lt;/p&gt;
+&#123;&#123;/if&#125;&#125;
             </div>
+        </div>
 
+        <!-- Loops Example -->
+        <h2 class="local-heading-2">11. Loops &amp; Iterations with &#123;&#123;#each&#125;&#125;</h2>
+        <!-- Tab interface for example/source -->
+        <div id="loops-tabs" class="jp-tabs"></div>
+        <div id="loops-example-panel" class="jp-panel">
+            {{#unless user.isAuthenticated}}
             <div class="jp-info-box">
-                <h4>12.4 Configuration</h4>
-                <table class="jp-table">
-                    <tr>
-                        <th>Variable</th>
-                        <th>Handlebar</th>
-                        <th>Expanded</th>
-                    </tr>
-                    <tr>
-                        <td>Admin email</td>
-                        <td><code>&#123;&#123;siteConfig.email.adminEmail&#125;&#125;</code></td>
-                        <td><code>{{siteConfig.email.adminEmail}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>Feature flags</td>
-                        <td><code>&#123;&#123;siteConfig.features.*&#125;&#125;</code></td>
-                        <td><code>{{siteConfig.features.*}}</code></td>
-                    </tr>
-                </table>
+                <p><em>💡 Note: <a href="/auth/login.shtml">Log in</a> to see loops with your user roles and data.</em></p>
             </div>
-
+            {{/unless}}
             <div class="jp-info-box">
-                <h4>12.5 Internationalization</h4>
-                <table class="jp-table">
-                    <tr>
-                        <th>Variable</th>
-                        <th>Handlebar</th>
-                        <th>Expanded</th>
-                    </tr>
-                    <tr>
-                        <td>Home page messages</td>
-                        <td><code>&#123;&#123;i18n.view.home.*&#125;&#125;</code></td>
-                        <td><code>&#123;&#123;i18n.view.home.*&#125;&#125;</code> <em>(example pattern)</em></td>
-                    </tr>
-                    <tr>
-                        <td>Example Introduction message</td>
-                        <td><code>&#123;&#123;i18n.view.home.introduction&#125;&#125;</code></td>
-                        <td><code>{{i18n.view.home.introduction}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>Auth messages</td>
-                        <td><code>&#123;&#123;i18n.view.auth.*&#125;&#125;</code></td>
-                        <td><code>&#123;&#123;i18n.view.auth.*&#125;&#125;</code> <em>(example pattern)</em></td>
-                    </tr>
-                    <tr>
-                        <td>Common messages</td>
-                        <td><code>&#123;&#123;i18n.common.*&#125;&#125;</code></td>
-                        <td><code>&#123;&#123;i18n.common.*&#125;&#125;</code> <em>(example pattern)</em></td>
-                    </tr>
-                </table>
-            </div>
-
-            <div class="jp-info-box">
-                <h4>12.6 File Operations</h4>
-                <table class="jp-table">
-                    <tr>
-                        <th>Variable</th>
-                        <th>Handlebar</th>
-                        <th>Expanded</th>
-                    </tr>
-                    <tr>
-                        <td>Include template</td>
-                        <td><code>&#123;&#123;file.include "template.tmpl"&#125;&#125;</code></td>
-                        <td><code>&#123;&#123;file.include "template.tmpl"&#125;&#125;</code> <em>(example - file must exist)</em></td>
-                    </tr>
-                    <tr>
-                        <td>File timestamp</td>
-                        <td><code>&#123;&#123;file.timestamp "jpulse-header.tmpl"&#125;&#125;</code></td>
-                        <td><code>{{file.timestamp "jpulse-header.tmpl"}}</code></td>
-                    </tr>
-                    <tr>
-                        <td>File exists</td>
-                        <td><code>&#123;&#123;file.exists "jpulse-footer.tmpl"&#125;&#125;</code></td>
-                        <td><code>{{file.exists "jpulse-footer.tmpl"}}</code></td>
-                    </tr>
-                </table>
-            </div>
-
-            <div class="jp-info-box">
-                <h4>12.7 Logical and Comparison Helpers (v1.3.15+)</h4>
-                <table class="jp-table">
-                    <tr>
-                        <th>Helper</th>
-                        <th>Handlebar</th>
-                        <th>Description</th>
-                    </tr>
-                    <tr>
-                        <td>Logical AND</td>
-                        <td><code>&#123;&#123;and cond1 cond2&#125;&#125;</code></td>
-                        <td>Returns "true" if all conditions are truthy</td>
-                    </tr>
-                    <tr>
-                        <td>Logical OR</td>
-                        <td><code>&#123;&#123;or cond1 cond2&#125;&#125;</code></td>
-                        <td>Returns "true" if any condition is truthy</td>
-                    </tr>
-                    <tr>
-                        <td>Logical NOT</td>
-                        <td><code>&#123;&#123;not cond&#125;&#125;</code></td>
-                        <td>Returns "true" if condition is falsy</td>
-                    </tr>
-                    <tr>
-                        <td>Equal</td>
-                        <td><code>&#123;&#123;eq a b&#125;&#125;</code></td>
-                        <td>Returns "true" if values are equal (type coercion)</td>
-                    </tr>
-                    <tr>
-                        <td>Not equal</td>
-                        <td><code>&#123;&#123;ne a b&#125;&#125;</code></td>
-                        <td>Returns "true" if values are not equal (type coercion)</td>
-                    </tr>
-                    <tr>
-                        <td>Greater than</td>
-                        <td><code>&#123;&#123;gt a b&#125;&#125;</code></td>
-                        <td>Returns "true" if a > b (type coercion)</td>
-                    </tr>
-                    <tr>
-                        <td>Greater or equal</td>
-                        <td><code>&#123;&#123;gte a b&#125;&#125;</code></td>
-                        <td>Returns "true" if a >= b (type coercion)</td>
-                    </tr>
-                    <tr>
-                        <td>Less than</td>
-                        <td><code>&#123;&#123;lt a b&#125;&#125;</code></td>
-                        <td>Returns "true" if a < b (type coercion)</td>
-                    </tr>
-                    <tr>
-                        <td>Less or equal</td>
-                        <td><code>&#123;&#123;lte a b&#125;&#125;</code></td>
-                        <td>Returns "true" if a <= b (type coercion)</td>
-                    </tr>
-                    <tr>
-                        <td>Subexpressions</td>
-                        <td><code>&#123;&#123;#if (and cond1 cond2)&#125;&#125;...&#123;&#123;/if&#125;&#125;</code></td>
-                        <td>Use in {{#if}}, {{#unless}}, and block helpers</td>
-                    </tr>
-                    <tr>
-                        <td>Block helpers</td>
-                        <td><code>&#123;&#123;#and cond1 cond2&#125;&#125;...&#123;&#123;else&#125;&#125;...&#123;&#123;/and&#125;&#125;</code></td>
-                        <td>All helpers support {{else}} blocks</td>
-                    </tr>
-                </table>
+                <h4>Array of Strings (User Roles)</h4>
+                <p>Current user roles:
+                {{#each user.roles}}
+                    <span class="jp-role-badge jp-role-{{this}}">{{this}}</span>
+                {{/each}}
+                </p>
             </div>
 
             <div class="jp-warning-box">
-                <h4>12.8 Custom Variables</h4>
-                <table class="jp-table">
-                    <tr>
-                        <th>Variable</th>
-                        <th>Handlebar</th>
-                        <th>Description</th>
-                    </tr>
-                    <tr>
-                        <td>Define variable</td>
-                        <td><code>&#123;&#123;let myVar="value"&#125;&#125;</code></td>
-                        <td>Sets custom variable in vars namespace</td>
-                    </tr>
-                    <tr>
-                        <td>Access variable</td>
-                        <td><code>&#123;&#123;vars.myVar&#125;&#125;</code></td>
-                        <td>Accesses custom variable</td>
-                    </tr>
-                    <tr>
-                        <td>Block-scoped variables</td>
-                        <td><code>&#123;&#123;#let key="value"&#125;&#125;...&#123;&#123;/let&#125;&#125;</code></td>
-                        <td>Variables only exist within block (scope isolation)</td>
-                    </tr>
-                    <tr>
-                        <td>Context switching</td>
-                        <td><code>&#123;&#123;#with user&#125;&#125;...&#123;&#123;/with&#125;&#125;</code></td>
-                        <td>Switches context to object properties</td>
-                    </tr>
-                </table>
+                <h4>Loop Variables Example</h4>
+                <ul>
+                {{#each user.roles}}
+                    <li>Role {{@index}}: {{this}} {{#if @first}}(first){{/if}}{{#if @last}}(last){{/if}}</li>
+                {{/each}}
+                </ul>
             </div>
 
             <div class="jp-info-box">
-                <h4>12.9 Reusable Components</h4>
-                <table class="jp-table">
-                    <tr>
-                        <th>Variable</th>
-                        <th>Handlebar</th>
-                        <th>Description</th>
-                    </tr>
-                    <tr>
-                        <td>Define component</td>
-                        <td><code>&#123;&#123;#component "adminCards.config"&#125;&#125;...&#123;&#123;/component&#125;&#125;</code></td>
-                        <td>Defines a reusable component</td>
-                    </tr>
-                    <tr>
-                        <td>Include component library</td>
-                        <td><code>&#123;&#123;file.includeComponents "admin/*.shtml" component="adminCards.*"&#125;&#125;</code></td>
-                        <td>Loads components from multiple admin dashboard files</td>
-                    </tr>
-                    <tr>
-                        <td>Use component</td>
-                        <td><code>&#123;&#123;components.adminCards.config&#125;&#125;</code></td>
-                        <td>Renders the component</td>
-                    </tr>
-                    <tr>
-                        <td>Use component with params</td>
-                        <td><code>&#123;&#123;components.jPulseIcons.configSvg size="64"&#125;&#125;</code></td>
-                        <td>Renders with custom parameters</td>
-                    </tr>
-                </table>
+                <h4>Array of Objects Example</h4>
+                <p><em>Note: This example shows the concept. In a real application, you would pass an array of user objects to the template.</em></p>
+                <div class="jp-user-card" style="border: 1px solid #ddd; padding: 10px; margin: 5px 0;">
+                    <h5>{{user.firstName}} {{user.lastName}}</h5>
+                    <p>Email: {{user.email}}</p>
+                </div>
+            </div>
+
+            <div class="jp-warning-box">
+                <h4>Object Keys Example</h4>
+                <p><em>Iterating over session user object properties:</em></p>
+                <ul>
+                    {{#each user}}
+                    <li><strong>{{@key}}:</strong> {{this}}</li>
+                    {{/each}}
+                </ul>
+            </div>
+        </div>
+
+        <div id="loops-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
+&lt;!-- Array of Strings --&gt;
+&#123;&#123;#each user.roles&#125;&#125;
+    &lt;span class="jp-role-badge jp-role-&#123;&#123;this&#125;&#125;"&gt;&#123;&#123;this&#125;&#125;&lt;/span&gt;
+&#123;&#123;/each&#125;&#125;
+
+&lt;!-- With Loop Variables --&gt;
+&#123;&#123;#each user.roles&#125;&#125;
+    &lt;li&gt;Role &#123;&#123;@index&#125;&#125;: &#123;&#123;this&#125;&#125; &#123;&#123;#if @first&#125;&#125;(first)&#123;&#123;/if&#125;&#125;&#123;&#123;#if @last&#125;&#125;(last)&#123;&#123;/if&#125;&#125;&lt;/li&gt;
+&#123;&#123;/each&#125;&#125;
+
+&lt;!-- Array of Objects --&gt;
+&#123;&#123;#each users&#125;&#125;
+    &lt;div class="jp-user-card"&gt;
+        &lt;h4&gt;&#123;&#123;this.firstName&#125;&#125; &#123;&#123;this.lastName&#125;&#125;&lt;/h4&gt;
+        &lt;p&gt;Email: &#123;&#123;this.email&#125;&#125;&lt;/p&gt;
+    &lt;/div&gt;
+&#123;&#123;/each&#125;&#125;
+
+&lt;!-- Object Keys --&gt;
+&#123;&#123;#each user&#125;&#125;
+    &lt;div&gt;&lt;strong&gt;&#123;&#123;@key&#125;&#125;:&lt;/strong&gt; &#123;&#123;this&#125;&#125;&lt;/div&gt;
+&#123;&#123;/each&#125;&#125;
+            </div>
+        </div>
+
+        <!-- Context Switching with #with handlebars (v1.3.3+) -->
+        <h2 class="local-heading-2">12. Context Switching with &#123;&#123;#with&#125;&#125;</h2>
+        <!-- Tab interface for example/source -->
+        <div id="with-tabs" class="jp-tabs"></div>
+        <div id="with-example-panel" class="jp-panel">
+            {{#unless user.isAuthenticated}}
+            <div class="jp-info-box">
+                <p><em>💡 Note: <a href="/auth/login.shtml">Log in</a> to see context switching with user data.</em></p>
+            </div>
+            {{/unless}}
+            <div class="jp-info-box">
+                <h4>Basic Context Switching</h4>
+                {{#with user}}
+                    <p><strong>Name:</strong> {{firstName}} {{lastName}}</p>
+                    <p><strong>Email:</strong> {{email}}</p>
+                    <p><strong>Roles:</strong> {{roles}}</p>
+                {{/with}}
+            </div>
+
+            <div class="jp-warning-box">
+                <h4>Combining Variables and Context Switching</h4>
+                {{let prefix="User"}}
+                {{#with user}}
+                    <p><strong>{{vars.prefix}}:</strong> {{firstName}} {{lastName}}</p>
+                    <p><strong>Status:</strong> {{#if isAuthenticated}}Active{{else}}Inactive{{/if}}</p>
+                {{/with}}
+            </div>
+        </div>
+
+        <div id="with-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
+&lt;!-- Basic Context Switching --&gt;
+&#123;&#123;#with user&#125;&#125;
+    &lt;p&gt;&lt;strong&gt;Name:&lt;/strong&gt; &#123;&#123;firstName&#125;&#125; &#123;&#123;lastName&#125;&#125;&lt;/p&gt;
+    &lt;p&gt;&lt;strong&gt;Email:&lt;/strong&gt; &#123;&#123;email&#125;&#125;&lt;/p&gt;
+    &lt;p&gt;&lt;strong&gt;Roles:&lt;/strong&gt; &#123;&#123;roles&#125;&#125;&lt;/p&gt;
+&#123;&#123;/with&#125;&#125;
+
+&lt;!-- Combining Variables and Context Switching --&gt;
+&#123;&#123;let prefix="User"&#125;&#125;
+&#123;&#123;#with user&#125;&#125;
+    &lt;p&gt;&lt;strong&gt;&#123;&#123;vars.prefix&#125;&#125;:&lt;/strong&gt; &#123;&#123;firstName&#125;&#125; &#123;&#123;lastName&#125;&#125;&lt;/p&gt;
+    &lt;p&gt;&lt;strong&gt;Status:&lt;/strong&gt; &#123;&#123;#if isAuthenticated&#125;&#125;Active&#123;&#123;else&#125;&#125;Inactive&#123;&#123;/if&#125;&#125;&lt;/p&gt;
+&#123;&#123;/with&#125;&#125;
+            </div>
+        </div>
+
+        <!-- Nested Handlebars Example (v0.7.20+) -->
+        <h2 class="local-heading-2">13. Nested Handlebars</h2>
+        <!-- Tab interface for example/source -->
+        <div id="nested-tabs" class="jp-tabs"></div>
+        <div id="nested-example-panel" class="jp-panel">
+            {{#unless user.isAuthenticated}}
+            <div class="jp-info-box">
+                <p><em>💡 Note: <a href="/auth/login.shtml">Log in</a> to see nested conditionals with user data.</em></p>
+            </div>
+            {{/unless}}
+            <div class="jp-warning-box">
+                <h4>Multi-level Conditional Example</h4>
+                {{#if user.isAuthenticated}}
+                    <p>User: {{user.firstName}} {{user.lastName}}</p>
+                    {{#if user.isAdmin}}
+                        <div class="jp-info-box">
+                            <p>Admin Panel Access:</p>
+                            {{#if siteConfig.features.adminPanel}}
+                                <p>✅ Admin panel is enabled</p>
+                            {{else}}
+                                <p>❌ Admin panel is disabled</p>
+                            {{/if}}
+                        </div>
+                    {{else}}
+                        <p>Regular user - limited access</p>
+                    {{/if}}
+                {{else}}
+                    <p>Please log in to see personalized content</p>
+                {{/if}}
+            </div>
+        </div>
+
+        <div id="nested-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
+&#123;&#123;#if user.isAuthenticated&#125;&#125;
+    &lt;p&gt;User: &#123;&#123;user.firstName&#125;&#125; &#123;&#123;user.lastName&#125;&#125;&lt;/p&gt;
+    &#123;&#123;#if user.isAdmin&#125;&#125;
+        &lt;div class="jp-info-box"&gt;
+            &lt;p&gt;Admin Panel Access:&lt;/p&gt;
+            &#123;&#123;#if siteConfig.features.adminPanel&#125;&#125;
+                &lt;p&gt;✅ Admin panel is enabled&lt;/p&gt;
+            &#123;&#123;else&#125;&#125;
+                &lt;p&gt;❌ Admin panel is disabled&lt;/p&gt;
+            &#123;&#123;/if&#125;&#125;
+        &lt;/div&gt;
+    &#123;&#123;else&#125;&#125;
+        &lt;p&gt;Regular user - limited access&lt;/p&gt;
+    &#123;&#123;/if&#125;&#125;
+&#123;&#123;else&#125;&#125;
+    &lt;p&gt;Please log in to see personalized content&lt;/p&gt;
+&#123;&#123;/if&#125;&#125;
             </div>
         </div>
     </div>
@@ -1102,6 +1192,16 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                 panelHeight: '32rem',
                 slideAnimation: true
             }, 'let-block-example');
+
+            // Math helpers example tabs
+            jPulse.UI.tabs.register('math-tabs', {
+                tabs: [
+                    { id: 'math-example', label: 'Example', panelId: 'math-example-panel' },
+                    { id: 'math-source', label: 'Source Code', panelId: 'math-source-panel' }
+                ],
+                panelHeight: '32rem',
+                slideAnimation: true
+            }, 'math-example');
 
             document.getElementById('handlebarButton').addEventListener('click', async () => {
                 const $resultElem = document.getElementById('handlebarResult');

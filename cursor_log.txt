@@ -10757,3 +10757,74 @@ CHANGES ACCEPTED: Yes - All release prep documentation updated
 
 
 ============================================================
+2026-01-05 21:14
+
+handlebars: add math helpers, @work-items.md (3805-3846) - review task, ask questions if unclear, suggest change of spec if any, goal is good usability; use the "don't make me think" paradigm, which option is better for developers?
+
+SUMMARY:
+- Reviewed task W-0: handlebars math helpers
+- Provided comprehensive feedback comparing Option 1 (single math handler) vs Option 2 (individual helpers)
+- Recommended Option 2 for consistency, security, and usability
+- Suggested improvements: variadic helpers, additional operations (round, floor, ceil, min, max)
+- User requested: add round/floor/ceil/min/max, make min/max variadic, and for consistency make subtract/divide variadic too
+- Updated spec in work-items.md with complete implementation details:
+  - 10 math helpers: add, subtract, multiply, divide, mod, round, floor, ceil, min, max
+  - All variadic operations (except mod, round, floor, ceil which are 1-2 args)
+  - Consistent behavior: subtract/divide start with first arg, apply operation with each subsequent arg
+  - Examples, return types, error handling, and deliverables documented
+
+CHANGES ACCEPTED: Yes - Updated work-items.md spec with improved math helpers design
+
+
+============================================================
+2026-01-05 21:33
+
+W-127: handlebars: add math helpers - start implementation
+
+SUMMARY:
+- Starting implementation of W-127 math helpers
+- Implementing grouped helper functions: _handleMathUnary, _handleMathBinary, _handleMathVariadic
+- Adding 10 math helpers: add, subtract, multiply, divide, mod, round, floor, ceil, min, max
+- Following existing patterns with grouped implementation for maintainability
+
+IMPLEMENTATION COMPLETED:
+- Added _handleMathUnary() for round, floor, ceil (1 arg helpers)
+- Added _handleMathBinary() for mod (2 args helper)
+- Added _handleMathVariadic() for add, subtract, multiply, divide, min, max (1+ args helpers)
+- Added all 10 math helper cases to switch statement in _evaluateRegularHandlebar()
+- Added all 10 math helper entries to HANDLEBARS_DESCRIPTIONS array
+- No linter errors
+- Implementation follows existing patterns, uses parsedArgs._helper instead of passing helper as parameter
+
+NEXT STEPS:
+- Create unit tests for all 10 math helpers
+- Update docs/handlebars.md with math helpers documentation
+
+COMPLETED:
+- Created comprehensive unit tests file: webapp/tests/unit/controller/handlebar-math-helpers.test.js
+  - Tests for all 10 math helpers (add, subtract, multiply, divide, mod, round, floor, ceil, min, max)
+  - Tests for variadic operations, single args, error handling, nested expressions
+  - Tests for type coercion, negative numbers, decimals
+  - 50+ test cases covering all functionality
+- Updated docs/handlebars.md with complete math helpers documentation
+  - Added Math Helpers section after Variable Helpers
+  - Documented all 10 helpers with examples
+  - Added notes on type coercion, error handling, nested expressions
+- Fixed test failure: corrected expected value in "complex nested expressions" test (34 → 36)
+- Add interactive examples to webapp/view/jpulse-examples/handlebars.shtml
+- Reorganized handlebars.shtml examples page:
+  - Moved Context Variables section to section 3 (after Basic Variables)
+  - Reorganized all sections: regular helpers (1-8) first, then block helpers (9-13)
+  - Moved Custom Variables with {{let}} to section 8 (last in regular helpers)
+  - Moved Block-Scoped Variables with {{#let}} to section 9 (first in block helpers)
+  - Moved Nested Handlebars to section 13 (last, as advanced topic)
+  - Updated section headings with helper syntax (e.g., "4. Internationalization with {{#i18n.*}}")
+- Updated all documentation for W-127 release:
+  - Updated deliverables in docs/dev/work-items.md
+  - Updated README.md and docs/README.md latest release highlights
+  - Updated docs/CHANGELOG.md with v1.4.7 release notes
+  - Updated commit-message.txt following standard format
+  - All documentation ready for v1.4.7 release
+
+
+============================================================

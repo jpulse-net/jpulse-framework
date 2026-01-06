@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.6
+# jPulse Docs / Dev / Work Items v1.4.7
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3552,16 +3552,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/sending-email.md:
     - Removed outdated document version footer block
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-126, v1.4.6, 2026-01-06: view: create tooltip on any element with jp-tooltip class
 - status: ✅ DONE
 - type: Feature
@@ -3577,6 +3567,84 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/jpulse-ui-reference.md: Tooltip component documentation
   - docs/CHANGELOG.md: v1.4.6 release notes
   - webapp/app.conf: Tooltip configuration under view.jPulse.UI.tooltip
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-127, v1.4.7, 2026-01-07: handlebars: add math helpers
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: perform simple math operations
+- implementation: variadic helpers for consistency ("don't make me think" paradigm)
+- helpers:
+  - `{{add a b c ...}}` - sum all arguments (1+ args)
+    - `{{add 2 4 6}}` → 12
+    - `{{add 10 vars.bonus vars.extra}}` → sum of all
+  - `{{subtract a b c ...}}` - first arg minus all subsequent args (1+ args)
+    - `{{subtract 10}}` → 10
+    - `{{subtract 10 3}}` → 7
+    - `{{subtract 10 3 2}}` → 5 (10 - 3 - 2)
+  - `{{multiply a b c ...}}` - multiply all arguments (1+ args)
+    - `{{multiply 2 3 4}}` → 24
+    - `{{multiply vars.price vars.quantity vars.tax}}` → product of all
+  - `{{divide a b c ...}}` - first arg divided by all subsequent args (1+ args)
+    - `{{divide 100}}` → 100
+    - `{{divide 100 4}}` → 25
+    - `{{divide 100 4 2}}` → 12.5 (100 / 4 / 2)
+    - handle division by zero: return 0 with warning log
+  - `{{mod a b}}` - modulo operation (exactly 2 args)
+    - `{{mod 17 5}}` → 2
+  - `{{round value}}` - round to nearest integer (exactly 1 arg)
+    - `{{round 3.7}}` → 4
+    - `{{round (divide 22 7)}}` → 3
+  - `{{floor value}}` - round down to integer (exactly 1 arg)
+    - `{{floor 3.7}}` → 3
+    - `{{floor (divide 22 7)}}` → 3
+  - `{{ceil value}}` - round up to integer (exactly 1 arg)
+    - `{{ceil 3.2}}` → 4
+    - `{{ceil (divide 22 7)}}` → 4
+  - `{{min a b c ...}}` - minimum of all arguments (1+ args)
+    - `{{min 5 3 8 2}}` → 2
+    - `{{min vars.price1 vars.price2 vars.price3}}` → lowest price
+  - `{{max a b c ...}}` - maximum of all arguments (1+ args)
+    - `{{max 5 3 8 2}}` → 8
+    - `{{max vars.score1 vars.score2 vars.score3}}` → highest score
+- examples:
+  - simple: `{{add 10 20}}` → 30
+  - with variables: `{{add (file.timestamp "file.js") 1000}}`
+  - nested: `{{add 2 (multiply 4 6) vars.sum}}`
+  - complex: `{{divide (add 100 50) 3}}` → 50
+  - in conditionals: `{{#if (gt (add user.score bonus) 100)}}High score!{{/if}}`
+- return type: numbers (not strings) for math operations
+- type coercion: convert strings to numbers when possible (e.g., "5" → 5)
+- error handling:
+  - division by zero: return 0 with warning log
+  - invalid inputs: return 0 with warning log
+  - single arg for variadic: return that arg (for subtract, divide, add, multiply)
+- deliverables:
+  - webapp/controller/handlebar.js:
+    - implemented all 10 math helpers (add, subtract, multiply, divide, mod, round, floor, ceil, min, max)
+    - grouped implementation: _handleMathUnary (round, floor, ceil), _handleMathBinary (mod), _handleMathVariadic (add, subtract, multiply, divide, min, max)
+    - added all helper cases to switch statement in _evaluateRegularHandlebar()
+    - added all 10 helper entries to HANDLEBARS_DESCRIPTIONS array for auto-documentation
+  - docs/handlebars.md:
+    - documented all 10 math helpers with syntax, descriptions, and examples
+    - added Math Helpers section after Variable Helpers
+    - documented type coercion and error handling behavior
+  - webapp/view/jpulse-examples/handlebars.shtml:
+    - added interactive examples section (section 7) with live demonstrations for all 10 helpers
+    - reorganized sections: regular helpers (1-8) first, then block helpers (9-13)
+    - moved Context Variables section to section 3 (after Basic Variables)
+    - moved Nested Handlebars to section 13 (last, as advanced topic)
+  - webapp/tests/unit/controller/handlebar-math-helpers.test.js:
+    - created comprehensive unit tests with 50+ test cases covering all 10 helpers, variadic operations, error handling, nested expressions, type coercion
 
 
 
@@ -3614,8 +3682,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-126, v1.4.6
-- update deliverables in W-126 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-127, v1.4.7
+- update deliverables in W-127 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -3632,12 +3700,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.6
+node bin/bump-version.js 1.4.7
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.6
+git tag v1.4.7
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -3802,47 +3870,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - prerequisite
   - W-076, v1.0.0: framework: redis infrastrucure for a scaleable jPulse Framework
 - /hello-websocket/, /hello-app-cluster/ should work properly on its own page, that is no messaging to other tabs with same page open
-
-### W-0: handlebars: add math helpers
-- status: 🕑 PENDING
-- type: Feature
-- objective: perform simple math
-- option 1: single math handler
-  - syntax:
-    - `{{math 2 + 4 + 6 + vars.sum}}`
-    - `{{math 2 + 4 * 6 + vars.sum}}`
-    - `{{math (2 + 4) * 6 + vars.sum}}`
-    - `{{math user.roles.length - 1}}`
-    - `{{math (file.timestamp "my-file.js") + 1000}}`
-  - pros:
-    - more flexible math
-    - single handlebar helper
-  - cons:
-    - new (unfamiliar) syntax with parenthesis
-    - separate handling from subexpression evaluation
-    - possibly exclude subexpression evaluation,
-      - or only support context path, such as vars.sum
-    - needs special filtering for security
-- option 2: one math handler per operand
-  - syntax:
-    - `{{add 2 4 6 vars.sum}}`
-    - `{{add 2 (multiply 4 6) vars.sum}}`
-    - `{{add (file.timestamp "my-file.js") 1000}}`
-    - `{{divide ...}}`
-    - `{{multiply ...}}`
-    - `{{remainder ...}}`
-    - `{{subtract ...}}`
-  - pros:
-    - familiar, standard subexpressions evaluation (nested parenthesis)
-    - easy to implement
-    - secure by design
-  - cons:
-    - less flexible math
-    - multiple handlebar helpers
-    - more verbose
-- deliverables:
-  - FIXME file:
-    - FIXME summary
 
 ### W-0: handlebars: add array access functions
 - status: 🕑 PENDING

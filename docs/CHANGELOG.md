@@ -1,6 +1,88 @@
-# jPulse Docs / Version History v1.4.6
+# jPulse Docs / Version History v1.4.7
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.7, W-127, 2026-01-07
+
+**Commit:** `W-127, v1.4.7: handlebars: add math helpers`
+
+**FEATURE RELEASE**: Math helpers for performing calculations in Handlebars templates.
+
+**Objective**: Perform simple math operations in Handlebars templates with variadic helpers for consistency ("don't make me think" paradigm).
+
+**Key Features**:
+- **10 Math Helpers**:
+  - `{{add a b c ...}}` - sum all arguments (1+ args)
+  - `{{subtract a b c ...}}` - first arg minus all subsequent args (1+ args)
+  - `{{multiply a b c ...}}` - multiply all arguments (1+ args)
+  - `{{divide a b c ...}}` - first arg divided by all subsequent args (1+ args)
+  - `{{mod a b}}` - modulo operation (exactly 2 args)
+  - `{{round value}}` - round to nearest integer (exactly 1 arg)
+  - `{{floor value}}` - round down to integer (exactly 1 arg)
+  - `{{ceil value}}` - round up to integer (exactly 1 arg)
+  - `{{min a b c ...}}` - minimum of all arguments (1+ args)
+  - `{{max a b c ...}}` - maximum of all arguments (1+ args)
+- **Type Coercion**: Automatically converts string numbers to numbers (e.g., "5" → 5)
+- **Error Handling**: Returns 0 with warning log for invalid inputs or division by zero
+- **Nested Subexpressions**: Supports complex nested expressions like `{{add 2 (multiply 4 6) (divide 20 2)}}`
+- **Variable Support**: Works with Handlebars variables and custom variables
+
+**Code Changes**:
+
+**webapp/controller/handlebar.js**:
+- Added `_handleMathUnary()` function for unary operations (round, floor, ceil)
+- Added `_handleMathBinary()` function for binary operations (mod)
+- Added `_handleMathVariadic()` function for variadic operations (add, subtract, multiply, divide, min, max)
+- Added all 10 math helper cases to switch statement in `_evaluateRegularHandlebar()`
+- Added all 10 helper entries to `HANDLEBARS_DESCRIPTIONS` array for auto-documentation
+
+**webapp/tests/unit/controller/handlebar-math-helpers.test.js**:
+- Created comprehensive unit test suite with 50+ test cases
+- Tests for all 10 helpers, variadic operations, error handling, nested expressions, type coercion
+
+**docs/handlebars.md**:
+- Added Math Helpers section after Variable Helpers
+- Documented all 10 helpers with syntax, descriptions, and examples
+- Added notes on type coercion and error handling
+
+**webapp/view/jpulse-examples/handlebars.shtml**:
+- Added interactive examples section (section 7) with live demonstrations for all 10 helpers
+- Reorganized sections: regular helpers (1-8) first, then block helpers (9-13)
+- Moved Context Variables section to section 3 (after Basic Variables)
+- Moved Nested Handlebars to section 13 (last, as advanced topic)
+
+**Breaking Changes**: None
+
+**Migration Guide**: No migration needed. Math helpers are new additions with no impact on existing templates.
+
+**Usage Examples**:
+```handlebars
+<!-- Basic operations -->
+{{add 2 4 6}}              <!-- 12 -->
+{{subtract 10 3 2}}        <!-- 5 (10 - 3 - 2) -->
+{{multiply 2 3 4}}         <!-- 24 -->
+{{divide 100 4 2}}         <!-- 12.5 (100 / 4 / 2) -->
+{{mod 17 5}}               <!-- 2 -->
+{{round 3.7}}              <!-- 4 -->
+{{floor 3.7}}              <!-- 3 -->
+{{ceil 3.2}}               <!-- 4 -->
+{{min 5 3 8 2}}            <!-- 2 -->
+{{max 5 3 8 2}}            <!-- 8 -->
+
+<!-- Nested expressions -->
+{{divide (add 100 50) 3}}  <!-- 50 -->
+{{add 2 (multiply 4 6) (divide 20 2)}}  <!-- 36 -->
+
+<!-- With variables -->
+{{let price=10 quantity=3}}
+{{multiply vars.price vars.quantity}}  <!-- 30 -->
+
+<!-- In conditionals -->
+{{#if (gt (add user.score bonus) 100)}}
+    High score!
+{{/if}}
+```
 
 ________________________________________________
 ## v1.4.6, W-126, 2026-01-06

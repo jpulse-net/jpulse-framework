@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.4.6
- * @release         2026-01-06
+ * @version         1.4.7
+ * @release         2026-01-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -38,23 +38,33 @@ class HandlebarController {
     // source: 'jpulse' for core framework, 'site' for site-specific, plugin name for plugins
     static HANDLEBARS_DESCRIPTIONS = [
         // Regular helpers
+        {name: 'add', type: 'regular', source: 'jpulse', description: 'Sum all arguments (1+ args)', example: '{{add 2 4 6}}'},
         {name: 'and', type: 'regular', source: 'jpulse', description: 'Logical AND, returns "true" or "false" (1+ arguments)', example: '{{and user.isAuthenticated user.isAdmin}}'},
         {name: 'app', type: 'regular', source: 'jpulse', description: 'Application context (app.jPulse.* and app.site.*)', example: '{{app.site.name}} v{{app.site.version}}'},
         {name: 'appCluster', type: 'regular', source: 'jpulse', description: 'Redis cluster availability information', example: '{{appCluster.*}}'},
         {name: 'appConfig', type: 'regular', source: 'jpulse', description: 'Full application configuration (filtered based on auth)', example: '{{appConfig.*}}'},
+        {name: 'ceil', type: 'regular', source: 'jpulse', description: 'Round up to integer (exactly 1 arg)', example: '{{ceil 3.2}}'},
         {name: 'components', type: 'regular', source: 'jpulse', description: 'Reusable component call with parameters. Static: {{components.jpIcons.configSvg size="64"}}. Dynamic: {{components name="sidebar.toc"}} or {{components name=(this)}}', example: '{{components.jpIcons.configSvg size="64"}}'},
+        {name: 'divide', type: 'regular', source: 'jpulse', description: 'First arg divided by all subsequent args (1+ args)', example: '{{divide 100 4 2}}'},
         {name: 'eq', type: 'regular', source: 'jpulse', description: 'Equality comparison, returns "true" or "false" (2 arguments)', example: '{{eq user.role "admin"}}'},
         {name: 'file', type: 'regular', source: 'jpulse', description: 'File operations (include, exists, list, timestamp)', example: '{{file.include "template.tmpl"}}'},
+        {name: 'floor', type: 'regular', source: 'jpulse', description: 'Round down to integer (exactly 1 arg)', example: '{{floor 3.7}}'},
         {name: 'gt', type: 'regular', source: 'jpulse', description: 'Greater than comparison, returns "true" or "false" (2 arguments)', example: '{{gt user.score 100}}'},
         {name: 'gte', type: 'regular', source: 'jpulse', description: 'Greater than or equal comparison, returns "true" or "false" (2 arguments)', example: '{{gte user.count 10}}'},
         {name: 'i18n', type: 'regular', source: 'jpulse', description: 'Internationalization messages from translation files', example: '{{i18n.view.home.introduction}}'},
         {name: 'let', type: 'regular', source: 'jpulse', description: 'Define custom variables (accessed via {{vars.*}})', example: '{{let pageTitle="Dashboard" maxItems=10}}'},
         {name: 'lt', type: 'regular', source: 'jpulse', description: 'Less than comparison, returns "true" or "false" (2 arguments)', example: '{{lt user.age 18}}'},
         {name: 'lte', type: 'regular', source: 'jpulse', description: 'Less than or equal comparison, returns "true" or "false" (2 arguments)', example: '{{lte user.items 5}}'},
+        {name: 'max', type: 'regular', source: 'jpulse', description: 'Maximum of all arguments (1+ args)', example: '{{max 5 3 8 2}}'},
+        {name: 'min', type: 'regular', source: 'jpulse', description: 'Minimum of all arguments (1+ args)', example: '{{min 5 3 8 2}}'},
+        {name: 'mod', type: 'regular', source: 'jpulse', description: 'Modulo operation (exactly 2 args)', example: '{{mod 17 5}}'},
+        {name: 'multiply', type: 'regular', source: 'jpulse', description: 'Multiply all arguments (1+ args)', example: '{{multiply 2 3 4}}'},
         {name: 'ne', type: 'regular', source: 'jpulse', description: 'Not equal comparison, returns "true" or "false" (2 arguments)', example: '{{ne user.role "guest"}}'},
         {name: 'not', type: 'regular', source: 'jpulse', description: 'Logical NOT, returns "true" or "false" (1 argument)', example: '{{not user.isGuest}}'},
         {name: 'or', type: 'regular', source: 'jpulse', description: 'Logical OR, returns "true" or "false" (1+ arguments)', example: '{{or user.isPremium user.isTrial}}'},
+        {name: 'round', type: 'regular', source: 'jpulse', description: 'Round to nearest integer (exactly 1 arg)', example: '{{round 3.7}}'},
         {name: 'siteConfig', type: 'regular', source: 'jpulse', description: 'Site configuration values from ConfigModel (database)', example: '{{siteConfig.email.adminEmail}}'},
+        {name: 'subtract', type: 'regular', source: 'jpulse', description: 'First arg minus all subsequent args (1+ args)', example: '{{subtract 10 3 2}}'},
         {name: 'url', type: 'regular', source: 'jpulse', description: 'URL context (protocol, hostname, port, pathname, search, domain, param.*)', example: '{{url.protocol}}://{{url.hostname}}{{url.pathname}}'},
         {name: 'user', type: 'regular', source: 'jpulse', description: 'User context (username, loginId, firstName, lastName, email, roles, isAuthenticated, isAdmin)', example: '{{user.firstName}} {{user.email}}'},
         {name: 'vars', type: 'regular', source: 'jpulse', description: 'Custom variables defined with {{let}} or {{#let}}', example: '{{vars.pageTitle}}'},
@@ -942,6 +952,23 @@ class HandlebarController {
                 case 'lte':
                     return _handleComparison(parsedArgs, currentContext, helper);
 
+                // W-127: Math helpers
+                case 'add':
+                case 'subtract':
+                case 'multiply':
+                case 'divide':
+                case 'min':
+                case 'max':
+                    return String(_handleMathVariadic(parsedArgs, currentContext));
+
+                case 'mod':
+                    return String(_handleMathBinary(parsedArgs, currentContext));
+
+                case 'round':
+                case 'floor':
+                case 'ceil':
+                    return String(_handleMathUnary(parsedArgs, currentContext));
+
                 // File helpers
                 case 'file.include':
                     return await _handleFileInclude(parsedArgs, currentContext);
@@ -1804,6 +1831,154 @@ class HandlebarController {
 
             const result = compareFn(left, right);
             return result ? 'true' : 'false';
+        }
+
+        /**
+         * W-127: Unified unary math helper (1 arg)
+         * Handles: round, floor, ceil
+         * @param {object} parsedArgs - Parsed arguments with _args array and _helper
+         * @param {object} currentContext - Current context
+         * @returns {number} Result of unary operation
+         */
+        function _handleMathUnary(parsedArgs, currentContext) {
+            const args = parsedArgs._args || [];
+            const operation = parsedArgs._helper;
+
+            if (args.length !== 1) {
+                LogController.logWarning(req, `handlebar.${operation}`,
+                    `Expected 1 argument, got ${args.length}`);
+                return 0;
+            }
+
+            const num = Number(args[0]);
+            if (isNaN(num)) {
+                LogController.logWarning(req, `handlebar.${operation}`,
+                    `Invalid number: ${args[0]}, returning 0`);
+                return 0;
+            }
+
+            const operations = {
+                round: Math.round,
+                floor: Math.floor,
+                ceil: Math.ceil
+            };
+
+            const opFn = operations[operation];
+            if (!opFn) {
+                LogController.logWarning(req, `handlebar.${operation}`,
+                    `Unknown unary operation: ${operation}`);
+                return 0;
+            }
+
+            return opFn(num);
+        }
+
+        /**
+         * W-127: Unified binary math helper (exactly 2 args)
+         * Handles: mod
+         * @param {object} parsedArgs - Parsed arguments with _args array and _helper
+         * @param {object} currentContext - Current context
+         * @returns {number} Result of binary operation
+         */
+        function _handleMathBinary(parsedArgs, currentContext) {
+            const args = parsedArgs._args || [];
+            const operation = parsedArgs._helper;
+
+            if (args.length !== 2) {
+                LogController.logWarning(req, `handlebar.${operation}`,
+                    `Expected 2 arguments, got ${args.length}`);
+                return 0;
+            }
+
+            const left = Number(args[0]);
+            const right = Number(args[1]);
+
+            if (isNaN(left) || isNaN(right)) {
+                LogController.logWarning(req, `handlebar.${operation}`,
+                    `Invalid numbers: ${args[0]}, ${args[1]}, returning 0`);
+                return 0;
+            }
+
+            if (operation === 'mod') {
+                if (right === 0) {
+                    LogController.logWarning(req, 'handlebar.mod', 'Division by zero in modulo, returning 0');
+                    return 0;
+                }
+                return left % right;
+            }
+
+            LogController.logWarning(req, `handlebar.${operation}`,
+                `Unknown binary operation: ${operation}`);
+            return 0;
+        }
+
+        /**
+         * W-127: Unified variadic math helper (1+ args)
+         * Handles: add, subtract, multiply, divide, min, max
+         * @param {object} parsedArgs - Parsed arguments with _args array and _helper
+         * @param {object} currentContext - Current context
+         * @returns {number} Result of variadic operation
+         */
+        function _handleMathVariadic(parsedArgs, currentContext) {
+            const args = parsedArgs._args || [];
+            const operation = parsedArgs._helper;
+
+            if (args.length === 0) {
+                LogController.logWarning(req, `handlebar.${operation}`, 'No arguments provided');
+                return 0;
+            }
+
+            // Convert to numbers with type coercion
+            const numbers = args.map((arg, index) => {
+                const num = Number(arg);
+                if (isNaN(num)) {
+                    LogController.logWarning(req, `handlebar.${operation}`,
+                        `Invalid number at position ${index}: ${arg}, treating as 0`);
+                    return 0;
+                }
+                return num;
+            });
+
+            // Single arg: return that arg
+            if (numbers.length === 1) {
+                return numbers[0];
+            }
+
+            // Operation handlers
+            switch (operation) {
+                case 'add':
+                    return numbers.reduce((sum, num) => sum + num, 0);
+
+                case 'subtract':
+                    return numbers.reduce((acc, num, index) =>
+                        index === 0 ? num : acc - num, 0);
+
+                case 'multiply':
+                    return numbers.reduce((product, num) => product * num, 1);
+
+                case 'divide':
+                    // Check for division by zero
+                    for (let i = 1; i < numbers.length; i++) {
+                        if (numbers[i] === 0) {
+                            LogController.logWarning(req, 'handlebar.divide',
+                                `Division by zero at position ${i}, returning 0`);
+                            return 0;
+                        }
+                    }
+                    return numbers.reduce((acc, num, index) =>
+                        index === 0 ? num : acc / num, 0);
+
+                case 'min':
+                    return Math.min(...numbers);
+
+                case 'max':
+                    return Math.max(...numbers);
+
+                default:
+                    LogController.logWarning(req, `handlebar.${operation}`,
+                        `Unknown variadic operation: ${operation}`);
+                    return 0;
+            }
         }
 
         /**

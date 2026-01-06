@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.4.6
+# jPulse Docs / Handlebars Templating v1.4.7
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -450,6 +450,112 @@ Define template-scoped variables using the `{{let}}` helper. Variables are acces
 ```
 
 See [Custom Variables](#custom-variables) section for detailed documentation.
+
+### Math Helpers
+
+#### `{{add}}` - Sum all arguments
+
+Sum all arguments (variadic, 1+ args).
+
+```handlebars
+{{add 2 4 6}}                    <!-- 12 -->
+{{add 10 vars.bonus vars.extra}}  <!-- sum of all -->
+{{add (file.timestamp "file.js") 1000}}
+```
+
+#### `{{subtract}}` - Subtract sequentially
+
+First arg minus all subsequent args (variadic, 1+ args).
+
+```handlebars
+{{subtract 10}}        <!-- 10 -->
+{{subtract 10 3}}      <!-- 7 -->
+{{subtract 10 3 2}}    <!-- 5 (10 - 3 - 2) -->
+```
+
+#### `{{multiply}}` - Multiply all arguments
+
+Multiply all arguments (variadic, 1+ args).
+
+```handlebars
+{{multiply 2 3 4}}                    <!-- 24 -->
+{{multiply vars.price vars.quantity vars.tax}}
+```
+
+#### `{{divide}}` - Divide sequentially
+
+First arg divided by all subsequent args (variadic, 1+ args). Division by zero returns 0 with warning.
+
+```handlebars
+{{divide 100}}        <!-- 100 -->
+{{divide 100 4}}      <!-- 25 -->
+{{divide 100 4 2}}    <!-- 12.5 (100 / 4 / 2) -->
+```
+
+#### `{{mod}}` - Modulo operation
+
+Modulo operation (exactly 2 args).
+
+```handlebars
+{{mod 17 5}}  <!-- 2 -->
+```
+
+#### `{{round}}` - Round to nearest integer
+
+Round to nearest integer (exactly 1 arg).
+
+```handlebars
+{{round 3.7}}                    <!-- 4 -->
+{{round (divide 22 7)}}          <!-- 3 -->
+```
+
+#### `{{floor}}` - Round down
+
+Round down to integer (exactly 1 arg).
+
+```handlebars
+{{floor 3.7}}                    <!-- 3 -->
+{{floor (divide 22 7)}}          <!-- 3 -->
+```
+
+#### `{{ceil}}` - Round up
+
+Round up to integer (exactly 1 arg).
+
+```handlebars
+{{ceil 3.2}}                     <!-- 4 -->
+{{ceil (divide 22 7)}}           <!-- 4 -->
+```
+
+#### `{{min}}` - Minimum value
+
+Minimum of all arguments (variadic, 1+ args).
+
+```handlebars
+{{min 5 3 8 2}}                          <!-- 2 -->
+{{min vars.price1 vars.price2 vars.price3}}
+```
+
+#### `{{max}}` - Maximum value
+
+Maximum of all arguments (variadic, 1+ args).
+
+```handlebars
+{{max 5 3 8 2}}                          <!-- 8 -->
+{{max vars.score1 vars.score2 vars.score3}}
+```
+
+**Type Coercion**: All math helpers convert string numbers to numbers automatically (e.g., `"5"` → `5`).
+
+**Error Handling**: Invalid inputs return `0` with warning log. Division by zero returns `0` with warning log.
+
+**Nested Expressions**: Math helpers work seamlessly with subexpressions:
+
+```handlebars
+{{divide (add 100 50) 3}}              <!-- 50 -->
+{{add 2 (multiply 4 6) vars.sum}}      <!-- nested operations -->
+{{#if (gt (add user.score bonus) 100)}}High score!{{/if}}
+```
 
 ## Block Helpers
 

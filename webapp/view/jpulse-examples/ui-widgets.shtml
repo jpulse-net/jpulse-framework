@@ -4,8 +4,8 @@
  * @tagline         Interactive UI widget examples and demonstrations
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
- * @version         1.4.5
- * @release         2026-01-05
+ * @version         1.4.6
+ * @release         2026-01-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -828,8 +828,70 @@ jPulse.UI.headingAnchors.init({
             </div>
         </div>
 
+        <!-- Tooltip Widget -->
+        <h3 class="local-heading-3">3.4 Tooltip Widget</h3>
+        <div class="jp-info-box">
+            <p><strong>What you learn:</strong> How to add helpful tooltips to any element with simple HTML attributes. Tooltips support HTML content, automatic positioning, and work on both desktop and mobile devices.</p>
+            <p><strong>Behind the scenes:</strong> Uses jPulse's tooltip system with smart positioning, accessibility features (ARIA attributes, keyboard support), and touch-friendly mobile interactions.</p>
+        </div>
+        <div id="tooltip-demo-tabs" class="jp-tabs"></div>
+        <div id="tooltip-example-panel" class="jp-panel">
+            <p>Hover over or focus (Tab key) the elements below to see tooltips in action:</p>
+
+            <div class="jp-btn-group" style="flex-wrap: wrap; gap: 10px; margin: 20px 0;">
+                <button class="jp-btn jp-btn-primary jp-tooltip" data-tooltip="This is a basic tooltip">Basic Tooltip</button>
+                <button class="jp-btn jp-btn-secondary jp-tooltip" data-tooltip="<strong>HTML Content</strong> with <em>formatting</em>">HTML Tooltip</button>
+                <button class="jp-btn jp-btn-success jp-tooltip" data-tooltip="Tooltip on top" data-tooltip-position="top">Top Position</button>
+                <button class="jp-btn jp-btn-warning jp-tooltip" data-tooltip="Tooltip on bottom" data-tooltip-position="bottom">Bottom Position</button>
+                <button class="jp-btn jp-btn-danger jp-tooltip" data-tooltip="Tooltip on left" data-tooltip-position="left">Left Position</button>
+                <button class="jp-btn jp-btn-outline jp-tooltip" data-tooltip="Tooltip on right" data-tooltip-position="right">Right Position</button>
+                <button class="jp-btn jp-btn-primary jp-tooltip" data-tooltip="Delayed tooltip (500ms)" data-tooltip-delay="500">Delayed Tooltip</button>
+            </div>
+
+            <div class="jp-info-box" style="margin-top: 30px;">
+                <h4>Mobile Support:</h4>
+                <p>On touch devices, tooltips appear on tap instead of hover. Tap outside the tooltip or press Escape to dismiss.</p>
+            </div>
+
+            <div class="jp-info-box" style="margin-top: 20px;">
+                <h4>Accessibility:</h4>
+                <p>Tooltips are fully accessible via keyboard navigation. Use Tab to focus elements and see their tooltips. Press Escape to dismiss.</p>
+            </div>
+        </div>
+        <div id="tooltip-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
+&lt;!-- Basic Tooltip --&gt;
+&lt;button class="jp-btn jp-btn-primary jp-tooltip" data-tooltip="This is a basic tooltip"&gt;Basic Tooltip&lt;/button&gt;
+
+&lt;!-- HTML Content --&gt;
+&lt;button class="jp-btn jp-tooltip" data-tooltip="&lt;strong&gt;HTML Content&lt;/strong&gt; with &lt;em&gt;formatting&lt;/em&gt;"&gt;HTML Tooltip&lt;/button&gt;
+
+&lt;!-- Position Override --&gt;
+&lt;button class="jp-btn jp-tooltip" data-tooltip="Tooltip on top" data-tooltip-position="top"&gt;Top Position&lt;/button&gt;
+&lt;button class="jp-btn jp-tooltip" data-tooltip="Tooltip on bottom" data-tooltip-position="bottom"&gt;Bottom Position&lt;/button&gt;
+&lt;button class="jp-btn jp-tooltip" data-tooltip="Tooltip on left" data-tooltip-position="left"&gt;Left Position&lt;/button&gt;
+&lt;button class="jp-btn jp-tooltip" data-tooltip="Tooltip on right" data-tooltip-position="right"&gt;Right Position&lt;/button&gt;
+
+&lt;!-- Delay --&gt;
+&lt;button class="jp-btn jp-tooltip" data-tooltip="Delayed tooltip" data-tooltip-delay="500"&gt;Delayed Tooltip&lt;/button&gt;
+
+&lt;!-- Auto-initialization: Tooltips are automatically initialized on page load --&gt;
+&lt;!-- For dynamic content (e.g., in dialogs), manually initialize: --&gt;
+&lt;script&gt;
+// Initialize tooltips in a container (e.g., dialog)
+jPulse.UI.tooltip.init('.my-dialog-container');
+
+// Or initialize a single element
+const newButton = document.createElement('button');
+newButton.className = 'jp-btn jp-tooltip';
+newButton.dataset.tooltip = 'Dynamic tooltip';
+jPulse.UI.tooltip.init(newButton);
+&lt;/script&gt;
+            </div>
+        </div>
+
         <!-- Source Code Widget -->
-        <h3 class="local-heading-3">3.4 Source Code Widget</h3>
+        <h3 class="local-heading-3">3.5 Source Code Widget</h3>
         <div class="jp-info-box">
             <p><strong>What you learn:</strong> How to display syntax-highlighted code blocks with copy functionality, language labels, and automatic Prism.js integration.</p>
             <p><strong>Behind the scenes:</strong> Uses jPulse's source code system with automatic syntax highlighting, clipboard integration, and customizable display options.</p>
@@ -1002,6 +1064,14 @@ jPulse.UI.sourceCode.initAll();
                 ],
                 slideAnimation: true
             }, 'heading-anchors-example-tab');
+
+            jPulse.UI.tabs.register('tooltip-demo-tabs', {
+                tabs: [
+                    { id: 'tooltip-example-tab', label: 'Example', panelId: 'tooltip-example-panel' },
+                    { id: 'tooltip-source-tab', label: 'Source Code', panelId: 'tooltip-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'tooltip-example-tab');
 
             jPulse.UI.tabs.register('sourcecode-demo-tabs', {
                 tabs: [

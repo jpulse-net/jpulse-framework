@@ -10699,3 +10699,61 @@ Changes accepted/rejected: ACCEPTED
 
 
 ============================================================
+2026-01-04 23:31
+
+next: W-126, v1.4.6, 2026-01-06: view: create tooltip on any element with jp-tooltip class, @work-items.md (3564-3576)
+
+- review task, ask questions if unclear
+- suggest change of spec if any, goal is a good UX, good usability, good onboarding & learning experience for site admins and developers; use the "don't make me think" paradigm
+- plan how to implement (wait for my go ahead)
+
+SUMMARY:
+- Reviewed W-126 tooltip feature task and provided detailed implementation plan
+- Clarified spec questions: data-tooltip attribute, HTML content support, keyboard accessibility, mobile support, styling
+- User requested container support for dynamic content (e.g., dialogs with multiple tooltips)
+- Implemented complete tooltip feature:
+  1. CSS styles in jpulse-common.css with subtle yellow background, arrows, responsive design
+  2. JavaScript API in jpulse-common.js with initAll() and init() methods supporting containers
+  3. Auto-initialization on DOM ready
+  4. Examples added to ui-widgets.shtml
+  5. Documentation added to jpulse-ui-reference.md
+  6. CHANGELOG.md updated with v1.4.6 release notes
+
+KEY FEATURES IMPLEMENTED:
+- data-tooltip attribute for tooltip content (HTML supported)
+- data-tooltip-position for position override (top/bottom/left/right/auto)
+- data-tooltip-delay for delay in milliseconds
+- Container support: jPulse.UI.tooltip.init('.container') or initAll('.container')
+- Smart positioning with viewport boundary detection
+- Mobile support: tap to show, outside tap or Escape to dismiss
+- Keyboard accessibility: focus support, Escape to dismiss
+- ARIA attributes automatically added (aria-describedby, role="tooltip")
+- Subtle yellow styling matching warning-box design
+
+CHANGES ACCEPTED: Yes - All changes implemented and ready for testing
+
+
+============================================================
+2026-01-05 20:36
+
+release prep: W-126, v1.4.6
+- update README.md (## latest release highlights)
+- update docs/README.md (## latest release highlights)
+- update commit-message.txt, following the same format
+- update cursor_log.txt (append, don't replace)
+
+SUMMARY:
+- Updated README.md and docs/README.md with W-126 release highlights
+- Created commit-message.txt for W-126 following W-125 format
+- Updated cursor_log.txt with release prep summary
+
+RELEASE PREP COMPLETED:
+- README.md: Added W-126 tooltip component to latest release highlights
+- docs/README.md: Added W-126 tooltip component to latest release highlights
+- commit-message.txt: Created complete commit message for W-126 following established format
+- cursor_log.txt: Appended release prep entry
+
+CHANGES ACCEPTED: Yes - All release prep documentation updated
+
+
+============================================================

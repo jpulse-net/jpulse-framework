@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.4.5
- * @release         2026-01-05
+ * @version         1.4.6
+ * @release         2026-01-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -726,12 +726,12 @@ window.jPulse = {
 
                 // Get duration from config if not specified
                 if (duration === null) {
-                    // Defensive coding instead of durations = {{appConfig.view.toastMessage.duration}}
+                    // Read from view.jPulse.UI.toast.duration (consolidated config location)
                     const durations = {
-                        info:     Number('{{appConfig.view.toastMessage.duration.info}}') || 3000,
-                        warning:  Number('{{appConfig.view.toastMessage.duration.warning}}') || 5000,
-                        error:    Number('{{appConfig.view.toastMessage.duration.error}}') || 8000,
-                        success:  Number('{{appConfig.view.toastMessage.duration.success}}') || 3000
+                        info:     Number('{{appConfig.view.jPulse.UI.toast.duration.info}}') || 3000,
+                        warning:  Number('{{appConfig.view.jPulse.UI.toast.duration.warning}}') || 5000,
+                        error:    Number('{{appConfig.view.jPulse.UI.toast.duration.error}}') || 8000,
+                        success:  Number('{{appConfig.view.jPulse.UI.toast.duration.success}}') || 3000
                     };
                     duration = durations[type] || type === 'error' ? durations.error : durations.info;
                 }
@@ -4567,6 +4567,409 @@ window.jPulse = {
         },
 
         // ========================================
+        // Tooltip Component (W-126)
+        // ========================================
+
+        tooltip: {
+            _tooltipCounter: 0,
+            _activeTooltip: null,
+            _activeTrigger: null,
+            _showTimer: null,
+            _hideTimer: null,
+            _tooltipTimers: new WeakMap(), // Store timers per tooltip element
+
+            /**
+             * Initialize all tooltip elements on the page or within a container
+             * @param {HTMLElement|string|null} container - Optional container element or selector. If null, searches entire document.
+             */
+            initAll: function(container = null) {
+                const scope = container
+                    ? (typeof container === 'string' ? document.querySelector(container) : container)
+                    : document;
+
+                if (!scope) {
+                    console.warn('- jPulse.UI.tooltip: Container not found:', container);
+                    return;
+                }
+
+                const elements = scope.querySelectorAll('.jp-tooltip:not([data-jp-tooltip-initialized])');
+                elements.forEach(element => {
+                    this.init(element);
+                });
+            },
+
+            /**
+             * Initialize a single tooltip element or container
+             * @param {HTMLElement|string} elementOrContainer - Element with .jp-tooltip class, or container selector/element
+             */
+            init: function(elementOrContainer) {
+                // If it's a string, treat as selector and find elements
+                if (typeof elementOrContainer === 'string') {
+                    const container = document.querySelector(elementOrContainer);
+                    if (!container) {
+                        console.warn('- jPulse.UI.tooltip: Container not found:', elementOrContainer);
+                        return;
+                    }
+                    return this.initAll(container);
+                }
+
+                const element = elementOrContainer;
+
+                // If element has .jp-tooltip class, initialize it
+                if (element.classList.contains('jp-tooltip')) {
+                    if (element.dataset.jpTooltipInitialized) {
+                        return;
+                    }
+
+                    const tooltipText = element.dataset.tooltip;
+                    if (!tooltipText) {
+                        console.warn('- jPulse.UI.tooltip: Element has .jp-tooltip but no data-tooltip attribute:', element);
+                        return;
+                    }
+
+                    this._initSingleTooltip(element);
+                } else {
+                    // Otherwise, treat as container and initialize all tooltips within it
+                    this.initAll(element);
+                }
+            },
+
+            /**
+             * Initialize a single tooltip element
+             * @param {HTMLElement} element - Element with .jp-tooltip class
+             * @private
+             */
+            _initSingleTooltip: function(element) {
+                // Mark as initialized
+                element.dataset.jpTooltipInitialized = 'true';
+
+                // Generate unique ID for ARIA
+                const tooltipId = `jp-tooltip-${++this._tooltipCounter}`;
+                if (!element.id) {
+                    element.id = `jp-tooltip-trigger-${this._tooltipCounter}`;
+                }
+
+                // Set up ARIA attributes
+                element.setAttribute('aria-describedby', tooltipId);
+
+                // Create tooltip element (but don't show yet)
+                const tooltipEl = this._createTooltip(element, tooltipId);
+
+                // Store reference
+                element._jpTooltip = tooltipEl;
+
+                // Set up event listeners
+                this._attachEvents(element, tooltipEl);
+            },
+
+            /**
+             * Create tooltip DOM element
+             * @param {HTMLElement} trigger - The trigger element
+             * @param {string} tooltipId - Unique ID for ARIA
+             * @returns {HTMLElement} Tooltip element
+             * @private
+             */
+            _createTooltip: function(trigger, tooltipId) {
+                const tooltipEl = document.createElement('div');
+                tooltipEl.className = 'jp-tooltip-popup';
+                tooltipEl.id = tooltipId;
+                tooltipEl.setAttribute('role', 'tooltip');
+                tooltipEl.innerHTML = trigger.dataset.tooltip; // Always treat as HTML
+
+                // Append to body (for proper positioning)
+                document.body.appendChild(tooltipEl);
+
+                return tooltipEl;
+            },
+
+            /**
+             * Attach event listeners to trigger element
+             * @param {HTMLElement} trigger - Trigger element
+             * @param {HTMLElement} tooltipEl - Tooltip element
+             * @private
+             */
+            _attachEvents: function(trigger, tooltipEl) {
+                const isTouch = jPulse.device.isTouchDevice();
+
+                if (isTouch) {
+                    // Mobile: show on tap, hide on outside tap
+                    trigger.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this._showTooltip(trigger, tooltipEl);
+                    });
+
+                    // Hide on outside tap
+                    const outsideClickHandler = (e) => {
+                        if (this._activeTooltip === tooltipEl &&
+                            !tooltipEl.contains(e.target) &&
+                            !trigger.contains(e.target)) {
+                            this._hideTooltipImmediate(tooltipEl);
+                        }
+                    };
+                    document.addEventListener('click', outsideClickHandler);
+                    tooltipEl._outsideClickHandler = outsideClickHandler;
+                } else {
+                    // Desktop: show on hover/focus
+                    trigger.addEventListener('mouseenter', () => {
+                        this._showTooltip(trigger, tooltipEl);
+                    });
+
+                    trigger.addEventListener('mouseleave', () => {
+                        this._hideTooltip(tooltipEl, trigger);
+                    });
+
+                    // Allow moving mouse from trigger to tooltip without hiding
+                    tooltipEl.addEventListener('mouseenter', () => {
+                        // Cancel hide if mouse enters tooltip
+                        const timers = this._tooltipTimers.get(tooltipEl);
+                        if (timers && timers.hideTimer) {
+                            clearTimeout(timers.hideTimer);
+                            timers.hideTimer = null;
+                        }
+                    });
+
+                    tooltipEl.addEventListener('mouseleave', () => {
+                        // Hide when leaving tooltip
+                        this._hideTooltip(tooltipEl, trigger);
+                    });
+                }
+
+                // Always support keyboard focus (accessibility)
+                trigger.addEventListener('focus', () => {
+                    this._showTooltip(trigger, tooltipEl);
+                });
+
+                trigger.addEventListener('blur', () => {
+                    this._hideTooltip(tooltipEl);
+                });
+
+                // Escape key to dismiss
+                const escapeHandler = (e) => {
+                    if (e.key === 'Escape' && this._activeTooltip === tooltipEl) {
+                        this._hideTooltipImmediate(tooltipEl);
+                        trigger.focus(); // Return focus to trigger
+                    }
+                };
+                document.addEventListener('keydown', escapeHandler);
+                tooltipEl._escapeHandler = escapeHandler;
+            },
+
+            /**
+             * Show tooltip with delay and positioning
+             * @param {HTMLElement} trigger - Trigger element
+             * @param {HTMLElement} tooltipEl - Tooltip element
+             * @private
+             */
+            _showTooltip: function(trigger, tooltipEl) {
+                // If this tooltip is already active, do nothing
+                if (this._activeTooltip === tooltipEl && this._activeTrigger === trigger) {
+                    return;
+                }
+
+                // Immediately hide any other active tooltip (no delay when switching)
+                if (this._activeTooltip && this._activeTooltip !== tooltipEl) {
+                    this._hideTooltipImmediate(this._activeTooltip);
+                }
+
+                // Get or create timer storage for this tooltip
+                let timers = this._tooltipTimers.get(tooltipEl);
+                if (!timers) {
+                    timers = { showTimer: null, hideTimer: null };
+                    this._tooltipTimers.set(tooltipEl, timers);
+                }
+
+                // Clear any existing timers for this tooltip
+                if (timers.hideTimer) {
+                    clearTimeout(timers.hideTimer);
+                    timers.hideTimer = null;
+                }
+                if (timers.showTimer) {
+                    clearTimeout(timers.showTimer);
+                    timers.showTimer = null;
+                }
+
+                // Get delay from attribute or use config default
+                const delay = parseInt(trigger.dataset.tooltipDelay, 10);
+                const configDelay = Number('{{appConfig.view.jPulse.UI.tooltip.openDelay}}') || 200;
+                const openDelay = (delay !== 0 && !isNaN(delay)) ? delay : configDelay;
+                const isTouch = jPulse.device.isTouchDevice();
+                const finalDelay = isTouch ? Math.max(openDelay, 100) : openDelay; // Min 100ms on mobile
+
+                // Set active tooltip and trigger
+                this._activeTooltip = tooltipEl;
+                this._activeTrigger = trigger;
+
+                // Show after delay
+                timers.showTimer = setTimeout(() => {
+                    // Double-check this tooltip is still the active one
+                    if (this._activeTooltip === tooltipEl) {
+                        this._positionTooltip(trigger, tooltipEl);
+                        tooltipEl.classList.add('jp-tooltip-show');
+                    }
+                    timers.showTimer = null;
+                }, finalDelay);
+            },
+
+            /**
+             * Hide tooltip immediately (no delay)
+             * @param {HTMLElement} tooltipEl - Tooltip element
+             * @private
+             */
+            _hideTooltipImmediate: function(tooltipEl) {
+                const timers = this._tooltipTimers.get(tooltipEl);
+                if (timers) {
+                    if (timers.showTimer) {
+                        clearTimeout(timers.showTimer);
+                        timers.showTimer = null;
+                    }
+                    if (timers.hideTimer) {
+                        clearTimeout(timers.hideTimer);
+                        timers.hideTimer = null;
+                    }
+                }
+
+                tooltipEl.classList.remove('jp-tooltip-show');
+                if (this._activeTooltip === tooltipEl) {
+                    this._activeTooltip = null;
+                    this._activeTrigger = null;
+                }
+            },
+
+            /**
+             * Hide tooltip with delay (allows moving mouse between trigger and tooltip)
+             * @param {HTMLElement} tooltipEl - Tooltip element
+             * @param {HTMLElement} trigger - Trigger element (optional, for validation)
+             * @private
+             */
+            _hideTooltip: function(tooltipEl, trigger = null) {
+                // If this isn't the active tooltip, do nothing
+                if (this._activeTooltip !== tooltipEl) {
+                    return;
+                }
+
+                // Validate trigger matches (if provided)
+                if (trigger && this._activeTrigger !== trigger) {
+                    return;
+                }
+
+                // Get timer storage for this tooltip
+                let timers = this._tooltipTimers.get(tooltipEl);
+                if (!timers) {
+                    timers = { showTimer: null, hideTimer: null };
+                    this._tooltipTimers.set(tooltipEl, timers);
+                }
+
+                // Clear show timer if pending
+                if (timers.showTimer) {
+                    clearTimeout(timers.showTimer);
+                    timers.showTimer = null;
+                }
+
+                // Clear existing hide timer
+                if (timers.hideTimer) {
+                    clearTimeout(timers.hideTimer);
+                }
+
+                // Hide with delay (allows moving mouse between trigger and tooltip)
+                const closeDelay = Number('{{appConfig.view.jPulse.UI.tooltip.closeDelay}}') || 200;
+                timers.hideTimer = setTimeout(() => {
+                    // Double-check this tooltip is still the active one
+                    if (this._activeTooltip === tooltipEl) {
+                        tooltipEl.classList.remove('jp-tooltip-show');
+                        this._activeTooltip = null;
+                        this._activeTrigger = null;
+                    }
+                    timers.hideTimer = null;
+                }, closeDelay);
+            },
+
+            /**
+             * Position tooltip relative to trigger element
+             * @param {HTMLElement} trigger - Trigger element
+             * @param {HTMLElement} tooltipEl - Tooltip element
+             * @private
+             */
+            _positionTooltip: function(trigger, tooltipEl) {
+                const triggerRect = trigger.getBoundingClientRect();
+                const tooltipRect = tooltipEl.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const spacing = 8; // Space between trigger and tooltip
+
+                // Get preferred position from attribute, config, or auto-detect
+                const configPosition = '{{appConfig.view.jPulse.UI.tooltip.position}}' || 'auto';
+                let preferredPosition = trigger.dataset.tooltipPosition || configPosition;
+
+                // Remove all position classes
+                tooltipEl.classList.remove(
+                    'jp-tooltip-popup-top',
+                    'jp-tooltip-popup-bottom',
+                    'jp-tooltip-popup-left',
+                    'jp-tooltip-popup-right'
+                );
+
+                let position = preferredPosition;
+
+                // Auto-detect best position if 'auto' or not specified
+                if (preferredPosition === 'auto' || !preferredPosition) {
+                    const spaceTop = triggerRect.top;
+                    const spaceBottom = viewportHeight - triggerRect.bottom;
+                    const spaceLeft = triggerRect.left;
+                    const spaceRight = viewportWidth - triggerRect.right;
+
+                    // Choose position with most space
+                    const spaces = {
+                        top: spaceTop,
+                        bottom: spaceBottom,
+                        left: spaceLeft,
+                        right: spaceRight
+                    };
+
+                    position = Object.keys(spaces).reduce((a, b) =>
+                        spaces[a] > spaces[b] ? a : b
+                    );
+                }
+
+                // Calculate position
+                let top, left;
+
+                switch (position) {
+                    case 'top':
+                        top = triggerRect.top - tooltipRect.height - spacing;
+                        left = triggerRect.left + (triggerRect.width / 2) - (tooltipRect.width / 2);
+                        tooltipEl.classList.add('jp-tooltip-popup-top');
+                        break;
+
+                    case 'bottom':
+                        top = triggerRect.bottom + spacing;
+                        left = triggerRect.left + (triggerRect.width / 2) - (tooltipRect.width / 2);
+                        tooltipEl.classList.add('jp-tooltip-popup-bottom');
+                        break;
+
+                    case 'left':
+                        top = triggerRect.top + (triggerRect.height / 2) - (tooltipRect.height / 2);
+                        left = triggerRect.left - tooltipRect.width - spacing;
+                        tooltipEl.classList.add('jp-tooltip-popup-left');
+                        break;
+
+                    case 'right':
+                        top = triggerRect.top + (triggerRect.height / 2) - (tooltipRect.height / 2);
+                        left = triggerRect.right + spacing;
+                        tooltipEl.classList.add('jp-tooltip-popup-right');
+                        break;
+                }
+
+                // Keep tooltip within viewport bounds
+                left = Math.max(8, Math.min(left, viewportWidth - tooltipRect.width - 8));
+                top = Math.max(8, Math.min(top, viewportHeight - tooltipRect.height - 8));
+
+                // Apply position
+                tooltipEl.style.top = `${top + window.scrollY}px`;
+                tooltipEl.style.left = `${left + window.scrollX}px`;
+            }
+        },
+
+        // ========================================
         // Cursor-based Pagination Helper (W-080)
         // ========================================
 
@@ -7673,6 +8076,7 @@ window.jPulse = {
 jPulse.dom.ready(() => {
     jPulse.appCluster._isClusterMode = ('{{appCluster.available}}' === 'true');
     jPulse.UI.sourceCode.initAll();
+    jPulse.UI.tooltip.initAll(); // Auto-initialize tooltips (W-126)
 
     // Process queued toast messages stored in sessionStorage
     // Use case: show messages after page redirect (login warnings, confirmations, etc.)

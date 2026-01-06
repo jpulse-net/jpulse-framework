@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.4.5
+# jPulse Docs / jPulse.UI Widget Reference v1.4.6
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -11,6 +11,7 @@ Complete reference documentation for all `jPulse.UI.*` widgets available in the 
 - [Accordion Component](#accordion-component) - Grouped sections with mutual exclusion
 - [Tab Interface](#tab-interface) - Navigation and panel tabs
 - [Source Code Display](#source-code-display) - Syntax-highlighted code blocks
+- [Tooltip Component](#tooltip-component) - Helpful tooltips on any element
 - [Pagination Helper](#pagination-helper) - Cursor-based pagination state management
 - [Heading Anchor Links](#heading-anchor-links) - GitHub-style anchor links for deep linking
 
@@ -88,11 +89,35 @@ Show warning toast notification (yellow styling, 5s default).
 #### `jPulse.UI.toast.clearAll()`
 Clear all currently displayed toast notifications.
 
+### Configuration
+
+Toast defaults are defined in `webapp/app.conf`, can be overridden in `site/webapp/app.conf`:
+
+```javascript
+view: {
+    jPulse: {
+        UI: {
+            toast: {
+                minWidth: 200,
+                maxWidth: 800,
+                minMarginLeftRight: 20,
+                duration: {
+                    info: 3000,      // ms
+                    warning: 5000,   // ms
+                    error: 8000,     // ms
+                    success: 3000    // ms
+                }
+            }
+        }
+    }
+}
+```
+
 ### Features
 - **Non-blocking**: Messages overlay content without shifting page layout
 - **Smooth animations**: 0.6s slide transitions from behind header
 - **Dynamic stacking**: Multiple messages stack intelligently with 5px gaps
-- **Responsive design**: Adapts to screen size using `appConfig.view.toastMessage` settings
+- **Responsive design**: Adapts to screen size using `appConfig.view.jPulse.UI.toast` settings
 - **Independent timing**: Each message respects its configured duration without interference
 
 ---
@@ -534,6 +559,151 @@ jPulse.UI.sourceCode.init(codeElement);
 
 ---
 
+## Tooltip Component
+
+Display helpful tooltips on any element with simple HTML attributes. Tooltips support HTML content, automatic positioning, and work seamlessly on both desktop and mobile devices.
+
+### Basic Usage
+
+```html
+<!-- Basic tooltip -->
+<button class="jp-tooltip" data-tooltip="Save your changes">Save</button>
+
+<!-- HTML content -->
+<span class="jp-tooltip" data-tooltip="<strong>Important:</strong> Read this first">Info</span>
+
+<!-- Position override -->
+<button class="jp-tooltip"
+        data-tooltip="Tooltip on top"
+        data-tooltip-position="top">Hover</button>
+
+<!-- Delay -->
+<button class="jp-tooltip"
+        data-tooltip="Delayed tooltip"
+        data-tooltip-delay="500">Hover</button>
+```
+
+### API Reference
+
+#### `jPulse.UI.tooltip.initAll(container)`
+
+Initialize all tooltip elements on the page or within a container.
+
+**Parameters:**
+- `container` (HTMLElement|string|null, optional): Container element or selector. If null, searches entire document.
+
+**Examples:**
+```javascript
+// Initialize all tooltips on the page (automatic on DOM ready)
+jPulse.UI.tooltip.initAll();
+
+// Initialize tooltips within a specific container (e.g., dialog)
+jPulse.UI.tooltip.initAll('.my-dialog-container');
+jPulse.UI.tooltip.initAll(document.getElementById('my-dialog'));
+```
+
+#### `jPulse.UI.tooltip.init(elementOrContainer)`
+
+Initialize a single tooltip element or all tooltips within a container.
+
+**Parameters:**
+- `elementOrContainer` (HTMLElement|string): Element with `.jp-tooltip` class, or container selector/element.
+
+**Examples:**
+```javascript
+// Initialize a single element
+const button = document.querySelector('.jp-tooltip');
+jPulse.UI.tooltip.init(button);
+
+// Initialize all tooltips in a container (by selector)
+jPulse.UI.tooltip.init('.my-dialog-container');
+
+// Initialize all tooltips in a container (by element)
+const dialog = document.getElementById('my-dialog');
+jPulse.UI.tooltip.init(dialog);
+```
+
+### HTML Attributes
+
+- `class="jp-tooltip"`: Required class to enable tooltip functionality
+- `data-tooltip`: Tooltip content (supports HTML)
+- `data-tooltip-position`: Optional position override (`top`, `bottom`, `left`, `right`, or `auto` for automatic)
+- `data-tooltip-delay`: Optional delay in milliseconds before showing tooltip (overrides config default)
+
+### Configuration
+
+Tooltip defaults are defined in `webapp/app.conf`, can be overridden in `site/webapp/app.conf`:
+
+```javascript
+view: {
+    jPulse: {
+        UI: {
+            tooltip: {
+                position: 'auto',    // 'auto' (default), 'top', 'bottom', 'left', 'right'
+                openDelay: 200,      // ms (default: 200)
+                closeDelay: 200      // ms (default: 200)
+            }
+        }
+    }
+}
+```
+
+**Configuration Options:**
+- `position`: Default position for tooltips (`'auto'` uses smart positioning based on viewport)
+- `openDelay`: Default delay before showing tooltip (milliseconds)
+- `closeDelay`: Default delay before hiding tooltip (milliseconds, allows moving mouse between trigger and tooltip)
+
+Individual tooltips can override these defaults using `data-tooltip-position` and `data-tooltip-delay` attributes.
+
+### Features
+
+- **HTML Content Support**: All tooltip content is treated as HTML, allowing rich formatting
+- **Smart Positioning**: Automatically positions tooltip to stay within viewport bounds
+- **Mobile Support**: On touch devices, tooltips appear on tap instead of hover
+- **Keyboard Accessibility**: Tooltips appear on focus and can be dismissed with Escape key
+- **ARIA Attributes**: Automatically adds `aria-describedby` and `role="tooltip"` for screen readers
+- **Auto-initialization**: Automatically initializes on page load
+- **Container Support**: Initialize tooltips within specific containers (useful for dynamic content like dialogs)
+
+### Accessibility
+
+Tooltips are fully accessible:
+- **Keyboard Navigation**: Tooltips appear when elements receive focus via Tab key
+- **Screen Readers**: ARIA attributes (`aria-describedby`, `role="tooltip"`) are automatically added
+- **Dismissal**: Press Escape key to dismiss tooltips
+- **Mobile**: Tap outside tooltip or press Escape to dismiss
+
+### Examples
+
+```html
+<!-- Basic usage -->
+<button class="jp-btn jp-tooltip" data-tooltip="Click to save">Save</button>
+
+<!-- HTML content with formatting -->
+<span class="jp-tooltip"
+      data-tooltip="<strong>Warning:</strong> This action cannot be undone">
+    Delete
+</span>
+
+<!-- Position control -->
+<button class="jp-tooltip"
+        data-tooltip="Tooltip on top"
+        data-tooltip-position="top">Top</button>
+
+<!-- Delayed tooltip -->
+<button class="jp-tooltip"
+        data-tooltip="Appears after 500ms"
+        data-tooltip-delay="500">Delayed</button>
+
+<!-- Dynamic content (e.g., in dialog) -->
+<script>
+// After creating dialog with tooltips, initialize them
+jPulse.UI.tooltip.init('.my-dialog-container');
+</script>
+```
+
+---
+
 ## Pagination Helper
 
 Client-side pagination state management for cursor-based and offset-based pagination in admin views.
@@ -702,14 +872,18 @@ Users will see a 🔗 icon on hover that:
 
 ### Configuration
 
-Configure in `webapp/app.conf` or `site/webapp/app.conf`:
+Heading anchor defaults are defined in `webapp/app.conf`, can be overridden in `site/webapp/app.conf`:
 
 ```javascript
 view: {
-    headingAnchors: {
-        enabled: true,                  // Enable/disable feature
-        levels: [1, 2, 3, 4, 5, 6],     // Which heading levels (all by default)
-        icon: '🔗'                      // Link icon (default: 🔗)
+    jPulse: {
+        UI: {
+            headingAnchors: {
+                enabled: true,                  // Enable/disable feature
+                levels: [1, 2, 3, 4, 5, 6],     // Which heading levels (all by default)
+                icon: '🔗'                      // Link icon (default: 🔗)
+            }
+        }
     }
 }
 ```
@@ -717,8 +891,12 @@ view: {
 **Disable Feature:**
 ```javascript
 view: {
-    headingAnchors: {
-        enabled: false
+    jPulse: {
+        UI: {
+            headingAnchors: {
+                enabled: false
+            }
+        }
     }
 }
 ```
@@ -726,8 +904,12 @@ view: {
 **Only Process h1-h3:**
 ```javascript
 view: {
-    headingAnchors: {
-        levels: [1, 2, 3]
+    jPulse: {
+        UI: {
+            headingAnchors: {
+                levels: [1, 2, 3]
+            }
+        }
     }
 }
 ```
@@ -735,8 +917,12 @@ view: {
 **Custom Icon:**
 ```javascript
 view: {
-    headingAnchors: {
-        icon: '#'  // Use # instead of 🔗
+    jPulse: {
+        UI: {
+            headingAnchors: {
+                icon: '#'  // Use # instead of 🔗
+            }
+        }
     }
 }
 ```

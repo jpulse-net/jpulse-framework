@@ -1,6 +1,81 @@
-# jPulse Docs / Version History v1.4.5
+# jPulse Docs / Version History v1.4.6
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.6, W-126, 2026-01-06
+
+**Commit:** `W-126, v1.4.6: view: create tooltip on any element with jp-tooltip class`
+
+**FEATURE RELEASE**: Tooltip component for adding helpful tooltips to any element.
+
+**Objective**: Easy way to add nice looking tooltips to any element with simple HTML attributes.
+
+**Key Features**:
+- **Tooltip Component**:
+  - Add `class="jp-tooltip"` and `data-tooltip="..."` to any element
+  - Supports HTML content in tooltips (all content treated as HTML)
+  - Automatic smart positioning based on viewport (top/bottom/left/right)
+  - Optional position override via `data-tooltip-position` attribute
+  - Optional delay via `data-tooltip-delay` attribute (milliseconds)
+  - Container support: initialize tooltips within specific containers (useful for dynamic content like dialogs)
+- **Accessibility**:
+  - Keyboard navigation support (tooltips appear on focus)
+  - Automatic ARIA attributes (`aria-describedby`, `role="tooltip"`)
+  - Escape key to dismiss tooltips
+- **Mobile Support**:
+  - Touch-friendly: tooltips appear on tap instead of hover
+  - Dismiss by tapping outside or pressing Escape
+- **Styling**:
+  - Subtle yellow background (`#fff3cd`) matching warning-box style
+  - Smooth fade-in/out animations
+  - Arrow indicators pointing to trigger element
+  - Responsive design with mobile adjustments
+
+**Code Changes**:
+
+**webapp/view/jpulse-common.css**:
+- Added `.jp-tooltip-popup` styles with position variants and arrow indicators
+- Mobile responsive adjustments
+
+**webapp/view/jpulse-common.js**:
+- Added `jPulse.UI.tooltip` API with `initAll()` and `init()` methods
+- Container support: `initAll(container)` and `init(container)` for dynamic content
+- Smart positioning logic with viewport boundary detection
+- Event handlers for mouse, keyboard, and touch interactions
+- Auto-initialization on DOM ready
+
+**webapp/view/jpulse-examples/ui-widgets.shtml**:
+- Added tooltip examples section with live demonstrations
+- Examples for basic usage, HTML content, positioning, and delays
+
+**docs/jpulse-ui-reference.md**:
+- Added Tooltip Component section with complete API reference
+- Usage examples and accessibility notes
+
+**Breaking Changes**: None
+
+**Migration Guide**: No migration needed. Tooltips are opt-in via `class="jp-tooltip"` attribute.
+
+**Usage Example**:
+```html
+<!-- Basic tooltip -->
+<button class="jp-tooltip" data-tooltip="Save your changes">Save</button>
+
+<!-- HTML content -->
+<span class="jp-tooltip" data-tooltip="<strong>Important:</strong> Read this">Info</span>
+
+<!-- Position and delay -->
+<button class="jp-tooltip"
+        data-tooltip="Tooltip on top"
+        data-tooltip-position="top"
+        data-tooltip-delay="500">Hover</button>
+
+<!-- Initialize tooltips in dynamic content (e.g., dialog) -->
+<script>
+jPulse.UI.tooltip.init('.my-dialog-container');
+</script>
+```
 
 ________________________________________________
 ## v1.4.5, W-125, 2026-01-05

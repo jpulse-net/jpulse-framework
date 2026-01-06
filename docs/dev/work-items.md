@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.5
+# jPulse Docs / Dev / Work Items v1.4.6
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3512,19 +3512,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - Simplified component includes to auto-discovery loop: `{{#each file.list "components/*.tmpl"}} {{file.include this}} {{/each}}`
     - Removed individual `{{file.include}}` statements for `svg-icons.tmpl` and `jpulse-sidebars.tmpl`
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
-
 ### W-125, v1.4.5, 2026-01-05: docs: handlebar docs improvements, navigation improvements
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: more usable docs
 - deliverables:
@@ -3570,6 +3559,32 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-126, v1.4.6, 2026-01-06: view: create tooltip on any element with jp-tooltip class
+- status: ✅ DONE
+- type: Feature
+- objective: easy way to add nice looking tooltips to any element
+- spec:
+  - add class="jp-tooltip" to any element with data-tooltip=""
+  - auto initialize and initialize on demand, such as when added dynamically in a dialog box
+  - position: automatic based on viewport, configurable via data-tooltip-position and app.conf
+- deliverables:
+  - webapp/view/jpulse-common.css: Tooltip styles with bubble-like appearance
+  - webapp/view/jpulse-common.js: Tooltip API with initAll() and init() methods, container support
+  - webapp/view/jpulse-examples/ui-widgets.shtml: Tooltip examples section
+  - docs/jpulse-ui-reference.md: Tooltip component documentation
+  - docs/CHANGELOG.md: v1.4.6 release notes
+  - webapp/app.conf: Tooltip configuration under view.jPulse.UI.tooltip
+
+
+
+
+
+
+
+
 
 
 ### Pending
@@ -3582,7 +3597,6 @@ old pending:
 
 ### Potential next items:
 - W-0: view: broadcast message
-- W-0: view: create tooltip on any element with jp-tooltip class
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-037: view: create themes
 - W-0: deployment: docker strategy
@@ -3600,8 +3614,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-125, v1.4.5
-- update deliverables in W-125 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-126, v1.4.6
+- update deliverables in W-126 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -3618,12 +3632,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.5
+node bin/bump-version.js 1.4.6
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.5
+git tag v1.4.6
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -3894,15 +3908,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - objective: better way to understand code
 - deliverables:
   - all tripple backtick sections are initialized with prism syntax highlighting based on specified language
-
-### W-0: view: create tooltip on any element with jp-tooltip class
-- status: 🕑 PENDING
-- type: Feature
-- objective: easy way to add nice looking tooltips to any element
-- spec:
-  - add class="jp-tooltip" to any element with tooltip=""
-  - auto initialize and initialize on demand, such as when used in a dialog box
-  - position: automatic based on viewport, possibly configurable
 
 ### W-0: view: create jPulse.UI.progressbar
 - status: 🕑 PENDING

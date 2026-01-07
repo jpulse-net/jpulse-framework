@@ -10828,3 +10828,228 @@ COMPLETED:
 
 
 ============================================================
+2026-01-05 23:42
+
+potential next work item: W-037: view: create themes @work-items.md (3802-3809)
+
+- review task, ask questions if unclear
+- suggest change of spec if any, goal is a good UX, good usability, good onboarding & learning experience for site admins and developers; use the "don't make me think" paradigm
+- assess the scope (how difficult to implement)
+
+Summary:
+- Reviewed W-037 theme creation work item
+- Current state: themes stored in user.preferences.theme (enum: ['light', 'dark']), discovered via UserModel.getEnums(), applied via data-theme attribute
+- Identified key questions: CSS structure, theme metadata, conflict resolution, preview UI
+- Suggested spec improvements: CSS variable-based theming, theme metadata in plugin.json, auto-discovery pattern, conflict resolution strategy
+- Scope assessment: Medium complexity (3-5 days), requires CSS variable standardization, plugin extension mechanism, documentation
+- Recommended approach: Phase 1 (framework CSS variables) + Phase 2 (plugin theme discovery) + Phase 3 (enhanced UX)
+
+Changes: Analysis provided, no code changes yet (awaiting user feedback on spec)
+
+2026-01-05 23:55
+
+document this in @docs/dev/working/W-037-themes-strategy.md - add detailed plan
+
+Summary:
+- Created comprehensive W-037 themes strategy document
+- Documented architecture decisions (file structure, metadata location, CSS loading, preview images, conflict resolution)
+- Defined CSS variable standardization guide with complete variable set
+- Specified theme metadata JSON structure for framework, plugin, and site themes
+- Detailed theme discovery service implementation
+- Documented header template update for dynamic theme loading
+- Specified dynamic themes table generator (themes-list-table, themes-list, themes-count)
+- Outlined 3-phase implementation plan (Foundation, Discovery & Plugin Support, Enhanced UX)
+- Added testing checklist and documentation requirements
+- Included usage examples and plugin theme creation guide
+
+Changes:
+- Created docs/dev/working/W-037-themes-strategy.md with comprehensive plan
+
+
+============================================================
+2026-01-08 00:15
+
+I renamed the working doc to @docs/dev/working/W-128-themes-infrastructure.md
+- new work item: W-128, v1.4.8, 2026-01-08: view: create themes infrastructure, @work-items.md (3659-3670)
+- irt ThemeDiscovery & scanThemeDirectory, use the methods in @webapp/utils/path-resolver.js
+- for caching use @webapp/utils/cache-manager.js
+- see @webapp/controller/view.js for reference
+- bootstrap: new utils (or controller?)
+  - called from @webapp/utils/bootstrap.js
+- svg-icons should already work with light on dark, and dark on light
+- replace @work-items.md (3663-3664) features with bullet list (10-15 items)
+
+Summary:
+- Updated W-128 work item with comprehensive features list (15 items)
+- Updated W-128-themes-infrastructure.md to use PathResolver methods (listFiles) instead of direct fs operations
+- Integrated cache-manager.js for theme discovery caching (following ViewController pattern)
+- Updated ThemeDiscovery implementation to follow view.js patterns
+- Added bootstrap integration details (Step 16.1 and 16.2)
+- Added note about SVG icons already working with themes
+- Updated Notes section with implementation details
+
+Changes:
+- Updated docs/dev/work-items.md: Replaced features section with 15-item bullet list
+- Updated docs/dev/working/W-128-themes-infrastructure.md:
+  - ThemeDiscovery now uses PathResolver.listFiles() for directory discovery
+  - Integrated cache-manager.js for performance
+  - Added initialize() method following ViewController pattern
+  - Updated bootstrap integration with specific step numbers
+  - Added Notes about SVG icons and PathResolver usage
+
+
+============================================================
+2026-01-08 00:30
+
+- rename ThemeDiscovery to ThemeManager to be consistent with other utils managers
+- let's do single png, 500x200, used in profile page and theme table
+
+Summary:
+- Renamed ThemeDiscovery to ThemeManager throughout W-128-themes-infrastructure.md
+- Updated class name, variable references, and all code examples
+- Updated section title from "Theme Discovery Service" to "Theme Manager"
+- Updated tagline and descriptions to reflect ThemeManager naming
+- Confirmed all preview image references are 500x200 (single PNG for both profile page and theme table)
+- Updated bootstrap integration references to use ThemeManager
+- Updated dynamic content generator references to use ThemeManager
+
+Changes:
+- Updated docs/dev/working/W-128-themes-infrastructure.md:
+  - Renamed class ThemeDiscovery → ThemeManager
+  - Updated all variable references (ThemeDiscovery → ThemeManager)
+  - Updated section title and tagline
+  - Updated bootstrap integration code
+  - Updated dynamic content generator code
+  - All preview image references already 500x200 (no changes needed)
+
+
+============================================================
+2026-01-08 00:45
+
+- I prefer to go into details with design and planning
+- this helps avoid time-consuming ping-pong code changes and debug sessions
+- with this in mind, review the working doc, and enhance accordingly
+
+Summary:
+- Comprehensively enhanced W-128-themes-infrastructure.md with detailed design and planning
+- Added extensive implementation details, error handling, validation rules, and edge cases
+- Added detailed PathResolver.listFiles() usage examples with function signatures
+- Added comprehensive error handling strategies for all failure scenarios
+- Added detailed validation rules for theme names, metadata, and files
+- Added migration strategy for CSS variable standardization
+- Added detailed bootstrap integration with error handling
+- Added static file serving details (via ViewController, not Express static)
+- Added header template implementation details with multiple options
+- Added theme application mechanism (data-theme attribute)
+- Added cache invalidation strategy and refresh methods
+- Added configuration section with app.conf examples
+- Added API endpoint details with request/response examples
+- Added comprehensive testing strategy (unit, integration, manual)
+- Added performance considerations and memory usage details
+- Added security considerations (validation, path resolution)
+- Enhanced all implementation phases with step-by-step details
+- Enhanced testing checklists with specific test scenarios
+- Enhanced usage examples with complete plugin theme creation guide
+- Added edge case handling for all failure modes
+- Added backward compatibility notes
+- Added implementation notes section with all design decisions
+
+Changes:
+- Enhanced docs/dev/working/W-128-themes-infrastructure.md:
+  - Added Architecture Overview section with class structure and dependencies
+  - Enhanced Design Decisions with 7 detailed points including PathResolver usage
+  - Enhanced ThemeManager implementation with detailed PathResolver.listFiles() usage
+  - Added comprehensive error handling in discoverThemes() method
+  - Added getTheme() and themeExists() helper methods
+  - Added refreshCache() method for manual cache invalidation
+  - Enhanced bootstrap integration with detailed error handling
+  - Added Static File Serving section with ViewController integration details
+  - Enhanced Header Template Update with multiple implementation options
+  - Added Theme Application Mechanism section (data-theme attribute)
+  - Added Error Handling & Edge Cases section (comprehensive)
+  - Added Validation Rules section (theme names, metadata, files)
+  - Added Migration Strategy section (CSS variable migration)
+  - Enhanced Implementation Phases with detailed step-by-step tasks
+  - Enhanced Testing Checklist with specific test scenarios
+  - Added Configuration section (app.conf examples)
+  - Enhanced API Reference Update with request/response examples
+  - Enhanced Usage Examples with complete plugin theme guide
+  - Enhanced Scope Assessment with detailed complexity factors and risks
+  - Enhanced Implementation Notes section with all design decisions
+  - Added Testing Strategy section (unit, integration, manual)
+
+
+============================================================
+2026-01-06 13:54
+
+W-128, v1.4.8, 2026-01-08: handlebars: add string.* helpers namespace, refactor math.* helpers
+
+Implemented string.* helpers namespace and refactored math helpers to math.* namespace for consistency.
+
+**String Helpers (9 new helpers under string.* namespace)**:
+- string.concat: concatenate strings (variadic, 1+ args)
+- string.default: return first non-empty value (variadic, 1+ args)
+- string.replace: replace substring (3 args: string, search, replace)
+- string.substring: extract substring (3 args: string, start, length)
+- string.padLeft: pad left with character (3 args: string, length, padChar)
+- string.padRight: pad right with character (3 args: string, length, padChar)
+- string.startsWith: check if string starts with (2 args) → "true"/"false"
+- string.endsWith: check if string ends with (2 args) → "true"/"false"
+- string.contains: check if string contains substring (2 args) → "true"/"false"
+
+**Math Helpers Refactoring (10 helpers moved to math.* namespace)**:
+- Refactored all math helpers from standalone ({{add}}) to math.* namespace ({{math.add}})
+- Updated handler functions to extract operation name from 'math.add' → 'add'
+- Replaced 10 individual entries in HANDLEBARS_DESCRIPTIONS with single grouped entry
+
+**Files Modified**:
+- webapp/controller/handlebar.js:
+  - Implemented _handleString() function with routing to specific operations
+  - Added all string.* helper cases to switch statement
+  - Added single string entry to HANDLEBARS_DESCRIPTIONS (grouped like file.*)
+  - Changed all math helper cases from standalone to math.* namespace
+  - Updated math handler functions to extract operation name
+  - Replaced 10 individual math entries with single grouped entry
+- docs/handlebars.md:
+  - Documented all string.* helpers with examples, grouped together in helper table
+  - Updated all math helper examples to use math.* namespace
+  - Reorganized Math Helpers section to show grouped documentation (like file.*)
+- webapp/view/jpulse-examples/handlebars.shtml:
+  - Added interactive examples section (section 8) for all string.* helpers
+  - Updated all math helper examples to use math.* namespace
+  - Updated section numbering (string helpers = section 8, renumbered subsequent sections)
+- webapp/tests/unit/controller/handlebar-math-helpers.test.js:
+  - Updated all test cases to use math.* namespace
+  - Updated test descriptions and version info
+
+**Summary**: Successfully implemented string.* helpers namespace and refactored math helpers to math.* namespace. All helpers are now consistently organized under namespaces (file.*, math.*, string.*) for better organization and to prevent name collisions.
+
+**Status**: ✅ COMPLETED - All deliverables implemented and tested.
+
+
+============================================================
+2026-01-06 16:11
+
+User: release prep:
+- assume release: W-128, v1.4.8
+- update deliverables in W-128 work-items to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- update cursor_log.txt (append, don't replace)
+
+AI: Completed release preparation for W-128, v1.4.8:
+
+**Updated Files:**
+- docs/dev/work-items.md: Updated W-128 deliverables with ✅ checkmarks for all completed items
+- README.md: Added v1.4.8 release highlights entry at the top of Latest Release Highlights section
+- docs/README.md: Added v1.4.8 release highlights entry at the top of Latest Release Highlights section
+- docs/CHANGELOG.md: Added complete v1.4.8 release section with detailed feature documentation, code changes, breaking changes, migration guide, and usage examples
+- commit-message.txt: Created complete commit message following the same format as W-127, including all code changes, documentation updates, breaking changes, and migration steps
+- cursor_log.txt: Appended this release prep entry
+
+**Summary**: All release documentation updated for W-128, v1.4.8. Ready for version bump and commit.
+
+**Status**: ✅ RELEASE PREP COMPLETE - All documentation updated, ready for version bump script.
+
+
+============================================================

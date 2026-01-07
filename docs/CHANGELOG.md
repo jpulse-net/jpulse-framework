@@ -1,6 +1,106 @@
-# jPulse Docs / Version History v1.4.7
+# jPulse Docs / Version History v1.4.8
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.8, W-128, 2026-01-08
+
+**Commit:** `W-128, v1.4.8: handlebars: add string.* helpers namespace, refactor math.* helpers`
+
+**FEATURE RELEASE**: String manipulation helpers organized under `string.*` namespace and math helpers refactored to `math.*` namespace for consistency.
+
+**Objective**: Add string manipulation helpers organized under `string.*` namespace (consistent with `file.*`) and refactor existing math helpers to `math.*` namespace for consistency.
+
+**Key Features**:
+- **9 String Helpers** (all under `string.*` namespace):
+  - `{{string.concat "themes/" user.preferences.theme ".css"}}` - concatenate strings (variadic, 1+ args)
+  - `{{string.default user.preferences.theme "light"}}` - return first non-empty value (variadic, 1+ args)
+  - `{{string.replace "hello world" "world" "jPulse"}}` - replace substring (3 args: string, search, replace)
+  - `{{string.substring "hello world" 0 5}}` - extract substring (3 args: string, start, length)
+  - `{{string.padLeft "5" 3 "0"}}` - pad left with character (3 args: string, length, padChar) → "005"
+  - `{{string.padRight "5" 3 "0"}}` - pad right with character (3 args: string, length, padChar) → "500"
+  - `{{string.startsWith "hello" "he"}}` - check if string starts with (2 args) → "true"/"false"
+  - `{{string.endsWith "hello" "lo"}}` - check if string ends with (2 args) → "true"/"false"
+  - `{{string.contains "hello" "ell"}}` - check if string contains substring (2 args) → "true"/"false"
+- **Math Helpers Refactored** (all 10 helpers now under `math.*` namespace):
+  - `{{math.add a b c ...}}` - sum all arguments (1+ args)
+  - `{{math.subtract a b c ...}}` - first arg minus all subsequent args (1+ args)
+  - `{{math.multiply a b c ...}}` - multiply all arguments (1+ args)
+  - `{{math.divide a b c ...}}` - first arg divided by all subsequent args (1+ args)
+  - `{{math.mod a b}}` - modulo operation (exactly 2 args)
+  - `{{math.round value}}` - round to nearest integer (exactly 1 arg)
+  - `{{math.floor value}}` - round down to integer (exactly 1 arg)
+  - `{{math.ceil value}}` - round up to integer (exactly 1 arg)
+  - `{{math.min a b c ...}}` - minimum of all arguments (1+ args)
+  - `{{math.max a b c ...}}` - maximum of all arguments (1+ args)
+- **Consistent Organization**: All helpers now organized under namespaces (`file.*`, `math.*`, `string.*`) for better organization and to prevent name collisions
+- **Nested Subexpressions**: All helpers support complex nested expressions
+- **Variable Support**: Works with Handlebars variables and custom variables
+
+**Code Changes**:
+
+**webapp/controller/handlebar.js**:
+- Added `_handleString()` function with routing to specific operations based on helper name
+- Added all 9 `string.*` helper cases to switch statement in `_evaluateRegularHandlebar()`
+- Refactored all 10 math helper cases from standalone (`add`, `subtract`) to `math.*` namespace (`math.add`, `math.subtract`)
+- Updated math handler functions (`_handleMathUnary`, `_handleMathBinary`, `_handleMathVariadic`) to extract operation name from `math.*` helper name
+- Added individual `string.*` entries to `HANDLEBARS_DESCRIPTIONS` (one per helper, sorted alphabetically)
+- Replaced single grouped math entry in `HANDLEBARS_DESCRIPTIONS` with 10 individual `math.*` entries (one per helper, sorted alphabetically)
+- Reorganized `file.*` entries in `HANDLEBARS_DESCRIPTIONS` to list individually (one per helper, sorted alphabetically)
+
+**webapp/tests/unit/controller/handlebar-string-helpers.test.js**:
+- Created comprehensive unit test suite with 59 test cases
+- Tests for all 9 string helpers, variadic operations, error handling, nested expressions, edge cases
+
+**webapp/tests/unit/controller/handlebar-math-helpers.test.js**:
+- Updated all test cases to use `math.*` namespace
+- Updated test descriptions and version info
+
+**docs/handlebars.md**:
+- Added String Helpers section with complete documentation for all 9 helpers
+- Listed all `string.*` helpers individually in helper table (sorted alphabetically)
+- Updated all math helper examples to use `math.*` namespace
+- Updated Math Helpers section examples to use `math.*` namespace
+
+**webapp/view/jpulse-examples/handlebars.shtml**:
+- Added interactive examples section for all 9 string helpers
+- Updated all math helper examples to use `math.*` namespace
+- Updated section numbering (string helpers = section 8, renumbered subsequent sections)
+
+**Breaking Changes**:
+- **Math helpers now require `math.*` namespace**: All math helpers must use `math.*` prefix (e.g., `{{math.add}}` instead of `{{add}}`)
+
+**Migration Guide**:
+- Update all math helper references in templates from standalone to `math.*` namespace:
+  - `{{add a b}}` → `{{math.add a b}}`
+  - `{{subtract a b}}` → `{{math.subtract a b}}`
+  - `{{multiply a b}}` → `{{math.multiply a b}}`
+  - `{{divide a b}}` → `{{math.divide a b}}`
+  - `{{mod a b}}` → `{{math.mod a b}}`
+  - `{{round value}}` → `{{math.round value}}`
+  - `{{floor value}}` → `{{math.floor value}}`
+  - `{{ceil value}}` → `{{math.ceil value}}`
+  - `{{min a b}}` → `{{math.min a b}}`
+  - `{{max a b}}` → `{{math.max a b}}`
+- String helpers are new additions with no impact on existing templates
+
+**Usage Examples**:
+```handlebars
+<!-- String helpers -->
+{{string.concat "themes/" (string.default user.preferences.theme "light") ".css"}}
+{{string.replace "hello world" "world" "jPulse"}}  <!-- "hello jPulse" -->
+{{string.padLeft "5" 3 "0"}}  <!-- "005" -->
+{{#if (eq (string.startsWith url.path "/admin") "true")}}Admin area{{/if}}
+
+<!-- Math helpers (now with math.* namespace) -->
+{{math.add 2 4 6}}              <!-- 12 -->
+{{math.multiply 2 3 4}}         <!-- 24 -->
+{{math.round 3.7}}              <!-- 4 -->
+
+<!-- Nested expressions -->
+{{string.replace (string.concat "hello" "-" "world") "world" "jPulse"}}
+{{math.add 2 (math.multiply 4 6) (math.divide 20 2)}}  <!-- 36 -->
+```
 
 ________________________________________________
 ## v1.4.7, W-127, 2026-01-07

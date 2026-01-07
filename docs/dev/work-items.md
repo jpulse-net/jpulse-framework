@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.7
+# jPulse Docs / Dev / Work Items v1.4.8
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -412,6 +412,13 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - Minimal changes needed
 - make sure to not use hard-coded user facing messages that could be translated
 - make sure to update the two existing language files webapp/translations/en.conf and webapp/translations/de.conf
+
+### W-037: view: create themes
+- status: ❌ CANCELED
+- type: Feature
+- note: this work item is replaced by: W-129: view: create themes infrastructure
+- jPulse framwork ships with two themes: light (default), dark
+- user can set preferred theme
 
 ### W-019, v0.4.3: view: create non-blocking slide-down info/alert/warning/success message
 - status: ✅ DONE
@@ -3568,18 +3575,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/CHANGELOG.md: v1.4.6 release notes
   - webapp/app.conf: Tooltip configuration under view.jPulse.UI.tooltip
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-127, v1.4.7, 2026-01-07: handlebars: add math helpers
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: perform simple math operations
 - implementation: variadic helpers for consistency ("don't make me think" paradigm)
@@ -3655,6 +3652,116 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-128, v1.4.8, 2026-01-08: handlebars: add string.* helpers namespace, refactor math.* helpers
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - add string manipulation helpers organized under string.* namespace (consistent with file.*)
+  - refactor existing math helpers to math.* namespace for consistency
+- implementation: grouped helpers under string.* namespace for consistency and organization
+- helpers (all under string.* namespace):
+  - `{{string.concat "themes/" user.preferences.theme ".css"}}` - concatenate strings (variadic, 1+ args)
+  - `{{string.default user.preferences.theme "light"}}` - return first non-empty value (variadic, 1+ args)
+  - `{{string.replace "hello world" "world" "jPulse"}}` - replace substring (3 args: string, search, replace)
+  - `{{string.substring "hello world" 0 5}}` - extract substring (3 args: string, start, length)
+  - `{{string.padLeft "5" 3 "0"}}` - pad left with character (3 args: string, length, padChar) → "005"
+  - `{{string.padRight "5" 3 "0"}}` - pad right with character (3 args: string, length, padChar) → "500"
+  - `{{string.startsWith "hello" "he"}}` - check if string starts with (2 args) → "true"/"false"
+  - `{{string.endsWith "hello" "lo"}}` - check if string ends with (2 args) → "true"/"false"
+  - `{{string.contains "hello" "ell"}}` - check if string contains substring (2 args) → "true"/"false"
+- use cases:
+  - theme CSS path: `{{string.concat "themes/" (string.default user.preferences.theme "light") ".css"}}`
+  - fallback values: `{{string.default user.preferences.language "en"}}`
+  - conditional string building: `{{string.concat "prefix-" value "-suffix"}}`
+  - string manipulation: `{{string.replace user.name " " "-"}}` (replace spaces with dashes)
+  - padding: `{{string.padLeft user.id 6 "0"}}` (zero-pad ID to 6 digits)
+  - string checks: `{{#if (eq (string.startsWith url.path "/admin") "true")}}Admin area{{/if}}`
+- refactor 10 math helpers from individual helpers to math.* namespace:
+  - `{{math.add a b c ...}}` - sum all arguments (1+ args)
+  - `{{math.subtract a b c ...}}` - first arg minus all subsequent args (1+ args)
+  - `{{math.multiply a b c ...}}` - multiply all arguments (1+ args)
+  - `{{math.divide a b c ...}}` - first arg divided by all subsequent args (1+ args)
+  - `{{math.mod a b}}` - modulo operation (exactly 2 args)
+  - `{{math.round value}}` - round to nearest integer (exactly 1 arg)
+  - `{{math.floor value}}` - round down to integer (exactly 1 arg)
+  - `{{math.ceil value}}` - round up to integer (exactly 1 arg)
+  - `{{math.min a b c ...}}` - minimum of all arguments (1+ args)
+  - `{{math.max a b c ...}}` - maximum of all arguments (1+ args)
+- implementation notes:
+  - grouped implementation similar to math.* helpers
+  - single handler function `_handleString()` that routes to specific operations based on helper name
+  - extract operation from `string.concat` → `concat`
+  - document grouped together in helper table (like file.*)
+- additional string helpers to consider (out of scope):
+  - `{{string.uppercase "text"}}` - convert to uppercase
+  - `{{string.lowercase "text"}}` - convert to lowercase
+  - `{{string.trim "  text  "}}` - remove leading/trailing whitespace
+  - `{{string.capitalize "text"}}` - capitalize first letter (already exists in jpulse-common.js)
+  - `{{string.slugify "Hello World"}}` - convert to URL-friendly slug (already exists in jpulse-common.js)
+  - `{{string.escapeHtml "<script>"}}` - escape HTML entities (already exists in jpulse-common.js)
+- deliverables:
+  - webapp/controller/handlebar.js:
+    - string helpers: implement _handleString() function with routing to specific operations
+    - string helpers: add all string.* helper cases to switch statement
+    - string helpers: add individual string.* entries to HANDLEBARS_DESCRIPTIONS (one per helper, sorted alphabetically)
+    - math refactoring: change all math helper cases from standalone to math.* namespace (e.g., 'add' → 'math.add')
+    - math refactoring: update handler functions to extract operation name from 'math.add' → 'add'
+    - math refactoring: replace single grouped entry in HANDLEBARS_DESCRIPTIONS with 10 individual math.* entries (one per helper, sorted alphabetically)
+  - docs/handlebars.md:
+    - string helpers: document all string.* helpers with examples, list individually in helper table (sorted alphabetically)
+    - math refactoring: update all math helper examples to use math.* namespace
+    - math refactoring: update Math Helpers section examples to use math.* namespace
+  - webapp/view/jpulse-examples/handlebars.shtml:
+    - string helpers: add interactive examples for all string.* helpers
+    - math refactoring: update all math helper examples to use math.* namespace
+  - webapp/tests/unit/controller/handlebar-string-helpers.test.js:
+    - add comprehensive unit tests for all string.* helpers (59 test cases)
+  - webapp/tests/unit/controller/handlebar-math-helpers.test.js:
+    - math refactoring: update all test cases to use math.* namespace
+
+
+
+
+
+
+### W-129, v1.4.9, 2026-01-09: view: create themes infrastructure
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives: provide a framework where plugin and site delelopers can create and publish themes
+- features:
+  - framework ships with two built-in themes: light (default) and dark
+  - users can select preferred theme in profile settings
+  - theme preference persists across sessions
+  - plugin developers can create custom themes with auto-discovery
+  - site developers can create site-specific themes with highest priority
+  - theme discovery follows priority: Framework → Plugins → Site (conflict resolution)
+  - CSS variable standardization for consistent theming across all components
+  - dynamic theme CSS loading (only selected theme loaded to browser)
+  - theme metadata in separate JSON files (name, label, description, author, preview)
+  - preview images required (600x300 full, 200x100 thumbnail)
+  - dynamic themes documentation table (%DYNAMIC{themes-list-table}%)
+  - theme discovery service with caching for performance
+  - schema extension: discovered themes automatically added to user preferences enum
+  - SVG icons automatically adapt to light/dark themes
+  - theme fallback to light theme for unauthenticated users
+- deliverables:
+  - FIXME file:
+    - FIXME summary
+
+
+
+
+
+
+
+
+
+
+
 ### Pending
 
 
@@ -3682,8 +3789,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-127, v1.4.7
-- update deliverables in W-127 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-128, v1.4.8
+- update deliverables in W-128 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -3700,12 +3807,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.7
+node bin/bump-version.js 1.4.8
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.7
+git tag v1.4.8
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -3798,10 +3905,10 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 ### W-037: view: create themes
 - status: 🕑 PENDING
 - type: Feature
-- initially a dark and light theme, light is default
-- user can set preferred theme
-- way to define new themes
-  - drop in a directory, with auto discovery
+- jPulse framwork ships with two themes: light (default), dark
+- user can set preferred theme -- DONE
+- plugin developers can define new themes
+  - with auto discovery
 
 ### W-0: view: broadcast message
 - status: 🕑 PENDING

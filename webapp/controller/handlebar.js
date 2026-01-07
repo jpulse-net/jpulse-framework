@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.4.7
- * @release         2026-01-07
+ * @version         1.4.8
+ * @release         2026-01-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -38,36 +38,50 @@ class HandlebarController {
     // source: 'jpulse' for core framework, 'site' for site-specific, plugin name for plugins
     static HANDLEBARS_DESCRIPTIONS = [
         // Regular helpers
-        {name: 'add', type: 'regular', source: 'jpulse', description: 'Sum all arguments (1+ args)', example: '{{add 2 4 6}}'},
         {name: 'and', type: 'regular', source: 'jpulse', description: 'Logical AND, returns "true" or "false" (1+ arguments)', example: '{{and user.isAuthenticated user.isAdmin}}'},
         {name: 'app', type: 'regular', source: 'jpulse', description: 'Application context (app.jPulse.* and app.site.*)', example: '{{app.site.name}} v{{app.site.version}}'},
         {name: 'appCluster', type: 'regular', source: 'jpulse', description: 'Redis cluster availability information', example: '{{appCluster.*}}'},
         {name: 'appConfig', type: 'regular', source: 'jpulse', description: 'Full application configuration (filtered based on auth)', example: '{{appConfig.*}}'},
-        {name: 'ceil', type: 'regular', source: 'jpulse', description: 'Round up to integer (exactly 1 arg)', example: '{{ceil 3.2}}'},
         {name: 'components', type: 'regular', source: 'jpulse', description: 'Reusable component call with parameters. Static: {{components.jpIcons.configSvg size="64"}}. Dynamic: {{components name="sidebar.toc"}} or {{components name=(this)}}', example: '{{components.jpIcons.configSvg size="64"}}'},
-        {name: 'divide', type: 'regular', source: 'jpulse', description: 'First arg divided by all subsequent args (1+ args)', example: '{{divide 100 4 2}}'},
         {name: 'eq', type: 'regular', source: 'jpulse', description: 'Equality comparison, returns "true" or "false" (2 arguments)', example: '{{eq user.role "admin"}}'},
-        {name: 'file', type: 'regular', source: 'jpulse', description: 'File operations (include, exists, list, timestamp)', example: '{{file.include "template.tmpl"}}'},
-        {name: 'floor', type: 'regular', source: 'jpulse', description: 'Round down to integer (exactly 1 arg)', example: '{{floor 3.7}}'},
+        {name: 'file.exists', type: 'regular', source: 'jpulse', description: 'Check if file exists, returns "true" or "false"', example: '{{file.exists "template.tmpl"}}'},
+        {name: 'file.include', type: 'regular', source: 'jpulse', description: 'Include another template file with optional parameters', example: '{{file.include "template.tmpl"}}'},
+        {name: 'file.includeComponents', type: 'regular', source: 'jpulse', description: 'Register components from multiple files matching glob pattern', example: '{{file.includeComponents "admin/*.shtml" component="adminCards.*"}}'},
+        {name: 'file.list', type: 'regular', source: 'jpulse', description: 'List files matching glob pattern', example: '{{file.list "admin/*.shtml"}}'},
+        {name: 'file.timestamp', type: 'regular', source: 'jpulse', description: 'Get file last modified timestamp', example: '{{file.timestamp "file.css"}}'},
         {name: 'gt', type: 'regular', source: 'jpulse', description: 'Greater than comparison, returns "true" or "false" (2 arguments)', example: '{{gt user.score 100}}'},
         {name: 'gte', type: 'regular', source: 'jpulse', description: 'Greater than or equal comparison, returns "true" or "false" (2 arguments)', example: '{{gte user.count 10}}'},
         {name: 'i18n', type: 'regular', source: 'jpulse', description: 'Internationalization messages from translation files', example: '{{i18n.view.home.introduction}}'},
         {name: 'let', type: 'regular', source: 'jpulse', description: 'Define custom variables (accessed via {{vars.*}})', example: '{{let pageTitle="Dashboard" maxItems=10}}'},
         {name: 'lt', type: 'regular', source: 'jpulse', description: 'Less than comparison, returns "true" or "false" (2 arguments)', example: '{{lt user.age 18}}'},
         {name: 'lte', type: 'regular', source: 'jpulse', description: 'Less than or equal comparison, returns "true" or "false" (2 arguments)', example: '{{lte user.items 5}}'},
-        {name: 'max', type: 'regular', source: 'jpulse', description: 'Maximum of all arguments (1+ args)', example: '{{max 5 3 8 2}}'},
-        {name: 'min', type: 'regular', source: 'jpulse', description: 'Minimum of all arguments (1+ args)', example: '{{min 5 3 8 2}}'},
-        {name: 'mod', type: 'regular', source: 'jpulse', description: 'Modulo operation (exactly 2 args)', example: '{{mod 17 5}}'},
-        {name: 'multiply', type: 'regular', source: 'jpulse', description: 'Multiply all arguments (1+ args)', example: '{{multiply 2 3 4}}'},
+        {name: 'math.add', type: 'regular', source: 'jpulse', description: 'Sum all arguments (variadic, 1+ args)', example: '{{math.add 2 4 6}}'},
+        {name: 'math.ceil', type: 'regular', source: 'jpulse', description: 'Round up to integer (exactly 1 arg)', example: '{{math.ceil 3.2}}'},
+        {name: 'math.divide', type: 'regular', source: 'jpulse', description: 'First arg divided by all subsequent args (variadic, 1+ args)', example: '{{math.divide 100 4 2}}'},
+        {name: 'math.floor', type: 'regular', source: 'jpulse', description: 'Round down to integer (exactly 1 arg)', example: '{{math.floor 3.7}}'},
+        {name: 'math.max', type: 'regular', source: 'jpulse', description: 'Maximum of all arguments (variadic, 1+ args)', example: '{{math.max 5 3 8 2}}'},
+        {name: 'math.min', type: 'regular', source: 'jpulse', description: 'Minimum of all arguments (variadic, 1+ args)', example: '{{math.min 5 3 8 2}}'},
+        {name: 'math.mod', type: 'regular', source: 'jpulse', description: 'Modulo operation (exactly 2 args)', example: '{{math.mod 17 5}}'},
+        {name: 'math.multiply', type: 'regular', source: 'jpulse', description: 'Multiply all arguments (variadic, 1+ args)', example: '{{math.multiply 2 3 4}}'},
+        {name: 'math.round', type: 'regular', source: 'jpulse', description: 'Round to nearest integer (exactly 1 arg)', example: '{{math.round 3.7}}'},
+        {name: 'math.subtract', type: 'regular', source: 'jpulse', description: 'First arg minus all subsequent args (variadic, 1+ args)', example: '{{math.subtract 10 3 2}}'},
         {name: 'ne', type: 'regular', source: 'jpulse', description: 'Not equal comparison, returns "true" or "false" (2 arguments)', example: '{{ne user.role "guest"}}'},
         {name: 'not', type: 'regular', source: 'jpulse', description: 'Logical NOT, returns "true" or "false" (1 argument)', example: '{{not user.isGuest}}'},
         {name: 'or', type: 'regular', source: 'jpulse', description: 'Logical OR, returns "true" or "false" (1+ arguments)', example: '{{or user.isPremium user.isTrial}}'},
-        {name: 'round', type: 'regular', source: 'jpulse', description: 'Round to nearest integer (exactly 1 arg)', example: '{{round 3.7}}'},
         {name: 'siteConfig', type: 'regular', source: 'jpulse', description: 'Site configuration values from ConfigModel (database)', example: '{{siteConfig.email.adminEmail}}'},
-        {name: 'subtract', type: 'regular', source: 'jpulse', description: 'First arg minus all subsequent args (1+ args)', example: '{{subtract 10 3 2}}'},
+        {name: 'string.concat', type: 'regular', source: 'jpulse', description: 'Concatenate strings (variadic, 1+ args)', example: '{{string.concat "hello" " " "world"}}'},
+        {name: 'string.contains', type: 'regular', source: 'jpulse', description: 'Check if string contains substring (2 args) → "true"/"false"', example: '{{string.contains "hello" "ell"}}'},
+        {name: 'string.default', type: 'regular', source: 'jpulse', description: 'Return first non-empty value (variadic, 1+ args)', example: '{{string.default user.preferences.theme "light"}}'},
+        {name: 'string.endsWith', type: 'regular', source: 'jpulse', description: 'Check if string ends with suffix (2 args) → "true"/"false"', example: '{{string.endsWith "hello" "lo"}}'},
+        {name: 'string.padLeft', type: 'regular', source: 'jpulse', description: 'Pad left with character (3 args: string, length, padChar)', example: '{{string.padLeft "5" 3 "0"}}'},
+        {name: 'string.padRight', type: 'regular', source: 'jpulse', description: 'Pad right with character (3 args: string, length, padChar)', example: '{{string.padRight "5" 3 "0"}}'},
+        {name: 'string.replace', type: 'regular', source: 'jpulse', description: 'Replace substring (3 args: string, search, replace)', example: '{{string.replace "hello world" "world" "jPulse"}}'},
+        {name: 'string.startsWith', type: 'regular', source: 'jpulse', description: 'Check if string starts with prefix (2 args) → "true"/"false"', example: '{{string.startsWith "hello" "he"}}'},
+        {name: 'string.substring', type: 'regular', source: 'jpulse', description: 'Extract substring (3 args: string, start, length)', example: '{{string.substring "hello world" 0 5}}'},
         {name: 'url', type: 'regular', source: 'jpulse', description: 'URL context (protocol, hostname, port, pathname, search, domain, param.*)', example: '{{url.protocol}}://{{url.hostname}}{{url.pathname}}'},
         {name: 'user', type: 'regular', source: 'jpulse', description: 'User context (username, loginId, firstName, lastName, email, roles, isAuthenticated, isAdmin)', example: '{{user.firstName}} {{user.email}}'},
         {name: 'vars', type: 'regular', source: 'jpulse', description: 'Custom variables defined with {{let}} or {{#let}}', example: '{{vars.pageTitle}}'},
+
         // Block helpers
         {name: 'and', type: 'block', source: 'jpulse', description: 'Logical AND block, renders true or else part (1+ arguments)', example: '{{#and user.isAuthenticated user.isAdmin}} admin {{else}} not admin {{/and}}'},
         {name: 'component', type: 'block', source: 'jpulse', description: 'Define reusable component with parameters', example: '{{#component "widgets.button" text="Click"}}...{{/component}}'},
@@ -952,22 +966,34 @@ class HandlebarController {
                 case 'lte':
                     return _handleComparison(parsedArgs, currentContext, helper);
 
-                // W-127: Math helpers
-                case 'add':
-                case 'subtract':
-                case 'multiply':
-                case 'divide':
-                case 'min':
-                case 'max':
+                // W-128: Math helpers (refactored to math.* namespace)
+                case 'math.add':
+                case 'math.subtract':
+                case 'math.multiply':
+                case 'math.divide':
+                case 'math.min':
+                case 'math.max':
                     return String(_handleMathVariadic(parsedArgs, currentContext));
 
-                case 'mod':
+                case 'math.mod':
                     return String(_handleMathBinary(parsedArgs, currentContext));
 
-                case 'round':
-                case 'floor':
-                case 'ceil':
+                case 'math.round':
+                case 'math.floor':
+                case 'math.ceil':
                     return String(_handleMathUnary(parsedArgs, currentContext));
+
+                // W-128: String helpers
+                case 'string.concat':
+                case 'string.default':
+                case 'string.replace':
+                case 'string.substring':
+                case 'string.padLeft':
+                case 'string.padRight':
+                case 'string.startsWith':
+                case 'string.endsWith':
+                case 'string.contains':
+                    return _handleString(parsedArgs, currentContext);
 
                 // File helpers
                 case 'file.include':
@@ -1842,17 +1868,18 @@ class HandlebarController {
          */
         function _handleMathUnary(parsedArgs, currentContext) {
             const args = parsedArgs._args || [];
-            const operation = parsedArgs._helper;
+            const helperName = parsedArgs._helper; // e.g., "math.round"
+            const operation = helperName.replace('math.', ''); // Extract "round"
 
             if (args.length !== 1) {
-                LogController.logWarning(req, `handlebar.${operation}`,
+                LogController.logWarning(req, `handlebar.${helperName}`,
                     `Expected 1 argument, got ${args.length}`);
                 return 0;
             }
 
             const num = Number(args[0]);
             if (isNaN(num)) {
-                LogController.logWarning(req, `handlebar.${operation}`,
+                LogController.logWarning(req, `handlebar.${helperName}`,
                     `Invalid number: ${args[0]}, returning 0`);
                 return 0;
             }
@@ -1865,7 +1892,7 @@ class HandlebarController {
 
             const opFn = operations[operation];
             if (!opFn) {
-                LogController.logWarning(req, `handlebar.${operation}`,
+                LogController.logWarning(req, `handlebar.${helperName}`,
                     `Unknown unary operation: ${operation}`);
                 return 0;
             }
@@ -1882,7 +1909,8 @@ class HandlebarController {
          */
         function _handleMathBinary(parsedArgs, currentContext) {
             const args = parsedArgs._args || [];
-            const operation = parsedArgs._helper;
+            const helperName = parsedArgs._helper; // e.g., "math.mod"
+            const operation = helperName.replace('math.', ''); // Extract "mod"
 
             if (args.length !== 2) {
                 LogController.logWarning(req, `handlebar.${operation}`,
@@ -1921,7 +1949,8 @@ class HandlebarController {
          */
         function _handleMathVariadic(parsedArgs, currentContext) {
             const args = parsedArgs._args || [];
-            const operation = parsedArgs._helper;
+            const helperName = parsedArgs._helper; // e.g., "math.add"
+            const operation = helperName.replace('math.', ''); // Extract "add"
 
             if (args.length === 0) {
                 LogController.logWarning(req, `handlebar.${operation}`, 'No arguments provided');
@@ -1978,6 +2007,141 @@ class HandlebarController {
                     LogController.logWarning(req, `handlebar.${operation}`,
                         `Unknown variadic operation: ${operation}`);
                     return 0;
+            }
+        }
+
+        /**
+         * W-128: Unified string helper
+         * Handles: concat, default, replace, substring, padLeft, padRight, startsWith, endsWith, contains
+         * @param {object} parsedArgs - Parsed arguments with _args array and _helper
+         * @param {object} currentContext - Current context
+         * @returns {string} Result of string operation
+         */
+        function _handleString(parsedArgs, currentContext) {
+            const args = parsedArgs._args || [];
+            const helperName = parsedArgs._helper; // e.g., "string.concat"
+            const operation = helperName.replace('string.', ''); // Extract "concat"
+
+            switch (operation) {
+                case 'concat':
+                    // Variadic: concatenate all arguments
+                    return args.map(arg => String(arg || '')).join('');
+
+                case 'default':
+                    // Variadic: return first non-empty value, or last argument as fallback
+                    if (args.length === 0) {
+                        return '';
+                    }
+                    for (let i = 0; i < args.length - 1; i++) {
+                        const value = String(args[i] || '');
+                        if (value && value !== '') {
+                            return value;
+                        }
+                    }
+                    // Return last argument as fallback
+                    return String(args[args.length - 1] || '');
+
+                case 'replace':
+                    // 3 args: string, search, replace
+                    if (args.length !== 3) {
+                        LogController.logWarning(req, 'handlebar.string.replace',
+                            `Expected 3 arguments (string, search, replace), got ${args.length}`);
+                        return args[0] ? String(args[0]) : '';
+                    }
+                    const str = String(args[0] || '');
+                    const search = String(args[1] || '');
+                    const replace = String(args[2] || '');
+                    // Replace all occurrences (like replaceAll)
+                    return str.split(search).join(replace);
+
+                case 'substring':
+                    // 3 args: string, start, length
+                    if (args.length !== 3) {
+                        LogController.logWarning(req, 'handlebar.string.substring',
+                            `Expected 3 arguments (string, start, length), got ${args.length}`);
+                        return args[0] ? String(args[0]) : '';
+                    }
+                    const str2 = String(args[0] || '');
+                    const start = parseInt(args[1], 10);
+                    const length = parseInt(args[2], 10);
+                    if (isNaN(start) || isNaN(length) || start < 0 || length < 0) {
+                        LogController.logWarning(req, 'handlebar.string.substring',
+                            `Invalid start or length: start=${args[1]}, length=${args[2]}`);
+                        return str2;
+                    }
+                    return str2.substring(start, start + length);
+
+                case 'padLeft':
+                    // 3 args: string, length, padChar
+                    if (args.length !== 3) {
+                        LogController.logWarning(req, 'handlebar.string.padLeft',
+                            `Expected 3 arguments (string, length, padChar), got ${args.length}`);
+                        return args[0] ? String(args[0]) : '';
+                    }
+                    const str3 = String(args[0] || '');
+                    const padLength = parseInt(args[1], 10);
+                    const padChar = String(args[2] || ' ').charAt(0); // Use first character only
+                    if (isNaN(padLength) || padLength < 0) {
+                        LogController.logWarning(req, 'handlebar.string.padLeft',
+                            `Invalid length: ${args[1]}`);
+                        return str3;
+                    }
+                    return str3.padStart(padLength, padChar);
+
+                case 'padRight':
+                    // 3 args: string, length, padChar
+                    if (args.length !== 3) {
+                        LogController.logWarning(req, 'handlebar.string.padRight',
+                            `Expected 3 arguments (string, length, padChar), got ${args.length}`);
+                        return args[0] ? String(args[0]) : '';
+                    }
+                    const str4 = String(args[0] || '');
+                    const padLength2 = parseInt(args[1], 10);
+                    const padChar2 = String(args[2] || ' ').charAt(0); // Use first character only
+                    if (isNaN(padLength2) || padLength2 < 0) {
+                        LogController.logWarning(req, 'handlebar.string.padRight',
+                            `Invalid length: ${args[1]}`);
+                        return str4;
+                    }
+                    return str4.padEnd(padLength2, padChar2);
+
+                case 'startsWith':
+                    // 2 args: string, prefix
+                    if (args.length !== 2) {
+                        LogController.logWarning(req, 'handlebar.string.startsWith',
+                            `Expected 2 arguments (string, prefix), got ${args.length}`);
+                        return 'false';
+                    }
+                    const str5 = String(args[0] || '');
+                    const prefix = String(args[1] || '');
+                    return str5.startsWith(prefix) ? 'true' : 'false';
+
+                case 'endsWith':
+                    // 2 args: string, suffix
+                    if (args.length !== 2) {
+                        LogController.logWarning(req, 'handlebar.string.endsWith',
+                            `Expected 2 arguments (string, suffix), got ${args.length}`);
+                        return 'false';
+                    }
+                    const str6 = String(args[0] || '');
+                    const suffix = String(args[1] || '');
+                    return str6.endsWith(suffix) ? 'true' : 'false';
+
+                case 'contains':
+                    // 2 args: string, substring
+                    if (args.length !== 2) {
+                        LogController.logWarning(req, 'handlebar.string.contains',
+                            `Expected 2 arguments (string, substring), got ${args.length}`);
+                        return 'false';
+                    }
+                    const str7 = String(args[0] || '');
+                    const substring = String(args[1] || '');
+                    return str7.includes(substring) ? 'true' : 'false';
+
+                default:
+                    LogController.logWarning(req, `handlebar.string.${operation}`,
+                        `Unknown string operation: ${operation}`);
+                    return '';
             }
         }
 

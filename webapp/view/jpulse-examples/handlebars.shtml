@@ -4,8 +4,8 @@
  * @tagline         Comprehensive Handlebars templating examples
  * @description     Interactive examples and source code for Handlebars templating in jPulse
  * @file            webapp/view/jpulse-examples/handlebars.shtml
- * @version         1.4.7
- * @release         2026-01-07
+ * @version         1.4.8
+ * @release         2026-01-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -603,7 +603,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
             </div>
         </div>
 
-        <!-- Math Helpers (v1.4.7+) -->
+        <!-- Math Helpers (v1.4.8+) -->
         <h2 class="local-heading-2">7. Math Helpers</h2>
         <!-- Tab interface for example/source -->
         <div id="math-tabs" class="jp-tabs"></div>
@@ -611,38 +611,38 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
             <div class="jp-info-box">
                 <h4>Basic Math Operations</h4>
                 <ul>
-                    <li><strong>Add:</strong> {{add 2 4 6}} = 2 + 4 + 6</li>
-                    <li><strong>Subtract:</strong> {{subtract 10 3 2}} = 10 - 3 - 2</li>
-                    <li><strong>Multiply:</strong> {{multiply 2 3 4}} = 2 × 3 × 4</li>
-                    <li><strong>Divide:</strong> {{divide 100 4 2}} = 100 ÷ 4 ÷ 2</li>
-                    <li><strong>Modulo:</strong> {{mod 17 5}} = 17 % 5</li>
+                    <li><strong>Add:</strong> 2 + 4 + 6 = {{math.add 2 4 6}}</li>
+                    <li><strong>Subtract:</strong> 10 - 3 - 2 = {{math.subtract 10 3 2}}</li>
+                    <li><strong>Multiply:</strong> 2 × 3 × 4 = {{math.multiply 2 3 4}}</li>
+                    <li><strong>Divide:</strong> 100 ÷ 4 ÷ 2 = {{math.divide 100 4 2}}</li>
+                    <li><strong>Modulo:</strong> 17 % 5 = {{math.mod 17 5}}</li>
                 </ul>
             </div>
 
             <div class="jp-warning-box">
                 <h4>Rounding Operations</h4>
                 <ul>
-                    <li><strong>Round:</strong> {{round 3.7}} (rounds 3.7 to nearest integer)</li>
-                    <li><strong>Floor:</strong> {{floor 3.7}} (rounds 3.7 down)</li>
-                    <li><strong>Ceil:</strong> {{ceil 3.2}} (rounds 3.2 up)</li>
-                    <li><strong>Round with division:</strong> {{round (divide 22 7)}} (π approximation)</li>
+                    <li><strong>Round:</strong> round 3.7 to nearest integer = {{math.round 3.7}}</li>
+                    <li><strong>Floor:</strong> round 3.7 down = {{math.floor 3.7}}</li>
+                    <li><strong>Ceil:</strong> round 3.2 up = {{math.ceil 3.2}}</li>
+                    <li><strong>Round with division and multiplication:</strong> π approximation = {{math.divide (math.round (math.multiply (math.divide 22 7) 100)) 100}}</li>
                 </ul>
             </div>
 
             <div class="jp-info-box">
                 <h4>Min/Max Operations</h4>
                 <ul>
-                    <li><strong>Minimum:</strong> {{min 5 3 8 2}} (finds minimum value)</li>
-                    <li><strong>Maximum:</strong> {{max 5 3 8 2}} (finds maximum value)</li>
+                    <li><strong>Minimum:</strong> find minimum of 5, 3, 8, 2 = {{math.min 5 3 8 2}}</li>
+                    <li><strong>Maximum:</strong> find maximum of 5, 3, 8, 2 = {{math.max 5 3 8 2}}</li>
                 </ul>
             </div>
 
             <div class="jp-warning-box">
                 <h4>Nested Math Expressions</h4>
                 <ul>
-                    <li><strong>Complex calculation:</strong> {{divide (add 100 50) 3}} = (100 + 50) ÷ 3</li>
-                    <li><strong>Multiple operations:</strong> {{add 2 (multiply 4 6) (divide 20 2)}} = 2 + (4 × 6) + (20 ÷ 2)</li>
-                    <li><strong>In conditionals:</strong> {{#if (gt (add 50 50) 90)}}High score!{{else}}Low score{{/if}}</li>
+                    <li><strong>Complex calculation:</strong> (100 + 50) ÷ 3 = {{math.divide (math.add 100 50) 3}}</li>
+                    <li><strong>Multiple operations:</strong> 2 + (4 × 6) + (20 ÷ 2) = {{math.add 2 (math.multiply 4 6) (math.divide 20 2)}}</li>
+                    <li><strong>In conditionals:</strong> {{#if (gt (math.add 50 50) 90)}}High score!{{else}}Low score{{/if}}</li>
                 </ul>
             </div>
 
@@ -650,8 +650,8 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                 <h4>With Variables</h4>
                 {{let price=10 quantity=3 tax=1.2}}
                 <ul>
-                    <li><strong>Subtotal:</strong> {{multiply vars.price vars.quantity}} = {{multiply vars.price vars.quantity}}</li>
-                    <li><strong>Total with tax:</strong> {{multiply vars.price vars.quantity vars.tax}} = {{multiply vars.price vars.quantity vars.tax}}</li>
+                    <li><strong>Subtotal:</strong> vars.price × vars.quantity = {{math.multiply vars.price vars.quantity}}</li>
+                    <li><strong>Total with tax:</strong> vars.price × vars.quantity × vars.tax = {{math.multiply vars.price vars.quantity vars.tax}}</li>
                 </ul>
             </div>
         </div>
@@ -659,28 +659,28 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
         <div id="math-source-panel" class="jp-panel">
             <div class="jp-source-code" data-lang="html">
 &lt;!-- Basic Math Operations --&gt;
-&#123;&#123;add 2 4 6&#125;&#125;                    &lt;!-- 12 --&gt;
-&#123;&#123;subtract 10 3 2&#125;&#125;              &lt;!-- 5 (10 - 3 - 2) --&gt;
-&#123;&#123;multiply 2 3 4&#125;&#125;                 &lt;!-- 24 --&gt;
-&#123;&#123;divide 100 4 2&#125;&#125;                 &lt;!-- 12.5 (100 / 4 / 2) --&gt;
-&#123;&#123;mod 17 5&#125;&#125;                       &lt;!-- 2 --&gt;
+&#123;&#123;math.add 2 4 6&#125;&#125;                    &lt;!-- 12 --&gt;
+&#123;&#123;math.subtract 10 3 2&#125;&#125;              &lt;!-- 5 (10 - 3 - 2) --&gt;
+&#123;&#123;math.multiply 2 3 4&#125;&#125;                 &lt;!-- 24 --&gt;
+&#123;&#123;math.divide 100 4 2&#125;&#125;                 &lt;!-- 12.5 (100 / 4 / 2) --&gt;
+&#123;&#123;math.mod 17 5&#125;&#125;                       &lt;!-- 2 --&gt;
 
 &lt;!-- Rounding Operations --&gt;
-&#123;&#123;round 3.7&#125;&#125;                      &lt;!-- 4 --&gt;
-&#123;&#123;floor 3.7&#125;&#125;                      &lt;!-- 3 --&gt;
-&#123;&#123;ceil 3.2&#125;&#125;                       &lt;!-- 4 --&gt;
-&#123;&#123;round (divide 22 7)&#125;&#125;              &lt;!-- 3 (π approximation) --&gt;
+&#123;&#123;math.round 3.7&#125;&#125;                      &lt;!-- 4 --&gt;
+&#123;&#123;math.floor 3.7&#125;&#125;                      &lt;!-- 3 --&gt;
+&#123;&#123;math.ceil 3.2&#125;&#125;                       &lt;!-- 4 --&gt;
+&#123;&#123;math.divide (math.round (math.multiply (math.divide 22 7) 100)) 100&#125;&#125;  &lt;!-- 3.14 (π approximation) --&gt;
 
 &lt;!-- Min/Max Operations --&gt;
-&#123;&#123;min 5 3 8 2&#125;&#125;                      &lt;!-- 2 --&gt;
-&#123;&#123;max 5 3 8 2&#125;&#125;                      &lt;!-- 8 --&gt;
+&#123;&#123;math.min 5 3 8 2&#125;&#125;                      &lt;!-- 2 --&gt;
+&#123;&#123;math.max 5 3 8 2&#125;&#125;                      &lt;!-- 8 --&gt;
 
 &lt;!-- Nested Math Expressions --&gt;
-&#123;&#123;divide (add 100 50) 3&#125;&#125;            &lt;!-- 50 --&gt;
-&#123;&#123;add 2 (multiply 4 6) (divide 20 2)&#125;&#125;  &lt;!-- 36 --&gt;
+&#123;&#123;math.divide (math.add 100 50) 3&#125;&#125;            &lt;!-- 50 --&gt;
+&#123;&#123;math.add 2 (math.multiply 4 6) (math.divide 20 2)&#125;&#125;  &lt;!-- 36 --&gt;
 
 &lt;!-- In Conditionals --&gt;
-&#123;&#123;#if (gt (add 50 50) 90)&#125;&#125;
+&#123;&#123;#if (gt (math.add 50 50) 90)&#125;&#125;
     High score!
 &#123;&#123;else&#125;&#125;
     Low score
@@ -688,13 +688,87 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
 
 &lt;!-- With Variables --&gt;
 &#123;&#123;let price=10 quantity=3 tax=1.2&#125;&#125;
-&#123;&#123;multiply vars.price vars.quantity&#125;&#125;        &lt;!-- 30 --&gt;
-&#123;&#123;multiply vars.price vars.quantity vars.tax&#125;&#125;  &lt;!-- 36 --&gt;
+&#123;&#123;math.multiply vars.price vars.quantity&#125;&#125;        &lt;!-- 30 --&gt;
+&#123;&#123;math.multiply vars.price vars.quantity vars.tax&#125;&#125;  &lt;!-- 36 --&gt;
+            </div>
+        </div>
+
+        <!-- String Helpers (v1.4.8+) -->
+        <h2 class="local-heading-2">8. String Helpers</h2>
+        <!-- Tab interface for example/source -->
+        <div id="string-tabs" class="jp-tabs"></div>
+        <div id="string-example-panel" class="jp-panel">
+            <div class="jp-info-box">
+                <h4>String Concatenation and Defaults</h4>
+                <ul>
+                    <li><strong>Concat:</strong> {{string.concat "hello" " " "world"}} = hello world</li>
+                    <li><strong>Default:</strong> {{string.default user.preferences.theme "light"}} = light (if theme is empty)</li>
+                    <li><strong>Concat with default:</strong> {{string.concat "themes/" (string.default user.preferences.theme "light") ".css"}} = themes/light.css (if theme is empty)</li>
+                </ul>
+            </div>
+
+            <div class="jp-warning-box">
+                <h4>String Manipulation</h4>
+                <ul>
+                    <li><strong>Replace:</strong> {{string.replace "hello world" "world" "jPulse"}} = hello jPulse</li>
+                    <li><strong>Substring:</strong> {{string.substring "hello world" 0 5}} = hello</li>
+                    <li><strong>Pad Left:</strong> {{string.padLeft "5" 3 "0"}} = 005</li>
+                    <li><strong>Pad Right:</strong> {{string.padRight "5" 3 "0"}} = 500</li>
+                </ul>
+            </div>
+
+            <div class="jp-info-box">
+                <h4>String Checks</h4>
+                <ul>
+                    <li><strong>Starts With:</strong> {{string.startsWith "hello" "he"}} = true</li>
+                    <li><strong>Ends With:</strong> {{string.endsWith "hello" "lo"}} = true</li>
+                    <li><strong>Contains:</strong> {{string.contains "hello" "ell"}} = true</li>
+                </ul>
+            </div>
+
+            <div class="jp-warning-box">
+                <h4>In Conditionals</h4>
+                <ul>
+                    <li><strong>Path check:</strong> {{#if (eq (string.startsWith url.path "/admin") "true")}}Admin area{{else}}Public area{{/if}}</li>
+                    <li><strong>Email check:</strong> {{#if (eq (string.contains user.email "@") "true")}}Valid email{{else}}Invalid email{{/if}}</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="string-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
+&lt;!-- String Concatenation and Defaults --&gt;
+&#123;&#123;string.concat "hello" " " "world"&#125;&#125;              &lt;!-- "hello world" --&gt;
+&#123;&#123;string.default user.preferences.theme "light"&#125;&#125;  &lt;!-- "light" if theme is empty --&gt;
+&#123;&#123;string.concat "themes/" (string.default user.preferences.theme "light") ".css"&#125;&#125;
+
+&lt;!-- String Manipulation --&gt;
+&#123;&#123;string.replace "hello world" "world" "jPulse"&#125;&#125;  &lt;!-- "hello jPulse" --&gt;
+&#123;&#123;string.substring "hello world" 0 5&#125;&#125;             &lt;!-- "hello" --&gt;
+&#123;&#123;string.padLeft "5" 3 "0"&#125;&#125;                       &lt;!-- "005" --&gt;
+&#123;&#123;string.padRight "5" 3 "0"&#125;&#125;                      &lt;!-- "500" --&gt;
+
+&lt;!-- String Checks --&gt;
+&#123;&#123;string.startsWith "hello" "he"&#125;&#125;                 &lt;!-- "true" --&gt;
+&#123;&#123;string.endsWith "hello" "lo"&#125;&#125;                   &lt;!-- "true" --&gt;
+&#123;&#123;string.contains "hello" "ell"&#125;&#125;                  &lt;!-- "true" --&gt;
+
+&lt;!-- In Conditionals --&gt;
+&#123;&#123;#if (eq (string.startsWith url.path "/admin") "true")&#125;&#125;
+    Admin area
+&#123;&#123;else&#125;&#125;
+    Public area
+&#123;&#123;/if&#125;&#125;
+&#123;&#123;#if (eq (string.contains user.email "@") "true")&#125;&#125;
+    Valid email
+&#123;&#123;else&#125;&#125;
+    Invalid email
+&#123;&#123;/if&#125;&#125;
             </div>
         </div>
 
         <!-- Custom Variables with {{let}} (v1.3.3+) -->
-        <h2 class="local-heading-2">8. Custom Variables with &#123;&#123;let&#125;&#125;</h2>
+        <h2 class="local-heading-2">9. Custom Variables with &#123;&#123;let&#125;&#125;</h2>
         <!-- Tab interface for example/source -->
         <div id="let-tabs" class="jp-tabs"></div>
         <div id="let-example-panel" class="jp-panel">
@@ -752,7 +826,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
         </div>
 
         <!-- Block-Scoped Variables with #let handlebars -->
-        <h2 class="local-heading-2">9. Block-Scoped Variables with &#123;&#123;#let&#125;&#125;</h2>
+        <h2 class="local-heading-2">10. Block-Scoped Variables with &#123;&#123;#let&#125;&#125;</h2>
         <!-- Tab interface for example/source -->
         <div id="let-block-tabs" class="jp-tabs"></div>
         <div id="let-block-example-panel" class="jp-panel">
@@ -825,7 +899,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
         </div>
 
         <!-- Conditional Rendering Example -->
-        <h2 class="local-heading-2">10. Conditional Rendering with &#123;&#123;#if&#125;&#125;</h2>
+        <h2 class="local-heading-2">11. Conditional Rendering with &#123;&#123;#if&#125;&#125;</h2>
         <!-- Tab interface for example/source -->
         <div id="conditionals-tabs" class="jp-tabs"></div>
         <div id="conditionals-example-panel" class="jp-panel">
@@ -891,7 +965,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
         </div>
 
         <!-- Loops Example -->
-        <h2 class="local-heading-2">11. Loops &amp; Iterations with &#123;&#123;#each&#125;&#125;</h2>
+        <h2 class="local-heading-2">12. Loops &amp; Iterations with &#123;&#123;#each&#125;&#125;</h2>
         <!-- Tab interface for example/source -->
         <div id="loops-tabs" class="jp-tabs"></div>
         <div id="loops-example-panel" class="jp-panel">
@@ -966,7 +1040,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
         </div>
 
         <!-- Context Switching with #with handlebars (v1.3.3+) -->
-        <h2 class="local-heading-2">12. Context Switching with &#123;&#123;#with&#125;&#125;</h2>
+        <h2 class="local-heading-2">13. Context Switching with &#123;&#123;#with&#125;&#125;</h2>
         <!-- Tab interface for example/source -->
         <div id="with-tabs" class="jp-tabs"></div>
         <div id="with-example-panel" class="jp-panel">
@@ -1013,7 +1087,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
         </div>
 
         <!-- Nested Handlebars Example (v0.7.20+) -->
-        <h2 class="local-heading-2">13. Nested Handlebars</h2>
+        <h2 class="local-heading-2">14. Nested Handlebars</h2>
         <!-- Tab interface for example/source -->
         <div id="nested-tabs" class="jp-tabs"></div>
         <div id="nested-example-panel" class="jp-panel">
@@ -1202,6 +1276,16 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                 panelHeight: '32rem',
                 slideAnimation: true
             }, 'math-example');
+
+            // String helpers example tabs
+            jPulse.UI.tabs.register('string-tabs', {
+                tabs: [
+                    { id: 'string-example', label: 'Example', panelId: 'string-example-panel' },
+                    { id: 'string-source', label: 'Source Code', panelId: 'string-source-panel' }
+                ],
+                panelHeight: '32rem',
+                slideAnimation: true
+            }, 'string-example');
 
             document.getElementById('handlebarButton').addEventListener('click', async () => {
                 const $resultElem = document.getElementById('handlebarResult');

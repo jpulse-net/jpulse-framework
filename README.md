@@ -1,4 +1,4 @@
-# jPulse Framework v1.4.7
+# jPulse Framework v1.4.8
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -81,7 +81,7 @@ npm start
 - **Health Metrics**: Aggregated across instances on all app servers
 - **Enterprise Security**: Built-in authentication, session management, security headers, and HTML sanitization
 - **Internationalization**: Complete i18n support with dynamic translation loading
-- **Testing Framework**: 1400+ tests with automated cleanup and isolation
+- **Testing Framework**: 1500+ tests with automated cleanup and isolation
 - **Production Ready**: nginx integration, PM2 clustering, MongoDB replica sets
 
 ## Deployment Requirements
@@ -198,6 +198,7 @@ npx jpulse update @jpulse-net/jpulse-framework@1.0.0-rc.1
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.4.8 - Handlebars String Helpers & Math Namespace (W-128)**: New string manipulation helpers organized under `string.*` namespace (consistent with `file.*`). Features 9 helpers: `{{string.concat}}`, `{{string.default}}`, `{{string.replace}}`, `{{string.substring}}`, `{{string.padLeft}}`, `{{string.padRight}}`, `{{string.startsWith}}`, `{{string.endsWith}}`, `{{string.contains}}`. Refactored all 10 math helpers to `math.*` namespace for consistency: `{{math.add}}`, `{{math.subtract}}`, `{{math.multiply}}`, `{{math.divide}}`, `{{math.mod}}`, `{{math.round}}`, `{{math.floor}}`, `{{math.ceil}}`, `{{math.min}}`, `{{math.max}}`. All helpers support nested subexpressions and work with variables. Complete documentation in [Handlebars Guide](docs/handlebars.md#string-helpers) and [Live Examples](/jpulse-examples/handlebars.shtml#string-helpers). W-128.
 - ✅ **Version 1.4.7 - Handlebars Math Helpers (W-127)**: New math helpers for performing calculations in Handlebars templates. Features 10 helpers: `{{add}}`, `{{subtract}}`, `{{multiply}}`, `{{divide}}`, `{{mod}}`, `{{round}}`, `{{floor}}`, `{{ceil}}`, `{{min}}`, `{{max}}`. Variadic support for `add`, `subtract`, `multiply`, `divide`, `min`, `max` (1+ arguments). Type coercion automatically converts string numbers to numbers. Error handling: returns 0 with warning log for invalid inputs or division by zero. Supports nested subexpressions and works with variables. Complete documentation in [Handlebars Guide](docs/handlebars.md#math-helpers) and [Live Examples](/jpulse-examples/handlebars.shtml#math-helpers). W-127.
 - ✅ **Version 1.4.6 - Tooltip Component (W-126)**: New tooltip component for adding helpful tooltips to any element with simple HTML attributes. Features `class="jp-tooltip"` and `data-tooltip` for easy implementation, HTML content support, smart automatic positioning based on viewport, optional position and delay overrides, container support for dynamic content (dialogs), full keyboard accessibility (focus support, Escape to dismiss), mobile-friendly tap interactions, and subtle yellow styling matching warning-box design. Configurable defaults via `appConfig.view.jPulse.UI.tooltip` (position, openDelay, closeDelay). Complete API with `jPulse.UI.tooltip.initAll()` and `init()` methods. See [UI Widget Reference](docs/jpulse-ui-reference.md#tooltip-component) and [Live Examples](/jpulse-examples/ui-widgets.shtml). W-126.
 - ✅ **Version 1.4.5 - Docs UX + Navigation Improvements (W-125)**: Major documentation usability improvements across Handlebars docs, examples pages, and navigation. Restructured `docs/handlebars.md` for clearer TOC navigation and easier lookup. Refactored `jpulse-examples/*` pages into numbered, long-form sections. Improved site navigation dropdown with scrollable flyout submenus (including deep flyouts without clipping). Fixed jPulse Docs pulldown so all docs groups render (not only the last one). Improved mobile hamburger menu to fully expand large/nested docs lists without clipping. Enhanced TOC with "Back to top" and h4 support; improved accessibility via i18n-backed aria labels. W-125.

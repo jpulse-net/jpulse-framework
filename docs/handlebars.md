@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.4.7
+# jPulse Docs / Handlebars Templating v1.4.8
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -453,96 +453,98 @@ See [Custom Variables](#custom-variables) section for detailed documentation.
 
 ### Math Helpers
 
-#### `{{add}}` - Sum all arguments
+Math operations are organized under the `math.*` namespace for consistency and organization.
+
+#### `{{math.add}}` - Sum all arguments
 
 Sum all arguments (variadic, 1+ args).
 
 ```handlebars
-{{add 2 4 6}}                    <!-- 12 -->
-{{add 10 vars.bonus vars.extra}}  <!-- sum of all -->
-{{add (file.timestamp "file.js") 1000}}
+{{math.add 2 4 6}}                    <!-- 12 -->
+{{math.add 10 vars.bonus vars.extra}}  <!-- sum of all -->
+{{math.add (file.timestamp "file.js") 1000}}
 ```
 
-#### `{{subtract}}` - Subtract sequentially
+#### `{{math.subtract}}` - Subtract sequentially
 
 First arg minus all subsequent args (variadic, 1+ args).
 
 ```handlebars
-{{subtract 10}}        <!-- 10 -->
-{{subtract 10 3}}      <!-- 7 -->
-{{subtract 10 3 2}}    <!-- 5 (10 - 3 - 2) -->
+{{math.subtract 10}}        <!-- 10 -->
+{{math.subtract 10 3}}      <!-- 7 -->
+{{math.subtract 10 3 2}}    <!-- 5 (10 - 3 - 2) -->
 ```
 
-#### `{{multiply}}` - Multiply all arguments
+#### `{{math.multiply}}` - Multiply all arguments
 
 Multiply all arguments (variadic, 1+ args).
 
 ```handlebars
-{{multiply 2 3 4}}                    <!-- 24 -->
-{{multiply vars.price vars.quantity vars.tax}}
+{{math.multiply 2 3 4}}                    <!-- 24 -->
+{{math.multiply vars.price vars.quantity vars.tax}}
 ```
 
-#### `{{divide}}` - Divide sequentially
+#### `{{math.divide}}` - Divide sequentially
 
 First arg divided by all subsequent args (variadic, 1+ args). Division by zero returns 0 with warning.
 
 ```handlebars
-{{divide 100}}        <!-- 100 -->
-{{divide 100 4}}      <!-- 25 -->
-{{divide 100 4 2}}    <!-- 12.5 (100 / 4 / 2) -->
+{{math.divide 100}}        <!-- 100 -->
+{{math.divide 100 4}}      <!-- 25 -->
+{{math.divide 100 4 2}}    <!-- 12.5 (100 / 4 / 2) -->
 ```
 
-#### `{{mod}}` - Modulo operation
+#### `{{math.mod}}` - Modulo operation
 
 Modulo operation (exactly 2 args).
 
 ```handlebars
-{{mod 17 5}}  <!-- 2 -->
+{{math.mod 17 5}}  <!-- 2 -->
 ```
 
-#### `{{round}}` - Round to nearest integer
+#### `{{math.round}}` - Round to nearest integer
 
 Round to nearest integer (exactly 1 arg).
 
 ```handlebars
-{{round 3.7}}                    <!-- 4 -->
-{{round (divide 22 7)}}          <!-- 3 -->
+{{math.round 3.7}}                    <!-- 4 -->
+{{math.round (math.divide 22 7)}}          <!-- 3 -->
 ```
 
-#### `{{floor}}` - Round down
+#### `{{math.floor}}` - Round down
 
 Round down to integer (exactly 1 arg).
 
 ```handlebars
-{{floor 3.7}}                    <!-- 3 -->
-{{floor (divide 22 7)}}          <!-- 3 -->
+{{math.floor 3.7}}                    <!-- 3 -->
+{{math.floor (math.divide 22 7)}}          <!-- 3 -->
 ```
 
-#### `{{ceil}}` - Round up
+#### `{{math.ceil}}` - Round up
 
 Round up to integer (exactly 1 arg).
 
 ```handlebars
-{{ceil 3.2}}                     <!-- 4 -->
-{{ceil (divide 22 7)}}           <!-- 4 -->
+{{math.ceil 3.2}}                     <!-- 4 -->
+{{math.ceil (math.divide 22 7)}}           <!-- 4 -->
 ```
 
-#### `{{min}}` - Minimum value
+#### `{{math.min}}` - Minimum value
 
 Minimum of all arguments (variadic, 1+ args).
 
 ```handlebars
-{{min 5 3 8 2}}                          <!-- 2 -->
-{{min vars.price1 vars.price2 vars.price3}}
+{{math.min 5 3 8 2}}                          <!-- 2 -->
+{{math.min vars.price1 vars.price2 vars.price3}}
 ```
 
-#### `{{max}}` - Maximum value
+#### `{{math.max}}` - Maximum value
 
 Maximum of all arguments (variadic, 1+ args).
 
 ```handlebars
-{{max 5 3 8 2}}                          <!-- 8 -->
-{{max vars.score1 vars.score2 vars.score3}}
+{{math.max 5 3 8 2}}                          <!-- 8 -->
+{{math.max vars.score1 vars.score2 vars.score3}}
 ```
 
 **Type Coercion**: All math helpers convert string numbers to numbers automatically (e.g., `"5"` → `5`).
@@ -552,9 +554,122 @@ Maximum of all arguments (variadic, 1+ args).
 **Nested Expressions**: Math helpers work seamlessly with subexpressions:
 
 ```handlebars
-{{divide (add 100 50) 3}}              <!-- 50 -->
-{{add 2 (multiply 4 6) vars.sum}}      <!-- nested operations -->
-{{#if (gt (add user.score bonus) 100)}}High score!{{/if}}
+{{math.divide (math.add 100 50) 3}}              <!-- 50 -->
+{{math.add 2 (math.multiply 4 6) vars.sum}}      <!-- nested operations -->
+{{#if (gt (math.add user.score bonus) 100)}}High score!{{/if}}
+```
+
+### String Helpers
+
+String operations are organized under the `string.*` namespace for consistency and organization.
+
+#### `{{string.concat}}` - Concatenate strings
+
+Concatenate all arguments into a single string (variadic, 1+ args).
+
+```handlebars
+{{string.concat "hello" " " "world"}}                    <!-- "hello world" -->
+{{string.concat "themes/" user.preferences.theme ".css"}}  <!-- "themes/light.css" -->
+{{string.concat "prefix-" vars.value "-suffix"}}
+```
+
+#### `{{string.default}}` - Return first non-empty value
+
+Return the first non-empty value, or the last argument as fallback (variadic, 1+ args).
+
+```handlebars
+{{string.default user.preferences.theme "light"}}  <!-- "light" if theme is empty -->
+{{string.default user.preferences.language "en"}}   <!-- "en" if language is empty -->
+{{string.default vars.customValue "default" "fallback"}}  <!-- first non-empty, or "fallback" -->
+```
+
+#### `{{string.replace}}` - Replace substring
+
+Replace all occurrences of a substring (3 args: string, search, replace).
+
+```handlebars
+{{string.replace "hello world" "world" "jPulse"}}  <!-- "hello jPulse" -->
+{{string.replace user.name " " "-"}}               <!-- replace spaces with dashes -->
+{{string.replace url.path "/" "-"}}                <!-- replace slashes with dashes -->
+```
+
+#### `{{string.substring}}` - Extract substring
+
+Extract a substring from a string (3 args: string, start, length).
+
+```handlebars
+{{string.substring "hello world" 0 5}}  <!-- "hello" -->
+{{string.substring user.email 0 10}}    <!-- first 10 characters -->
+{{string.substring vars.text 5 20}}     <!-- characters 5-24 -->
+```
+
+#### `{{string.padLeft}}` - Pad left with character
+
+Pad a string to the left with a character (3 args: string, length, padChar).
+
+```handlebars
+{{string.padLeft "5" 3 "0"}}        <!-- "005" -->
+{{string.padLeft user.id 6 "0"}}   <!-- zero-pad ID to 6 digits -->
+{{string.padLeft "42" 5 " "}}      <!-- "   42" (padded with spaces) -->
+```
+
+#### `{{string.padRight}}` - Pad right with character
+
+Pad a string to the right with a character (3 args: string, length, padChar).
+
+```handlebars
+{{string.padRight "5" 3 "0"}}        <!-- "500" -->
+{{string.padRight user.name 20 " "}}  <!-- pad name to 20 characters -->
+{{string.padRight "42" 5 "-"}}       <!-- "42---" -->
+```
+
+#### `{{string.startsWith}}` - Check if string starts with
+
+Check if a string starts with a prefix (2 args: string, prefix). Returns `"true"` or `"false"`.
+
+```handlebars
+{{string.startsWith "hello" "he"}}              <!-- "true" -->
+{{string.startsWith url.path "/admin"}}         <!-- "true" if path starts with /admin -->
+{{#if (eq (string.startsWith url.path "/admin") "true")}}Admin area{{/if}}
+```
+
+#### `{{string.endsWith}}` - Check if string ends with
+
+Check if a string ends with a suffix (2 args: string, suffix). Returns `"true"` or `"false"`.
+
+```handlebars
+{{string.endsWith "hello" "lo"}}                <!-- "true" -->
+{{string.endsWith url.path ".html"}}            <!-- "true" if path ends with .html -->
+{{#if (eq (string.endsWith user.email "@example.com") "true")}}Internal user{{/if}}
+```
+
+#### `{{string.contains}}` - Check if string contains substring
+
+Check if a string contains a substring (2 args: string, substring). Returns `"true"` or `"false"`.
+
+```handlebars
+{{string.contains "hello" "ell"}}               <!-- "true" -->
+{{string.contains user.email "@"}}              <!-- "true" if email contains @ -->
+{{#if (eq (string.contains url.path "admin") "true")}}Admin section{{/if}}
+```
+
+**Common Use Cases**:
+
+```handlebars
+<!-- Theme CSS path with fallback -->
+<link rel="stylesheet" href="/themes/{{string.default user.preferences.theme "light"}}.css">
+
+<!-- Conditional string building -->
+{{string.concat "prefix-" (string.default vars.value "default") "-suffix"}}
+
+<!-- String manipulation -->
+{{string.replace user.name " " "-"}}  <!-- Convert spaces to dashes -->
+{{string.padLeft user.id 6 "0"}}      <!-- Zero-pad ID to 6 digits -->
+
+<!-- String checks in conditionals -->
+{{#if (eq (string.startsWith url.path "/admin") "true")}}
+    Admin area
+{{/if}}
 ```
 
 ## Block Helpers

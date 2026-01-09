@@ -176,6 +176,11 @@ window.jPulseNavigation = {
                     url:        '/jpulse-examples/handlebars.shtml',
                     icon:       `{{components.jpIcons.handlebarsSvg size="24" _inline=true}}`
                 },
+                themes: {
+                    label:      `{{i18n.view.navigation.jPulseExamples.themes}}`,
+                    url:        '/jpulse-examples/themes.shtml',
+                    icon:       `{{components.jpIcons.themesSvg size="24" _inline=true}}`
+                },
                 uiWidgets: {
                     label:      `{{i18n.view.navigation.jPulseExamples.uiWidgets}}`,
                     url:        '/jpulse-examples/ui-widgets.shtml',

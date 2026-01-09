@@ -3710,19 +3710,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/tests/unit/controller/handlebar-math-helpers.test.js:
     - math refactoring: update all test cases to use math.* namespace
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-129, v1.4.9, 2026-01-09: view: create themes infrastructure
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives: provide a framework where plugin and site delelopers can create and publish themes
 - features:
@@ -3864,6 +3853,19 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
+
+
+
+
+
 to-do:
 
 
@@ -3880,7 +3882,6 @@ old pending:
 ### Potential next items:
 - W-0: view: broadcast message
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
-- W-037: view: create themes
 - W-0: deployment: docker strategy
 - W-0: auth controller: authentication with OAuth2 (see W-109 for flow design)
 - W-0: auth controller: authentication with LDAP (see W-109 for flow design)

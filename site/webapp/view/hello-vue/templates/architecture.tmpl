@@ -4,8 +4,8 @@
  * @tagline         Architecture overview of Vue.js SPA
  * @description     Explains SPA architecture and Vue.js benefits
  * @file            site/webapp/view/hello-vue/templates/architecture.tmpl
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -28,8 +28,8 @@ window.jpSpaRoutes.Architecture = {
     <h3>🎯 What is a Single Page Application?</h3>
     <p>A <strong>Single Page Application (SPA)</strong> loads a single HTML page and dynamically updates content as users interact with the app. Instead of loading new pages from the server, JavaScript handles routing and updates the UI in real-time.</p>
 
-    <div class="jp-card" style="background: #e3f2fd; border-left: 4px solid #2196f3;">
-        <h4 style="margin-top: 0;">Key Characteristics</h4>
+    <div class="jp-output jp-output-info">
+        <h4>Key Characteristics</h4>
         <ul>
             <li>✅ <strong>Single Page Load</strong> - Only one HTML page loads initially</li>
             <li>✅ <strong>Client-side Routing</strong> - URL changes without page reloads</li>
@@ -39,7 +39,9 @@ window.jpSpaRoutes.Architecture = {
         </ul>
     </div>
 
-    <h3>🔄 MPA vs SPA Comparison</h3>
+    <div class="jp-mt-30">
+        <h3>🔄 MPA vs SPA Comparison</h3>
+    </div>
     <table class="jp-table">
         <thead>
             <tr>
@@ -82,7 +84,9 @@ window.jpSpaRoutes.Architecture = {
         </tbody>
     </table>
 
-    <h3>🎨 Vue.js Architecture in This Demo</h3>
+    <div class="jp-mt-30">
+        <h3>🎨 Vue.js Architecture in This Demo</h3>
+    </div>
     <div class="jp-source-code">
         <pre>Hello Vue SPA Structure:
 ┌─────────────────────────────────────────────────┐
@@ -105,8 +109,10 @@ When User Clicks Navigation:
 5. Page never reloads</pre>
     </div>
 
-    <h3>🚀 Why Vue.js?</h3>
-    <div class="jp-card" style="background: #f1f8e9; border-left: 4px solid #689f38;">
+    <div class="jp-mt-30">
+        <h3>🚀 Why Vue.js?</h3>
+    </div>
+    <div class="jp-output jp-output-success">
         <ul>
             <li><strong>Reactive Data Binding</strong> - UI updates automatically when data changes</li>
             <li><strong>Component-Based</strong> - Reusable, self-contained UI pieces</li>
@@ -117,9 +123,11 @@ When User Clicks Navigation:
         </ul>
     </div>
 
-    <h3>⚡ Performance Benefits</h3>
-    <div class="jp-card" style="background: #fff3cd; border-left: 4px solid #ffc107;">
-        <h4 style="margin-top: 0;">SPAs Are Faster Because:</h4>
+    <div class="jp-mt-30">
+        <h3>⚡ Performance Benefits</h3>
+    </div>
+    <div class="jp-output jp-output-warning">
+        <h4>SPAs Are Faster Because:</h4>
         <ul>
             <li>✅ <strong>No Full Page Reloads</strong> - Only changed content updates</li>
             <li>✅ <strong>Cached Assets</strong> - JavaScript/CSS loaded once</li>
@@ -129,7 +137,9 @@ When User Clicks Navigation:
         </ul>
     </div>
 
-    <h3>🎯 Real-World Use Cases</h3>
+    <div class="jp-mt-30">
+        <h3>🎯 Real-World Use Cases</h3>
+    </div>
     <table class="jp-table">
         <thead>
             <tr>
@@ -157,34 +167,36 @@ When User Clicks Navigation:
         </tbody>
     </table>
 
-    <h3>🛠️ Technologies in This Demo</h3>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
-        <div class="jp-card" style="background: #f8f9fa;">
-            <h4 style="margin-top: 0; color: #42b883;">Vue.js 3</h4>
+    <div class="jp-mt-30">
+        <h3>🛠️ Technologies in This Demo</h3>
+    </div>
+    <div class="jp-grid-auto-200 jp-mt-15">
+        <div class="jp-card">
+            <h4>Vue.js 3</h4>
             <p>Progressive JavaScript framework for building UIs</p>
         </div>
-        <div class="jp-card" style="background: #f8f9fa;">
-            <h4 style="margin-top: 0; color: #35495e;">Vue Router</h4>
+        <div class="jp-card">
+            <h4>Vue Router</h4>
             <p>Official router for Vue.js with History Mode</p>
         </div>
-        <div class="jp-card" style="background: #f8f9fa;">
-            <h4 style="margin-top: 0; color: #007acc;">jPulse.api</h4>
+        <div class="jp-card">
+            <h4>jPulse.api</h4>
             <p>Framework helper for REST API calls</p>
         </div>
     </div>
 
     <h3>📚 Compare with Other Examples</h3>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
-        <a href="/hello-todo/" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
-            <h4 style="margin-top: 0;">✅ To-Do MVC (MPA)</h4>
+    <div class="jp-grid-auto-200 jp-mt-15">
+        <a href="/hello-todo/" class="jp-card jp-link-card">
+            <h4>✅ To-Do MVC (MPA)</h4>
             <p>Traditional Multi-Page Application for comparison</p>
         </a>
-        <a href="/hello-websocket/" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
-            <h4 style="margin-top: 0;">🌐 WebSocket Real-Time</h4>
+        <a href="/hello-websocket/" class="jp-card jp-link-card">
+            <h4>🌐 WebSocket Real-Time</h4>
             <p>SPA + Real-time communication with WebSockets</p>
         </a>
-        <a href="/hello/" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
-            <h4 style="margin-top: 0;">🏠 All Examples</h4>
+        <a href="/hello/" class="jp-card jp-link-card">
+            <h4>🏠 All Examples</h4>
             <p>Back to the examples dashboard</p>
         </a>
     </div>

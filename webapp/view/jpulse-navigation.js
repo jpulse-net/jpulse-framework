@@ -7,8 +7,8 @@
  *                  See docs/site-navigation.md for more information, also available at:
  *                  https://jpulse.net/jpulse-docs/site-navigation
  * @file            webapp/view/jpulse-navigation.js
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -279,6 +279,7 @@ window.jPulseNavigation = {
                 { id: 'jp-tab-overview', label: 'Overview', url: '/jpulse-examples/' },
                 { id: 'jp-tab-api-integration', label: 'API', url: '/jpulse-examples/api.shtml' },
                 { id: 'jp-tab-handlebars', label: 'Handlebars', url: '/jpulse-examples/handlebars.shtml' },
+                { id: 'jp-tab-themes', label: 'Themes', url: '/jpulse-examples/themes.shtml' },
                 { id: 'jp-tab-ui-widgets', label: 'UI Widgets', url: '/jpulse-examples/ui-widgets.shtml' },
                 { id: 'jp-tab-layout', label: 'Layout', url: '/jpulse-examples/layout.shtml' },
                 { id: 'jp-tab-forms', label: 'Forms', url: '/jpulse-examples/forms.shtml' }

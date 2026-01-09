@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -375,6 +375,57 @@ class ViewController {
             }
 
             // W-079: Read template file using simplified cache (if not already read in append mode)
+            // For binary/static assets (e.g., theme previews), do NOT run i18n/Handlebars expansion
+            // and do NOT read via template cache (it reads UTF-8 and would corrupt binary files).
+            const rawFileExtension = path.extname(filePath).toLowerCase();
+            const binaryExtensions = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico']);
+            // JSON should be served raw (no Handlebars expansion) to avoid accidental variable expansion/leaks.
+            // SVG is treated like other text assets (similar to .css/.js): it can be processed if desired.
+            const rawTextExtensions = new Set(['.json']);
+
+            if (fullPath && (binaryExtensions.has(rawFileExtension) || rawTextExtensions.has(rawFileExtension))) {
+                let rawContentType = 'application/octet-stream';
+                switch (rawFileExtension) {
+                    case '.png':
+                        rawContentType = 'image/png';
+                        break;
+                    case '.jpg':
+                    case '.jpeg':
+                        rawContentType = 'image/jpeg';
+                        break;
+                    case '.gif':
+                        rawContentType = 'image/gif';
+                        break;
+                    case '.webp':
+                        rawContentType = 'image/webp';
+                        break;
+                    case '.ico':
+                        rawContentType = 'image/x-icon';
+                        break;
+                    case '.json':
+                        rawContentType = 'application/json; charset=utf-8';
+                        break;
+                    default:
+                        break;
+                }
+
+                res.set('Content-Type', rawContentType);
+
+                // Send raw bytes for binary assets; send UTF-8 text for JSON/SVG.
+                if (binaryExtensions.has(rawFileExtension)) {
+                    const buffer = fs.readFileSync(fullPath);
+                    res.send(buffer);
+                } else {
+                    const text = fs.readFileSync(fullPath, 'utf8');
+                    res.send(text);
+                }
+
+                // Log completion time only on success
+                const duration = Date.now() - startTime;
+                LogController.logInfo(req, 'view.load', `${req.path}, completed in ${duration}ms`);
+                return;
+            }
+
             if (!content) {
                 content = this.templateCache.getFileSync(fullPath);
             }
@@ -401,6 +452,12 @@ class ViewController {
                 case '.js':
                     this.jsCounter.increment();
                     contentType = 'application/javascript';
+                    break;
+                case '.svg':
+                    contentType = 'image/svg+xml; charset=utf-8';
+                    break;
+                case '.json':
+                    contentType = 'application/json; charset=utf-8';
                     break;
                 case '.tmpl':
                     this.tmplCounter.increment();

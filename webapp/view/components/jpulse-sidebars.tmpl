@@ -3,8 +3,8 @@
  * @tagline         Sidebar component library
  * @description     Reusable sidebar components for left and right sidebars - W-068
  * @file            webapp/view/components/jpulse-sidebars.tmpl
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -204,7 +204,7 @@
         {{!-- Scroll to top link --}}
         <a href="#" class="jp-sidebar-toc-top-link" id="jp-sidebar-toc-top" title="{{i18n.view.pageDecoration.sidebar.components.toc.scrollToTopTitle}}">{{i18n.view.pageDecoration.sidebar.components.toc.backToTop}}</a>
         {{!-- Hidden empty message, shown when no headings found --}}
-        <div class="jp-sidebar-toc-empty" id="jp-sidebar-toc-empty" style="display: none;">{{i18n.view.pageDecoration.sidebar.components.toc.noHeadings}}</div>
+        <div class="jp-sidebar-toc-empty jp-hidden" id="jp-sidebar-toc-empty">{{i18n.view.pageDecoration.sidebar.components.toc.noHeadings}}</div>
         {{!-- Table of contents auto-generated from page headings --}}
     </div>
     <script>
@@ -255,14 +255,14 @@
             if (headings.length === 0) {
                 // Show empty message
                 if (emptyEl) {
-                    emptyEl.style.display = 'block';
+                    emptyEl.classList.remove('jp-hidden');
                 }
                 return;
             }
 
             // Hide empty message if headings are found
             if (emptyEl) {
-                emptyEl.style.display = 'none';
+                emptyEl.classList.add('jp-hidden');
             }
 
             // Normalize heading levels: if a lower level appears before a higher level at start, shift it up

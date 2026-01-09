@@ -52,6 +52,11 @@ template-reference.md
 handlebars.md
 style-reference.md
 jpulse-ui-reference.md
+themes.md
+
+# GenAI Development
+genai-development.md        Generative AI  Development
+genai-instructions.md       Generative AI  Instructions
 
 # Site Customization
 site-customization.md
@@ -74,6 +79,7 @@ app-examples.md
 # Plugins
 plugins/README.md
 plugins/creating-plugins.md
+plugins/creating-themes.md
 plugins/managing-plugins.md
 plugins/plugin-architecture.md
 plugins/plugin-api-reference.md
@@ -81,10 +87,6 @@ plugins/plugin-hooks.md
 plugins/publishing-plugins.md
 
 installed-plugins/README.md
-
-# GenAI Development
-genai-instructions.md
-genai-development.md
 
 # Reference & Meta
 CHANGELOG.md

@@ -1,4 +1,4 @@
-# jPulse Docs / Style Reference v1.4.8
+# jPulse Docs / Style Reference v1.4.9
 
 Comprehensive CSS framework documentation for the jPulse `jp-*` styling system, providing consistent, responsive, and enterprise-ready components for web applications.
 
@@ -14,6 +14,10 @@ The jPulse CSS Component Library provides a complete set of pre-built components
 - **Enterprise Ready**: Professional styling suitable for business applications
 - **Modular Architecture**: Components can be used independently or combined
 - **Theme Support**: Built-in support for light/dark themes
+
+**See also**:
+- [Themes](themes.md)
+- [Creating Themes](plugins/creating-themes.md)
 
 ### CSS Prefix Convention
 - **`jp-*`** = Framework components (always in `jpulse-common.css`)
@@ -1283,41 +1287,88 @@ CSS for collapsible content sections (works with jPulse JavaScript):
 ## 🌙 Theme System
 
 ### Theme Support
-Built-in support for light and dark themes:
+The framework UI supports themes via **CSS variables**.
+
+- **Base variables**: `webapp/view/jpulse-common.css` defines `:root { --jp-theme-* }`
+- **Theme overrides**: `webapp/view/themes/<name>.css` overrides variables under `[data-theme="<name>"] { ... }`
+- **Selection**: the active theme is selected via `<html data-theme="...">`
+
+See also:
+- [Themes](/themes.md)
+- [Creating Themes](/plugins/creating-themes.md)
+
+### Theme-friendly page author checklist
+
+If you create or update a page/view, follow these guidelines so it works well across themes:
+
+- **Prefer framework classes**: use `jp-*` components and utilities instead of custom CSS whenever possible.
+- **Avoid hard-coded colors**: do not use `#fff`, `#000`, `rgb(...)`, etc. for UI surfaces and text. Use theme variables instead.
+  - Use `var(--jp-theme-bg-*, ...)` for backgrounds/surfaces
+  - Use `var(--jp-theme-text-*, ...)` for text
+  - Use `var(--jp-theme-border-color, ...)` for borders/dividers
+  - Use semantic vars (`--jp-theme-color-info-*`, `--jp-theme-color-warning-*`, `--jp-theme-color-danger-*`, `--jp-theme-color-success-*`) for status/alerts
+- **Keep custom CSS local**: put page-specific rules under `local-*` classes in the page’s `<style>` block.
+- **Use theme-aware icons**: prefer SVG icons using `currentColor` so they inherit the theme text color.
+- **Test both schemes + mobile**: verify light/dark (and narrow screens) before calling a page “done”.
+- **For code blocks**: rely on Prism themes (light/dark) and avoid overriding token colors unless you really need to.
 
 ```css
-/* Light theme (default) */
+/* Light theme: defaults are in :root (jpulse-common.css) */
 :root {
-    --jp-bg-primary: #ffffff;
-    --jp-bg-secondary: #f8f9fa;
-    --jp-text-primary: #212529;
-    --jp-text-secondary: #6c757d;
-    --jp-border-color: #e9ecef;
+    --jp-theme-bg-body: #ffffff;
+    --jp-theme-bg-primary: #ffffff;
+    --jp-theme-text-primary: #333333;
+    --jp-theme-text-secondary: #555555;
+    --jp-theme-border-color: #dddddd;
 }
 
-/* Dark theme */
+/* Dark theme: example overrides */
 [data-theme="dark"] {
-    --jp-bg-primary: #2d3748;
-    --jp-bg-secondary: #4a5568;
-    --jp-text-primary: #f7fafc;
-    --jp-text-secondary: #cbd5e0;
-    --jp-border-color: #4a5568;
+    --jp-theme-bg-body: #1a1a1a;
+    --jp-theme-bg-primary: #2d3748;
+    --jp-theme-text-primary: #f7fafc;
+    --jp-theme-text-secondary: #cbd5e0;
+    --jp-theme-border-color: #4b5563;
+
+    /* Improves native controls (select, date picker) on supported browsers */
+    --jp-theme-color-scheme: dark;
 }
 
 /* Components using theme variables */
 .jp-card {
-    background: var(--jp-bg-primary);
-    color: var(--jp-text-primary);
-    border-color: var(--jp-border-color);
+    background: var(--jp-theme-bg-primary);
+    color: var(--jp-theme-text-primary);
+    border-color: var(--jp-theme-border-color);
 }
 
 .jp-main {
-    background: var(--jp-bg-primary);
-    color: var(--jp-text-primary);
+    background: var(--jp-theme-bg-primary);
+    color: var(--jp-theme-text-primary);
 }
 ```
 
 ### Theme Implementation
+Theme selection is typically done via the **User Profile** page and stored in user preferences.
+Templates use a central `htmlAttrs` helper string (W-129):
+
+```html
+<html {{appConfig.system.htmlAttrs}}>
+```
+
+The header loads the selected theme CSS:
+
+```html
+<link rel="stylesheet" href="/themes/<theme>.css">
+```
+
+#### Prism.js (Syntax Highlighting)
+Prism CSS is selected based on the active theme’s color scheme:
+
+- `/common/prism/prism-light.css`
+- `/common/prism/prism-dark.css`
+
+Custom themes should set `--jp-theme-color-scheme: dark;` when appropriate.
+
 ```html
 <!-- Theme toggle example -->
 <button onclick="toggleTheme()" class="jp-btn jp-btn-outline">
@@ -1394,7 +1445,7 @@ Example of a complete page using jPulse components:
 
 ```html
 <!DOCTYPE html>
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

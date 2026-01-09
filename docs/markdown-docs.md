@@ -1,4 +1,4 @@
-# jPulse Docs / Markdown Documentation System v1.4.8
+# jPulse Docs / Markdown Documentation System v1.4.9
 
 **For Site Developers**
 
@@ -79,7 +79,7 @@ Create `site/webapp/view/my-help/index.shtml`:
 
 ```html
 <!DOCTYPE html>
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

@@ -3,8 +3,8 @@
  * @tagline         Basic tests for User Model and Controller
  * @description     Unit tests for User Model validation and basic functionality
  * @file            webapp/tests/unit/user/user-basic.test.js
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -263,7 +263,7 @@ describe('User Model Basic Tests', () => {
                 // Apply preferences defaults
                 if (!result.preferences) result.preferences = {};
                 if (result.preferences.language === undefined) result.preferences.language = 'en';
-                if (result.preferences.theme === undefined) result.preferences.theme = 'light';
+                if (result.preferences.theme === undefined) result.preferences.theme = global.appConfig?.utils?.theme?.default || 'light';
 
                 // Apply status and metadata defaults
                 if (result.status === undefined) result.status = 'active';
@@ -281,7 +281,7 @@ describe('User Model Basic Tests', () => {
             expect(result.profile.avatar).toBe('');
             expect(result.roles).toEqual(['user']);
             expect(result.preferences.language).toBe('en');
-            expect(result.preferences.theme).toBe('light');
+            expect(result.preferences.theme).toBe(global.appConfig?.utils?.theme?.default || 'light');
             expect(result.status).toBe('active');
             expect(result.lastLogin).toBe(null);
             expect(result.loginCount).toBe(0);

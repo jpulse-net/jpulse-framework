@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.4.8
+# jPulse Docs / Site Administrator & Developer Documentation v1.4.9
 
 **For Site Administrators & Site Developers**
 
@@ -57,7 +57,7 @@ Welcome to the jPulse Framework documentation - your complete guide to building 
 - Ships with `hello-world` demo plugin
 
 ### 🧪 **Testing & Quality**
-- 1500+ with 100% pass rate
+- 1600+ with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis
@@ -213,6 +213,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.4.9 - Themes Infrastructure (W-129)**: Comprehensive theme system enabling plugin and site developers to create custom themes. Framework ships with light (default) and dark themes. Features CSS variable standardization (49 `--jp-theme-*` variables), auto-discovery from framework/plugins/site with priority resolution, dynamic theme CSS loading (only selected theme loaded), theme metadata in JSON files (name, label, description, author, version, source), 500x200 preview images, dynamic themes documentation table (`%DYNAMIC{themes-list-table}%`), schema extension (discovered themes automatically added to user preferences enum), Prism.js syntax highlighting theme switching (light/dark), instant theme preview on profile page, config-driven default theme (`appConfig.utils.theme.default`), and secure context filtering for unauthenticated users. Complete documentation in [Themes Guide](themes.md), [Creating Themes](plugins/creating-themes.md), and [Live Examples](/jpulse-examples/themes.shtml). W-129.
 - ✅ **Version 1.4.8 - Handlebars String Helpers & Math Namespace (W-128)**: New string manipulation helpers organized under `string.*` namespace (consistent with `file.*`). Features 9 helpers: `{{string.concat}}`, `{{string.default}}`, `{{string.replace}}`, `{{string.substring}}`, `{{string.padLeft}}`, `{{string.padRight}}`, `{{string.startsWith}}`, `{{string.endsWith}}`, `{{string.contains}}`. Refactored all 10 math helpers to `math.*` namespace for consistency: `{{math.add}}`, `{{math.subtract}}`, `{{math.multiply}}`, `{{math.divide}}`, `{{math.mod}}`, `{{math.round}}`, `{{math.floor}}`, `{{math.ceil}}`, `{{math.min}}`, `{{math.max}}`. All helpers support nested subexpressions and work with variables. Complete documentation in [Handlebars Guide](handlebars.md#string-helpers) and [Live Examples](/jpulse-examples/handlebars.shtml#string-helpers). W-128.
 - ✅ **Version 1.4.7 - Handlebars Math Helpers (W-127)**: New math helpers for performing calculations in Handlebars templates. Features 10 helpers: `{{add}}`, `{{subtract}}`, `{{multiply}}`, `{{divide}}`, `{{mod}}`, `{{round}}`, `{{floor}}`, `{{ceil}}`, `{{min}}`, `{{max}}`. Variadic support for `add`, `subtract`, `multiply`, `divide`, `min`, `max` (1+ arguments). Type coercion automatically converts string numbers to numbers. Error handling: returns 0 with warning log for invalid inputs or division by zero. Supports nested subexpressions and works with variables. Complete documentation in [Handlebars Guide](handlebars.md#math-helpers) and [Live Examples](/jpulse-examples/handlebars.shtml#math-helpers). W-127.
 - ✅ **Version 1.4.6 - Tooltip Component (W-126)**: New tooltip component for adding helpful tooltips to any element with simple HTML attributes. Features `class="jp-tooltip"` and `data-tooltip` for easy implementation, HTML content support, smart automatic positioning based on viewport, optional position and delay overrides, container support for dynamic content (dialogs), full keyboard accessibility (focus support, Escape to dismiss), mobile-friendly tap interactions, and subtle yellow styling matching warning-box design. Configurable defaults via `appConfig.view.jPulse.UI.tooltip` (position, openDelay, closeDelay). Complete API with `jPulse.UI.tooltip.initAll()` and `init()` methods. See [UI Widget Reference](jpulse-ui-reference.md#tooltip-component) and [Live Examples](/jpulse-examples/ui-widgets.shtml). W-126.

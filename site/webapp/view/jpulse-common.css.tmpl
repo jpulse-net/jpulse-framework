@@ -4,8 +4,8 @@
  * @description     Site-specific styles - appended to jpulse-common.css
  * @convention      Append mode: This file is concatenated to framework jpulse-common.css (W-098)
  * @file            site/webapp/view/jpulse-common.css.tmpl
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @author          Site Administrator
  * @copyright       2025 Site Administrator
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
@@ -16,27 +16,50 @@
  * SITE-SPECIFIC STYLES
  * Use site-* prefix for all site-specific CSS classes
  * This makes it immediately clear where styles are defined
+ *
+ * THEMES (W-129):
+ * - Put theme colors in theme files: site/webapp/view/themes/<name>.css
+ * - This file is for site-specific layout/branding overrides only.
+ * - Prefer referencing the framework theme variables (--jp-theme-*) so your site
+ *   automatically adapts to light/dark/custom themes without extra work.
  * ======================================== */
 
 /* Site-specific color scheme */
 :root {
+    /* Brand accent colors (optional). Keep these stable across themes, or override per theme below. */
     --site-primary-color: #2563eb;
     --site-secondary-color: #64748b;
     --site-accent-color: #f59e0b;
     --site-success-color: #10b981;
     --site-warning-color: #f59e0b;
     --site-error-color: #ef4444;
-    --site-background-color: #f8fafc;
-    --site-text-color: #1e293b;
-    --site-border-color: #e2e8f0;
+
+    /* Bridge to theme variables (recommended). */
+    --site-background-color: var(--jp-theme-bg-body, #f8fafc);
+    --site-surface-color: var(--jp-theme-bg-primary, #ffffff);
+    --site-surface-muted-color: var(--jp-theme-bg-secondary, #f8f9fa);
+    --site-text-color: var(--jp-theme-text-primary, #1e293b);
+    --site-text-muted-color: var(--jp-theme-text-muted, #64748b);
+    --site-border-color: var(--jp-theme-border-color, #e2e8f0);
+    --site-shadow-sm: var(--jp-theme-shadow-sm, 0 1px 3px rgba(0,0,0,0.1));
+    --site-shadow-lg: var(--jp-theme-shadow-lg, 0 4px 20px rgba(0,0,0,0.15));
 }
+
+/* Optional: tweak brand colors per theme */
+/*
+[data-theme="dark"] {
+    --site-primary-color: #60a5fa;
+    --site-secondary-color: #94a3b8;
+    --site-accent-color: #fbbf24;
+}
+*/
 
 /* Site-specific layout components */
 .site-header {
     background: var(--site-primary-color);
-    color: white;
+    color: var(--jp-theme-text-inverse, #ffffff);
     padding: 1rem 0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: var(--site-shadow-sm);
 }
 
 .site-nav {
@@ -52,7 +75,7 @@
     font-size: 1.5rem;
     font-weight: bold;
     text-decoration: none;
-    color: white;
+    color: var(--jp-theme-text-inverse, #ffffff);
 }
 
 .site-menu {
@@ -64,7 +87,7 @@
 }
 
 .site-menu-item {
-    color: white;
+    color: var(--jp-theme-text-inverse, #ffffff);
     text-decoration: none;
     padding: 0.5rem 1rem;
     border-radius: 4px;
@@ -78,7 +101,7 @@
 /* Site-specific content components */
 .site-hero {
     background: linear-gradient(135deg, var(--site-primary-color), var(--site-secondary-color));
-    color: white;
+    color: var(--jp-theme-text-inverse, #ffffff);
     padding: 4rem 2rem;
     text-align: center;
     margin-bottom: 2rem;
@@ -105,17 +128,17 @@
 }
 
 .site-feature-card {
-    background: white;
+    background: var(--site-surface-color);
     padding: 2rem;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: var(--site-shadow-sm);
     border: 1px solid var(--site-border-color);
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .site-feature-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    box-shadow: var(--site-shadow-lg);
 }
 
 .site-feature-icon {
@@ -127,7 +150,7 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 1rem;
-    color: white;
+    color: var(--jp-theme-text-inverse, #ffffff);
     font-size: 1.5rem;
 }
 
@@ -139,7 +162,7 @@
 }
 
 .site-feature-description {
-    color: var(--site-secondary-color);
+    color: var(--site-text-muted-color);
     line-height: 1.6;
 }
 
@@ -178,7 +201,7 @@
 
 .site-btn-primary {
     background: var(--site-primary-color);
-    color: white;
+    color: var(--jp-theme-text-inverse, #ffffff);
 }
 
 .site-btn-primary:hover {
@@ -188,7 +211,7 @@
 
 .site-btn-secondary {
     background: var(--site-secondary-color);
-    color: white;
+    color: var(--jp-theme-text-inverse, #ffffff);
 }
 
 .site-btn-secondary:hover {
@@ -203,7 +226,7 @@
 
 .site-btn-outline:hover {
     background: var(--site-primary-color);
-    color: white;
+    color: var(--jp-theme-text-inverse, #ffffff);
 }
 
 /* Site-specific responsive design */
@@ -313,7 +336,7 @@
 
 .site-accordion-open {
     background: var(--site-primary-color) !important;
-    color: white !important;
+    color: var(--jp-theme-text-inverse, #ffffff) !important;
 }
 
 /* ========================================

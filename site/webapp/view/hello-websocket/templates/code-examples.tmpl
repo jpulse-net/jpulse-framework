@@ -4,8 +4,8 @@
  * @tagline         Code examples component of the WebSocket demo
  * @description     This component shows code examples of the WebSocket demo
  * @file            site/webapp/view/hello-websocket/templates/code-examples.tmpl
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -265,7 +265,7 @@ export default TodoController;</code></pre>
     }
 };</code></pre>
 
-        <p class="jp-help-text" style="margin-top: 10px;">
+        <p class="jp-help-text jp-mt-15">
             💡 <strong>Why this pattern?</strong> REST API does validation, persistence, and error handling.
             WebSocket provides instant notifications. Best of both worlds!
         </p>
@@ -308,7 +308,7 @@ export default TodoController;</code></pre>
     }
 }</code></pre>
 
-        <p class="jp-help-text" style="margin-top: 10px;">
+        <p class="jp-help-text jp-mt-15">
             💡 <strong>Important:</strong> Mouse events fire hundreds of times per second. Always throttle
             or debounce high-frequency events before sending over WebSocket!
         </p>
@@ -369,96 +369,104 @@ export default TodoController;</code></pre>
     username: ''  // Empty for system messages
 }</code></pre>
 
-        <p class="jp-help-text" style="margin-top: 10px;">
+        <p class="jp-help-text jp-mt-15">
             💡 The <code>username</code> field is automatically added to all messages by the framework.
             It contains the authenticated user's username, or an empty string if not authenticated.
         </p>
     </div>
 
     <!-- Common Patterns Summary -->
-    <div class="jp-card" style="margin-top: 20px; background: #e3f2fd;">
-        <h3 style="margin-top: 0;">📚 Quick Reference</h3>
+    <div class="jp-output jp-output-info jp-mt-30">
+        <h3>📚 Quick Reference</h3>
 
-        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-            <tr style="background: #fff;">
-                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Task</strong></td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Code</strong></td>
-            </tr>
-            <tr>
-                <td style="padding: 8px; border: 1px solid #ddd;">Configure UUID storage</td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><code>jPulse.ws.configure({ uuidStorage: 'session' })</code></td>
-            </tr>
-            <tr style="background: #f8f9fa;">
-                <td style="padding: 8px; border: 1px solid #ddd;">Connect</td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><code>jPulse.ws.connect('/api/1/ws/path')</code></td>
-            </tr>
-            <tr>
-                <td style="padding: 8px; border: 1px solid #ddd;">Send message</td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.send({type: 'action', data: ...})</code></td>
-            </tr>
-            <tr style="background: #f8f9fa;">
-                <td style="padding: 8px; border: 1px solid #ddd;">Listen for messages</td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.onMessage((data) => {...})</code></td>
-            </tr>
-            <tr>
-                <td style="padding: 8px; border: 1px solid #ddd;">Check status</td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.getStatus() // 'connected', etc.</code></td>
-            </tr>
-            <tr style="background: #f8f9fa;">
-                <td style="padding: 8px; border: 1px solid #ddd;">Check if connected</td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.isConnected() // boolean</code></td>
-            </tr>
-            <tr>
-                <td style="padding: 8px; border: 1px solid #ddd;">Disconnect</td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><code>ws.disconnect()</code></td>
-            </tr>
-            <tr style="background: #f8f9fa;">
-                <td style="padding: 8px; border: 1px solid #ddd;">Broadcast (server)</td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><code>wsHandle.broadcast({...})</code></td>
-            </tr>
-            <tr>
-                <td style="padding: 8px; border: 1px solid #ddd;">Send to one (server)</td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><code>wsHandle.sendToClient(clientId, {...})</code></td>
-            </tr>
+        <table class="jp-table">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Code</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Configure UUID storage</td>
+                    <td><code>jPulse.ws.configure({ uuidStorage: 'session' })</code></td>
+                </tr>
+                <tr>
+                    <td>Connect</td>
+                    <td><code>jPulse.ws.connect('/api/1/ws/path')</code></td>
+                </tr>
+                <tr>
+                    <td>Send message</td>
+                    <td><code>ws.send({type: 'action', data: ...})</code></td>
+                </tr>
+                <tr>
+                    <td>Listen for messages</td>
+                    <td><code>ws.onMessage((data) => {...})</code></td>
+                </tr>
+                <tr>
+                    <td>Check status</td>
+                    <td><code>ws.getStatus() // 'connected', etc.</code></td>
+                </tr>
+                <tr>
+                    <td>Check if connected</td>
+                    <td><code>ws.isConnected() // boolean</code></td>
+                </tr>
+                <tr>
+                    <td>Disconnect</td>
+                    <td><code>ws.disconnect()</code></td>
+                </tr>
+                <tr>
+                    <td>Broadcast (server)</td>
+                    <td><code>wsHandle.broadcast({...})</code></td>
+                </tr>
+                <tr>
+                    <td>Send to one (server)</td>
+                    <td><code>wsHandle.sendToClient(clientId, {...})</code></td>
+                </tr>
+            </tbody>
         </table>
     </div>
 
-    <div class="jp-card" style="margin-top: 20px; background: #fff3cd; border-left: 4px solid #ffc107;">
-        <h3 style="margin-top: 0;">📖 Complete Documentation</h3>
-        <p style="margin: 0;">
+    <div class="jp-output jp-output-warning jp-mt-30">
+        <h3>📖 Complete Documentation</h3>
+        <p class="jp-m-0">
             For comprehensive API reference, advanced patterns, authentication, and troubleshooting,
             see the <a href="/jpulse-docs/websockets" target="_blank">WebSocket Documentation</a>.
         </p>
     </div>
 
     <!-- UUID Storage Configuration -->
-    <div class="jp-card" style="margin-top: 20px; background: #f8f9fa; border-left: 4px solid #28a745;">
-        <h3 style="margin-top: 0;">🆔 UUID Storage Modes</h3>
+    <div class="jp-output jp-output-success jp-mt-30">
+        <h3>🆔 UUID Storage Modes</h3>
 
-        <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px;">
-            <tr style="background: #fff;">
-                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Mode</strong></td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Scope</strong></td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><strong>Use Case</strong></td>
-            </tr>
-            <tr>
-                <td style="padding: 8px; border: 1px solid #ddd;"><code>session</code> (default)</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">Per-tab, survives page reloads</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">Multi-tab collaborative apps</td>
-            </tr>
-            <tr style="background: #f8f9fa;">
-                <td style="padding: 8px; border: 1px solid #ddd;"><code>local</code></td>
-                <td style="padding: 8px; border: 1px solid #ddd;">Per-browser, persistent identity</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">User identity across sessions</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px; border: 1px solid #ddd;"><code>memory</code></td>
-                <td style="padding: 8px; border: 1px solid #ddd;">Per-page load, no persistence</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">Testing, maximum isolation</td>
-            </tr>
+        <table class="jp-table">
+            <thead>
+                <tr>
+                    <th>Mode</th>
+                    <th>Scope</th>
+                    <th>Use Case</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>session</code> (default)</td>
+                    <td>Per-tab, survives page reloads</td>
+                    <td>Multi-tab collaborative apps</td>
+                </tr>
+                <tr>
+                    <td><code>local</code></td>
+                    <td>Per-browser, persistent identity</td>
+                    <td>User identity across sessions</td>
+                </tr>
+                <tr>
+                    <td><code>memory</code></td>
+                    <td>Per-page load, no persistence</td>
+                    <td>Testing, maximum isolation</td>
+                </tr>
+            </tbody>
         </table>
 
-        <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;">
+        <p class="jp-text-muted jp-mt-15 jp-mb-0">
             💡 <strong>Tip:</strong> Configure UUID storage before making any WebSocket connections.
             The <code>session</code> mode (default) enables multiple tabs to connect simultaneously
             to collaborative real-time applications.

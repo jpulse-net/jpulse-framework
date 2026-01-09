@@ -4,15 +4,15 @@
  * @tagline         Home page of jPulse Framework
  * @description     This is the home page of jPulse Framework
  * @file            webapp/view/home/index.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,20 +37,20 @@
         .local-home-title {
             font-size: 3rem;
             font-weight: 300;
-            color: #2c3e50;
+            color: var(--jp-theme-text-primary, #2c3e50);
             margin-bottom: 1rem;
         }
 
         .local-home-subtitle {
             font-size: 1.2rem;
-            color: #7f8c8d;
+            color: var(--jp-theme-text-secondary, #7f8c8d);
             margin-bottom: 2rem;
         }
 
         .local-home-success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
+            background: var(--jp-theme-color-success-bg, #d4edda);
+            border: 1px solid var(--jp-theme-color-success, #c3e6cb);
+            color: var(--jp-theme-color-success-text, #155724);
             padding: 20px;
             border-radius: 8px;
             margin: 30px 0;
@@ -58,9 +58,9 @@
         }
 
         .local-home-info {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            color: #495057;
+            background: var(--jp-theme-bg-primary, #f8f9fa);
+            border: 1px solid var(--jp-theme-border-color, #dee2e6);
+            color: var(--jp-theme-text-primary, #495057);
             padding: 20px;
             border-radius: 8px;
             margin: 30px 0;
@@ -75,19 +75,19 @@
         }
 
         .local-home-link-card {
-            background: white;
-            border: 1px solid #dee2e6;
+            background: var(--jp-theme-bg-primary, #ffffff);
+            border: 1px solid var(--jp-theme-border-color, #dee2e6);
             border-radius: 8px;
             padding: 25px;
             text-decoration: none;
             color: inherit;
             transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--jp-theme-shadow-sm, 0 2px 4px rgba(0,0,0,0.1));
         }
 
         .local-home-link-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            box-shadow: var(--jp-theme-shadow-md, 0 4px 8px rgba(0,0,0,0.15));
             text-decoration: none;
             color: inherit;
         }
@@ -96,19 +96,19 @@
             font-size: 1.3rem;
             font-weight: 600;
             margin-bottom: 10px;
-            color: #2c3e50;
+            color: var(--jp-theme-text-primary, #2c3e50);
         }
 
         .local-home-link-desc {
-            color: #6c757d;
+            color: var(--jp-theme-text-secondary, #6c757d);
             line-height: 1.5;
         }
 
         .local-home-footer {
             margin-top: 60px;
             padding-top: 30px;
-            border-top: 1px solid #dee2e6;
-            color: #6c757d;
+            border-top: 1px solid var(--jp-theme-border-color, #dee2e6);
+            color: var(--jp-theme-text-muted, #6c757d);
             font-size: 0.9rem;
         }
     </style>
@@ -116,7 +116,7 @@
 <body>
     <div class="jp-main">
         <div class="local-home-container">
-            <h1 class="local-home-title"><img src="/images/jpulse-logo/jpulse-logo.svg" alt="jPulse Framework" class="local-home-logo" width="40" height="40"> Welcome to jPulse Framework v1.4.8</h1>
+            <h1 class="local-home-title"><img src="/images/jpulse-logo/jpulse-logo.svg" alt="jPulse Framework" class="local-home-logo" width="40" height="40"> Welcome to jPulse Framework v1.4.9</h1>
             <p class="local-home-subtitle">A modern, lightweight web application framework</p>
 
             <div class="local-home-success">

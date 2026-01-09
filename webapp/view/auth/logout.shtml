@@ -4,15 +4,15 @@
  * @tagline         User logout confirmation and processing page
  * @description     Logout confirmation with automatic session termination
  * @file            webapp/view/auth/logout.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,9 +30,6 @@
         }
 
         .local-auth-card {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             padding: 2rem;
             text-align: center;
             width: 100%;
@@ -44,7 +41,11 @@
         }
 
         .local-logout-icon {
-            background: linear-gradient(135deg, #6c757d, #495057);
+            background: linear-gradient(
+                135deg,
+                var(--jp-theme-color-secondary, #6c757d),
+                var(--jp-theme-text-secondary, #495057)
+            );
         }
     </style>
 </head>
@@ -92,7 +93,7 @@
           {{else}}
             <!-- Not authenticated section -->
             <div class="local-auth-container">
-                <div class="local-auth-card">
+                <div class="jp-card local-auth-card">
                     <div class="local-auth-icon local-logout-icon">
                         <span>👋</span>
                     </div>

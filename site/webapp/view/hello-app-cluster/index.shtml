@@ -4,15 +4,15 @@
  * @tagline         Multi-Server Application Clustering Examples
  * @description     Interactive demos: global notifications and collaborative todo with Redis broadcasting
  * @file            site/webapp/view/hello-app-cluster/index.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,28 +26,32 @@
         .local-status-value {
             font-size: 24px;
             font-weight: bold;
-            color: #007bff;
+            color: var(--jp-theme-color-primary, #007bff);
             margin-bottom: 5px;
         }
 
         .local-status-value.redis-enabled {
-            color: #28a745;
+            color: var(--jp-theme-color-success, #28a745);
         }
 
         .local-status-value.redis-disabled {
-            color: #ffc107;
+            color: var(--jp-theme-color-warning, #ffc107);
+        }
+
+        .local-status-value-small {
+            font-size: 18px;
         }
 
         .local-status-label {
             font-size: 12px;
-            color: #6c757d;
+            color: var(--jp-theme-text-muted, #6c757d);
             text-transform: uppercase;
             font-weight: 600;
             letter-spacing: 0.5px;
         }
 
         .local-comparison-header {
-            background: #fbfbfb;
+            background: var(--jp-theme-bg-secondary, #fbfbfb);
             margin: -20px -20px 25px -20px;
             padding: 15px 20px;
             display: flex;
@@ -69,8 +73,16 @@
 
         .local-comparison-subtitle {
             font-size: 14px;
-            color: #6c757d;
+            color: var(--jp-theme-text-muted, #6c757d);
             margin: 0;
+        }
+
+        .local-full-width-btn {
+            width: 100%;
+        }
+
+        .local-ol-indent {
+            padding-left: 20px;
         }
     </style>
 </head>
@@ -111,7 +123,7 @@
 
                 <div class="jp-stats-grid">
                     <div class="jp-stat-card">
-                        <div class="local-status-value" id="instanceId" style="font-size: 18px;">Loading...</div>
+                        <div class="local-status-value local-status-value-small" id="instanceId">Loading...</div>
                         <div class="local-status-label">Server Instance</div>
                     </div>
                     <div class="jp-stat-card">
@@ -140,9 +152,9 @@
                 <h3>🎓 What You'll Learn</h3>
                 <p>This comprehensive demo teaches you how to build applications that work seamlessly across multiple server instances using Redis broadcasting.</p>
 
-                <div style="margin: 15px 0;">
+                <div class="jp-mt-15 jp-mb-15">
                     <strong>Key Concepts Covered:</strong>
-                    <ul style="margin: 10px 0; padding-left: 20px;">
+                    <ul class="jp-list">
                         <li><strong>Multi-Server Coordination:</strong> How multiple app servers communicate</li>
                         <li><strong>Redis Broadcasting:</strong> Server-to-server messaging with pub/sub</li>
                         <li><strong>Graceful Fallback:</strong> Apps work with or without Redis</li>
@@ -178,7 +190,7 @@
                             <li>Great for learning basics</li>
                         </ul>
 
-                        <a href="/hello-app-cluster/notifications.shtml" class="jp-btn jp-btn-primary" style="width: 100%; margin-top: 15px;">
+                        <a href="/hello-app-cluster/notifications.shtml" class="jp-btn jp-btn-primary local-full-width-btn jp-mt-15">
                             📢 Try Global Notifications
                         </a>
                     </div>
@@ -203,7 +215,7 @@
                             <li>Enterprise-ready pattern</li>
                         </ul>
 
-                        <a href="/hello-app-cluster/collaborative-todo.shtml" class="jp-btn jp-btn-primary" style="width: 100%; margin-top: 15px;">
+                        <a href="/hello-app-cluster/collaborative-todo.shtml" class="jp-btn jp-btn-primary local-full-width-btn jp-mt-15">
                             ✅ Try Collaborative To-Do
                         </a>
                     </div>
@@ -215,7 +227,7 @@
                 <h2 class="jp-card-dialog-heading">🚀 Getting Started</h2>
                 <div class="jp-card-subheading">Recommended learning path to get started with the App Cluster demo.</div>
                 <p><strong>Recommended Learning Path:</strong></p>
-                <ol style="padding-left: 20px;">
+                <ol class="local-ol-indent">
                     <li><strong>Start Simple:</strong> Try the <a href="/hello-app-cluster/notifications.shtml">Global Notifications</a> demo to understand basic broadcasting</li>
                     <li><strong>Go Advanced:</strong> Explore the <a href="/hello-app-cluster/collaborative-todo.shtml">Collaborative To-Do</a> for production patterns</li>
                     <li><strong>Study Code:</strong> Review the <a href="/hello-app-cluster/code-examples.shtml">Code Examples</a> to see implementation details</li>
@@ -223,7 +235,7 @@
                 </ol>
 
                 {{#unless redis.enabled}}
-                <div class="jp-alert jp-alert-warning" style="margin-top: 20px;">
+                <div class="jp-alert jp-alert-warning jp-mt-30">
                     <strong>⚠️ Redis Not Enabled:</strong> These demos will work in single-server mode. To see full clustering features, enable Redis in your configuration. The demos gracefully demonstrate fallback behavior!
                 </div>
                 {{/unless}}
@@ -239,7 +251,7 @@
                 <span class="jp-btn-nav-arrow">→</span>
                 <a href="/hello-vue/" class="jp-btn jp-btn-outline">🔄 Vue.js SPA Demo</a>
                 <span class="jp-btn-nav-arrow">→</span>
-                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">� WebSocket Real-Time Demo</a>
+                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">🔌 WebSocket Real-Time Demo</a>
                 <span class="jp-btn-nav-arrow">→</span>
                 <a href="/hello-app-cluster/" class="jp-btn jp-btn-active">🌍 App Cluster Demo</a>
             </div>

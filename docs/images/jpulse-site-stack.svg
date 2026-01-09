@@ -1,11 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="650" height="270" viewBox="-2 -2 650 270">
+<svg xmlns="http://www.w3.org/2000/svg" width="650" height="270" viewBox="-20 -20 690 310">
   <style>
-    .box { fill: #f8f8f8; stroke: #000; stroke-width: 1; }
-    .arrow { fill: none; stroke: #000; stroke-width: 1; }
-    text { font-family: Helvetica, Arial, sans-serif; font-size: 16px; fill: #000; }
+    :root {
+      --jp-diagram-stroke: rgba(17, 24, 39, 0.45);
+      --jp-diagram-box-fill: rgba(255, 255, 255, 0.92);
+      --jp-diagram-text: rgba(17, 24, 39, 0.92);
+      --jp-diagram-key: rgba(55, 65, 81, 0.92);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --jp-diagram-stroke: rgba(243, 244, 246, 0.45);
+        --jp-diagram-box-fill: rgba(17, 24, 39, 0.72);
+        --jp-diagram-text: rgba(243, 244, 246, 0.92);
+        --jp-diagram-key: rgba(203, 213, 224, 0.92);
+      }
+    }
+    .box { fill: var(--jp-diagram-box-fill); stroke: var(--jp-diagram-stroke); stroke-width: 1; }
+    .arrow { fill: none; stroke: var(--jp-diagram-stroke); stroke-width: 1; }
+    text { font-family: Helvetica, Arial, sans-serif; font-size: 16px; fill: var(--jp-diagram-text); }
     .label { text-anchor: middle; }
-    .key { text-anchor: start; }
-    .val { text-anchor: start; }
+    .key { text-anchor: start; fill: var(--jp-diagram-key); }
+    .val { text-anchor: start; fill: var(--jp-diagram-text); }
   </style>
   <!-- Site Code -->
   <rect x="0" y="0" width="280" height="60" rx="9" class="box"/>

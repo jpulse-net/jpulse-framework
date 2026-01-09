@@ -4,15 +4,15 @@
  * @tagline         Interactive Plugin Development Tutorial
  * @description     Educational demo showing how plugins work in jPulse Framework
  * @file            plugins/hello-world/webapp/view/hello-plugin/index.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -29,16 +29,17 @@
 
     .local-demo-card {
         padding: 20px;
-        border: 2px solid rgb(226, 232, 240);
+        border: 2px solid var(--jp-theme-border-color, rgb(226, 232, 240));
         border-radius: 8px;
         text-align: center;
         transition: transform 0.2s, box-shadow 0.2s;
-        background: white;
+        background: var(--jp-theme-bg-primary, #ffffff);
+        color: var(--jp-theme-text-primary, #333);
     }
 
     .local-demo-card:hover {
         transform: translateY(-2px);
-        box-shadow: rgba(0, 0, 0, 0.08) 0px 1px 3px;
+        box-shadow: var(--jp-theme-shadow-sm, rgba(0, 0, 0, 0.08) 0px 1px 3px);
     }
 
     .local-demo-icon {
@@ -54,17 +55,17 @@
     .local-demo-card p {
         margin: 0;
         font-size: 0.9em;
+        color: var(--jp-theme-text-secondary, #555);
     }
 
-    /* Output state colors (extends jp-info-box) */
-    .jp-info-box.local-output-success {
-        background: #e8f5e9;
-        border-left-color: #4caf50;
+    .local-action-list {
+        line-height: 1.8;
     }
 
-    .jp-info-box.local-output-error {
-        background: #ffebee;
-        border-left-color: #f44336;
+    .local-learn-more-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
     }
     </style>
 </head>
@@ -135,9 +136,10 @@
 
 .local-demo-card {
     padding: 20px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--jp-theme-border-color, #e2e8f0);
     border-radius: 8px;
     text-align: center;
+    background: var(--jp-theme-bg-primary, #ffffff);
 }
 
 .local-demo-icon {
@@ -164,7 +166,7 @@
                     Test Plugin Utilities
                 </button>
 
-                <div id="pluginUtilsOutput" class="jp-info-box" style="margin-top: 15px;">
+                <div id="pluginUtilsOutput" class="jp-output jp-output-info jp-mt-15">
                     Click the button to test plugin JavaScript functions...
                 </div>
 
@@ -204,7 +206,7 @@ window.jPulse.plugins.helloWorld = {
                     GET /api/1/helloPlugin
                 </button>
 
-                <div id="apiOutput" class="jp-info-box" style="margin-top: 15px;">
+                <div id="apiOutput" class="jp-output jp-output-info jp-mt-15">
                     Click the button to call the plugin's API endpoint...
                 </div>
 
@@ -243,19 +245,19 @@ export default class HelloPluginController {
                     Load Plugin Info
                 </button>
 
-                <div id="configOutput" class="jp-info-box" style="margin-top: 15px;">
+                <div id="configOutput" class="jp-output jp-output-info jp-mt-15">
                     Click the button to load public plugin information via <code>/api/1/plugin/hello-world/info</code>
                 </div>
 
-                <p style="margin-top: 20px;">
-                    <strong>Configuration Management:</strong><br>
-                    <a href="/admin/plugin-config.shtml?plugin=hello-world" class="jp-btn jp-btn-secondary" style="margin-top: 10px;">
-                        ⚙️ Configure Plugin Settings
-                    </a>
-                    <span style="font-size: 0.9em; margin-left: 10px;">
-                        (only available to administrators)
-                    </span>
-                </p>
+                <div class="jp-mt-15">
+                    <strong>Configuration Management:</strong>
+                    <div class="jp-my-10">
+                        <a href="/admin/plugin-config.shtml?plugin=hello-world" class="jp-btn jp-btn-secondary">
+                            ⚙️ Configure Plugin Settings
+                        </a>
+                        <div class="jp-help-text">(only available to administrators)</div>
+                    </div>
+                </div>
 
                 <div id="config-schema-collapsible" class="jp-collapsible">
                     <h3>💻 View Configuration Schema</h3>
@@ -296,7 +298,7 @@ export default class HelloPluginController {
                 </p>
 
                 <h3>How It Works:</h3>
-                <ol style="line-height: 1.8;">
+                <ol class="local-action-list">
                     <li><strong>Framework processes requests</strong> for <code>/common/jpulse-common.css</code> and <code>/common/jpulse-common.js</code></li>
                     <li><strong>PathResolver collects all matching files</strong> from framework → site → plugins</li>
                     <li><strong>Files are concatenated</strong> in load order with proper separation</li>
@@ -304,8 +306,8 @@ export default class HelloPluginController {
                     <li><strong>Browser receives single file</strong> containing framework + site + all plugin code</li>
                 </ol>
 
-                <h3 style="margin-top: 20px;">Files That Are Auto-Loaded:</h3>
-                <ul style="line-height: 1.8;">
+                <h3 class="jp-mt-15">Files That Are Auto-Loaded:</h3>
+                <ul class="local-action-list">
                     <li><code>webapp/view/jpulse-common.css</code> → Plugin CSS styles</li>
                     <li><code>webapp/view/jpulse-common.js</code> → Plugin JavaScript utilities</li>
                     <li><code>webapp/view/jpulse-navigation.js</code> → Navigation menu entries</li>
@@ -320,7 +322,7 @@ export default class HelloPluginController {
             <!-- Navigation Links -->
             <div class="jp-card">
                 <h2>📚 Learn More</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div class="local-learn-more-grid">
                     <a href="/jpulse-plugins/hello-world.shtml" class="jp-btn jp-btn-primary">
                         Plugin Overview
                     </a>
@@ -356,14 +358,14 @@ export default class HelloPluginController {
     // Test plugin JavaScript utilities
     function testPluginUtils() {
         const output = document.getElementById('pluginUtilsOutput');
-        output.classList.remove('local-output-success', 'local-output-error');
+        output.classList.remove('jp-output-info', 'jp-output-success', 'jp-output-error');
 
         try {
             const greeting = window.jPulse.plugins.helloWorld.greet('Developer');
             const timestamp = window.jPulse.plugins.helloWorld.getTimestamp();
             const sum = window.jPulse.plugins.helloWorld.calculateSum(42, 8);
 
-            output.classList.add('local-output-success');
+            output.classList.add('jp-output-success');
             output.innerHTML = `
                 <strong>✓ Success!</strong> Plugin utilities are working:<br><br>
                 <strong>greet('Developer'):</strong> ${greeting}<br>
@@ -371,7 +373,7 @@ export default class HelloPluginController {
                 <strong>calculateSum(42, 8):</strong> ${sum}
             `;
         } catch (error) {
-            output.classList.add('local-output-error');
+            output.classList.add('jp-output-error');
             output.innerHTML = `<strong>✗ Error:</strong> ${error.message}`;
         }
     }
@@ -379,15 +381,18 @@ export default class HelloPluginController {
     // Test plugin API endpoint
     async function testPluginAPI() {
         const output = document.getElementById('apiOutput');
-        output.classList.remove('local-output-success', 'local-output-error');
-        output.innerHTML = '<pre style="margin: 0;">Loading...</pre>';
+        output.classList.remove('jp-output-info', 'jp-output-success', 'jp-output-error');
+        output.classList.add('jp-output-info');
+        output.innerHTML = '<pre class="jp-pre jp-m-0">Loading...</pre>';
 
         try {
             const response = await jPulse.api.get('/api/1/helloPlugin');
-            output.classList.add('local-output-success');
-            output.innerHTML = `<pre style="margin: 0;">${JSON.stringify(response, null, 2)}</pre>`;
+            output.classList.remove('jp-output-info');
+            output.classList.add('jp-output-success');
+            output.innerHTML = `<pre class="jp-pre jp-m-0">${JSON.stringify(response, null, 2)}</pre>`;
         } catch (error) {
-            output.classList.add('local-output-error');
+            output.classList.remove('jp-output-info');
+            output.classList.add('jp-output-error');
             output.innerHTML = `<strong>Error:</strong> ${error.message}`;
         }
     }
@@ -395,15 +400,17 @@ export default class HelloPluginController {
     // Load plugin information (public endpoint)
     async function loadPluginConfig() {
         const output = document.getElementById('configOutput');
-        output.classList.remove('local-output-success', 'local-output-error');
-        output.innerHTML = '<em>Loading...</em>';
+        output.classList.remove('jp-output-info', 'jp-output-success', 'jp-output-error');
+        output.classList.add('jp-output-info');
+        output.innerHTML = '<div class="jp-help-text">Loading...</div>';
 
         try {
             const response = await jPulse.api.get('/api/1/plugin/hello-world/info');
 
             if (response.success) {
                 const info = response.data;
-                output.classList.add('local-output-success');
+                output.classList.remove('jp-output-info');
+                output.classList.add('jp-output-success');
                 output.innerHTML = `
                     <strong>Plugin Information:</strong><br><br>
                     <strong>Name:</strong> ${jPulse.string.escapeHtml(info.name)}<br>
@@ -413,11 +420,13 @@ export default class HelloPluginController {
                     <strong>Author:</strong> ${jPulse.string.escapeHtml(info.author)}
                 `;
             } else {
-                output.classList.add('local-output-error');
+                output.classList.remove('jp-output-info');
+                output.classList.add('jp-output-error');
                 output.innerHTML = `<em>Error: ${response.error || 'Failed to load plugin information'}</em>`;
             }
         } catch (error) {
-            output.classList.add('local-output-error');
+            output.classList.remove('jp-output-info');
+            output.classList.add('jp-output-error');
             output.innerHTML = `<em>Error: ${error.message}</em>`;
         }
     }

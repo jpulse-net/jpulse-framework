@@ -4,15 +4,15 @@
  * @tagline         Interactive UI widget examples and demonstrations
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,7 +24,7 @@
         }
 
         /* Demo spacer styles for Content Boxes example */
-        .demo-spacer {
+        .local-demo-spacer {
             height: 120px;
             margin: 20px 0;
             padding: 20px;
@@ -33,15 +33,37 @@
             align-items: center;
             justify-content: center;
             text-align: center;
+            color: var(--jp-theme-text-primary, #333);
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
 
-        .demo-spacer-1 { background: linear-gradient(45deg, #e3f2fd, #bbdefb); }
-        .demo-spacer-2 { background: linear-gradient(45deg, #f3e5f5, #e1bee7); }
-        .demo-spacer-3 { background: linear-gradient(45deg, #e8f5e8, #c8e6c9); }
+        .local-demo-spacer-1 { background: linear-gradient(45deg, #e3f2fd, #bbdefb); }
+        .local-demo-spacer-2 { background: linear-gradient(45deg, #f3e5f5, #e1bee7); }
+        .local-demo-spacer-3 { background: linear-gradient(45deg, #e8f5e8, #c8e6c9); }
+
+        /* Dark theme override: keep the demo readable (avoid too-bright gradients). */
+        [data-theme="dark"] .local-demo-spacer-1 { background: linear-gradient(45deg, #0b2a33, #1b2f53); }
+        [data-theme="dark"] .local-demo-spacer-2 { background: linear-gradient(45deg, #2d1b3a, #1f2937); }
+        [data-theme="dark"] .local-demo-spacer-3 { background: linear-gradient(45deg, #0f2f1b, #1f2937); }
+
+        /* Complex dialog demo content: avoid inline styles (keep theme-friendly). */
+        .local-dialog-file-list {
+            text-align: left;
+            margin: 15px 0;
+            line-height: 1.8;
+        }
+
+        .local-dialog-file-row {
+            margin: 8px 0;
+        }
+
+        .local-dialog-file-row input[type="checkbox"] {
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
-    {{#component "exampleCards.uiWidgets" order=30}}
+    {{#component "exampleCards.uiWidgets" order=40}}
         {{!-- This card is automatically included in the dashboard at jpulse-examples/index.shtml --}}
         <a href="/jpulse-examples/ui-widgets.shtml" class="jp-card-dashboard jp-icon-btn">
             <div class="jp-icon-container">{{components.jpIcons.uiWidgetsSvg size="64"}}</div>
@@ -120,7 +142,7 @@
                 </div>
             </div>
 
-            <button id="testTabsBtn" class="jp-btn jp-btn-primary" style="margin-top: 15px;">Test Programmatic Control</button>
+            <button id="testTabsBtn" class="jp-btn jp-btn-primary jp-mt-15">Test Programmatic Control</button>
         </div>
         <div id="tabs-source-panel" class="jp-panel">
             <div class="jp-source-code" data-lang="html">
@@ -228,7 +250,7 @@ jPulse.dom.ready(() =&gt; {
                 </div>
             </div>
 
-            <button id="testAccordionBtn" class="jp-btn jp-btn-secondary" style="margin-top: 15px;">Test Programmatic Control</button>
+            <button id="testAccordionBtn" class="jp-btn jp-btn-secondary jp-mt-15">Test Programmatic Control</button>
         </div>
         <div id="accordion-source-panel" class="jp-panel">
             <div class="jp-source-code" data-lang="html">
@@ -295,7 +317,7 @@ jPulse.dom.ready(() =&gt; {
                 </div>
             </div>
 
-            <div class="jp-btn-group" style="margin-top: 15px;">
+            <div class="jp-btn-group jp-mt-15">
                 <button id="expandBtn" class="jp-btn jp-btn-success">Expand</button>
                 <button id="collapseBtn" class="jp-btn jp-btn-warning">Collapse</button>
                 <button id="toggleBtn" class="jp-btn jp-btn-primary">Toggle</button>
@@ -361,7 +383,7 @@ jPulse.dom.ready(() =&gt; {
         <div id="button-example-panel" class="jp-panel">
             <p>Click any button to see an info toast:</p>
 
-            <div class="jp-btn-group" style="flex-wrap: wrap; gap: 10px;">
+            <div class="jp-btn-group jp-flex-wrap jp-gap-10">
                 <button id="btnPrimary" class="jp-btn jp-btn-primary">Primary</button>
                 <button id="btnSecondary" class="jp-btn jp-btn-secondary">Secondary</button>
                 <button id="btnSuccess" class="jp-btn jp-btn-success">Success</button>
@@ -482,11 +504,11 @@ document.getElementById('customBtn').addEventListener('click', async () =&gt; {
 document.getElementById('complexBtn').addEventListener('click', async () =&gt; {
     const fileListHtml = `
         &lt;p&gt;Select files to delete:&lt;/p&gt;
-        &lt;div style="text-align: left; margin: 15px 0; line-height: 1.8;"&gt;
-            &lt;div&gt;&lt;input type="checkbox" id="file1" checked&gt; document1.pdf&lt;/div&gt;
-            &lt;div&gt;&lt;input type="checkbox" id="file2" checked&gt; image.jpg&lt;/div&gt;
-            &lt;div&gt;&lt;input type="checkbox" id="file3"&gt; backup.zip&lt;/div&gt;
-            &lt;div&gt;&lt;input type="checkbox" id="file4" checked&gt; notes.txt&lt;/div&gt;
+        &lt;div class="local-dialog-file-list"&gt;
+            &lt;div class="local-dialog-file-row"&gt;&lt;input type="checkbox" id="file1" checked&gt; document1.pdf&lt;/div&gt;
+            &lt;div class="local-dialog-file-row"&gt;&lt;input type="checkbox" id="file2" checked&gt; image.jpg&lt;/div&gt;
+            &lt;div class="local-dialog-file-row"&gt;&lt;input type="checkbox" id="file3"&gt; backup.zip&lt;/div&gt;
+            &lt;div class="local-dialog-file-row"&gt;&lt;input type="checkbox" id="file4" checked&gt; notes.txt&lt;/div&gt;
         &lt;/div&gt;
     `;
 
@@ -533,7 +555,7 @@ document.getElementById('complexBtn').addEventListener('click', async () =&gt; {
         <div id="notification-example-panel" class="jp-panel">
             <p>Show different types of notifications to users:</p>
 
-            <div class="jp-btn-group" style="margin-bottom: 15px;">
+            <div class="jp-btn-group jp-mb-15">
                 <button id="successBtn" class="jp-btn jp-btn-success">Success Message</button>
                 <button id="errorBtn" class="jp-btn jp-btn-danger">Error Message</button>
                 <button id="warningBtn" class="jp-btn jp-btn-warning">Warning Message</button>
@@ -702,15 +724,15 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
             <h4>Visual Spacer Elements</h4>
             <p>Colorful gradient blocks for visual separation and demonstration purposes:</p>
 
-            <div class="demo-spacer demo-spacer-1">
+            <div class="local-demo-spacer local-demo-spacer-1">
                 <h4>📊 Spacer Block 1 - Blue Gradient</h4>
             </div>
 
-            <div class="demo-spacer demo-spacer-2">
+            <div class="local-demo-spacer local-demo-spacer-2">
                 <h4>💜 Spacer Block 2 - Purple Gradient</h4>
             </div>
 
-            <div class="demo-spacer demo-spacer-3">
+            <div class="local-demo-spacer local-demo-spacer-3">
                 <h4>🌱 Spacer Block 3 - Green Gradient</h4>
             </div>
         </div>
@@ -733,17 +755,17 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
 &lt;/div&gt;
 
 &lt;!-- Visual Spacer Elements --&gt;
-&lt;div class="demo-spacer demo-spacer-1"&gt;
+&lt;div class="local-demo-spacer local-demo-spacer-1"&gt;
     &lt;h4&gt;Spacer Block 1 - Blue Gradient&lt;/h4&gt;
 &lt;/div&gt;
 
-&lt;div class="demo-spacer demo-spacer-2"&gt;
+&lt;div class="local-demo-spacer local-demo-spacer-2"&gt;
     &lt;h4&gt;Spacer Block 2 - Purple Gradient&lt;/h4&gt;
 &lt;/div&gt;
 
 &lt;!-- CSS for Demo Spacers (add to page &lt;style&gt; section) --&gt;
 &lt;style&gt;
-.demo-spacer {
+.local-demo-spacer {
     height: 120px;
     margin: 20px 0;
     padding: 20px;
@@ -753,9 +775,9 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
     justify-content: center;
 }
 
-.demo-spacer-1 { background: linear-gradient(45deg, #e3f2fd, #bbdefb); }
-.demo-spacer-2 { background: linear-gradient(45deg, #f3e5f5, #e1bee7); }
-.demo-spacer-3 { background: linear-gradient(45deg, #e8f5e8, #c8e6c9); }
+.local-demo-spacer-1 { background: linear-gradient(45deg, #e3f2fd, #bbdefb); }
+.local-demo-spacer-2 { background: linear-gradient(45deg, #f3e5f5, #e1bee7); }
+.local-demo-spacer-3 { background: linear-gradient(45deg, #e8f5e8, #c8e6c9); }
 &lt;/style&gt;
             </div>
         </div>
@@ -838,7 +860,7 @@ jPulse.UI.headingAnchors.init({
         <div id="tooltip-example-panel" class="jp-panel">
             <p>Hover over or focus (Tab key) the elements below to see tooltips in action:</p>
 
-            <div class="jp-btn-group" style="flex-wrap: wrap; gap: 10px; margin: 20px 0;">
+            <div class="jp-btn-group jp-flex-wrap jp-gap-10 jp-my-20">
                 <button class="jp-btn jp-btn-primary jp-tooltip" data-tooltip="This is a basic tooltip">Basic Tooltip</button>
                 <button class="jp-btn jp-btn-secondary jp-tooltip" data-tooltip="<strong>HTML Content</strong> with <em>formatting</em>">HTML Tooltip</button>
                 <button class="jp-btn jp-btn-success jp-tooltip" data-tooltip="Tooltip on top" data-tooltip-position="top">Top Position</button>
@@ -848,12 +870,12 @@ jPulse.UI.headingAnchors.init({
                 <button class="jp-btn jp-btn-primary jp-tooltip" data-tooltip="Delayed tooltip (500ms)" data-tooltip-delay="500">Delayed Tooltip</button>
             </div>
 
-            <div class="jp-info-box" style="margin-top: 30px;">
+            <div class="jp-info-box jp-mt-30">
                 <h4>Mobile Support:</h4>
                 <p>On touch devices, tooltips appear on tap instead of hover. Tap outside the tooltip or press Escape to dismiss.</p>
             </div>
 
-            <div class="jp-info-box" style="margin-top: 20px;">
+            <div class="jp-info-box jp-my-20">
                 <h4>Accessibility:</h4>
                 <p>Tooltips are fully accessible via keyboard navigation. Use Tab to focus elements and see their tooltips. Press Escape to dismiss.</p>
             </div>
@@ -1175,21 +1197,21 @@ jPulse.UI.sourceCode.initAll();
                 // Create file list with checkboxes
                 const fileListHtml = `
                     <p>Select files to delete:</p>
-                    <div style="text-align: left; margin: 15px 0; line-height: 1.8;">
-                        <div style="margin: 8px 0;">
-                            <input type="checkbox" id="file1" checked style="margin-right: 8px;">
+                    <div class="local-dialog-file-list">
+                        <div class="local-dialog-file-row">
+                            <input type="checkbox" id="file1" checked>
                             <label for="file1">document1.pdf</label>
                         </div>
-                        <div style="margin: 8px 0;">
-                            <input type="checkbox" id="file2" checked style="margin-right: 8px;">
+                        <div class="local-dialog-file-row">
+                            <input type="checkbox" id="file2" checked>
                             <label for="file2">image.jpg</label>
                         </div>
-                        <div style="margin: 8px 0;">
-                            <input type="checkbox" id="file3" style="margin-right: 8px;">
+                        <div class="local-dialog-file-row">
+                            <input type="checkbox" id="file3">
                             <label for="file3">backup.zip</label>
                         </div>
-                        <div style="margin: 8px 0;">
-                            <input type="checkbox" id="file4" checked style="margin-right: 8px;">
+                        <div class="local-dialog-file-row">
+                            <input type="checkbox" id="file4" checked>
                             <label for="file4">notes.txt</label>
                         </div>
                     </div>

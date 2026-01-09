@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -19,6 +19,7 @@ import configModel from '../model/config.js';
 import PathResolver from '../utils/path-resolver.js';
 import AuthController from './auth.js';
 import cacheManager from '../utils/cache-manager.js';
+import { getValueByPath, setValueByPath } from '../utils/common.js';
 
 // W-014: Import ContextExtensions at module level for performance
 let ContextExtensions = null;       // initialized by initialize()
@@ -524,6 +525,162 @@ class HandlebarController {
         // Create base handlebars context
         const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
         const userRoles = req.session?.user?.roles || [];
+
+        // W-129: HTML attributes + theme default (stored under appConfig.system.* for templates)
+        const languageRaw = AuthController.getUserLanguage(req) || 'en';
+        const defaultThemeRaw = String(global.appConfig?.utils?.theme?.default || 'light');
+        const defaultTheme = /^[a-zA-Z0-9_-]+$/.test(defaultThemeRaw) ? defaultThemeRaw : 'light';
+
+        const themeRaw = req.session?.user?.preferences?.theme || defaultTheme;
+        const language = /^[a-zA-Z0-9-]+$/.test(languageRaw) ? languageRaw : 'en';
+        const theme = /^[a-zA-Z0-9_-]+$/.test(themeRaw) ? themeRaw : defaultTheme;
+        const htmlAttrs = `lang="${language}" data-theme="${theme}"`;
+
+        // W-129: Determine light/dark for Prism and other assets (theme metadata derived from CSS)
+        let colorScheme = 'light';
+        if (global.ThemeManager && typeof global.ThemeManager.getThemeColorScheme === 'function') {
+            colorScheme = global.ThemeManager.getThemeColorScheme(theme, 'light');
+        } else if (theme === 'dark') {
+            colorScheme = 'dark';
+        }
+
+        // W-129: Expose safe theme list to templates (for selectors and docs links in UI)
+        // Only includes non-sensitive metadata. (No file paths, no config values.)
+        let themesForContext = [];
+        try {
+            const ensureCoreThemes = (themeMap) => {
+                if (!themeMap.has('light')) {
+                    themeMap.set('light', {
+                        name: 'light',
+                        label: 'Light',
+                        description: 'Default light theme',
+                        author: 'jPulse Framework',
+                        version: String(global.appConfig?.app?.version || ''),
+                        source: 'framework',
+                        pluginName: undefined,
+                        colorScheme: 'light'
+                    });
+                }
+                if (!themeMap.has('dark')) {
+                    themeMap.set('dark', {
+                        name: 'dark',
+                        label: 'Dark',
+                        description: 'Default dark theme',
+                        author: 'jPulse Framework',
+                        version: String(global.appConfig?.app?.version || ''),
+                        source: 'framework',
+                        pluginName: undefined,
+                        colorScheme: 'dark'
+                    });
+                }
+            };
+
+            if (global.ThemeManager && typeof global.ThemeManager.discoverThemes === 'function') {
+                const discovered = global.ThemeManager.discoverThemes() || [];
+                const themeMap = new Map();
+                for (const t of discovered) {
+                    const name = String(t?.name || '').trim();
+                    if (!name.match(/^[a-zA-Z0-9_-]+$/)) continue;
+
+                    const label = String(t?.label || name).trim() || name;
+                    const description = String(t?.description || '').trim();
+                    const author = String(t?.author || '').trim();
+                    const version = String(t?.version || '').trim();
+                    const source = String(t?.source || '').trim();
+                    const pluginName = typeof t?.pluginName === 'string' ? t.pluginName.trim() : undefined;
+
+                    let themeScheme = (name === 'dark') ? 'dark' : 'light';
+                    if (global.ThemeManager && typeof global.ThemeManager.getThemeColorScheme === 'function') {
+                        themeScheme = global.ThemeManager.getThemeColorScheme(name, themeScheme);
+                    }
+
+                    themeMap.set(name, {
+                        name,
+                        label,
+                        description,
+                        author,
+                        version,
+                        source,
+                        pluginName,
+                        colorScheme: themeScheme
+                    });
+                }
+
+                ensureCoreThemes(themeMap);
+
+                const names = Array.from(themeMap.keys());
+                names.sort((a, b) => {
+                    const order = (n) => {
+                        if (n === 'light') return 0;
+                        if (n === 'dark') return 1;
+                        return 2;
+                    };
+                    const oa = order(a);
+                    const ob = order(b);
+                    if (oa !== ob) return oa - ob;
+                    return a.localeCompare(b);
+                });
+                themesForContext = names.map(n => themeMap.get(n));
+            } else {
+                themesForContext = [
+                    {
+                        name: 'light',
+                        label: 'Light',
+                        description: 'Default light theme',
+                        author: 'jPulse Framework',
+                        version: String(global.appConfig?.app?.version || ''),
+                        source: 'framework',
+                        pluginName: undefined,
+                        colorScheme: 'light'
+                    },
+                    {
+                        name: 'dark',
+                        label: 'Dark',
+                        description: 'Default dark theme',
+                        author: 'jPulse Framework',
+                        version: String(global.appConfig?.app?.version || ''),
+                        source: 'framework',
+                        pluginName: undefined,
+                        colorScheme: 'dark'
+                    }
+                ];
+            }
+        } catch (e) {
+            themesForContext = [
+                {
+                    name: 'light',
+                    label: 'Light',
+                    description: 'Default light theme',
+                    author: 'jPulse Framework',
+                    version: String(global.appConfig?.app?.version || ''),
+                    source: 'framework',
+                    pluginName: undefined,
+                    colorScheme: 'light'
+                },
+                {
+                    name: 'dark',
+                    label: 'Dark',
+                    description: 'Default dark theme',
+                    author: 'jPulse Framework',
+                    version: String(global.appConfig?.app?.version || ''),
+                    source: 'framework',
+                    pluginName: undefined,
+                    colorScheme: 'dark'
+                }
+            ];
+        }
+
+        const appConfigForContext = {
+            ...appConfig,
+            system: {
+                ...(appConfig.system || {}),
+                defaultTheme: defaultTheme,
+                htmlAttrs: htmlAttrs,
+                colorScheme: colorScheme,
+                themes: themesForContext
+            }
+        };
+
         const baseContext = {
             app: appConfig.app,
             user: {
@@ -544,7 +701,7 @@ class HandlebarController {
                 preferences: req.session?.user?.preferences || {}
             },
             siteConfig: this.globalConfig?.data || {},
-            appConfig: appConfig, // Full app config (will be filtered based on auth)
+            appConfig: appConfigForContext, // Full app config (will be filtered based on auth)
             // W-076: Add Redis cluster availability for client-side jPulse.appCluster
             appCluster: {
                 available: global.RedisManager ? global.RedisManager.isRedisAvailable() : false
@@ -587,8 +744,21 @@ class HandlebarController {
         if (context._handlebar) {
             delete context._handlebar;
         }
+
         // Deep clone context to avoid mutating original
         const filtered = JSON.parse(JSON.stringify(context));
+
+        // W-129: Capture allow-list values BEFORE filtering (original context has them)
+        const alwaysAllowList = global.appConfig?.controller?.handlebar?.contextFilter?.alwaysAllow || [];
+        const allowValues = [];
+        if (Array.isArray(alwaysAllowList) && alwaysAllowList.length > 0) {
+            for (const allowPath of alwaysAllowList) {
+                const value = getValueByPath(context, allowPath);
+                if (value !== undefined) {
+                    allowValues.push({ path: allowPath, value });
+                }
+            }
+        }
 
         // Filter appConfig (existing logic)
         const appFilterList = isAuthenticated
@@ -598,6 +768,15 @@ class HandlebarController {
         if (appFilterList && appFilterList.length > 0) {
             for (const filterPath of appFilterList) {
                 this._removePath(filtered, filterPath);
+            }
+        }
+
+        // W-129: Re-apply allow-list values after filtering (data-driven)
+        if (allowValues.length > 0) {
+            for (const entry of allowValues) {
+                if (typeof entry.path === 'string' && entry.path.trim() !== '') {
+                    setValueByPath(filtered, entry.path, entry.value);
+                }
             }
         }
 

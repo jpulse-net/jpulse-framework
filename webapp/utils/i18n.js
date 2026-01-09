@@ -3,8 +3,8 @@
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/utils/i18n.js
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,6 +16,7 @@
 import { join } from 'node:path';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import cacheManager from './cache-manager.js';
+import { getValueByPath, setValueByPath } from './common.js';
 
 /**
  * Deep clone an object
@@ -51,38 +52,6 @@ function getObjectPaths(obj, prefix = '') {
         }
     }
     return paths;
-}
-
-/**
- * Set a value in an object using dot notation path
- */
-function setValueByPath(obj, keyPath, value) {
-    const keys = keyPath.split('.');
-    let current = obj;
-    for (let i = 0; i < keys.length - 1; i++) {
-        const key = keys[i];
-        if (!current[key] || typeof current[key] !== 'object') {
-            current[key] = {};
-        }
-        current = current[key];
-    }
-    current[keys[keys.length - 1]] = value;
-}
-
-/**
- * Get a value from an object using dot notation path
- */
-function getValueByPath(obj, keyPath) {
-    const keys = keyPath.split('.');
-    let current = obj;
-    for (const key of keys) {
-        if (current && typeof current === 'object' && current.hasOwnProperty(key)) {
-            current = current[key];
-        } else {
-            return undefined;
-        }
-    }
-    return current;
 }
 
 /**

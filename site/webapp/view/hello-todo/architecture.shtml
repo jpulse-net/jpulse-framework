@@ -4,15 +4,15 @@
  * @tagline         Architecture Overview of To-Do MVC Demo
  * @description     How Model, View, and Controller components connect
  * @file            site/webapp/view/hello-todo/architecture.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,13 +20,14 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         .local-flow-diagram {
-            background: #f8f9fa;
-            border: 2px solid #e0e0e0;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+            border: 2px solid var(--jp-theme-border-color, #e0e0e0);
             border-radius: 8px;
             padding: 2rem;
             margin: 2rem 0;
             font-family: monospace;
             line-height: 1.8;
+            color: var(--jp-theme-text-primary, #333);
         }
 
         .local-flow-step {
@@ -35,7 +36,7 @@
         }
 
         .local-flow-arrow {
-            color: #007acc;
+            color: var(--jp-theme-color-primary, #007acc);
             font-weight: bold;
         }
     </style>
@@ -174,8 +175,8 @@
 
                 <h3>🔄 Data Flow Patterns</h3>
 
-                <div class="jp-card" style="background: #e3f2fd; border-left: 4px solid #2196f3;">
-                    <h4 style="margin-top: 0;">Page Load (jPulse MPA Hybrid)</h4>
+                <div class="jp-output jp-output-info">
+                    <h4>Page Load (jPulse MPA Hybrid)</h4>
                     <p><strong>Request:</strong> User visits <code>/hello-todo/todo-app.shtml</code></p>
                     <ol>
                         <li>Server renders HTML scaffolding (page structure, empty containers)</li>
@@ -187,8 +188,8 @@
                     <p class="jp-help-text">💡 <strong>Key difference:</strong> Server sends structure only, browser fetches and renders data!</p>
                 </div>
 
-                <div class="jp-card" style="background: #f3e5f5; border-left: 4px solid #9c27b0;">
-                    <h4 style="margin-top: 0;">API Request (User Action)</h4>
+                <div class="jp-output jp-output-info jp-mt-15">
+                    <h4>API Request (User Action)</h4>
                     <p><strong>Request:</strong> User clicks "Add To-Do" button</p>
                     <ol>
                         <li>JavaScript makes AJAX POST to <code>/api/1/helloTodo</code></li>
@@ -200,7 +201,9 @@
                     </ol>
                 </div>
 
-                <h3>🎯 Key Design Principles</h3>
+                <div class="jp-mt-30">
+                    <h3>🎯 Key Design Principles</h3>
+                </div>
 
                 <table class="jp-table">
                     <thead>
@@ -230,7 +233,7 @@
                 </table>
 
                 <h3>✅ Benefits of MVC</h3>
-                <div class="jp-card" style="background: #f1f8e9; border-left: 4px solid #689f38;">
+                <div class="jp-output jp-output-success">
                     <ul>
                         <li><strong>Separation of Concerns</strong> - Each component has a single responsibility</li>
                         <li><strong>Reusability</strong> - Model can be used by multiple Controllers</li>
@@ -240,9 +243,11 @@
                     </ul>
                 </div>
 
-                <h3>🔀 Compare: MPA vs SPA</h3>
-                <div class="jp-card" style="background: #fff3cd; border-left: 4px solid #ff6b6b;">
-                    <h4 style="margin-top: 0;">This To-Do App (jPulse MPA Hybrid)</h4>
+                <div class="jp-mt-30">
+                    <h3>🔀 Compare: MPA vs SPA</h3>
+                </div>
+                <div class="jp-output jp-output-warning">
+                    <h4>This To-Do App (jPulse MPA Hybrid)</h4>
                     <ul>
                         <li>✅ Server renders HTML scaffolding (structure, no data)</li>
                         <li>✅ Browser JavaScript fetches data via REST API</li>
@@ -254,8 +259,8 @@
                     <p class="jp-help-text">💡 <strong>Architecture:</strong> Model + Controller on server, View logic in browser</p>
                 </div>
 
-                <div class="jp-card" style="background: #e8f5e9; border-left: 4px solid #4caf50; margin-top: 1rem;">
-                    <h4 style="margin-top: 0;">Vue.js SPA (Single Page App)</h4>
+                <div class="jp-output jp-output-success jp-mt-15">
+                    <h4>Vue.js SPA (Single Page App)</h4>
                     <ul>
                         <li>✅ Client renders UI dynamically</li>
                         <li>✅ Instant UI updates, no page reloads</li>
@@ -266,18 +271,20 @@
                     <p class="jp-help-text">💡 See the <a href="/hello-vue/">Vue.js SPA Demo</a> to compare!</p>
                 </div>
 
-                <h3>📚 Next: Explore More Examples</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
-                    <a href="/hello-vue/" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
-                        <h4 style="margin-top: 0;">🔄 Vue.js SPA</h4>
+                <div class="jp-mt-30">
+                    <h3>📚 Next: Explore More Examples</h3>
+                </div>
+                <div class="jp-grid-auto-200 jp-mt-15">
+                    <a href="/hello-vue/" class="jp-card jp-link-card">
+                        <h4>🔄 Vue.js SPA</h4>
                         <p>See how a Single Page Application differs from this MPA</p>
                     </a>
-                    <a href="/hello-websocket/" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
-                        <h4 style="margin-top: 0;">🔌 WebSocket Real-Time</h4>
+                    <a href="/hello-websocket/" class="jp-card jp-link-card">
+                        <h4>🔌 WebSocket Real-Time</h4>
                         <p>Learn real-time communication with WebSockets</p>
                     </a>
-                    <a href="/hello/" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
-                        <h4 style="margin-top: 0;">🌐 All Examples</h4>
+                    <a href="/hello/" class="jp-card jp-link-card">
+                        <h4>🌐 All Examples</h4>
                         <p>Back to the examples dashboard</p>
                     </a>
                 </div>

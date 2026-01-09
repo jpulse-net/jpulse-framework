@@ -4,15 +4,15 @@
  * @tagline         Admin logs viewer interface
  * @description     Log analysis and search interface for site administrators
  * @file            webapp/view/admin/logs.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -48,10 +48,10 @@
 
         .local-changes-dropdown {
             position: fixed;
-            background: white;
-            border: 1px solid #dee2e6;
+            background: var(--jp-theme-bg-primary, #ffffff);
+            border: 1px solid var(--jp-theme-border-color, #dee2e6);
             border-radius: 4px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            box-shadow: var(--jp-theme-shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15));
             z-index: 10000;
             display: none;
             max-height: 400px;
@@ -71,7 +71,7 @@
         .local-changes-dropdown-content .local-change-item {
             margin-bottom: 6px;
             padding: 6px 8px;
-            background: #f8f9fa;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
             border-radius: 3px;
             user-select: text;
             font-size: 14px;
@@ -85,7 +85,7 @@
         .local-changes-dropdown-content .local-change-item strong {
             display: block;
             margin-bottom: 2px;
-            color: #495057;
+            color: var(--jp-theme-text-primary, #495057);
             font-size: 14px;
         }
 
@@ -99,7 +99,7 @@
             white-space: pre-wrap;
             margin: 0;
             padding: 8px;
-            background: #f8f9fa;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
             border-radius: 3px;
             user-select: text;
             font-size: 12px;
@@ -119,18 +119,18 @@
         }
 
         .local-action-create {
-            background: #d4edda;
-            color: #155724;
+            background: var(--jp-theme-color-success-bg, #d4edda);
+            color: var(--jp-theme-color-success-text, #155724);
         }
 
         .local-action-update {
-            background: #d1ecf1;
-            color: #0c5460;
+            background: var(--jp-theme-color-info-bg, #e7f3ff);
+            color: var(--jp-theme-color-info-text, #0c5460);
         }
 
         .local-action-delete {
-            background: #f8d7da;
-            color: #721c24;
+            background: var(--jp-theme-color-danger-bg, #f8d7da);
+            color: var(--jp-theme-color-danger-text, #721c24);
         }
 
         .local-changes-cell {
@@ -148,13 +148,13 @@
         .local-changes-full {
             display: none;
             white-space: pre-wrap;
-            background: #f8f9fa;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
             padding: 8px;
             border-radius: 4px;
             margin-top: 5px;
             font-family: monospace;
             font-size: 12px;
-            border: 1px solid #e9ecef;
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
 
         .local-changes-cell.expanded .local-changes-summary {
@@ -167,7 +167,7 @@
 
         .local-timestamp {
             font-size: 12px;
-            color: #666;
+            color: var(--jp-theme-text-secondary, #666);
         }
 
         .local-username {
@@ -180,9 +180,10 @@
             align-items: center;
             margin-bottom: 15px;
             padding: 10px;
-            background: #f8f9fa;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
             border-radius: 4px;
             font-size: 14px;
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
 
         .local-page-size-selector {
@@ -193,14 +194,14 @@
 
         .local-page-size-selector select {
             padding: 4px 8px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--jp-theme-border-color, #ddd);
             border-radius: 4px;
             font-size: 12px;
         }
 
         .local-filter-count {
-            background: #007acc;
-            color: white;
+            background: var(--jp-theme-color-primary, #007acc);
+            color: var(--jp-theme-text-inverse, #ffffff);
             padding: 2px 6px;
             border-radius: 10px;
             font-size: 11px;
@@ -208,7 +209,7 @@
         }
 
         .local-clear-filters {
-            color: #dc3545;
+            color: var(--jp-theme-color-danger, #dc3545);
             text-decoration: none;
             font-size: 12px;
             margin-left: 10px;
@@ -304,11 +305,11 @@
             </div>
 
             <!-- Results info and controls -->
-            <div class="local-results-info" id="resultsInfo" style="display: none;">
+            <div class="local-results-info jp-hidden" id="resultsInfo">
                 <div>
                     <span id="resultsCount">0 results</span>
-                    <span id="activeFiltersCount" class="local-filter-count" style="display: none;">0</span>
-                    <a href="#" class="local-clear-filters" onclick="clearFilters(); return false;" id="clearFiltersLink" style="display: none;">{{i18n.view.admin.logs.clearAllFilters}}</a>
+                    <span id="activeFiltersCount" class="local-filter-count jp-hidden">0</span>
+                    <a href="#" class="local-clear-filters jp-hidden" onclick="clearFilters(); return false;" id="clearFiltersLink">{{i18n.view.admin.logs.clearAllFilters}}</a>
                 </div>
                 <div class="local-page-size-selector">
                     <label for="pageSize">{{i18n.view.admin.logs.resultsPerPage}}</label>
@@ -340,16 +341,16 @@
             </div>
 
             <!-- Loading and no results states -->
-            <div class="jp-loading" id="loading" style="display: none;">
+            <div class="jp-loading jp-hidden" id="loading">
                 {{i18n.view.admin.logs.loading}}
             </div>
 
-            <div class="jp-no-results" id="noResults" style="display: none;">
+            <div class="jp-no-results jp-hidden" id="noResults">
                 {{i18n.view.admin.logs.noResults}}
             </div>
 
             <!-- Pagination -->
-            <div class="jp-pagination" id="pagination" style="display: none;">
+            <div class="jp-pagination jp-hidden" id="pagination">
                 <button id="prevPage" disabled>{{i18n.view.admin.logs.previous}}</button>
                 <span id="pageInfo"></span>
                 <button id="nextPage" disabled>{{i18n.view.admin.logs.next}}</button>
@@ -557,11 +558,11 @@
 
             if (filterCount > 0) {
                 countEl.textContent = filterCount;
-                countEl.style.display = 'inline';
-                clearEl.style.display = 'inline';
+                countEl.classList.remove('jp-hidden');
+                clearEl.classList.remove('jp-hidden');
             } else {
-                countEl.style.display = 'none';
-                clearEl.style.display = 'none';
+                countEl.classList.add('jp-hidden');
+                clearEl.classList.add('jp-hidden');
             }
         }
 
@@ -604,11 +605,11 @@
             const pagination = document.getElementById('pagination');
 
             // Show loading state
-            loading.style.display = 'block';
-            noResults.style.display = 'none';
-            tableContainer.style.display = 'none';
-            resultsInfo.style.display = 'none';
-            pagination.style.display = 'none';
+            loading.classList.remove('jp-hidden');
+            noResults.classList.add('jp-hidden');
+            tableContainer.classList.add('jp-hidden');
+            resultsInfo.classList.add('jp-hidden');
+            pagination.classList.add('jp-hidden');
 
             try {
                 // Build query parameters
@@ -641,21 +642,21 @@
                 updateResultsInfo(result.pagination);
 
                 // Show appropriate sections
-                loading.style.display = 'none';
+                loading.classList.add('jp-hidden');
                 if (result.data.length > 0) {
-                    tableContainer.style.display = 'block';
-                    resultsInfo.style.display = 'flex';
+                    tableContainer.classList.remove('jp-hidden');
+                    resultsInfo.classList.remove('jp-hidden');
                     if (paginationState.prevCursor || paginationState.nextCursor) {
-                        pagination.style.display = 'block';
+                        pagination.classList.remove('jp-hidden');
                     }
                 } else {
-                    noResults.style.display = 'block';
-                    resultsInfo.style.display = 'flex'; // Still show results info even with no results
+                    noResults.classList.remove('jp-hidden');
+                    resultsInfo.classList.remove('jp-hidden'); // Still show results info even with no results
                 }
 
             } catch (error) {
                 console.error('- jPulse: Error loading logs:', error);
-                loading.style.display = 'none';
+                loading.classList.add('jp-hidden');
                 jPulse.ui.showToast('Error loading logs: ' + error.message, 'error');
             }
         }

@@ -1,4 +1,4 @@
-# jPulse Docs / Getting Started with jPulse v1.4.8
+# jPulse Docs / Getting Started with jPulse v1.4.9
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the site override system.
 
@@ -405,7 +405,7 @@ EOF
 mkdir -p site/webapp/view/welcome
 cat > site/webapp/view/welcome/index.shtml << 'EOF'
 <!DOCTYPE html>
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

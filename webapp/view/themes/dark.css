@@ -1,0 +1,130 @@
+/*
+ * @name            jPulse Framework / WebApp / View / Themes / Dark CSS
+ * @tagline         Dark CSS of the jPulse Framework
+ * @description     Dark CSS for the jPulse Framework
+ * @file            webapp/view/themes/dark.css
+ * @version         1.4.8
+ * @release         2026-01-08
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ */
+
+/* Dark theme overrides (W-129)
+ * Theme variables are defined in :root in jpulse-common.css and overridden here.
+ */
+
+[data-theme="dark"] {
+    /* Hint browser/OS to use dark native form controls (where supported). */
+    color-scheme: dark;
+
+    /* Background Colors */
+    --jp-theme-bg-body: #1a1a1a;
+    --jp-theme-bg-primary: #2d3748;
+    --jp-theme-bg-secondary: #1f2937;
+    --jp-theme-bg-tertiary: #111827;
+
+    /* Text Colors */
+    --jp-theme-text-primary: #f7fafc;
+    --jp-theme-text-secondary: #cbd5e0;
+    --jp-theme-text-muted: #9ca3af;
+    --jp-theme-text-inverse: #111827;
+
+    /* Border Colors */
+    --jp-theme-border-color: #4b5563;
+    --jp-theme-border-light: #374151;
+    --jp-theme-border-dark: #6b7280;
+
+    /* Semantic Colors */
+    --jp-theme-color-primary: #4299e1;
+    --jp-theme-color-primary-hover: #3182ce;
+    --jp-theme-color-primary-dark: #2c5282;
+
+    --jp-theme-color-secondary: #6c757d;
+    --jp-theme-color-secondary-hover: #545b62;
+
+    --jp-theme-color-success: #28a745;
+    --jp-theme-color-success-hover: #1e7e34;
+    --jp-theme-color-success-bg: #0f2f1b;
+    --jp-theme-color-success-text: #8ce3a8;
+
+    --jp-theme-color-danger: #dc3545;
+    --jp-theme-color-danger-hover: #c82333;
+    --jp-theme-color-danger-bg: #3a0b10;
+    --jp-theme-color-danger-text: #ffb3bc;
+
+    --jp-theme-color-warning: #ffc107;
+    --jp-theme-color-warning-hover: #e0a800;
+    --jp-theme-color-warning-bg: #3a2a00;
+    --jp-theme-color-warning-text: #ffe08a;
+
+    --jp-theme-color-info: #17a2b8;
+    --jp-theme-color-info-hover: #138496;
+    --jp-theme-color-info-bg: #0b2a33;
+    --jp-theme-color-info-text: #8bd7e6;
+
+    /* Header/Navigation */
+    --jp-theme-header-bg: linear-gradient(135deg, #1b2f53, #142340);
+    --jp-theme-header-text: #f0f0f0;
+    --jp-theme-header-shadow: rgba(0,0,0,0.35);
+    --jp-theme-focus-ring: rgba(66, 153, 225, 0.35);
+
+    /* Browser native form controls */
+    --jp-theme-color-scheme: dark;
+
+    /* Breadcrumbs */
+    --jp-theme-breadcrumb-color: var(--jp-theme-text-muted, #9ca3af);
+    --jp-theme-breadcrumb-opacity: 0.72;
+    --jp-theme-breadcrumb-link-opacity: 0.85;
+    --jp-theme-breadcrumb-current-opacity: 0.9;
+
+    /* Shadows */
+    --jp-theme-shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+    --jp-theme-shadow-md: 0 2px 10px rgba(0,0,0,0.3);
+    --jp-theme-shadow-lg: 0 4px 12px rgba(0,0,0,0.4);
+
+    /* Sidebar System */
+    --jp-theme-sidebar-content-fade: rgba(45, 55, 72, 0.85);
+    --jp-theme-sidebar-hover-zone-bg: rgba(255, 255, 255, 0.06);
+    --jp-theme-sidebar-overlay-fade: rgba(45, 55, 72, 0.55);
+
+    /* Buttons */
+    --jp-theme-btn-outline-color: #c4e5fb;
+
+    /* Status Badge Colors */
+    --jp-theme-status-active-bg: #0f2f1b;
+    --jp-theme-status-active-text: #8ce3a8;
+    --jp-theme-status-inactive-bg: #3a0b10;
+    --jp-theme-status-inactive-text: #ffb3bc;
+    --jp-theme-status-pending-bg: #3a2a00;
+    --jp-theme-status-pending-text: #ffe08a;
+
+    /* Role Badge Colors */
+    --jp-theme-role-root-bg: #dc3545;
+    --jp-theme-role-admin-bg: #fd7e14;
+    --jp-theme-role-user-bg: #4299e1;
+    --jp-theme-role-text: #ffffff;
+}
+
+/* Prism.js (dark theme): override Prism default text-shadow and token background highlights. */
+[data-theme="dark"] code[class*="language-"],
+[data-theme="dark"] pre[class*="language-"] {
+    color: var(--jp-theme-text-primary, #f7fafc);
+    text-shadow: none;
+}
+
+[data-theme="dark"] :not(pre) > code[class*="language-"],
+[data-theme="dark"] pre[class*="language-"] {
+    background: transparent;
+}
+
+/* Prism default theme adds a light background to some tokens (e.g., operators/entities/urls) which looks wrong on dark. */
+[data-theme="dark"] .token.entity,
+[data-theme="dark"] .token.operator,
+[data-theme="dark"] .token.url {
+    background: transparent;
+}
+
+ /* EOF webapp/view/themes/dark.css */

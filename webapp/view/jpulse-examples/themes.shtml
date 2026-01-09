@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / jPulse Examples / Themes
+ * @tagline         Theme examples and CSS patterns
+ * @description     Comprehensive examples of themes and CSS utility classes in jPulse
+ * @file            webapp/view/jpulse-examples/themes.shtml
+ * @version         1.4.9
+ * @release         2026-01-09
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
+-->
+<html {{appConfig.system.htmlAttrs}}>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Themes Examples - {{app.jPulse.shortName}}</title>
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-theme-meta-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        @media (min-width: 900px) {
+            .local-theme-meta-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .local-theme-preview-scroll {
+            overflow-x: auto;
+            padding: 0.5rem;
+            border: 1px solid var(--jp-theme-border-color, #dee2e6);
+            border-radius: 10px;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+        }
+
+        .local-theme-preview {
+            width: 500px;
+            height: 200px;
+            overflow: hidden;
+            border: 0;
+            border-radius: 0;
+            background: var(--jp-theme-bg-primary, #ffffff);
+            box-shadow: var(--jp-theme-shadow-card, 0 1px 6px rgba(0, 0, 0, 0.08));
+            padding: 14px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .local-theme-preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .local-theme-preview-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--jp-theme-text-primary, #222);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .local-theme-preview-subtitle {
+            font-size: 13px;
+            color: var(--jp-theme-text-secondary, #555);
+            margin: 0;
+        }
+
+        .local-theme-preview-muted {
+            color: var(--jp-theme-text-muted, #777);
+            font-size: 12px;
+        }
+
+        .local-theme-preview-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .local-theme-preview-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .local-theme-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid var(--jp-theme-border-color, #dee2e6);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .local-theme-pill-info {
+            background: var(--jp-theme-color-info-bg, #e7f3ff);
+            color: var(--jp-theme-color-info, #0056b3);
+            border-color: var(--jp-theme-color-info-border, rgba(0, 86, 179, 0.25));
+        }
+
+        .local-theme-pill-warning {
+            background: var(--jp-theme-color-warning-bg, #fff3cd);
+            color: var(--jp-theme-color-warning, #856404);
+            border-color: var(--jp-theme-color-warning-border, rgba(133, 100, 4, 0.25));
+        }
+
+        .local-theme-pill-error {
+            background: var(--jp-theme-color-danger-bg, #f8d7da);
+            color: var(--jp-theme-color-danger, #721c24);
+            border-color: var(--jp-theme-color-danger-border, rgba(114, 28, 36, 0.25));
+        }
+
+        .local-theme-preview-pre {
+            margin: 0;
+            padding: 0 10px !important;
+            margin: 2px 0 !important;
+            border-radius: 10px;
+            border: 1px solid var(--jp-theme-border-color, #dee2e6);
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .local-theme-preview-pre code {
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
+        .local-theme-table-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            max-width: 100%;
+        }
+
+        .local-theme-table td:nth-child(1) {
+            width: 500px;
+        }
+
+        .local-theme-table td:nth-child(2) {
+            min-width: 250px;
+        }
+
+        .local-theme-thumb {
+            width: 500px;
+            height: 200px;
+            object-fit: cover;
+            border: 1px solid var(--jp-theme-border-color, #dee2e6);
+            border-radius: 10px;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+        }
+
+        .local-theme-table td {
+            vertical-align: top;
+        }
+
+        /* Theme selector: content-sized on desktop, full-width on small screens */
+        #themeSelect.jp-form-select {
+            width: auto;
+            max-width: 100%;
+            display: inline-block;
+        }
+        @media (max-width: 600px) {
+            #themeSelect.jp-form-select {
+                width: 100%;
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    {{#component "exampleCards.themes" order=30}}
+        {{!-- This card is automatically included in the dashboard at jpulse-examples/index.shtml --}}
+        <a href="/jpulse-examples/themes.shtml" class="jp-card-dashboard jp-icon-btn">
+            <div class="jp-icon-container">{{components.jpIcons.themesSvg size="64"}}</div>
+            <h3 class="jp-card-title">Themes</h3>
+            <p class="jp-card-description">Learn theme creation and usage in jPulse.</p>
+        </a>
+    {{/component}}
+
+    <div class="jp-main">
+        <!-- Navigation Tabs -->
+        <div id="jpulse-docs-examples-tabs" class="jp-tabs"></div>
+        <div id="jpulse-examples-sub-tabs" class="jp-tabs"></div>
+
+        <h1 class="jp-title">{{components.jpIcons.themesSvg size="26"}} Themes Examples</h1>
+
+        <div class="jp-info-box">
+            <p><strong>Themes</strong> let you change the look and feel of the UI by overriding a shared set of CSS variables. jPulse loads exactly one theme CSS file at runtime, based on the user's preference (or the configured default).</p>
+            <p><strong>Docs:</strong> <a href="/jpulse-docs/themes">Themes</a>, <a href="/jpulse-docs/plugins/creating-themes">Creating Themes</a>, <a href="/jpulse-docs/style-reference">Style Reference</a></p>
+        </div>
+
+        <div class="jp-card">
+            <h2 class="jp-card-dialog-heading">Theme Selector (temporary switch)</h2>
+            <p>Use this dropdown to preview any installed theme on this page. This does not persist the change; to save the preference, use <a href="/user/profile.shtml">User Profile</a>.</p>
+
+            <div class="jp-form-group">
+                <label for="themeSelect" class="jp-form-label">Theme</label>
+                <select id="themeSelect" class="jp-form-select">
+                    {{#each appConfig.system.themes}}
+                        <option value="{{this.name}}" data-color-scheme="{{this.colorScheme}}">
+                            {{this.label}} ({{this.name}})
+                        </option>
+                    {{/each}}
+                </select>
+            </div>
+
+            <div id="themeStatus" class="jp-output jp-output-info jp-mt-15"></div>
+        </div>
+
+        <div class="jp-card">
+            <h2 class="jp-card-dialog-heading">Theme Preview Canvas (500×200)</h2>
+            <p>This is the canonical preview size for <code>themes/&lt;name&gt;.png</code>. Use it to create consistent theme preview screenshots.</p>
+
+            <div class="local-theme-preview-scroll">
+                <div class="local-theme-preview" id="themePreview">
+                    <div class="local-theme-preview-header">
+                        <div class="local-theme-preview-title">
+                            {{components.jpIcons.themesSvg size="18"}} jPulse Theme Preview
+                            <span class="local-theme-preview-muted">500×200</span>
+                        </div>
+                        <div class="local-theme-preview-pills">
+                            <span class="local-theme-pill local-theme-pill-info">Info</span>
+                            <span class="local-theme-pill local-theme-pill-warning">Warning</span>
+                            <span class="local-theme-pill local-theme-pill-error">Error</span>
+                        </div>
+                    </div>
+
+                    <p class="local-theme-preview-subtitle">
+                        Primary text <span class="local-theme-preview-muted">muted</span> ·
+                        <a href="#theme-preview-link" id="themePreviewLink">link</a> ·
+                        <code>inline-code</code>
+                    </p>
+
+                    <div class="local-theme-preview-row">
+                        <button type="button" class="jp-btn jp-btn-primary jp-btn-sm">Primary</button>
+                        <button type="button" class="jp-btn jp-btn-outline jp-btn-sm">Outline</button>
+                        <span class="local-theme-preview-muted">Focus ring + hover states should look good.</span>
+                    </div>
+
+                    <pre class="local-theme-preview-pre"><code id="themePreviewCode" class="language-javascript">const add = (a, b) =&gt; a + b;
+console.log('add(2, 3) =', add(2, 3));</code></pre>
+                </div>
+            </div>
+
+            <div class="jp-info-box">
+                <h4>Screenshot checklist</h4>
+                <ol>
+                    <li>Use browser zoom at 100%.</li>
+                    <li>Select your theme in the dropdown above.</li>
+                    <li>Capture just the preview canvas (500×200) and save as <code>themes/&lt;name&gt;.png</code>. The canvas has no border and no rounded corners, so you can crop precisely.</li>
+                    <li>Keep the preview clean: no open dropdowns, no tooltips, no hover state.</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="jp-card">
+            <h2 class="jp-card-dialog-heading">For Theme Authors</h2>
+            <p>A theme consists of three files (all required):</p>
+            <ul>
+                <li><code>themes/&lt;name&gt;.css</code> - Overrides jPulse theme variables inside <code>[data-theme="&lt;name&gt;"]</code></li>
+                <li><code>themes/&lt;name&gt;.json</code> - Theme metadata (<code>name</code>, <code>label</code>, <code>description</code>, <code>author</code>, <code>version</code>, <code>source</code>)</li>
+                <li><code>themes/&lt;name&gt;.png</code> - Preview image (exactly 500×200)</li>
+            </ul>
+            <p>To help the framework pick the correct Prism theme and native UI rendering, set:</p>
+            <ul>
+                <li><code>--jp-theme-color-scheme: light;</code> or <code>--jp-theme-color-scheme: dark;</code></li>
+            </ul>
+            <p>See: <a href="/jpulse-docs/plugins/creating-themes">Creating Themes</a></p>
+        </div>
+
+        <div class="jp-card">
+            <h2 class="jp-card-dialog-heading">Installed Themes</h2>
+            <p>Themes are discovered from framework, plugins, and site with priority (site &gt; plugins &gt; framework). This list is safe to show to guests.</p>
+            <div class="local-theme-table-scroll">
+                <table class="jp-table local-theme-table">
+                    <thead>
+                        <tr>
+                            <th>Preview</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each appConfig.system.themes}}
+                            <tr>
+                                <td>
+                                    <img class="local-theme-thumb" loading="lazy" src="/themes/{{this.name}}.png" alt="{{this.label}} theme preview">
+                                </td>
+                                <td>
+                                    <div><strong>{{this.label}}</strong> <span class="local-theme-preview-muted">({{this.name}})</span></div>
+                                    {{#if this.description}}<div class="local-theme-preview-muted">{{this.description}}</div>{{/if}}
+                                    <div class="local-theme-preview-muted">Source: {{this.source}}{{#if this.pluginName}} ({{this.pluginName}}){{/if}} · Scheme: {{this.colorScheme}}</div>
+                                    {{#if this.author}}<div class="local-theme-preview-muted">Author: {{this.author}}{{#if this.version}} · Version: {{this.version}}{{/if}}</div>{{/if}}
+                                </td>
+                            </tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        jPulse.dom.ready(() => {
+            // Initialize main navigation tab row
+            jPulse.UI.tabs.register(
+                'jpulse-docs-examples-tabs',
+                window.jPulseNavigation.tabs.jPulseDocsExamplesTabs
+            );
+
+            // Initialize examples navigation tab row
+            jPulse.UI.tabs.register(
+                'jpulse-examples-sub-tabs',
+                window.jPulseNavigation.tabs.jPulseExamplesSubTabs
+            );
+
+            const setThemeStatus = (themeId) => {
+                const statusEl = document.getElementById('themeStatus');
+                if (!statusEl) return;
+
+                const optionEl = document.querySelector(`#themeSelect option[value="${themeId}"]`);
+                const label = optionEl ? optionEl.textContent : themeId;
+                const scheme = optionEl ? optionEl.getAttribute('data-color-scheme') : '';
+                const docEl = document.documentElement;
+                const active = docEl ? (docEl.getAttribute('data-theme') || '') : '';
+
+                const parts = [];
+                parts.push(`Active theme: ${active || themeId}`);
+                if (label) parts.push(`Selected: ${label}`);
+                if (scheme) parts.push(`Scheme: ${scheme}`);
+                statusEl.textContent = parts.join(' | ');
+            };
+
+            const applyTheme = (themeId) => {
+                const id = String(themeId || '').trim();
+                if (!id.match(/^[a-zA-Z0-9_-]+$/)) return;
+
+                const optionEl = document.querySelector(`#themeSelect option[value="${id}"]`);
+                const scheme = optionEl ? (optionEl.getAttribute('data-color-scheme') || '') : '';
+
+                document.documentElement.setAttribute('data-theme', id);
+
+                const themeCssLink = document.querySelector('link[rel="stylesheet"][href^="/themes/"]');
+                if (themeCssLink) {
+                    themeCssLink.setAttribute('href', `/themes/${id}.css?t=${Date.now()}`);
+                }
+
+                const prismCssLink = document.querySelector('link[rel="stylesheet"][href^="/common/prism/prism-"]');
+                if (prismCssLink && (scheme === 'light' || scheme === 'dark')) {
+                    prismCssLink.setAttribute('href', `/common/prism/prism-${scheme}.css?t=${Date.now()}`);
+                }
+
+                setThemeStatus(id);
+            };
+
+            const selectEl = document.getElementById('themeSelect');
+            if (selectEl) {
+                const current = document.documentElement.getAttribute('data-theme') || '';
+                if (current) {
+                    selectEl.value = current;
+                }
+
+                selectEl.addEventListener('change', (e) => {
+                    applyTheme(e.target.value);
+                });
+
+                setThemeStatus(selectEl.value || current);
+            }
+
+            const previewLink = document.getElementById('themePreviewLink');
+            if (previewLink) {
+                previewLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                });
+            }
+
+            const codeEl = document.getElementById('themePreviewCode');
+            if (codeEl && window.Prism && typeof window.Prism.highlightElement === 'function') {
+                window.Prism.highlightElement(codeEl);
+            }
+        });
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

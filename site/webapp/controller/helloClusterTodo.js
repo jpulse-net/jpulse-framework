@@ -3,8 +3,8 @@
  * @tagline         Collaborative Todo Demo Controller - Server-Side Broadcasting Pattern
  * @description     Full MVC pattern with database persistence and Redis broadcasting
  * @file            site/webapp/controller/helloClusterTodo.js
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,6 +21,14 @@ const CommonUtils = global.CommonUtils;
  * Demonstrates server-side broadcasting pattern with full MVC architecture
  */
 class HelloClusterTodoController {
+    // W-129: Allow unauthenticated access to this demo API (default would be auth 'user' via SiteControllerRegistry)
+    static routes = [
+        { method: 'GET', path: '/api/1/helloClusterTodo', handler: 'api', auth: 'none' },
+        { method: 'POST', path: '/api/1/helloClusterTodo', handler: 'apiCreate', auth: 'none' },
+        { method: 'PUT', path: '/api/1/helloClusterTodo/:id/toggle', handler: 'apiToggle', auth: 'none' },
+        { method: 'DELETE', path: '/api/1/helloClusterTodo/:id', handler: 'apiDelete', auth: 'none' },
+        { method: 'GET', path: '/api/1/helloClusterTodo/stats', handler: 'apiStats', auth: 'none' }
+    ];
 
     /**
      * Get all todos for the current user

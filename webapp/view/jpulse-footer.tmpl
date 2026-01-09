@@ -4,8 +4,8 @@
  * @tagline         Footer template for jPulse pages
  * @description     Footer included in all jPulse pages to provide a consistent page layout
  * @file            webapp/view/jpulse-footer.tmpl
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -356,12 +356,14 @@ jPulse.dom.ready(() => {
     // Add keyboard listener
     document.addEventListener('keydown', handleKeyDown);
 
-    // Store handler for cleanup
-    tocEl._keydownHandler = handleKeyDown;
-
-    // Cleanup on regeneration (add this in the generateToc function cleanup section)
-    if (tocEl._keydownHandler) {
-        document.removeEventListener('keydown', tocEl._keydownHandler);
+    // Store handler for cleanup (only if TOC element exists)
+    const tocEl = document.getElementById('jp-sidebar-toc');
+    if (tocEl) {
+        // Cleanup on regeneration (add this in the generateToc function cleanup section)
+        if (tocEl._keydownHandler) {
+            document.removeEventListener('keydown', tocEl._keydownHandler);
+        }
+        tocEl._keydownHandler = handleKeyDown;
     }
 });
 </script>

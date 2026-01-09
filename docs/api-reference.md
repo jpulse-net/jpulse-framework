@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.4.8
+# jPulse Docs / REST API Reference v1.4.9
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -570,6 +570,10 @@ Retrieve enum values from user schema (roles, status, theme, etc.). Useful for p
 **Middleware:** `AuthController.requireAuthentication`
 **Authentication:** Required
 
+Notes:
+- `preferences.theme` is populated from discovered themes (framework, plugins, site).
+- This endpoint returns **theme IDs only**. Theme metadata and previews are documented in [Themes](/themes.md).
+
 **Response (200):**
 ```json
 {
@@ -578,7 +582,7 @@ Retrieve enum values from user schema (roles, status, theme, etc.). Useful for p
     "data": {
         "roles": ["user", "admin", "root"],
         "status": ["pending", "active", "inactive", "suspended", "terminated"],
-        "preferences.theme": ["light", "dark"]
+        "preferences.theme": ["light", "dark", "my-theme"]
     },
     "elapsed": 5
 }

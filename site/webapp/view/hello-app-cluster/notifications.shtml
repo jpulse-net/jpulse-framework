@@ -4,15 +4,15 @@
  * @tagline         Client-Side Broadcasting Pattern Demo
  * @description     Simple notification broadcasting without server-side persistence
  * @file            site/webapp/view/hello-app-cluster/notifications.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,7 +24,7 @@
         }
 
         .local-card-header {
-            background: #f8f8f8;
+            background: var(--jp-theme-bg-secondary, #f8f8f8);
             margin: -20px -20px 25px -20px;
             padding: 15px 20px;
             border-radius: 8px 8px 0 0;
@@ -46,7 +46,7 @@
 
         .local-card-subtitle {
             font-size: 14px;
-            color: #6c757d;
+            color: var(--jp-theme-text-muted, #6c757d);
             margin: 0;
         }
 
@@ -58,12 +58,12 @@
 
         .local-notification-item {
             padding: 20px;
-            border-bottom: 1px solid #f8f9fa;
+            border-bottom: 1px solid var(--jp-theme-border-light, #f8f9fa);
             transition: background-color 0.2s ease;
         }
 
         .local-notification-item:hover {
-            background-color: #f8f9fa;
+            background-color: var(--jp-theme-bg-secondary, #f8f9fa);
         }
 
         .local-notification-item:last-child {
@@ -71,7 +71,7 @@
         }
 
         .local-notification-item.new {
-            background-color: #e3f2fd;
+            background-color: var(--jp-theme-color-info-bg, #e3f2fd);
             animation: fadeIn 0.5s ease;
         }
 
@@ -103,15 +103,15 @@
 
         .local-notification-meta {
             font-size: 13px;
-            color: #6c757d;
+            color: var(--jp-theme-text-muted, #6c757d);
             display: flex;
             gap: 15px;
             flex-wrap: wrap;
         }
 
         .local-notification-badge {
-            background: #007bff;
-            color: white;
+            background: var(--jp-theme-color-primary, #007bff);
+            color: var(--jp-theme-text-inverse, #ffffff);
             padding: 2px 8px;
             border-radius: 12px;
             font-size: 11px;
@@ -119,15 +119,27 @@
             text-transform: uppercase;
         }
 
-        .local-notification-badge.info { background: #17a2b8; }
-        .local-notification-badge.success { background: #28a745; }
-        .local-notification-badge.warning { background: #ffc107; color: #212529; }
-        .local-notification-badge.error { background: #dc3545; }
+        .local-notification-badge.info {
+            background: var(--jp-theme-color-info, #17a2b8);
+            color: var(--jp-theme-color-info-text, #0c5460);
+        }
+        .local-notification-badge.success {
+            background: var(--jp-theme-color-success, #28a745);
+            color: var(--jp-theme-color-success-text, #155724);
+        }
+        .local-notification-badge.warning {
+            background: var(--jp-theme-color-warning, #ffc107);
+            color: var(--jp-theme-color-warning-text, #856404);
+        }
+        .local-notification-badge.error {
+            background: var(--jp-theme-color-danger, #dc3545);
+            color: var(--jp-theme-color-danger-text, #721c24);
+        }
 
         .local-empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #6c757d;
+            color: var(--jp-theme-text-secondary, #6c757d);
         }
 
         .local-empty-state-icon {
@@ -148,15 +160,15 @@
         }
 
         .local-connection-status.connected {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background-color: var(--jp-theme-color-success-bg, #d4edda);
+            color: var(--jp-theme-color-success-text, #155724);
+            border: 1px solid var(--jp-theme-color-success, #28a745);
         }
 
         .local-connection-status.disconnected {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background-color: var(--jp-theme-color-danger-bg, #f8d7da);
+            color: var(--jp-theme-color-danger-text, #721c24);
+            border: 1px solid var(--jp-theme-color-danger, #dc3545);
         }
 
         .local-status-dot {
@@ -167,11 +179,11 @@
         }
 
         .local-status-dot.connected {
-            background-color: #28a745;
+            background-color: var(--jp-theme-color-success, #28a745);
         }
 
         .local-status-dot.disconnected {
-            background-color: #dc3545;
+            background-color: var(--jp-theme-color-danger, #dc3545);
             animation: none;
         }
 
@@ -220,9 +232,9 @@
                 <h2>🎓 Learning: Client-Side Broadcasting Pattern</h2>
                 <p>This demo shows the <strong>simplest clustering pattern</strong> - direct client-to-Redis broadcasting without server-side logic.</p>
 
-                <div style="margin: 15px 0;">
+                <div class="jp-mt-15 jp-mb-15">
                     <strong>How it works:</strong>
-                    <ol style="margin: 10px 0; padding-left: 20px;">
+                    <ol class="jp-mt-15">
                         <li><strong>Client sends:</strong> JavaScript calls <code>jPulse.appCluster.broadcast.publish()</code></li>
                         <li><strong>Redis distributes:</strong> Message goes to all connected server instances</li>
                         <li><strong>All clients receive:</strong> Every browser tab gets the notification instantly</li>
@@ -309,7 +321,7 @@
                 <span class="jp-btn-nav-arrow">→</span>
                 <a href="/hello-vue/" class="jp-btn jp-btn-outline">🔄 Vue.js SPA Demo</a>
                 <span class="jp-btn-nav-arrow">→</span>
-                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">� WebSocket Real-Time Demo</a>
+                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">🔌 WebSocket Real-Time Demo</a>
                 <span class="jp-btn-nav-arrow">→</span>
                 <a href="/hello-app-cluster/" class="jp-btn jp-btn-active">🌍 App Cluster Demo</a>
             </div>

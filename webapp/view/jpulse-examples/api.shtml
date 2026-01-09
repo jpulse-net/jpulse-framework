@@ -4,15 +4,15 @@
  * @tagline         API integration examples and patterns
  * @description     Comprehensive examples of API integration, data handling, and dynamic UX in jPulse
  * @file            webapp/view/jpulse-examples/api.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,6 +21,25 @@
     <style>
         .local-heading-2 {
             margin-top: 2rem;
+        }
+
+        .local-loading-spinner {
+            padding: 40px;
+        }
+
+        .local-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--jp-theme-border-light, #f3f3f3);
+            border-top: 4px solid var(--jp-theme-color-primary, #007acc);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .local-loading-note {
+            margin-top: 15px;
+            color: var(--jp-theme-text-secondary, #666);
         }
     </style>
 </head>
@@ -61,9 +80,9 @@
             <button id="testApiBtn" class="jp-btn jp-btn-primary">Test API Call</button>
             <button id="testErrorBtn" class="jp-btn jp-btn-danger">Test Error Handling</button>
 
-            <div id="apiResponse" style="margin-top: 15px; padding: 15px; background: #f5f5f5; border-radius: 4px; display: none;">
+            <div id="apiResponse" class="jp-output jp-mt-15 jp-hidden">
                 <strong>API Response:</strong>
-                <pre id="apiResponseContent" style="margin: 10px 0; white-space: pre-wrap; font-size: 12px; background: white; padding: 10px; border-radius: 4px;"></pre>
+                <pre id="apiResponseContent" class="jp-pre"></pre>
             </div>
         </div>
         <div id="basic-api-source-panel" class="jp-panel">
@@ -71,9 +90,9 @@
 &lt;button id="testApiBtn" class="jp-btn jp-btn-primary"&gt;Test API Call&lt;/button&gt;
 &lt;button id="testErrorBtn" class="jp-btn jp-btn-danger"&gt;Test Error Handling&lt;/button&gt;
 
-&lt;div id="apiResponse" style="display: none;"&gt;
+&lt;div id="apiResponse" class="jp-output jp-hidden"&gt;
     &lt;strong&gt;API Response:&lt;/strong&gt;
-    &lt;pre id="apiResponseContent"&gt;&lt;/pre&gt;
+    &lt;pre id="apiResponseContent" class="jp-pre"&gt;&lt;/pre&gt;
 &lt;/div&gt;
 
 &lt;script&gt;
@@ -119,11 +138,11 @@ document.getElementById('testApiBtn').addEventListener('click', async () =&gt; {
 
             <button id="loadingTestBtn" class="jp-btn jp-btn-secondary">
                 <span class="btn-text">Simulate Long API Call</span>
-                <span class="btn-loading" style="display: none;">Loading...</span>
+                <span class="btn-loading jp-hidden">Loading...</span>
             </button>
 
-            <div id="loadingDemo" style="margin-top: 20px;">
-                <div id="loadingContent" style="display: none;">
+            <div id="loadingDemo" class="jp-my-20">
+                <div id="loadingContent" class="jp-hidden">
                     <div class="jp-info-box">
                         <h4>Loaded Data</h4>
                         <p>This content was "loaded" from an API call.</p>
@@ -133,9 +152,9 @@ document.getElementById('testApiBtn').addEventListener('click', async () =&gt; {
                     </div>
                 </div>
 
-                <div id="loadingSpinner" style="display: none; text-align: center; padding: 40px;">
-                    <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #007acc; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    <p style="margin-top: 15px; color: #666;">Loading data...</p>
+                <div id="loadingSpinner" class="jp-hidden jp-text-center local-loading-spinner">
+                    <div class="local-spinner"></div>
+                    <p class="local-loading-note">Loading data...</p>
                 </div>
             </div>
         </div>
@@ -251,14 +270,14 @@ async function simulateApiCall() {
 
                 <button type="submit" class="jp-btn jp-btn-primary" id="submitBtn">
                     <span class="submit-text">Submit Form</span>
-                    <span class="submit-loading" style="display: none;">Submitting...</span>
+                    <span class="submit-loading jp-hidden">Submitting...</span>
                 </button>
             </form>
 
-            <div id="submissionResult" style="margin-top: 15px; display: none;">
+            <div id="submissionResult" class="jp-mt-15 jp-hidden">
                 <div class="jp-info-box">
                     <h4>Submission Result</h4>
-                    <pre id="submissionData" style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px;"></pre>
+                    <pre id="submissionData" class="jp-pre"></pre>
                 </div>
             </div>
         </div>
@@ -348,10 +367,10 @@ function displaySubmissionResult(data) {
                 <button id="testTimeoutBtn" class="jp-btn jp-btn-info">Test Timeout</button>
             </div>
 
-            <div id="errorDetails" style="margin-top: 15px; display: none;">
+            <div id="errorDetails" class="jp-mt-15 jp-hidden">
                 <div class="jp-error-box">
                     <h4>Error Details</h4>
-                    <pre id="errorContent" style="background: #fff; padding: 10px; border-radius: 4px; font-size: 12px;"></pre>
+                    <pre id="errorContent" class="jp-pre"></pre>
                 </div>
             </div>
         </div>
@@ -437,13 +456,13 @@ function withTimeout(promise, timeoutMs = 10000) {
                 <button id="stopPollingBtn" class="jp-btn jp-btn-danger" disabled>Stop Updates</button>
             </div>
 
-            <div id="realtimeData" style="margin-top: 15px;">
+            <div id="realtimeData" class="jp-mt-15">
                 <div class="jp-info-box">
-                    <h4>Live Data <span id="updateStatus" style="color: #666;">(Stopped)</span></h4>
+                    <h4>Live Data <span id="updateStatus" class="jp-text-secondary">(Stopped)</span></h4>
                     <p><strong>Last Update:</strong> <span id="lastUpdate">Never</span></p>
                     <p><strong>Update Count:</strong> <span id="updateCount">0</span></p>
                     <p><strong>Random Value:</strong> <span id="randomValue">-</span></p>
-                    <div id="dataHistory" style="margin-top: 10px; max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                    <div id="dataHistory" class="jp-scroll-box jp-mt-15">
                         <small>Update history will appear here...</small>
                     </div>
                 </div>
@@ -663,18 +682,19 @@ function updateButtonStates(isRunning) {
                 const responseContent = document.getElementById('apiResponseContent');
                 try {
                     const response = await jPulse.api.call('/api/1/health/status', 'GET');
-                    responseDiv.style.display = 'block';
-                    responseDiv.style.background = '#e8f5e8';
+                    responseDiv.classList.remove('jp-hidden', 'jp-output-error');
+                    responseDiv.classList.add('jp-output-success');
                     responseContent.textContent = JSON.stringify(response, null, 2);
                     if (response.success) {
                         jPulse.UI.toast.success('API call successful!');
                     } else {
-                        responseDiv.style.background = '#ffebee';
+                        responseDiv.classList.remove('jp-output-success');
+                        responseDiv.classList.add('jp-output-error');
                         jPulse.UI.toast.error('API returned an error: ' + response.error);
                     }
                 } catch (error) {
-                    responseDiv.style.display = 'block';
-                    responseDiv.style.background = '#ffebee';
+                    responseDiv.classList.remove('jp-hidden', 'jp-output-success');
+                    responseDiv.classList.add('jp-output-error');
                     responseContent.textContent = `Error: ${error.message}`;
                     jPulse.UI.toast.error('API call failed: ' + error.message);
                 }
@@ -686,18 +706,19 @@ function updateButtonStates(isRunning) {
                 const responseContent = document.getElementById('apiResponseContent');
                 try {
                     const response = await jPulse.api.call('/api/1/does-no-exist', 'GET');
-                    responseDiv.style.display = 'block';
-                    responseDiv.style.background = '#e8f5e8';
+                    responseDiv.classList.remove('jp-hidden', 'jp-output-error');
+                    responseDiv.classList.add('jp-output-success');
                     responseContent.textContent = JSON.stringify(response, null, 2);
                     if (response.success) {
                         jPulse.UI.toast.success('API call successful!');
                     } else {
-                        responseDiv.style.background = '#ffebee';
+                        responseDiv.classList.remove('jp-output-success');
+                        responseDiv.classList.add('jp-output-error');
                         jPulse.UI.toast.error('API returned an error: ' + response.error);
                     }
                 } catch (error) {
-                    responseDiv.style.display = 'block';
-                    responseDiv.style.background = '#ffebee';
+                    responseDiv.classList.remove('jp-hidden', 'jp-output-success');
+                    responseDiv.classList.add('jp-output-error');
                     responseContent.textContent = `Error: ${error.message}`;
                     jPulse.UI.toast.error('API call failed: ' + error.message);
                 }
@@ -715,9 +736,9 @@ function updateButtonStates(isRunning) {
                 // Show loading state
                 btn.disabled = true;
                 btnText.style.display = 'none';
-                btnLoading.style.display = 'inline';
-                spinner.style.display = 'block';
-                content.style.display = 'none';
+                btnLoading.classList.remove('jp-hidden');
+                spinner.classList.remove('jp-hidden');
+                content.classList.add('jp-hidden');
 
                 try {
                     // Simulate API delay
@@ -735,18 +756,18 @@ function updateButtonStates(isRunning) {
                     list.innerHTML = items.map(item => `<li>${item}</li>`).join('');
 
                     // Show content
-                    spinner.style.display = 'none';
-                    content.style.display = 'block';
+                    spinner.classList.add('jp-hidden');
+                    content.classList.remove('jp-hidden');
 
                     jPulse.UI.toast.success('Data loaded successfully! 📊');
                 } catch (error) {
-                    spinner.style.display = 'none';
+                    spinner.classList.add('jp-hidden');
                     jPulse.UI.toast.error('Failed to load data: ' + error.message);
                 } finally {
                     // Reset button
                     btn.disabled = false;
                     btnText.style.display = 'inline';
-                    btnLoading.style.display = 'none';
+                    btnLoading.classList.add('jp-hidden');
                 }
             });
 
@@ -763,7 +784,7 @@ function updateButtonStates(isRunning) {
                 // Show loading
                 submitBtn.disabled = true;
                 submitText.style.display = 'none';
-                submitLoading.style.display = 'inline';
+                submitLoading.classList.remove('jp-hidden');
 
                 try {
                     // Collect form data
@@ -790,7 +811,7 @@ function updateButtonStates(isRunning) {
                     };
 
                     // Show result
-                    resultDiv.style.display = 'block';
+                    resultDiv.classList.remove('jp-hidden');
                     resultData.textContent = JSON.stringify(response, null, 2);
 
                     jPulse.UI.toast.success('Form submitted successfully! 📧 (Demo mode)');
@@ -801,7 +822,7 @@ function updateButtonStates(isRunning) {
                     // Reset button
                     submitBtn.disabled = false;
                     submitText.style.display = 'inline';
-                    submitLoading.style.display = 'none';
+                    submitLoading.classList.add('jp-hidden');
                 }
             });
 
@@ -829,7 +850,7 @@ function updateButtonStates(isRunning) {
                     url: window.location.href
                 };
 
-                errorDiv.style.display = 'block';
+                errorDiv.classList.remove('jp-hidden');
                 errorContent.textContent = JSON.stringify(errorInfo, null, 2);
 
                 jPulse.UI.toast.error(`Simulated ${errorType}: ${message}`);
@@ -848,7 +869,8 @@ function updateButtonStates(isRunning) {
                 document.getElementById('startPollingBtn').disabled = true;
                 document.getElementById('stopPollingBtn').disabled = false;
                 document.getElementById('updateStatus').textContent = '(Running)';
-                document.getElementById('updateStatus').style.color = '#28a745';
+                document.getElementById('updateStatus').classList.remove('jp-text-secondary');
+                document.getElementById('updateStatus').classList.add('jp-text-success');
 
                 jPulse.UI.toast.info('Real-time updates started 🔄');
             });
@@ -862,7 +884,8 @@ function updateButtonStates(isRunning) {
                 document.getElementById('startPollingBtn').disabled = false;
                 document.getElementById('stopPollingBtn').disabled = true;
                 document.getElementById('updateStatus').textContent = '(Stopped)';
-                document.getElementById('updateStatus').style.color = '#666';
+                document.getElementById('updateStatus').classList.remove('jp-text-success');
+                document.getElementById('updateStatus').classList.add('jp-text-secondary');
 
                 jPulse.UI.toast.info('Real-time updates stopped ⏹️');
             });

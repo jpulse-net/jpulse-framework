@@ -3,8 +3,8 @@
  * @tagline         Markdown controller for the jPulse Framework
  * @description     Markdown document serving with caching support, part of jPulse Framework
  * @file            webapp/controller/markdown.js
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -99,6 +99,37 @@ class MarkdownController {
             description: 'Bullet list of Handlebars helpers',
             params: '`type` (optional: "regular" or "block"), `source` (optional: "jpulse", "site", or plugin name)',
             generator: async (params) => MarkdownController._generateHandlebarsList(params),
+        },
+        // W-129: Themes dynamic content generators
+        'themes-list-table': {
+            description: 'Markdown table of available themes',
+            params: '`source` (optional: "framework", "plugin", "site")',
+            generator: async (params) => MarkdownController._generateThemesTable(params),
+        },
+        'themes-list': {
+            description: 'Bullet list of available themes',
+            params: '`source` (optional: "framework", "plugin", "site")',
+            generator: async (params) => MarkdownController._generateThemesList(params),
+        },
+        'themes-count': {
+            description: 'Count of available themes',
+            params: '`source` (optional: "framework", "plugin", "site")',
+            generator: async (params) => {
+                const themes = await MarkdownController._getThemes();
+                const filtered = params.source
+                    ? themes.filter(t => t.source === params.source)
+                    : themes;
+                return `${filtered.length}`;
+            },
+        },
+        'themes-default': {
+            description: 'Default theme id (from app.conf utils.theme.default)',
+            params: '—',
+            generator: async () => {
+                const raw = String(global.appConfig?.utils?.theme?.default || 'light');
+                const themeId = /^[a-zA-Z0-9_-]+$/.test(raw) ? raw : 'light';
+                return themeId;
+            },
         },
     };
 
@@ -1335,6 +1366,128 @@ class MarkdownController {
             // Show helper syntax (e.g., {{and}} or {{#and}}) instead of just name
             const helperSyntax = `{{${helper.type === 'block' ? '#' : ''}${helper.name}}}`;
             md += `- **${helperSyntax}**: ${helper.description}, \`${example}\`\n`;
+        }
+
+        return md;
+    }
+
+    /**
+     * W-129: Get themes via ThemeManager (global, or dynamic import fallback)
+     * @returns {Promise<Array>} Array of theme objects
+     * @private
+     */
+    static async _getThemes() {
+        try {
+            // Theme discovery requires PathResolver, which depends on appConfig.system.*.
+            // If config is not ready (e.g., isolated unit tests or early bootstrap), return empty list.
+            if (!global.appConfig?.system?.appDir || !global.appConfig?.system?.siteDir) {
+                return [];
+            }
+
+            const ThemeManager = global.ThemeManager || (await import('../utils/theme-manager.js')).default;
+            if (!ThemeManager || typeof ThemeManager.discoverThemes !== 'function') {
+                return [];
+            }
+
+            // Ensure initialized (safe no-op if already initialized)
+            if (!ThemeManager.themeCache && typeof ThemeManager.initialize === 'function') {
+                ThemeManager.initialize({ isTest: process.env.NODE_ENV === 'test' || global.isTestEnvironment });
+            }
+
+            return ThemeManager.discoverThemes() || [];
+        } catch (error) {
+            LogController.logError(null, 'markdown._getThemes', `error: ${error.message}`);
+            return [];
+        }
+    }
+
+    /**
+     * W-129: Generate markdown table of available themes
+     * Used for dynamic content: %DYNAMIC{themes-list-table}%
+     * @param {object} params - Optional parameters
+     *   - source: filter by "framework", "plugin", or "site"
+     * @returns {string} Markdown table
+     * @private
+     */
+    static async _generateThemesTable(params = {}) {
+        let themes = await MarkdownController._getThemes();
+
+        if (params.source) {
+            themes = themes.filter(t => t.source === params.source);
+        }
+
+        themes.sort((a, b) => {
+            const sourceOrder = { framework: 0, plugin: 1, site: 2 };
+            const sourceDiff = (sourceOrder[a.source] ?? 99) - (sourceOrder[b.source] ?? 99);
+            if (sourceDiff !== 0) return sourceDiff;
+            return a.name.localeCompare(b.name);
+        });
+
+        if (themes.length === 0) {
+            return '_No themes match the criteria._';
+        }
+
+        let md = '| Preview | Details |\n';
+        md += '|---------|---------|\n';
+
+        for (const theme of themes) {
+            const previewPath = `/themes/${theme.name}.png`;
+            const preview = `[![${theme.label}](${previewPath})](${previewPath})`;
+
+            const sourceLabel = theme.source === 'framework' ? 'Framework'
+                : theme.source === 'plugin' ? `Plugin: \`${theme.pluginName || '—'}\``
+                    : theme.source === 'site' ? 'Site'
+                        : '—';
+
+            const details = [
+                `**\`${theme.name}\`** (${theme.label})`,
+                `**Source:** ${sourceLabel}`,
+                `**Author:** ${theme.author}`,
+                ``,
+                `${theme.description}`
+            ].join('<br>');
+
+            md += `| ${preview} | ${details} |\n`;
+        }
+
+        return md;
+    }
+
+    /**
+     * W-129: Generate markdown list of available themes
+     * Used for dynamic content: %DYNAMIC{themes-list}%
+     * @param {object} params - Optional parameters
+     *   - source: filter by "framework", "plugin", or "site"
+     * @returns {string} Markdown list
+     * @private
+     */
+    static async _generateThemesList(params = {}) {
+        let themes = await MarkdownController._getThemes();
+
+        if (params.source) {
+            themes = themes.filter(t => t.source === params.source);
+        }
+
+        themes.sort((a, b) => {
+            const sourceOrder = { framework: 0, plugin: 1, site: 2 };
+            const sourceDiff = (sourceOrder[a.source] ?? 99) - (sourceOrder[b.source] ?? 99);
+            if (sourceDiff !== 0) return sourceDiff;
+            return a.name.localeCompare(b.name);
+        });
+
+        if (themes.length === 0) {
+            return '_No themes match the criteria._';
+        }
+
+        let md = '';
+        for (const theme of themes) {
+            let source = theme.source || 'unknown';
+            if(source === 'plugin') {
+                source = `Plugin: ${theme.pluginName || 'unknown'}`;
+            }
+            const description = theme.description || '';
+
+            md += `- **\`${theme.name}\`** (${theme.label}) : ${description} _(${source})_\n`;
         }
 
         return md;

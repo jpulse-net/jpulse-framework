@@ -263,7 +263,7 @@ site/webapp/view/
 ```html
 <!-- site/webapp/view/home/index.shtml -->
 <!DOCTYPE html>
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <title>Your Site Name</title>
     <meta name="description" content="Your description">

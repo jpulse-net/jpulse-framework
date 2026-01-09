@@ -3,8 +3,8 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -92,7 +92,11 @@ export async function bootstrap(options = {}) {
 
         // Step 6.1: Initialize PluginManager
         const pluginStats = await PluginManagerModule.default.initialize();
-        bootstrapLog(`✅ PluginManager: Discovered ${pluginStats.discovered} plugins (${pluginStats.enabled} enabled, ${pluginStats.disabled} disabled)`);
+        // PluginManager.initialize() returns getMetrics() which exposes counts under stats.*
+        const discoveredPlugins = pluginStats?.stats?.total ?? 0;
+        const enabledPlugins = pluginStats?.stats?.enabled ?? 0;
+        const disabledPlugins = pluginStats?.stats?.disabled ?? 0;
+        bootstrapLog(`✅ PluginManager: Discovered ${discoveredPlugins} plugins (${enabledPlugins} enabled, ${disabledPlugins} disabled)`);
 
         // Step 6.2: Load Plugin Model (W-045)
         const PluginModelModule = await import('../model/plugin.js');
@@ -203,19 +207,33 @@ export async function bootstrap(options = {}) {
         global.UserModel.initializeSchema();
         bootstrapLog('✅ UserModel: Schema initialized with plugin extensions');
 
-        // Step 17: Initialize ConfigController
+        // Step 17: Initialize ThemeManager and extend UserModel theme enum (W-129)
+        try {
+            const ThemeManagerModule = await import('./theme-manager.js');
+            ThemeManagerModule.default.initialize({ isTest });
+            global.ThemeManager = ThemeManagerModule.default;
+            bootstrapLog('✅ ThemeManager: Initialized');
+
+            // Extend schema with discovered themes for preferences.theme selector
+            global.ThemeManager.extendUserModelSchema(global.UserModel);
+            bootstrapLog('✅ ThemeManager: Schema extended');
+        } catch (error) {
+            bootstrapLog(`⚠️  ThemeManager: Initialization failed (continuing without): ${error.message}`, 'error');
+        }
+
+        // Step 18: Initialize ConfigController
         const ConfigControllerModule = await import('../controller/config.js');
         ConfigControllerModule.default.initialize();
         global.ConfigController = ConfigControllerModule.default;
         bootstrapLog(`✅ ConfigController: Initialized (defaultDocName: ${ConfigControllerModule.default.getDefaultDocName()})`);
 
-        // Step 18: Initialize HandlebarController (W-088)
+        // Step 19: Initialize HandlebarController (W-088)
         const HandlebarControllerModule = await import('../controller/handlebar.js');
         await HandlebarControllerModule.default.initialize();
         global.HandlebarController = HandlebarControllerModule.default;
         bootstrapLog('✅ HandlebarController: Initialized');
 
-        // Step 18.1: Auto-discover and register custom Handlebars helpers (W-116)
+        // Step 20: Auto-discover and register custom Handlebars helpers (W-116)
         // Must be after HandlebarController.initialize() and SiteControllerRegistry.initialize()
         if (!isTest && siteControllerRegistry) {
             const helperCount = await HandlebarControllerModule.default.initializeHandlebarHandlers();
@@ -224,7 +242,7 @@ export async function bootstrap(options = {}) {
             }
         }
 
-        // Step 19: Initialize EmailController (W-087)
+        // Step 21: Initialize EmailController (W-087)
         const EmailControllerModule = await import('../controller/email.js');
         const emailReady = await EmailControllerModule.default.initialize();
         global.EmailController = EmailControllerModule.default;
@@ -234,13 +252,13 @@ export async function bootstrap(options = {}) {
             bootstrapLog('⚠️  EmailController: Not configured (email sending disabled)');
         }
 
-        // Step 20: Initialize UserController (W-112 - register metrics provider)
+        // Step 22: Initialize UserController (W-112 - register metrics provider)
         const UserControllerModule = await import('../controller/user.js');
         await UserControllerModule.default.initialize();
         global.UserController = UserControllerModule.default;
         bootstrapLog('✅ UserController: Initialized with metrics provider');
 
-        // Step 21: Build viewRegistry for routes.js compatibility
+        // Step 23: Build viewRegistry for routes.js compatibility
         // Legacy global for routes.js to use
         global.viewRegistry = {
             viewList: global.ViewController.getViewList(),
@@ -248,7 +266,7 @@ export async function bootstrap(options = {}) {
         };
         bootstrapLog(`✅ viewRegistry: Built with ${global.viewRegistry.viewList.length} directories`);
 
-        // Step 22: Prepare WebSocketController (but don't initialize server yet)
+        // Step 24: Prepare WebSocketController (but don't initialize server yet)
         // Server initialization requires Express app and http.Server
         const WebSocketControllerModule = await import('../controller/websocket.js');
         global.WebSocketController = WebSocketControllerModule.default;

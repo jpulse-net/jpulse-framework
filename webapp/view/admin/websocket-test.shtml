@@ -4,15 +4,15 @@
  * @tagline         WebSocket testing and development tool
  * @description     Interactive test page for jPulse.ws.* client utilities
  * @file            webapp/view/admin/websocket-test.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,8 +26,8 @@
             flex-wrap: wrap;
         }
         .local-log {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+            border: 1px solid var(--jp-theme-border-color, #dee2e6);
             border-radius: 4px;
             padding: 1rem;
             max-height: 400px;
@@ -37,13 +37,13 @@
         }
         .local-log-item {
             padding: 0.5rem;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid var(--jp-theme-border-light, #e0e0e0);
         }
         .local-log-item:last-child {
             border-bottom: none;
         }
         .local-log-timestamp {
-            color: #666;
+            color: var(--jp-theme-text-secondary, #666);
             margin-right: 0.5rem;
         }
         .local-status {
@@ -54,16 +54,16 @@
             font-weight: 600;
         }
         .local-status.connected {
-            background: #d4edda;
-            color: #155724;
+            background: var(--jp-theme-color-success-bg, #d4edda);
+            color: var(--jp-theme-color-success-text, #155724);
         }
         .local-status.connecting {
-            background: #fff3cd;
-            color: #856404;
+            background: var(--jp-theme-color-warning-bg, #fff3cd);
+            color: var(--jp-theme-color-warning-text, #856404);
         }
         .local-status.disconnected {
-            background: #f8d7da;
-            color: #721c24;
+            background: var(--jp-theme-color-danger-bg, #f8d7da);
+            color: var(--jp-theme-color-danger-text, #721c24);
         }
         .local-input {
             flex: 1;
@@ -130,7 +130,7 @@
                         <span>Ready to connect...</span>
                     </div>
                 </div>
-                <button id="btnClearLog" class="jp-btn jp-btn-secondary" style="margin-top: 1rem;">{{i18n.view.admin.websocketTest.clearLog}}</button>
+                <button id="btnClearLog" class="jp-btn jp-btn-secondary jp-mt-15">{{i18n.view.admin.websocketTest.clearLog}}</button>
             </div>
 
             <!-- Instructions -->

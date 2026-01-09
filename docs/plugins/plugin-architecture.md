@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Architecture v1.4.8
+# jPulse Docs / Plugins / Plugin Architecture v1.4.9
 
 Understanding how the jPulse plugin system works under the hood.
 
@@ -179,6 +179,8 @@ Assets accessible at:
 **Context Detection:** SymlinkManager automatically detects if running in framework repository (has `docs/plugins/`) or site installation (has `webapp/static/assets/jpulse-docs/plugins/`).
 
 **Symlink removal** happens automatically when plugin is disabled.
+
+**Troubleshooting (framework dev repo):** If `docs/installed-plugins/{name}` exists as a real directory (often empty), symlink creation is skipped for safety. Remove/rename the directory and restart the app so PluginManager can create the symlink (e.g., `rm -rf docs/installed-plugins/auth-mfa`).
 
 ## Configuration System
 

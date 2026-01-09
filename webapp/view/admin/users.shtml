@@ -4,15 +4,15 @@
  * @tagline         Admin user management interface
  * @description     User management dashboard for site administrators
  * @file            webapp/view/admin/users.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,15 +37,6 @@
             transition: all 0.2s;
         }
 
-        .local-edit-btn {
-            background: #007acc;
-            color: white;
-        }
-
-        .local-edit-btn:hover {
-            background: #005999;
-        }
-
         .local-delete-btn {
             background: #dc3545;
             color: white;
@@ -67,7 +58,6 @@
             align-items: center;
             margin-bottom: 15px;
             padding: 10px;
-            background: #f8f9fa;
             border-radius: 4px;
             font-size: 14px;
         }
@@ -80,9 +70,14 @@
 
         .local-page-size-selector select {
             padding: 4px 8px;
-            border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 12px;
+        }
+
+        /* When using jp-form-select, avoid full-width select (keeps the results bar compact). */
+        .local-page-size-selector .local-page-size-select {
+            width: auto;
+            min-width: 90px;
         }
 
         @media (max-width: 768px) {
@@ -168,11 +163,11 @@
               </div>
 
               <!-- Results info -->
-              <div class="local-results-info" id="resultsInfo" style="display: none;">
+              <div class="jp-output jp-mb-15 jp-hidden local-results-info" id="resultsInfo">
                   <span id="resultsCount">0 results</span>
                   <div class="local-page-size-selector">
                       <label for="pageSize">{{i18n.view.admin.users.resultsPerPage}}</label>
-                      <select id="pageSize" onchange="changePageSize()">
+                      <select id="pageSize" class="jp-form-select local-page-size-select" onchange="changePageSize()">
                           <option value="25">25</option>
                           <option value="50" selected>50</option>
                           <option value="100">100</option>
@@ -199,7 +194,7 @@
                   </table>
               </div>
 
-              <div class="jp-pagination" id="pagination" style="display: none;">
+              <div class="jp-pagination jp-hidden" id="pagination">
                   <button id="prevPage" disabled>{{i18n.view.admin.users.previous}}</button>
                   <span id="pageInfo"></span>
                   <button id="nextPage" disabled>{{i18n.view.admin.users.next}}</button>
@@ -209,7 +204,7 @@
                   {{i18n.view.admin.users.loading}}
               </div>
 
-              <div class="jp-no-results" id="noResults" style="display: none;">
+              <div class="jp-no-results jp-hidden" id="noResults">
                   {{i18n.view.admin.users.noResults}}
               </div>
             </div>
@@ -392,7 +387,7 @@
             const actionsCell = document.createElement('td');
             const username = user.username || '';
             actionsCell.innerHTML = `
-                <button class="local-edit-btn" onclick="viewUser('${jPulse.string.escapeHtml(username)}')">{{i18n.view.admin.users.viewProfile}}</button>
+                <button class="jp-btn jp-btn-primary jp-btn-sm" onclick="viewUser('${jPulse.string.escapeHtml(username)}')">{{i18n.view.admin.users.viewProfile}}</button>
             `;
             tr.appendChild(actionsCell);
 
@@ -406,7 +401,7 @@
             const paginationDiv = document.getElementById('pagination');
 
             if (!pagination) {
-                paginationDiv.style.display = 'none';
+                paginationDiv.classList.add('jp-hidden');
                 return;
             }
 
@@ -429,7 +424,11 @@
             document.getElementById('pageInfo').textContent = infoText;
 
             // Show pagination if there's more than one page worth of data
-            paginationDiv.style.display = (paginationState.prevCursor || paginationState.nextCursor || paginationState.total > count) ? 'flex' : 'none';
+            if (paginationState.prevCursor || paginationState.nextCursor || paginationState.total > count) {
+                paginationDiv.classList.remove('jp-hidden');
+            } else {
+                paginationDiv.classList.add('jp-hidden');
+            }
         }
 
         function updateResultsInfo(pagination) {
@@ -439,9 +438,9 @@
             const count = document.querySelectorAll('#usersTableBody tr').length;
 
             if (total === 0) {
-                resultsInfo.style.display = 'none';
+                resultsInfo.classList.add('jp-hidden');
             } else {
-                resultsInfo.style.display = 'flex';
+                resultsInfo.classList.remove('jp-hidden');
                 // Always show range format like logs page: "Showing 1-16 of 16"
                 resultsCount.textContent = jPulse.UI.pagination.formatRange(
                     paginationState, count, i18nShowingResults

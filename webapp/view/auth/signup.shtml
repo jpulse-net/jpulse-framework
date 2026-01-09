@@ -4,15 +4,15 @@
  * @tagline         User registration and account creation page
  * @description     Signup form for internal user registration
  * @file            webapp/view/auth/signup.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,7 +27,7 @@
 
         .local-auth-card {
             padding: 40px;
-            border-top: 4px solid #667eea;
+            border-top: 4px solid var(--jp-theme-color-primary, #007acc);
         }
 
         .local-auth-header {
@@ -38,12 +38,16 @@
         .local-signup-logo {
             width: 60px;
             height: 60px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(
+                135deg,
+                var(--jp-theme-color-primary, #007acc) 0%,
+                var(--jp-theme-color-primary-dark, #005999) 100%
+            );
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--jp-theme-text-inverse, #ffffff);
             font-size: 1.5rem;
             font-weight: bold;
             margin: 0 auto 1rem;
@@ -51,12 +55,12 @@
 
         .local-auth-header h1 {
             margin: 0;
-            color: #333;
+            color: var(--jp-theme-text-primary, #333);
             font-size: 1.8em;
         }
 
         .local-auth-header p {
-            color: #666;
+            color: var(--jp-theme-text-secondary, #666);
             margin: 5px 0 0;
             font-size: 0.9em;
         }
@@ -69,7 +73,7 @@
 
         .local-password-requirements {
             font-size: 0.875rem;
-            color: #718096;
+            color: var(--jp-theme-text-muted, #718096);
             margin-top: 0.25rem;
         }
 
@@ -83,7 +87,7 @@
             gap: 0.5rem;
             cursor: pointer;
             font-size: 0.875rem;
-            color: #4a5568;
+            color: var(--jp-theme-text-secondary, #4a5568);
             line-height: 1.4;
         }
 
@@ -95,13 +99,13 @@
         .local-signin-link {
             text-align: center;
             padding-top: 20px;
-            border-top: 1px solid #dee2e6;
-            color: #718096;
+            border-top: 1px solid var(--jp-theme-border-color, #dee2e6);
+            color: var(--jp-theme-text-muted, #718096);
             font-size: 0.875rem;
         }
 
         .local-signin-link a {
-            color: #667eea;
+            color: var(--jp-theme-color-primary, #007acc);
             text-decoration: none;
             font-weight: 500;
         }
@@ -116,7 +120,12 @@
         }
 
         .local-welcome-message {
-            color: #333;
+            color: var(--jp-theme-text-primary, #333);
+            margin-bottom: 20px;
+        }
+
+        .local-auth-submit {
+            width: 100%;
             margin-bottom: 20px;
         }
 
@@ -246,7 +255,7 @@
                         </label>
                     </div>
 
-                    <button type="submit" class="jp-btn jp-btn-primary jp-btn-submit" id="signupButton" style="width: 100%; margin-bottom: 20px;">
+                    <button type="submit" class="jp-btn jp-btn-primary jp-btn-submit local-auth-submit" id="signupButton">
                         {{i18n.view.auth.signup.signUp}}
                     </button>
                 </form>

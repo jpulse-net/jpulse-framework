@@ -4,15 +4,15 @@
  * @tagline         Comprehensive W-047 Site Development Demo
  * @description     Detailed demonstration of site-specific CSS and JavaScript features
  * @file            site/webapp/view/hello/site-demo.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,21 +20,24 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         .local-card-setup-required {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
+            background: var(--jp-theme-color-warning-bg, #fff3cd);
+            border-left: 4px solid var(--jp-theme-color-warning, #ffc107);
+            border-top: 1px solid var(--jp-theme-border-light, #e9ecef);
+            border-right: 1px solid var(--jp-theme-border-light, #e9ecef);
+            border-bottom: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
         .local-card-setup-required h3 {
             margin-top: 0;
-            color: #856404;
+            color: var(--jp-theme-color-warning-text, #856404);
         }
         .local-card-setup-required p {
-            color: #856404;
+            color: var(--jp-theme-color-warning-text, #856404);
         }
         .local-card-setup-required pre {
-            background: #f8f9fa;
+            background: var(--jp-theme-bg-primary, #ffffff);
         }
         .local-card-setup-required ul {
-            color: #856404;
+            color: var(--jp-theme-color-warning-text, #856404);
             margin-top: 0.5rem;
         }
         .local-card-setup-required ul li {
@@ -46,45 +49,57 @@
         #buttonFeedback {
             margin-top: 15px;
             padding: 10px;
-            background: #f8f9fa;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
             border-radius: 4px;
             min-height: 20px;
             font-style: italic;
-            color: #666;
+            color: var(--jp-theme-text-secondary, #666);
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
         #utilityDemo {
-            background: #f5f5f5;
+            background: var(--jp-theme-bg-secondary, #f5f5f5);
             padding: 15px;
             border-radius: 4px;
             font-family: monospace;
+            color: var(--jp-theme-text-primary, #333);
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
         #analyticsDemo {
-            background: #f8f9fa;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
             padding: 15px;
             border-radius: 4px;
+            color: var(--jp-theme-text-primary, #333);
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
         .site-accordion-header {
-            background: #f0f0f0;
+            background: var(--jp-theme-bg-tertiary, #f0f0f0);
             padding: 10px;
             cursor: pointer;
             border-radius: 4px;
             margin-bottom: 5px;
+            color: var(--jp-theme-text-primary, #333);
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
         .site-accordion-content {
             display: none;
             padding: 10px;
-            background: #f9f9f9;
+            background: var(--jp-theme-bg-secondary, #f9f9f9);
             border-radius: 4px;
+            color: var(--jp-theme-text-primary, #333);
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
         #eventTrackingDemo {
-            background: #f8f9fa;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
             padding: 15px;
             border-radius: 4px;
+            color: var(--jp-theme-text-primary, #333);
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
         .local-file-structure pre {
             line-height: 1;
             font-size: 0.9em;
-            background-color: #f4f9ff;
+            background-color: var(--jp-theme-bg-primary, #ffffff);
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
     </style>
 </head>
@@ -108,7 +123,7 @@
         </div>
 
         <!-- Setup Required Card -->
-        <div class="jp-card local-card-setup-required" id="setupRequiredCard" style="display: none;">
+        <div class="jp-card local-card-setup-required jp-hidden" id="setupRequiredCard">
             <h3>⚠️ Setup Required</h3>
             <p><strong>To see the demos below, first create the site CSS and JavaScript files:</strong></p>
             <pre><code class="language-bash">cp site/webapp/view/jpulse-common.css.tmpl site/webapp/view/jpulse-common.css
@@ -155,7 +170,7 @@ cp site/webapp/view/jpulse-common.js.tmpl site/webapp/view/jpulse-common.js</cod
                 <button id="secondaryBtn" class="site-btn site-btn-secondary">Secondary Button</button>
                 <button id="outlineBtn" class="site-btn site-btn-outline">Outline Button</button>
             </div>
-            <div id="buttonFeedback">
+            <div id="buttonFeedback" class="jp-output">
                 Click any button above to see the interaction feedback...
             </div>
         </div>
@@ -243,7 +258,7 @@ cp site/webapp/view/jpulse-common.js.tmpl site/webapp/view/jpulse-common.js</cod
             <span class="jp-btn-nav-arrow">→</span>
             <a href="/hello/" class="jp-btn jp-btn-active">🌐 Hello World Site Demos</a>
             <span class="jp-btn-nav-arrow">&nbsp;</span>
-            <a href=/jpulse-docs/" class="jp-btn jp-btn-outline" target="_blank">📖 Documentation</a>
+            <a href="/jpulse-docs/" class="jp-btn jp-btn-outline" target="_blank">📖 Documentation</a>
         </div>
 
         <script>
@@ -259,23 +274,26 @@ cp site/webapp/view/jpulse-common.js.tmpl site/webapp/view/jpulse-common.js</cod
 
                         // Set up button feedback demo
                         const buttonFeedback = document.getElementById('buttonFeedback');
+                        const setFeedbackStyle = (variant) => {
+                            buttonFeedback.classList.remove('jp-output-info', 'jp-output-success', 'jp-output-warning');
+                            if (variant) {
+                                buttonFeedback.classList.add(variant);
+                            }
+                        };
 
                         document.getElementById('primaryBtn').addEventListener('click', () => {
                             buttonFeedback.innerHTML = '🎯 <strong>Primary button pressed!</strong> - Site-specific styling with hover effects';
-                            buttonFeedback.style.background = '#e3f2fd';
-                            buttonFeedback.style.color = '#1565c0';
+                            setFeedbackStyle('jp-output-info');
                         });
 
                         document.getElementById('secondaryBtn').addEventListener('click', () => {
                             buttonFeedback.innerHTML = '⚡ <strong>Secondary button pressed!</strong> - Alternative site button style';
-                            buttonFeedback.style.background = '#f3e5f5';
-                            buttonFeedback.style.color = '#7b1fa2';
+                            setFeedbackStyle('jp-output-info');
                         });
 
                         document.getElementById('outlineBtn').addEventListener('click', () => {
                             buttonFeedback.innerHTML = '📋 <strong>Outline button pressed!</strong> - Transparent background with border';
-                            buttonFeedback.style.background = '#e8f5e8';
-                            buttonFeedback.style.color = '#2e7d32';
+                            setFeedbackStyle('jp-output-success');
                         });
 
                         // Log that site demo is ready
@@ -285,7 +303,7 @@ cp site/webapp/view/jpulse-common.js.tmpl site/webapp/view/jpulse-common.js</cod
                     } else {
                         // Fallback if site JavaScript isn't loaded
                         const setupCard = document.getElementById('setupRequiredCard');
-                        setupCard.style.display = 'block';
+                        setupCard.classList.remove('jp-hidden');
                         console.warn('⚠️ Site JavaScript not loaded - demo functionality limited');
                         document.getElementById('currencyDemo').textContent = 'Site JS not loaded';
                         document.getElementById('dateDemo').textContent = 'Site JS not loaded';

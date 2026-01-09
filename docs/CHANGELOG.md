@@ -1,6 +1,228 @@
-# jPulse Docs / Version History v1.4.8
+# jPulse Docs / Version History v1.4.9
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.9, W-129, 2026-01-09
+
+**Commit:** `W-129, v1.4.9: view: create themes infrastructure`
+
+**FEATURE RELEASE**: Comprehensive theme system enabling plugin and site developers to create custom themes.
+
+**Objective**: Provide a framework where plugin and site developers can create and publish themes, with auto-discovery, dynamic loading, and comprehensive documentation.
+
+**Key Features**:
+- **Framework Themes**: Ships with light (default) and dark themes
+- **CSS Variable Standardization**: 49 `--jp-theme-*` variables for consistent theming across all components
+- **Auto-Discovery**: Automatic theme discovery from framework, plugins, and site with priority resolution (site > plugins > framework)
+- **Dynamic Theme Loading**: Only selected theme CSS loaded at runtime (performance optimization)
+- **Theme Metadata**: Separate JSON files with required fields (name, label, description, author, version, source)
+- **Preview Images**: 500x200 PNG images for theme previews
+- **Schema Extension**: Discovered themes automatically added to user preferences enum
+- **Prism.js Theme Switching**: Automatic light/dark syntax highlighting based on theme color scheme
+- **Instant Theme Preview**: Live theme switching on profile page without page reload
+- **Config-Driven Default**: Default theme configurable via `appConfig.utils.theme.default`
+- **Secure Context Filtering**: `appConfig.system.*` items safely exposed to unauthenticated users via `contextFilter.alwaysAllow`
+- **Dynamic Documentation**: `%DYNAMIC{themes-list-table}%`, `%DYNAMIC{themes-list}%`, `%DYNAMIC{themes-count}%`, `%DYNAMIC{themes-default}%` tokens
+- **Themes Example Page**: `/jpulse-examples/themes.shtml` with live selector, preview canvas, and installed themes table
+
+**Code Changes**:
+
+**webapp/view/jpulse-common.css**:
+- Standardized 49 CSS variables (`--jp-theme-*`) replacing all hardcoded colors
+- All components converted to use theme variables (buttons, cards, forms, alerts, tables, sidebars, dialogs, tooltips, etc.)
+- Dark theme support with `[data-theme="dark"]` overrides
+- Prism.js syntax highlighting theme variables
+- Theme-friendly page author checklist added to style-reference.md
+
+**webapp/view/themes/light.css, light.json, light.png**:
+- Default light theme (uses `:root` defaults, empty CSS file)
+- Theme metadata JSON with required fields
+- 500x200 preview image
+
+**webapp/view/themes/dark.css, dark.json, dark.png**:
+- Dark theme with full CSS variable overrides (49 variables)
+- Theme metadata JSON with required fields
+- 500x200 preview image
+- Dark-mode-only Prism.js tweaks (remove text-shadow, token backgrounds)
+
+**webapp/utils/theme-manager.js** (new file):
+- ThemeManager class with `initialize()`, `discoverThemes()`, `extendUserModelSchema()`, `getThemeColorScheme()` methods
+- Auto-discovery from framework, plugins, and site with priority resolution
+- Theme metadata validation (required fields: name, label, description, author, version, source)
+- Color scheme detection from CSS (`--jp-theme-color-scheme` or `color-scheme`)
+- Caching integration with cache-manager for performance
+
+**webapp/utils/bootstrap.js**:
+- ThemeManager initialization (Step 16.1)
+- UserModel schema extension with discovered themes (Step 16.2)
+- Error handling for theme discovery failures
+
+**webapp/view/jpulse-header.tmpl**:
+- Dynamic theme CSS loading using `string.default` and `string.concat` helpers
+- Prism CSS selection based on `appConfig.system.colorScheme` (prism-light.css / prism-dark.css)
+- Fallback to `appConfig.system.defaultTheme` for unauthenticated users
+
+**webapp/controller/handlebar.js**:
+- Added `appConfig.system.defaultTheme` (from `appConfig.utils.theme.default`, validated)
+- Added `appConfig.system.htmlAttrs` (computed `lang=".." data-theme=".."` attributes)
+- Added `appConfig.system.colorScheme` (theme's color scheme: 'light' or 'dark')
+- Added `appConfig.system.themes` (safe list of discovered themes with metadata)
+- Enhanced `contextFilter.alwaysAllow` for secure exposure to unauthenticated users
+- Refactored `_filterContext()` to use `CommonUtils.getValueByPath/setValueByPath` (dot-notation utilities)
+
+**webapp/model/user.js**:
+- Updated `baseSchema.preferences.theme.default` to use validated `global.appConfig.utils.theme.default` (config-driven)
+- Updated `applyDefaults()` to use config-driven default theme for new users
+
+**webapp/controller/user.js**:
+- Updated `signup` payload to use `global.appConfig.utils.theme.default` for new user creation
+
+**webapp/controller/markdown.js**:
+- Added `themes-list-table` generator (2-column Markdown table: Preview + Details)
+- Added `themes-list` generator (bullet list format)
+- Added `themes-count` generator (count with optional source filtering)
+- Added `themes-default` generator (returns default theme ID from app.conf)
+- Source filtering support (`source="framework"`, `source="plugin"`, `source="site"`)
+- Proper sorting by source priority (framework=0, plugin=1, site=2) then name
+
+**webapp/controller/view.js**:
+- Static asset serving for `.png` and `.json` theme files (bypasses Handlebars processing)
+- Proper content-type headers for theme preview images and metadata
+
+**webapp/utils/common.js**:
+- Added `getValueByPath(obj, keyPath)` for safe dot-notation object access
+- Added `setValueByPath(obj, keyPath, value)` for safe dot-notation object assignment
+- Added `deleteValueByPath(obj, keyPath)` for safe dot-notation object deletion
+- Used by handlebar.js and i18n.js for consistent path resolution
+
+**webapp/utils/i18n.js**:
+- Refactored to use `CommonUtils.getValueByPath/setValueByPath` instead of local implementations
+
+**webapp/static/common/prism/prism-light.css**:
+- Renamed from `prism.css` (default light theme)
+
+**webapp/static/common/prism/prism-dark.css** (new file):
+- New dark theme CSS (Prism Okaidia theme) for syntax highlighting in dark mode
+
+**webapp/view/user/profile.shtml**:
+- Instant theme preview on dropdown change (updates `data-theme`, theme CSS, Prism CSS)
+- Theme persists after save without page reload
+- Dynamic theme color scheme detection for Prism CSS switching
+
+**webapp/view/jpulse-examples/themes.shtml** (new file):
+- New themes example page with live theme selector
+- Theme preview canvas (500x200) for consistent screenshot generation
+- Screenshot checklist and instructions for theme authors
+- Installed themes table with previews and metadata
+- Horizontal scroll support for mobile
+
+**webapp/view/components/svg-icons.tmpl**:
+- Added `jpIcons.themesSvg` component (moon/sun icon)
+
+**webapp/view/jpulse-navigation.js**:
+- Added themes.shtml entry to jPulseExamples.pages and jPulseExamplesSubTabs
+
+**All .shtml files (25+ files)**:
+- Updated `<html>` tag to use `{{appConfig.system.htmlAttrs}}` for centralized attributes
+- Supports future extension (e.g., `dir` attribute for RTL)
+
+**docs/themes.md** (new file):
+- Complete theme system documentation
+- Dynamic themes table using `%DYNAMIC{themes-list-table}%`
+- Theme preference explanation
+- Theme file locations and priority
+- Theme structure and metadata requirements
+- Creating themes guide with links
+
+**docs/plugins/creating-themes.md** (new file):
+- Plugin developer guide for creating themes
+- Theme file structure (CSS, JSON, PNG)
+- CSS variable reference
+- Preview screenshot instructions (500x200, using themes example page)
+- Theme naming conventions and metadata schema
+- Color scheme configuration (`--jp-theme-color-scheme`)
+
+**docs/style-reference.md**:
+- Updated Theme System section with current implementation details
+- Theme-friendly page author checklist (do/don't guidance)
+- CSS variable documentation
+- Prism CSS selection explanation
+- Links to themes.md and creating-themes.md
+
+**docs/api-reference.md**:
+- Updated `/api/1/user/enums` section to document theme IDs (not full metadata)
+- Clarified that full metadata is available via dynamic generators in docs
+
+**webapp/tests/unit/utils/common-utils.test.js**:
+- Comprehensive unit tests for `getValueByPath`, `setValueByPath`, `deleteValueByPath` (dot-notation utilities)
+
+**webapp/tests/unit/controller/handlebar-appconfig-alwaysallow.test.js** (new file):
+- Unit tests for `contextFilter.alwaysAllow` logic (secure exposure to unauthenticated users)
+
+**webapp/tests/unit/controller/markdown-themes-dynamic.test.js** (new file):
+- Unit tests for theme-related dynamic content generators (themes-list-table, themes-list, themes-count, themes-default)
+
+**webapp/tests/unit/controller/view-static-assets.test.js**:
+- Unit tests for static asset serving (.png, .json, .svg files)
+
+**webapp/tests/unit/user/user-signup.test.js**:
+- Updated to use config-driven default theme
+
+**webapp/tests/unit/user/user-basic.test.js**:
+- Updated to use config-driven default theme
+
+**webapp/app.conf**:
+- Added `utils.theme.default` configuration (default: 'light')
+- Added `contextFilter.alwaysAllow` list for secure `appConfig.system.*` exposure
+- Updated cache configuration path to `utils.theme.cache`
+
+**Bug Fixes**:
+- Fixed table text wrapping on mobile (removed `white-space: nowrap`, added `word-wrap: break-word`)
+- Fixed inline code padding at wrap points (added `box-decoration-break: clone`, reduced padding to `0.2rem`)
+- Fixed breadcrumb separator contrast in dark mode
+- Fixed plugin card text contrast for custom background colors (luminance-based text color calculation)
+- Fixed theme reversion after profile save (theme now persists without page reload)
+- Fixed new user creation to use config-driven default theme (not hardcoded 'light')
+- Fixed framework themes sorting last in dynamic table (changed `||` to `??` for proper `0` handling)
+
+**Documentation**:
+- docs/themes.md: Complete theme system documentation with dynamic content
+- docs/plugins/creating-themes.md: Plugin developer guide for creating themes
+- docs/style-reference.md: Updated Theme System section, added page author checklist
+- docs/api-reference.md: Updated `/api/1/user/enums` section
+- docs/dev/work-items.md: Updated W-129 deliverables
+
+**Breaking Changes**:
+- None
+
+**Migration Steps**:
+- None required - new feature with no impact on existing functionality
+
+**Usage Examples**:
+```handlebars
+<!-- Theme CSS loading (automatic in header) -->
+<link rel="stylesheet" href="/themes/{{string.default user.preferences.theme appConfig.system.defaultTheme}}.css">
+
+<!-- HTML attributes (automatic in all .shtml files) -->
+<html {{appConfig.system.htmlAttrs}}>
+
+<!-- Dynamic themes table in markdown -->
+%DYNAMIC{themes-list-table}%
+
+<!-- Theme selector in profile -->
+<select id="themeSelect">
+    {{#each appConfig.system.themes}}
+        <option value="{{this.name}}" data-color-scheme="{{this.colorScheme}}">
+            {{this.label}} ({{this.name}})
+        </option>
+    {{/each}}
+</select>
+```
+
+**Work Item**: W-129
+**Version**: v1.4.9
+**Release Date**: 2026-01-09
 
 ________________________________________________
 ## v1.4.8, W-128, 2026-01-08

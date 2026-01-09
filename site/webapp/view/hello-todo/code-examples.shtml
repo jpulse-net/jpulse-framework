@@ -4,15 +4,15 @@
  * @tagline         Code Examples for To-Do MVC Demo
  * @description     Model, View, and Controller code snippets
  * @file            site/webapp/view/hello-todo/code-examples.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -45,7 +45,7 @@
                 </div>
 
                 <!-- Model Code -->
-                <h3 style="color: #007acc;">📊 Model: helloTodo.js (Model)</h3>
+                <h3 class="jp-text-primary">📊 Model: helloTodo.js (Model)</h3>
                 <p>The Model handles all database operations with MongoDB:</p>
 
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
@@ -108,7 +108,7 @@ export default HelloTodoModel;</pre>
             </div>
 
                 <!-- Controller Code -->
-                <h3 style="color: #28a745; margin-top: 2rem;">🎮 Controller: helloTodo.js (Controller)</h3>
+                <h3 class="jp-text-success jp-mt-30">🎮 Controller: helloTodo.js (Controller)</h3>
                 <p>The Controller handles HTTP requests and coordinates Model & View:</p>
 
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true">
@@ -170,7 +170,7 @@ export default HelloTodoController;</pre>
             </div>
 
                 <!-- View Code -->
-                <h3 style="color: #ffc107; margin-top: 2rem;">🎨 View: todo-app.shtml (Template)</h3>
+                <h3 class="jp-text-warning jp-mt-30">🎨 View: todo-app.shtml (Template)</h3>
                 <p>The View displays data using Handlebars templates:</p>
 
                 <div class="jp-source-code" data-lang="html" data-show-lang="true">
@@ -229,7 +229,7 @@ async function deleteTodo(id) {
                 </div>
 
                 <h3>🔗 Key Patterns</h3>
-                <div class="jp-card" style="background: #f8f9fa;">
+                <div class="jp-card">
                     <ul>
                         <li><strong>Separation of Concerns</strong> - Model, View, and Controller are separate files</li>
                         <li><strong>REST API</strong> - Clean endpoints: GET, POST, PUT, DELETE</li>
@@ -240,8 +240,8 @@ async function deleteTodo(id) {
                     </ul>
                 </div>
 
-                <div class="jp-card" style="background: #fff3cd; border-left: 4px solid #ffc107; margin-top: 1rem;">
-                    <h4 style="margin-top: 0;">💡 MPA Pattern Note:</h4>
+                <div class="jp-output jp-output-warning jp-mt-15">
+                    <h4>💡 MPA Pattern Note:</h4>
                     <p>Notice how each action (add, toggle, delete) ends with <code>location.reload()</code>. This is the traditional MPA approach - the browser reloads the entire page to show updated data.</p>
                     <p>Compare this to the <a href="/hello-vue/">Vue.js SPA</a> which updates the UI instantly without page reloads!</p>
                 </div>

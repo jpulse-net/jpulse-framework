@@ -4,15 +4,15 @@
  * @tagline         Admin system status interface
  * @description     System monitoring and health dashboard for site administrators
  * @file            webapp/view/admin/system-status.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,9 +25,13 @@
             margin: 1rem 0 0.5rem 0;
         }
         .local-component-header {
-            border-top: 1px solid #c0c0c0;
+            border-top: 1px solid var(--jp-theme-border-color, #c0c0c0);
             padding-top: 0.25rem;
-            background-image: linear-gradient(to bottom, #f6f6f6 0%, white 100%);
+            background-image: linear-gradient(
+                to bottom,
+                var(--jp-theme-bg-secondary, #f6f6f6) 0%,
+                var(--jp-theme-bg-primary, #ffffff) 100%
+            );
         }
         .local-component-header .jp-status-indicator {
             display: inline-block;
@@ -35,12 +39,13 @@
         }
         .local-refresh-info {
             text-align: center;
-            color: #aaa;
+            color: var(--jp-theme-text-muted, #aaa);
             font-size: 0.9em;
             margin-top: 20px;
             padding: 15px;
-            background-color: #f8f9fa;
+            background-color: var(--jp-theme-bg-secondary, #f8f9fa);
             border-radius: 6px;
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
     </style>
 </head>
@@ -63,16 +68,16 @@
             </div>
 
             <!-- Error State -->
-            <div id="errorState" class="jp-alert jp-alert-danger" style="display: none;">
+            <div id="errorState" class="jp-alert jp-alert-danger jp-hidden">
                 <strong>{{i18n.view.admin.systemStatus.errorTitle}}</strong>
                 <span id="errorMessage">{{i18n.view.admin.systemStatus.errorMessage}}</span>
             </div>
 
             <!-- Status Content -->
-            <div id="statusContent" style="display: none;">
+            <div id="statusContent" class="jp-hidden">
 
                 <!-- 1. Overall Cluster Health -->
-                <div class="jp-card" style="margin-bottom: 30px;">
+                <div class="jp-card jp-mb-30">
                     <div id="clusterHealthGrid" class="jp-stats-grid">
                         <!-- Populated by JavaScript -->
                     </div>
@@ -101,7 +106,7 @@
                 </div>
 
                 <!-- Refresh Information -->
-                <div class="local-refresh-info">
+                <div class="jp-info-box local-refresh-info">
                     <i class="jp-icon jp-icon-info"></i>
                     {{i18n.view.admin.systemStatus.refreshInfo}}
                     <br/>
@@ -627,18 +632,18 @@
             },
 
             showContent() {
-                this.elements.statusContent.style.display = 'block';
-                this.elements.errorState.style.display = 'none';
+                this.elements.statusContent.classList.remove('jp-hidden');
+                this.elements.errorState.classList.add('jp-hidden');
             },
 
             showError(message) {
                 this.elements.errorMessage.textContent = message;
-                this.elements.statusContent.style.display = 'none';
-                this.elements.errorState.style.display = 'block';
+                this.elements.statusContent.classList.add('jp-hidden');
+                this.elements.errorState.classList.remove('jp-hidden');
             },
 
             hideError() {
-                this.elements.errorState.style.display = 'none';
+                this.elements.errorState.classList.add('jp-hidden');
             }
         };
 

@@ -4,15 +4,15 @@
  * @tagline         Admin user profile management with view and edit capabilities
  * @description     Admin user profile management with view and edit modes
  * @file            webapp/view/admin/user-profile.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,57 +27,58 @@
             gap: 20px;
             margin-bottom: 30px;
             padding-bottom: 20px;
-            border-bottom: 2px solid #007acc;
+            border-bottom: 2px solid var(--jp-theme-color-primary, #007acc);
         }
 
         .local-profile-info h1 {
             margin: 0;
-            color: #333;
+            color: var(--jp-theme-text-primary, #333);
         }
 
         .local-profile-info .jp-user-details {
-            color: #666;
+            color: var(--jp-theme-text-secondary, #666);
             margin: 5px 0;
         }
 
         .local-profile-section {
-            background: #f8f9fa;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
             padding: 25px;
             border-radius: 8px;
             margin-bottom: 20px;
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
 
         .local-profile-section.local-admin-section {
-            background: #fff3cd;
-            border: 2px solid #ffc107;
+            background: var(--jp-theme-color-warning-bg, #fff3cd);
+            border: 2px solid var(--jp-theme-color-warning, #ffc107);
         }
 
         .local-profile-section h3 {
             margin-top: 0;
-            color: #007acc;
-            border-bottom: 1px solid #dee2e6;
+            color: var(--jp-theme-color-primary, #007acc);
+            border-bottom: 1px solid var(--jp-theme-border-color, #dee2e6);
             padding-bottom: 10px;
         }
 
         .local-profile-section.local-admin-section h3 {
-            color: #856404;
+            color: var(--jp-theme-color-warning-text, #856404);
         }
 
         .local-profile-section p {
-            color: #666;
+            color: var(--jp-theme-text-secondary, #666);
             font-size: 0.9em;
             margin-top: 0;
             margin-bottom: 15px;
         }
 
         .local-user-profile .jp-read-only-field {
-            background: #f8f9fa;
-            color: #6c757d;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+            color: var(--jp-theme-text-secondary, #6c757d);
         }
 
         .local-admin-section .jp-read-only-field {
-            background: #fff3cd;
-            color: #856404;
+            background: var(--jp-theme-color-warning-bg, #fff3cd);
+            color: var(--jp-theme-color-warning-text, #856404);
         }
 
         .local-roles-grid {
@@ -99,11 +100,11 @@
 
         /* W-107: Plugin card styles */
         .local-plugin-card {
-            background: #f8f9fa;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
             padding: 25px;
             border-radius: 8px;
             margin-bottom: 20px;
-            border: 2px solid transparent;
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
 
         .local-plugin-card-header {
@@ -112,7 +113,7 @@
             align-items: flex-start;
             margin-bottom: 15px;
             padding-bottom: 10px;
-            border-bottom: 1px solid #dee2e6;
+            border-bottom: 1px solid var(--jp-theme-border-color, #dee2e6);
         }
 
         .local-plugin-card-title {
@@ -123,7 +124,7 @@
 
         .local-plugin-card-title h3 {
             margin: 0;
-            color: #007acc;
+            color: var(--local-plugin-card-text, var(--jp-theme-text-primary, #333));
         }
 
         .local-plugin-card-actions {
@@ -133,7 +134,7 @@
         }
 
         .local-plugin-card-description {
-            color: #666;
+            color: var(--local-plugin-card-text-muted, var(--jp-theme-text-secondary, #666));
             font-size: 0.9em;
             margin-bottom: 15px;
         }
@@ -145,12 +146,12 @@
         }
 
         .local-plugin-field-label {
-            color: #555;
+            color: var(--local-plugin-card-text-muted, var(--jp-theme-text-secondary, #666));
             font-weight: 500;
         }
 
         .local-plugin-field-value {
-            color: #333;
+            color: var(--local-plugin-card-text, var(--jp-theme-text-primary, #333));
         }
 
         .local-plugin-badge {
@@ -163,23 +164,23 @@
         }
 
         .local-plugin-badge-success {
-            background: #d4edda;
-            color: #155724;
+            background: var(--jp-theme-color-success-bg, #d4edda);
+            color: var(--jp-theme-color-success-text, #155724);
         }
 
         .local-plugin-badge-danger {
-            background: #f8d7da;
-            color: #721c24;
+            background: var(--jp-theme-color-danger-bg, #f8d7da);
+            color: var(--jp-theme-color-danger-text, #721c24);
         }
 
         .local-plugin-badge-warning {
-            background: #fff3cd;
-            color: #856404;
+            background: var(--jp-theme-color-warning-bg, #fff3cd);
+            color: var(--jp-theme-color-warning-text, #856404);
         }
 
         .local-plugin-badge-info {
-            background: #cce5ff;
-            color: #004085;
+            background: var(--jp-theme-color-info-bg, #e7f3ff);
+            color: var(--jp-theme-color-info-text, #0c5460);
         }
     </style>
 </head>
@@ -195,7 +196,7 @@
                 {{i18n.view.admin.userProfile.loadingUser}}
             </div>
 
-            <div id="userContent" style="display: none;">
+            <div id="userContent" class="jp-hidden">
                 <div class="local-profile-header">
                     <div class="jp-user-avatar-large" id="userAvatar">
                         ?
@@ -302,7 +303,7 @@
                 </div>
             </div>
 
-            <div id="errorState" class="jp-error-box" style="display: none;">
+            <div id="errorState" class="jp-error-box jp-hidden">
                 {{i18n.view.admin.userProfile.failedToLoadUser}}
             </div>
         </div>
@@ -346,7 +347,7 @@
             if (!currentUsername) {
                 jPulse.UI.toast.error(`{{i18n.view.admin.userProfile.failedToLoadUser}}`);
                 document.getElementById('loadingState').style.display = 'none';
-                document.getElementById('errorState').style.display = 'block';
+                document.getElementById('errorState').classList.remove('jp-hidden');
                 return;
             }
 
@@ -382,12 +383,12 @@
                 } else {
                     jPulse.UI.toast.error(result.error || `{{i18n.view.admin.userProfile.failedToLoadUser}}`);
                     showLoading(false);
-                    document.getElementById('errorState').style.display = 'block';
+                    document.getElementById('errorState').classList.remove('jp-hidden');
                 }
             } catch (error) {
                 jPulse.UI.toast.error(`{{i18n.view.admin.userProfile.networkErrorLoading}}`.replace('%ERROR%', error.message));
                 showLoading(false);
-                document.getElementById('errorState').style.display = 'block';
+                document.getElementById('errorState').classList.remove('jp-hidden');
             }
         }
 
@@ -418,15 +419,80 @@
                 const cardHtml = renderPluginCard(blockKey, blockDef, cardConfig);
                 container.insertAdjacentHTML('beforeend', cardHtml);
             });
+
+            // Apply readable text colors for cards with custom background colors.
+            applyPluginCardThemeVars();
+        }
+
+        function applyPluginCardThemeVars() {
+            // Apply per-card CSS vars so custom background cards remain readable in light/dark themes.
+            document.querySelectorAll('#pluginCardsContainer .local-plugin-card[data-bg-color]').forEach((card) => {
+                const bg = String(card.getAttribute('data-bg-color') || '').trim();
+                if (!bg) {
+                    return;
+                }
+
+                const textColors = computeReadableTextColors(bg);
+                if (!textColors) {
+                    return;
+                }
+
+                card.style.setProperty('--local-plugin-card-text', textColors.text);
+                card.style.setProperty('--local-plugin-card-text-muted', textColors.muted);
+            });
+        }
+
+        function computeReadableTextColors(bgColorRaw) {
+            // Safety: only accept hex (#rgb/#rrggbb) or rgb/rgba().
+            const bgColor = String(bgColorRaw).trim();
+            const hexMatch = bgColor.match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+            const rgbMatch = bgColor.match(/^rgba?\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})(?:\s*,\s*([0-9]*\.?[0-9]+))?\s*\)$/);
+
+            let r;
+            let g;
+            let b;
+            if (hexMatch) {
+                const hex = hexMatch[1];
+                if (hex.length === 3) {
+                    r = parseInt(hex[0] + hex[0], 16);
+                    g = parseInt(hex[1] + hex[1], 16);
+                    b = parseInt(hex[2] + hex[2], 16);
+                } else {
+                    r = parseInt(hex.slice(0, 2), 16);
+                    g = parseInt(hex.slice(2, 4), 16);
+                    b = parseInt(hex.slice(4, 6), 16);
+                }
+            } else if (rgbMatch) {
+                r = Math.min(255, parseInt(rgbMatch[1], 10));
+                g = Math.min(255, parseInt(rgbMatch[2], 10));
+                b = Math.min(255, parseInt(rgbMatch[3], 10));
+            } else {
+                return null;
+            }
+
+            // Relative luminance (sRGB) per WCAG.
+            const srgbToLin = (v) => {
+                const x = v / 255;
+                return x <= 0.03928 ? (x / 12.92) : Math.pow((x + 0.055) / 1.055, 2.4);
+            };
+            const L = 0.2126 * srgbToLin(r) + 0.7152 * srgbToLin(g) + 0.0722 * srgbToLin(b);
+
+            // Use dark text on light backgrounds, light text on dark backgrounds.
+            // Slightly different muted color per mode.
+            if (L >= 0.55) {
+                return { text: '#111827', muted: '#374151' };
+            }
+            return { text: '#f7fafc', muted: '#cbd5e0' };
         }
 
         // W-107: Render a single plugin card
         function renderPluginCard(blockKey, blockDef, cardConfig) {
             const userData = currentUserData[blockKey] || {};
-            const bgColor = cardConfig.backgroundColor || '#f8f9fa';
+            const bgColor = cardConfig.backgroundColor || '';
             const icon = cardConfig.icon || '📦';
             const label = cardConfig.label || blockKey;
             const description = cardConfig.description || '';
+            const styleAttr = bgColor ? ` style="background-color: ${bgColor}; border-color: ${bgColor};" data-bg-color="${bgColor}"` : '';
 
             // Build action buttons
             const actionsHtml = renderCardActions(blockKey, cardConfig.actions || [], userData);
@@ -435,7 +501,7 @@
             const fieldsHtml = renderCardFields(blockKey, blockDef, userData);
 
             return `
-                <div class="local-plugin-card" id="card-${blockKey}" style="background-color: ${bgColor}; border-color: ${bgColor === '#f8f9fa' ? 'transparent' : bgColor};">
+                <div class="jp-card local-plugin-card" id="card-${blockKey}"${styleAttr}>
                     <div class="local-plugin-card-header">
                         <div class="local-plugin-card-title">
                             <span class="local-plugin-icon">${icon}</span>
@@ -580,7 +646,7 @@
             const displayAs = fieldDef.displayAs;
 
             if (value === null || value === undefined) {
-                return '<span style="color: #999;">—</span>';
+                return '<span style="color: var(--jp-theme-text-muted, #999);">—</span>';
             }
 
             switch (displayAs) {
@@ -593,11 +659,11 @@
                     return `<span class="local-plugin-badge local-plugin-badge-info">${value}</span>`;
 
                 case 'date':
-                    if (!value) return '<span style="color: #999;">—</span>';
+                    if (!value) return '<span style="color: var(--jp-theme-text-muted, #999);">—</span>';
                     return new Date(value).toLocaleDateString();
 
                 case 'datetime':
-                    if (!value) return '<span style="color: #999;">—</span>';
+                    if (!value) return '<span style="color: var(--jp-theme-text-muted, #999);">—</span>';
                     return new Date(value).toLocaleString();
 
                 case 'count':
@@ -712,7 +778,7 @@
             document.getElementById('theme').value = user.preferences?.theme || 'light';
 
             // Show user content
-            document.getElementById('userContent').style.display = 'block';
+            document.getElementById('userContent').classList.remove('jp-hidden');
         }
 
         function updateRolesCheckboxes(userRoles) {
@@ -1012,8 +1078,8 @@
 
             if (show) {
                 loadingState.style.display = 'block';
-                userContent.style.display = 'none';
-                errorState.style.display = 'none';
+                userContent.classList.add('jp-hidden');
+                errorState.classList.add('jp-hidden');
             } else {
                 loadingState.style.display = 'none';
             }

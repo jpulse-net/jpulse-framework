@@ -4,15 +4,15 @@
  * @tagline         Server-Side Broadcasting Pattern Demo
  * @description     Full MVC pattern with database persistence and proper validation
  * @file            site/webapp/view/hello-app-cluster/collaborative-todo.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,13 +37,13 @@
         .local-stat-value {
             font-size: 24px;
             font-weight: bold;
-            color: #007bff;
+            color: var(--jp-theme-color-primary, #007bff);
             margin-bottom: 5px;
         }
 
         .local-stat-label {
             font-size: 12px;
-            color: #6c757d;
+            color: var(--jp-theme-text-muted, #6c757d);
             text-transform: uppercase;
             font-weight: 600;
         }
@@ -53,7 +53,7 @@
         }
 
         .local-card-header {
-            background: #f8f8f8;
+            background: var(--jp-theme-bg-secondary, #f8f8f8);
             margin: -20px -20px 25px -20px;
             padding: 15px 20px;
             border-radius: 8px 8px 0 0;
@@ -75,7 +75,7 @@
 
         .local-card-subtitle {
             font-size: 14px;
-            color: #6c757d;
+            color: var(--jp-theme-text-muted, #6c757d);
             margin: 0;
         }
 
@@ -91,18 +91,18 @@
             display: flex;
             align-items: center;
             padding: 15px;
-            border-bottom: 1px solid #f8f9fa;
+            border-bottom: 1px solid var(--jp-theme-border-light, #f8f9fa);
             transition: all 0.2s ease;
         }
         .local-todo-item:hover {
-            background-color: #f8f9fa;
+            background-color: var(--jp-theme-bg-secondary, #f8f9fa);
         }
         .local-todo-item:last-child {
             border-bottom: none;
         }
         .local-todo-item.completed .local-todo-text {
             text-decoration: line-through;
-            color: #6c757d;
+            color: var(--jp-theme-text-muted, #6c757d);
         }
 
         .local-todo-checkbox {
@@ -127,7 +127,7 @@
 
         .local-todo-meta {
             font-size: 12px;
-            color: #6c757d;
+            color: var(--jp-theme-text-muted, #6c757d);
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
@@ -136,7 +136,50 @@
         .local-empty-state {
             text-align: center;
             padding: 2rem;
-            color: var(--jp-color-text-muted);
+            color: var(--jp-theme-text-muted, #6c757d);
+        }
+
+        .local-sync-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--jp-theme-border-color, #e9ecef);
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+            color: var(--jp-theme-text-secondary, #6c757d);
+            margin-bottom: 20px;
+        }
+
+        .local-sync-status.syncing {
+            border-color: var(--jp-theme-color-warning, #ffc107);
+        }
+
+        .local-sync-status.error {
+            border-color: var(--jp-theme-color-danger, #dc3545);
+            color: var(--jp-theme-color-danger-text, #721c24);
+        }
+
+        .local-loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--jp-theme-border-light, #ddd);
+            border-top-color: var(--jp-theme-color-primary, #007bff);
+            border-radius: 50%;
+            animation: local-spin 0.8s linear infinite;
+        }
+
+        @keyframes local-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .local-ol-indent {
+            padding-left: 20px;
+        }
+
+        .local-stats-grid {
+            margin-top: 25px;
         }
     </style>
 </head>
@@ -163,7 +206,7 @@
 
             <!-- Sync Status -->
             <div class="local-sync-status" id="syncStatus">
-                <div class="local-loading-spinner" id="syncSpinner" style="display: none;"></div>
+                <div class="local-loading-spinner jp-hidden" id="syncSpinner"></div>
                 <span id="syncText">✅ Synchronized with all cluster instances</span>
             </div>
 
@@ -172,9 +215,9 @@
                 <h3>🎓 Learning: Server-Side Broadcasting Pattern</h3>
                 <p>This demo shows the <strong>production-ready clustering pattern</strong> - full MVC with server-side validation, database persistence, and audit logging.</p>
 
-                <div style="margin: 15px 0;">
+                <div class="jp-mt-15 jp-mb-15">
                     <strong>How it works:</strong>
-                    <ol style="margin: 10px 0; padding-left: 20px;">
+                    <ol class="jp-mt-15 local-ol-indent">
                         <li><strong>Client submits:</strong> Standard form POST to controller API endpoint</li>
                         <li><strong>Server processes:</strong> Validates, saves to database, logs change</li>
                         <li><strong>Server broadcasts:</strong> Controller publishes change to Redis</li>
@@ -214,7 +257,7 @@
                         </form>
 
                         <!-- Statistics -->
-                        <div class="jp-stats-grid local-stats-grid" style="margin-top: 25px;">
+                        <div class="jp-stats-grid local-stats-grid">
                             <div class="jp-card jp-card-compact">
                                 <div class="local-stat-value" id="totalTasks">0</div>
                                 <div class="local-stat-label">Total</div>
@@ -240,9 +283,9 @@
                             <p class="local-card-subtitle">Real-time synchronized across all cluster instances</p>
                         </div>
                     </div>
-                    <div class="jp-card-content" style="padding: 0;">
+                    <div class="jp-card-content">
                         <ul class="local-todo-list" id="todoList">
-                            <li class="local-empty-state" id="emptyState" style="display: none;">
+                            <li class="local-empty-state jp-hidden" id="emptyState">
                                 <div class="local-empty-state-icon">📝</div>
                                 <h4>No tasks yet</h4>
                                 <p>Add your first collaborative task!</p>
@@ -262,7 +305,7 @@
                 <span class="jp-btn-nav-arrow">→</span>
                 <a href="/hello-vue/" class="jp-btn jp-btn-outline">🔄 Vue.js SPA Demo</a>
                 <span class="jp-btn-nav-arrow">→</span>
-                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">� WebSocket Real-Time Demo</a>
+                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">🔌 WebSocket Real-Time Demo</a>
                 <span class="jp-btn-nav-arrow">→</span>
                 <a href="/hello-app-cluster/" class="jp-btn jp-btn-active">🌍 App Cluster Demo</a>
             </div>
@@ -366,6 +409,7 @@
                 this.elements.addButton.innerHTML = '<i class="jp-icon-loading jp-icon-spin"></i> Adding...';
                 this.updateSyncStatus('syncing');
 
+                let wasSuccessful = false;
                 try {
                     const response = await jPulse.appCluster.fetch('/api/1/helloClusterTodo', {
                         method: 'POST',
@@ -383,13 +427,18 @@
                     // Optimistic UI update for the originating client
                     this.showToast('To-do added successfully!', 'success');
                     this.addTodoItem(result.todo);
+                    wasSuccessful = true;
 
                 } catch (error) {
                     this.showToast(`Error adding task: ${error.message}`, 'error');
-                    this.updateSyncStatus('error');
+                    this.updateSyncStatus('error', error.message);
                 } finally {
                     this.elements.addButton.disabled = false;
                     this.elements.addButton.innerHTML = 'Add Task';
+
+                    if (wasSuccessful) {
+                        this.updateSyncStatus(jPulse.appCluster.isClusterMode() ? 'synced' : 'local');
+                    }
                 }
             }
 
@@ -450,7 +499,7 @@
                 this.todos.unshift(todo);
 
                 // Update UI
-                this.elements.emptyState.style.display = 'none';
+                this.elements.emptyState.classList.add('jp-hidden');
                 const todoHtml = this._createTodoHtml(todo);
                 this.elements.todoList.insertAdjacentHTML('afterbegin', todoHtml);
 
@@ -475,7 +524,7 @@
                     }
 
                     if (this.todos.length === 0) {
-                        this.elements.emptyState.style.display = 'block';
+                        this.elements.emptyState.classList.remove('jp-hidden');
                     }
 
                     this.stats.total--;
@@ -553,9 +602,9 @@
 
                 if (this.todos.length === 0) {
                     todoList.appendChild(emptyState);
-                    emptyState.style.display = 'block';
+                    emptyState.classList.remove('jp-hidden');
                 } else {
-                    emptyState.style.display = 'none';
+                    emptyState.classList.add('jp-hidden');
                     const todosHtml = this.todos.map(todo => this._createTodoHtml(todo)).join('');
                     todoList.innerHTML = todosHtml;
                 }
@@ -577,23 +626,23 @@
                 switch (status) {
                     case 'syncing':
                         syncStatus.classList.add('syncing');
-                        syncSpinner.style.display = 'inline-block';
+                        syncSpinner.classList.remove('jp-hidden');
                         syncText.textContent = '⏳ Synchronizing with cluster...';
                         break;
 
                     case 'synced':
-                        syncSpinner.style.display = 'none';
+                        syncSpinner.classList.add('jp-hidden');
                         syncText.textContent = '✅ Synchronized with all cluster instances';
                         break;
 
                     case 'local':
-                        syncSpinner.style.display = 'none';
+                        syncSpinner.classList.add('jp-hidden');
                         syncText.textContent = '📱 Running in local mode (Redis unavailable)';
                         break;
 
                     case 'error':
                         syncStatus.classList.add('error');
-                        syncSpinner.style.display = 'none';
+                        syncSpinner.classList.add('jp-hidden');
                         syncText.textContent = `❌ ${message || 'Synchronization error'}`;
                         break;
                 }

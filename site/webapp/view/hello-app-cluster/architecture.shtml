@@ -4,15 +4,15 @@
  * @tagline         App Clustering Architecture Documentation
  * @description     Comprehensive architecture overview for multi-server application clustering
  * @file            site/webapp/view/hello-app-cluster/architecture.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,8 +20,8 @@
     {{file.include "jpulse-header.tmpl"}}
     <style>
         .local-diagram {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+            border: 1px solid var(--jp-theme-border-color, #e9ecef);
             border-radius: 8px;
             padding: 20px;
             margin: 20px 0;
@@ -30,6 +30,7 @@
             font-size: 12px;
             line-height: 1.3;
             overflow-x: auto;
+            color: var(--jp-theme-text-primary, #333);
         }
 
         .local-component-grid {
@@ -40,16 +41,16 @@
         }
 
         .local-component-card {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+            border: 1px solid var(--jp-theme-border-color, #e9ecef);
             border-radius: 8px;
             padding: 20px;
             transition: all 0.2s ease;
         }
 
         .local-component-card:hover {
-            border-color: #007bff;
-            box-shadow: 0 4px 12px rgba(0,123,255,0.1);
+            border-color: var(--jp-theme-color-primary, #007bff);
+            box-shadow: var(--jp-theme-shadow-md, 0 2px 10px rgba(0,0,0,0.15));
         }
 
         .local-component-header {
@@ -71,7 +72,7 @@
 
         .local-component-description {
             font-size: 14px;
-            color: #6c757d;
+            color: var(--jp-theme-text-muted, #6c757d);
             margin-bottom: 15px;
             line-height: 1.4;
         }
@@ -85,19 +86,19 @@
         .local-component-features li {
             padding: 4px 0;
             font-size: 14px;
-            color: #495057;
+            color: var(--jp-theme-text-secondary, #495057);
         }
 
         .local-component-features li::before {
             content: "✓";
-            color: #28a745;
+            color: var(--jp-theme-color-success, #28a745);
             font-weight: bold;
             margin-right: 8px;
         }
 
         .local-flow-diagram {
-            background: white;
-            border: 2px solid #e9ecef;
+            background: var(--jp-theme-bg-primary, #ffffff);
+            border: 2px solid var(--jp-theme-border-color, #e9ecef);
             border-radius: 12px;
             padding: 25px;
             margin: 20px 0;
@@ -109,9 +110,9 @@
             align-items: center;
             margin-bottom: 20px;
             padding: 15px;
-            background: #f8f9fa;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
             border-radius: 8px;
-            border-left: 4px solid #007bff;
+            border-left: 4px solid var(--jp-theme-color-primary, #007bff);
         }
 
         .local-flow-step:last-child {
@@ -119,8 +120,8 @@
         }
 
         .local-step-number {
-            background: #007bff;
-            color: white;
+            background: var(--jp-theme-color-primary, #007bff);
+            color: var(--jp-theme-text-inverse, #ffffff);
             width: 30px;
             height: 30px;
             border-radius: 50%;
@@ -143,7 +144,7 @@
 
         .local-step-description {
             margin: 0;
-            color: #6c757d;
+            color: var(--jp-theme-text-muted, #6c757d);
             font-size: 14px;
         }
 
@@ -158,18 +159,18 @@
         .local-comparison-table td {
             text-align: left;
             padding: 5px 15px;
-            border-bottom: 1px solid #e9ecef;
+            border-bottom: 1px solid var(--jp-theme-border-color, #e9ecef);
             vertical-align: top;
         }
 
         .local-comparison-table th {
-            background-color: #f8f9fa;
+            background-color: var(--jp-theme-bg-secondary, #f8f9fa);
             font-weight: 600;
-            color: #495057;
+            color: var(--jp-theme-text-secondary, #495057);
         }
 
         .local-comparison-table tr:hover {
-            background-color: #f8f9fa;
+            background-color: var(--jp-theme-bg-secondary, #f8f9fa);
         }
 
         .local-pros-cons {
@@ -189,26 +190,27 @@
         .local-cons {
             padding: 20px;
             border-radius: 8px;
-            border: 1px solid #e9ecef;
+            border: 1px solid var(--jp-theme-border-color, #e9ecef);
+            color: var(--jp-theme-text-secondary, #495057);
         }
 
         .local-pros {
-            background-color: #d4edda;
-            border-color: #c3e6cb;
+            background-color: var(--jp-theme-color-success-bg, #d4edda);
+            border-color: var(--jp-theme-color-success, #c3e6cb);
         }
 
         .local-cons {
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
+            background-color: var(--jp-theme-color-danger-bg, #f8d7da);
+            border-color: var(--jp-theme-color-danger, #f5c6cb);
         }
 
         .local-pros h4 {
-            color: #155724;
+            color: var(--jp-theme-color-success-text, #155724);
             margin-top: 0;
         }
 
         .local-cons h4 {
-            color: #721c24;
+            color: var(--jp-theme-color-danger-text, #721c24);
             margin-top: 0;
         }
 
@@ -219,27 +221,29 @@
         }
 
         .local-highlight-box {
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-            border: 1px solid #90caf9;
+            background: var(--jp-theme-color-info-bg, #e7f3ff);
+            border: 1px solid var(--jp-theme-color-info, #17a2b8);
             border-radius: 8px;
             padding: 20px;
             margin: 20px 0;
+            color: var(--jp-theme-text-secondary, #495057);
         }
 
         .local-highlight-box h4 {
-            color: #0d47a1;
+            color: var(--jp-theme-color-info-text, #0d47a1);
             margin-top: 0;
         }
 
         .local-code-snippet {
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
+            background-color: var(--jp-theme-bg-secondary, #f8f9fa);
+            border: 1px solid var(--jp-theme-border-color, #e9ecef);
             border-radius: 6px;
             padding: 15px;
             margin: 10px 0;
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 14px;
             overflow-x: auto;
+            color: var(--jp-theme-text-primary, #333);
         }
     </style>
 </head>
@@ -843,7 +847,7 @@ volumes:
                 <span class="jp-btn-nav-arrow">→</span>
                 <a href="/hello-vue/" class="jp-btn jp-btn-outline">🔄 Vue.js SPA Demo</a>
                 <span class="jp-btn-nav-arrow">→</span>
-                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">� WebSocket Real-Time Demo</a>
+                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">🔌 WebSocket Real-Time Demo</a>
                 <span class="jp-btn-nav-arrow">→</span>
                 <a href="/hello-app-cluster/" class="jp-btn jp-btn-active">🌍 App Cluster Demo</a>
             </div>

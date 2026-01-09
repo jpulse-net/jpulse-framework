@@ -4,15 +4,15 @@
  * @tagline         Comprehensive Handlebars templating examples
  * @description     Interactive examples and source code for Handlebars templating in jPulse
  * @file            webapp/view/jpulse-examples/handlebars.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,12 +27,26 @@
             height: 12rem;
         }
         .local-handlebar-result {
-            background: #f8f9fa;
             margin-top: 0.7rem;
             padding: 0.2rem 0.4rem;
             border-radius: 3px;
             font-size: 0.85em;
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+            color: var(--jp-theme-text-primary, #333);
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
+        }
+
+        .local-handlebar-result-success {
+            background: var(--jp-theme-color-success-bg, #d4edda);
+            color: var(--jp-theme-color-success-text, #155724);
+            border-color: var(--jp-theme-color-success, #28a745);
+        }
+
+        .local-handlebar-result-error {
+            background: var(--jp-theme-color-danger-bg, #f8d7da);
+            color: var(--jp-theme-color-danger-text, #721c24);
+            border-color: var(--jp-theme-color-danger, #dc3545);
         }
     </style>
 </head>
@@ -1293,16 +1307,19 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     const text = document.getElementById('handlebarTextarea').value;
                     const response = await jPulse.api.post('/api/1/handlebar/expand', { text });
                     if (response.success) {
-                        $resultElem.style.background = '#f8f9fa';
+                        $resultElem.classList.remove('local-handlebar-result-error');
+                        $resultElem.classList.add('local-handlebar-result-success');
                         $resultElem.textContent = response.text;
                         jPulse.UI.toast.success('See the expanded result below');
                     } else {
-                        $resultElem.style.background = '#ffebee';
+                        $resultElem.classList.remove('local-handlebar-result-success');
+                        $resultElem.classList.add('local-handlebar-result-error');
                         $resultElem.textContent = `Error: ${response.error}`;
                         jPulse.UI.toast.error('API returned an error: ' + response.error);
                     }
                 } catch (error) {
-                    $resultElem.style.background = '#ffebee';
+                    $resultElem.classList.remove('local-handlebar-result-success');
+                    $resultElem.classList.add('local-handlebar-result-error');
                     $resultElem.textContent = `Error: ${error.message}`;
                     jPulse.UI.toast.error('API call failed: ' + error.message);
                 }

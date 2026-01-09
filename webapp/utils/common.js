@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -21,6 +21,93 @@ import { ObjectId } from 'mongodb';
  * controllers, and other components of the framework.
  */
 class CommonUtils {
+
+    // =========================================================================
+    // Object Path Utilities (dot notation)
+    // =========================================================================
+
+    /**
+     * Get a value from an object using dot notation path
+     * @param {object} obj - Object to read from
+     * @param {string} keyPath - Dot-notation path (e.g., 'data.email.adminEmail')
+     * @returns {*} Value at path, or undefined if not found
+     */
+    static getValueByPath(obj, keyPath) {
+        if (!obj || typeof obj !== 'object' || typeof keyPath !== 'string') {
+            return undefined;
+        }
+
+        const keys = keyPath.split('.').filter(Boolean);
+        if (keys.length === 0) {
+            return undefined;
+        }
+
+        let current = obj;
+        for (const key of keys) {
+            if (!current || typeof current !== 'object' || !Object.prototype.hasOwnProperty.call(current, key)) {
+                return undefined;
+            }
+            current = current[key];
+        }
+
+        return current;
+    }
+
+    /**
+     * Set a value in an object using dot notation path (creates intermediate objects)
+     * @param {object} obj - Object to modify
+     * @param {string} keyPath - Dot-notation path (e.g., 'data.email.adminEmail')
+     * @param {*} value - Value to set
+     * @returns {void}
+     */
+    static setValueByPath(obj, keyPath, value) {
+        if (!obj || typeof obj !== 'object' || typeof keyPath !== 'string') {
+            return;
+        }
+
+        const keys = keyPath.split('.').filter(Boolean);
+        if (keys.length === 0) {
+            return;
+        }
+
+        let current = obj;
+        for (let i = 0; i < keys.length - 1; i++) {
+            const key = keys[i];
+            if (!current[key] || typeof current[key] !== 'object') {
+                current[key] = {};
+            }
+            current = current[key];
+        }
+        current[keys[keys.length - 1]] = value;
+    }
+
+    /**
+     * Delete a value in an object using dot notation path
+     * @param {object} obj - Object to modify
+     * @param {string} keyPath - Dot-notation path (e.g., 'data.email.adminEmail')
+     * @returns {void}
+     */
+    static deleteValueByPath(obj, keyPath) {
+        if (!obj || typeof obj !== 'object' || typeof keyPath !== 'string') {
+            return;
+        }
+
+        const keys = keyPath.split('.').filter(Boolean);
+        if (keys.length === 0) {
+            return;
+        }
+
+        let current = obj;
+        for (let i = 0; i < keys.length - 1; i++) {
+            const key = keys[i];
+            if (!current[key] || typeof current[key] !== 'object') {
+                return;
+            }
+            current = current[key];
+        }
+
+        delete current[keys[keys.length - 1]];
+    }
 
     /**
      * Create schema-based MongoDB query from URI parameters
@@ -982,6 +1069,9 @@ export const {
     schemaBasedQuery,
     getFieldSchema,
     buildDateQuery,
+    getValueByPath,
+    setValueByPath,
+    deleteValueByPath,
     deepMerge,
     formatValue,
     generateUuid,

@@ -3,8 +3,8 @@
  * @tagline         Symlink Management for Plugin Static Assets
  * @description     Manages symlinks for plugin static assets
  * @file            webapp/utils/symlink-manager.js
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -250,8 +250,24 @@ class SymlinkManager {
                 } catch (error) {
                     // Not a symlink or error reading it, remove it
                     if (fs.lstatSync(symlinkPath).isDirectory()) {
-                        // It's a directory, don't remove it
-                        return { success: false, message: `Docs path exists as directory: ${symlinkPath}` };
+                        // It's a directory, don't remove it (safety). Provide actionable guidance.
+                        let entries = [];
+                        try {
+                            entries = fs.readdirSync(symlinkPath) || [];
+                        } catch (readDirError) {
+                            entries = [];
+                        }
+                        const visibleEntries = entries.filter(e => e && e !== '.DS_Store');
+                        const isEmptyDir = visibleEntries.length === 0;
+
+                        const hint = isEmptyDir
+                            ? 'Directory is empty; remove it to allow docs symlink creation.'
+                            : `Directory contains ${visibleEntries.length} item(s); remove/rename it to allow docs symlink creation.`;
+
+                        return {
+                            success: false,
+                            message: `Docs path exists as directory: ${symlinkPath} (${hint})`
+                        };
                     }
                     fs.unlinkSync(symlinkPath);
                 }

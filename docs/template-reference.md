@@ -1,4 +1,4 @@
-# jPulse Docs / Template Reference v1.4.8
+# jPulse Docs / Template Reference v1.4.9
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -844,7 +844,7 @@ jPulse.dom.ready(() => {
 ```html
 <!-- webapp/view/jpulse-header.tmpl -->
 <!DOCTYPE html>
-<html lang="{{user.preferences.language}}">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

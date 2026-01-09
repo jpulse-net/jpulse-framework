@@ -1,0 +1,8 @@
+{
+    "name": "light",
+    "label": "Light",
+    "description": "Default light theme with clean, bright colors",
+    "author": "jPulse Framework",
+    "version": "1.4.8",
+    "source": "framework"
+}

@@ -4,15 +4,15 @@
  * @tagline         Demo Site View Override
  * @description     Example of how to override framework views
  * @file            site/webapp/view/hello/index.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -83,9 +83,9 @@
             <h3>Live API Demo</h3>
             <p>Click the button below to test the site override API using jPulse.api.call():</p>
             <button id="testApiBtn" class="jp-btn jp-btn-secondary">Test Site API</button>
-            <div id="apiResponse" style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px; display: none;">
+            <div id="apiResponse" class="jp-output jp-hidden jp-mt-15">
                 <strong>API Response:</strong>
-                <pre id="apiResponseContent" style="margin: 10px 0; white-space: pre-wrap;"></pre>
+                <pre id="apiResponseContent" class="jp-pre"></pre>
             </div>
         </div>
 
@@ -127,20 +127,20 @@
                 testBtn.addEventListener('click', async function() {
                     testBtn.disabled = true;
                     testBtn.textContent = 'Testing...';
-                    responseDiv.style.display = 'none';
+                    responseDiv.classList.add('jp-hidden');
 
                     try {
                         // Use jPulse.api.call to test the site override API
                         const response = await jPulse.api.call('/api/1/hello', 'GET');
 
-                        responseDiv.style.display = 'block';
+                        responseDiv.classList.remove('jp-hidden', 'jp-output-error');
+                        responseDiv.classList.add('jp-output-success');
                         responseContent.textContent = JSON.stringify(response, null, 2);
-                        responseDiv.style.background = '#e8f5e8'; // Success green
 
                     } catch (error) {
-                        responseDiv.style.display = 'block';
+                        responseDiv.classList.remove('jp-hidden', 'jp-output-success');
+                        responseDiv.classList.add('jp-output-error');
                         responseContent.textContent = `Error: ${error.message}`;
-                        responseDiv.style.background = '#ffebee'; // Error red
                     }
 
                     testBtn.disabled = false;

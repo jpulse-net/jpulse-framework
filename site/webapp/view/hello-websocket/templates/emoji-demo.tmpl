@@ -4,8 +4,8 @@
  * @tagline         Emoji cursor demo component of the WebSocket demo
  * @description     This component is a emoji cursor app to demo the WebSocket features
  * @file            site/webapp/view/hello-websocket/templates/emoji-demo.tmpl
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -142,7 +142,7 @@ window.helloWebSocketViews.EmojiDemo = {
         <h3>🎯 What This Demonstrates</h3>
         <p>Real-time cursor position tracking across multiple users. Move your mouse in the colored area below and watch other users' emojis move too!</p>
 
-        <ul style="line-height: 1.6; font-size: 14px;">
+        <ul class="jp-list">
             <li><strong>Ephemeral tracking</strong> - No database, pure real-time broadcast</li>
             <li><strong>Position throttling</strong> - Updates every 50ms (not every pixel)</li>
             <li><strong>User presence</strong> - See who's connected right now</li>
@@ -151,7 +151,7 @@ window.helloWebSocketViews.EmojiDemo = {
     </div>
 
     <!-- Connection Status & Controls -->
-    <div style="display: flex; gap: 15px; align-items: center; margin: 20px 0; flex-wrap: wrap;">
+    <div class="local-controls-row">
         <button v-if="!emojiWs"
                 @click="connectEmojiWs"
                 class="jp-btn jp-btn-primary">
@@ -169,14 +169,14 @@ window.helloWebSocketViews.EmojiDemo = {
             <span>{{ emojiStatus.charAt(0).toUpperCase() + emojiStatus.slice(1) }}</span>
         </div>
 
-        <div v-if="emojiWs && emojiStatus === 'connected'" class="jp-help-text" style="margin: 0;">
+        <div v-if="emojiWs && emojiStatus === 'connected'" class="jp-help-text jp-m-0">
             👥 <strong>{{ userCount }}</strong> {{ userCount === 1 ? 'user' : 'users' }} online
         </div>
     </div>
 
     <!-- Emoji Selector -->
-    <div v-if="emojiWs" class="jp-card" style="background: #f8f9fa;">
-        <h3 style="margin-top: 0;">Select Your Emoji</h3>
+    <div v-if="emojiWs" class="jp-card">
+        <h3>Select Your Emoji</h3>
         <div class="local-emoji-selector">
             <button v-for="emoji in availableEmojis"
                     :key="emoji"
@@ -186,8 +186,8 @@ window.helloWebSocketViews.EmojiDemo = {
                 {{ emoji }}
             </button>
         </div>
-        <p class="jp-help-text" style="margin: 10px 0 0 0;">
-            💡 Your selected emoji: <span style="font-size: 24px;">{{ selectedEmoji }}</span>
+        <p class="jp-help-text jp-mt-15 jp-mb-0">
+            💡 Your selected emoji: <span class="local-emoji-selected">{{ selectedEmoji }}</span>
         </p>
     </div>
 
@@ -212,20 +212,19 @@ window.helloWebSocketViews.EmojiDemo = {
             </div>
 
             <!-- Empty state -->
-            <div v-if="otherUsersArray.length === 0"
-                    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
-                <div style="font-size: 48px; margin-bottom: 10px;">👋</div>
-                <div style="font-size: 18px; font-weight: bold;">Move your mouse!</div>
-                <div style="font-size: 14px; margin-top: 5px;">Open another browser window to see multiplayer magic ✨</div>
+            <div v-if="otherUsersArray.length === 0" class="local-emoji-empty-state">
+                <div class="local-emoji-empty-icon">👋</div>
+                <div class="local-emoji-empty-title">Move your mouse!</div>
+                <div class="local-emoji-empty-subtitle">Open another browser window to see multiplayer magic ✨</div>
             </div>
         </div>
     </div>
 
     <!-- Instructions when not connected -->
-    <div v-if="!emojiWs || emojiStatus !== 'connected'" class="jp-card" style="border-left: 4px solid #ffc107;">
-        <h3 style="margin-top: 0;">👆 Click "Connect" to Start</h3>
+    <div v-if="!emojiWs || emojiStatus !== 'connected'" class="jp-output jp-output-warning">
+        <h3>👆 Click "Connect" to Start</h3>
         <p>Once connected:</p>
-        <ol style="margin: 10px 0 0 20px; line-height: 1.6;">
+        <ol class="jp-mt-15">
             <li>Select your favorite emoji</li>
             <li>Move your mouse in the colored area</li>
             <li>Open another browser window (or ask a friend!)</li>
@@ -234,34 +233,34 @@ window.helloWebSocketViews.EmojiDemo = {
     </div>
 
     <!-- Technical Details -->
-    <div class="jp-card" style="margin-top: 20px; background: #f0f0f0;">
-        <h3 style="margin-top: 0;">🔧 Technical Details</h3>
+    <div class="jp-card jp-mt-30">
+        <h3>🔧 Technical Details</h3>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+        <div class="local-tech-grid">
             <div>
-                <h4 style="margin: 0 0 5px 0; font-size: 15px; color: #666;">Namespace</h4>
-                <code style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 15px;">/api/1/ws/hello-emoji</code>
+                <h4 class="local-tech-label">Namespace</h4>
+                <code class="local-tech-chip">/api/1/ws/hello-emoji</code>
             </div>
 
             <div>
-                <h4 style="margin: 0 0 5px 0; font-size: 15px; color: #666;">Authentication</h4>
-                <span style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 15px;">Public (no auth required)</span>
+                <h4 class="local-tech-label">Authentication</h4>
+                <span class="local-tech-chip">Public (no auth required)</span>
             </div>
 
             <div>
-                <h4 style="margin: 0 0 5px 0; font-size: 15px; color: #666;">Update Frequency</h4>
-                <span style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 15px;">20 msgs/second (50ms throttle)</span>
+                <h4 class="local-tech-label">Update Frequency</h4>
+                <span class="local-tech-chip">20 msgs/second (50ms throttle)</span>
             </div>
 
             <div>
-                <h4 style="margin: 0 0 5px 0; font-size: 15px; color: #666;">Persistence</h4>
-                <span style="background: white; padding: 4px 8px; border-radius: 3px; font-size: 15px;">None (ephemeral)</span>
+                <h4 class="local-tech-label">Persistence</h4>
+                <span class="local-tech-chip">None (ephemeral)</span>
             </div>
         </div>
 
-        <div style="margin-top: 15px; padding: 12px; background: white; border-radius: 4px;">
-            <h4 style="margin: 0 0 8px 0;">Message Flow:</h4>
-            <ol style="margin: 5px 0 0 20px; font-size: 15px; line-height: 1.8;">
+        <div class="local-panel">
+            <h4 class="jp-m-0">Message Flow:</h4>
+            <ol class="jp-mt-15">
                 <li>Mouse moves → throttled to 50ms intervals</li>
                 <li>Client sends: <code>{type: 'cursor-move', emoji, x, y}</code></li>
                 <li>Server broadcasts to all connected clients</li>
@@ -270,9 +269,9 @@ window.helloWebSocketViews.EmojiDemo = {
         </div>
     </div>
 
-    <div class="jp-info-box" style="margin-top: 20px; background: #e3f2fd;">
+    <div class="jp-output jp-output-info jp-mt-30">
         <h3>💡 Why Throttle?</h3>
-        <p style="line-height: 1.6;">
+        <p>
             Mouse events fire <strong>hundreds of times per second</strong>. Sending every single event
             would overwhelm the server and network. By throttling to 50ms (20 updates/second), we get
             smooth tracking while keeping bandwidth reasonable. This is a best practice for any
@@ -280,9 +279,9 @@ window.helloWebSocketViews.EmojiDemo = {
         </p>
     </div>
 
-    <div class="jp-info-box" style="margin-top: 20px; background: #fff3cd; border-left: 4px solid #ffc107;">
+    <div class="jp-output jp-output-warning jp-mt-30">
         <h3>🎓 Learning Takeaways</h3>
-        <ul style="line-height: 1.8;">
+        <ul class="jp-list">
             <li>WebSocket enables instant, bidirectional communication</li>
             <li>Throttling is essential for high-frequency events</li>
             <li>Ephemeral data doesn't need a database</li>

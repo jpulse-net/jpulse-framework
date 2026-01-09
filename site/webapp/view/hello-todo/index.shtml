@@ -4,15 +4,15 @@
  * @tagline         Overview of the To-Do MVC Demo
  * @description     Introduction to Model-View-Controller architecture with MongoDB
  * @file            site/webapp/view/hello-todo/index.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -64,9 +64,9 @@
                 </ul>
 
                 <h3>🏗️ The MVC Pattern (jPulse Hybrid Approach)</h3>
-                <div class="jp-info-box" style="background: #e3f2fd; border-left: 4px solid #2196f3;">
+                <div class="jp-output jp-output-info">
                     <p><strong>Important:</strong> This demo uses <strong>jPulse's Hybrid MPA approach</strong>, where:</p>
-                    <ul style="margin: 0.5rem 0;">
+                    <ul class="jp-mt-15 jp-mb-15">
                         <li><strong>Model</strong> lives on the <em>server</em> (MongoDB operations)</li>
                         <li><strong>View</strong> logic lives in the <em>browser</em> (DOM updates, interactivity)</li>
                         <li><strong>Controller</strong> lives on the <em>server</em> (REST API endpoints)</li>
@@ -74,8 +74,8 @@
                     <p>This differs from <strong>Traditional MPA</strong> where all three (M, V, C) live on the server. See <a href="/docs/mpa-vs-spa.html">MPA vs SPA documentation</a> for detailed comparison.</p>
                 </div>
 
-                <div class="jp-card" style="background: #f8f9fa; border-left: 4px solid #007acc;">
-                    <h4 style="margin-top: 0;">Model (site/webapp/model/helloTodo.js)</h4>
+                <div class="jp-card">
+                    <h4>Model (site/webapp/model/helloTodo.js)</h4>
                     <p>The <strong>Model</strong> handles all data operations <em>on the server</em>:</p>
                     <ul>
                         <li>Database schema definition</li>
@@ -85,8 +85,8 @@
                     </ul>
                 </div>
 
-                <div class="jp-card" style="background: #f8f9fa; border-left: 4px solid #28a745;">
-                    <h4 style="margin-top: 0;">View (site/webapp/view/hello-todo/*.shtml)</h4>
+                <div class="jp-card">
+                    <h4>View (site/webapp/view/hello-todo/*.shtml)</h4>
                     <p>The <strong>View</strong> handles presentation <em>in the browser</em>:</p>
                     <ul>
                         <li>HTML templates with Handlebars syntax (server-rendered)</li>
@@ -96,8 +96,8 @@
                     </ul>
                 </div>
 
-                <div class="jp-card" style="background: #f8f9fa; border-left: 4px solid #ffc107;">
-                    <h4 style="margin-top: 0;">Controller (site/webapp/controller/helloTodo.js)</h4>
+                <div class="jp-card">
+                    <h4>Controller (site/webapp/controller/helloTodo.js)</h4>
                     <p>The <strong>Controller</strong> coordinates everything <em>on the server</em>:</p>
                     <ul>
                         <li>Request routing and handling</li>
@@ -108,8 +108,8 @@
                 </div>
 
                 <h3>🔄 MPA vs SPA</h3>
-                <div class="jp-card" style="background: #fff3cd; border-left: 4px solid #ff6b6b;">
-                    <h4 style="margin-top: 0;">This is a Multi-Page Application (MPA):</h4>
+                <div class="jp-output jp-output-warning">
+                    <h4>This is a Multi-Page Application (MPA):</h4>
                     <ul>
                         <li>✅ Each page is a full HTML document with embedded JavaScript for interactivity</li>
                         <li>✅ Browser initiates REST API calls to the server</li>
@@ -122,17 +122,17 @@
                 </div>
 
                 <h3>🚀 Next Steps</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
-                    <a href="/hello-todo/todo-app.shtml" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
-                        <h4 style="margin-top: 0;">✅ To-Do App</h4>
+                <div class="jp-grid-auto-200 jp-mt-15">
+                    <a href="/hello-todo/todo-app.shtml" class="jp-card jp-link-card">
+                        <h4>✅ To-Do App</h4>
                         <p>Try the working demo - add, complete, and delete to-dos</p>
                     </a>
-                    <a href="/hello-todo/code-examples.shtml" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
-                        <h4 style="margin-top: 0;">💻 Code Examples</h4>
+                    <a href="/hello-todo/code-examples.shtml" class="jp-card jp-link-card">
+                        <h4>💻 Code Examples</h4>
                         <p>See the actual Model, View, and Controller code</p>
                     </a>
-                    <a href="/hello-todo/architecture.shtml" class="jp-card" style="text-decoration: none; color: inherit; cursor: pointer;">
-                        <h4 style="margin-top: 0;">🏗️ Architecture</h4>
+                    <a href="/hello-todo/architecture.shtml" class="jp-card jp-link-card">
+                        <h4>🏗️ Architecture</h4>
                         <p>Understand how all the pieces fit together</p>
                     </a>
                 </div>

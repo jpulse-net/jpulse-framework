@@ -1,0 +1,20 @@
+/*
+ * @name            jPulse Framework / WebApp / View / Themes / Light CSS
+ * @tagline         Light CSS of the jPulse Framework
+ * @description     Light CSS for the jPulse Framework
+ * @file            webapp/view/themes/light.css
+ * @version         1.4.8
+ * @release         2026-01-08
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ */
+
+/* Light theme uses defaults from :root (jpulse-common.css).
+ * This file exists so the framework can always load /themes/light.css.
+ * No overrides needed.
+ */
+
+ /* EOF webapp/view/themes/light.css */

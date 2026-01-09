@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for CommonUtils
  * @description     Tests for common utility functions
  * @file            webapp/tests/unit/utils/common-utils.test.js
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -283,6 +283,81 @@ describe('CommonUtils', () => {
         test('should trim whitespace', () => {
             const result = CommonUtils.sanitizeString('  test  ');
             expect(result).toBe('test');
+        });
+    });
+
+    describe('dot path utilities', () => {
+        describe('getValueByPath', () => {
+            test('should return nested value', () => {
+                const obj = { a: { b: { c: 123 } } };
+                expect(CommonUtils.getValueByPath(obj, 'a.b.c')).toBe(123);
+            });
+
+            test('should return undefined for missing path', () => {
+                const obj = { a: { b: {} } };
+                expect(CommonUtils.getValueByPath(obj, 'a.b.c')).toBeUndefined();
+            });
+
+            test('should handle extra dots gracefully', () => {
+                const obj = { a: { b: { c: 'ok' } } };
+                expect(CommonUtils.getValueByPath(obj, '.a..b.c.')).toBe('ok');
+            });
+
+            test('should return undefined for invalid inputs', () => {
+                expect(CommonUtils.getValueByPath(null, 'a.b')).toBeUndefined();
+                expect(CommonUtils.getValueByPath({}, null)).toBeUndefined();
+                expect(CommonUtils.getValueByPath({}, '')).toBeUndefined();
+            });
+        });
+
+        describe('setValueByPath', () => {
+            test('should set nested value and create intermediate objects', () => {
+                const obj = {};
+                CommonUtils.setValueByPath(obj, 'a.b.c', 456);
+                expect(obj).toEqual({ a: { b: { c: 456 } } });
+            });
+
+            test('should overwrite non-object intermediate values', () => {
+                const obj = { a: 'not-an-object' };
+                CommonUtils.setValueByPath(obj, 'a.b', 'value');
+                expect(obj).toEqual({ a: { b: 'value' } });
+            });
+
+            test('should set top-level value', () => {
+                const obj = {};
+                CommonUtils.setValueByPath(obj, 'root', true);
+                expect(obj).toEqual({ root: true });
+            });
+
+            test('should no-op for invalid inputs', () => {
+                const obj = { a: 1 };
+                CommonUtils.setValueByPath(null, 'a.b', 1);
+                CommonUtils.setValueByPath(obj, null, 2);
+                CommonUtils.setValueByPath(obj, '', 3);
+                expect(obj).toEqual({ a: 1 });
+            });
+        });
+
+        describe('deleteValueByPath', () => {
+            test('should delete nested leaf property', () => {
+                const obj = { a: { b: { c: 1, d: 2 } } };
+                CommonUtils.deleteValueByPath(obj, 'a.b.c');
+                expect(obj).toEqual({ a: { b: { d: 2 } } });
+            });
+
+            test('should no-op if path does not exist', () => {
+                const obj = { a: { b: { c: 1 } } };
+                CommonUtils.deleteValueByPath(obj, 'a.b.missing');
+                expect(obj).toEqual({ a: { b: { c: 1 } } });
+            });
+
+            test('should no-op for invalid inputs', () => {
+                const obj = { a: { b: 1 } };
+                CommonUtils.deleteValueByPath(null, 'a.b');
+                CommonUtils.deleteValueByPath(obj, null);
+                CommonUtils.deleteValueByPath(obj, '');
+                expect(obj).toEqual({ a: { b: 1 } });
+            });
         });
     });
 

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.8
+# jPulse Docs / Dev / Work Items v1.4.9
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3643,19 +3643,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/tests/unit/controller/handlebar-math-helpers.test.js:
     - created comprehensive unit tests with 50+ test cases covering all 10 helpers, variadic operations, error handling, nested expressions, type coercion
 
-
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-128, v1.4.8, 2026-01-08: handlebars: add string.* helpers namespace, refactor math.* helpers
 - status: ✅ DONE
 - type: Feature
@@ -3728,6 +3715,12 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
 ### W-129, v1.4.9, 2026-01-09: view: create themes infrastructure
 - status: 🚧 IN_PROGRESS
 - type: Feature
@@ -3741,24 +3734,137 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - theme discovery follows priority: Framework → Plugins → Site (conflict resolution)
   - CSS variable standardization for consistent theming across all components
   - dynamic theme CSS loading (only selected theme loaded to browser)
-  - theme metadata in separate JSON files (name, label, description, author, preview)
-  - preview images required (600x300 full, 200x100 thumbnail)
-  - dynamic themes documentation table (%DYNAMIC{themes-list-table}%)
+  - theme metadata in separate JSON files (all fields required: name, label, description, author, version, source)
+  - single preview image required: `{name}.png` (500x200)
+  - dynamic themes documentation table (%DYNAMIC{themes-list-table}%) using a 2-column layout (Preview + Details) for mobile friendliness
   - theme discovery service with caching for performance
   - schema extension: discovered themes automatically added to user preferences enum
   - SVG icons automatically adapt to light/dark themes
   - theme fallback to light theme for unauthenticated users
 - deliverables:
-  - FIXME file:
-    - FIXME summary
+  - webapp/view/jpulse-common.css:
+    - Standardized 49 CSS variables (`--jp-theme-*`) for consistent theming across all components
+    - All components converted to use theme variables (no hardcoded colors)
+    - Dark theme support with `[data-theme="dark"]` overrides
+    - Prism.js syntax highlighting theme switching (light/dark CSS files)
+    - Theme-friendly page author checklist added to style-reference.md
+  - webapp/view/themes/light.css, light.json, light.png:
+    - Default light theme (uses `:root` defaults, empty CSS file)
+    - Theme metadata JSON with required fields (name, label, description, author, version, source)
+    - 500x200 preview image
+  - webapp/view/themes/dark.css, dark.json, dark.png:
+    - Dark theme with full CSS variable overrides
+    - Theme metadata JSON with required fields
+    - 500x200 preview image
+  - webapp/utils/theme-manager.js:
+    - ThemeManager class with initialize(), discoverThemes(), extendUserModelSchema(), getThemeColorScheme() methods
+    - Auto-discovery from framework, plugins, and site with priority resolution (site > plugins > framework)
+    - Theme metadata validation (required fields: name, label, description, author, version, source)
+    - Color scheme detection from CSS (`--jp-theme-color-scheme` or `color-scheme`)
+    - Caching integration with cache-manager for performance
+  - webapp/utils/bootstrap.js:
+    - ThemeManager initialization (Step 16.1)
+    - UserModel schema extension with discovered themes (Step 16.2)
+    - Error handling for theme discovery failures
+  - webapp/view/jpulse-header.tmpl:
+    - Dynamic theme CSS loading using `string.default` and `string.concat` helpers
+    - Prism CSS selection based on `appConfig.system.colorScheme` (prism-light.css / prism-dark.css)
+    - Fallback to `appConfig.system.defaultTheme` for unauthenticated users
+  - webapp/controller/handlebar.js:
+    - Added `appConfig.system.defaultTheme` (from `appConfig.utils.theme.default`, validated)
+    - Added `appConfig.system.htmlAttrs` (computed `lang=".." data-theme=".."` attributes)
+    - Added `appConfig.system.colorScheme` (theme's color scheme: 'light' or 'dark')
+    - Added `appConfig.system.themes` (safe list of discovered themes with metadata)
+    - Enhanced `contextFilter.alwaysAllow` for secure exposure to unauthenticated users
+    - Refactored `_filterContext()` to use `CommonUtils.getValueByPath/setValueByPath` (dot-notation utilities)
+  - webapp/model/user.js:
+    - Updated `baseSchema.preferences.theme.default` to use validated `global.appConfig.utils.theme.default` (config-driven)
+    - Updated `applyDefaults()` to use config-driven default theme for new users
+  - webapp/controller/user.js:
+    - Updated `signup` payload to use `global.appConfig.utils.theme.default` for new user creation
+  - webapp/controller/markdown.js:
+    - Added `themes-list-table` generator (2-column Markdown table: Preview + Details)
+    - Added `themes-list` generator (bullet list format)
+    - Added `themes-count` generator (count with optional source filtering)
+    - Added `themes-default` generator (returns default theme ID from app.conf)
+    - Source filtering support (`source="framework"`, `source="plugin"`, `source="site"`)
+    - Proper sorting by source priority (framework=0, plugin=1, site=2) then name
+  - webapp/controller/view.js:
+    - Static asset serving for `.png` and `.json` theme files (bypasses Handlebars processing)
+    - Proper content-type headers for theme preview images and metadata
+  - webapp/utils/common.js:
+    - Added `getValueByPath(obj, keyPath)` for safe dot-notation object access
+    - Added `setValueByPath(obj, keyPath, value)` for safe dot-notation object assignment
+    - Added `deleteValueByPath(obj, keyPath)` for safe dot-notation object deletion
+    - Used by handlebar.js and i18n.js for consistent path resolution
+  - webapp/utils/i18n.js:
+    - Refactored to use `CommonUtils.getValueByPath/setValueByPath` instead of local implementations
+  - webapp/static/common/prism/prism-light.css:
+    - Renamed from `prism.css` (default light theme)
+  - webapp/static/common/prism/prism-dark.css:
+    - New dark theme CSS (Prism Okaidia theme) for syntax highlighting in dark mode
+  - webapp/view/user/profile.shtml:
+    - Instant theme preview on dropdown change (updates `data-theme`, theme CSS, Prism CSS)
+    - Theme persists after save without page reload
+    - Dynamic theme color scheme detection for Prism CSS switching
+  - webapp/view/jpulse-examples/themes.shtml:
+    - New themes example page with live theme selector
+    - Theme preview canvas (500x200) for consistent screenshot generation
+    - Screenshot checklist and instructions for theme authors
+    - Installed themes table with previews and metadata
+    - Horizontal scroll support for mobile
+  - webapp/view/components/svg-icons.tmpl:
+    - Added `jpIcons.themesSvg` component (moon/sun icon)
+  - webapp/view/jpulse-navigation.js:
+    - Added themes.shtml entry to jPulseExamples.pages and jPulseExamplesSubTabs
+  - All .shtml files (25+ files):
+    - Updated `<html>` tag to use `{{appConfig.system.htmlAttrs}}` for centralized attributes
+    - Supports future extension (e.g., `dir` attribute for RTL)
+  - docs/themes.md:
+    - Complete theme system documentation
+    - Dynamic themes table using `%DYNAMIC{themes-list-table}%`
+    - Theme preference explanation
+    - Theme file locations and priority
+    - Theme structure and metadata requirements
+    - Creating themes guide with links
+  - docs/plugins/creating-themes.md:
+    - Plugin developer guide for creating themes
+    - Theme file structure (CSS, JSON, PNG)
+    - CSS variable reference
+    - Preview screenshot instructions (500x200, using themes example page)
+    - Theme naming conventions and metadata schema
+    - Color scheme configuration (`--jp-theme-color-scheme`)
+  - docs/style-reference.md:
+    - Updated Theme System section with current implementation details
+    - Theme-friendly page author checklist (do/don't guidance)
+    - CSS variable documentation
+    - Prism CSS selection explanation
+    - Links to themes.md and creating-themes.md
+  - docs/api-reference.md:
+    - Updated `/api/1/user/enums` section to document theme IDs (not full metadata)
+    - Clarified that full metadata is available via dynamic generators in docs
+  - webapp/tests/unit/utils/common-utils.test.js:
+    - Comprehensive unit tests for `getValueByPath`, `setValueByPath`, `deleteValueByPath` (dot-notation utilities)
+  - webapp/tests/unit/controller/handlebar-appconfig-alwaysallow.test.js:
+    - Unit tests for `contextFilter.alwaysAllow` logic (secure exposure to unauthenticated users)
+  - webapp/tests/unit/controller/markdown-themes-dynamic.test.js:
+    - Unit tests for theme-related dynamic content generators (themes-list-table, themes-list, themes-count, themes-default)
+  - webapp/tests/unit/controller/view-static-assets.test.js:
+    - Unit tests for static asset serving (.png, .json, .svg files)
+  - webapp/tests/unit/user/user-signup.test.js:
+    - Updated to use config-driven default theme
+  - webapp/tests/unit/user/user-basic.test.js:
+    - Updated to use config-driven default theme
+  - webapp/app.conf:
+    - Added `utils.theme.default` configuration (default: 'light')
+    - Added `contextFilter.alwaysAllow` list for secure `appConfig.system.*` exposure
+    - Updated cache configuration path to `utils.theme.cache`
 
 
 
 
 
-
-
-
+to-do:
 
 
 
@@ -3769,6 +3875,7 @@ old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
+- how to define the time of valid session?
 
 ### Potential next items:
 - W-0: view: broadcast message
@@ -3789,8 +3896,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-128, v1.4.8
-- update deliverables in W-128 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-129, v1.4.9
+- update deliverables in W-129 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -3807,12 +3914,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.8
+node bin/bump-version.js 1.4.9
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.8
+git tag v1.4.9
 git push origin main --tags
 
 === plugin release & package build on github ===

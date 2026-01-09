@@ -3,8 +3,8 @@
  * @tagline         Demo Todo Controller for MVC Learning
  * @description     Example of complete MVC pattern with REST API endpoints
  * @file            site/webapp/controller/helloTodo.js
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -39,6 +39,14 @@ const CommonUtils = global.CommonUtils;
  * - DELETE /api/1/hello-todo/:id    - Delete todo
  */
 class HelloTodoController {
+    // W-129: Allow unauthenticated access to this demo API (default would be auth 'user' via SiteControllerRegistry)
+    static routes = [
+        { method: 'GET', path: '/api/1/helloTodo', handler: 'api', auth: 'none' },
+        { method: 'POST', path: '/api/1/helloTodo', handler: 'apiCreate', auth: 'none' },
+        { method: 'PUT', path: '/api/1/helloTodo/:id/toggle', handler: 'apiToggle', auth: 'none' },
+        { method: 'DELETE', path: '/api/1/helloTodo/:id', handler: 'apiDelete', auth: 'none' },
+        { method: 'GET', path: '/api/1/helloTodo/stats', handler: 'apiStats', auth: 'none' }
+    ];
 
     /**
      * API: GET /api/1/hello-todo

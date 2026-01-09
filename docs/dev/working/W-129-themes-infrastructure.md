@@ -314,13 +314,13 @@ Uses `PathResolver` for directory discovery (following `ViewController` pattern)
 
 4. **Error Handling**:
    - Invalid JSON: Log error, skip theme, continue discovery
-   - Missing required fields: Log warning, use defaults, include theme
+   - Missing required fields: Log error, skip theme, continue discovery
    - Missing CSS/PNG files: Not validated during discovery (validated on use)
    - Duplicate theme names: Later source overwrites earlier (by design)
 
 5. **Validation**:
    - Theme name must match filename (e.g., `light.json` → name: "light")
-   - Required fields: `name`, `label` (others optional)
+   - Required fields: `name`, `label`, `description`, `author`, `version`, `source`
    - Theme name validation: alphanumeric, dash, underscore only (same as plugin names)
    - Source detection: automatic from path, but can be overridden in JSON
 
@@ -655,88 +655,10 @@ Add theme CSS loading after framework CSS. Theme CSS is loaded dynamically (not 
 <link rel="stylesheet" href="/jpulse-common.css?t={{file.timestamp "jpulse-common.css"}}">
 
 <!-- Theme CSS - Load user-selected theme (W-129) -->
-<link rel="stylesheet" href="/themes/{{default user.preferences.theme "light"}}.css?t={{file.timestamp (concat "themes/" (default user.preferences.theme "light") ".css")}}">
+<link rel="stylesheet" href="/themes/{{string.default user.preferences.theme appConfig.system.defaultTheme}}.css?t={{file.timestamp (string.concat "themes/" (string.default user.preferences.theme appConfig.system.defaultTheme) ".css")}}">
 ```
 
-**Note**: Unauthenticated users have empty preferences, so we need to check for authentication and provide fallback to `'light'` theme.
-
-### Helper Implementations
-
-**Add to `webapp/controller/handlebar.js`**:
-
-#### Concat Helper
-
-```javascript
-/**
- * W-129: Concat helper - concatenate strings
- * Usage: {{concat "themes/" user.preferences.theme ".css"}}
- * @param {object} parsedArgs - Parsed arguments
- * @param {object} currentContext - Current context
- * @returns {string} Concatenated string
- */
-function _handleConcat(parsedArgs, currentContext) {
-    const args = parsedArgs._args || [];
-    return args.map(arg => {
-        // Evaluate each argument (could be string literal or context property)
-        if (typeof arg === 'string') {
-            return arg;
-        }
-        // If it's a property path, evaluate it
-        return _evaluatePropertyPath(arg, currentContext) || '';
-    }).join('');
-}
-
-// Register in helper registry
-helpers['concat'] = _handleConcat;
-```
-
-#### Default Helper (First Non-Empty)
-
-```javascript
-/**
- * W-129: Default helper - return first non-empty value
- * Usage: {{default user.preferences.theme "light"}}
- * Returns the first argument that is truthy and non-empty string, or the last argument as fallback
- * @param {object} parsedArgs - Parsed arguments
- * @param {object} currentContext - Current context
- * @returns {string} First non-empty value or last argument
- */
-function _handleDefault(parsedArgs, currentContext) {
-    const args = parsedArgs._args || [];
-    if (args.length === 0) {
-        return '';
-    }
-
-    // Evaluate each argument and return first non-empty
-    for (let i = 0; i < args.length - 1; i++) {
-        const arg = args[i];
-        let value;
-
-        if (typeof arg === 'string') {
-            value = arg;
-        } else {
-            // Evaluate property path
-            value = _evaluatePropertyPath(arg, currentContext);
-        }
-
-        // Return first non-empty string (truthy and not empty string)
-        if (value && value !== '') {
-            return String(value);
-        }
-    }
-
-    // Return last argument as fallback (always return something)
-    const lastArg = args[args.length - 1];
-    if (typeof lastArg === 'string') {
-        return lastArg;
-    }
-    const lastValue = _evaluatePropertyPath(lastArg, currentContext);
-    return lastValue ? String(lastValue) : '';
-}
-
-// Register in helper registry
-helpers['default'] = _handleDefault;
-```
+**Note**: Unauthenticated users have empty preferences. The default theme is defined in `app.conf` as `utils.theme.default` and is exposed safely to templates as `appConfig.system.defaultTheme` (even for unauthenticated users).
 
 ### Theme Application Mechanism
 
@@ -748,21 +670,21 @@ helpers['default'] = _handleDefault;
 
 ```handlebars
 <!-- In <html> tag or <body> tag -->
-<html lang="{{default user.preferences.language "en"}}" data-theme="{{default user.preferences.theme "light"}}">
+<html {{appConfig.system.htmlAttrs}}>
 ```
 
 Or via JavaScript in footer:
 ```javascript
-// Apply theme attribute (fallback to light for unauthenticated users)
+// Apply theme attribute (fallback to configured default theme for unauthenticated users)
 (function() {
-    const theme = '{{default user.preferences.theme "light"}}';
+    const theme = '{{string.default user.preferences.theme appConfig.system.defaultTheme}}';
     document.documentElement.setAttribute('data-theme', theme);
 })();
 ```
 
 **Fallback Strategy**:
-1. If user not authenticated → `light` theme (default)
-2. If user authenticated but no `preferences.theme` → `light` theme (default)
+1. If user not authenticated → configured default theme (`utils.theme.default`)
+2. If user authenticated but no `preferences.theme` → configured default theme (`utils.theme.default`)
 3. If selected theme missing → `light` theme (CSS file 404, but page still works)
 4. If theme CSS fails to load → Page uses framework defaults (graceful degradation)
 
@@ -799,6 +721,13 @@ static DYNAMIC_CONTENT_REGISTRY = {
                 ? themes.filter(t => t.source === params.source)
                 : themes;
             return `${filtered.length}`;
+        },
+    },
+    'themes-default': {
+        description: 'Default theme id (from app.conf utils.theme.default)',
+        params: '—',
+        generator: async () => {
+            return `${global.appConfig?.utils?.theme?.default || 'light'}`;
         },
     },
 };
@@ -840,23 +769,30 @@ static async _generateThemesTable(params = {}) {
         return '_No themes match the criteria._';
     }
 
-    let md = '| Preview | Theme | Label | Description | Author | Source |\n';
-    md += '|---------|-------|-------|-------------|--------|--------|\n';
+    // Two-column table (mobile friendly):
+    // - Preview column: image (optionally wrapped in a link)
+    // - Details column: multiple values separated by <br> inside a single cell
+    let md = '| Preview | Details |\n';
+    md += '|---------|---------|\n';
 
     for (const theme of themes) {
         const previewPath = `/themes/${theme.name}.png`;
         // Use markdown image syntax with link to full preview
         const preview = `[![${theme.label}](${previewPath})](${previewPath})`;
-        const themeName = `\`${theme.name}\``;
-        const label = theme.label;
-        const description = theme.description;
-        const author = theme.author;
-        const source = theme.source === 'framework' ? 'Framework'
-                     : theme.source === 'plugin' ? `Plugin: ${theme.pluginName || '—'}`
+
+        const sourceLabel = theme.source === 'framework' ? 'Framework'
+            : theme.source === 'plugin' ? `Plugin: \`${theme.pluginName || '—'}\``
                      : theme.source === 'site' ? 'Site'
                      : '—';
 
-        md += `| ${preview} | ${themeName} | ${label} | ${description} | ${author} | ${source} |\n`;
+        const details = [
+            `**\`${theme.name}\`** (${theme.label})`,
+            `**Source:** ${sourceLabel}`,
+            `**Author:** ${theme.author}`,
+            `${theme.description}`
+        ].join('<br>');
+
+        md += `| ${preview} | ${details} |\n`;
     }
 
     return md;
@@ -971,7 +907,7 @@ static async _generateThemesList(params = {}) {
    - **Test theme files**: Verify all files are readable and valid
 
 3. **Header Template Update**
-   - **Implement concat helper**: Add `concat` helper in `handlebar.js` (simple string concatenation)
+   - **Use existing helpers**: Use `string.concat` and `string.default` (added in W-128)
    - **Add theme CSS link**: Insert after `jpulse-common.css` link
    - **Add data-theme attribute**: Set on `<html>` or `<body>` tag
    - **Test scenarios**:
@@ -989,10 +925,10 @@ static async _generateThemesList(params = {}) {
    - **Test browser compatibility**: Verify CSS variables work in target browsers
 
 **Deliverables**:
-- ✅ Standardized CSS variables in `jpulse-common.css`
-- ✅ Light and dark theme files (CSS, JSON, PNG)
-- ✅ Theme loading in header template
-- ✅ All components use CSS variables
+- [ ] Standardized CSS variables in `jpulse-common.css`
+- [ ] Light and dark theme files (CSS, JSON, PNG)
+- [ ] Theme loading in header template
+- [ ] All components use CSS variables
 
 ---
 
@@ -1044,25 +980,20 @@ static async _generateThemesList(params = {}) {
      - Invalid source parameter
 
 4. **Documentation**
-   - **Create docs/themes.md**:
+   - ✅ **Created docs/themes.md**
      - Overview of theme system
-     - Dynamic themes table
-     - Sections for framework/plugin/site themes
-     - How to select theme
-   - **Create docs/plugins/creating-themes.md**:
-     - Step-by-step guide
-     - CSS variable reference (complete list)
-     - JSON metadata structure
-     - Preview image requirements
-     - File structure
-     - Testing checklist
-   - **Update docs/style-reference.md**:
-     - Add theme system section
-     - Document CSS variables
-     - Show theme file examples
-   - **Update docs/api-reference.md**:
-     - Document theme metadata in enums API
-     - Show example responses
+     - Dynamic themes table (`%DYNAMIC{themes-list-table}%`)
+     - Theme locations + priority
+     - Default theme token (`%DYNAMIC{themes-default}%`)
+   - ✅ **Created docs/plugins/creating-themes.md**
+     - Theme file structure (`.css`, `.json`, `.png`) and metadata schema
+     - Priority rules and authoring tips (incl. `--jp-theme-color-scheme`)
+   - ✅ **Updated docs/style-reference.md**
+     - Theme System section aligned with `--jp-theme-*` variables
+     - References Themes docs + Creating Themes docs
+   - ✅ **Updated docs/api-reference.md**
+     - Document `/api/1/user/enums` returning `preferences.theme` values (discovered themes)
+     - Clarify that enums returns IDs only (full metadata is in docs/themes via dynamic generators)
 
 5. **Example Plugin Theme**
    - **Create test plugin**: `plugins/test-theme/` with minimal structure

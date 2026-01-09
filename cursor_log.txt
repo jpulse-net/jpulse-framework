@@ -11053,3 +11053,1398 @@ AI: Completed release preparation for W-128, v1.4.8:
 
 
 ============================================================
+2026-01-06 17:37
+
+User: small issue on mobile: table cell text did not wrap, stretching columns; fix to allow wrapping (mobile vs desktop)
+AI: Found cause in jpulse-common.css: markdown table mobile CSS used white-space: nowrap; removed nowrap and enabled wrapping in th/td. Verified fix on mobile.
+
+User: next issue: inline code in markdown tables wraps but padding/background not applied at wrap point; also reduce code padding from 0.4rem to 0.2rem (desktop + mobile)
+AI: Fixed in jpulse-common.css by reducing .jp-markdown-content code padding to 0.2rem horizontal and enabling per-line fragment styling using box-decoration-break: clone (plus -webkit- prefix). Verified fix on desktop and mobile.
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-06 18:08
+
+User: now as agent, fix the docs/dev/working/W-129-themes-infrastructure.md for md table output as discussed - any other open items?
+
+AI: Updated docs/dev/working/W-129-themes-infrastructure.md:
+- Dynamic themes table: switched generator example from a 6-column table (Preview/Theme/Label/Description/Author/Source) to a mobile-friendly 2-column table (Preview + Details), with Details cell using <br> line breaks.
+- Consistency fixes:
+  - Validation/error-handling: missing required fields now treated as error (skip theme) and required fields list aligned to name, label, description, author, version, source.
+  - Phase 1 checklist: clarified W-128 already provides string.concat/string.default (no new concat/default helper needed).
+  - Phase 1 deliverables: reset premature ✅ items to [ ] since W-129 is still in progress.
+
+Open items (design confirmations):
+- Confirm whether theme JSON required fields are strict (as now documented: all required), or if you want partial metadata allowed.
+- Confirm static serving of /themes/* via ViewController is sufficient in both dev and prod (nginx config vs app server routing).
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-06 18:11
+
+User: now update the features list: @work-items.md (3727-3743)
+
+AI: Updated docs/dev/work-items.md (W-129 features list) to align with the W-129 working doc:
+- Theme metadata JSON: clarified required fields (name, label, description, author, version, source)
+- Preview image: clarified single required image {name}.png at 500x200
+- Dynamic themes documentation table: clarified 2-column (Preview + Details) layout for mobile friendliness
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-06 18:50
+
+User: start with phase 1 implementation (W-129: themes infrastructure)
+
+AI: Phase 1 implementation started:
+- Theme loading:
+  - webapp/view/jpulse-header.tmpl: added theme CSS link to /themes/{{string.default user.preferences.theme "light"}}.css with cache-busting timestamp.
+  - Set data-theme + lang on <html> tag across all 25 top-level .shtml entry points using string.default fallbacks.
+- Framework themes:
+  - webapp/view/themes/light.css: kept as no-op (light uses :root defaults).
+  - webapp/view/themes/dark.css: added [data-theme="dark"] overrides for theme variables (bg/text/border/semantic/header/shadows).
+  - Theme JSON files already contain required fields (name/label/description/author/version/source).
+- CSS variables (W-129 groundwork):
+  - webapp/view/jpulse-common.css: introduced :root theme variables (jp-theme-*) plus backward-compatible aliases (jp-color-*).
+  - Updated core surfaces (body, jp-main, jp-header) and jp-table components to use the new theme variables.
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-06 20:31
+
+User: ok, let's go for core.htmlAttrs - as agent, make the changes
+
+AI: Implemented core.htmlAttrs to simplify <html> tag handling:
+- webapp/controller/handlebar.js:
+  - Added core.htmlAttrs to the base handlebars context: htmlAttrs = lang="..." data-theme="..."
+  - Values derived from user preferences with safe fallbacks (language=en, theme=light) and allow-list validation.
+- webapp/view/*.shtml:
+  - Replaced explicit <html lang="..." data-theme="..."> with <html {{core.htmlAttrs}}> across all views.
+- docs/dev/working/W-129-themes-infrastructure.md:
+  - Updated example to use <html {{core.htmlAttrs}}>
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-06 20:56
+
+User: editing profile and switching from dark to light works, but needs a page reload after save to pick up the new theme
+
+AI: Updated webapp/view/user/profile.shtml:
+- After successful profile save, apply new theme immediately without reload:
+  - update <html data-theme="...">
+  - swap the /themes/<theme>.css link (cache-busted with Date.now())
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-06 21:07
+
+User: what shall we do next? fix dark theme details? anything else?
+
+AI: Continued dark theme polish (W-129 Phase 1):
+- Added focus ring variable: --jp-theme-focus-ring (dark overrides to match primary)
+- Converted more components to theme variables:
+  - user dropdown menu (.jp-dropdown)
+  - footer (.jp-footer)
+  - copy button in code blocks (.copy-btn)
+  - cards + card headers/subheadings (.jp-card, .jp-card-dialog-heading, .jp-card-subheading)
+  - stat cards (.jp-stat-card, .jp-stat-number)
+  - forms (labels, inputs/select/textarea, focus rings, error colors)
+  - search section background
+  - horizontal divider (.jp-hr)
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-06 21:16
+
+User: I have seen that you added many additional vars to the common css, but almost none to dark.css
+User: yes, work on dark.css - reference the dark mode screenshios I posted before - ask questions if unclear
+
+AI: Updated webapp/view/themes/dark.css:
+- Expanded dark theme overrides to full parity with jpulse-common.css --jp-theme-* variable set (49/49).
+- Added missing overrides for status badge variables and role badge variables.
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-06 21:35
+
+User: profile page (dark theme) feedback:
+- breadcrumb: make ">" a bit darker, it stands out too much
+- jp-user-details has too low contrast
+- cards: currently hard-coded .local-profile-section (best to change to official jp-* cards)
+- jp-form-input jp-read-only-field needs var
+- plugin-specific cards: they define their own color? not sure what to do
+- sidebars: separator (closed) needs var; open sidebar needs var; text/highlight/hover needs var; overlay fade shadow needs var
+
+AI: Dark theme polish (profile + sidebar + breadcrumbs):
+- Updated breadcrumbs to use theme variables and reduced separator opacity.
+- Updated read-only field styles to use theme variables.
+- Updated sidebar colors/hover/active states and overlay fade gradients to use theme variables.
+- Added new sidebar-related theme variables in :root and dark.css:
+  - --jp-theme-sidebar-content-fade
+  - --jp-theme-sidebar-hover-zone-bg
+- Updated profile page:
+  - Switched profile sections to use jp-card (removed hard-coded light backgrounds from local-profile-section).
+  - Updated local profile header and text colors to use theme variables.
+  - Plugin cards: default no longer forces a light background; plugin card now uses jp-card styling and only applies inline background if explicitly configured.
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-06 22:17
+
+User: follow-up dark theme feedback:
+- Breadcrumb: link text needs to be darker (less prominent); ">" is now good
+- Sidebar: separator good; toggle button triangle too white; text/highlight/hover good
+  - Vertical scroll fade: fade text when scrolled (no background fade)
+  - Edge fade next to sidebar: tone down (indicate "there is more")
+- jp-collapsible jp-edit-mode-only jp-expanded: text invisible (compare to light)
+- Green plugin card: description/label too low contrast, value invisible
+
+AI: Dark theme polish updates:
+- Breadcrumb: reduced prominence (muted breadcrumb base color).
+- Sidebar:
+  - Toggle button triangle color toned down (opacity).
+  - Vertical scroll fade switched to mask-based content fade (no background overlay).
+  - Edge fade next to sidebar made themeable via new var: --jp-theme-sidebar-overlay-fade (dark override toned down).
+- Collapsible (jp-collapsible): converted remaining hard-coded light colors to theme variables.
+- Plugin cards with custom backgroundColor: auto-select readable text colors by setting per-card CSS vars:
+  - --local-plugin-card-text
+  - --local-plugin-card-text-muted
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-07 01:14
+
+User: /jpulse-docs/index.shtml:
+- tab bars need var
+- left sidebar with doc tree has too dark text color (too low contrast)
+- right sidebar looks ok
+- doc content bg and text need var
+
+AI: Docs page theming:
+- Tabs (W-064): converted hard-coded tab bar colors (backgrounds, borders, hover/active, scrollbar thumb) to --jp-theme-* variables.
+- Docs left nav tree (W-049): converted hard-coded colors in .jp-docs-nav* (title link, items, hover/active, separators) to --jp-theme-* variables.
+- Docs content + markdown: made .jp-docs-content background/text and .jp-markdown-content text/headings use --jp-theme-* variables.
+
+Status: ⏳ PENDING USER REVIEW
+
+
+============================================================
+2026-01-06 22:45
+
+User: profile page looks mostly good now
+- select items also need var colors
+- banner row branding: keep jPulse blue or use darker blue?
+- breadcrumb tone good in dark mode but too faint in light mode
+
+AI: Tweaks:
+- Breadcrumb: restored readable default styling for light theme; kept muted styling for dark theme via html[data-theme="dark"] override.
+- Form controls: set color-scheme based on theme to improve native select dropdown/option styling.
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-07 00:26
+
+User: why hardcode here? (jpulse-common.css color-scheme + html[data-theme="dark"] breadcrumb override) - what about non-dark themes like starry-night?
+
+AI: Refactor to theme variables (no hard-coded theme name assumptions):
+- Replaced html[data-theme="dark"] color-scheme rule with: html { color-scheme: var(--jp-theme-color-scheme, light); }
+- Added theme variables in :root (overrideable by any theme):
+  - --jp-theme-color-scheme
+  - --jp-theme-breadcrumb-color
+  - --jp-theme-breadcrumb-opacity
+  - --jp-theme-breadcrumb-link-opacity
+  - --jp-theme-breadcrumb-current-opacity
+- Updated breadcrumb CSS to use these variables.
+- Updated dark.css to set:
+  - --jp-theme-color-scheme: dark
+  - muted breadcrumb variables matching the current dark look
+
+Status: ⏳ PENDING USER REVIEW
+
+
+============================================================
+2026-01-07 00:31
+
+User: native light/dark select does not seem to work yet (is native dark select light?)
+
+AI: Select dropdown follow-up:
+- Added `color-scheme: dark;` directly in `webapp/view/themes/dark.css` (theme-controlled, avoids hard-coding theme name in common CSS; helps on browsers/OSes that honor it for native widgets).
+- Added best-effort `.jp-form-select option { background/color ... }` styling in `jpulse-common.css` (browser support varies; macOS native select popup may still ignore).
+
+Status: ⏳ PENDING USER REVIEW
+
+
+============================================================
+2026-01-07 00:34
+
+User: I just checked with firefox, it has dark background select items - I guess we can live with that chrome limitation
+
+AI: Decision:
+- Keep current best-effort native select theming (works in Firefox); accept macOS Chrome native select popup limitation.
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-07 00:35
+
+User: in this case, reject this? (jpulse-common.css 1440-1446) - or is this safe?
+
+AI: Kept `.jp-form-select option { background/color }` rule:
+- Safe as a best-effort: browsers that ignore option styling will behave unchanged.
+- For browsers that honor it (e.g., Firefox), it aligns option colors with the active theme variables.
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-07 00:42
+
+User: strange, the theme field is blank in Chrome even though the DOM has two options; Firefox looks ok
+
+AI: Fix Chrome blank theme <select> display:
+- Ensure the initial disabled placeholder option is never empty:
+  - theme defaults to "light"
+  - language defaults to "en"
+- Hardened loadThemes(): if currentValue is empty/invalid, default to "light" and fall back to first option if needed.
+
+Status: ⏳ PENDING USER REVIEW
+
+
+============================================================
+2026-01-07 00:46
+
+User: that works now
+
+AI: Marking Chrome blank theme <select> fix as accepted.
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-07 00:58
+
+User: next: site nav dropdown needs var
+
+AI: Theme vars for site nav dropdown (W-069):
+- Converted hard-coded light colors in the site nav dropdown + submenus to existing --jp-theme-* variables:
+  - backgrounds: --jp-theme-bg-primary / --jp-theme-bg-secondary / --jp-theme-bg-tertiary
+  - borders: --jp-theme-border-color / --jp-theme-border-dark
+  - text: --jp-theme-text-primary / --jp-theme-text-muted
+  - accent: --jp-theme-color-primary
+  - shadows: --jp-theme-shadow-lg
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-07 01:29
+
+User: /jpulse-docs: link colors look purple (visited/unvisited?) + question about many vars in jpulse-common.css vs few in dark.css + svg diagram needs work (docs/images/jpulse-site-stack.svg)
+
+AI:
+- Markdown links: explicitly styled .jp-markdown-content a/a:visited/a:hover using theme vars to avoid browser default purple visited-link styling.
+- SVG diagram: added a solid background rect and adjusted fills/strokes/text colors for readability in dark mode.
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-07 01:40
+
+User:
+- SVG: fixed svg does not look good (no padding); want transparent bg + foreground colors that work in light/dark; neutral gray box fill
+- /jpulse-docs/getting-started: unreadable code text
+
+AI:
+- SVG (docs/images/jpulse-site-stack.svg):
+  - Added padding via viewBox expansion (no tight crop).
+  - Removed solid background; switched to semi-transparent neutral fills/strokes.
+  - Added `prefers-color-scheme: dark` styling inside the SVG for better automatic light/dark rendering.
+- Docs code blocks:
+  - Ensured `pre` and inline `code` text color uses `--jp-theme-text-primary` so code is readable in dark mode.
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-07 01:48
+
+User feedback:
+- SVG looks good
+- No visible change yet on docs code blocks
+
+AI: Docs code blocks follow-up:
+- Added a stronger docs-only override to force readable code text color even if nested spans/styles set low-contrast colors:
+  - .jp-docs-content .jp-markdown-content pre code,
+  - .jp-docs-content .jp-markdown-content pre code *
+
+Status: ⏳ PENDING USER REVIEW
+
+
+============================================================
+2026-01-07 01:59
+
+User: /jpulse-examples:
+- jp-title needs var
+- jp-info-box and likely other boxes need var
+- jp-card-dashboard needs var
+
+AI:
+- jp-title: switched text + underline to --jp-theme-text-primary and --jp-theme-color-primary.
+- jp-info-box / jp-warning-box / jp-error-box: switched backgrounds/borders to theme vars:
+  - info: --jp-theme-color-info-bg + --jp-theme-color-primary
+  - warning: --jp-theme-color-warning-bg + --jp-theme-color-warning
+  - error: --jp-theme-color-danger-bg + --jp-theme-color-danger
+- jp-card-dashboard: switched gradient background, border, and shadows to theme vars (bg-primary/bg-secondary/bg-tertiary, border-color/border-dark, shadow-md/shadow-lg).
+
+Status: ⏳ PENDING USER REVIEW
+
+
+============================================================
+2026-01-07 02:05
+
+User: /jpulse-examples/ follow-up:
+- jp-card-title needs var
+- jp-card-description has very low contrast
+
+AI:
+- jp-card-title: switched hard-coded #333 to --jp-theme-text-primary.
+- jp-card-description: switched hard-coded #666 to --jp-theme-text-secondary (improves dark-mode contrast via dark.css).
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-07 12:16
+
+User: /jpulse-examples/forms.shtml:
+- jp-progress-bar needs var
+- jp-source-code needs var, it should be language specific (prism syntax highlighting)
+
+AI:
+- jp-progress-bar: converted container + step backgrounds/text to theme vars (bg-secondary/bg-tertiary/text-secondary).
+- jp-source-code:
+  - converted container/copy button/language label colors to theme vars (bg/border/text/shadows).
+  - ensured Prism code base color uses theme vars.
+  - added Prism token color overrides mapped to theme vars (no hard-coded palette).
+  - Confirmed Prism assets are included globally via jpulse-header.tmpl.
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-07 13:39
+
+PROMPT:
+- undo the prism fix you did
+- propose how to dynamically select a dark or light set of prism css files
+
+SUMMARY:
+- Reverted Prism token color overrides in webapp/view/jpulse-common.css so light mode uses Prism's default styling again.
+- Restored light info box background tint via --jp-theme-color-info-bg (#e7f3ff).
+- Added dark-mode-only Prism overrides in webapp/view/themes/dark.css to remove Prism text-shadow and token background highlights (e.g. operator/entity/url).
+
+STATUS: pending user verification (accept/reject)
+2026-01-07 13:55
+PROMPT:
+- /jpulse-examples/layout.shtml: replace hard-coded element styles with standard jp-* classes
+- Soften jp-info-box / jp-warning-box / jp-error-box text in dark mode
+
+SUMMARY:
+- Added missing general-purpose jp-* utility classes in webapp/view/jpulse-common.css: jp-m-0/jp-mt-0/jp-mb-0/jp-my-10/jp-mt-30, jp-text-*, jp-surface, jp-h-120, jp-grid-auto-200.
+- Updated .jp-info-box/.jp-warning-box/.jp-error-box to use --jp-theme-text-secondary for body text and --jp-theme-text-primary for headings.
+- Refactored webapp/view/jpulse-examples/layout.shtml to remove all inline styles; now uses jp-flex-*, jp-surface, jp-text-*, and updated the breakpoint indicator JS to toggle jp-text-* classes instead of hard-coded colors.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-07 13:55
+
+STATUS UPDATE:
+- Prism revert + dark-only Prism tweak: ACCEPTED by user
+2026-01-07 14:26
+STATUS UPDATE:
+- /jpulse-examples/layout.shtml: ACCEPTED by user
+
+
+============================================================
+2026-01-07 14:27
+
+PROMPT:
+- /jpulse-examples/ui-widgets.shtml: theme fixes (section header, accordion, outline button, dialogs, tooltips, toasts)
+- Rename demo-spacer* to local-demo-spacer* and add dark-mode-friendly gradients
+
+SUMMARY:
+- jpulse-common.css: switched .jp-section-header h2/p + border to theme vars; converted accordion colors/borders; made jp-btn-outline theme-aware; made jp-dialog surfaces/borders/headers theme-aware; made tooltip theme-aware; made legacy jp-toast-* use theme semantic vars.
+- ui-widgets.shtml: removed inline styles; renamed demo spacer classes to local-demo-spacer*; added local dark-mode gradient overrides; added local-dialog-file-* classes and removed inline styles from complex dialog demo.
+
+Status: ✅ ACCEPTED
+
+
+============================================================
+2026-01-07 22:48
+
+PROMPT:
+- Fix jp-btn-outline by using --jp-theme-btn-outline-color (default + dark override)
+- /jpulse-examples/handlebars.shtml: local-handlebar-result needs theme vars
+- /jpulse-examples/api.shtml: apiResponse/submissionData/errorContent/dataHistory hard-coded styles -> jp-* + theme vars
+
+SUMMARY:
+- jpulse-common.css: default --jp-theme-btn-outline-color now follows --jp-theme-color-primary; added reusable jp-output/jp-pre/jp-scroll-box classes for themed response boxes.
+- dark.css: default --jp-theme-btn-outline-color now follows theme primary for better contrast.
+- handlebars.shtml: local-handlebar-result now uses theme vars + toggles success/error classes instead of hard-coded backgrounds.
+- api.shtml: replaced hard-coded styles for apiResponse/submissionData/errorContent/dataHistory (and related containers) with jp-output/jp-pre/jp-scroll-box; JS toggles classes instead of hard-coded colors.
+
+STATUS: partially accepted, partially rejected
+
+2026-01-07 22:59
+
+STATUS UPDATE:
+- jp-btn-outline theme-var change: REJECTED by user (contrast too low); user kept custom --jp-theme-btn-outline-color
+- /jpulse-examples/handlebars.shtml: ACCEPTED by user
+- /jpulse-examples/api.shtml: ACCEPTED by user
+
+
+============================================================
+2026-01-07 23:16
+
+PROMPT:
+- Continue long list: admin pages theme cleanup (users, user-profile, system-status, websocket-status, websocket-test, logs)
+
+SUMMARY:
+- jpulse-common.css: made jp-subtitle/jp-page-header/jp-stat-label/jp-user-info/jp-status-* metrics theme-aware; added jp-btn-sm.
+- admin/users.shtml: replaced local edit button with jp-btn jp-btn-primary jp-btn-sm; results bar uses jp-output and jp-hidden; removed hard-coded colors.
+- admin/user-profile.shtml: converted local profile sections + plugin cards to theme vars; plugin cards now use jp-card and avoid hard-coded default bg in inline styles; swapped userContent/errorState display toggles to jp-hidden.
+- admin/system-status.shtml: local component header + refresh info now use theme vars; statusContent/errorState use jp-hidden.
+- admin/websocket-status.shtml: activity log + connection badges now use theme vars; removed hard-coded margins/styles.
+- admin/websocket-test.shtml: log + status badges now use theme vars; clear button uses jp-mt-15.
+- admin/logs.shtml: dropdown/results badges now use theme vars; replaced inline display:none with jp-hidden and JS toggles classes.
+
+STATUS: pending user verification (accept/reject)
+2026-01-07 23:30
+PROMPT:
+- Fix admin/users results bar layout regression (results info left + select width)
+- Fix admin/user-profile plugin cards: readable text on custom background colors in light/dark
+
+SUMMARY:
+- admin/users.shtml: restored local-results-info flex layout on results bar and forced page size select to width:auto to avoid full-width stretching.
+- admin/user-profile.shtml: added per-card CSS vars for text colors computed from plugin background color; plugin cards now set --local-plugin-card-text/--local-plugin-card-text-muted for readable contrast; safe color parsing for #rgb/#rrggbb and rgb/rgba.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-07 23:37
+STATUS UPDATE:
+- /admin/users.shtml results bar layout fix: ACCEPTED by user
+- /admin/user-profile.shtml plugin card contrast fix: ACCEPTED by user
+2026-01-07 23:41
+PROMPT:
+- Continue long list: /auth/login.shtml, /auth/signup.shtml, /auth/logout.shtml theme vars; /user/ jp-stat-label contrast
+
+SUMMARY:
+- auth/login.shtml: replaced hard-coded colors with theme vars; replaced inline display:none with local-hidden class and JS toggles; removed inline button styles; made welcome message theme-aware.
+- auth/signup.shtml: replaced hard-coded colors with theme vars; removed inline submit button styles; made welcome message theme-aware.
+- auth/logout.shtml: not-authenticated card now uses jp-card; removed hard-coded white/shadow; logout icon gradient now uses theme vars.
+- user/index.shtml: wrapped Handlebars script guards in JS comments for lint safety.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-07 23:50
+
+PROMPT:
+- Hello examples: site-override + site-development theme fixes
+
+SUMMARY:
+- site/webapp/view/hello/site-override.shtml: replaced hard-coded apiResponse styles with jp-output/jp-pre and class-based success/error styling (jp-output-success/jp-output-error), using jp-hidden instead of display:none.
+- site/webapp/view/hello/site-development.shtml: converted local demo boxes (setup-required, buttonFeedback, utilityDemo, analyticsDemo, accordion, eventTrackingDemo, file-structure pre) to use theme vars + borders; replaced inline display:none with jp-hidden; changed JS feedback coloring to toggle jp-output-* classes; fixed broken docs link href.
+
+STATUS: pending user verification (accept/reject)
+2026-01-07 23:55
+STATUS UPDATE:
+- /hello/site-override.shtml: ACCEPTED by user
+- /hello/site-development.shtml: ACCEPTED by user
+
+
+============================================================
+2026-01-08 00:04
+
+PROMPT:
+- Hello To-Do demo: remove hard-coded colors/inline styles, make theme-aware
+
+SUMMARY:
+- hello-todo/index.shtml: replaced inline-styled callouts with jp-output-*; removed inline borders/backgrounds; replaced inline grid with jp-grid-auto-200 and jp-link-card.
+- hello-todo/todo-app.shtml: converted local CSS hard-coded colors to theme vars; replaced local delete button with jp-btn-danger; replaced local stats bar with jp-stats-grid; replaced display:none with jp-hidden; fixed Handlebars blocks inside JS objects by commenting the tags; removed last inline style by adding jp-text-left utility.
+- hello-todo/code-examples.shtml: removed inline header colors and callout styles; used jp-text-* + jp-output-*.
+- hello-todo/architecture.shtml: made flow diagram theme-aware; replaced inline-styled callouts with jp-output-*; replaced inline grid/cards with jp-grid-auto-200 + jp-link-card.
+
+STATUS: pending user verification (accept/reject)
+2026-01-08 00:12
+STATUS UPDATE:
+- /hello-todo/index.shtml: ACCEPTED by user
+- /hello-todo/todo-app.shtml: ACCEPTED by user
+- /hello-todo/code-examples.shtml: ACCEPTED by user
+- /hello-todo/architecture.shtml: ACCEPTED by user
+- webapp/view/jpulse-common.css (jp-link-card + jp-text-left): ACCEPTED by user
+
+
+============================================================
+2026-01-08 00:15
+
+PROMPT:
+- Fix /hello-todo/architecture heading spacing; start /hello-vue theme cleanup
+
+SUMMARY:
+- hello-todo/architecture.shtml: added jp-mt-30 to headings (Key Design Principles / Compare MPA vs SPA / Next Explore) for consistent vertical spacing.
+- hello-vue/index.shtml: converted hard-coded colors to theme vars (cards, todo list, code blocks, spinner/overlay); fixed class mismatch (hello-vue-app -> local-vue-app).
+- hello-vue/templates/architecture.tmpl: removed inline-styled cards/grids; replaced with jp-output-* callouts and jp-grid-auto-200 + jp-link-card.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 00:21
+
+PROMPT:
+- Fix heading spacing in hello-todo + hello-vue architecture sections
+
+SUMMARY:
+- Root cause: jpulse-common.css has .jp-card > h3 { margin-top: 0; } which overrides jp-mt-30 on direct-child h3 headings.
+- hello-todo/architecture.shtml: wrapped the three affected h3 headings in <div class="jp-mt-30"> ... </div> so spacing applies reliably.
+- hello-vue/templates/architecture.tmpl: wrapped section h3 headings in <div class="jp-mt-30"> wrappers for consistent gaps between sections.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 00:24
+
+PROMPT:
+- Continue hello examples: fix hello-websocket pages for dark theme (remove hard-coded styles, use jp-* + theme vars)
+2026-01-08 00:42
+STATUS UPDATE:
+- /hello-websocket/index.shtml: ACCEPTED by user
+- /hello-websocket/templates/overview.tmpl: ACCEPTED by user
+- /hello-websocket/templates/emoji-demo.tmpl: ACCEPTED by user
+- /hello-websocket/templates/todo-demo.tmpl: ACCEPTED by user
+- /hello-websocket/templates/code-examples.tmpl: ACCEPTED by user
+
+
+============================================================
+2026-01-08 00:49
+
+PROMPT:
+- hello-websocket/templates/architecture.tmpl theme fixes
+
+SUMMARY:
+- hello-websocket/templates/architecture.tmpl: removed all inline styles; converted layout blocks to jp-card/jp-output and reused local-panel/local-panel-pre (theme-var based) from hello-websocket/index.shtml; lists now use jp-list.
+- Verified: no remaining style="..." in architecture.tmpl; lints clean.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 00:53
+
+STATUS UPDATE:
+- /hello-websocket/templates/architecture.tmpl: ACCEPTED by user
+- /hello-websocket/*: ACCEPTED by user
+
+
+============================================================
+2026-01-08 00:55
+
+PROMPT:
+- hello-app-cluster: start theme fixes (overview + notifications + collaborative todo + code + architecture)
+
+SUMMARY:
+- hello-app-cluster/index.shtml: converted local hard-coded colors to theme vars; removed remaining inline styles; fixed broken WebSocket icon in nav; added small local helper classes (local-status-value-small, local-full-width-btn, local-ol-indent).
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 00:58
+
+STATUS UPDATE:
+- /hello-app-cluster/index.shtml: ACCEPTED by user
+
+
+============================================================
+2026-01-08 01:00
+
+PROMPT:
+- hello-app-cluster/notifications.shtml theme fixes
+
+SUMMARY:
+- Converted local hard-coded colors to theme vars (headers, list hover/new state, badges, connection status).
+- Removed remaining inline styles; fixed broken WebSocket icon in nav.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 01:03
+
+STATUS UPDATE:
+- /hello-app-cluster/notifications.shtml: ACCEPTED by user
+2026-01-08 01:04
+PROMPT:
+- hello-app-cluster/collaborative-todo.shtml theme fixes
+
+SUMMARY:
+- Converted local hard-coded colors to theme vars (headers, stats, list hover, muted text).
+- Implemented theme-aware sync status banner + spinner; removed inline display toggles and use jp-hidden in JS.
+- Removed remaining inline styles; fixed broken WebSocket icon in nav.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 01:18
+
+PROMPT:
+- Fix hello-app-cluster collaborative todo: syncing banner stuck; allow unauthenticated use
+
+SUMMARY:
+- Fixed client bug: after successful add, sync status now returns to synced/local; error state shows actual error message.
+- Replaced remaining empty-state style.display toggles with jp-hidden class toggles.
+- Made /api/1/helloClusterTodo* demo endpoints public by adding static routes with auth: none (SiteControllerRegistry default is auth user).
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 01:24
+
+STATUS UPDATE:
+- /hello-app-cluster/collaborative-todo.shtml (sync banner + guest support): ACCEPTED by user
+- site/webapp/controller/helloClusterTodo.js (public demo API routes): ACCEPTED by user
+
+
+============================================================
+2026-01-08 01:25
+
+PROMPT:
+- Fix hello-websocket todo demo guest access
+
+SUMMARY:
+- Made /api/1/helloTodo* demo endpoints public by adding static routes with auth: none (SiteControllerRegistry default is auth user). This allows /hello-websocket/#todo to work for guests.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 01:36
+
+STATUS UPDATE:
+- site/webapp/controller/helloTodo.js (public demo API routes): ACCEPTED by user
+
+
+============================================================
+2026-01-08 01:37
+
+PROMPT:
+- hello-app-cluster/code-examples.shtml theme fixes
+
+SUMMARY:
+- Converted local hard-coded light colors (cards, tables, badges, highlight callouts, step counters) to --jp-theme-* variables for light/dark compatibility.
+- Fixed broken WebSocket icon in bottom nav.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 01:39
+
+PROMPT:
+- hello-app-cluster/architecture.shtml theme fixes
+
+SUMMARY:
+- Converted local hard-coded light colors (diagrams, component cards, flow steps, comparison tables, pros/cons, highlight boxes, code snippets) to --jp-theme-* variables.
+- Fixed broken WebSocket icon in bottom nav.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 01:42
+
+STATUS UPDATE:
+- /hello-app-cluster/code-examples.shtml: ACCEPTED by user
+- /hello-app-cluster/architecture.shtml: ACCEPTED by user
+
+
+============================================================
+2026-01-08 01:46
+
+PROMPT:
+- hello-world plugin pages theme fixes
+
+SUMMARY:
+- plugins/hello-world/webapp/view/hello-plugin/index.shtml: converted local hard-coded card colors to --jp-theme-*; replaced custom local-output-* state styling with jp-output-success/error; removed inline styles; used jp-pre for output blocks.
+- plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml: made feature text color theme-aware.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 01:52
+
+STATUS UPDATE:
+- /hello-plugin/ (plugins/hello-world/webapp/view/hello-plugin/index.shtml): ACCEPTED by user
+- /jpulse-plugins/hello-world.shtml (plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml): ACCEPTED by user
+- /admin/plugin-config.shtml?plugin=hello-world: ACCEPTED by user
+
+
+============================================================
+2026-01-08 01:53
+
+PROMPT:
+- Fix broken icon on /hello-vue/ nav
+
+SUMMARY:
+- Replaced broken "�" character in /hello-vue/ bottom nav label with "🔄".
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 01:59
+
+STATUS UPDATE:
+- /hello-vue/ bottom nav icon fix: ACCEPTED by user
+- /jpulse-plugins/auth-mfa.shtml: ACCEPTED by user
+- /admin/plugin-config.shtml?plugin=auth-mfa: ACCEPTED by user
+
+
+============================================================
+2026-01-08 02:00
+
+PROMPT:
+- Verify hello-vue templates + make jpulse-common.css.tmpl theme-educational
+
+SUMMARY:
+- Verified: hello-vue/templates/todo-demo.tmpl, overview.tmpl, code-examples.tmpl are clean (no inline styles/hard-coded colors; use jp-* + local-* only).
+- Updated site/webapp/view/jpulse-common.css.tmpl to be theme-friendly: site vars now bridge to --jp-theme-*; removed hard-coded light surfaces like background: white; added guidance comments for themes (W-129).
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 02:01
+
+SUMMARY UPDATE:
+- jpulse-common.css.tmpl: replaced remaining hard-coded white in site-accordion-open with --jp-theme-text-inverse.
+
+
+============================================================
+2026-01-08 02:06
+
+PROMPT:
+- /home/ dark theme fixes
+
+SUMMARY:
+- webapp/view/home/index.shtml: replaced hard-coded light theme colors in local-home-* styles with --jp-theme-* variables (title/subtitle, success/info panels, link cards, footer) so /home/ renders correctly in light + dark themes.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 02:09
+
+STATUS UPDATE:
+- /home/ (webapp/view/home/index.shtml): ACCEPTED by user
+
+
+============================================================
+2026-01-08 02:10
+
+PROMPT:
+- Verify/cleanup jpulse-sidebars.tmpl
+
+SUMMARY:
+- webapp/view/components/jpulse-sidebars.tmpl: removed inline style display:none from TOC empty message; now uses jp-hidden + classList toggles in JS.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 02:15
+
+STATUS UPDATE:
+- webapp/view/components/jpulse-sidebars.tmpl: ACCEPTED by user
+
+
+============================================================
+2026-01-08 02:20
+
+PROMPT:
+- W-129 Phase 2: implement ThemeManager discovery + bootstrap integration + user schema enum extension
+
+SUMMARY:
+- Added webapp/utils/theme-manager.js: discovers themes from view/themes/*.json (framework/plugin/site via PathResolver), validates metadata + required assets, and can extend UserModel.preferences.theme enum.
+- Updated webapp/utils/bootstrap.js to initialize ThemeManager after UserModel schema init and extend theme enum automatically.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 11:38
+
+PROMPT:
+- W-129 Phase 2: themes dynamic docs generators + docs pages
+
+SUMMARY:
+- webapp/controller/markdown.js: added %DYNAMIC{themes-list-table}%, %DYNAMIC{themes-list}%, %DYNAMIC{themes-count}% backed by ThemeManager.discoverThemes().
+- Added docs/themes.md and docs/plugins/creating-themes.md using those generators and documenting the theme file trio + metadata requirements.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 11:42
+
+PROMPT:
+- W-129 Phase 2 follow-up: harden themes dynamic generators for early/isolated execution
+
+SUMMARY:
+- webapp/controller/markdown.js: _getThemes now returns [] unless global.appConfig.system.appDir and siteDir are present, preventing noisy errors in isolated runs/tests.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 11:48
+
+PROMPT:
+- Review app start log: fix PluginManager stats logging + theme enum order
+
+SUMMARY:
+- webapp/utils/bootstrap.js: fix PluginManager discovery log to use metrics shape (stats.total/enabled/disabled) with backward-compatible fallback.
+- webapp/utils/theme-manager.js: ensure UserModel.preferences.theme enum always includes light + dark and orders as: light, dark, then others.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 11:48
+
+SUMMARY:
+- User accepted webapp/controller/markdown.js changes for W-129 themes dynamic generators.
+- User adjusted docs/themes.md and docs/plugins/creating-themes.md headings (kept).
+
+STATUS: accepted (markdown.js), docs headings updated by user
+
+
+============================================================
+2026-01-08 12:27
+
+PROMPT:
+- Remove backward-compatible fallback in PluginManager bootstrap log stats
+
+SUMMARY:
+- webapp/utils/bootstrap.js: log plugin counts strictly from PluginManager.getMetrics() shape (stats.total/enabled/disabled), removed fallback to old fields.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 12:41
+
+PROMPT:
+- Fix /themes/*.png not showing in docs table (binary asset serving) + allow optional Handlebars processing for .svg
+
+SUMMARY:
+- webapp/controller/view.js: serve binary assets (.png/.jpg/.gif/.webp/.ico) as raw bytes with correct Content-Type; serve .json raw (no Handlebars) to avoid accidental expansion; .svg is treated as text and can be Handlebars-processed, now with image/svg+xml MIME.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 13:41
+
+PROMPT:
+- Study plugin docs symlink behavior (framework install vs site install) before changing symlinks
+
+SUMMARY:
+- SymlinkManager.detectContext(): framework if docs/plugins exists at project root; site if webapp/static/assets/jpulse-docs/plugins exists.
+- Framework repo: webapp/static/assets/jpulse-docs is a symlink to ../../../docs; plugin docs are expected at docs/installed-plugins/<plugin>/ (usually a symlink to plugins/<plugin>/docs).
+- Site install: docs live under webapp/static/assets/jpulse-docs/; plugin docs symlink should be created under webapp/static/assets/jpulse-docs/installed-plugins/<plugin> -> plugins/<plugin>/docs.
+- Local issue: docs/installed-plugins/auth-mfa is an empty real directory (not symlink), and SymlinkManager refuses to replace directories, so auth-mfa docs never link in, causing missing README + missing sidebar entry.
+
+STATUS: pending user decision on how to handle existing directories (accept/reject)
+
+
+============================================================
+2026-01-08 13:52
+
+PROMPT:
+- Fix themes docs table formatting + analyze empty installed-plugins/auth-mfa dir origin
+
+SUMMARY:
+- webapp/controller/markdown.js: themes table now renders theme name as code (no escaped backticks shown).
+- Analysis: docs/installed-plugins/auth-mfa is an empty real directory; current SymlinkManager never creates pluginName directories (only the parent), so the empty dir likely came from a prior manual step or an external packaging/extraction step around 2025-12-20. It blocks docs symlink creation because SymlinkManager refuses to replace directories.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 14:21
+
+PROMPT:
+- Investigate empty docs/installed-plugins/auth-mfa directory origin; provide git commands
+
+SUMMARY:
+- Reviewed tt-git.txt; the last git command failed because --follow only supports one pathspec.
+- Next: run separate git log -p (no --follow) for symlink-manager.js and plugin-manager.js, and use --follow individually if needed.
+
+STATUS: pending
+
+
+============================================================
+2026-01-08 14:40
+
+PROMPT:
+- Add warning message when plugin docs symlink is blocked by existing directory; document framework dev repo recovery
+
+SUMMARY:
+- webapp/utils/symlink-manager.js: if docs symlink path exists as a directory, return a more actionable warning (detect empty vs non-empty dir) explaining how to fix.
+- docs/plugins/plugin-architecture.md: added troubleshooting note for framework dev repos (remove blocking docs/installed-plugins/{name} dir and restart).
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 14:48
+
+SUMMARY:
+- User accepted: webapp/utils/symlink-manager.js (improved warning when docs symlink blocked by directory).
+- User accepted: docs/plugins/plugin-architecture.md (added troubleshooting note for framework dev repos).
+
+STATUS: accepted
+
+
+============================================================
+2026-01-08 14:55
+
+PROMPT:
+- Make utils.theme.default config-driven + add %DYNAMIC{themes-default}%
+
+SUMMARY:
+- webapp/controller/handlebar.js: added core.themeDefault from appConfig.utils.theme.default; core.htmlAttrs theme fallback now uses configured default.
+- webapp/view/jpulse-header.tmpl: theme CSS link now falls back to core.themeDefault instead of hardcoded "light".
+- webapp/controller/markdown.js: added %DYNAMIC{themes-default}% returning the default theme id (validated) from appConfig.utils.theme.default.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 15:20
+
+PROMPT:
+- Migrate core.* handlebars context into appConfig.system.*
+
+SUMMARY:
+- webapp/controller/handlebar.js: removed root core.* context; now provides appConfig.system.themeDefault + appConfig.system.htmlAttrs for theme/lang rendering.
+- webapp/controller/handlebar.js: for unauthenticated users, appConfig.system remains filtered except safe keys (themeDefault/htmlAttrs) are re-injected after filtering.
+- webapp/view/jpulse-header.tmpl: theme CSS fallback now uses appConfig.system.themeDefault.
+- Bulk-updated 45 view/docs files: <html {{core.htmlAttrs}}> -> <html {{appConfig.system.htmlAttrs}}>
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 15:24
+
+PROMPT:
+- Rename appConfig.system.themeDefault -> appConfig.system.defaultTheme; ensure unauth filtering keeps safe keys
+
+SUMMARY:
+- webapp/controller/handlebar.js: renamed injected system key to defaultTheme; unauth safe reinjection now uses defaultTheme+htmlAttrs.
+- webapp/view/jpulse-header.tmpl: updated fallback to appConfig.system.defaultTheme.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 15:26
+
+PROMPT:
+- Update W-129 working doc: migrate core.* references to appConfig.system.* + document %DYNAMIC{themes-default}%
+
+SUMMARY:
+- docs/dev/working/W-129-themes-infrastructure.md: updated header template snippet to use appConfig.system.defaultTheme, clarified unauth fallback behavior, documented themes-default generator, and fixed themes table detail formatting (no escaped backticks).
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 15:43
+
+PROMPT:
+- Make unauth appConfig.system exceptions data-driven via contextFilter.alwaysAllow
+
+SUMMARY:
+- webapp/controller/handlebar.js: removed hardcoded safeSystem injection; added generic allow-list pass (contextFilter.alwaysAllow) that re-applies allowed paths after filtering.
+- app.conf already includes alwaysAllow: appConfig.system.defaultTheme + appConfig.system.htmlAttrs.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 17:43
+
+PROMPT:
+- Add CommonUtils dot-path helpers; refactor i18n + handlebar allowlist to use them
+
+SUMMARY:
+- webapp/utils/common.js: added CommonUtils.getValueByPath, setValueByPath, deleteValueByPath; exported as named exports.
+- webapp/utils/i18n.js: removed local get/setValueByPath helpers; now imports and uses CommonUtils versions.
+- webapp/controller/handlebar.js: allowlist (contextFilter.alwaysAllow) now uses CommonUtils path helpers; removed redundant _getPath/_setPath methods.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 17:48
+
+PROMPT:
+- Add CommonUtils dot-path helpers; refactor i18n + handlebar allowlist to use them
+
+SUMMARY:
+- Accepted by user.
+
+STATUS: accepted
+
+
+============================================================
+2026-01-08 17:56
+
+PROMPT:
+- Add unit tests for new CommonUtils dot-path helpers
+
+SUMMARY:
+- webapp/tests/unit/utils/common-utils.test.js: added unit tests for CommonUtils.getValueByPath, setValueByPath, deleteValueByPath (nested read/write/delete + invalid input no-ops).
+- Note: local test run depends on installed jest deps; if you see "Cannot find module @jest/test-sequencer", run npm install/npm ci.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 18:01
+
+PROMPT:
+- Add unit tests for new CommonUtils dot-path helpers
+
+SUMMARY:
+- Accepted by user; local run: 1599 tests pass.
+
+STATUS: accepted
+
+
+============================================================
+2026-01-08 18:09
+
+PROMPT:
+- Implement low-hanging-fruit tests for recent controller/utils changes
+
+SUMMARY:
+- Added handlebar alwaysAllow tests: webapp/tests/unit/controller/handlebar-appconfig-alwaysallow.test.js
+- Added Markdown themes dynamic generator tests: webapp/tests/unit/controller/markdown-themes-dynamic.test.js
+- Added ViewController raw asset serving tests: webapp/tests/unit/controller/view-static-assets.test.js
+- Added SymlinkManager docs symlink blocker tests: webapp/tests/unit/utils/symlink-manager.test.js
+- All new test files lint clean.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 18:15
+
+PROMPT:
+- Fix failing low-hanging-fruit tests (markdown themes sort + view static asset mocks)
+
+SUMMARY:
+- webapp/controller/markdown.js: fixed theme source sorting bug (framework sourceOrder=0 was treated as falsy); now uses ?? 99.
+- webapp/tests/unit/controller/view-static-assets.test.js: removed brittle PathResolver module mock; now uses jest.spyOn on real PathResolver static methods.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 18:18
+
+PROMPT:
+- Fix remaining view-static-assets unit test failures
+
+SUMMARY:
+- webapp/tests/unit/controller/view-static-assets.test.js: spy on fs default export (matches ViewController import) so raw .png/.json tests don\x27t hit real filesystem; added req.originalUrl to stabilize error handling paths.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 18:21
+
+PROMPT:
+- Fix failing low-hanging-fruit tests (markdown themes sort + view static asset mocks)
+
+SUMMARY:
+- Accepted by user; local run: 1613 tests pass.
+
+STATUS: accepted
+
+
+============================================================
+2026-01-08 18:52
+
+PROMPT:
+- Server-side Prism light/dark switching based on theme color scheme
+
+SUMMARY:
+- webapp/utils/theme-manager.js: added getThemeColorScheme(themeName) with timestamp-based cache; detects scheme via --jp-theme-color-scheme or color-scheme in theme CSS.
+- webapp/controller/handlebar.js: adds appConfig.system.colorScheme to context (derived from selected theme).
+- webapp/app.conf: allowlists appConfig.system.colorScheme for unauth users.
+- webapp/view/jpulse-header.tmpl: Prism CSS link now uses /common/prism/prism-{{appConfig.system.colorScheme}}.css.
+- webapp/static/common/prism/prism-dark.css: added dark Prism theme; prism-light.css already exists.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 19:19
+
+PROMPT:
+- Replace prism-dark.css with upstream Prism Okaidia theme
+
+SUMMARY:
+- webapp/static/common/prism/prism-dark.css: replaced with upstream Prism theme (prism-okaidia.css) and added small header comment; converted tabs to 4 spaces and removed whitespace-only lines to match repo style.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 19:45
+
+PROMPT:
+- Review and fix W-129 docs (working doc + style-reference + api-reference)
+
+SUMMARY:
+- docs/dev/working/W-129-themes-infrastructure.md: updated Documentation checklist to reflect completed docs and clarify what api-reference covers.
+- docs/style-reference.md: updated Theme System section to reflect current --jp-theme-* variables, htmlAttrs usage, and Prism light/dark CSS selection.
+- docs/api-reference.md: clarified /api/1/user/enums preferences.theme behavior and linked to Themes doc for metadata.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 19:56
+
+PROMPT:
+- Add Themes + Creating Themes links to style-reference.md
+
+SUMMARY:
+- docs/style-reference.md: added See also links near top (Themes, Creating Themes) in addition to existing Theme System section links.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 20:50
+
+PROMPT:
+- Add content to /jpulse-examples/themes.shtml: theme concept, installed themes selector (temporary switch), screenshot preview canvas (500x200), theme-author guidance, docs links.
+
+SUMMARY:
+- webapp/controller/handlebar.js: expose safe theme list as appConfig.system.themes (includes colorScheme), for templates.
+- webapp/app.conf: allowlist appConfig.system.themes for unauthenticated users via contextFilter.alwaysAllow.
+- webapp/view/jpulse-examples/themes.shtml: implemented full Themes Examples page content, dropdown to preview installed themes (live theme + Prism CSS switch), 500x200 preview canvas with checklist, theme-author section, installed themes table w/ previews and metadata.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 21:18
+
+PROMPT:
+- Adjust themes preview canvas: remove rounded corners/border from 500x200 element; fix code snippet extra newline; clarify screenshot instructions.
+
+SUMMARY:
+- webapp/view/jpulse-examples/themes.shtml: preview canvas now has no border and no rounded corners; uses box-sizing so the element itself is exactly 500x200. Updated screenshot checklist text. Fixed code snippet formatting so it renders without an extra newline.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 21:28
+
+PROMPT:
+- Themes examples page: increase preview code snippet box vertical breathing room (after user reduced pre padding).
+
+SUMMARY:
+- webapp/view/jpulse-examples/themes.shtml: keep pre horizontal padding but add small vertical padding via code element (display:block; padding:8px 0) to give the snippet a bit more height.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 21:30
+
+PROMPT:
+- Themes examples page: restore !important on preview code box padding; add small vertical padding without making the snippet look worse.
+
+SUMMARY:
+- webapp/view/jpulse-examples/themes.shtml: set .local-theme-preview-pre padding to 6px 10px !important; removed the extra code-element padding approach.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 21:37
+
+PROMPT:
+- Themes examples page: make theme selector dropdown use only required width (not full width) on desktop.
+
+SUMMARY:
+- webapp/view/jpulse-examples/themes.shtml: added local CSS override so #themeSelect is width:auto (content-sized) with max-width:100%; falls back to width:100% on small screens.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 21:55
+
+PROMPT:
+- Expand Installed Themes preview thumbnails on /jpulse-examples/themes.shtml from 250x100 to full 500x200 size.
+
+SUMMARY:
+- webapp/view/jpulse-examples/themes.shtml: updated .local-theme-thumb to target 500x200 preview display (with max-width:100% for smaller screens).
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 22:02
+
+PROMPT:
+- Themes examples page: make Installed Themes table horizontally scrollable on mobile while keeping 500x200 previews.
+
+SUMMARY:
+- webapp/view/jpulse-examples/themes.shtml: replaced table-level overflow hack with wrapper div (.local-theme-table-scroll) using overflow-x:auto; removed image max-width so previews stay 500x200 and the table can overflow/scroll on small screens.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 22:15
+
+PROMPT:
+- Update docs/plugins/creating-themes.md with instructions for creating 500x200 theme preview screenshots (using /jpulse-examples/themes.shtml).
+
+SUMMARY:
+- docs/plugins/creating-themes.md: added a "Creating preview screenshots (500x200)" section with a recommended workflow and notes, pointing theme authors to /jpulse-examples/themes.shtml.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 22:29
+
+PROMPT:
+- User Profile: instantly preview theme changes when changing the theme dropdown (without needing Save), similar to Themes Examples page.
+
+SUMMARY:
+- webapp/view/user/profile.shtml: added instant theme preview on theme select change in edit mode (updates <html data-theme>, swaps /themes/<id>.css link, and swaps Prism CSS using appConfig.system.themes colorScheme). Cancel/discard reverts to the original theme.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 22:38
+
+PROMPT:
+- Fix User Profile theme preview: after Save, keep the saved theme active (do not revert to original preview theme).
+
+SUMMARY:
+- webapp/view/user/profile.shtml: cancelEdit() now supports {revertTheme:false}; saveProfile() uses applyThemePreview(newTheme) and exits edit mode without reverting theme; updated handlebars-in-script guards to JS comments to satisfy linter.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 22:45
+
+PROMPT:
+- Ensure newly created users default to app.conf utils.theme.default (not hard-coded light).
+
+SUMMARY:
+- webapp/model/user.js: applyDefaults now sets preferences.theme from validated appConfig.utils.theme.default (fallback light) when theme is undefined.
+- webapp/controller/user.js: signup userData now uses validated global.appConfig.utils.theme.default instead of hard-coded light.
+- webapp/tests/unit/user/user-signup.test.js and user-basic.test.js: updated expectations to derive default theme from config (fallback light).
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 22:54
+
+STATUS: accepted
+- New user creation now uses app.conf utils.theme.default (validated) for preferences.theme (confirmed by user by setting default=dark and creating a user).
+
+
+============================================================
+2026-01-08 22:59
+
+PROMPT:
+- Optional polish: add theme-friendly page author checklist to style-reference; align UserModel schema theme default with app.conf utils.theme.default.
+
+SUMMARY:
+- docs/style-reference.md: added a Theme-friendly page author checklist under the Theme System section (do/don’t guidance for theme-safe pages).
+- webapp/model/user.js: UserModel.baseSchema.preferences.theme.default now derives from validated global.appConfig.utils.theme.default (fallback light), so schema reflects config-driven default.
+
+STATUS: pending user verification (accept/reject)
+
+
+============================================================
+2026-01-08 23:13
+
+PROMPT:
+release prep: - assume release: W-129, v1.4.9 - update features & deliverables in W-129 work-items to document work done (don't change status, don't make any other changes to this file) - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script) - update commit-message.txt, following the same format (don't commit) - update cursor_log.txt (append, don't replace)
+
+SUMMARY:
+- Updated W-129 deliverables in docs/dev/work-items.md with comprehensive list of all files and changes.
+- Updated README.md and docs/README.md latest release highlights with v1.4.9 entry.
+- Updated docs/CHANGELOG.md with complete v1.4.9 release notes (W-129).
+- Updated commit-message.txt following the same format as previous releases.
+- Updated cursor_log.txt with release prep summary.
+
+STATUS: accepted
+
+
+============================================================

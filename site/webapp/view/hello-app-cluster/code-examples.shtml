@@ -4,15 +4,15 @@
  * @tagline         Implementation Examples for App Clustering
  * @description     Complete code examples for both client-side and server-side broadcasting patterns
  * @file            site/webapp/view/hello-app-cluster/code-examples.shtml
- * @version         1.4.8
- * @release         2026-01-08
+ * @version         1.4.9
+ * @release         2026-01-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -33,8 +33,8 @@
         }
 
         .local-pattern-card {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+            border: 1px solid var(--jp-theme-border-color, #e9ecef);
             border-radius: 8px;
             padding: 20px;
         }
@@ -64,7 +64,7 @@
 
         .local-step-list li {
             padding: 8px 0;
-            border-bottom: 1px solid #e9ecef;
+            border-bottom: 1px solid var(--jp-theme-border-color, #e9ecef);
             position: relative;
             padding-left: 30px;
         }
@@ -79,8 +79,8 @@
             position: absolute;
             left: 0;
             top: 8px;
-            background: #007bff;
-            color: white;
+            background: var(--jp-theme-color-primary, #007bff);
+            color: var(--jp-theme-text-inverse, #ffffff);
             width: 20px;
             height: 20px;
             border-radius: 50%;
@@ -106,17 +106,17 @@
         .local-api-table td {
             text-align: left;
             padding: 12px;
-            border-bottom: 1px solid #e9ecef;
+            border-bottom: 1px solid var(--jp-theme-border-color, #e9ecef);
         }
 
         .local-api-table th {
-            background-color: #f8f9fa;
+            background-color: var(--jp-theme-bg-secondary, #f8f9fa);
             font-weight: 600;
-            color: #495057;
+            color: var(--jp-theme-text-secondary, #495057);
         }
 
         .local-api-table tr:hover {
-            background-color: #f8f9fa;
+            background-color: var(--jp-theme-bg-secondary, #f8f9fa);
         }
 
         .local-method-badge {
@@ -129,36 +129,36 @@
         }
 
         .local-method-badge.get {
-            background-color: #d1ecf1;
-            color: #0c5460;
+            background-color: var(--jp-theme-color-info-bg, #d1ecf1);
+            color: var(--jp-theme-color-info-text, #0c5460);
         }
 
         .local-method-badge.post {
-            background-color: #d4edda;
-            color: #155724;
+            background-color: var(--jp-theme-color-success-bg, #d4edda);
+            color: var(--jp-theme-color-success-text, #155724);
         }
 
         .local-method-badge.put {
-            background-color: #fff3cd;
-            color: #856404;
+            background-color: var(--jp-theme-color-warning-bg, #fff3cd);
+            color: var(--jp-theme-color-warning-text, #856404);
         }
 
         .local-method-badge.delete {
-            background-color: #f8d7da;
-            color: #721c24;
+            background-color: var(--jp-theme-color-danger-bg, #f8d7da);
+            color: var(--jp-theme-color-danger-text, #721c24);
         }
 
         .local-highlight {
-            background-color: #fff3cd;
+            background-color: var(--jp-theme-color-warning-bg, #fff3cd);
             padding: 15px;
             border-radius: 6px;
-            border-left: 4px solid #ffc107;
+            border-left: 4px solid var(--jp-theme-color-warning, #ffc107);
             margin: 15px 0;
         }
 
         .local-highlight h4 {
             margin-top: 0;
-            color: #856404;
+            color: var(--jp-theme-color-warning-text, #856404);
         }
     </style>
 </head>
@@ -545,7 +545,7 @@ if (!global.RedisManager || !global.RedisManager.isRedisAvailable()) {
                 <span class="jp-btn-nav-arrow">→</span>
                 <a href="/hello-vue/" class="jp-btn jp-btn-outline">🔄 Vue.js SPA Demo</a>
                 <span class="jp-btn-nav-arrow">→</span>
-                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">� WebSocket Real-Time Demo</a>
+                <a href="/hello-websocket/" class="jp-btn jp-btn-outline">🔌 WebSocket Real-Time Demo</a>
                 <span class="jp-btn-nav-arrow">→</span>
                 <a href="/hello-app-cluster/" class="jp-btn jp-btn-active">🌍 App Cluster Demo</a>
             </div>

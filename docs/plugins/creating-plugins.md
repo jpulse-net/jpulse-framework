@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.4.8
+# jPulse Docs / Plugins / Creating Plugins v1.4.9
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -521,7 +521,7 @@ export default class YourPluginController {
 
 ```html
 <!DOCTYPE html>
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <title>Your Plugin - {{app.site.shortName}}</title>
@@ -552,7 +552,7 @@ export default class YourPluginController {
 
 ```html
 <!DOCTYPE html>
-<html lang="en">
+<html {{appConfig.system.htmlAttrs}}>
 <head>
     <meta charset="UTF-8">
     <title>Your Plugin - {{app.site.shortName}}</title>

@@ -284,7 +284,7 @@ console.log('add(2, 3) =', add(2, 3));</code></pre>
 
         <div class="jp-card">
             <h2 class="jp-card-dialog-heading">Installed Themes</h2>
-            <p>Themes are discovered from framework, plugins, and site with priority (site &gt; plugins &gt; framework). This list is safe to show to guests.</p>
+            <p>Themes are discovered from framework, plugins, and site with priority (site &gt; plugins &gt; framework).</p>
             <div class="local-theme-table-scroll">
                 <table class="jp-table local-theme-table">
                     <thead>

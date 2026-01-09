@@ -41,6 +41,10 @@ Instructions for AI assistants working with jPulse Framework site development. T
    - Never define `jp-*` prefix (reserved for framework only in `webapp/view/jpulse-common.css`)
    - Never add custom styles to `webapp/view/jpulse-common.css` (framework-managed)
    - Use existing `jp-*` classes from framework, see [Style Reference](style-reference.md)
+   - **Theme Variables**: Always use `--jp-theme-*` CSS variables for colors (never hard-code `#RRGGBB`, `rgb()`, `hsl()`)
+     - Framework provides 49+ theme variables for all UI elements
+     - Custom themes override these variables via `[data-theme="name"]` selector
+     - See [Style Reference - Theme System](style-reference.md#-theme-system) for complete variable list
 
 6. **JavaScript Conventions**:
    - Use framework utilities from `webapp/view/jpulse-common.js` (read-only, use jPulse.* methods)
@@ -65,7 +69,7 @@ Instructions for AI assistants working with jPulse Framework site development. T
 
 9. **Code Quality**:
    - No tabs - always 4 spaces for indentation
-   - No trailing spaces or spaces on blank lines (violations caught by /^ +$/ search)
+   - No trailing spaces or spaces on blank lines (violations caught by `/ +$/` search)
    - Proper error handling in all API endpoints
 
 10. **Chain of Thought**: Use reasoning process before responding
@@ -82,6 +86,29 @@ Instructions for AI assistants working with jPulse Framework site development. T
     - Format: Timestamp (YYYY-MM-DD HH:MM), user prompt, summary of output, acceptance status
     - Separate entries with 60 "=" characters
 
+13. **Theme-Aware Development**:
+    - **Use CSS Variables**: Always use `--jp-theme-*` CSS variables instead of hard-coded colors
+      - Backgrounds: `var(--jp-theme-bg-primary)`, `var(--jp-theme-bg-secondary)`, etc.
+      - Text: `var(--jp-theme-text-primary)`, `var(--jp-theme-text-muted)`, etc.
+      - Borders: `var(--jp-theme-border-color)`, etc.
+      - Semantic colors: `var(--jp-theme-color-info-*)`, `var(--jp-theme-color-warning-*)`, etc.
+    - **HTML Attributes**: Use `{{appConfig.system.htmlAttrs}}` for `<html>` tag (includes `lang` and `data-theme`)
+      - Never hard-code `data-theme` or `lang` attributes
+      - Framework handles theme selection server-side
+    - **Theme Color Scheme**: Themes automatically detect light/dark via `--jp-theme-color-scheme` CSS variable
+      - Prism.js syntax highlighting switches automatically based on theme color scheme
+      - Available via `appConfig.system.colorScheme` in Handlebars context
+    - **Theme Discovery**: Themes auto-discovered from framework, plugins, and site (priority: site > plugins > framework)
+      - Available via `appConfig.system.themes` in Handlebars context
+      - Each theme has metadata: name, label, description, author, version, source, colorScheme
+    - **Theme-Friendly Pages**:
+      - Prefer framework `jp-*` classes (already theme-aware)
+      - Use CSS variables for custom styles
+      - Test in both light and dark themes
+      - Never hard-code colors that should change with theme
+    - Reference: [Themes](themes.md), [Creating Themes](plugins/creating-themes.md), [Style Reference - Theme System](style-reference.md#-theme-system)
+    - Example: `webapp/view/jpulse-examples/themes.shtml` (theme preview and examples)
+
 #### Never Do These Things
 
 1. ❌ Never modify files in `webapp/` directory (framework-managed)
@@ -93,6 +120,8 @@ Instructions for AI assistants working with jPulse Framework site development. T
 7. ❌ Never create `jp-*` CSS classes (framework-only prefix)
 8. ❌ Never add custom styles to `webapp/view/jpulse-common.css`
 9. ❌ Never modify `webapp/view/jpulse-common.js`
+10. ❌ Never hard-code colors (`#RRGGBB`, `rgb()`, `hsl()`) - use `--jp-theme-*` CSS variables
+11. ❌ Never hard-code `data-theme` or `lang` on `<html>` - use `{{appConfig.system.htmlAttrs}}`
 
 ### Plugin Development Guidelines
 
@@ -286,6 +315,14 @@ Complete details:
 - Advanced jPulse.* utility usage
 - What to learn: Complex UIs, data management, admin patterns
 
+**Theme Examples**: `webapp/view/jpulse-examples/themes.shtml`
+- Theme system demonstration and preview
+- Live theme switching without page reload
+- Theme metadata and discovery
+- Theme preview canvas (500x200) for screenshot generation
+- What to learn: Theme-aware development, CSS variables, theme structure
+- Reference: [Themes](themes.md), [Creating Themes](plugins/creating-themes.md)
+
 ### Plugin Example
 
 **Hello World Plugin**: `plugins/hello-world/`
@@ -362,7 +399,20 @@ Complete details:
 - CSS framework and jp-* component library
 - Available classes and patterns
 - Responsive design
-- When to use: "What CSS classes...", "How do I style..."
+- Theme system and CSS variables
+- When to use: "What CSS classes...", "How do I style...", "What theme variables..."
+
+**Themes**: [docs/themes.md](themes.md)
+- Theme system overview and available themes
+- Theme file structure and discovery
+- User theme preferences
+- When to use: "How do themes work...", "What themes are available..."
+
+**Creating Themes**: [docs/plugins/creating-themes.md](plugins/creating-themes.md)
+- Step-by-step guide for creating custom themes
+- Theme metadata requirements
+- Preview screenshot workflow
+- When to use: "How do I create a theme...", "What files do I need for a theme..."
 
 **Plugin Documentation**: [docs/plugins/](plugins/)
 - Plugin architecture and system design
@@ -401,11 +451,13 @@ Complete details:
 2. Create file in `site/webapp/view/[namespace]/[page].shtml`
 3. Include framework header/footer templates: `{{file.include "jpulse-header.tmpl"}}`
 4. Include reusable site templates: `{{file.include "site-marketing-header.tmpl"}}` (if needed)
-5. Make use of `{{handlebars}}` that are expanded server-side, complete documentation at `docs/handlebars.md`
-6. Use `<style>` tag with `local-*` prefix for page-specific styles
-7. Use `<script>` tag for page JavaScript with `jPulse.dom.ready()` (avoid `DOMContentLoaded`)
-8. Load data client-side with jPulse.api calls (for application pages)
-9. Use existing `jp-*` classes from framework (jp-container, jp-card, jp-btn, etc.)
+5. Use `{{appConfig.system.htmlAttrs}}` for `<html>` tag (includes `lang` and `data-theme` attributes)
+6. Make use of `{{handlebars}}` that are expanded server-side, complete documentation at `docs/handlebars.md`
+7. Use `<style>` tag with `local-*` prefix for page-specific styles
+8. Use `--jp-theme-*` CSS variables for all colors (never hard-code colors)
+9. Use `<script>` tag for page JavaScript with `jPulse.dom.ready()` (avoid `DOMContentLoaded`)
+10. Load data client-side with jPulse.api calls (for application pages)
+11. Use existing `jp-*` classes from framework (jp-container, jp-card, jp-btn, etc.)
 
 **When user asks you to create a view**:
 - Generate the complete HTML/template code based on hello-todo pattern
@@ -506,7 +558,9 @@ plugins/[plugin-name]/
 **Template-only pages**:
 - Create `site/webapp/view/[page]/index.shtml` with static HTML
 - Include framework templates: `{{file.include "jpulse-header.tmpl"}}`
+- Use `{{appConfig.system.htmlAttrs}}` for `<html>` tag
 - Use `site-*` or `local-*` CSS classes
+- Use `--jp-theme-*` CSS variables for colors
 - No controller needed for pure content pages
 
 ## 🎨 Framework Utilities Quick Reference
@@ -566,7 +620,17 @@ Organize your response guidance by user question type:
 **"How do I style X?"**
 → Check [Style Reference](style-reference.md) for existing jp-* classes first
 → If no suitable class exists, create with local-* or site-* prefix
+→ Always use `--jp-theme-*` CSS variables for colors (never hard-code colors)
 → Reference: `webapp/view/jpulse-common.css` (read-only)
+→ Reference: [Style Reference - Theme System](style-reference.md#-theme-system) for theme variables
+
+**"How do I make my page theme-aware?"**
+→ Use `{{appConfig.system.htmlAttrs}}` for `<html>` tag
+→ Use `--jp-theme-*` CSS variables instead of hard-coded colors
+→ Prefer framework `jp-*` classes (already theme-aware)
+→ Test in both light and dark themes
+→ Reference: [Themes](themes.md), [Creating Themes](plugins/creating-themes.md)
+→ Example: `webapp/view/jpulse-examples/themes.shtml`
 
 **"How do I call API Y?"**
 → Check [API Reference](api-reference.md) for endpoint documentation
@@ -603,6 +667,8 @@ Verify your suggestion meets these criteria:
 - [ ] References relevant documentation
 - [ ] Mentions logging requirements (LogController)
 - [ ] Mentions CSS prefix rules (local-* or site-*, never jp-*)
+- [ ] Uses `--jp-theme-*` CSS variables for colors (never hard-coded colors)
+- [ ] Uses `{{appConfig.system.htmlAttrs}}` for `<html>` tag
 - [ ] Uses ISO date format (jPulse.date methods)
 - [ ] No tabs, 4 spaces only
 - [ ] No spaces on blank lines
@@ -690,11 +756,11 @@ Always mention these in your guidance:
 
 Understanding these principles helps you provide better guidance:
 
-**"Don't make me think"**: Intuitive APIs, safe defaults, minimal cognitive load
-**Security by default**: Input validation, authentication checks, path traversal protection
-**Zero configuration**: Auto-discovery, convention over configuration, automatic file resolution
-**Client-side heavy**: Server provides structure/auth state, JavaScript handles data loading (for application pages)
-**Separation of concerns**: Framework handles infrastructure, site handles business logic
+- **"Don't make me think"**: Intuitive APIs, safe defaults, minimal cognitive load
+- **Security by default**: Input validation, authentication checks, path traversal protection
+- **Zero configuration**: Auto-discovery, convention over configuration, automatic file resolution
+- **Client-side heavy**: Server provides structure/auth state, JavaScript handles data loading (for application pages)
+- **Separation of concerns**: Framework handles infrastructure, site handles business logic
 
 ---
 

@@ -3881,6 +3881,7 @@ old pending:
 
 ### Potential next items:
 - W-0: view: broadcast message
+- W-0: handlebars: add array access functions
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-0: deployment: docker strategy
 - W-0: auth controller: authentication with OAuth2 (see W-109 for flow design)
@@ -4009,14 +4010,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - alerting rules for critical system events
   - dashboard configuration for operations teams
 - benefits: proactive production system monitoring and issue detection
-
-### W-037: view: create themes
-- status: 🕑 PENDING
-- type: Feature
-- jPulse framwork ships with two themes: light (default), dark
-- user can set preferred theme -- DONE
-- plugin developers can define new themes
-  - with auto discovery
 
 ### W-0: view: broadcast message
 - status: 🕑 PENDING
@@ -4194,19 +4187,20 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 ### W-0: auth controller: signup with email confirmation
 - status: 🕑 PENDING
 - type: Feature
+- possibly implement as plugin
 - make it optional with a appConfig setting
 
 ### W-0: auth controller: authentication with OAuth2
 - status: 🕑 PENDING
 - type: Feature
-- possiby as plugin once W-045 is implemented
-- strategy to splice OAuth fields into user doc
+- implement as plugin
+- strategy to push OAuth fields into user doc
 
 ### W-0: auth controller: authentication with LDAP
 - status: 🕑 PENDING
 - type: Feature
-- possiby as plugin once W-045 is implemented
-- strategy to splice LDAP attributes into user doc
+- implement as plugin
+- strategy to push/sync LDAP attributes into user doc
 
 ### W-0: i18n: utility app to manage translations
 - status: 🕑 PENDING

@@ -12448,3 +12448,23 @@ STATUS: accepted
 
 
 ============================================================
+2026-01-09 01:50
+
+update @docs/genai-instructions.md to reflect the latest spec
+
+SUMMARY:
+- Updated docs/genai-instructions.md to include comprehensive theme system information from W-129 (v1.4.9)
+- Added Rule 13: Theme-Aware Development covering CSS variables, HTML attributes, theme color scheme detection, theme discovery, and theme-friendly page guidelines
+- Updated CSS Conventions section to emphasize use of --jp-theme-* CSS variables (49+ available)
+- Added two new "Never Do" rules: never hard-code colors, never hard-code data-theme/lang attributes
+- Added Theme Examples to Reference Implementations section (webapp/view/jpulse-examples/themes.shtml)
+- Added Themes and Creating Themes documentation references to Documentation Reference Guide
+- Updated "When to Look Where" section with theme-related guidance for styling and theme-aware development
+- Updated Code Quality Checklist to include theme variable usage and htmlAttrs usage
+- Updated Template Creation Guidance to include theme-aware practices
+- All changes align with W-129 themes infrastructure release specifications
+
+STATUS: accepted
+
+
+============================================================
